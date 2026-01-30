@@ -1210,7 +1210,9 @@ export class AddEditItemDialogComponent implements OnInit {
 
   /**
    * Inicializa las distribuciones en modo creación
-   * - En modo COMPLETA: Crea un item por cada sucursal de influencia con la primera sucursal de entrega
+   * - En modo COMPLETA: Crea un item por cada sucursal de influencia
+   *   - Si la sucursal de influencia también está en las sucursales de entrega, usa esa misma sucursal para ambos campos
+   *   - Si no, usa la primera sucursal de entrega disponible
    * - En modo SIMPLIFICADA: Solo crea automáticamente si hay una única sucursal de influencia y una de entrega
    */
   private initializeDistribuciones(): void {
@@ -1237,13 +1239,20 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     // En modo completo, crear una distribución por cada sucursal de influencia
+    // Si la sucursal de influencia también está en las sucursales de entrega, usar esa misma sucursal
+    // Si no, usar la primera sucursal de entrega disponible
     const primeraSucursalEntrega = this.sucursalesEntrega.length > 0 ? this.sucursalesEntrega[0] : null;
 
     this.sucursalesInfluencia.forEach(sucursalInfluencia => {
-      if (primeraSucursalEntrega) {
+      // Buscar si la sucursal de influencia también está en las sucursales de entrega
+      const sucursalEntregaCorrespondiente = this.sucursalesEntrega.find(
+        se => se.id === sucursalInfluencia.id
+      ) || primeraSucursalEntrega;
+
+      if (sucursalEntregaCorrespondiente) {
         // Solo agregar si no existe ya una distribución con esta combinación
-        if (!this.existeDistribucion(sucursalInfluencia.id, primeraSucursalEntrega.id)) {
-          this.addDistribucionItem(sucursalInfluencia, primeraSucursalEntrega);
+        if (!this.existeDistribucion(sucursalInfluencia.id, sucursalEntregaCorrespondiente.id)) {
+          this.addDistribucionItem(sucursalInfluencia, sucursalEntregaCorrespondiente);
         }
       }
     });
@@ -1295,11 +1304,18 @@ export class AddEditItemDialogComponent implements OnInit {
 
   /**
    * Verifica si ya existe una distribución con la misma combinación de sucursales
+   * @param excludeIndex Opcional: índice a excluir de la búsqueda (útil cuando se está editando)
    */
-  private existeDistribucion(sucursalInfluenciaId: number, sucursalEntregaId: number): boolean {
+  private existeDistribucion(sucursalInfluenciaId: number, sucursalEntregaId: number, excludeIndex?: number): boolean {
     return this.distribucionesItems.some(
-      item => item.sucursalInfluencia.id === sucursalInfluenciaId &&
-              item.sucursalEntrega.id === sucursalEntregaId
+      (item, index) => {
+        // Excluir el índice actual si se proporciona
+        if (excludeIndex !== undefined && index === excludeIndex) {
+          return false;
+        }
+        return item.sucursalInfluencia.id === sucursalInfluenciaId &&
+               item.sucursalEntrega.id === sucursalEntregaId;
+      }
     );
   }
 
@@ -1345,8 +1361,32 @@ export class AddEditItemDialogComponent implements OnInit {
     // Agregar control al FormArray
     const control = this.formBuilder.group({
       sucursalInfluenciaId: [sucursalInfluencia.id],
-      sucursalEntregaId: [sucursalEntrega.id],
+      sucursalEntregaId: [sucursalEntrega.id, [Validators.required]],
       cantidadPedir: [cantidadInicial, [Validators.required, Validators.min(0)]]
+    });
+
+    // Suscribirse a cambios en la sucursal de entrega para actualizar el item
+    control.get('sucursalEntregaId')?.valueChanges.subscribe((nuevaSucursalEntregaId) => {
+      const index = this.distribucionesFormArray.controls.indexOf(control);
+      if (index >= 0 && index < this.distribucionesItems.length) {
+        const nuevaSucursalEntrega = this.sucursalesEntrega.find(se => se.id === nuevaSucursalEntregaId);
+        if (nuevaSucursalEntrega) {
+          // Verificar si no existe otra distribución con la misma combinación (excluyendo la actual)
+          if (this.existeDistribucion(sucursalInfluencia.id, nuevaSucursalEntregaId, index)) {
+            // Revertir el cambio si ya existe
+            const sucursalEntregaAnterior = this.distribucionesItems[index].sucursalEntrega;
+            control.get('sucursalEntregaId')?.setValue(sucursalEntregaAnterior.id, { emitEvent: false });
+            this.notificacionService.openWarn(
+              `Ya existe una distribución para la combinación: ${sucursalInfluencia.nombre} - ${nuevaSucursalEntrega.nombre}`
+            );
+          } else {
+            // Actualizar el item solo si no hay duplicado
+            this.distribucionesItems[index].sucursalEntrega = nuevaSucursalEntrega;
+            // Actualizar el data source para reflejar el cambio
+            this.distribucionesDataSource.data = [...this.distribucionesItems];
+          }
+        }
+      }
     });
 
     this.distribucionesFormArray.push(control);
@@ -1421,6 +1461,14 @@ export class AddEditItemDialogComponent implements OnInit {
   getDistribucionControl(index: number, fieldName: string): FormControl {
     const control = this.distribucionesFormArray.at(index)?.get(fieldName);
     return control as FormControl;
+  }
+
+  /**
+   * Obtiene las sucursales de entrega disponibles para una distribución
+   * (todas las sucursales de entrega del pedido)
+   */
+  getSucursalesEntregaDisponibles(): Sucursal[] {
+    return this.sucursalesEntrega;
   }
 
   /**

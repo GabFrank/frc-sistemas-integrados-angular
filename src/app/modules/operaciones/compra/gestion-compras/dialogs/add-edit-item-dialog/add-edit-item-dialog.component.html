@@ -187,7 +187,24 @@
               <ng-container matColumnDef="sucursalEntrega">
                 <th mat-header-cell *matHeaderCellDef style="text-align: left;">Suc de Entrega</th>
                 <td mat-cell *matCellDef="let item; let i = index" style="text-align: left;">
-                  {{ item.sucursalEntrega?.nombre }}
+                  <mat-form-field appearance="outline" class="sucursal-entrega-field">
+                    <mat-select
+                      [formControl]="getDistribucionControl(i, 'sucursalEntregaId')"
+                      (selectionChange)="onCantidadPedirBlur(i)"
+                    >
+                      <mat-option
+                        *ngFor="let sucursal of getSucursalesEntregaDisponibles()"
+                        [value]="sucursal.id"
+                      >
+                        {{ sucursal.nombre }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error
+                      *ngIf="getDistribucionControl(i, 'sucursalEntregaId')?.hasError('required')"
+                    >
+                      Requerido
+                    </mat-error>
+                  </mat-form-field>
                 </td>
               </ng-container>
 
