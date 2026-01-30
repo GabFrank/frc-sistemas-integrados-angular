@@ -294,6 +294,11 @@ export const gpsSearchQuery = gql`
       simNumero
       activo
       creadoEm
+      ultimaLatitud
+      ultimaLongitud
+      ultimaFechaReporte
+      ultimaIgnicion
+      ultimaVelocidad
       vehiculo {
         id
         chapa
@@ -329,11 +334,29 @@ export const gpsByVehiculoQuery = gql`
       simNumero
       activo
       creadoEm
+      ultimaLatitud
+      ultimaLongitud
+      ultimaFechaReporte
+      ultimaIgnicion
+      ultimaVelocidad
+      vehiculo {
+        id
+        chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
+      }
       ultimaTelemetria {
         id
         latitud
         longitud
         velocidad
+        ignicion
       }
     }
   }

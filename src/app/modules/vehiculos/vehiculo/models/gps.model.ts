@@ -10,4 +10,9 @@ export class Gps {
     activo: boolean;
     creadoEm: Date;
     ultimaTelemetria: Telemetria;
+    ultimaLatitud: number;
+    ultimaLongitud: number;
+    ultimaFechaReporte: Date;
+    ultimaIgnicion: boolean;
+    ultimaVelocidad: number;
 }

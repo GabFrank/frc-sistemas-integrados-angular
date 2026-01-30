@@ -12,6 +12,18 @@
                 </mat-select>
             </mat-form-field>
         </div>
+        <div class="ws-status">
+            <div class="ws-indicator" [class.connected]="wsConnected" [class.disconnected]="!wsConnected">
+                <span class="ws-dot"></span>
+                <span class="ws-text">{{ wsConnected ? 'En Vivo' : 'Desconectado' }}</span>
+            </div>
+            <button *ngIf="!wsConnected" mat-icon-button (click)="reconnectWebSocket()" matTooltip="Reconectar">
+                <mat-icon>refresh</mat-icon>
+            </button>
+            <span *ngIf="lastUpdate" class="last-update">
+                Última actualización: {{ lastUpdate | date:'HH:mm:ss' }}
+            </span>
+        </div>
     </div>
 
     <div class="map-wrapper">
