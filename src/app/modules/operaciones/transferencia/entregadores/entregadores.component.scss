@@ -22,6 +22,16 @@ $text-secondary: #aaaaaa;
             color: white !important;
         }
 
+        .mat-mdc-row.detail-row {
+            background-color: transparent !important;
+
+            .mat-mdc-cell {
+                background-color: transparent !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+        }
+
         .mat-mdc-header-cell {
             color: white !important;
         }
@@ -41,15 +51,29 @@ $text-secondary: #aaaaaa;
     }
 }
 
+
 table {
     width: 100%;
 }
 
-
-
 tr.detail-row {
-    height: 0;
+    height: 0 !important;
+    min-height: 0 !important;
+    background-color: transparent !important;
+
+    td {
+        padding: 0 !important;
+        border: none !important;
+        background-color: transparent !important;
+    }
 }
+
+.expanded-cell {
+    padding: 0 !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
 
 .element-row {
     &:hover {
@@ -74,12 +98,14 @@ tr.detail-row {
 .element-detail {
     overflow: hidden;
     display: flex;
+    background-color: rgb(50, 50, 50);
 }
 
 .detail-container {
     padding: 16px;
     width: 100%;
 }
+
 
 .detail-table {
     width: 100%;

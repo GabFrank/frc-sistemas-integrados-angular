@@ -3,7 +3,7 @@
 <mat-dialog-content>
     <div fxLayout="column" fxLayoutGap="15px">
         <div fxLayout="row" fxLayoutAlign="start center">
-            <mat-form-field appearance="fill" fxFlex class="custom-dark-input">
+            <mat-form-field appearance="outline" fxFlex class="dark-outline-input">
                 <mat-label>Vehículo</mat-label>
                 <input matInput
                     [value]="selectedVehiculo ? (selectedVehiculo.modelo?.marca?.descripcion + ' ' + selectedVehiculo.modelo?.descripcion + ' - ' + selectedVehiculo.chapa) : ''"
@@ -15,8 +15,9 @@
             </mat-form-field>
         </div>
 
+
         <div fxLayout="row" fxLayoutAlign="start center">
-            <mat-form-field appearance="fill" fxFlex class="custom-dark-input">
+            <mat-form-field appearance="outline" fxFlex class="dark-outline-input">
                 <mat-label>Chofer</mat-label>
                 <input matInput [formControl]="choferControl" readonly (click)="onBuscarChofer()"
                     style="cursor: pointer;">
@@ -27,14 +28,16 @@
             </mat-form-field>
         </div>
 
+
         <div fxLayout="row" fxLayoutGap="10px">
-            <mat-form-field appearance="outline" fxFlex="50">
+            <mat-form-field appearance="outline" fxFlex="50" class="dark-outline-input">
                 <mat-label>Fecha de Salida</mat-label>
                 <input matInput [matDatepicker]="pickerSalida" [formControl]="fechaSalidaControl">
                 <mat-datepicker-toggle matSuffix [for]="pickerSalida"></mat-datepicker-toggle>
                 <mat-datepicker #pickerSalida></mat-datepicker>
             </mat-form-field>
         </div>
+
 
         <div>
             <div fxLayout="row" fxLayoutAlign="space-between center">
