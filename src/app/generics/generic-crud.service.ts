@@ -110,8 +110,10 @@ export class GenericCrudService {
     silentLoad?: boolean
   ): Observable<any> {
     this.isLoading = true;
+    // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
+    const shouldShowDialog = silentLoad !== true;
     let { requestId = null, signal = null } =
-      silentLoad != true
+      shouldShowDialog
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
     return new Observable((obs) => {
@@ -131,9 +133,9 @@ export class GenericCrudService {
         )
         .subscribe({
           next: (res) => {
-            silentLoad != true
-              ? this.cargandoService.closeDialog(requestId)
-              : null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -148,9 +150,9 @@ export class GenericCrudService {
           },
           error: (error) => {
             this.isLoading = false;
-            silentLoad != true
-              ? this.cargandoService.closeDialog(requestId)
-              : null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             if (errorConf?.networkError?.show == true) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",

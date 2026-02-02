@@ -417,6 +417,22 @@
         padding: 12px 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
+        &.stock-cell {
+          .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 40px;
+            padding: 8px 0;
+
+            ::ng-deep .mat-mdc-progress-spinner {
+              circle {
+                stroke: #4CAF50;
+              }
+            }
+          }
+        }
+
         .cantidad-input-field {
           width: 120px;
 

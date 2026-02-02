@@ -123,8 +123,8 @@ export class ProductoService {
     servidor);
   }
 
-  onGetStockPorProductoAndSucursal(proId, sucId, servidor = true){
-    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor);
+  onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true){
+    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, undefined, silentLoad);
   }
 
   onProductoDescripcionExists(descripcion: string, servidor = true) {

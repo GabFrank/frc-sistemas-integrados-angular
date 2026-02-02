@@ -440,7 +440,11 @@ export class AddEditItemDialogComponent implements OnInit {
           const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
               (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
           if (!esModoSimplificadoMultiSucursal) {
-            this.initializeDistribuciones();
+            // initializeDistribuciones() creará las distribuciones y luego llamará a loadAllStocksAsync()
+            // Usar setTimeout para asegurar que se ejecute después del ciclo de detección de cambios
+            setTimeout(() => {
+              this.initializeDistribuciones();
+            }, 0);
           }
         }
       }
@@ -698,7 +702,11 @@ export class AddEditItemDialogComponent implements OnInit {
       const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
           (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
       if (!esModoSimplificadoMultiSucursal) {
-        this.initializeDistribuciones();
+        // initializeDistribuciones() creará las distribuciones y luego llamará a loadAllStocksAsync()
+        // Usar setTimeout para asegurar que se ejecute después del ciclo de detección de cambios
+        setTimeout(() => {
+          this.initializeDistribuciones();
+        }, 0);
       }
     }
 
@@ -1214,6 +1222,8 @@ export class AddEditItemDialogComponent implements OnInit {
    *   - Si la sucursal de influencia también está en las sucursales de entrega, usa esa misma sucursal para ambos campos
    *   - Si no, usa la primera sucursal de entrega disponible
    * - En modo SIMPLIFICADA: Solo crea automáticamente si hay una única sucursal de influencia y una de entrega
+   * 
+   * Las cargas de stock se realizan de forma asíncrona después de crear todas las distribuciones
    */
   private initializeDistribuciones(): void {
     console.log('initializeDistribuciones llamado. Modo:', this.distribucionModo, 
@@ -1230,7 +1240,11 @@ export class AddEditItemDialogComponent implements OnInit {
           this.sucursalesEntrega.length === 1 &&
           !this.existeDistribucion(this.sucursalesInfluencia[0].id, this.sucursalesEntrega[0].id)) {
         console.log('Creando distribución automática en modo simplificado (1-1 sucursales)');
-        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0]);
+        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0], 0, undefined, false);
+        // Iniciar carga asíncrona de stocks después de crear la distribución
+        setTimeout(() => {
+          this.loadAllStocksAsync();
+        }, 0);
       } else {
         console.log('NO se crean distribuciones automáticas en modo simplificado (múltiples sucursales)');
       }
@@ -1252,10 +1266,17 @@ export class AddEditItemDialogComponent implements OnInit {
       if (sucursalEntregaCorrespondiente) {
         // Solo agregar si no existe ya una distribución con esta combinación
         if (!this.existeDistribucion(sucursalInfluencia.id, sucursalEntregaCorrespondiente.id)) {
-          this.addDistribucionItem(sucursalInfluencia, sucursalEntregaCorrespondiente);
+          // Crear distribución sin cargar stocks inmediatamente
+          this.addDistribucionItem(sucursalInfluencia, sucursalEntregaCorrespondiente, 0, undefined, false);
         }
       }
     });
+
+    // Iniciar carga asíncrona de todos los stocks después de crear todas las distribuciones
+    // Usar setTimeout para asegurar que se ejecute después del ciclo de detección de cambios
+    setTimeout(() => {
+      this.loadAllStocksAsync();
+    }, 0);
   }
 
   /**
@@ -1272,11 +1293,13 @@ export class AddEditItemDialogComponent implements OnInit {
             if (presentacion && presentacion.cantidad > 0) {
               cantidadPorPresentacion = cantidadPorPresentacion / presentacion.cantidad;
             }
+            // En modo edición, cargar stocks inmediatamente
             this.addDistribucionItem(
               dist.sucursalInfluencia,
               dist.sucursalEntrega,
               cantidadPorPresentacion,
-              dist.id
+              dist.id,
+              true
             );
           });
         } else {
@@ -1320,13 +1343,44 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   /**
+   * Carga todos los stocks de forma asíncrona e independiente
+   * Cada carga se ejecuta de forma paralela sin bloquear la UI
+   * También carga las cantidades sugeridas de forma asíncrona
+   */
+  private loadAllStocksAsync(): void {
+    const producto = this.itemForm.get("producto")?.value;
+    if (!producto?.id) {
+      return;
+    }
+
+    // Iniciar carga de stock y cantidad sugerida para cada distribución de forma asíncrona e independiente
+    this.distribucionesItems.forEach((item, index) => {
+      // Usar setTimeout con delay mínimo para asegurar que cada carga sea independiente
+      // y no sature el servidor con múltiples peticiones simultáneas
+      // El delay incremental es muy pequeño (10ms) para no afectar la experiencia del usuario
+      setTimeout(() => {
+        // Solo cargar si aún está en estado de carga (no se ha cargado manualmente)
+        if (item.stockActualLoading) {
+          this.loadStockActual(item);
+        }
+        // Cargar cantidad sugerida también de forma asíncrona
+        if (item.cantidadSugeridaLoading) {
+          this.calculateCantidadSugerida(item);
+        }
+      }, index * 10); // Pequeño delay incremental para evitar saturación del servidor
+    });
+  }
+
+  /**
    * Agrega un item de distribución
+   * @param loadStockImmediately Si es true, carga el stock inmediatamente. Si es false, espera a loadAllStocksAsync()
    */
   private addDistribucionItem(
     sucursalInfluencia: Sucursal,
     sucursalEntrega: Sucursal,
     cantidadInicial: number = 0,
-    distribucionId?: number
+    distribucionId?: number,
+    loadStockImmediately: boolean = true
   ): void {
     console.log('addDistribucionItem llamado:', {
       sucursalInfluencia: sucursalInfluencia.nombre,
@@ -1394,9 +1448,15 @@ export class AddEditItemDialogComponent implements OnInit {
     // Actualizar data source
     this.distribucionesDataSource.data = [...this.distribucionesItems];
 
-    // Cargar stock actual y cantidad sugerida
-    this.loadStockActual(distribucionItem);
-    this.calculateCantidadSugerida(distribucionItem);
+    // Cargar stock actual y cantidad sugerida solo si se solicita
+    // Si loadStockImmediately es false, se cargará mediante loadAllStocksAsync()
+    if (loadStockImmediately) {
+      // Usar setTimeout para asegurar que la carga sea completamente asíncrona
+      setTimeout(() => {
+        this.loadStockActual(distribucionItem);
+        this.calculateCantidadSugerida(distribucionItem);
+      }, 0);
+    }
 
     this.calculateCantidadTotal();
   }
@@ -1426,7 +1486,8 @@ export class AddEditItemDialogComponent implements OnInit {
     if (this.sucursalesInfluencia.length === 1 && this.sucursalesEntrega.length === 1) {
       // Verificar que no esté ya agregada usando el método de validación
       if (!this.existeDistribucion(this.sucursalesInfluencia[0].id, this.sucursalesEntrega[0].id)) {
-        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0]);
+        // Cuando el usuario agrega manualmente, cargar stock inmediatamente
+        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0], 0, undefined, true);
       }
       return;
     }
@@ -1449,7 +1510,8 @@ export class AddEditItemDialogComponent implements OnInit {
       if (result) {
         // Verificar que no esté duplicada usando el método de validación
         if (!this.existeDistribucion(result.sucursalInfluencia.id, result.sucursalEntrega.id)) {
-          this.addDistribucionItem(result.sucursalInfluencia, result.sucursalEntrega);
+          // Cuando el usuario agrega manualmente, cargar stock inmediatamente
+          this.addDistribucionItem(result.sucursalInfluencia, result.sucursalEntrega, 0, undefined, true);
         }
       }
     });
@@ -1472,7 +1534,8 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   /**
-   * Carga el stock actual para una distribución
+   * Carga el stock actual para una distribución de forma asíncrona e independiente
+   * No bloquea la UI y actualiza solo el item específico
    */
   private loadStockActual(distribucionItem: DistribucionItem): void {
     const producto = this.itemForm.get("producto")?.value;
@@ -1481,22 +1544,36 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
+    // Asegurar que el estado de carga esté activo
+    distribucionItem.stockActualLoading = true;
+
+    // La llamada ya es asíncrona, pero asegurarnos de que no bloquee
     this.productoService.onGetStockPorProductoAndSucursal(
       producto.id,
-      distribucionItem.sucursalInfluencia.id
+      distribucionItem.sucursalInfluencia.id,
+      true
     ).subscribe({
       next: (stock) => {
+        // Actualizar solo este item específico
         distribucionItem.stockActual = stock || 0;
         distribucionItem.stockActualLoading = false;
+        
         // Actualizar el stock total simplificado cuando se carga el stock
-        this.updateComputedProperties();
+        // Usar setTimeout para asegurar que se ejecute después del ciclo actual
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
       },
       error: (error) => {
-        console.error('Error cargando stock:', error);
+        console.error('Error cargando stock para sucursal', distribucionItem.sucursalInfluencia.nombre, ':', error);
+        // En caso de error, establecer valores por defecto
         distribucionItem.stockActual = 0;
         distribucionItem.stockActualLoading = false;
+        
         // Actualizar también en caso de error
-        this.updateComputedProperties();
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
       }
     });
   }
@@ -1535,7 +1612,9 @@ export class AddEditItemDialogComponent implements OnInit {
       tipoMovimientosCompra,
       null,
       0,
-      1000
+      1000,
+      true, // servidor
+      true  // silentLoad
     ).subscribe({
       next: (comprasPage) => {
         const compras = comprasPage?.getContent || [];
@@ -1549,7 +1628,9 @@ export class AddEditItemDialogComponent implements OnInit {
           tipoMovimientosVenta,
           null,
           0,
-          1000
+          1000,
+          true, // servidor
+          true  // silentLoad
         ).subscribe({
           next: (ventasPage) => {
             const ventas = ventasPage?.getContent || [];
@@ -1709,7 +1790,8 @@ export class AddEditItemDialogComponent implements OnInit {
     if (this.distribucionesItems.length === 0 && 
         this.sucursalesInfluencia.length === 1 && 
         this.sucursalesEntrega.length === 1) {
-      this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0], cantidad);
+      // En modo simplificado, cargar stock inmediatamente
+      this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0], cantidad, undefined, true);
     } else if (this.distribucionesItems.length > 0) {
       // Asignar el total a la primera distribución y poner las demás en 0
       this.distribucionesFormArray.controls.forEach((control, index) => {
