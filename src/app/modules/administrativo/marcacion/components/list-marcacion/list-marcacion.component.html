@@ -7,8 +7,9 @@
             </mat-form-field>
             <mat-form-field fxFlex="25">
                 <mat-label>Persona</mat-label>
-                <input matInput [formControl]="personaControl" readonly placeholder="Seleccionar persona..." />
-                <button mat-icon-button matSuffix (click)="abrirBuscadorPersona()" type="button">
+                <input matInput [formControl]="personaControl" placeholder="Buscar por ID o Nombre..."
+                    (keyup.enter)="buscarPersona()" />
+                <button mat-icon-button matSuffix (click)="buscarPersona()" type="button">
                     <mat-icon>search</mat-icon>
                 </button>
                 <button mat-icon-button matSuffix (click)="limpiarPersona()" type="button" *ngIf="personaSeleccionada">

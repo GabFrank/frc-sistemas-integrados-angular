@@ -16,6 +16,7 @@ import { MarcacionService } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { BuscarPersonaDialogComponent } from '../../../../personas/persona/buscar-persona-dialog/buscar-persona-dialog.component';
+import { PersonaService } from '../../../../personas/persona/persona.service';
 
 @UntilDestroy()
 @Component({
@@ -53,8 +54,32 @@ export class ListMarcacionComponent implements OnInit {
   constructor(
     public mainService: MainService,
     private marcacionService: MarcacionService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private personaService: PersonaService
   ) { }
+
+  buscarPersona(): void {
+    const valor = this.personaControl.value;
+    if (valor) {
+      if (!isNaN(valor)) {
+        this.personaService.onGetPersona(valor)
+          .pipe(untilDestroyed(this))
+          .subscribe(res => {
+            if (res) {
+              this.personaSeleccionada = res;
+              this.personaControl.setValue(res.nombre);
+              this.filtrar();
+            } else {
+              this.personaControl.setErrors({ invalid: true });
+            }
+          });
+      } else {
+        this.abrirBuscadorPersona();
+      }
+    } else {
+      this.abrirBuscadorPersona();
+    }
+  }
 
   ngOnInit(): void {
     this.sucursalActualNombre = this.mainService.sucursalActual?.nombre || 'Sin sucursal';

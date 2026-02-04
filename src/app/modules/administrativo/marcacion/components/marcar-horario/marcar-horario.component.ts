@@ -14,7 +14,9 @@ import { MarcacionService } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
+import { PersonaService } from '../../../../personas/persona/persona.service';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 
 @UntilDestroy()
 @Component({
@@ -47,8 +49,47 @@ export class MarcarHorarioComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private cdr: ChangeDetectorRef,
-    private searchUsuario: UsuarioSearchGQL
+    private searchUsuario: UsuarioSearchGQL,
+    private personaService: PersonaService,
+    private usuarioService: UsuarioService
   ) { }
+
+  buscarEmpleado(): void {
+    const valor = this.empleadoIdControl.value;
+    if (valor) {
+      if (!isNaN(valor)) {
+        this.usuarioService.onGetUsuarioPorPersonaId(valor)
+          .pipe(untilDestroyed(this))
+          .subscribe(res => {
+            if (res) {
+              this.seleccionarUsuario(res);
+            } else {
+              // Si no encuentra usuario, intentamos buscar si la persona existe para dar un mejor mensaje
+              this.mensajeErrorPersona(valor);
+            }
+            this.cdr.markForCheck();
+          });
+      } else {
+        this.abrirBuscadorEmpleado();
+      }
+    } else {
+      this.abrirBuscadorEmpleado();
+    }
+  }
+
+  mensajeErrorPersona(id: number): void {
+    this.personaService.onGetPersona(id)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res) {
+          this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');
+        } else {
+          this.notificacionService.openWarn('No se encontró ninguna persona con ese ID');
+        }
+        this.empleadoIdControl.setErrors({ invalid: true });
+        this.cdr.markForCheck();
+      });
+  }
 
   ngOnInit(): void {
     this.sucursalActualNombre = this.mainService.sucursalActual?.nombre || 'Sin sucursal';
