@@ -1,0 +1,20 @@
+import { Usuario } from "../../../personas/usuarios/usuario.model";
+import { EstadoJornada } from "../enums/estado-jornada.enum";
+import { Marcacion } from "./marcacion.model";
+
+export class Jornada {
+    id: number;
+    usuario: Usuario;
+    fecha: string;
+
+    marcacionEntrada: Marcacion;
+    marcacionSalida: Marcacion;
+
+    minutosTrabajados: number;
+    minutosExtras: number;
+    minutosLlegadaTardia: number;
+
+    estado: EstadoJornada;
+    observacion: string;
+    actualizadoEn: string;
+}
