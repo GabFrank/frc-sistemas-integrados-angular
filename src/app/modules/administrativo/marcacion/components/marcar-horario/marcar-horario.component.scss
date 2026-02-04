@@ -1,0 +1,246 @@
+.marcar-horario-container {
+  padding: 24px;
+  min-height: 100%;
+  background-color: rgb(70, 70, 70);
+  font-family: 'Roboto', sans-serif;
+}
+
+// Header Moderno
+.header-moderno {
+  margin-bottom: 32px;
+  padding: 0 8px;
+}
+
+.reloj-digital {
+  font-size: 5rem;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.fecha-actual {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 8px;
+  margin-left: 4px;
+}
+
+.sucursal-badge {
+  background: rgba(32, 32, 32, 0.6);
+  padding: 12px 24px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  mat-icon {
+    color: #4caf50;
+    margin-right: 8px;
+  }
+
+  span {
+    font-weight: 500;
+    font-size: 16px;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Tarjeta de filtros
+.filtros-card {
+  background-color: rgb(32, 32, 32);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  margin-bottom: 24px;
+}
+
+.shrinking-mat-form-field {
+  transform: scale(0.9);
+  transform-origin: left;
+}
+
+.action-icon {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 24px;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+  padding: 8px;
+  border-radius: 50%;
+
+  &:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.clear-icon:hover {
+  color: #f44336;
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+// Contenedor de estado
+.estado-container {
+  width: 100%;
+}
+
+.loading-container {
+  padding: 64px;
+  text-align: center;
+}
+
+.loading-text {
+  margin-top: 24px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// Tarjetas de estado
+.estado-card {
+  background-color: rgb(32, 32, 32);
+  border-radius: 8px;
+  padding: 48px 24px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.estado-icon {
+  font-size: 80px;
+  width: 80px;
+  height: 80px;
+  color: #78909c;
+  margin-bottom: 16px;
+}
+
+.estado-icon.activo {
+  color: #4caf50;
+  filter: drop-shadow(0 0 10px rgba(76, 175, 80, 0.3));
+}
+
+.estado-titulo {
+  font-size: 24px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.estado-subtitulo {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
+}
+
+.tiempo-info {
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 10px 20px;
+  border-radius: 50px;
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  margin-bottom: 32px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+}
+
+// Botones de acción
+.btn-entrada {
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  color: #ffffff;
+  padding: 8px 48px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 4px;
+  height: 48px;
+  box-shadow: 0 4px 6px rgba(76, 175, 80, 0.3);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+    transform: translateY(-1px);
+  }
+
+  mat-icon {
+    margin-right: 12px;
+  }
+}
+
+.btn-salida {
+  background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+  color: #ffffff;
+  padding: 8px 48px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 4px;
+  height: 48px;
+  box-shadow: 0 4px 6px rgba(244, 67, 54, 0.3);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 12px rgba(244, 67, 54, 0.4);
+    transform: translateY(-1px);
+  }
+
+  mat-icon {
+    margin-right: 12px;
+  }
+}
+
+// Mensaje placeholder
+.mensaje-card {
+  background-color: rgb(32, 32, 32);
+  border-radius: 8px;
+  padding: 64px 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder-icon {
+  font-size: 80px;
+  width: 80px;
+  height: 80px;
+  color: rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+}
+
+.placeholder-text {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  font-weight: 300;
+}
+
+// Estados de cards visuales
+.sin-entrada {
+  border-left: 6px solid #78909c;
+}
+
+.con-entrada {
+  border-left: 6px solid #4caf50;
+}
+
+// Animaciones
+.estado-card,
+.mensaje-card {
+  animation: slideUpFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

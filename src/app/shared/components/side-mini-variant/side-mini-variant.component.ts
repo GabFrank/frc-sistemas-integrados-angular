@@ -44,6 +44,8 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
 
 interface BaseNavigationItem {
@@ -98,6 +100,26 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'history',
           action: 'pdv-venta-ultimas-cajas',
           visibilityRoles: [ROLES.VENTA_TOUCH]
+        }
+      ]
+    },
+    {
+      name: 'Horarios',
+      icon: 'schedule',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        {
+          name: 'Marcar horario',
+          icon: 'login',
+          action: 'marcar-horario'
+          // Sin visibilityRoles = visible para todos
+        },
+        {
+          name: 'Lista de horarios',
+          icon: 'list_alt',
+          action: 'list-marcacion',
+          visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
         }
       ]
     },
@@ -632,6 +654,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
         break;
+      case "marcar-horario":
+        this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(new Tab(ListMarcacionComponent, "Lista de horarios", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
     }
   }
   private openTabIfAuthorized(role: string, component: any, title: string): void {
@@ -640,6 +672,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
     }
+  }
+
+  private hasAnyRole(roleList: string[]): boolean {
+    if (!this.mainService.usuarioActual?.roles) return false;
+    if (this.mainService.usuarioActual.roles.includes(ROLES.ADMIN)) return true;
+    return roleList.some(role => this.mainService.usuarioActual.roles.includes(role));
   }
 
   async onLogout() {

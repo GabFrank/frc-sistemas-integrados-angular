@@ -1,0 +1,28 @@
+// Estilos para tabla de marcaciones
+.example-element-row {
+    cursor: pointer;
+}
+
+.example-element-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+// Estilos para el header de la tabla
+table {
+    width: 100%;
+}
+
+th.mat-header-cell {
+    background-color: #1a1a2e;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+td.mat-cell {
+    color: rgba(255, 255, 255, 0.87);
+}
+
+// Estilos para indicadores
+.presencial-icon {
+    vertical-align: middle;
+}

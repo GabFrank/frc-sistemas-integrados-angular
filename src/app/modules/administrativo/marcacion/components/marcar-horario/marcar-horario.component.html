@@ -1,1 +1,85 @@
-<p>marcar-horario works!</p>
+<div class="marcar-horario-container" fxLayout="column" fxLayoutGap="16px">
+
+    <div fxLayout="row" fxLayoutAlign="space-between center" class="header-moderno">
+        <div fxLayout="column">
+            <span class="reloj-digital">{{ horaActual | date:'HH:mm:ss' }}</span>
+            <span class="fecha-actual">{{ horaActual | date:'EEEE, d MMMM y' | titlecase }}</span>
+        </div>
+
+        <div class="sucursal-badge" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+            <mat-icon>store</mat-icon>
+            <span>{{ sucursalActualNombre }}</span>
+        </div>
+    </div>
+
+    <mat-card class="filtros-card">
+        <mat-card-content>
+            <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="16px">
+                <div fxFlex="10">
+                    <mat-form-field class="shrinking-mat-form-field" style="width: 100%">
+                        <mat-label>Id</mat-label>
+                        <input type="number" matInput [formControl]="empleadoIdControl" readonly
+                            style="text-align: end" />
+                    </mat-form-field>
+                </div>
+                <div fxFlex="40">
+                    <mat-form-field style="width: 100%">
+                        <mat-label>Empleado</mat-label>
+                        <input type="text" matInput [formControl]="empleadoNombreControl" readonly />
+                    </mat-form-field>
+                </div>
+                <div fxFlex>
+                    <mat-icon class="action-icon" (click)="abrirBuscadorEmpleado()" matTooltip="Buscar empleado">
+                        search
+                    </mat-icon>
+                    <mat-icon *ngIf="usuarioSeleccionado != null" class="action-icon clear-icon"
+                        (click)="limpiarEmpleado()" matTooltip="Limpiar selección" style="cursor: pointer">
+                        clear
+                    </mat-icon>
+                </div>
+            </div>
+        </mat-card-content>
+    </mat-card>
+
+    <div class="estado-container" *ngIf="usuarioSeleccionado">
+
+        <div *ngIf="cargando" class="loading-container" fxLayout="column" fxLayoutAlign="center center">
+            <mat-spinner diameter="50"></mat-spinner>
+            <span class="loading-text">Verificando estado...</span>
+        </div>
+
+        <mat-card *ngIf="!cargando && !estaEnJornada" class="estado-card sin-entrada">
+            <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+                <mat-icon class="estado-icon">timer_off</mat-icon>
+                <span class="estado-titulo">Sin entrada registrada hoy</span>
+                <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
+                <button mat-raised-button class="btn-entrada" (click)="registrarEntrada()">
+                    <mat-icon>login</mat-icon>
+                    REGISTRAR ENTRADA
+                </button>
+            </mat-card-content>
+        </mat-card>
+        <mat-card *ngIf="!cargando && estaEnJornada" class="estado-card con-entrada">
+            <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+                <mat-icon class="estado-icon activo">schedule</mat-icon>
+                <span class="estado-titulo">Jornada Activa</span>
+                <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
+                <div class="tiempo-info" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+                    <mat-icon>access_time</mat-icon>
+                    <span>Entrada: {{ horaEntrada | date:'shortTime' }}</span>
+                </div>
+                <button mat-raised-button class="btn-salida" (click)="registrarSalida()">
+                    <mat-icon>logout</mat-icon>
+                    REGISTRAR SALIDA
+                </button>
+            </mat-card-content>
+        </mat-card>
+    </div>
+    <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
+        <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+            <mat-icon class="placeholder-icon">person_search</mat-icon>
+            <span class="placeholder-text">Seleccione un empleado para registrar marcación</span>
+        </mat-card-content>
+    </mat-card>
+
+</div>

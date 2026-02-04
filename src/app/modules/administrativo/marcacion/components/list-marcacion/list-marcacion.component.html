@@ -1,1 +1,123 @@
-<p>list-marcacion works!</p>
+<app-generic-list titulo="Marcaciones" (filtrar)="filtrar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false">
+    <div filtros fxLayout="column" style="width: 100%; height: 100%">
+        <div fxLayout="row wrap" fxLayoutGap="10px">
+            <mat-form-field fxFlex="10">
+                <mat-label>Id</mat-label>
+                <input matInput [formControl]="idControl" (keyup.enter)="filtrar()" type="number" />
+            </mat-form-field>
+            <mat-form-field fxFlex="25">
+                <mat-label>Persona</mat-label>
+                <input matInput [formControl]="personaControl" readonly placeholder="Seleccionar persona..." />
+                <button mat-icon-button matSuffix (click)="abrirBuscadorPersona()" type="button">
+                    <mat-icon>search</mat-icon>
+                </button>
+                <button mat-icon-button matSuffix (click)="limpiarPersona()" type="button" *ngIf="personaSeleccionada">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </mat-form-field>
+
+            <mat-form-field fxFlex="30">
+                <mat-label>Rango de fecha</mat-label>
+                <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker">
+                    <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="hoy" />
+                    <input matEndDate formControlName="fin" placeholder="Fin" [max]="hoy" />
+                </mat-date-range-input>
+                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+
+            <div fxFlex="20" fxLayout="row" fxLayoutAlign="start center">
+                <mat-icon style="margin-right: 8px; color: #4caf50">store</mat-icon>
+                <span>Sucursal: <strong>{{ sucursalActualNombre }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+        fxLayoutAlign="space-between start">
+        <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+            <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+                    Id
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.id }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="usuario">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+                    Usuario
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.usuario?.persona?.nombre | titlecase }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="sucursalEntrada">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                    Suc. Entrada
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.sucursalEntrada?.nombre | uppercase }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fechaEntrada">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                    Entrada
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.fechaEntrada | date:'short' }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="sucursalSalida">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                    Suc. Salida
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.sucursalSalida?.nombre | uppercase }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fechaSalida">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                    Salida
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    {{ marcacion.fechaSalida | date:'short' }}
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="presencial">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                    Presencial
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                    <mat-icon [style.color]="marcacion.presencial ? '#4caf50' : '#f44336'">
+                        {{ marcacion.presencial ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
+                    ...
+                </th>
+                <td mat-cell *matCellDef="let marcacion; let i = index" style="text-align: center">
+                    <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+                        <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu">
+                        <button mat-menu-item (click)="eliminar(marcacion, i)" style="color: red">
+                            Eliminar
+                        </button>
+                    </mat-menu>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"></tr>
+        </table>
+    </div>
+</app-generic-list>

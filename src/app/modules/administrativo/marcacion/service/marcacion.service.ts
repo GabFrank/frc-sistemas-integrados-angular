@@ -89,6 +89,7 @@ export class MarcacionService {
   }
 
   onRegistrarEntrada(
+    usuarioId: number,
     sucursalId: number,
     latitud?: number,
     longitud?: number,
@@ -100,7 +101,7 @@ export class MarcacionService {
     servidor = true
   ): Observable<Marcacion> {
     const input = new MarcacionInput();
-    input.usuarioId = this.mainService.usuarioActual?.id;
+    input.usuarioId = usuarioId || this.mainService.usuarioActual?.id;
     input.tipo = TipoMarcacion.ENTRADA;
     input.sucursalEntradaId = sucursalId;
     input.fechaEntrada = new Date().toISOString();
