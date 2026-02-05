@@ -2,7 +2,8 @@ import {
   Component,
   OnInit,
   ViewChild,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  ChangeDetectorRef
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatPaginator } from '@angular/material/paginator';
@@ -14,8 +15,11 @@ import { MainService } from '../../../../../main.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
-import { Persona } from '../../../../personas/persona/persona.model';
-import { BuscarPersonaDialogComponent } from '../../../../personas/persona/buscar-persona-dialog/buscar-persona-dialog.component';
+import { Usuario } from '../../../../personas/usuarios/usuario.model';
+import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
+import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PersonaService } from '../../../../personas/persona/persona.service';
 
 @UntilDestroy()
@@ -30,14 +34,14 @@ export class ListMarcacionComponent implements OnInit {
 
   dataSource = new MatTableDataSource<Marcacion>([]);
 
-  idControl = new FormControl();
-  personaControl = new FormControl();
+
+  usuarioIdControl = new FormControl();
+  usuarioNombreControl = new FormControl();
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
   fechaFormGroup: FormGroup;
 
-  personaSeleccionada: Persona = null;
-  sucursalActualNombre = '';
+  usuarioSeleccionado: Usuario = null;
   hoy = new Date();
 
   displayedColumns = [
@@ -47,43 +51,62 @@ export class ListMarcacionComponent implements OnInit {
     'fechaEntrada',
     'sucursalSalida',
     'fechaSalida',
-    'presencial',
-    'acciones'
+    'presencial'
   ];
 
   constructor(
     public mainService: MainService,
     private marcacionService: MarcacionService,
     private matDialog: MatDialog,
-    private personaService: PersonaService
+    private personaService: PersonaService,
+    private usuarioService: UsuarioService,
+    private searchUsuario: UsuarioSearchGQL,
+    private notificacionService: NotificacionSnackbarService,
+    private cdr: ChangeDetectorRef
   ) { }
 
-  buscarPersona(): void {
-    const valor = this.personaControl.value;
+  buscarUsuario(): void {
+    const valor = this.usuarioIdControl.value;
     if (valor) {
       if (!isNaN(valor)) {
-        this.personaService.onGetPersona(valor)
+        this.usuarioService.onGetUsuarioPorPersonaId(valor)
           .pipe(untilDestroyed(this))
           .subscribe(res => {
             if (res) {
-              this.personaSeleccionada = res;
-              this.personaControl.setValue(res.nombre);
-              this.filtrar();
+              this.seleccionarUsuario(res);
             } else {
-              this.personaControl.setErrors({ invalid: true });
+              this.mensajeErrorPersona(valor);
             }
           });
       } else {
-        this.abrirBuscadorPersona();
+        this.abrirBuscadorUsuario();
       }
     } else {
-      this.abrirBuscadorPersona();
+      this.abrirBuscadorUsuario();
     }
   }
 
-  ngOnInit(): void {
-    this.sucursalActualNombre = this.mainService.sucursalActual?.nombre || 'Sin sucursal';
+  mensajeErrorPersona(id: number): void {
+    this.personaService.onGetPersona(id)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res) {
+          this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');
+        } else {
+          this.notificacionService.openWarn('No se encontró ninguna persona con ese ID');
+        }
+        this.usuarioIdControl.setErrors({ invalid: true });
+      });
+  }
 
+  seleccionarUsuario(usuario: Usuario): void {
+    this.usuarioSeleccionado = usuario;
+    this.usuarioNombreControl.setValue(usuario.persona?.nombre);
+    this.usuarioIdControl.setValue(usuario.id);
+    this.filtrar();
+  }
+
+  ngOnInit(): void {
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl
@@ -111,21 +134,14 @@ export class ListMarcacionComponent implements OnInit {
       this.fechaInicioControl.setValue(unaSemanaAtras);
     }
 
-    if (this.idControl.value != null) {
-      this.marcacionService.onGetMarcacion(this.idControl.value)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.dataSource.data = res ? [res] : [];
-        });
-      return;
-    }
 
-    if (this.personaSeleccionada?.usuario?.id) {
+
+    if (this.usuarioSeleccionado?.id) {
       const fechaInicio = dateToString(this.fechaInicioControl.value);
       const fechaFin = dateToString(this.fechaFinControl.value);
 
       this.marcacionService.onGetMarcacionesPorUsuario(
-        this.personaSeleccionada.usuario.id,
+        this.usuarioSeleccionado.id,
         fechaInicio,
         fechaFin
       ).pipe(untilDestroyed(this))
@@ -142,46 +158,59 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   resetearFiltro(): void {
-    this.idControl.setValue(null);
-    this.personaControl.setValue(null);
-    this.personaSeleccionada = null;
+
+    this.usuarioIdControl.setValue(null);
+    this.usuarioNombreControl.setValue(null);
+    this.usuarioSeleccionado = null;
     this.inicializarFechas();
     this.filtrar();
   }
 
-  abrirBuscadorPersona(): void {
-    const dialogRef = this.matDialog.open(BuscarPersonaDialogComponent, {
-      width: '80%',
-      height: '80%',
-      data: {}
-    });
+  abrirBuscadorUsuario(): void {
+    let data: SearchListtDialogData = {
+      titulo: "Buscar Persona",
+      tableData: [
+        { id: "id", nombre: "Id", width: "10%" },
+        {
+          id: "nombre",
+          nombre: "Nombre",
+          nested: true,
+          nestedId: "persona",
+          width: "50%",
+        },
+        {
+          id: "documento",
+          nombre: "Documento",
+          nested: true,
+          nestedId: "persona",
+          width: "40%",
+        },
+      ],
+      query: this.searchUsuario,
+    };
 
-    dialogRef.afterClosed()
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        height: "80vh",
+        width: "70vw",
+        panelClass: 'search-dialog-dark'
+      })
+      .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((persona: Persona) => {
-        if (persona) {
-          this.personaSeleccionada = persona;
-          this.personaControl.setValue(persona.nombre);
-          this.filtrar();
+      .subscribe((usuario: Usuario) => {
+        if (usuario) {
+          this.seleccionarUsuario(usuario);
         }
       });
   }
 
-  limpiarPersona(): void {
-    this.personaSeleccionada = null;
-    this.personaControl.setValue(null);
+  limpiarUsuario(): void {
+    this.usuarioSeleccionado = null;
+    this.usuarioNombreControl.setValue(null);
+    this.usuarioIdControl.setValue(null);
     this.filtrar();
   }
 
-  eliminar(marcacion: Marcacion, index: number): void {
-    this.marcacionService.onDeleteMarcacion(marcacion.id)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res) {
-          const data = [...this.dataSource.data];
-          data.splice(index, 1);
-          this.dataSource.data = data;
-        }
-      });
-  }
+
 }

@@ -1,4 +1,4 @@
-import { ipAddress, port } from "./conectionConfig";
+import { ipAddress, port, ipCentralAddress, centralPort } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: true,
@@ -21,6 +21,8 @@ export const environment = {
     vapidKey: "BD2NBAWDMVmY7hiM9HJB-F9E1oMCBcBS9-JeJ1CxNDkDdrlp8jWzHngYHPnNqqmkFJPNU-5xPMpCpt3hGMPrSLM"
   },
   serverIp: ipAddress,
-  serverPort: port
+  serverPort: port,
+  serverCentralIp: ipCentralAddress,
+  serverCentralPort: centralPort
 };
 

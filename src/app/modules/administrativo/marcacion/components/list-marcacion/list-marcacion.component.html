@@ -1,19 +1,25 @@
 <app-generic-list titulo="Marcaciones" (filtrar)="filtrar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false">
     <div filtros fxLayout="column" style="width: 100%; height: 100%">
         <div fxLayout="row wrap" fxLayoutGap="10px">
+
             <mat-form-field fxFlex="10">
-                <mat-label>Id</mat-label>
-                <input matInput [formControl]="idControl" (keyup.enter)="filtrar()" type="number" />
-            </mat-form-field>
-            <mat-form-field fxFlex="25">
-                <mat-label>Persona</mat-label>
-                <input matInput [formControl]="personaControl" placeholder="Buscar por ID o Nombre..."
-                    (keyup.enter)="buscarPersona()" />
-                <button mat-icon-button matSuffix (click)="buscarPersona()" type="button">
+                <mat-label>Id Usuario</mat-label>
+                <input type="number" matInput [formControl]="usuarioIdControl" (keyup.enter)="buscarUsuario()"
+                    style="text-align: end" placeholder="Enter..." />
+                <button mat-icon-button matSuffix (click)="buscarUsuario()" type="button" matTooltip="Buscar">
                     <mat-icon>search</mat-icon>
                 </button>
-                <button mat-icon-button matSuffix (click)="limpiarPersona()" type="button" *ngIf="personaSeleccionada">
-                    <mat-icon>close</mat-icon>
+            </mat-form-field>
+            <mat-form-field fxFlex="20">
+                <mat-label>Persona</mat-label>
+                <input type="text" matInput [formControl]="usuarioNombreControl" readonly />
+                <button mat-icon-button matSuffix (click)="abrirBuscadorUsuario()" type="button"
+                    *ngIf="usuarioSeleccionado == null" matTooltip="Buscar por nombre">
+                    <mat-icon>search</mat-icon>
+                </button>
+                <button mat-icon-button matSuffix (click)="limpiarUsuario()" type="button"
+                    *ngIf="usuarioSeleccionado != null" matTooltip="Limpiar">
+                    <mat-icon>clear</mat-icon>
                 </button>
             </mat-form-field>
 
@@ -26,11 +32,6 @@
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-date-range-picker #picker></mat-date-range-picker>
             </mat-form-field>
-
-            <div fxFlex="20" fxLayout="row" fxLayoutAlign="start center">
-                <mat-icon style="margin-right: 8px; color: #4caf50">store</mat-icon>
-                <span>Sucursal: <strong>{{ sucursalActualNombre }}</strong></span>
-            </div>
         </div>
     </div>
 
@@ -101,21 +102,7 @@
                     </mat-icon>
                 </td>
             </ng-container>
-            <ng-container matColumnDef="acciones">
-                <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
-                    ...
-                </th>
-                <td mat-cell *matCellDef="let marcacion; let i = index" style="text-align: center">
-                    <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
-                        <mat-icon>more_vert</mat-icon>
-                    </button>
-                    <mat-menu #menu="matMenu">
-                        <button mat-menu-item (click)="eliminar(marcacion, i)" style="color: red">
-                            Eliminar
-                        </button>
-                    </mat-menu>
-                </td>
-            </ng-container>
+
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"></tr>

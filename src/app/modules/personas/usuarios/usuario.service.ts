@@ -7,7 +7,6 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { UsuarioInput } from "./usuario-input.model";
-import { MainService } from "../../../main.service";
 import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -17,9 +16,11 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 import { UsuariosGQL } from "./graphql/usuariosQuery";
 import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonaId";
-import { PageInfo } from "../../../app.component";
 import { SaveInicioSesionGQL } from "./graphql/saveInicioSesion";
 import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inicio-sesion.model";
+
+import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
+import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -39,19 +40,20 @@ export class UsuarioService {
     private injector: Injector,
     private verificarUsuario: VerificarUsuarioGQL,
     private getUsuarios: UsuariosGQL,
-    private saveInicioSesion: SaveInicioSesionGQL
+    private saveInicioSesion: SaveInicioSesionGQL,
+    private getUsuarioImages: GetUsuarioImagesGQL,
+    private saveUsuarioImage: SaveUsuarioImageGQL
 
-  ) // private mainService: MainService
-  {
+  ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
   }
 
-  onGetUsuarios(page, servidor: boolean = true): Observable<Usuario[]>{
+  onGetUsuarios(page, servidor: boolean = true): Observable<Usuario[]> {
     return this.genericService.onGetAll(this.getUsuarios, page, null, servidor)
   }
 
   onGetUsuario(id: number, servidor: boolean = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.getUsuario, {id}, servidor);
+    return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
   }
 
   onGetUsuarioPorPersonaId(id: number, servidor: boolean = true): Observable<any> {
@@ -74,11 +76,19 @@ export class UsuarioService {
     return this.genericService.onDelete(this.deleteUsuario, id, null, null, false, servidor)
   }
 
-  onVerificarUsuario(texto, servidor: boolean = true): Observable<boolean>{
+  onVerificarUsuario(texto, servidor: boolean = true): Observable<boolean> {
     return this.genericService.onGetByTexto(this.verificarUsuario, texto, servidor)
   }
 
-  onSaveInicioSesion(entity: InicioSesionInput, servidor: boolean = true): Observable<InicioSesion>{
+  onSaveInicioSesion(entity: InicioSesionInput, servidor: boolean = true): Observable<InicioSesion> {
     return this.genericService.onSave(this.saveInicioSesion, entity, null, null, servidor);
+  }
+
+  onGetUsuarioImages(id: number, type: string, servidor: boolean = true): Observable<string[]> {
+    return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor);
+  }
+
+  onSaveUsuarioImage(id: number, type: string, image: string, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.saveUsuarioImage, { id, type, image }, servidor);
   }
 }

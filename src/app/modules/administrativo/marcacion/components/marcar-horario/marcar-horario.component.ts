@@ -17,6 +17,10 @@ import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioS
 import { PersonaService } from '../../../../personas/persona/persona.service';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
+import { FaceRecognitionService } from '../../service/face-recognition.service';
+import { ElementRef, ViewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../../environments/environment';
 
 @UntilDestroy()
 @Component({
@@ -43,6 +47,21 @@ export class MarcarHorarioComponent implements OnInit {
   horaActual: Date = new Date();
   private clockInterval: any;
 
+  @ViewChild('video') videoElement: ElementRef<HTMLVideoElement>;
+  @ViewChild('canvas') canvasElement: ElementRef<HTMLCanvasElement>;
+
+  reconocimientoExitoso = false;
+  mostrandoCamara = false;
+  mensajeReconocimiento = '';
+  referenciaDescriptor: number[] | null = null;
+  stream: MediaStream | null = null;
+  detecting = false;
+  mensajeErrorFoto = '';
+  esperandoParaMarcar = false;
+  tiempoEspera = 0;
+  private delayInterval: any;
+
+
   constructor(
     public mainService: MainService,
     private marcacionService: MarcacionService,
@@ -51,7 +70,9 @@ export class MarcarHorarioComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private searchUsuario: UsuarioSearchGQL,
     private personaService: PersonaService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private faceService: FaceRecognitionService,
+    private http: HttpClient
   ) { }
 
   buscarEmpleado(): void {
@@ -64,7 +85,6 @@ export class MarcarHorarioComponent implements OnInit {
             if (res) {
               this.seleccionarUsuario(res);
             } else {
-              // Si no encuentra usuario, intentamos buscar si la persona existe para dar un mejor mensaje
               this.mensajeErrorPersona(valor);
             }
             this.cdr.markForCheck();
@@ -106,6 +126,10 @@ export class MarcarHorarioComponent implements OnInit {
     if (this.clockInterval) {
       clearInterval(this.clockInterval);
     }
+    if (this.delayInterval) {
+      clearInterval(this.delayInterval);
+    }
+    this.detenerCamara();
   }
 
   obtenerInfoDispositivo(): string {
@@ -158,10 +182,183 @@ export class MarcarHorarioComponent implements OnInit {
     this.empleadoNombreControl.setValue(usuario.persona?.nombre);
     this.empleadoIdControl.setValue(usuario.id);
     this.verificarMarcacionActiva();
+
+    this.reconocimientoExitoso = false;
+    this.mostrandoCamara = false;
+    this.mensajeReconocimiento = '';
+    this.mensajeErrorFoto = '';
+    this.referenciaDescriptor = null;
+    this.detenerCamara();
+
+    this.prepararReconocimiento();
+
     this.cdr.markForCheck();
   }
 
+  async prepararReconocimiento(): Promise<void> {
+    this.mensajeErrorFoto = '';
+    let fotoUrl = this.usuarioSeleccionado.avatar;
+
+    let filename = null;
+    if (this.usuarioSeleccionado.persona?.imagenes) {
+      const imgs = this.usuarioSeleccionado.persona.imagenes.split(',');
+      if (imgs.length > 0) filename = imgs[0].trim();
+    }
+
+    if (!fotoUrl && filename) {
+      try {
+        const images = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil').toPromise();
+        if (images && images.length > 0) {
+          fotoUrl = images[0];
+        } else {
+          console.log('Image not found in Filial. Fetching from Central...');
+          const query = {
+            query: `query ($id: ID!, $type: String!) { data: getUsuarioImages(id: $id, type: $type) }`,
+            variables: { id: this.usuarioSeleccionado.id, type: 'perfil' }
+          };
+          const centralUrl = `http://${environment.serverCentralIp}:${environment.serverCentralPort}/graphql`;
+          const response: any = await this.http.post(centralUrl, query).toPromise();
+
+          if (response.data && response.data.data && response.data.data.length > 0) {
+            const base64 = response.data.data[0];
+            await this.usuarioService.onSaveUsuarioImage(this.usuarioSeleccionado.id, 'perfil', base64).toPromise();
+            fotoUrl = base64;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching image from central or filial', e);
+      }
+    }
+
+    if (!fotoUrl) {
+      this.mensajeErrorFoto = 'El usuario no tiene una foto de perfil válida para la verificación facial.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    try {
+      this.cargando = true;
+      this.referenciaDescriptor = await this.faceService.getDescriptor(fotoUrl);
+      this.cargando = false;
+
+      if (!this.referenciaDescriptor) {
+        this.mensajeErrorFoto = 'No se pudo detectar un rostro en la foto de perfil del usuario.';
+      } else {
+        this.iniciarReconocimiento();
+      }
+    } catch (error) {
+      console.error('Error getting descriptor from profile photo:', error);
+      this.mensajeErrorFoto = 'Error al procesar la foto de perfil.';
+      this.cargando = false;
+    }
+    this.cdr.markForCheck();
+  }
+
+  async iniciarReconocimiento(): Promise<void> {
+    if (!this.referenciaDescriptor) return;
+
+    this.mostrandoCamara = true;
+    this.mensajeReconocimiento = 'Iniciando cámara...';
+    this.cdr.markForCheck();
+
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (this.videoElement) {
+        this.videoElement.nativeElement.srcObject = this.stream;
+        this.videoElement.nativeElement.onloadedmetadata = () => {
+          this.videoElement.nativeElement.play();
+          this.detectarBucle();
+        }
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
+      this.mostrandoCamara = false;
+    }
+    this.cdr.markForCheck();
+  }
+
+  detenerCamara(): void {
+    this.detecting = false;
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+    this.mostrandoCamara = false;
+  }
+
+  async detectarBucle(): Promise<void> {
+    this.detecting = true;
+    this.mensajeReconocimiento = 'Buscando rostro...';
+    this.cdr.markForCheck();
+
+    const loop = async () => {
+      if (!this.detecting || !this.videoElement || !this.referenciaDescriptor) return;
+
+      if (this.videoElement.nativeElement.paused || this.videoElement.nativeElement.ended) {
+        return setTimeout(() => loop());
+      }
+
+      const detection = await this.faceService.detect(this.videoElement.nativeElement);
+
+      if (detection.face && detection.face.length > 0) {
+        const tensor = detection.face[0].embedding as number[];
+        const similarity = this.faceService.similarity(this.referenciaDescriptor, tensor);
+
+        if (similarity > 0.6) {
+          this.reconocimientoExitoso = true;
+          // this.detenerCamara(); // Keep camera open
+
+          this.esperandoParaMarcar = true;
+          this.tiempoEspera = 5;
+          this.mensajeReconocimiento = `¡Identidad verificada! Espere ${this.tiempoEspera}s...`;
+          this.cdr.markForCheck();
+
+          // Start countdown
+          if (this.delayInterval) clearInterval(this.delayInterval);
+          this.delayInterval = setInterval(() => {
+            if (!this.reconocimientoExitoso) { // If reset happens
+              clearInterval(this.delayInterval);
+              return;
+            }
+
+            this.tiempoEspera--;
+            if (this.tiempoEspera <= 0) {
+              clearInterval(this.delayInterval);
+              this.esperandoParaMarcar = false;
+              this.detenerCamara();
+            } else {
+              this.mensajeReconocimiento = `¡Identidad verificada! Espere ${this.tiempoEspera}s...`;
+            }
+            this.cdr.markForCheck();
+          }, 1000);
+
+        } else {
+          this.mensajeReconocimiento = `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`;
+        }
+      } else {
+        this.mensajeReconocimiento = 'No se detecta rostro. Centra tu cara.';
+      }
+
+      this.cdr.markForCheck();
+      if (!this.reconocimientoExitoso) {
+        requestAnimationFrame(loop);
+      }
+    };
+
+    loop();
+  }
+
   limpiarEmpleado(): void {
+    if (this.delayInterval) clearInterval(this.delayInterval);
+    this.detenerCamara();
+    this.referenciaDescriptor = null;
+    this.reconocimientoExitoso = false;
+    this.mostrandoCamara = false;
+    this.mensajeErrorFoto = '';
+    this.esperandoParaMarcar = false;
+    this.tiempoEspera = 0;
+
     this.usuarioSeleccionado = null;
     this.empleadoNombreControl.setValue(null);
     this.empleadoIdControl.setValue(null);
@@ -208,7 +405,7 @@ export class MarcarHorarioComponent implements OnInit {
   registrarEntrada(): void {
     if (!this.usuarioSeleccionado?.id) {
       this.notificacionService.notification$.next({
-        texto: 'Debe seleccionar un empleado primero',
+        texto: 'Debe seleccionar su usuario primero',
         color: NotificacionColor.warn,
         duracion: 3
       });
@@ -219,6 +416,15 @@ export class MarcarHorarioComponent implements OnInit {
       this.notificacionService.notification$.next({
         texto: 'No se pudo determinar la sucursal actual',
         color: NotificacionColor.danger,
+        duracion: 3
+      });
+      return;
+    }
+
+    if (!this.reconocimientoExitoso) {
+      this.notificacionService.notification$.next({
+        texto: 'Debe verificar su identidad con reconocimiento facial primero',
+        color: NotificacionColor.warn,
         duracion: 3
       });
       return;
@@ -249,6 +455,10 @@ export class MarcarHorarioComponent implements OnInit {
             color: NotificacionColor.success,
             duracion: 4
           });
+
+          this.reconocimientoExitoso = false;
+          this.mostrandoCamara = false;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.cargando = false;
@@ -271,6 +481,15 @@ export class MarcarHorarioComponent implements OnInit {
       this.notificacionService.notification$.next({
         texto: 'No se pudo determinar la sucursal actual',
         color: NotificacionColor.danger,
+        duracion: 3
+      });
+      return;
+    }
+
+    if (!this.reconocimientoExitoso) {
+      this.notificacionService.notification$.next({
+        texto: 'Debe verificar su identidad con reconocimiento facial primero',
+        color: NotificacionColor.warn,
         duracion: 3
       });
       return;
@@ -299,6 +518,10 @@ export class MarcarHorarioComponent implements OnInit {
           this.marcacionActiva = null;
           this.horaEntrada = null;
           this.estaEnJornada = false;
+
+          this.reconocimientoExitoso = false;
+          this.mostrandoCamara = false;
+
           this.cdr.markForCheck();
         },
         error: () => {

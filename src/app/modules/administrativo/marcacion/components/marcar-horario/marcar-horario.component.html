@@ -27,7 +27,7 @@
                 </div>
                 <div fxFlex="40">
                     <mat-form-field style="width: 100%">
-                        <mat-label>Empleado</mat-label>
+                        <mat-label>Persona</mat-label>
                         <input type="text" matInput [formControl]="empleadoNombreControl" readonly />
                         <button mat-icon-button matSuffix (click)="abrirBuscadorEmpleado()" type="button"
                             *ngIf="usuarioSeleccionado == null" matTooltip="Buscar por nombre">
@@ -57,10 +57,45 @@
                 <mat-icon class="estado-icon">timer_off</mat-icon>
                 <span class="estado-titulo">Sin entrada registrada hoy</span>
                 <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
-                <button mat-raised-button class="btn-entrada" (click)="registrarEntrada()">
-                    <mat-icon>login</mat-icon>
-                    REGISTRAR ENTRADA
-                </button>
+
+                <div *ngIf="!reconocimientoExitoso || cargando || esperandoParaMarcar" fxLayout="column"
+                    fxLayoutAlign="center center" fxLayoutGap="10px">
+                    <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center; margin-bottom: 10px;">
+                        <mat-icon>error</mat-icon>
+                        <div>{{ mensajeErrorFoto }}</div>
+                    </div>
+
+                    <div *ngIf="mostrandoCamara" class="camera-container"
+                        style="position: relative; width: 640px; height: 480px; background: black; border-radius: 8px; overflow: hidden;">
+                        <video #video style="width: 100%; height: 100%; object-fit: cover;" autoplay
+                            playsinline></video>
+                        <canvas #canvas
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                        <div *ngIf="detecting"
+                            style="position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; color: white; text-shadow: 0 1px 2px black;">
+                            {{ mensajeReconocimiento }}
+                        </div>
+                    </div>
+
+                    <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando">
+                        <button mat-stroked-button color="primary" (click)="iniciarReconocimiento()">
+                            <mat-icon>face</mat-icon> Intentar Reconocimiento
+                        </button>
+                    </div>
+                    <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
+                </div>
+
+                <div *ngIf="reconocimientoExitoso && !cargando && !esperandoParaMarcar" fxLayout="column"
+                    fxLayoutAlign="center center" fxLayoutGap="10px">
+                    <div style="color: #4caf50; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+                        <mat-icon>check_circle</mat-icon> {{ mensajeReconocimiento }}
+                    </div>
+                    <button mat-raised-button class="btn-entrada" (click)="registrarEntrada()"
+                        [disabled]="esperandoParaMarcar">
+                        <mat-icon>login</mat-icon>
+                        REGISTRAR ENTRADA
+                    </button>
+                </div>
             </mat-card-content>
         </mat-card>
         <mat-card *ngIf="!cargando && estaEnJornada" class="estado-card con-entrada">
@@ -72,10 +107,45 @@
                     <mat-icon>access_time</mat-icon>
                     <span>Entrada: {{ horaEntrada | date:'shortTime' }}</span>
                 </div>
-                <button mat-raised-button class="btn-salida" (click)="registrarSalida()">
-                    <mat-icon>logout</mat-icon>
-                    REGISTRAR SALIDA
-                </button>
+
+                <div *ngIf="!reconocimientoExitoso || cargando || esperandoParaMarcar" fxLayout="column"
+                    fxLayoutAlign="center center" fxLayoutGap="10px">
+                    <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center; margin-bottom: 10px;">
+                        <mat-icon>error</mat-icon>
+                        <div>{{ mensajeErrorFoto }}</div>
+                    </div>
+
+                    <div *ngIf="mostrandoCamara" class="camera-container"
+                        style="position: relative; width: 640px; height: 480px; background: black; border-radius: 8px; overflow: hidden;">
+                        <video #video style="width: 100%; height: 100%; object-fit: cover;" autoplay
+                            playsinline></video>
+                        <canvas #canvas
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                        <div *ngIf="detecting"
+                            style="position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; color: white; text-shadow: 0 1px 2px black;">
+                            {{ mensajeReconocimiento }}
+                        </div>
+                    </div>
+
+                    <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando">
+                        <button mat-stroked-button color="warn" (click)="iniciarReconocimiento()">
+                            <mat-icon>face</mat-icon> Verificar para Salir
+                        </button>
+                    </div>
+                    <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
+                </div>
+
+                <div *ngIf="reconocimientoExitoso && !cargando && !esperandoParaMarcar" fxLayout="column"
+                    fxLayoutAlign="center center" fxLayoutGap="10px">
+                    <div style="color: #4caf50; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+                        <mat-icon>check_circle</mat-icon> {{ mensajeReconocimiento }}
+                    </div>
+                    <button mat-raised-button class="btn-salida" (click)="registrarSalida()"
+                        [disabled]="esperandoParaMarcar">
+                        <mat-icon>logout</mat-icon>
+                        REGISTRAR SALIDA
+                    </button>
+                </div>
             </mat-card-content>
         </mat-card>
     </div>
