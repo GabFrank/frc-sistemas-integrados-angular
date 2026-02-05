@@ -1,0 +1,93 @@
+h4 {
+  margin: 0;
+}
+tr:focus {
+  outline: none;
+}
+
+table {
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
+.example-element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+input {
+  text-transform: uppercase;
+}
+
+td {
+  padding: 0px !important
+}
+
+.is-delivery {
+  color: #f57c00 !important;
+}
+
+.cancelada {
+  background-color: #f44336;
+}
+
+.con-observacion {
+  background-color: #54c5f8 !important;
+}
+ 
+
+.mdc-evolution-chip-set__chips {
+  display: flex;
+  min-width: 0;
+}
+
+.filters-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.filters-chips .mat-mdc-chip {
+  margin-bottom: 0 !important;
+}
+
+.filters-chips .mat-mdc-chip:not(.mat-mdc-chip-selected) {
+  background-color: transparent !important;
+  border: 1px solid #ffffff !important;
+  color: inherit;
+}
+
+.filters-chips .mat-mdc-chip.mat-mdc-chip-selected {
+  background-color: #2e7d32 !important;
+  color: #ffffff !important;
+  border-color: #2e7d32 !important;
+}
+
+.filters-chips .mat-mdc-chip .mdc-evolution-chip__text-label {
+  color: inherit !important;
+}
+
+.icon-success:hover {
+  color: #43a047;
+  cursor: pointer;
+}
+
+.icon-danger:hover {
+  color: #f44336;
+  cursor: pointer;
+}
+
+.cancelada {
+  background-color: #f44336;
+}
+
+.is-delivery {
+  color: #f57c00 !important;
+}

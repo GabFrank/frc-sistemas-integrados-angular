@@ -353,3 +353,76 @@ export const ventaItemQuery = gql`
     }
   }
 `;
+
+export const ventasGenericFilterQuery = gql`
+  query (
+    $idVenta: ID
+    $idCaja: ID
+    $page: Int
+    $size: Int
+    $asc: Boolean
+    $sucId: ID
+    $formaPago: ID
+    $estado: VentaEstado
+    $isDelivery: Boolean
+    $monedaId: Int
+    $conDescuento: Boolean
+    $conAumento: Boolean
+    $clienteId: ID
+    $fechaInicio: String
+    $fechaFin: String
+  ) {
+    data: ventasGenericFilter(
+      idVenta: $idVenta
+      idCaja: $idCaja
+      page: $page
+      size: $size
+      asc: $asc
+      sucId: $sucId
+      formaPago: $formaPago
+      estado: $estado
+      isDelivery: $isDelivery
+      monedaId: $monedaId
+      conDescuento: $conDescuento
+      conAumento: $conAumento
+      clienteId: $clienteId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        cliente {
+          id
+          persona {
+            nombre
+          }
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        estado
+        creadoEn
+        totalGs
+        totalRs
+        totalDs
+        delivery {
+          id
+          precio {
+            valor
+          }
+          estado
+          fechaConcluido
+        }
+      }
+    }
+  }
+`;

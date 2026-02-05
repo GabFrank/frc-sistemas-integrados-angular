@@ -44,6 +44,7 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 
 
 interface BaseNavigationItem {
@@ -152,7 +153,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               action: 'list-caja',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
-            { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
+            { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' },
+            { name: 'Ventas', icon: 'sell', action: 'generic-list-venta' }
           ]
         },
         {
@@ -526,6 +528,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-caja":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListCajaComponent, "Cajas");
+        break;
+      case "generic-list-venta":
+        this.tabService.addTab(new Tab(GenericListVentaComponent, "Ventas", null, null));
         break;
       case "finanzas-dashboard":
         this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");
