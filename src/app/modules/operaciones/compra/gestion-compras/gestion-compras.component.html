@@ -239,27 +239,33 @@
                     formControlName="sucursalesEntrega"
                     multiple
                     panelClass="custom-select-panel"
+                    (selectionChange)="onSucursalEntregaSelectionChange($event)"
                     (closed)="onSucursalEntregaClosed()"
                   >
                     <mat-select-trigger>
                       {{
                         datosGeneralesForm.get("sucursalesEntrega")?.value
                           ?.length > 0
-                          ? (datosGeneralesForm.get("sucursalesEntrega")
-                              ?.value[0]?.nombre | titlecase) +
-                            (datosGeneralesForm.get("sucursalesEntrega")?.value
-                              ?.length > 1
-                              ? " (+" +
-                                (datosGeneralesForm.get("sucursalesEntrega")
-                                  ?.value?.length -
-                                  1) +
-                                ")"
-                              : "")
+                          ? datosGeneralesForm.get("sucursalesEntrega")?.value[0]?.id === -1
+                            ? "Todos"
+                            : (datosGeneralesForm.get("sucursalesEntrega")
+                                ?.value[0]?.nombre | titlecase) +
+                              (datosGeneralesForm.get("sucursalesEntrega")?.value
+                                ?.length > 1
+                                ? " (+" +
+                                  (datosGeneralesForm.get("sucursalesEntrega")
+                                    ?.value?.length -
+                                    1) +
+                                  ")"
+                                : "")
                           : "Ninguna seleccionada"
                       }}
                     </mat-select-trigger>
+                    <mat-option [value]="sucursalTodos">
+                      Todos
+                    </mat-option>
                     <mat-option
-                      *ngFor="let sucursal of sucursales"
+                      *ngFor="let sucursal of sucursalesEntregaFiltradas"
                       [value]="sucursal"
                     >
                       {{ sucursal.nombre | titlecase }}
@@ -283,27 +289,33 @@
                     #sucursalInfluenciaSelect
                     formControlName="sucursalesInfluencia"
                     multiple
+                    (selectionChange)="onSucursalInfluenciaSelectionChange($event)"
                     (closed)="onSucursalInfluenciaClosed()"
                   >
                     <mat-select-trigger>
                       {{
                         datosGeneralesForm.get("sucursalesInfluencia")?.value
                           ?.length > 0
-                          ? (datosGeneralesForm.get("sucursalesInfluencia")
-                              ?.value[0]?.nombre | titlecase) +
-                            (datosGeneralesForm.get("sucursalesInfluencia")
-                              ?.value?.length > 1
-                              ? " (+" +
-                                (datosGeneralesForm.get("sucursalesInfluencia")
-                                  ?.value?.length -
-                                  1) +
-                                ")"
-                              : "")
+                          ? datosGeneralesForm.get("sucursalesInfluencia")?.value[0]?.id === -1
+                            ? "Todos"
+                            : (datosGeneralesForm.get("sucursalesInfluencia")
+                                ?.value[0]?.nombre | titlecase) +
+                              (datosGeneralesForm.get("sucursalesInfluencia")?.value
+                                ?.length > 1
+                                ? " (+" +
+                                  (datosGeneralesForm.get("sucursalesInfluencia")
+                                    ?.value?.length -
+                                    1) +
+                                  ")"
+                                : "")
                           : "Ninguna seleccionada"
                       }}
                     </mat-select-trigger>
+                    <mat-option [value]="sucursalTodos">
+                      Todos
+                    </mat-option>
                     <mat-option
-                      *ngFor="let sucursal of sucursales"
+                      *ngFor="let sucursal of sucursalesInfluenciaFiltradas"
                       [value]="sucursal"
                     >
                       {{ sucursal.nombre | titlecase }}

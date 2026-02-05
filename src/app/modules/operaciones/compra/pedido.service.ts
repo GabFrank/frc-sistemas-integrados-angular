@@ -39,6 +39,7 @@ import { NotaRecepcionItemDistribucion, NotaRecepcionItemDistribucionInput } fro
 // NotaRecepcion imports
 import { GetNotaRecepcionPorPedidoIdGQL } from './gestion-compras/graphql/getNotaRecepcionPorPedidoId';
 import { GetNotaRecepcionPorPedidoIdAndNumeroPageGQL } from './gestion-compras/graphql/getNotaRecepcionPorPedidoIdAndNumeroPage';
+import { GetNotaRecepcionPorProveedorAndNumeroGQL } from './gestion-compras/graphql/getNotaRecepcionPorProveedorAndNumero';
 import { SaveNotaRecepcionGQL } from './gestion-compras/graphql/saveNotaRecepcion';
 import { DeleteNotaRecepcionGQL } from './gestion-compras/graphql/deleteNotaRecepcion';
 import { GetNotaRecepcionByIdGQL } from './gestion-compras/graphql/getNotaRecepcionById';
@@ -106,6 +107,7 @@ export class PedidoService {
     // NotaRecepcion services
     private getNotaRecepcionPorPedidoIdGQL: GetNotaRecepcionPorPedidoIdGQL,
     private getNotaRecepcionPorPedidoIdAndNumeroPageGQL: GetNotaRecepcionPorPedidoIdAndNumeroPageGQL,
+    private getNotaRecepcionPorProveedorAndNumeroGQL: GetNotaRecepcionPorProveedorAndNumeroGQL,
     private saveNotaRecepcionGQL: SaveNotaRecepcionGQL,
     private deleteNotaRecepcionGQL: DeleteNotaRecepcionGQL,
     private getNotaRecepcionByIdGQL: GetNotaRecepcionByIdGQL,
@@ -440,6 +442,19 @@ export class PedidoService {
     return this.genericCrudService.onCustomQuery(
       this.getNotaRecepcionPorPedidoIdAndNumeroPageGQL, 
       { pedidoId, numero, page, size }
+    );
+  }
+
+  /**
+   * Busca notas de recepción por proveedor y número
+   * @param proveedorId - ID del proveedor
+   * @param numero - Número de la nota
+   * @returns Observable<NotaRecepcion[]>
+   */
+  onBuscarNotasPorProveedorYNumero(proveedorId: number, numero: number): Observable<NotaRecepcion[]> {
+    return this.genericCrudService.onCustomQuery(
+      this.getNotaRecepcionPorProveedorAndNumeroGQL,
+      { proveedorId, numero }
     );
   }
 

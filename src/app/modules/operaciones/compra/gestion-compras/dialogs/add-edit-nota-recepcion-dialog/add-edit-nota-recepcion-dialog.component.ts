@@ -5,7 +5,7 @@ import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, first } from 'rxjs/operators';
 
 import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta, NotaRecepcionInput } from '../../nota-recepcion.model';
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
@@ -854,7 +854,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.dialogRef.close(result);
   }
 
-  onSave(): void {
+  async onSave(): Promise<void> {
     // No permitir guardar si es nota de rechazo
     if (this.esNotaRechazoComputed) {
       this.notificacionService.openAlgoSalioMal('Las notas de rechazo no son editables');
@@ -862,11 +862,24 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
     
     if (this.notaRecepcionForm.valid) {
-      this.savingNota = true;
       const formValue = this.notaRecepcionForm.value;
       
       // Limpiar y convertir datos del formulario
       const cleanFormValue = this.cleanFormData(formValue);
+      
+      // Validar nota duplicada antes de guardar
+      const proveedorId = this.data.pedido?.proveedor?.id;
+      const numero = Number(cleanFormValue.numero);
+      const notaId = this.data.isEdit && this.data.nota ? this.data.nota.id : undefined;
+      
+      if (proveedorId && numero) {
+        const puedeContinuar = await this.validarNotaDuplicada(numero, proveedorId, notaId);
+        if (!puedeContinuar) {
+          return; // Usuario canceló o no quiere continuar
+        }
+      }
+      
+      this.savingNota = true;
       
       if (this.data.isEdit && this.data.nota) {
         // Edit existing nota
@@ -1074,6 +1087,78 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         this.cancelButton._elementRef.nativeElement.focus();
       }
     }, 100);
+  }
+
+  /**
+   * Valida si existe una nota duplicada con el mismo número y proveedor
+   * @param numero - Número de la nota
+   * @param proveedorId - ID del proveedor
+   * @param notaId - ID de la nota actual (opcional, para edición)
+   * @returns Promise<boolean> - true si puede continuar, false si canceló
+   */
+  private async validarNotaDuplicada(numero: number, proveedorId: number, notaId?: number): Promise<boolean> {
+    try {
+      // Buscar notas existentes con mismo número y proveedor
+      const notasExistentes = await this.pedidoService.onBuscarNotasPorProveedorYNumero(
+        proveedorId,
+        numero
+      ).pipe(first()).toPromise();
+
+      if (!notasExistentes || notasExistentes.length === 0) {
+        return true; // No hay duplicados
+      }
+
+      // Filtrar la nota actual si estamos editando
+      const otrasNotas = notaId
+        ? notasExistentes.filter(n => n.id !== notaId)
+        : notasExistentes;
+
+      if (otrasNotas.length === 0) {
+        return true; // Solo está la nota actual
+      }
+
+      // Mostrar advertencia con detalles
+      const mensaje = this.construirMensajeAdvertencia(otrasNotas, numero);
+      
+      return await this.dialogosService.confirm(
+        'Nota Duplicada Detectada',
+        mensaje,
+        '¿Desea continuar de todas formas?',
+        undefined,
+        true,
+        'Continuar',
+        'Cancelar'
+      ).pipe(first()).toPromise() || false;
+    } catch (error) {
+      console.error('Error al validar nota duplicada:', error);
+      // En caso de error, permitir continuar (no bloquear)
+      return true;
+    }
+  }
+
+  /**
+   * Construye el mensaje de advertencia para notas duplicadas
+   * @param notas - Lista de notas duplicadas
+   * @param numero - Número de la nota
+   * @returns Mensaje formateado
+   */
+  private construirMensajeAdvertencia(notas: NotaRecepcion[], numero: number): string {
+    let mensaje = `Ya existen ${notas.length} nota(s) con el número ${numero} para este proveedor:\n\n`;
+    
+    notas.forEach((nota, index) => {
+      mensaje += `${index + 1}. Pedido #${nota.pedido?.id || 'N/A'} - `;
+      mensaje += `Fecha: ${this.formatDate(new Date(nota.fecha))} - `;
+      mensaje += `Estado: ${nota.estado}`;
+      if (nota.timbrado) {
+        mensaje += ` - Timbrado: ${nota.timbrado}`;
+      }
+      mensaje += '\n';
+    });
+    
+    mensaje += '\nSi el proveedor cambió de timbrado, esto es válido. ';
+    mensaje += 'De lo contrario, verifique que no esté duplicando la nota.';
+    
+    return mensaje;
   }
 
   /**

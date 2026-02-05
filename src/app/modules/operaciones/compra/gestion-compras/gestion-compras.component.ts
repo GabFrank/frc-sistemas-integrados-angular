@@ -348,6 +348,9 @@ export class GestionComprasComponent
   monedas: Moneda[] = [];
   formasPago: FormaPago[] = [];
   sucursales: Sucursal[] = [];
+  sucursalesEntregaFiltradas: Sucursal[] = []; // Sucursales de entrega: deposito=true y activo=true
+  sucursalesInfluenciaFiltradas: Sucursal[] = []; // Sucursales de influencia: activo=true y id != 0
+  sucursalTodos: Sucursal; // Objeto especial "Todos" con id -1
 
   // Navigation properties
   selectedProveedorComputed: Proveedor | null = null;
@@ -370,6 +373,25 @@ export class GestionComprasComponent
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL
   ) {
+    // Inicializar objeto "Todos" para sucursales
+    this.sucursalTodos = {
+      id: -1,
+      nombre: "Todos",
+      localizacion: "",
+      ciudad: null,
+      deposito: false,
+      depositoPredeterminado: false,
+      activo: true,
+      ip: "",
+      puerto: null,
+      creadoEn: null,
+      usuario: null,
+      codigoEstablecimientoFactura: "",
+      direccion: "",
+      nroDelivery: "",
+      isConfigured: false,
+      sectorList: []
+    } as Sucursal;
     this.initializeForms();
   }
 
@@ -499,6 +521,12 @@ export class GestionComprasComponent
         this.monedas = monedas;
         this.formasPago = formasPago;
         this.sucursales = sucursales;
+        
+        // Filtrar sucursales de entrega: deposito=true y activo=true
+        this.sucursalesEntregaFiltradas = sucursales.filter(s => s.deposito === true && s.activo === true);
+        
+        // Filtrar sucursales de influencia: activo=true y excluir servidor (id 0)
+        this.sucursalesInfluenciaFiltradas = sucursales.filter(s => s.activo === true && s.id !== 0);
 
         // Initialize with default values if available
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
@@ -714,6 +742,24 @@ export class GestionComprasComponent
   }
 
   private loadPedidoIntoForm(pedido: Pedido): void {
+    // Extraer sucursales seleccionadas aplicando los filtros correspondientes
+    // Para entrega: deposito=true y activo=true
+    const sucursalesEntregaSeleccionadas = pedido.sucursalEntregaList
+      .map((sucursal) => sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null)
+      .filter((s): s is Sucursal => s != null && s.deposito === true && s.activo === true);
+    
+    // Para influencia: activo=true y excluir servidor (id 0)
+    const sucursalesInfluenciaSeleccionadas = pedido.sucursalInfluenciaList
+      .map((sucursal) => sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null)
+      .filter((s): s is Sucursal => s != null && s.activo === true && s.id !== 0);
+
+    // Verificar si todas las sucursales filtradas están seleccionadas
+    const todasSucursalesEntrega = sucursalesEntregaSeleccionadas.length === this.sucursalesEntregaFiltradas.length &&
+      this.sucursalesEntregaFiltradas.every(s => sucursalesEntregaSeleccionadas.some(se => se.id === s.id));
+    
+    const todasSucursalesInfluencia = sucursalesInfluenciaSeleccionadas.length === this.sucursalesInfluenciaFiltradas.length &&
+      this.sucursalesInfluenciaFiltradas.every(s => sucursalesInfluenciaSeleccionadas.some(si => si.id === s.id));
+
     // Llenar el formulario con los datos del pedido
     this.datosGeneralesForm.patchValue({
       proveedor: pedido.proveedor,
@@ -721,14 +767,9 @@ export class GestionComprasComponent
       moneda: pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null,
       formaPago: pedido.formaPago != null ? this.formasPago.find((f) => f.id === pedido.formaPago.id) : null,
       plazoCredito: pedido.plazoCredito || 0,
-      // TODO: Cargar sucursales de entrega e influencia cuando estén disponibles en el backend
-      // extract sucursales from pedido.sucursalEntregaList and pedido.sucursalInfluenciaList
-      sucursalesEntrega: pedido.sucursalEntregaList.map((sucursal) =>
-        sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null
-      ),
-      sucursalesInfluencia: pedido.sucursalInfluenciaList.map((sucursal) =>
-        sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null
-      ),
+      // Si todas las sucursales están seleccionadas, mostrar "Todos", sino mostrar las específicas
+      sucursalesEntrega: todasSucursalesEntrega ? [this.sucursalTodos] : sucursalesEntregaSeleccionadas,
+      sucursalesInfluencia: todasSucursalesInfluencia ? [this.sucursalTodos] : sucursalesInfluenciaSeleccionadas,
     });
 
     // Establecer proveedor seleccionado para mostrar la tarjeta
@@ -841,9 +882,13 @@ export class GestionComprasComponent
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
 
-    // Extract sucursal IDs
-    const sucursalEntregaList = formValue.sucursalesEntrega?.map((s: any) => s.id) || [];
-    const sucursalInfluenciaList = formValue.sucursalesInfluencia?.map((s: any) => s.id) || [];
+    // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
+    const sucursalEntregaList = formValue.sucursalesEntrega?.some((s: any) => s?.id === -1)
+      ? [-1]
+      : formValue.sucursalesEntrega?.map((s: any) => s.id).filter((id: number) => id !== -1) || [];
+    const sucursalInfluenciaList = formValue.sucursalesInfluencia?.some((s: any) => s?.id === -1)
+      ? [-1]
+      : formValue.sucursalesInfluencia?.map((s: any) => s.id).filter((id: number) => id !== -1) || [];
 
     // Call service to update pedido
     this.pedidoService
@@ -920,9 +965,13 @@ export class GestionComprasComponent
       usuarioId: 1, // TODO: Get from auth service
     };
 
-    // Extract sucursal IDs
-    const sucursalEntregaList = formValue.sucursalesEntrega?.map((s: any) => s.id) || [];
-    const sucursalInfluenciaList = formValue.sucursalesInfluencia?.map((s: any) => s.id) || [];
+    // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
+    const sucursalEntregaList = formValue.sucursalesEntrega?.some((s: any) => s?.id === -1)
+      ? [-1]
+      : formValue.sucursalesEntrega?.map((s: any) => s.id).filter((id: number) => id !== -1) || [];
+    const sucursalInfluenciaList = formValue.sucursalesInfluencia?.some((s: any) => s?.id === -1)
+      ? [-1]
+      : formValue.sucursalesInfluencia?.map((s: any) => s.id).filter((id: number) => id !== -1) || [];
 
     // Call service to save pedido
     this.pedidoService
@@ -1632,6 +1681,48 @@ export class GestionComprasComponent
       this.onBuscarVendedor();
     }
     // Tab navega naturalmente al siguiente campo (Sucursal de entrega)
+  }
+
+  onSucursalEntregaSelectionChange(event: any): void {
+    const currentValue = this.datosGeneralesForm.get("sucursalesEntrega")?.value || [];
+    const hasTodos = currentValue.some((s: Sucursal) => s?.id === -1);
+    const hasOtherSucursales = currentValue.some((s: Sucursal) => s?.id !== -1 && s?.id !== undefined);
+
+    if (hasTodos && hasOtherSucursales) {
+      // Si "Todos" está seleccionado junto con otras sucursales, mantener solo "Todos"
+      this.datosGeneralesForm.patchValue(
+        { sucursalesEntrega: [this.sucursalTodos] },
+        { emitEvent: false }
+      );
+    } else if (hasOtherSucursales && !hasTodos) {
+      // Si se selecciona una sucursal específica, asegurar que "Todos" no esté seleccionado
+      const filtered = currentValue.filter((s: Sucursal) => s?.id !== -1);
+      this.datosGeneralesForm.patchValue(
+        { sucursalesEntrega: filtered },
+        { emitEvent: false }
+      );
+    }
+  }
+
+  onSucursalInfluenciaSelectionChange(event: any): void {
+    const currentValue = this.datosGeneralesForm.get("sucursalesInfluencia")?.value || [];
+    const hasTodos = currentValue.some((s: Sucursal) => s?.id === -1);
+    const hasOtherSucursales = currentValue.some((s: Sucursal) => s?.id !== -1 && s?.id !== undefined);
+
+    if (hasTodos && hasOtherSucursales) {
+      // Si "Todos" está seleccionado junto con otras sucursales, mantener solo "Todos"
+      this.datosGeneralesForm.patchValue(
+        { sucursalesInfluencia: [this.sucursalTodos] },
+        { emitEvent: false }
+      );
+    } else if (hasOtherSucursales && !hasTodos) {
+      // Si se selecciona una sucursal específica, asegurar que "Todos" no esté seleccionado
+      const filtered = currentValue.filter((s: Sucursal) => s?.id !== -1);
+      this.datosGeneralesForm.patchValue(
+        { sucursalesInfluencia: filtered },
+        { emitEvent: false }
+      );
+    }
   }
 
   onSucursalEntregaClosed(): void {
@@ -2671,14 +2762,45 @@ export class GestionComprasComponent
         this.selectedItemsPendientes = [];
         this.selectAllItemsPendientes = false;
 
-        // Recargar datos reales del backend
-        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
-        setTimeout(() => {
-          this.markTabAsUnloaded(2);
-          this.reloadTabData(2);
-        }, 500);
-
-        this.updateComputedProperties();
+        // Recargar pedido completo para actualizar procesoEtapas
+        if (this.currentPedido?.id) {
+          this.pedidoService.onGetPedidoById(this.currentPedido.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (pedidoActualizado) => {
+                this.currentPedido = pedidoActualizado;
+                
+                // Recargar resumen del pedido para actualizar etapaActual
+                this.loadPedidoResumen();
+                
+                // Recargar datos del tab después de un delay para sincronización backend
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                
+                // Actualizar propiedades computadas
+                this.updateComputedProperties();
+              },
+              error: (error) => {
+                console.error("Error recargando pedido después de crear nota:", error);
+                // Fallback: recargar solo el tab y resumen
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                this.loadPedidoResumen();
+                this.updateComputedProperties();
+              }
+            });
+        } else {
+          // Si no hay pedidoId, solo recargar tab y resumen
+          setTimeout(() => {
+            this.markTabAsUnloaded(2);
+            this.reloadTabData(2);
+          }, 500);
+          this.updateComputedProperties();
+        }
         
         // Mostrar notificación si hay mensaje
         if (result.message) {
@@ -2708,14 +2830,45 @@ export class GestionComprasComponent
     dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
       if (result && result.changesMade) {
 
-        // Recargar datos reales del backend
-        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
-        setTimeout(() => {
-          this.markTabAsUnloaded(2);
-          this.reloadTabData(2);
-        }, 500);
-
-        this.updateComputedProperties();
+        // Recargar pedido completo para actualizar procesoEtapas
+        if (this.currentPedido?.id) {
+          this.pedidoService.onGetPedidoById(this.currentPedido.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (pedidoActualizado) => {
+                this.currentPedido = pedidoActualizado;
+                
+                // Recargar resumen del pedido para actualizar etapaActual
+                this.loadPedidoResumen();
+                
+                // Recargar datos del tab después de un delay para sincronización backend
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                
+                // Actualizar propiedades computadas
+                this.updateComputedProperties();
+              },
+              error: (error) => {
+                console.error("Error recargando pedido después de crear nota:", error);
+                // Fallback: recargar solo el tab y resumen
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                this.loadPedidoResumen();
+                this.updateComputedProperties();
+              }
+            });
+        } else {
+          // Si no hay pedidoId, solo recargar tab y resumen
+          setTimeout(() => {
+            this.markTabAsUnloaded(2);
+            this.reloadTabData(2);
+          }, 500);
+          this.updateComputedProperties();
+        }
         
         // Mostrar notificación si hay mensaje
         if (result.message) {
@@ -2814,15 +2967,45 @@ export class GestionComprasComponent
     dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
       if (result && result.changesMade) {
 
-        // Recargar datos reales del backend
-        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
-        setTimeout(() => {
-          this.markTabAsUnloaded(2);
-          this.reloadTabData(2);
-        }, 500);
-
-        // Actualizar propiedades computadas incluyendo el monto total
-        this.updateComputedProperties();
+        // Recargar pedido completo para actualizar procesoEtapas
+        if (this.currentPedido?.id) {
+          this.pedidoService.onGetPedidoById(this.currentPedido.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (pedidoActualizado) => {
+                this.currentPedido = pedidoActualizado;
+                
+                // Recargar resumen del pedido para actualizar etapaActual
+                this.loadPedidoResumen();
+                
+                // Recargar datos del tab después de un delay para sincronización backend
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                
+                // Actualizar propiedades computadas incluyendo el monto total
+                this.updateComputedProperties();
+              },
+              error: (error) => {
+                console.error("Error recargando pedido después de editar nota:", error);
+                // Fallback: recargar solo el tab y resumen
+                setTimeout(() => {
+                  this.markTabAsUnloaded(2);
+                  this.reloadTabData(2);
+                }, 500);
+                this.loadPedidoResumen();
+                this.updateComputedProperties();
+              }
+            });
+        } else {
+          // Si no hay pedidoId, solo recargar tab y resumen
+          setTimeout(() => {
+            this.markTabAsUnloaded(2);
+            this.reloadTabData(2);
+          }, 500);
+          this.updateComputedProperties();
+        }
         
         // Mostrar notificación si hay mensaje
         if (result.message) {

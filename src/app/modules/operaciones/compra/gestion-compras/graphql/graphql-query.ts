@@ -881,6 +881,30 @@ export const notaRecepcionPorPedidoIdAndNumeroPageQuery = gql`
   }
 `;
 
+export const notaRecepcionPorProveedorAndNumeroQuery = gql`
+  query NotaRecepcionPorProveedorAndNumero($proveedorId: ID!, $numero: Int!) {
+    data: findByProveedorAndNumero(id: $proveedorId, numero: $numero) {
+      id
+      numero
+      fecha
+      estado
+      esNotaRechazo
+      valorTotal
+      timbrado
+      pedido {
+        id
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+    }
+  }
+`;
+
 // ===== NOTA RECEPCION CRUD MUTATIONS =====
 
 export const saveNotaRecepcionMutation = gql`
