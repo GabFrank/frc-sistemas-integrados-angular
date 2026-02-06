@@ -61,18 +61,6 @@ export class MarcacionService {
     return this.genericCrudService.onSave(this.saveMarcacion, input, null, null, servidor, errorConf);
   }
 
-  onDeleteMarcacion(id: number, servidor = true): Observable<boolean> {
-    return this.genericCrudService.onDelete(
-      this.deleteMarcacion,
-      id,
-      '¿Eliminar marcación?',
-      null,
-      true,
-      servidor,
-      '¿Está seguro que desea eliminar esta marcación?'
-    );
-  }
-
   onGetJornada(id: number, servidor = true): Observable<Jornada> {
     return this.genericCrudService.onGetById(this.getJornada, id, null, null, servidor);
   }
@@ -117,7 +105,6 @@ export class MarcacionService {
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {
         if (servidor) {
-          console.warn('Error saving to central server, trying local...', err);
           return this.onSaveMarcacion(input, false);
         }
         return throwError(() => err);
@@ -146,7 +133,6 @@ export class MarcacionService {
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {
         if (servidor) {
-          console.warn('Error saving to central server, trying local...', err);
           return this.onSaveMarcacion(input, false);
         }
         return throwError(() => err);
