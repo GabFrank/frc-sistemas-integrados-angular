@@ -7,6 +7,7 @@ import {
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { catchError } from 'rxjs/operators';
 
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
@@ -20,7 +21,6 @@ import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { FaceRecognitionService } from '../../service/face-recognition.service';
 import { ElementRef, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../../environments/environment';
 
 @UntilDestroy()
 @Component({
@@ -43,6 +43,11 @@ export class MarcarHorarioComponent implements OnInit {
   estaEnJornada = false;
   cargando = false;
   dispositivoInfo = '';
+  latitud: number = null;
+  longitud: number = null;
+  precisionGps: number = null;
+  deviceId: string = null;
+  distanciaSucursal: number = null;
 
   horaActual: Date = new Date();
   private clockInterval: any;
@@ -57,8 +62,6 @@ export class MarcarHorarioComponent implements OnInit {
   stream: MediaStream | null = null;
   detecting = false;
   mensajeErrorFoto = '';
-  esperandoParaMarcar = false;
-  tiempoEspera = 0;
   private delayInterval: any;
 
 
@@ -79,8 +82,14 @@ export class MarcarHorarioComponent implements OnInit {
     const valor = this.empleadoIdControl.value;
     if (valor) {
       if (!isNaN(valor)) {
-        this.usuarioService.onGetUsuarioPorPersonaId(valor)
-          .pipe(untilDestroyed(this))
+        this.usuarioService.onGetUsuarioPorPersonaId(valor, true, { networkError: { propagate: true, show: false } })
+          .pipe(
+            untilDestroyed(this),
+            catchError(err => {
+              console.warn('Error fetching usuario from central, trying local...', err);
+              return this.usuarioService.onGetUsuarioPorPersonaId(valor, false);
+            })
+          )
           .subscribe(res => {
             if (res) {
               this.seleccionarUsuario(res);
@@ -116,6 +125,9 @@ export class MarcarHorarioComponent implements OnInit {
     this.sucursalActualId = this.mainService.sucursalActual?.id;
     this.dispositivoInfo = this.obtenerInfoDispositivo();
 
+    this.deviceId = this.obtenerDeviceId();
+    this.obtenerUbicacion();
+
     this.clockInterval = setInterval(() => {
       this.horaActual = new Date();
       this.cdr.markForCheck();
@@ -136,6 +148,67 @@ export class MarcarHorarioComponent implements OnInit {
     const navegador = navigator.userAgent;
     const plataforma = navigator.platform;
     return `${plataforma} - ${navegador.substring(0, 50)}`;
+  }
+
+  obtenerDeviceId(): string {
+    let id = localStorage.getItem('device_id');
+    if (!id) {
+      if (crypto && crypto.randomUUID) {
+        id = crypto.randomUUID();
+      } else {
+        id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      }
+      localStorage.setItem('device_id', id);
+    }
+    return id;
+  }
+
+  obtenerUbicacion(): void {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.latitud = position.coords.latitude;
+          this.longitud = position.coords.longitude;
+          this.precisionGps = position.coords.accuracy;
+          this.calcularDistanciaSucursal();
+        },
+        (error) => {
+          console.warn('Error obteniendo ubicación:', error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  }
+
+  calcularDistanciaSucursal(): void {
+    if (this.mainService.sucursalActual?.localizacion && this.latitud && this.longitud) {
+      const loc = this.mainService.sucursalActual.localizacion;
+      const parts = loc.split(/[,;]/);
+      if (parts.length >= 2) {
+        const sucLat = parseFloat(parts[0]);
+        const sucLon = parseFloat(parts[1]);
+        if (!isNaN(sucLat) && !isNaN(sucLon)) {
+          this.distanciaSucursal = this.getDistanceFromLatLonInM(this.latitud, this.longitud, sucLat, sucLon);
+        }
+      }
+    }
+  }
+
+  getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000;
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return Math.floor(d);
+  }
+
+  deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 
   abrirBuscadorEmpleado(): void {
@@ -207,26 +280,31 @@ export class MarcarHorarioComponent implements OnInit {
 
     if (!fotoUrl && filename) {
       try {
-        const images = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil').toPromise();
+        const images = await this.usuarioService.onGetUsuarioImages(
+          this.usuarioSeleccionado.id,
+          'perfil',
+          true,
+          { networkError: { propagate: true, show: false } }
+        ).toPromise();
+
         if (images && images.length > 0) {
           fotoUrl = images[0];
         } else {
-          console.log('Image not found in Filial. Fetching from Central...');
-          const query = {
-            query: `query ($id: ID!, $type: String!) { data: getUsuarioImages(id: $id, type: $type) }`,
-            variables: { id: this.usuarioSeleccionado.id, type: 'perfil' }
-          };
-          const centralUrl = `http://${environment.serverCentralIp}:${environment.serverCentralPort}/graphql`;
-          const response: any = await this.http.post(centralUrl, query).toPromise();
-
-          if (response.data && response.data.data && response.data.data.length > 0) {
-            const base64 = response.data.data[0];
-            await this.usuarioService.onSaveUsuarioImage(this.usuarioSeleccionado.id, 'perfil', base64).toPromise();
-            fotoUrl = base64;
+          const localImages = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil', false).toPromise();
+          if (localImages && localImages.length > 0) {
+            fotoUrl = localImages[0];
           }
         }
       } catch (e) {
-        console.error('Error fetching image from central or filial', e);
+        console.warn('Error fetching image from central, trying local...', e);
+        try {
+          const localImages = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil', false).toPromise();
+          if (localImages && localImages.length > 0) {
+            fotoUrl = localImages[0];
+          }
+        } catch (e2) {
+          console.error('Error fetching image from local', e2);
+        }
       }
     }
 
@@ -307,31 +385,9 @@ export class MarcarHorarioComponent implements OnInit {
 
         if (similarity > 0.6) {
           this.reconocimientoExitoso = true;
-          // this.detenerCamara(); // Keep camera open
-
-          this.esperandoParaMarcar = true;
-          this.tiempoEspera = 5;
-          this.mensajeReconocimiento = `¡Identidad verificada! Espere ${this.tiempoEspera}s...`;
+          this.videoElement.nativeElement.pause();
+          this.detecting = false;
           this.cdr.markForCheck();
-
-          // Start countdown
-          if (this.delayInterval) clearInterval(this.delayInterval);
-          this.delayInterval = setInterval(() => {
-            if (!this.reconocimientoExitoso) { // If reset happens
-              clearInterval(this.delayInterval);
-              return;
-            }
-
-            this.tiempoEspera--;
-            if (this.tiempoEspera <= 0) {
-              clearInterval(this.delayInterval);
-              this.esperandoParaMarcar = false;
-              this.detenerCamara();
-            } else {
-              this.mensajeReconocimiento = `¡Identidad verificada! Espere ${this.tiempoEspera}s...`;
-            }
-            this.cdr.markForCheck();
-          }, 1000);
 
         } else {
           this.mensajeReconocimiento = `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`;
@@ -356,8 +412,6 @@ export class MarcarHorarioComponent implements OnInit {
     this.reconocimientoExitoso = false;
     this.mostrandoCamara = false;
     this.mensajeErrorFoto = '';
-    this.esperandoParaMarcar = false;
-    this.tiempoEspera = 0;
 
     this.usuarioSeleccionado = null;
     this.empleadoNombreControl.setValue(null);
@@ -379,8 +433,21 @@ export class MarcarHorarioComponent implements OnInit {
     this.marcacionService.onGetMarcacionesPorUsuario(
       this.usuarioSeleccionado.id,
       inicioHoy,
-      finHoy
-    ).pipe(untilDestroyed(this))
+      finHoy,
+      true,
+      { networkError: { propagate: true, show: false } }
+    ).pipe(
+      untilDestroyed(this),
+      catchError(err => {
+        console.warn('Error fetching marcaciones from central, trying local...', err);
+        return this.marcacionService.onGetMarcacionesPorUsuario(
+          this.usuarioSeleccionado.id,
+          inicioHoy,
+          finHoy,
+          false
+        );
+      })
+    )
       .subscribe(marcaciones => {
         this.cargando = false;
 
@@ -434,11 +501,11 @@ export class MarcarHorarioComponent implements OnInit {
     this.marcacionService.onRegistrarEntrada(
       this.usuarioSeleccionado.id,
       this.sucursalActualId,
-      null,
-      null,
-      null,
-      null,
-      null,
+      this.latitud,
+      this.longitud,
+      this.precisionGps,
+      this.distanciaSucursal,
+      this.deviceId,
       this.dispositivoInfo,
       true
     ).pipe(untilDestroyed(this))
@@ -499,10 +566,10 @@ export class MarcarHorarioComponent implements OnInit {
     this.marcacionService.onRegistrarSalida(
       this.marcacionActiva.id,
       this.sucursalActualId,
-      null,
-      null,
-      null,
-      null
+      this.latitud,
+      this.longitud,
+      this.precisionGps,
+      this.distanciaSucursal
     ).pipe(untilDestroyed(this))
       .subscribe({
         next: (marcacion) => {

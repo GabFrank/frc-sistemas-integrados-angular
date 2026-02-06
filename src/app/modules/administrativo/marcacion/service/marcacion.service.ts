@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, throwError } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
@@ -45,19 +45,20 @@ export class MarcacionService {
     return this.genericCrudService.onGetAll(this.getMarcaciones, page, size, servidor);
   }
 
-  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, servidor = true): Observable<Marcacion[]> {
+  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, servidor = true, errorConf?: any): Observable<Marcacion[]> {
     return this.genericCrudService.onCustomQuery(
       this.getMarcacionesPorUsuario,
       { usuarioId, fechaInicio, fechaFin },
-      servidor
+      servidor,
+      errorConf
     );
   }
 
-  onSaveMarcacion(input: MarcacionInput, servidor = true): Observable<Marcacion> {
+  onSaveMarcacion(input: MarcacionInput, servidor = true, errorConf?: any): Observable<Marcacion> {
     if (!input.usuarioId) {
       input.usuarioId = this.mainService.usuarioActual?.id;
     }
-    return this.genericCrudService.onSave(this.saveMarcacion, input, null, null, servidor);
+    return this.genericCrudService.onSave(this.saveMarcacion, input, null, null, servidor, errorConf);
   }
 
   onDeleteMarcacion(id: number, servidor = true): Observable<boolean> {
@@ -113,7 +114,15 @@ export class MarcacionService {
     input.deviceInfo = deviceInfo;
     input.presencial = presencial;
 
-    return this.onSaveMarcacion(input, servidor);
+    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
+      catchError(err => {
+        if (servidor) {
+          console.warn('Error saving to central server, trying local...', err);
+          return this.onSaveMarcacion(input, false);
+        }
+        return throwError(() => err);
+      })
+    );
   }
   onRegistrarSalida(
     marcacionId: number,
@@ -134,6 +143,14 @@ export class MarcacionService {
     input.precisionGps = precisionGps;
     input.distanciaSucursalMetros = distanciaSucursalMetros;
 
-    return this.onSaveMarcacion(input, servidor);
+    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
+      catchError(err => {
+        if (servidor) {
+          console.warn('Error saving to central server, trying local...', err);
+          return this.onSaveMarcacion(input, false);
+        }
+        return throwError(() => err);
+      })
+    );
   }
 }

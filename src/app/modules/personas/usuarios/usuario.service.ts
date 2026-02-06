@@ -56,8 +56,8 @@ export class UsuarioService {
     return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
   }
 
-  onGetUsuarioPorPersonaId(id: number, servidor: boolean = true): Observable<any> {
-    return this.genericService.onGetById(this.getUsuarioPorPersonaId, id, null, null, servidor)
+  onGetUsuarioPorPersonaId(id: number, servidor: boolean = true, errorConf?: any): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioPorPersonaId, { id }, servidor, errorConf)
   }
 
   onSeachUsuario(texto: string, servidor: boolean = true): Observable<Usuario[]> {
@@ -84,8 +84,8 @@ export class UsuarioService {
     return this.genericService.onSave(this.saveInicioSesion, entity, null, null, servidor);
   }
 
-  onGetUsuarioImages(id: number, type: string, servidor: boolean = true): Observable<string[]> {
-    return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor);
+  onGetUsuarioImages(id: number, type: string, servidor: boolean = true, errorConf?: any): Observable<string[]> {
+    return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor, errorConf);
   }
 
   onSaveUsuarioImage(id: number, type: string, image: string, servidor: boolean = true): Observable<boolean> {
