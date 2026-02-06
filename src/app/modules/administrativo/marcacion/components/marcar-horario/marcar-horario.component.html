@@ -17,7 +17,7 @@
         <mat-card class="filtros-card">
             <mat-card-content fxLayout="column" fxLayoutGap="16px">
                 <mat-form-field style="width: 100%" appearance="outline">
-                    <mat-label>ID Empleado</mat-label>
+                    <mat-label>Id Usuario</mat-label>
                     <input type="number" matInput [formControl]="empleadoIdControl" (keyup.enter)="buscarEmpleado()"
                         style="text-align: end" placeholder="Enter para buscar" />
                     <button mat-icon-button matSuffix (click)="buscarEmpleado()" type="button" matTooltip="Buscar">
@@ -51,7 +51,7 @@
                 <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
 
                     <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
-                        <span class="estado-titulo">Registro de Asistencia</span>
+                        <span class="estado-titulo">Registro de Horarios de Entrada y Salida</span>
                         <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
                     </div>
                     <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
@@ -150,7 +150,7 @@
         <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
             <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
                 <mat-icon class="placeholder-icon">person_search</mat-icon>
-                <span class="placeholder-text">Seleccione un empleado para registrar marcación</span>
+                <span class="placeholder-text">Seleccione su usuario para marcar</span>
             </mat-card-content>
         </mat-card>
     </div>

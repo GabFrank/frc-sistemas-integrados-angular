@@ -67,4 +67,5 @@ export class MarcacionInput {
 
     presencial: boolean;
     codigo: string;
+    embedding: number[];
 }

@@ -3,7 +3,8 @@ import {
   OnInit,
   ViewChild,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  AfterViewInit
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatPaginator } from '@angular/material/paginator';
@@ -29,7 +30,7 @@ import { PersonaService } from '../../../../personas/persona/persona.service';
   styleUrls: ['./list-marcacion.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ListMarcacionComponent implements OnInit {
+export class ListMarcacionComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<Marcacion>([]);
@@ -123,6 +124,12 @@ export class ListMarcacionComponent implements OnInit {
     this.fechaFinControl.setValue(this.hoy);
   }
 
+  ngAfterViewInit(): void {
+    this.paginator.page.pipe(untilDestroyed(this)).subscribe(() => {
+      this.filtrar();
+    });
+  }
+
   filtrar(): void {
     if (this.fechaFinControl.value == null) {
       this.fechaFinControl.setValue(this.hoy);
@@ -134,7 +141,8 @@ export class ListMarcacionComponent implements OnInit {
       this.fechaInicioControl.setValue(unaSemanaAtras);
     }
 
-
+    const page = this.paginator ? this.paginator.pageIndex : 0;
+    const size = this.paginator ? this.paginator.pageSize : 15;
 
     if (this.usuarioSeleccionado?.id) {
       const fechaInicio = dateToString(this.fechaInicioControl.value);
@@ -143,13 +151,15 @@ export class ListMarcacionComponent implements OnInit {
       this.marcacionService.onGetMarcacionesPorUsuario(
         this.usuarioSeleccionado.id,
         fechaInicio,
-        fechaFin
+        fechaFin,
+        page,
+        size
       ).pipe(untilDestroyed(this))
         .subscribe(res => {
           this.dataSource.data = res || [];
         });
     } else {
-      this.marcacionService.onGetMarcaciones(0, 50)
+      this.marcacionService.onGetMarcaciones(page, size)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           this.dataSource.data = res || [];
@@ -158,7 +168,9 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   resetearFiltro(): void {
-
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
     this.usuarioIdControl.setValue(null);
     this.usuarioNombreControl.setValue(null);
     this.usuarioSeleccionado = null;
@@ -212,5 +224,9 @@ export class ListMarcacionComponent implements OnInit {
     this.filtrar();
   }
 
+
+  onGenerarPdf(): void {
+    console.log('Generar PDF');
+  }
 
 }

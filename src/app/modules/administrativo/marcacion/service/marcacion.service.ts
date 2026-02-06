@@ -45,10 +45,10 @@ export class MarcacionService {
     return this.genericCrudService.onGetAll(this.getMarcaciones, page, size, servidor);
   }
 
-  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, servidor = true, errorConf?: any): Observable<Marcacion[]> {
+  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true, errorConf?: any): Observable<Marcacion[]> {
     return this.genericCrudService.onCustomQuery(
       this.getMarcacionesPorUsuario,
-      { usuarioId, fechaInicio, fechaFin },
+      { usuarioId, fechaInicio, fechaFin, page, size },
       servidor,
       errorConf
     );
@@ -87,13 +87,14 @@ export class MarcacionService {
     deviceId?: string,
     deviceInfo?: string,
     presencial = true,
+    embedding?: number[],
     servidor = true
   ): Observable<Marcacion> {
     const input = new MarcacionInput();
     input.usuarioId = usuarioId || this.mainService.usuarioActual?.id;
     input.tipo = TipoMarcacion.ENTRADA;
     input.sucursalEntradaId = sucursalId;
-    input.fechaEntrada = new Date().toISOString();
+    input.fechaEntrada = this.toLocalIsoString(new Date());
     input.latitud = latitud;
     input.longitud = longitud;
     input.precisionGps = precisionGps;
@@ -101,6 +102,7 @@ export class MarcacionService {
     input.deviceId = deviceId;
     input.deviceInfo = deviceInfo;
     input.presencial = presencial;
+    input.embedding = embedding;
 
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {
@@ -124,7 +126,7 @@ export class MarcacionService {
     input.id = marcacionId;
     input.tipo = TipoMarcacion.SALIDA;
     input.sucursalSalidaId = sucursalId;
-    input.fechaSalida = new Date().toISOString();
+    input.fechaSalida = this.toLocalIsoString(new Date());
     input.latitud = latitud;
     input.longitud = longitud;
     input.precisionGps = precisionGps;
@@ -138,5 +140,11 @@ export class MarcacionService {
         return throwError(() => err);
       })
     );
+  }
+
+  private toLocalIsoString(date: Date): string {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, -1);
+    return localISOTime;
   }
 }

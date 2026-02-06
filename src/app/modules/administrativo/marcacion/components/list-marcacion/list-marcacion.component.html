@@ -1,4 +1,5 @@
-<app-generic-list titulo="Marcaciones" (filtrar)="filtrar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false">
+<app-generic-list titulo="Marcaciones" (filtrar)="filtrar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false"
+    [isCustom]="true" customName="Generar PDF" (customFunction)="onGenerarPdf()">
     <div filtros fxLayout="column" style="width: 100%; height: 100%">
         <div fxLayout="row wrap" fxLayoutGap="10px">
 
@@ -10,18 +11,7 @@
                     <mat-icon>search</mat-icon>
                 </button>
             </mat-form-field>
-            <mat-form-field fxFlex="20">
-                <mat-label>Persona</mat-label>
-                <input type="text" matInput [formControl]="usuarioNombreControl" readonly />
-                <button mat-icon-button matSuffix (click)="abrirBuscadorUsuario()" type="button"
-                    *ngIf="usuarioSeleccionado == null" matTooltip="Buscar por nombre">
-                    <mat-icon>search</mat-icon>
-                </button>
-                <button mat-icon-button matSuffix (click)="limpiarUsuario()" type="button"
-                    *ngIf="usuarioSeleccionado != null" matTooltip="Limpiar">
-                    <mat-icon>clear</mat-icon>
-                </button>
-            </mat-form-field>
+
 
             <mat-form-field fxFlex="30">
                 <mat-label>Rango de fecha</mat-label>
@@ -107,5 +97,8 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"></tr>
         </table>
+        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="100" [pageSize]="15"
+            [pageSizeOptions]="[15, 25, 50, 100]" aria-label="Select page" style="width: 100%" showFirstLastButtons>
+        </mat-paginator>
     </div>
 </app-generic-list>

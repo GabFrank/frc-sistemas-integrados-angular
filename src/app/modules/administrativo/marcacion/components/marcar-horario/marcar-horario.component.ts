@@ -63,6 +63,7 @@ export class MarcarHorarioComponent implements OnInit {
   detecting = false;
   mensajeErrorFoto = '';
   private delayInterval: any;
+  embeddingCapturado: number[] | null = null;
 
 
   constructor(
@@ -173,7 +174,6 @@ export class MarcarHorarioComponent implements OnInit {
           this.calcularDistanciaSucursal();
         },
         (error) => {
-          console.warn('Error obteniendo ubicación:', error);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -213,7 +213,7 @@ export class MarcarHorarioComponent implements OnInit {
 
   abrirBuscadorEmpleado(): void {
     let data: SearchListtDialogData = {
-      titulo: "Buscar Empleado",
+      titulo: "Buscar Usuario",
       tableData: [
         { id: "id", nombre: "Id", width: "10%" },
         {
@@ -261,6 +261,7 @@ export class MarcarHorarioComponent implements OnInit {
     this.mensajeReconocimiento = '';
     this.mensajeErrorFoto = '';
     this.referenciaDescriptor = null;
+    this.embeddingCapturado = null;
     this.detenerCamara();
 
     this.prepararReconocimiento();
@@ -325,7 +326,6 @@ export class MarcarHorarioComponent implements OnInit {
         this.iniciarReconocimiento();
       }
     } catch (error) {
-      console.error('Error getting descriptor from profile photo:', error);
       this.mensajeErrorFoto = 'Error al procesar la foto de perfil.';
       this.cargando = false;
     }
@@ -349,7 +349,6 @@ export class MarcarHorarioComponent implements OnInit {
         }
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
       this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
       this.mostrandoCamara = false;
     }
@@ -380,11 +379,12 @@ export class MarcarHorarioComponent implements OnInit {
       const detection = await this.faceService.detect(this.videoElement.nativeElement);
 
       if (detection.face && detection.face.length > 0) {
-        const tensor = detection.face[0].embedding as number[];
+        const tensor = Array.from(detection.face[0].embedding);
         const similarity = this.faceService.similarity(this.referenciaDescriptor, tensor);
 
         if (similarity > 0.6) {
           this.reconocimientoExitoso = true;
+          this.embeddingCapturado = tensor;
           this.videoElement.nativeElement.pause();
           this.detecting = false;
           this.cdr.markForCheck();
@@ -409,6 +409,7 @@ export class MarcarHorarioComponent implements OnInit {
     if (this.delayInterval) clearInterval(this.delayInterval);
     this.detenerCamara();
     this.referenciaDescriptor = null;
+    this.embeddingCapturado = null;
     this.reconocimientoExitoso = false;
     this.mostrandoCamara = false;
     this.mensajeErrorFoto = '';
@@ -434,17 +435,21 @@ export class MarcarHorarioComponent implements OnInit {
       this.usuarioSeleccionado.id,
       inicioHoy,
       finHoy,
+      0,
+      100,
       true,
       { networkError: { propagate: true, show: false } }
     ).pipe(
       untilDestroyed(this),
       catchError(err => {
-        console.warn('Error fetching marcaciones from central, trying local...', err);
         return this.marcacionService.onGetMarcacionesPorUsuario(
           this.usuarioSeleccionado.id,
           inicioHoy,
           finHoy,
-          false
+          0,
+          100,
+          false,
+          { networkError: { propagate: true, show: false } }
         );
       })
     )
@@ -507,7 +512,8 @@ export class MarcarHorarioComponent implements OnInit {
       this.distanciaSucursal,
       this.deviceId,
       this.dispositivoInfo,
-      true
+      true,
+      this.embeddingCapturado
     ).pipe(untilDestroyed(this))
       .subscribe({
         next: (marcacion) => {

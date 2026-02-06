@@ -82,8 +82,8 @@ export const marcacionesQuery = gql`
 `;
 
 export const marcacionesPorUsuarioQuery = gql`
-  query ($usuarioId: ID!, $fechaInicio: String, $fechaFin: String) {
-    data: marcacionesPorUsuario(usuarioId: $usuarioId, fechaInicio: $fechaInicio, fechaFin: $fechaFin) {
+  query ($usuarioId: ID!, $fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
+    data: marcacionesPorUsuario(usuarioId: $usuarioId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       ${marcacionFragment}
     }
   }
