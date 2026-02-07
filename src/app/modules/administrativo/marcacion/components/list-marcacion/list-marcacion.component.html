@@ -39,7 +39,7 @@
 
             <ng-container matColumnDef="usuario">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
-                    Usuario
+                    Funcionario
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
                     {{ marcacion.usuario?.persona?.nombre | titlecase }}
@@ -79,17 +79,6 @@
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
                     {{ marcacion.fechaSalida | date:'short' }}
-                </td>
-            </ng-container>
-
-            <ng-container matColumnDef="presencial">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
-                    Presencial
-                </th>
-                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
-                    <mat-icon [style.color]="marcacion.presencial ? '#4caf50' : '#f44336'">
-                        {{ marcacion.presencial ? 'check_circle' : 'cancel' }}
-                    </mat-icon>
                 </td>
             </ng-container>
 

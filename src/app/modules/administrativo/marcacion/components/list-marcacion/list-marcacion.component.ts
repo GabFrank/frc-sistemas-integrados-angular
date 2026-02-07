@@ -51,8 +51,7 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
     'sucursalEntrada',
     'fechaEntrada',
     'sucursalSalida',
-    'fechaSalida',
-    'presencial'
+    'fechaSalida'
   ];
 
   constructor(
@@ -224,9 +223,15 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
     this.filtrar();
   }
 
-
   onGenerarPdf(): void {
-    console.log('Generar PDF');
-  }
+    const fechaInicio = this.fechaInicioControl.value
+      ? dateToString(this.fechaInicioControl.value)
+      : null;
+    const fechaFin = this.fechaFinControl.value
+      ? dateToString(this.fechaFinControl.value)
+      : null;
+    const usuarioId = this.usuarioSeleccionado?.id || null;
 
+    this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
+  }
 }

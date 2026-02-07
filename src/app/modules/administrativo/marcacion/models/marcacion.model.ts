@@ -21,7 +21,6 @@ export class Marcacion {
     sucursalSalida: Sucursal;
     fechaSalida: string;
 
-    presencial: boolean;
     autorizacion: number;
     codigo: string;
 
@@ -40,7 +39,6 @@ export class Marcacion {
         input.fechaEntrada = this.fechaEntrada;
         input.sucursalSalidaId = this.sucursalSalida?.id;
         input.fechaSalida = this.fechaSalida;
-        input.presencial = this.presencial;
         input.codigo = this.codigo;
         return input;
     }
@@ -65,7 +63,6 @@ export class MarcacionInput {
     sucursalSalidaId: number;
     fechaSalida: string;
 
-    presencial: boolean;
     codigo: string;
     embedding: number[];
 }

@@ -17,6 +17,12 @@ import { DeleteMarcacionGQL } from '../graphql/deleteMarcacion';
 import { GetJornadaGQL } from '../graphql/getJornada';
 import { GetJornadasGQL } from '../graphql/getJornadas';
 import { GetJornadasPorUsuarioGQL } from '../graphql/getJornadasPorUsuario';
+import { ImprimirReporteMarcacionesGQL } from '../graphql/imprimirReporteMarcaciones';
+import { ReporteService } from '../../../reportes/reporte.service';
+import { TabService } from '../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
+import { ListMarcacionComponent } from '../components/list-marcacion/list-marcacion.component';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -34,7 +40,10 @@ export class MarcacionService {
     private deleteMarcacion: DeleteMarcacionGQL,
     private getJornada: GetJornadaGQL,
     private getJornadas: GetJornadasGQL,
-    private getJornadasPorUsuario: GetJornadasPorUsuarioGQL
+    private getJornadasPorUsuario: GetJornadasPorUsuarioGQL,
+    private imprimirReporteMarcaciones: ImprimirReporteMarcacionesGQL,
+    private reporteService: ReporteService,
+    private tabService: TabService
   ) { }
 
   onGetMarcacion(id: number, servidor = true): Observable<Marcacion> {
@@ -86,7 +95,6 @@ export class MarcacionService {
     distanciaSucursalMetros?: number,
     deviceId?: string,
     deviceInfo?: string,
-    presencial = true,
     embedding?: number[],
     servidor = true
   ): Observable<Marcacion> {
@@ -101,7 +109,6 @@ export class MarcacionService {
     input.distanciaSucursalMetros = distanciaSucursalMetros;
     input.deviceId = deviceId;
     input.deviceInfo = deviceInfo;
-    input.presencial = presencial;
     input.embedding = embedding;
 
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
@@ -146,5 +153,19 @@ export class MarcacionService {
     const tzOffset = date.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, -1);
     return localISOTime;
+  }
+
+  onImprimirReporteMarcaciones(usuarioId?: number, fechaInicio?: string, fechaFin?: string, servidor = true) {
+    this.genericCrudService.onCustomQuery(this.imprimirReporteMarcaciones, {
+      usuarioId: usuarioId,
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin,
+      usuarioResponsableId: this.mainService.usuarioActual?.id
+    }, servidor).subscribe(res => {
+      if (res != null) {
+        this.reporteService.onAdd('Reporte de Marcaciones', res);
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListMarcacionComponent));
+      }
+    });
   }
 }

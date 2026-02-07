@@ -8,6 +8,7 @@ import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { catchError } from 'rxjs/operators';
+import { timeout } from 'rxjs';
 
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
@@ -440,6 +441,7 @@ export class MarcarHorarioComponent implements OnInit {
       true,
       { networkError: { propagate: true, show: false } }
     ).pipe(
+      timeout(5000),
       untilDestroyed(this),
       catchError(err => {
         return this.marcacionService.onGetMarcacionesPorUsuario(
@@ -453,24 +455,31 @@ export class MarcarHorarioComponent implements OnInit {
         );
       })
     )
-      .subscribe(marcaciones => {
-        this.cargando = false;
+      .subscribe({
+        next: (marcaciones) => {
+          this.cargando = false;
 
-        const marcacionSinSalida = marcaciones?.find(m =>
-          m.fechaEntrada && !m.fechaSalida
-        );
+          const marcacionSinSalida = marcaciones?.find(m =>
+            m.fechaEntrada && !m.fechaSalida
+          );
 
-        if (marcacionSinSalida) {
-          this.marcacionActiva = marcacionSinSalida;
-          this.horaEntrada = new Date(marcacionSinSalida.fechaEntrada);
-          this.estaEnJornada = true;
-        } else {
-          this.marcacionActiva = null;
-          this.horaEntrada = null;
-          this.estaEnJornada = false;
+          if (marcacionSinSalida) {
+            this.marcacionActiva = marcacionSinSalida;
+            this.horaEntrada = new Date(marcacionSinSalida.fechaEntrada);
+            this.estaEnJornada = true;
+          } else {
+            this.marcacionActiva = null;
+            this.horaEntrada = null;
+            this.estaEnJornada = false;
+          }
+
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.cargando = false;
+          console.error('Error al verificar marcación activa', err);
+          this.cdr.markForCheck();
         }
-
-        this.cdr.markForCheck();
       });
   }
 
@@ -512,7 +521,6 @@ export class MarcarHorarioComponent implements OnInit {
       this.distanciaSucursal,
       this.deviceId,
       this.dispositivoInfo,
-      true,
       this.embeddingCapturado
     ).pipe(untilDestroyed(this))
       .subscribe({

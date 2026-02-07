@@ -25,7 +25,6 @@ const marcacionFragment = `
     nombre
   }
   fechaSalida
-  presencial
   autorizacion
   codigo
 `;
@@ -124,5 +123,16 @@ export const jornadasPorUsuarioQuery = gql`
     data: jornadasPorUsuario(usuarioId: $usuarioId, fechaInicio: $fechaInicio, fechaFin: $fechaFin) {
       ${jornadaFragment}
     }
+  }
+`;
+
+export const imprimirReporteMarcacionesQuery = gql`
+  query ($usuarioId: ID, $fechaInicio: String, $fechaFin: String, $usuarioResponsableId: ID) {
+    data: imprimirReporteMarcaciones(
+      usuarioId: $usuarioId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      usuarioResponsableId: $usuarioResponsableId
+    )
   }
 `;
