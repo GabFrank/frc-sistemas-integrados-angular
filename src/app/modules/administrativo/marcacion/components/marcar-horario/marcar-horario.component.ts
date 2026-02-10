@@ -538,7 +538,9 @@ export class MarcarHorarioComponent implements OnInit {
       .subscribe({
         next: (marcaciones) => {
           this.cargando = false;
-          this.marcacionesHoy = marcaciones || [];
+          this.marcacionesHoy = (marcaciones || []).sort((a, b) => {
+            return new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime();
+          });
 
           const marcacionSinSalida = marcaciones?.find(m =>
             m.fechaEntrada && !m.fechaSalida
@@ -610,8 +612,6 @@ export class MarcarHorarioComponent implements OnInit {
           this.marcacionActiva = marcacion;
           this.horaEntrada = new Date(marcacion.fechaEntrada);
           this.estaEnJornada = true;
-
-          // Actualizar lista de hoy
           if (this.marcacionesHoy) {
             this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
           } else {
