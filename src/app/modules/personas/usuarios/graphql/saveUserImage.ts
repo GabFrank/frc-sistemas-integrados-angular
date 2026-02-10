@@ -9,6 +9,6 @@ export const saveUserImageMutation = gql`
 `;
 
 @Injectable({ providedIn: 'root' })
-export class SaveUsuarioImageGQL extends Mutation<boolean> {
+export class SaveUserImageGQL extends Mutation<boolean> {
     document = saveUserImageMutation;
 }

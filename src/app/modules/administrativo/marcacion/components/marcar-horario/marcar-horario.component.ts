@@ -309,10 +309,10 @@ export class MarcarHorarioComponent implements OnInit {
         }
       }
     }
-
     if (!fotoUrl) {
-      this.mensajeErrorFoto = 'El usuario no tiene una foto de perfil válida para la verificación facial.';
+      this.mensajeErrorFoto = 'Primera vez marcando. Se capturará su foto de perfil.';
       this.cdr.markForCheck();
+      await this.capturarYGuardarFotoPerfil();
       return;
     }
 
@@ -331,6 +331,83 @@ export class MarcarHorarioComponent implements OnInit {
       this.cargando = false;
     }
     this.cdr.markForCheck();
+  }
+
+  async capturarYGuardarFotoPerfil(): Promise<void> {
+    this.mostrandoCamara = true;
+    this.mensajeReconocimiento = 'Capturando foto de perfil. Mire a la cámara...';
+    this.cdr.markForCheck();
+
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (this.videoElement) {
+        this.videoElement.nativeElement.srcObject = this.stream;
+        this.videoElement.nativeElement.onloadedmetadata = async () => {
+          this.videoElement.nativeElement.play();
+
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const detection = await this.faceService.detect(this.videoElement.nativeElement);
+
+          if (detection.face && detection.face.length > 0) {
+            const canvas = this.canvasElement.nativeElement;
+            const video = this.videoElement.nativeElement;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageBase64 = canvas.toDataURL('image/png');
+
+            this.detenerCamara();
+            this.mensajeReconocimiento = 'Guardando foto de perfil...';
+            this.cargando = true;
+            this.cdr.markForCheck();
+
+            try {
+              await this.usuarioService.onSaveUsuarioImage(
+                this.usuarioSeleccionado.id,
+                'perfil',
+                imageBase64,
+                false
+              ).toPromise();
+
+              this.notificacionService.notification$.next({
+                texto: 'Foto de perfil guardada exitosamente',
+                color: NotificacionColor.success,
+                duracion: 3
+              });
+
+              if (this.usuarioSeleccionado.persona) {
+                this.usuarioSeleccionado.persona.imagenes = 'captured';
+              }
+
+              this.cargando = false;
+              this.mensajeErrorFoto = '';
+              this.cdr.markForCheck();
+
+              await this.prepararReconocimiento();
+            } catch (error) {
+              this.cargando = false;
+              this.mensajeErrorFoto = 'Error al guardar la foto de perfil';
+              this.notificacionService.notification$.next({
+                texto: 'Error al guardar la foto de perfil',
+                color: NotificacionColor.danger,
+                duracion: 3
+              });
+              this.cdr.markForCheck();
+            }
+          } else {
+            this.detenerCamara();
+            this.mensajeErrorFoto = 'No se detectó un rostro. Intente nuevamente.';
+            this.cdr.markForCheck();
+          }
+        }
+      }
+    } catch (err) {
+      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
+      this.mostrandoCamara = false;
+      this.cdr.markForCheck();
+    }
   }
 
   async iniciarReconocimiento(): Promise<void> {

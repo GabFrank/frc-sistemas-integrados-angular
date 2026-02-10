@@ -89,6 +89,6 @@ export class UsuarioService {
   }
 
   onSaveUsuarioImage(id: number, type: string, image: string, servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.saveUsuarioImage, { id, type, image }, servidor);
+    return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image }, servidor);
   }
 }
