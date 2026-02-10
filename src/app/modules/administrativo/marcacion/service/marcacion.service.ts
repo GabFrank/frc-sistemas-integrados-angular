@@ -24,6 +24,18 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { ListMarcacionComponent } from '../components/list-marcacion/list-marcacion.component';
 
+export interface MarcacionContexto {
+  usuarioId?: number;
+  sucursalId: number;
+  latitud?: number;
+  longitud?: number;
+  precisionGps?: number;
+  distanciaSucursalMetros?: number;
+  deviceId?: string;
+  deviceInfo?: string;
+  embedding?: number[];
+}
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
@@ -86,30 +98,20 @@ export class MarcacionService {
     );
   }
 
-  onRegistrarEntrada(
-    usuarioId: number,
-    sucursalId: number,
-    latitud?: number,
-    longitud?: number,
-    precisionGps?: number,
-    distanciaSucursalMetros?: number,
-    deviceId?: string,
-    deviceInfo?: string,
-    embedding?: number[],
-    servidor = true
-  ): Observable<Marcacion> {
+
+  onRegistrarEntrada(contexto: MarcacionContexto, servidor = true): Observable<Marcacion> {
     const input = new MarcacionInput();
-    input.usuarioId = usuarioId || this.mainService.usuarioActual?.id;
+    input.usuarioId = contexto.usuarioId || this.mainService.usuarioActual?.id;
     input.tipo = TipoMarcacion.ENTRADA;
-    input.sucursalEntradaId = sucursalId;
+    input.sucursalEntradaId = contexto.sucursalId;
     input.fechaEntrada = this.toLocalIsoString(new Date());
-    input.latitud = latitud;
-    input.longitud = longitud;
-    input.precisionGps = precisionGps;
-    input.distanciaSucursalMetros = distanciaSucursalMetros;
-    input.deviceId = deviceId;
-    input.deviceInfo = deviceInfo;
-    input.embedding = embedding;
+    input.latitud = contexto.latitud;
+    input.longitud = contexto.longitud;
+    input.precisionGps = contexto.precisionGps;
+    input.distanciaSucursalMetros = contexto.distanciaSucursalMetros;
+    input.deviceId = contexto.deviceId;
+    input.deviceInfo = contexto.deviceInfo;
+    input.embedding = contexto.embedding;
 
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {
@@ -120,24 +122,21 @@ export class MarcacionService {
       })
     );
   }
+
   onRegistrarSalida(
     marcacionId: number,
-    sucursalId: number,
-    latitud?: number,
-    longitud?: number,
-    precisionGps?: number,
-    distanciaSucursalMetros?: number,
+    contexto: MarcacionContexto,
     servidor = true
   ): Observable<Marcacion> {
     const input = new MarcacionInput();
     input.id = marcacionId;
     input.tipo = TipoMarcacion.SALIDA;
-    input.sucursalSalidaId = sucursalId;
+    input.sucursalSalidaId = contexto.sucursalId;
     input.fechaSalida = this.toLocalIsoString(new Date());
-    input.latitud = latitud;
-    input.longitud = longitud;
-    input.precisionGps = precisionGps;
-    input.distanciaSucursalMetros = distanciaSucursalMetros;
+    input.latitud = contexto.latitud;
+    input.longitud = contexto.longitud;
+    input.precisionGps = contexto.precisionGps;
+    input.distanciaSucursalMetros = contexto.distanciaSucursalMetros;
 
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {

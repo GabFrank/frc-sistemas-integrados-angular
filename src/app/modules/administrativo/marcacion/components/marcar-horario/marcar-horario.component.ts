@@ -2,7 +2,10 @@ import {
   Component,
   OnInit,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  OnDestroy,
+  ViewChild,
+  ElementRef
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -12,16 +15,15 @@ import { timeout } from 'rxjs';
 
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
-import { MarcacionService } from '../../service/marcacion.service';
+import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
-import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
-import { PersonaService } from '../../../../personas/persona/persona.service';
-import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
-import { FaceRecognitionService } from '../../service/face-recognition.service';
-import { ElementRef, ViewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+
+import { DispositivoService } from '../../../../../shared/services/dispositivo.service';
+import { UbicacionService } from '../../../../../shared/services/ubicacion.service';
+import { CamaraService } from '../../../../../shared/services/camara.service';
+import { UsuarioHelperService } from '../../service/usuario-helper.service';
+import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 
 @UntilDestroy()
 @Component({
@@ -30,7 +32,7 @@ import { HttpClient } from '@angular/common/http';
   styleUrls: ['./marcar-horario.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MarcarHorarioComponent implements OnInit {
+export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   empleadoNombreControl = new FormControl();
   empleadoIdControl = new FormControl();
@@ -43,29 +45,19 @@ export class MarcarHorarioComponent implements OnInit {
   horaEntrada: Date = null;
   estaEnJornada = false;
   cargando = false;
-  dispositivoInfo = '';
-  latitud: number = null;
-  longitud: number = null;
-  precisionGps: number = null;
-  deviceId: string = null;
-  distanciaSucursal: number = null;
 
   horaActual: Date = new Date();
   private clockInterval: any;
 
   @ViewChild('video') videoElement: ElementRef<HTMLVideoElement>;
-  @ViewChild('canvas') canvasElement: ElementRef<HTMLCanvasElement>;
 
   reconocimientoExitoso = false;
   mostrandoCamara = false;
   mensajeReconocimiento = '';
-  referenciaDescriptor: number[] | null = null;
-  stream: MediaStream | null = null;
-  detecting = false;
   mensajeErrorFoto = '';
-  private delayInterval: any;
-  embeddingCapturado: number[] | null = null;
-
+  private referenciaDescriptor: number[] | null = null;
+  private embeddingCapturado: number[] | null = null;
+  private detecting = false;
 
   marcacionesHoy: Marcacion[] = [];
 
@@ -75,62 +67,16 @@ export class MarcarHorarioComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private cdr: ChangeDetectorRef,
-    private searchUsuario: UsuarioSearchGQL,
-    private personaService: PersonaService,
-    private usuarioService: UsuarioService,
-    private faceService: FaceRecognitionService,
-    private http: HttpClient
+    private dispositivoService: DispositivoService,
+    private ubicacionService: UbicacionService,
+    private camaraService: CamaraService,
+    private usuarioHelper: UsuarioHelperService,
+    private faceHelper: ReconocimientoFacialHelperService
   ) { }
-
-  buscarEmpleado(): void {
-    const valor = this.empleadoIdControl.value;
-    if (valor) {
-      if (!isNaN(valor)) {
-        this.usuarioService.onGetUsuarioPorPersonaId(valor, true, { networkError: { propagate: true, show: false } })
-          .pipe(
-            untilDestroyed(this),
-            catchError(err => {
-              console.warn('Error fetching usuario from central, trying local...', err);
-              return this.usuarioService.onGetUsuarioPorPersonaId(valor, false);
-            })
-          )
-          .subscribe(res => {
-            if (res) {
-              this.seleccionarUsuario(res);
-            } else {
-              this.mensajeErrorPersona(valor);
-            }
-            this.cdr.markForCheck();
-          });
-      } else {
-        this.abrirBuscadorEmpleado();
-      }
-    } else {
-      this.abrirBuscadorEmpleado();
-    }
-  }
-
-  mensajeErrorPersona(id: number): void {
-    this.personaService.onGetPersona(id)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res) {
-          this.notificacionService.openWarn('La persona encontrada no tiene usuario asociado. Debe crear un usuario para esta persona.');
-        } else {
-          this.notificacionService.openWarn('No se encontró ninguna persona con ese ID');
-        }
-        this.empleadoIdControl.setErrors({ invalid: true });
-        this.cdr.markForCheck();
-      });
-  }
 
   ngOnInit(): void {
     this.sucursalActualNombre = this.mainService.sucursalActual?.nombre || 'Sin sucursal';
     this.sucursalActualId = this.mainService.sucursalActual?.id;
-    this.dispositivoInfo = this.obtenerInfoDispositivo();
-
-    this.deviceId = this.obtenerDeviceId();
-    this.obtenerUbicacion();
 
     this.clockInterval = setInterval(() => {
       this.horaActual = new Date();
@@ -142,358 +88,42 @@ export class MarcarHorarioComponent implements OnInit {
     if (this.clockInterval) {
       clearInterval(this.clockInterval);
     }
-    if (this.delayInterval) {
-      clearInterval(this.delayInterval);
-    }
-    this.detenerCamara();
+    this.camaraService.detenerCamara();
   }
-
-  obtenerInfoDispositivo(): string {
-    const navegador = navigator.userAgent;
-    const plataforma = navigator.platform;
-    return `${plataforma} - ${navegador.substring(0, 50)}`;
-  }
-
-  obtenerDeviceId(): string {
-    let id = localStorage.getItem('device_id');
-    if (!id) {
-      if (crypto && crypto.randomUUID) {
-        id = crypto.randomUUID();
-      } else {
-        id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-      }
-      localStorage.setItem('device_id', id);
-    }
-    return id;
-  }
-
-  obtenerUbicacion(): void {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.latitud = position.coords.latitude;
-          this.longitud = position.coords.longitude;
-          this.precisionGps = position.coords.accuracy;
-          this.calcularDistanciaSucursal();
-        },
-        (error) => {
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+  buscarEmpleado(): void {
+    const valor = this.empleadoIdControl.value;
+    if (valor && !isNaN(valor)) {
+      this.usuarioHelper.buscarUsuarioPorId(valor)
+        .pipe(untilDestroyed(this))
+        .subscribe(usuario => {
+          if (usuario) {
+            this.seleccionarUsuario(usuario);
+          }
+          this.cdr.markForCheck();
+        });
+    } else {
+      this.usuarioHelper.abrirBuscador(this.matDialog)
+        .pipe(untilDestroyed(this))
+        .subscribe(usuario => {
+          if (usuario) {
+            this.seleccionarUsuario(usuario);
+          }
+        });
     }
   }
 
-  calcularDistanciaSucursal(): void {
-    if (this.mainService.sucursalActual?.localizacion && this.latitud && this.longitud) {
-      const loc = this.mainService.sucursalActual.localizacion;
-      const parts = loc.split(/[,;]/);
-      if (parts.length >= 2) {
-        const sucLat = parseFloat(parts[0]);
-        const sucLon = parseFloat(parts[1]);
-        if (!isNaN(sucLat) && !isNaN(sucLon)) {
-          this.distanciaSucursal = this.getDistanceFromLatLonInM(this.latitud, this.longitud, sucLat, sucLon);
-        }
-      }
-    }
-  }
-
-  getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371000;
-    const dLat = this.deg2rad(lat2 - lat1);
-    const dLon = this.deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c;
-    return Math.floor(d);
-  }
-
-  deg2rad(deg: number): number {
-    return deg * (Math.PI / 180);
-  }
-
-  abrirBuscadorEmpleado(): void {
-    let data: SearchListtDialogData = {
-      titulo: "Buscar Usuario",
-      tableData: [
-        { id: "id", nombre: "Id", width: "10%" },
-        {
-          id: "nombre",
-          nombre: "Nombre",
-          nested: true,
-          nestedId: "persona",
-          width: "50%",
-        },
-        {
-          id: "documento",
-          nombre: "Documento",
-          nested: true,
-          nestedId: "persona",
-          width: "40%",
-        },
-      ],
-      query: this.searchUsuario,
-    };
-
-    this.matDialog
-      .open(SearchListDialogComponent, {
-        data: data,
-        height: "80vh",
-        width: "70vw",
-        panelClass: 'search-dialog-dark'
-      })
-      .afterClosed()
-      .pipe(untilDestroyed(this))
-      .subscribe((usuario: Usuario) => {
-        if (usuario) {
-          this.seleccionarUsuario(usuario);
-        }
-      });
-  }
-
-  seleccionarUsuario(usuario: Usuario): void {
+  async seleccionarUsuario(usuario: Usuario): Promise<void> {
     this.usuarioSeleccionado = usuario;
     this.empleadoNombreControl.setValue(usuario.persona?.nombre);
     this.empleadoIdControl.setValue(usuario.id);
     this.verificarMarcacionActiva();
-
-    this.reconocimientoExitoso = false;
-    this.mostrandoCamara = false;
-    this.mensajeReconocimiento = '';
-    this.mensajeErrorFoto = '';
-    this.referenciaDescriptor = null;
-    this.embeddingCapturado = null;
-    this.detenerCamara();
-
-    this.prepararReconocimiento();
-
+    this.limpiarEstadosCamara();
+    await this.iniciarProcesoValidacionFacial(usuario);
     this.cdr.markForCheck();
-  }
-
-  async prepararReconocimiento(): Promise<void> {
-    this.mensajeErrorFoto = '';
-    let fotoUrl = this.usuarioSeleccionado.avatar;
-
-    let filename = null;
-    if (this.usuarioSeleccionado.persona?.imagenes) {
-      const imgs = this.usuarioSeleccionado.persona.imagenes.split(',');
-      if (imgs.length > 0) filename = imgs[0].trim();
-    }
-
-    if (!fotoUrl && filename) {
-      try {
-        const images = await this.usuarioService.onGetUsuarioImages(
-          this.usuarioSeleccionado.id,
-          'perfil',
-          true,
-          { networkError: { propagate: true, show: false } }
-        ).toPromise();
-
-        if (images && images.length > 0) {
-          fotoUrl = images[0];
-        } else {
-          const localImages = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil', false).toPromise();
-          if (localImages && localImages.length > 0) {
-            fotoUrl = localImages[0];
-          }
-        }
-      } catch (e) {
-        console.warn('Error fetching image from central, trying local...', e);
-        try {
-          const localImages = await this.usuarioService.onGetUsuarioImages(this.usuarioSeleccionado.id, 'perfil', false).toPromise();
-          if (localImages && localImages.length > 0) {
-            fotoUrl = localImages[0];
-          }
-        } catch (e2) {
-          console.error('Error fetching image from local', e2);
-        }
-      }
-    }
-    if (!fotoUrl) {
-      this.mensajeErrorFoto = 'Primera vez marcando. Se capturará su foto de perfil.';
-      this.cdr.markForCheck();
-      await this.capturarYGuardarFotoPerfil();
-      return;
-    }
-
-    try {
-      this.cargando = true;
-      this.referenciaDescriptor = await this.faceService.getDescriptor(fotoUrl);
-      this.cargando = false;
-
-      if (!this.referenciaDescriptor) {
-        this.mensajeErrorFoto = 'No se pudo detectar un rostro en la foto de perfil del usuario.';
-      } else {
-        this.iniciarReconocimiento();
-      }
-    } catch (error) {
-      this.mensajeErrorFoto = 'Error al procesar la foto de perfil.';
-      this.cargando = false;
-    }
-    this.cdr.markForCheck();
-  }
-
-  async capturarYGuardarFotoPerfil(): Promise<void> {
-    this.mostrandoCamara = true;
-    this.mensajeReconocimiento = 'Capturando foto de perfil. Mire a la cámara...';
-    this.cdr.markForCheck();
-
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      if (this.videoElement) {
-        this.videoElement.nativeElement.srcObject = this.stream;
-        this.videoElement.nativeElement.onloadedmetadata = async () => {
-          this.videoElement.nativeElement.play();
-
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          const detection = await this.faceService.detect(this.videoElement.nativeElement);
-
-          if (detection.face && detection.face.length > 0) {
-            const canvas = this.canvasElement.nativeElement;
-            const video = this.videoElement.nativeElement;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageBase64 = canvas.toDataURL('image/png');
-
-            this.detenerCamara();
-            this.mensajeReconocimiento = 'Guardando foto de perfil...';
-            this.cargando = true;
-            this.cdr.markForCheck();
-
-            try {
-              await this.usuarioService.onSaveUsuarioImage(
-                this.usuarioSeleccionado.id,
-                'perfil',
-                imageBase64,
-                false
-              ).toPromise();
-
-              this.notificacionService.notification$.next({
-                texto: 'Foto de perfil guardada exitosamente',
-                color: NotificacionColor.success,
-                duracion: 3
-              });
-
-              if (this.usuarioSeleccionado.persona) {
-                this.usuarioSeleccionado.persona.imagenes = 'captured';
-              }
-
-              this.cargando = false;
-              this.mensajeErrorFoto = '';
-              this.cdr.markForCheck();
-
-              await this.prepararReconocimiento();
-            } catch (error) {
-              this.cargando = false;
-              this.mensajeErrorFoto = 'Error al guardar la foto de perfil';
-              this.notificacionService.notification$.next({
-                texto: 'Error al guardar la foto de perfil',
-                color: NotificacionColor.danger,
-                duracion: 3
-              });
-              this.cdr.markForCheck();
-            }
-          } else {
-            this.detenerCamara();
-            this.mensajeErrorFoto = 'No se detectó un rostro. Intente nuevamente.';
-            this.cdr.markForCheck();
-          }
-        }
-      }
-    } catch (err) {
-      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
-      this.mostrandoCamara = false;
-      this.cdr.markForCheck();
-    }
-  }
-
-  async iniciarReconocimiento(): Promise<void> {
-    if (!this.referenciaDescriptor) return;
-
-    this.mostrandoCamara = true;
-    this.mensajeReconocimiento = 'Iniciando cámara...';
-    this.cdr.markForCheck();
-
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      if (this.videoElement) {
-        this.videoElement.nativeElement.srcObject = this.stream;
-        this.videoElement.nativeElement.onloadedmetadata = () => {
-          this.videoElement.nativeElement.play();
-          this.detectarBucle();
-        }
-      }
-    } catch (err) {
-      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
-      this.mostrandoCamara = false;
-    }
-    this.cdr.markForCheck();
-  }
-
-  detenerCamara(): void {
-    this.detecting = false;
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
-    this.mostrandoCamara = false;
-  }
-
-  async detectarBucle(): Promise<void> {
-    this.detecting = true;
-    this.mensajeReconocimiento = 'Buscando rostro...';
-    this.cdr.markForCheck();
-
-    const loop = async () => {
-      if (!this.detecting || !this.videoElement || !this.referenciaDescriptor) return;
-
-      if (this.videoElement.nativeElement.paused || this.videoElement.nativeElement.ended) {
-        return setTimeout(() => loop());
-      }
-
-      const detection = await this.faceService.detect(this.videoElement.nativeElement);
-
-      if (detection.face && detection.face.length > 0) {
-        const tensor = Array.from(detection.face[0].embedding);
-        const similarity = this.faceService.similarity(this.referenciaDescriptor, tensor);
-
-        if (similarity > 0.6) {
-          this.reconocimientoExitoso = true;
-          this.embeddingCapturado = tensor;
-          this.videoElement.nativeElement.pause();
-          this.detecting = false;
-          this.cdr.markForCheck();
-
-        } else {
-          this.mensajeReconocimiento = `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`;
-        }
-      } else {
-        this.mensajeReconocimiento = 'No se detecta rostro. Centra tu cara.';
-      }
-
-      this.cdr.markForCheck();
-      if (!this.reconocimientoExitoso) {
-        requestAnimationFrame(loop);
-      }
-    };
-
-    loop();
   }
 
   limpiarEmpleado(): void {
-    if (this.delayInterval) clearInterval(this.delayInterval);
-    this.detenerCamara();
-    this.referenciaDescriptor = null;
-    this.embeddingCapturado = null;
-    this.reconocimientoExitoso = false;
-    this.mostrandoCamara = false;
-    this.mensajeErrorFoto = '';
-
+    this.limpiarEstadosCamara();
     this.usuarioSeleccionado = null;
     this.empleadoNombreControl.setValue(null);
     this.empleadoIdControl.setValue(null);
@@ -504,211 +134,290 @@ export class MarcarHorarioComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  limpiarEstadosCamara(): void {
+    this.reconocimientoExitoso = false;
+    this.mostrandoCamara = false;
+    this.mensajeReconocimiento = '';
+    this.mensajeErrorFoto = '';
+    this.referenciaDescriptor = null;
+    this.embeddingCapturado = null;
+    this.detecting = false;
+    this.camaraService.detenerCamara();
+  }
+
+  async iniciarProcesoValidacionFacial(usuario: Usuario): Promise<void> {
+    this.cargando = true;
+    const fotoUrl = await this.usuarioHelper.obtenerFotoPerfil(usuario);
+    this.cargando = false;
+
+    if (!fotoUrl) {
+      this.mensajeErrorFoto = 'Primera vez marcando. Se capturará su foto de perfil.';
+      await this.capturarYGuardarFotoPerfil();
+      return;
+    }
+
+    this.referenciaDescriptor = await this.faceHelper.obtenerDescriptorReferencia(fotoUrl);
+    if (this.referenciaDescriptor) {
+      this.iniciarCamaraParaVerificacion();
+    } else {
+      this.mensajeErrorFoto = 'Error: No se pudo procesar la foto de perfil para validación.';
+    }
+    this.cdr.markForCheck();
+  }
+
+  async capturarYGuardarFotoPerfil(): Promise<void> {
+    this.mostrandoCamara = true;
+    this.mensajeReconocimiento = 'Capturando foto de perfil. Mire a la cámara...';
+    try {
+      const stream = await this.camaraService.iniciarCamara();
+      if (this.videoElement) {
+        this.videoElement.nativeElement.srcObject = stream;
+        this.videoElement.nativeElement.onloadedmetadata = async () => {
+          this.videoElement.nativeElement.play();
+          // Esperar un momento a que estabilice
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const exito = await this.faceHelper.capturarYGuardarFotoPerfil(this.usuarioSeleccionado.id, this.videoElement.nativeElement);
+          if (exito) {
+            if (this.usuarioSeleccionado.persona) this.usuarioSeleccionado.persona.imagenes = 'captured';
+            this.mensajeErrorFoto = '';
+            await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
+          } else {
+            this.mensajeErrorFoto = 'Error al capturar o guardar foto.';
+          }
+          this.cdr.markForCheck();
+        }
+      }
+    } catch (e) {
+      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
+    }
+  }
+
+  async iniciarCamaraParaVerificacion(): Promise<void> {
+    this.mostrandoCamara = true;
+    this.mensajeReconocimiento = 'Iniciando cámara...';
+    try {
+      const stream = await this.camaraService.iniciarCamara();
+      if (this.videoElement) {
+        this.videoElement.nativeElement.srcObject = stream;
+        this.videoElement.nativeElement.onloadedmetadata = () => {
+          this.videoElement.nativeElement.play();
+          this.detecting = true;
+          this.bucleDeteccion();
+        }
+      }
+    } catch (e) {
+      this.mensajeReconocimiento = 'Error al acceder a la cámara';
+      this.mostrandoCamara = false;
+    }
+    this.cdr.markForCheck();
+  }
+
+  async bucleDeteccion() {
+    if (!this.detecting || !this.videoElement || !this.referenciaDescriptor) return;
+
+    const video = this.videoElement.nativeElement;
+    if (video.paused || video.ended) {
+      setTimeout(() => this.bucleDeteccion(), 100);
+      return;
+    }
+
+    const resultado = await this.faceHelper.procesarFrame(video, this.referenciaDescriptor);
+
+    this.mensajeReconocimiento = resultado.mensaje;
+
+    if (resultado.exito && resultado.embedding) {
+      this.reconocimientoExitoso = true;
+      this.embeddingCapturado = resultado.embedding;
+      this.detecting = false;
+      video.pause();
+      this.cdr.markForCheck();
+      return; // Terminamos el bucle
+    }
+
+    this.cdr.markForCheck();
+    requestAnimationFrame(() => this.bucleDeteccion());
+  }
+
   verificarMarcacionActiva(): void {
     if (!this.usuarioSeleccionado?.id) return;
 
-    const hoy = new Date();
-    const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString();
-    const finHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString();
-
     this.cargando = true;
+    const { inicio, fin } = this.obtenerRangoHoy();
+
     this.marcacionService.onGetMarcacionesPorUsuario(
-      this.usuarioSeleccionado.id,
-      inicioHoy,
-      finHoy,
-      0,
-      100,
-      true,
+      this.usuarioSeleccionado.id, inicio, fin, 0, 100, true,
       { networkError: { propagate: true, show: false } }
     ).pipe(
       timeout(5000),
       untilDestroyed(this),
-      catchError(err => {
-        return this.marcacionService.onGetMarcacionesPorUsuario(
-          this.usuarioSeleccionado.id,
-          inicioHoy,
-          finHoy,
-          0,
-          100,
-          false,
-          { networkError: { propagate: true, show: false } }
-        );
-      })
-    )
-      .subscribe({
-        next: (marcaciones) => {
-          this.cargando = false;
-          this.marcacionesHoy = (marcaciones || []).sort((a, b) => {
-            return new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime();
-          });
+      catchError(() => this.marcacionService.onGetMarcacionesPorUsuario(
+        this.usuarioSeleccionado.id, inicio, fin, 0, 100, false,
+        { networkError: { propagate: true, show: false } }
+      ))
+    ).subscribe({
+      next: (marcaciones) => {
+        this.cargando = false;
+        this.procesarMarcaciones(marcaciones);
+      },
+      error: (err) => {
+        this.cargando = false;
+        console.error('Error al verificar marcación activa', err);
+      }
+    });
+  }
 
-          const marcacionSinSalida = marcaciones?.find(m =>
-            m.fechaEntrada && !m.fechaSalida
-          );
+  private obtenerRangoHoy() {
+    const hoy = new Date();
+    return {
+      inicio: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString(),
+      fin: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
+    };
+  }
 
-          if (marcacionSinSalida) {
-            this.marcacionActiva = marcacionSinSalida;
-            this.horaEntrada = new Date(marcacionSinSalida.fechaEntrada);
-            this.estaEnJornada = true;
-          } else {
-            this.marcacionActiva = null;
-            this.horaEntrada = null;
-            this.estaEnJornada = false;
-          }
+  private procesarMarcaciones(marcaciones: Marcacion[]) {
+    this.marcacionesHoy = (marcaciones || []).sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime());
+    const activa = marcaciones?.find(m => m.fechaEntrada && !m.fechaSalida);
 
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.cargando = false;
-          console.error('Error al verificar marcación activa', err);
-          this.cdr.markForCheck();
-        }
-      });
+    if (activa) {
+      this.marcacionActiva = activa;
+      this.horaEntrada = new Date(activa.fechaEntrada);
+      this.estaEnJornada = true;
+    } else {
+      this.marcacionActiva = null;
+      this.horaEntrada = null;
+      this.estaEnJornada = false;
+    }
+    this.cdr.markForCheck();
   }
 
   registrarEntrada(): void {
-    if (!this.usuarioSeleccionado?.id) {
-      this.notificacionService.notification$.next({
-        texto: 'Debe seleccionar su usuario primero',
-        color: NotificacionColor.warn,
-        duracion: 3
-      });
-      return;
-    }
-
-    if (!this.sucursalActualId) {
-      this.notificacionService.notification$.next({
-        texto: 'No se pudo determinar la sucursal actual',
-        color: NotificacionColor.danger,
-        duracion: 3
-      });
-      return;
-    }
-
-    if (!this.reconocimientoExitoso) {
-      this.notificacionService.notification$.next({
-        texto: 'Debe verificar su identidad con reconocimiento facial primero',
-        color: NotificacionColor.warn,
-        duracion: 3
-      });
-      return;
-    }
-
-    this.cargando = true;
-    this.marcacionService.onRegistrarEntrada(
-      this.usuarioSeleccionado.id,
-      this.sucursalActualId,
-      this.latitud,
-      this.longitud,
-      this.precisionGps,
-      this.distanciaSucursal,
-      this.deviceId,
-      this.dispositivoInfo,
-      this.embeddingCapturado
-    ).pipe(untilDestroyed(this))
-      .subscribe({
-        next: (marcacion) => {
-          this.cargando = false;
-          this.marcacionActiva = marcacion;
-          this.horaEntrada = new Date(marcacion.fechaEntrada);
-          this.estaEnJornada = true;
-          if (this.marcacionesHoy) {
-            this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
-          } else {
-            this.marcacionesHoy = [marcacion];
-          }
-
-          this.cdr.markForCheck();
-
-          this.notificacionService.notification$.next({
-            texto: `Entrada registrada exitosamente a las ${this.horaEntrada.toLocaleTimeString()}`,
-            color: NotificacionColor.success,
-            duracion: 4
-          });
-
-          this.reconocimientoExitoso = false;
-          this.mostrandoCamara = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.cargando = false;
-          this.cdr.markForCheck();
-        }
-      });
+    if (!this.validarRegistro()) return;
+    this.ejecutarRegistro(true);
   }
 
   registrarSalida(): void {
-    if (!this.marcacionActiva?.id) {
-      this.notificacionService.notification$.next({
-        texto: 'No hay una entrada activa para registrar salida',
-        color: NotificacionColor.warn,
-        duracion: 3
-      });
-      return;
-    }
+    if (!this.validarRegistro(true)) return;
+    this.ejecutarRegistro(false);
+  }
 
-    if (!this.sucursalActualId) {
-      this.notificacionService.notification$.next({
-        texto: 'No se pudo determinar la sucursal actual',
-        color: NotificacionColor.danger,
-        duracion: 3
-      });
-      return;
-    }
-
-    if (!this.reconocimientoExitoso) {
-      this.notificacionService.notification$.next({
-        texto: 'Debe verificar su identidad con reconocimiento facial primero',
-        color: NotificacionColor.warn,
-        duracion: 3
-      });
-      return;
-    }
-
+  private ejecutarRegistro(esEntrada: boolean) {
     this.cargando = true;
-    this.marcacionService.onRegistrarSalida(
-      this.marcacionActiva.id,
-      this.sucursalActualId,
-      this.latitud,
-      this.longitud,
-      this.precisionGps,
-      this.distanciaSucursal
-    ).pipe(untilDestroyed(this))
+    this.ubicacionService.obtenerUbicacionActual().subscribe({
+      next: (ubicacion) => {
+        const contexto = this.crearContexto(ubicacion);
+        esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
+      },
+      error: (err) => {
+        console.warn('Ubicación no disponible', err);
+        const contexto = this.crearContexto(null); // Contexto sin ubicación
+        esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
+      }
+    });
+  }
+
+  private crearContexto(ubicacion: any): MarcacionContexto {
+    return {
+      usuarioId: this.usuarioSeleccionado.id,
+      sucursalId: this.sucursalActualId,
+      latitud: ubicacion?.latitud,
+      longitud: ubicacion?.longitud,
+      precisionGps: ubicacion?.precision,
+      distanciaSucursalMetros: ubicacion ? this.ubicacionService.calcularDistanciaMetros(
+        ubicacion.latitud, ubicacion.longitud,
+        this.obtenerLatSucursal(), this.obtenerLonSucursal()
+      ) : undefined,
+      deviceId: this.dispositivoService.obtenerDeviceId(),
+      deviceInfo: this.dispositivoService.obtenerInfoDispositivo(),
+      embedding: this.embeddingCapturado
+    };
+  }
+
+  private obtenerLatSucursal(): number {
+    if (this.mainService.sucursalActual?.localizacion) {
+      const parts = this.mainService.sucursalActual.localizacion.split(/[,;]/);
+      if (parts.length > 0) return parseFloat(parts[0]);
+    }
+    return 0;
+  }
+  private obtenerLonSucursal(): number {
+    if (this.mainService.sucursalActual?.localizacion) {
+      const parts = this.mainService.sucursalActual.localizacion.split(/[,;]/);
+      if (parts.length > 1) return parseFloat(parts[1]);
+    }
+    return 0;
+  }
+
+  private guardarEntrada(contexto: MarcacionContexto) {
+    this.marcacionService.onRegistrarEntrada(contexto)
+      .pipe(untilDestroyed(this))
       .subscribe({
-        next: (marcacion) => {
-          this.cargando = false;
-          const horaSalida = new Date(marcacion.fechaSalida);
-
-          // Actualizar lista de hoy
-          if (this.marcacionesHoy) {
-            const index = this.marcacionesHoy.findIndex(m => m.id === marcacion.id);
-            if (index !== -1) {
-              // Creamos una copia del array para asegurar que Angular detecte el cambio si la estrategia es OnPush
-              const nuevaLista = [...this.marcacionesHoy];
-              nuevaLista[index] = marcacion;
-              this.marcacionesHoy = nuevaLista;
-            }
-          }
-
-          this.notificacionService.notification$.next({
-            texto: `Salida registrada exitosamente a las ${horaSalida.toLocaleTimeString()}`,
-            color: NotificacionColor.success,
-            duracion: 4
-          });
-
-          this.marcacionActiva = null;
-          this.horaEntrada = null;
-          this.estaEnJornada = false;
-
-          this.reconocimientoExitoso = false;
-          this.mostrandoCamara = false;
-
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.cargando = false;
-          this.cdr.markForCheck();
-        }
+        next: (res) => this.finalizarRegistro(res, 'Entrada'),
+        error: () => { this.cargando = false; this.cdr.markForCheck(); }
       });
+  }
+
+  private guardarSalida(contexto: MarcacionContexto) {
+    if (!this.marcacionActiva?.id) return;
+    this.marcacionService.onRegistrarSalida(this.marcacionActiva.id, contexto)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => this.finalizarRegistro(res, 'Salida'),
+        error: () => { this.cargando = false; this.cdr.markForCheck(); }
+      });
+  }
+
+  private finalizarRegistro(marcacion: Marcacion, tipo: 'Entrada' | 'Salida') {
+    this.cargando = false;
+    const hora = tipo === 'Entrada' ? new Date(marcacion.fechaEntrada) : new Date(marcacion.fechaSalida);
+
+    this.notificacionService.notification$.next({
+      texto: `${tipo} registrada exitosamente a las ${hora.toLocaleTimeString()}`,
+      color: NotificacionColor.success,
+      duracion: 4
+    });
+    if (tipo === 'Entrada') {
+      this.marcacionActiva = marcacion;
+      this.horaEntrada = hora;
+      this.estaEnJornada = true;
+      this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
+    } else {
+      const index = this.marcacionesHoy.findIndex(m => m.id === marcacion.id);
+      if (index !== -1) {
+        const nuevaLista = [...this.marcacionesHoy];
+        nuevaLista[index] = marcacion;
+        this.marcacionesHoy = nuevaLista;
+      }
+      this.marcacionActiva = null;
+      this.horaEntrada = null;
+      this.estaEnJornada = false;
+    }
+
+    this.limpiarEstadosCamara();
+    this.cdr.markForCheck();
+  }
+
+  private validarRegistro(esSalida = false): boolean {
+    if (esSalida && !this.marcacionActiva?.id) {
+      this.notificarError('No hay una entrada activa para registrar salida');
+      return false;
+    }
+    if (!esSalida && !this.usuarioSeleccionado?.id) {
+      this.notificarError('Debe seleccionar su usuario primero');
+      return false;
+    }
+    if (!this.sucursalActualId) {
+      this.notificarError('No se pudo determinar la sucursal actual', NotificacionColor.danger);
+      return false;
+    }
+    if (!this.reconocimientoExitoso) {
+      this.notificarError('Debe verificar su identidad con reconocimiento facial primero');
+      return false;
+    }
+    return true;
+  }
+
+  private notificarError(texto: string, color: NotificacionColor = NotificacionColor.warn) {
+    this.notificacionService.notification$.next({ texto, color, duracion: 3 });
   }
 }
