@@ -67,6 +67,8 @@ export class MarcarHorarioComponent implements OnInit {
   embeddingCapturado: number[] | null = null;
 
 
+  marcacionesHoy: Marcacion[] = [];
+
   constructor(
     public mainService: MainService,
     private marcacionService: MarcacionService,
@@ -498,6 +500,7 @@ export class MarcarHorarioComponent implements OnInit {
     this.marcacionActiva = null;
     this.horaEntrada = null;
     this.estaEnJornada = false;
+    this.marcacionesHoy = [];
     this.cdr.markForCheck();
   }
 
@@ -535,6 +538,7 @@ export class MarcarHorarioComponent implements OnInit {
       .subscribe({
         next: (marcaciones) => {
           this.cargando = false;
+          this.marcacionesHoy = marcaciones || [];
 
           const marcacionSinSalida = marcaciones?.find(m =>
             m.fechaEntrada && !m.fechaSalida
@@ -606,6 +610,14 @@ export class MarcarHorarioComponent implements OnInit {
           this.marcacionActiva = marcacion;
           this.horaEntrada = new Date(marcacion.fechaEntrada);
           this.estaEnJornada = true;
+
+          // Actualizar lista de hoy
+          if (this.marcacionesHoy) {
+            this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
+          } else {
+            this.marcacionesHoy = [marcacion];
+          }
+
           this.cdr.markForCheck();
 
           this.notificacionService.notification$.next({
@@ -666,6 +678,17 @@ export class MarcarHorarioComponent implements OnInit {
         next: (marcacion) => {
           this.cargando = false;
           const horaSalida = new Date(marcacion.fechaSalida);
+
+          // Actualizar lista de hoy
+          if (this.marcacionesHoy) {
+            const index = this.marcacionesHoy.findIndex(m => m.id === marcacion.id);
+            if (index !== -1) {
+              // Creamos una copia del array para asegurar que Angular detecte el cambio si la estrategia es OnPush
+              const nuevaLista = [...this.marcacionesHoy];
+              nuevaLista[index] = marcacion;
+              this.marcacionesHoy = nuevaLista;
+            }
+          }
 
           this.notificacionService.notification$.next({
             texto: `Salida registrada exitosamente a las ${horaSalida.toLocaleTimeString()}`,

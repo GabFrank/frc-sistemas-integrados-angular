@@ -117,9 +117,10 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
   }
 
   inicializarFechas(): void {
-    const unaSemanaAtras = new Date();
-    unaSemanaAtras.setDate(this.hoy.getDate() - 7);
-    this.fechaInicioControl.setValue(unaSemanaAtras);
+    const ayer = new Date();
+    ayer.setDate(this.hoy.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+    this.fechaInicioControl.setValue(ayer);
     this.fechaFinControl.setValue(this.hoy);
   }
 

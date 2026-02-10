@@ -36,6 +36,37 @@
             </mat-card-content>
         </mat-card>
 
+        <mat-card class="resumen-card" *ngIf="usuarioSeleccionado && marcacionesHoy?.length > 0">
+            <div class="resumen-header">
+                Resumen del día
+            </div>
+            <mat-card-content class="resumen-content">
+                <div class="timeline-item" *ngFor="let m of marcacionesHoy">
+                    <div class="timeline-point"></div>
+                    <div class="timeline-content">
+
+                        <div class="evento entrada">
+                            <div class="hora">{{ m.fechaEntrada | date:'HH:mm' }}</div>
+                            <div class="tipo">Entrada</div>
+                        </div>
+
+                        <div class="connector" *ngIf="m.fechaSalida || !m.fechaSalida"></div>
+
+                        <div class="evento salida" *ngIf="m.fechaSalida">
+                            <div class="hora">{{ m.fechaSalida | date:'HH:mm' }}</div>
+                            <div class="tipo">Salida</div>
+                        </div>
+
+                        <div class="evento en-curso" *ngIf="!m.fechaSalida">
+                            <div class="hora">--:--</div>
+                            <div class="tipo">En curso</div>
+                        </div>
+
+                    </div>
+                </div>
+            </mat-card-content>
+        </mat-card>
+
     </div>
 
     <div fxFlex fxLayout="column" fxLayoutAlign="center stretch">
