@@ -21,6 +21,7 @@ import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inic
 
 import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
 import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
+import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -42,7 +43,8 @@ export class UsuarioService {
     private getUsuarios: UsuariosGQL,
     private saveInicioSesion: SaveInicioSesionGQL,
     private getUsuarioImages: GetUsuarioImagesGQL,
-    private saveUsuarioImage: SaveUsuarioImageGQL
+    private saveUsuarioImage: SaveUsuarioImageGQL,
+    private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL
 
   ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
@@ -90,5 +92,9 @@ export class UsuarioService {
 
   onSaveUsuarioImage(id: number, type: string, image: string, servidor: boolean = true): Observable<boolean> {
     return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image }, servidor);
+  }
+
+  onGetUsuarioPorEmbedding(embedding: number[], servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding }, servidor, null, true);
   }
 }

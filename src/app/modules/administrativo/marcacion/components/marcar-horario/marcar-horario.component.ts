@@ -58,6 +58,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   private referenciaDescriptor: number[] | null = null;
   private embeddingCapturado: number[] | null = null;
   private detecting = false;
+  private lastCheckTime = 0;
 
   marcacionesHoy: Marcacion[] = [];
 
@@ -82,6 +83,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.horaActual = new Date();
       this.cdr.markForCheck();
     }, 1000);
+
+    setTimeout(() => this.iniciarReconocimientoAutomatico(), 500);
   }
 
   ngOnDestroy(): void {
@@ -131,6 +134,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.horaEntrada = null;
     this.estaEnJornada = false;
     this.marcacionesHoy = [];
+    setTimeout(() => this.iniciarReconocimientoAutomatico(), 500);
     this.cdr.markForCheck();
   }
 
@@ -143,6 +147,84 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.embeddingCapturado = null;
     this.detecting = false;
     this.camaraService.detenerCamara();
+  }
+
+  async iniciarReconocimientoAutomatico(): Promise<void> {
+    if (this.usuarioSeleccionado) return;
+    this.limpiarEstadosCamara();
+    this.mostrandoCamara = true;
+    this.mensajeReconocimiento = 'Iniciando cámara...';
+    this.cdr.detectChanges();
+
+    try {
+      const stream = await this.camaraService.iniciarCamara();
+
+      // Esperar a que el ViewChild se actualice
+      for (let i = 0; i < 5; i++) {
+        if (this.videoElement) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        this.cdr.detectChanges();
+      }
+
+      if (this.videoElement) {
+        const video = this.videoElement.nativeElement;
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play().catch(err => console.error('Error al reproducir video:', err));
+          this.detecting = true;
+          this.bucleDeteccionAutomatico();
+        };
+      } else {
+        throw new Error('No se encontró el elemento de video');
+      }
+    } catch (e) {
+      console.error('Error en iniciarReconocimientoAutomatico:', e);
+      this.mensajeReconocimiento = 'Reconocimiento Facial Pausado';
+      this.mostrandoCamara = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async bucleDeteccionAutomatico() {
+    if (!this.detecting || !this.videoElement || this.usuarioSeleccionado) return;
+
+    const video = this.videoElement.nativeElement;
+    if (video.paused || video.ended) {
+      setTimeout(() => this.bucleDeteccionAutomatico(), 100);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastCheckTime > 2000) {
+      const embedding = await this.faceHelper.obtenerEmbeddingFrame(video);
+      if (embedding) {
+        this.lastCheckTime = now;
+        this.mensajeReconocimiento = 'Verificando identidad...';
+        this.cdr.markForCheck();
+
+        const resultado = await this.faceHelper.buscarYValidarUsuario(embedding, video);
+        if (resultado && resultado.confiable) {
+          this.detecting = false;
+          const pctBackend = (resultado.similitudBackend * 100).toFixed(0);
+          const pctLocal = resultado.similitudLocal > 0 ? (resultado.similitudLocal * 100).toFixed(0) : 'N/A';
+          this.mensajeReconocimiento = `Identificado: ${resultado.usuario.persona?.nombre} (${pctBackend}%)`;
+          this.cdr.markForCheck();
+          setTimeout(() => {
+            this.seleccionarUsuario(resultado.usuario);
+          }, 1000);
+          return;
+        } else if (resultado && !resultado.confiable) {
+          this.mensajeReconocimiento = `Match insuficiente: ${resultado.usuario.persona?.nombre} (${(resultado.similitudBackend * 100).toFixed(0)}%)`;
+        } else {
+          this.mensajeReconocimiento = 'No se encontró coincidencia...';
+        }
+      } else {
+        this.mensajeReconocimiento = 'Buscando rostro...';
+      }
+    }
+
+    this.cdr.markForCheck();
+    requestAnimationFrame(() => this.bucleDeteccionAutomatico());
   }
 
   async iniciarProcesoValidacionFacial(usuario: Usuario): Promise<void> {
@@ -168,27 +250,41 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   async capturarYGuardarFotoPerfil(): Promise<void> {
     this.mostrandoCamara = true;
     this.mensajeReconocimiento = 'Capturando foto de perfil. Mire a la cámara...';
+    this.cdr.detectChanges();
+
     try {
       const stream = await this.camaraService.iniciarCamara();
-      if (this.videoElement) {
-        this.videoElement.nativeElement.srcObject = stream;
-        this.videoElement.nativeElement.onloadedmetadata = async () => {
-          this.videoElement.nativeElement.play();
-          // Esperar un momento a que estabilice
-          await new Promise(resolve => setTimeout(resolve, 2000));
+      for (let i = 0; i < 5; i++) {
+        if (this.videoElement) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        this.cdr.detectChanges();
+      }
 
-          const exito = await this.faceHelper.capturarYGuardarFotoPerfil(this.usuarioSeleccionado.id, this.videoElement.nativeElement);
-          if (exito) {
-            if (this.usuarioSeleccionado.persona) this.usuarioSeleccionado.persona.imagenes = 'captured';
-            this.mensajeErrorFoto = '';
-            await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
-          } else {
-            this.mensajeErrorFoto = 'Error al capturar o guardar foto.';
-          }
-          this.cdr.markForCheck();
+      if (this.videoElement) {
+        const video = this.videoElement.nativeElement;
+        video.srcObject = stream;
+
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = async () => {
+            await video.play().catch(err => console.error('Error playing video:', err));
+            // Esperar un momento a que estabilice
+            await new Promise(r => setTimeout(r, 2000));
+            resolve();
+          };
+        });
+
+        const exito = await this.faceHelper.capturarYGuardarFotoPerfil(this.usuarioSeleccionado.id, video);
+        if (exito) {
+          if (this.usuarioSeleccionado.persona) this.usuarioSeleccionado.persona.imagenes = 'captured';
+          this.mensajeErrorFoto = '';
+          await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
+        } else {
+          this.mensajeErrorFoto = 'Error al capturar o guardar foto.';
         }
+        this.cdr.markForCheck();
       }
     } catch (e) {
+      console.error('Error en capturarYGuardarFotoPerfil:', e);
       this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
     }
   }
@@ -196,17 +292,31 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   async iniciarCamaraParaVerificacion(): Promise<void> {
     this.mostrandoCamara = true;
     this.mensajeReconocimiento = 'Iniciando cámara...';
+    this.cdr.detectChanges();
+
     try {
       const stream = await this.camaraService.iniciarCamara();
+
+      // Esperar a que el ViewChild se actualice
+      for (let i = 0; i < 5; i++) {
+        if (this.videoElement) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        this.cdr.detectChanges();
+      }
+
       if (this.videoElement) {
-        this.videoElement.nativeElement.srcObject = stream;
-        this.videoElement.nativeElement.onloadedmetadata = () => {
-          this.videoElement.nativeElement.play();
+        const video = this.videoElement.nativeElement;
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play().catch(err => console.error('Error al reproducir:', err));
           this.detecting = true;
           this.bucleDeteccion();
-        }
+        };
+      } else {
+        throw new Error('No se encontró el elemento de video');
       }
     } catch (e) {
+      console.error('Error en iniciarCamaraParaVerificacion:', e);
       this.mensajeReconocimiento = 'Error al acceder a la cámara';
       this.mostrandoCamara = false;
     }

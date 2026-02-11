@@ -3,12 +3,20 @@ import { FaceRecognitionService } from './face-recognition.service';
 import { CamaraService } from '../../../../shared/services/camara.service';
 import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { Usuario } from '../../../personas/usuarios/usuario.model';
 
 export interface EstadoReconocimiento {
     exito: boolean;
     mensaje: string;
     embedding?: number[];
     mostrarCamara: boolean;
+}
+
+export interface ResultadoBusqueda {
+    usuario: Usuario;
+    similitudBackend: number;
+    similitudLocal: number;
+    confiable: boolean;
 }
 
 @Injectable({
@@ -93,5 +101,93 @@ export class ReconocimientoFacialHelperService {
             }
         }
         return false;
+    }
+
+    /**
+     * Busca un usuario por embedding en el backend y realiza doble validación
+     * comparando el embedding de la cámara contra la foto de perfil del usuario encontrado.
+     */
+    async buscarYValidarUsuario(embedding: number[], video: HTMLVideoElement): Promise<ResultadoBusqueda | null> {
+        try {
+            // Paso 1: Buscar en el backend (threshold 0.75)
+            const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding).toPromise();
+            if (!resultado || !resultado.usuario) {
+                return null;
+            }
+
+            const usuario: Usuario = resultado.usuario;
+            const similitudBackend: number = resultado.similitud;
+
+            // Paso 2: Doble validación local - obtener la foto de perfil y comparar
+            const fotoUrl = await this.obtenerFotoPerfilUsuario(usuario);
+            if (!fotoUrl) {
+                // Si no tiene foto, confiar solo en el backend pero con menos confianza
+                console.warn('Usuario sin foto de perfil, confiando solo en backend');
+                return {
+                    usuario,
+                    similitudBackend,
+                    similitudLocal: 0,
+                    confiable: similitudBackend > 0.85 // Más estricto sin doble validación
+                };
+            }
+
+            // Obtener embedding de la foto de perfil
+            const descriptorPerfil = await this.obtenerDescriptorReferencia(fotoUrl);
+            if (!descriptorPerfil) {
+                console.warn('No se pudo obtener descriptor de foto de perfil');
+                return {
+                    usuario,
+                    similitudBackend,
+                    similitudLocal: 0,
+                    confiable: similitudBackend > 0.85
+                };
+            }
+
+            // Comparar embedding actual de la cámara contra foto de perfil
+            const similitudLocal = this.faceService.similarity(embedding, descriptorPerfil);
+            console.log(`Doble validación - Backend: ${(similitudBackend * 100).toFixed(1)}%, Local: ${(similitudLocal * 100).toFixed(1)}%`);
+
+            return {
+                usuario,
+                similitudBackend,
+                similitudLocal,
+                confiable: similitudBackend > 0.75 && similitudLocal > 0.5
+            };
+        } catch (error) {
+            console.error('Error en búsqueda y validación de usuario', error);
+            return null;
+        }
+    }
+
+    /** Obtiene la URL de la foto de perfil del usuario desde el backend */
+    private async obtenerFotoPerfilUsuario(usuario: Usuario): Promise<string | null> {
+        if (!usuario.persona?.imagenes) return null;
+        try {
+            const images = await this.usuarioService.onGetUsuarioImages(
+                usuario.id, 'perfil', true,
+                { networkError: { propagate: true, show: false } }
+            ).toPromise();
+            if (images && images.length > 0) return images[0];
+
+            // Fallback local
+            const localImages = await this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', false).toPromise();
+            if (localImages && localImages.length > 0) return localImages[0];
+        } catch (e) {
+            try {
+                const localImages = await this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', false).toPromise();
+                if (localImages && localImages.length > 0) return localImages[0];
+            } catch (e2) {
+                console.error('Error obteniendo foto de perfil', e2);
+            }
+        }
+        return null;
+    }
+
+    async obtenerEmbeddingFrame(video: HTMLVideoElement): Promise<number[] | null> {
+        const detection = await this.faceService.detect(video);
+        if (detection.face && detection.face.length > 0) {
+            return Array.from(detection.face[0].embedding);
+        }
+        return null;
     }
 }

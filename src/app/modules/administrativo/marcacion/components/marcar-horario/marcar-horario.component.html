@@ -103,7 +103,7 @@
                         </div>
 
                         <div *ngIf="mostrandoCamara" class="camera-container">
-                            <video #video autoplay playsinline></video>
+                            <video #video autoplay playsinline muted></video>
                             <canvas #canvas></canvas>
                             <div *ngIf="detecting" class="detecting-overlay">
                                 {{ mensajeReconocimiento }}
@@ -155,7 +155,7 @@
                         </div>
 
                         <div *ngIf="mostrandoCamara" class="camera-container">
-                            <video #video autoplay playsinline></video>
+                            <video #video autoplay playsinline muted></video>
                             <canvas #canvas></canvas>
                             <div *ngIf="detecting" class="detecting-overlay">
                                 {{ mensajeReconocimiento }}
@@ -190,8 +190,32 @@
 
         <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
             <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
-                <mat-icon class="placeholder-icon">person_search</mat-icon>
-                <span class="placeholder-text">Seleccione su usuario para marcar</span>
+
+                <div *ngIf="mostrandoCamara" class="camera-container">
+                    <video #video autoplay playsinline muted
+                        style="width: 100%; max-width: 100%; border-radius: 8px;"></video>
+                    <canvas #canvas style="display: none;"></canvas>
+                    <div style="margin-top: 10px; color: #aaa; font-size: 0.9em;">
+                        {{ mensajeReconocimiento }}
+                    </div>
+                    <mat-progress-bar mode="indeterminate"
+                        *ngIf="mensajeReconocimiento === 'Buscando rostro...'"></mat-progress-bar>
+                </div>
+
+                <div *ngIf="!mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+                    <mat-icon class="placeholder-icon">person_search</mat-icon>
+
+                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                        <span class="placeholder-text">Reconocimiento Facial Pausado</span>
+                        <button mat-raised-button color="warn" (click)="iniciarReconocimientoAutomatico()">
+                            <mat-icon>videocam</mat-icon> Activar Cámara
+                        </button>
+                    </div>
+
+                    <span class="placeholder-text" style="font-size: 0.8em; margin-top: 20px; opacity: 0.7;">
+                        O seleccione su usuario manualmente en el panel izquierdo
+                    </span>
+                </div>
             </mat-card-content>
         </mat-card>
     </div>
