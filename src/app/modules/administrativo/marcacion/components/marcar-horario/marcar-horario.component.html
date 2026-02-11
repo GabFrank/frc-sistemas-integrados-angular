@@ -109,6 +109,13 @@
                                 {{ mensajeReconocimiento }}
                             </div>
                         </div>
+                        <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                            fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                            <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
+                            <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
+                                <mat-icon>photo_camera</mat-icon> Sacar Foto
+                            </button>
+                        </div>
 
                         <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
                             <button mat-stroked-button color="primary" (click)="iniciarReconocimiento()">
@@ -161,6 +168,13 @@
                                 {{ mensajeReconocimiento }}
                             </div>
                         </div>
+                        <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                            fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                            <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
+                            <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
+                                <mat-icon>photo_camera</mat-icon> Sacar Foto
+                            </button>
+                        </div>
 
                         <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
                             <button mat-stroked-button color="warn" (click)="iniciarReconocimiento()">
@@ -198,8 +212,16 @@
                     <div style="margin-top: 10px; color: #aaa; font-size: 0.9em;">
                         {{ mensajeReconocimiento }}
                     </div>
-                    <mat-progress-bar mode="indeterminate"
-                        *ngIf="mensajeReconocimiento === 'Buscando rostro...'"></mat-progress-bar>
+                    <mat-progress-bar mode="indeterminate" *ngIf="detecting"></mat-progress-bar>
+                    <div *ngIf="!detecting && mostrandoCamara" fxLayout="row" fxLayoutAlign="center center"
+                        fxLayoutGap="12px" style="margin-top: 12px;">
+                        <button mat-raised-button color="primary" (click)="reintentarCaptura()">
+                            <mat-icon>refresh</mat-icon> Reintentar
+                        </button>
+                        <button mat-stroked-button (click)="limpiarEstadosCamara()">
+                            <mat-icon>close</mat-icon> Cerrar
+                        </button>
+                    </div>
                 </div>
 
                 <div *ngIf="!mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
@@ -207,8 +229,8 @@
 
                     <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
                         <span class="placeholder-text">Reconocimiento Facial Pausado</span>
-                        <button mat-raised-button color="warn" (click)="iniciarReconocimientoAutomatico()">
-                            <mat-icon>videocam</mat-icon> Activar Cámara
+                        <button mat-raised-button color="warn" (click)="capturarYReconocer()">
+                            <mat-icon>photo_camera</mat-icon> Activar Reconocimiento
                         </button>
                     </div>
 
