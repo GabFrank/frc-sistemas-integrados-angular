@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { catchError } from 'rxjs/operators';
 import { timeout } from 'rxjs';
@@ -75,6 +76,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   private excludedUserIds: number[] = [];
 
   marcacionesHoy: Marcacion[] = [];
+  dataSource = new MatTableDataSource<Marcacion>([]);
+  displayedColumns: string[] = ['id', 'usuario', 'entrada', 'salida'];
 
   constructor(
     public mainService: MainService,
@@ -148,6 +151,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.horaEntrada = null;
     this.estaEnJornada = false;
     this.marcacionesHoy = [];
+    this.dataSource.data = [];
     this.cdr.markForCheck();
   }
 
@@ -459,7 +463,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.cargando = false;
 
     if (!fotoUrl) {
-      this.mensajeErrorFoto = 'Primera vez marcando. Se capturará su foto de perfil.';
+      this.mensajeErrorFoto = 'Sin foto de perfil';
       await this.capturarYGuardarFotoPerfil();
       return;
     }
@@ -476,7 +480,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   async capturarYGuardarFotoPerfil(): Promise<void> {
     this.mostrandoCamara = true;
     this.esperandoCapturaPerfil = true;
-    this.mensajeReconocimiento = 'Posicione su rostro y presione "Sacar Foto"';
+    this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
     this.cdr.detectChanges();
 
     try {
@@ -528,7 +532,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     } else {
       this.mensajeErrorFoto = 'Error al capturar. Intente de nuevo.';
       this.esperandoCapturaPerfil = true;
-      this.mensajeReconocimiento = 'Posicione su rostro y presione "Sacar Foto"';
+      this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
       this.cdr.markForCheck();
     }
   }
@@ -629,6 +633,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   private procesarMarcaciones(marcaciones: Marcacion[]) {
     this.marcacionesHoy = (marcaciones || []).sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime());
+    this.dataSource.data = this.marcacionesHoy;
     const activa = marcaciones?.find(m => m.fechaEntrada && !m.fechaSalida);
 
     if (activa) {
@@ -733,12 +738,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.horaEntrada = hora;
       this.estaEnJornada = true;
       this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
+      this.dataSource.data = this.marcacionesHoy;
     } else {
       const index = this.marcacionesHoy.findIndex(m => m.id === marcacion.id);
       if (index !== -1) {
         const nuevaLista = [...this.marcacionesHoy];
         nuevaLista[index] = marcacion;
         this.marcacionesHoy = nuevaLista;
+        this.dataSource.data = this.marcacionesHoy;
       }
       this.marcacionActiva = null;
       this.horaEntrada = null;
