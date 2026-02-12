@@ -484,7 +484,7 @@
   border-radius: 24px;
   padding: 64px 24px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  margin: auto;
+  margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -632,9 +632,12 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
   }

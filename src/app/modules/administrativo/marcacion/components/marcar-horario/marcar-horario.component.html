@@ -1,283 +1,289 @@
-<div class="marcar-horario-container" fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="32px">
+<div class="marcar-horario-container" fxLayout="column" fxLayoutGap="32px">
 
-    <div fxFlex="30" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px">
-
-        <div fxLayout="column" class="header-moderno" fxLayoutGap="16px">
-            <div fxLayout="column">
-                <span class="reloj-digital">{{ horaActual | date:'HH:mm:ss' }}</span>
-                <span class="fecha-actual">{{ horaActual | date:'EEEE, d MMMM y' | titlecase }}</span>
-            </div>
+    <div fxLayout="column" class="header-moderno" fxLayoutGap="16px" fxLayoutAlign="center center"
+        style="text-align: center;">
+        <div fxLayout="column" fxLayoutAlign="center center">
+            <span class="reloj-digital">{{ horaActual | date:'HH:mm:ss' }}</span>
+            <span class="fecha-actual">{{ horaActual | date:'EEEE, d MMMM y' | titlecase }}</span>
         </div>
-
-        <mat-card class="filtros-card">
-            <mat-card-content fxLayout="column" fxLayoutGap="16px">
-                <mat-form-field style="width: 100%" appearance="outline">
-                    <mat-label>Id Usuario</mat-label>
-                    <input type="number" matInput [formControl]="empleadoIdControl" (keyup.enter)="buscarEmpleado()"
-                        style="text-align: end" placeholder="Enter para buscar" />
-                    <button mat-icon-button matSuffix (click)="buscarEmpleado()" type="button" matTooltip="Buscar">
-                        <mat-icon>search</mat-icon>
-                    </button>
-                </mat-form-field>
-
-                <mat-form-field style="width: 100%" appearance="outline">
-                    <mat-label>Nombre Persona</mat-label>
-                    <input type="text" matInput [formControl]="empleadoNombreControl" readonly />
-                    <button mat-icon-button matSuffix (click)="limpiarEmpleado()" type="button"
-                        *ngIf="usuarioSeleccionado != null" matTooltip="Limpiar">
-                        <mat-icon>clear</mat-icon>
-                    </button>
-                </mat-form-field>
-            </mat-card-content>
-        </mat-card>
-
-        <mat-card class="resumen-card" *ngIf="usuarioSeleccionado && marcacionesHoy?.length > 0">
-            <div class="resumen-header" fxLayout="row" fxLayoutAlign="space-between center">
-                <span>Resumen del día</span>
-                <div class="sucursal-badge-mini" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="4px">
-                    <mat-icon>store</mat-icon>
-                    <span>{{ sucursalActualNombre }}</span>
-                </div>
-            </div>
-            <mat-card-content class="resumen-content">
-                <div class="timeline-item" *ngFor="let m of marcacionesHoy">
-                    <div class="timeline-track"></div>
-                    <div class="timeline-point"></div>
-                    <div class="timeline-content">
-
-                        <div class="evento entrada">
-                            <div class="hora-container">
-                                <mat-icon
-                                    style="font-size: 18px; width: 18px; height: 18px; color: #81c784">login</mat-icon>
-                                <div class="hora">{{ m.fechaEntrada | date:'HH:mm' }}</div>
-                            </div>
-                            <div class="tipo">Entrada</div>
-                        </div>
-
-                        <div class="evento salida" *ngIf="m.fechaSalida">
-                            <div class="hora-container">
-                                <mat-icon
-                                    style="font-size: 18px; width: 18px; height: 18px; color: #e57373">logout</mat-icon>
-                                <div class="hora">{{ m.fechaSalida | date:'HH:mm' }}</div>
-                            </div>
-                            <div class="tipo">Salida</div>
-                        </div>
-
-                        <div class="evento en-curso" *ngIf="!m.fechaSalida">
-                            <div class="hora-container">
-                                <mat-icon
-                                    style="font-size: 18px; width: 18px; height: 18px; color: #ffb74d">update</mat-icon>
-                                <div class="hora">--:--</div>
-                            </div>
-                            <div class="tipo">En curso</div>
-                        </div>
-
-                    </div>
-                </div>
-            </mat-card-content>
-        </mat-card>
-
     </div>
 
-    <div fxFlex fxLayout="column" fxLayoutAlign="start stretch">
+    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="32px" fxFlex>
 
-        <div class="estado-container" *ngIf="usuarioSeleccionado">
+        <div fxFlex="30" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px" *ngIf="usuarioSeleccionado">
 
-            <div *ngIf="cargando" class="loading-container" fxLayout="column" fxLayoutAlign="center center">
-                <mat-spinner diameter="50"></mat-spinner>
-                <span class="loading-text">Verificando estado...</span>
-            </div>
 
-            <mat-card *ngIf="!cargando && !estaEnJornada" class="estado-card sin-entrada">
-                <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
+            <mat-card class="filtros-card">
+                <mat-card-content fxLayout="column" fxLayoutGap="16px">
+                    <mat-form-field style="width: 100%" appearance="outline">
+                        <mat-label>Id Usuario</mat-label>
+                        <input type="number" matInput [formControl]="empleadoIdControl" (keyup.enter)="buscarEmpleado()"
+                            style="text-align: end" placeholder="Enter para buscar" />
+                        <button mat-icon-button matSuffix (click)="buscarEmpleado()" type="button" matTooltip="Buscar">
+                            <mat-icon>search</mat-icon>
+                        </button>
+                    </mat-form-field>
 
-                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
-                        <span class="estado-titulo">Registro de Horarios de Entrada y Salida</span>
-                        <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
+                    <mat-form-field style="width: 100%" appearance="outline">
+                        <mat-label>Nombre Persona</mat-label>
+                        <input type="text" matInput [formControl]="empleadoNombreControl" readonly />
+                        <button mat-icon-button matSuffix (click)="limpiarEmpleado()" type="button"
+                            *ngIf="usuarioSeleccionado != null" matTooltip="Limpiar">
+                            <mat-icon>clear</mat-icon>
+                        </button>
+                    </mat-form-field>
+                </mat-card-content>
+            </mat-card>
+
+            <mat-card class="resumen-card" *ngIf="usuarioSeleccionado && marcacionesHoy?.length > 0">
+                <div class="resumen-header" fxLayout="row" fxLayoutAlign="space-between center">
+                    <span>Resumen del día</span>
+                    <div class="sucursal-badge-mini" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="4px">
+                        <mat-icon>store</mat-icon>
+                        <span>{{ sucursalActualNombre }}</span>
                     </div>
-                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
+                </div>
+                <mat-card-content class="resumen-content">
+                    <div class="timeline-item" *ngFor="let m of marcacionesHoy">
+                        <div class="timeline-track"></div>
+                        <div class="timeline-point"></div>
+                        <div class="timeline-content">
 
-                        <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center;">
-                            <mat-icon>error</mat-icon>
-                            <div>{{ mensajeErrorFoto }}</div>
-                        </div>
-
-                        <div *ngIf="mostrandoCamara" class="camera-container">
-                            <video #video autoplay playsinline muted></video>
-                            <canvas #canvas></canvas>
-                            <div *ngIf="detecting" class="detecting-overlay">
-                                {{ mensajeReconocimiento }}
-                            </div>
-                        </div>
-                        <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
-                            fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
-                            <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
-                            <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
-                                <mat-icon>photo_camera</mat-icon> Sacar Foto
-                            </button>
-                        </div>
-
-                        <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
-                            <button mat-stroked-button color="primary" (click)="iniciarReconocimiento()">
-                                <mat-icon>face</mat-icon> Intentar Reconocimiento
-                            </button>
-                        </div>
-
-                        <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
-
-                        <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column" fxLayoutAlign="center center"
-                            fxLayoutGap="16px" style="width: 100%">
-
-                            <div class="success-message">
-                                <mat-icon>check_circle</mat-icon> Identidad Verificada
+                            <div class="evento entrada">
+                                <div class="hora-container">
+                                    <mat-icon
+                                        style="font-size: 18px; width: 18px; height: 18px; color: #81c784">login</mat-icon>
+                                    <div class="hora">{{ m.fechaEntrada | date:'HH:mm' }}</div>
+                                </div>
+                                <div class="tipo">Entrada</div>
                             </div>
 
-                            <button mat-raised-button class="btn-entrada" (click)="registrarEntrada()">
-                                <mat-icon>login</mat-icon>
-                                REGISTRAR ENTRADA
-                            </button>
-                        </div>
+                            <div class="evento salida" *ngIf="m.fechaSalida">
+                                <div class="hora-container">
+                                    <mat-icon
+                                        style="font-size: 18px; width: 18px; height: 18px; color: #e57373">logout</mat-icon>
+                                    <div class="hora">{{ m.fechaSalida | date:'HH:mm' }}</div>
+                                </div>
+                                <div class="tipo">Salida</div>
+                            </div>
 
+                            <div class="evento en-curso" *ngIf="!m.fechaSalida">
+                                <div class="hora-container">
+                                    <mat-icon
+                                        style="font-size: 18px; width: 18px; height: 18px; color: #ffb74d">update</mat-icon>
+                                    <div class="hora">--:--</div>
+                                </div>
+                                <div class="tipo">En curso</div>
+                            </div>
+
+                        </div>
                     </div>
                 </mat-card-content>
             </mat-card>
 
-            <mat-card *ngIf="!cargando && estaEnJornada" class="estado-card con-entrada">
-                <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
+        </div>
 
-                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
-                        <span class="estado-titulo">Jornada Activa</span>
-                        <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
-                        <div class="tiempo-info" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
-                            <mat-icon>access_time</mat-icon>
-                            <span>Entrada: {{ horaEntrada | date:'shortTime' }}</span>
+        <div fxFlex fxLayout="column" [fxLayoutAlign]="usuarioSeleccionado ? 'start stretch' : 'start center'">
+
+            <div class="estado-container" *ngIf="usuarioSeleccionado">
+
+                <div *ngIf="cargando" class="loading-container" fxLayout="column" fxLayoutAlign="center center">
+                    <mat-spinner diameter="50"></mat-spinner>
+                    <span class="loading-text">Verificando estado...</span>
+                </div>
+
+                <mat-card *ngIf="!cargando && !estaEnJornada" class="estado-card sin-entrada">
+                    <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
+
+                        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                            <span class="estado-titulo">Registro de Horarios de Entrada y Salida</span>
+                            <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
                         </div>
-                    </div>
+                        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
 
-                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
+                            <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center;">
+                                <mat-icon>error</mat-icon>
+                                <div>{{ mensajeErrorFoto }}</div>
+                            </div>
 
-                        <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center;">
-                            <mat-icon>error</mat-icon>
-                            <div>{{ mensajeErrorFoto }}</div>
+                            <div *ngIf="mostrandoCamara" class="camera-container">
+                                <video #video autoplay playsinline muted></video>
+                                <canvas #canvas></canvas>
+                                <div *ngIf="detecting" class="detecting-overlay">
+                                    {{ mensajeReconocimiento }}
+                                </div>
+                            </div>
+                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                                fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                                <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
+                                <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
+                                    <mat-icon>photo_camera</mat-icon> Sacar Foto
+                                </button>
+                            </div>
+
+                            <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
+                                <button mat-stroked-button color="primary" (click)="iniciarReconocimiento()">
+                                    <mat-icon>face</mat-icon> Intentar Reconocimiento
+                                </button>
+                            </div>
+
+                            <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
+
+                            <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column"
+                                fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
+
+                                <div class="success-message">
+                                    <mat-icon>check_circle</mat-icon> Identidad Verificada
+                                </div>
+
+                                <button mat-raised-button class="btn-entrada" (click)="registrarEntrada()">
+                                    <mat-icon>login</mat-icon>
+                                    REGISTRAR ENTRADA
+                                </button>
+                            </div>
+
+                        </div>
+                    </mat-card-content>
+                </mat-card>
+
+                <mat-card *ngIf="!cargando && estaEnJornada" class="estado-card con-entrada">
+                    <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
+
+                        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                            <span class="estado-titulo">Jornada Activa</span>
+                            <span class="estado-subtitulo">{{ usuarioSeleccionado.persona?.nombre | titlecase }}</span>
+                            <div class="tiempo-info" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+                                <mat-icon>access_time</mat-icon>
+                                <span>Entrada: {{ horaEntrada | date:'shortTime' }}</span>
+                            </div>
                         </div>
 
-                        <div *ngIf="mostrandoCamara" class="camera-container">
-                            <video #video autoplay playsinline muted></video>
-                            <canvas #canvas></canvas>
-                            <div *ngIf="detecting" class="detecting-overlay">
+                        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
+
+                            <div *ngIf="mensajeErrorFoto" style="color: #f44336; text-align: center;">
+                                <mat-icon>error</mat-icon>
+                                <div>{{ mensajeErrorFoto }}</div>
+                            </div>
+
+                            <div *ngIf="mostrandoCamara" class="camera-container">
+                                <video #video autoplay playsinline muted></video>
+                                <canvas #canvas></canvas>
+                                <div *ngIf="detecting" class="detecting-overlay">
+                                    {{ mensajeReconocimiento }}
+                                </div>
+                            </div>
+                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                                fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                                <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
+                                <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
+                                    <mat-icon>photo_camera</mat-icon> Sacar Foto
+                                </button>
+                            </div>
+
+                            <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
+                                <button mat-stroked-button color="warn" (click)="iniciarReconocimiento()">
+                                    <mat-icon>face</mat-icon> Verificar para Salir
+                                </button>
+                            </div>
+
+                            <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
+
+                            <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column"
+                                fxLayoutAlign="center center" fxLayoutGap="16px" style="width: 100%">
+
+                                <div class="success-message">
+                                    <mat-icon>check_circle</mat-icon> Identidad Verificada
+                                </div>
+
+                                <button mat-raised-button class="btn-salida" (click)="registrarSalida()">
+                                    <mat-icon>logout</mat-icon>
+                                    REGISTRAR SALIDA
+                                </button>
+                            </div>
+
+                        </div>
+                    </mat-card-content>
+                </mat-card>
+            </div>
+
+            <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
+                <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+
+                    <div *ngIf="mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px"
+                        style="width: 100%;">
+                        <div *ngIf="!fotoCapturada" class="camera-container">
+                            <video #video autoplay playsinline muted
+                                style="width: 100%; max-width: 100%; border-radius: 8px;"></video>
+                            <canvas #snapshotCanvas style="display: none;"></canvas>
+                            <div *ngIf="countdownSegundos > 0" class="countdown-overlay">
+                                <div class="countdown-circle">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="45" class="countdown-bg" />
+                                        <circle cx="50" cy="50" r="45" class="countdown-progress"
+                                            [style.stroke-dashoffset]="283 - (283 * (countdownSegundos / 3))" />
+                                    </svg>
+                                    <span class="countdown-number">{{ countdownSegundos }}</span>
+                                </div>
+                            </div>
+
+                            <div class="detecting-overlay">
                                 {{ mensajeReconocimiento }}
                             </div>
                         </div>
-                        <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
-                            fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
-                            <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
-                            <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
-                                <mat-icon>photo_camera</mat-icon> Sacar Foto
-                            </button>
-                        </div>
+                        <div *ngIf="fotoCapturada && snapshotDataUrl" class="camera-container snapshot-container">
+                            <img [src]="snapshotDataUrl" class="snapshot-image" alt="Foto capturada" />
 
-                        <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
-                            <button mat-stroked-button color="warn" (click)="iniciarReconocimiento()">
-                                <mat-icon>face</mat-icon> Verificar para Salir
-                            </button>
-                        </div>
-
-                        <span *ngIf="cargando" style="font-size: 0.9em; opacity: 0.8">Procesando...</span>
-
-                        <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column" fxLayoutAlign="center center"
-                            fxLayoutGap="16px" style="width: 100%">
-
-                            <div class="success-message">
-                                <mat-icon>check_circle</mat-icon> Identidad Verificada
+                            <div class="detecting-overlay snapshot-overlay">
+                                <div *ngIf="buscandoAutomaticamente" class="search-indicator">
+                                    <mat-spinner diameter="24" color="accent"></mat-spinner>
+                                    <span>{{ mensajeReconocimiento }}</span>
+                                </div>
+                                <div *ngIf="!buscandoAutomaticamente">
+                                    {{ mensajeReconocimiento }}
+                                </div>
                             </div>
+                            <div *ngIf="buscandoAutomaticamente" class="search-progress-bar">
+                                <div class="search-progress-fill"
+                                    [style.width.%]="(intentosBusqueda / maxIntentosBusqueda) * 100">
+                                </div>
+                            </div>
+                        </div>
 
-                            <button mat-raised-button class="btn-salida" (click)="registrarSalida()">
-                                <mat-icon>logout</mat-icon>
-                                REGISTRAR SALIDA
+                        <mat-progress-bar mode="indeterminate" *ngIf="detecting && !fotoCapturada"></mat-progress-bar>
+                        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" style="margin-top: 12px;">
+                            <button *ngIf="fotoCapturada && !buscandoAutomaticamente" mat-raised-button color="warn"
+                                (click)="retomarCamara()">
+                                <mat-icon>refresh</mat-icon> Nueva Foto
+                            </button>
+                            <button *ngIf="buscandoAutomaticamente" mat-stroked-button color="warn"
+                                (click)="detenerAutoSearchPublic()">
+                                <mat-icon>stop</mat-icon> Detener Búsqueda
+                            </button>
+
+                            <button mat-stroked-button (click)="limpiarEstadosCamara()">
+                                <mat-icon>close</mat-icon> Cerrar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+                        <mat-icon class="placeholder-icon">person_search</mat-icon>
+
+                        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                            <span class="placeholder-text">Reconocimiento Facial Pausado</span>
+                            <button mat-raised-button color="warn" (click)="iniciarCamaraBusqueda()">
+                                <mat-icon>photo_camera</mat-icon> Activar Reconocimiento
                             </button>
                         </div>
 
+                        <span class="placeholder-text" style="font-size: 0.8em; margin-top: 20px; opacity: 0.7;">
+                            O seleccione su usuario manualmente en el panel izquierdo
+                        </span>
                     </div>
                 </mat-card-content>
             </mat-card>
         </div>
 
-        <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
-            <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
-
-                <div *ngIf="mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px"
-                    style="width: 100%;">
-                    <div *ngIf="!fotoCapturada" class="camera-container">
-                        <video #video autoplay playsinline muted
-                            style="width: 100%; max-width: 100%; border-radius: 8px;"></video>
-                        <canvas #snapshotCanvas style="display: none;"></canvas>
-                        <div *ngIf="countdownSegundos > 0" class="countdown-overlay">
-                            <div class="countdown-circle">
-                                <svg viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="45" class="countdown-bg" />
-                                    <circle cx="50" cy="50" r="45" class="countdown-progress"
-                                        [style.stroke-dashoffset]="283 - (283 * (countdownSegundos / 3))" />
-                                </svg>
-                                <span class="countdown-number">{{ countdownSegundos }}</span>
-                            </div>
-                        </div>
-
-                        <div class="detecting-overlay">
-                            {{ mensajeReconocimiento }}
-                        </div>
-                    </div>
-                    <div *ngIf="fotoCapturada && snapshotDataUrl" class="camera-container snapshot-container">
-                        <img [src]="snapshotDataUrl" class="snapshot-image" alt="Foto capturada" />
-
-                        <div class="detecting-overlay snapshot-overlay">
-                            <div *ngIf="buscandoAutomaticamente" class="search-indicator">
-                                <mat-spinner diameter="24" color="accent"></mat-spinner>
-                                <span>{{ mensajeReconocimiento }}</span>
-                            </div>
-                            <div *ngIf="!buscandoAutomaticamente">
-                                {{ mensajeReconocimiento }}
-                            </div>
-                        </div>
-                        <div *ngIf="buscandoAutomaticamente" class="search-progress-bar">
-                            <div class="search-progress-fill"
-                                [style.width.%]="(intentosBusqueda / maxIntentosBusqueda) * 100">
-                            </div>
-                        </div>
-                    </div>
-
-                    <mat-progress-bar mode="indeterminate" *ngIf="detecting && !fotoCapturada"></mat-progress-bar>
-                    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" style="margin-top: 12px;">
-                        <button *ngIf="fotoCapturada && !buscandoAutomaticamente" mat-raised-button color="warn"
-                            (click)="retomarCamara()">
-                            <mat-icon>refresh</mat-icon> Nueva Foto
-                        </button>
-                        <button *ngIf="buscandoAutomaticamente" mat-stroked-button color="warn"
-                            (click)="detenerAutoSearchPublic()">
-                            <mat-icon>stop</mat-icon> Detener Búsqueda
-                        </button>
-
-                        <button mat-stroked-button (click)="limpiarEstadosCamara()">
-                            <mat-icon>close</mat-icon> Cerrar
-                        </button>
-                    </div>
-                </div>
-
-                <div *ngIf="!mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
-                    <mat-icon class="placeholder-icon">person_search</mat-icon>
-
-                    <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
-                        <span class="placeholder-text">Reconocimiento Facial Pausado</span>
-                        <button mat-raised-button color="warn" (click)="iniciarCamaraBusqueda()">
-                            <mat-icon>photo_camera</mat-icon> Activar Reconocimiento
-                        </button>
-                    </div>
-
-                    <span class="placeholder-text" style="font-size: 0.8em; margin-top: 20px; opacity: 0.7;">
-                        O seleccione su usuario manualmente en el panel izquierdo
-                    </span>
-                </div>
-            </mat-card-content>
-        </mat-card>
     </div>
 
 </div>
