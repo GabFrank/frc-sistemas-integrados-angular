@@ -36,6 +36,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   empleadoNombreControl = new FormControl();
   empleadoIdControl = new FormControl();
+  mostrarInputBusquedaID = false;
 
   usuarioSeleccionado: Usuario = null;
   sucursalActualNombre = '';
@@ -201,8 +202,6 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
           resolve();
         };
       });
-
-      // Iniciar countdown de 3 segundos
       this.iniciarCountdown(3);
       this.cdr.markForCheck();
 
@@ -433,6 +432,25 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.detecting = false;
       this.cdr.markForCheck();
     }
+  }
+
+  activarBusquedaManual(): void {
+    this.usuarioHelper.abrirBuscador(this.matDialog)
+      .pipe(untilDestroyed(this))
+      .subscribe(usuario => {
+        if (usuario) {
+          this.mostrandoCamara = false;
+          this.fotoCapturada = false;
+          this.snapshotDataUrl = null;
+          this.seleccionarUsuario(usuario);
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
+  cancelarBusquedaManual(): void {
+    this.mostrarInputBusquedaID = false;
+    this.cdr.markForCheck();
   }
 
   async iniciarProcesoValidacionFacial(usuario: Usuario): Promise<void> {
