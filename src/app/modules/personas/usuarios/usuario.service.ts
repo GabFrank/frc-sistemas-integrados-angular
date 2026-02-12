@@ -94,7 +94,7 @@ export class UsuarioService {
     return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image }, servidor);
   }
 
-  onGetUsuarioPorEmbedding(embedding: number[], servidor: boolean = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding }, servidor, null, true);
+  onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding, excludeIds }, servidor, null, true);
   }
 }

@@ -142,8 +142,6 @@ export class ReconocimientoFacialHelperService {
                     confiable: similitudBackend > 0.85
                 };
             }
-
-            // Comparar embedding actual de la cámara contra foto de perfil
             const similitudLocal = this.faceService.similarity(embedding, descriptorPerfil);
             console.log(`Doble validación - Backend: ${(similitudBackend * 100).toFixed(1)}%, Local: ${(similitudLocal * 100).toFixed(1)}%`);
 
@@ -158,8 +156,6 @@ export class ReconocimientoFacialHelperService {
             return null;
         }
     }
-
-    /** Obtiene la URL de la foto de perfil del usuario desde el backend */
     private async obtenerFotoPerfilUsuario(usuario: Usuario): Promise<string | null> {
         if (!usuario.persona?.imagenes) return null;
         try {
@@ -189,5 +185,48 @@ export class ReconocimientoFacialHelperService {
             return Array.from(detection.face[0].embedding);
         }
         return null;
+    }
+    async buscarUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = []): Promise<ResultadoBusqueda | null> {
+        try {
+            const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds).toPromise();
+            if (!resultado || !resultado.usuario) {
+                return null;
+            }
+
+            const usuario: Usuario = resultado.usuario;
+            const similitudBackend: number = resultado.similitud;
+            const fotoUrl = await this.obtenerFotoPerfilUsuario(usuario);
+            if (!fotoUrl) {
+                return {
+                    usuario,
+                    similitudBackend,
+                    similitudLocal: 0,
+                    confiable: similitudBackend > 0.85
+                };
+            }
+
+            const descriptorPerfil = await this.obtenerDescriptorReferencia(fotoUrl);
+            if (!descriptorPerfil) {
+                return {
+                    usuario,
+                    similitudBackend,
+                    similitudLocal: 0,
+                    confiable: similitudBackend > 0.85
+                };
+            }
+
+            const similitudLocal = this.faceService.similarity(embedding, descriptorPerfil);
+            console.log(`Búsqueda snapshot - Backend: ${(similitudBackend * 100).toFixed(1)}%, Local: ${(similitudLocal * 100).toFixed(1)}%`);
+
+            return {
+                usuario,
+                similitudBackend,
+                similitudLocal,
+                confiable: similitudBackend > 0.75 && similitudLocal > 0.5
+            };
+        } catch (error) {
+            console.error('Error en búsqueda por embedding', error);
+            return null;
+        }
     }
 }

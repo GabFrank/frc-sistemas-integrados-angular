@@ -205,19 +205,57 @@
         <mat-card *ngIf="!usuarioSeleccionado" class="mensaje-card">
             <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
 
-                <div *ngIf="mostrandoCamara" class="camera-container">
-                    <video #video autoplay playsinline muted
-                        style="width: 100%; max-width: 100%; border-radius: 8px;"></video>
-                    <canvas #canvas style="display: none;"></canvas>
-                    <div style="margin-top: 10px; color: #aaa; font-size: 0.9em;">
-                        {{ mensajeReconocimiento }}
+                <div *ngIf="mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px"
+                    style="width: 100%;">
+                    <div *ngIf="!fotoCapturada" class="camera-container">
+                        <video #video autoplay playsinline muted
+                            style="width: 100%; max-width: 100%; border-radius: 8px;"></video>
+                        <canvas #snapshotCanvas style="display: none;"></canvas>
+                        <div *ngIf="countdownSegundos > 0" class="countdown-overlay">
+                            <div class="countdown-circle">
+                                <svg viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="45" class="countdown-bg" />
+                                    <circle cx="50" cy="50" r="45" class="countdown-progress"
+                                        [style.stroke-dashoffset]="283 - (283 * (countdownSegundos / 3))" />
+                                </svg>
+                                <span class="countdown-number">{{ countdownSegundos }}</span>
+                            </div>
+                        </div>
+
+                        <div class="detecting-overlay">
+                            {{ mensajeReconocimiento }}
+                        </div>
                     </div>
-                    <mat-progress-bar mode="indeterminate" *ngIf="detecting"></mat-progress-bar>
-                    <div *ngIf="!detecting && mostrandoCamara" fxLayout="row" fxLayoutAlign="center center"
-                        fxLayoutGap="12px" style="margin-top: 12px;">
-                        <button mat-raised-button color="primary" (click)="reintentarCaptura()">
-                            <mat-icon>refresh</mat-icon> Reintentar
+                    <div *ngIf="fotoCapturada && snapshotDataUrl" class="camera-container snapshot-container">
+                        <img [src]="snapshotDataUrl" class="snapshot-image" alt="Foto capturada" />
+
+                        <div class="detecting-overlay snapshot-overlay">
+                            <div *ngIf="buscandoAutomaticamente" class="search-indicator">
+                                <mat-spinner diameter="24" color="accent"></mat-spinner>
+                                <span>{{ mensajeReconocimiento }}</span>
+                            </div>
+                            <div *ngIf="!buscandoAutomaticamente">
+                                {{ mensajeReconocimiento }}
+                            </div>
+                        </div>
+                        <div *ngIf="buscandoAutomaticamente" class="search-progress-bar">
+                            <div class="search-progress-fill"
+                                [style.width.%]="(intentosBusqueda / maxIntentosBusqueda) * 100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <mat-progress-bar mode="indeterminate" *ngIf="detecting && !fotoCapturada"></mat-progress-bar>
+                    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" style="margin-top: 12px;">
+                        <button *ngIf="fotoCapturada && !buscandoAutomaticamente" mat-raised-button color="warn"
+                            (click)="retomarCamara()">
+                            <mat-icon>refresh</mat-icon> Nueva Foto
                         </button>
+                        <button *ngIf="buscandoAutomaticamente" mat-stroked-button color="warn"
+                            (click)="detenerAutoSearchPublic()">
+                            <mat-icon>stop</mat-icon> Detener Búsqueda
+                        </button>
+
                         <button mat-stroked-button (click)="limpiarEstadosCamara()">
                             <mat-icon>close</mat-icon> Cerrar
                         </button>
@@ -229,7 +267,7 @@
 
                     <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
                         <span class="placeholder-text">Reconocimiento Facial Pausado</span>
-                        <button mat-raised-button color="warn" (click)="capturarYReconocer()">
+                        <button mat-raised-button color="warn" (click)="iniciarCamaraBusqueda()">
                             <mat-icon>photo_camera</mat-icon> Activar Reconocimiento
                         </button>
                     </div>

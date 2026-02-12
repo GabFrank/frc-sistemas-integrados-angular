@@ -50,6 +50,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   private clockInterval: any;
 
   @ViewChild('video') videoElement: ElementRef<HTMLVideoElement>;
+  @ViewChild('snapshotCanvas') snapshotCanvas: ElementRef<HTMLCanvasElement>;
 
   reconocimientoExitoso = false;
   mostrandoCamara = false;
@@ -57,9 +58,20 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   mensajeErrorFoto = '';
   private referenciaDescriptor: number[] | null = null;
   private embeddingCapturado: number[] | null = null;
-  private detecting = false;
+  detecting = false;
   private lastCheckTime = 0;
   esperandoCapturaPerfil = false;
+  searchPaused = false;
+  countdownSegundos: number = 0;
+  private countdownInterval: any;
+  fotoCapturada = false;
+  snapshotDataUrl: string | null = null;
+  private snapshotEmbedding: number[] | null = null;
+  buscandoAutomaticamente = false;
+  private autoSearchInterval: any;
+  intentosBusqueda = 0;
+  maxIntentosBusqueda = 10;
+  private excludedUserIds: number[] = [];
 
   marcacionesHoy: Marcacion[] = [];
 
@@ -90,6 +102,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     if (this.clockInterval) {
       clearInterval(this.clockInterval);
     }
+    this.detenerCountdown();
+    this.detenerAutoSearch();
     this.camaraService.detenerCamara();
   }
   buscarEmpleado(): void {
@@ -145,12 +159,24 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.embeddingCapturado = null;
     this.detecting = false;
     this.esperandoCapturaPerfil = false;
+    this.fotoCapturada = false;
+    this.snapshotDataUrl = null;
+    this.snapshotEmbedding = null;
+    this.buscandoAutomaticamente = false;
+    this.intentosBusqueda = 0;
+    this.countdownSegundos = 0;
+    this.excludedUserIds = [];
+    this.detenerCountdown();
+    this.detenerAutoSearch();
     this.camaraService.detenerCamara();
   }
-  async capturarYReconocer(): Promise<void> {
+  async iniciarCamaraBusqueda(): Promise<void> {
     if (this.usuarioSeleccionado) return;
     this.limpiarEstadosCamara();
     this.mostrandoCamara = true;
+    this.searchPaused = false;
+    this.fotoCapturada = false;
+    this.snapshotDataUrl = null;
     this.mensajeReconocimiento = 'Iniciando cámara...';
     this.cdr.detectChanges();
 
@@ -176,51 +202,192 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
         };
       });
 
-      this.mensajeReconocimiento = 'Capturando rostro...';
-      this.detecting = true;
-      this.cdr.markForCheck();
-      await new Promise(r => setTimeout(r, 1500));
-      const embedding = await this.faceHelper.obtenerEmbeddingFrame(video);
-
-      if (!embedding) {
-        this.mensajeReconocimiento = 'No se detectó rostro. Presione para reintentar.';
-        this.detecting = false;
-        this.cdr.markForCheck();
-        return;
-      }
-
-      this.mensajeReconocimiento = 'Verificando identidad...';
+      // Iniciar countdown de 3 segundos
+      this.iniciarCountdown(3);
       this.cdr.markForCheck();
 
-      const resultado = await this.faceHelper.buscarYValidarUsuario(embedding, video);
-
-      if (resultado && resultado.confiable) {
-        const pct = (resultado.similitudBackend * 100).toFixed(0);
-        this.mensajeReconocimiento = `Identificado: ${resultado.usuario.persona?.nombre} (${pct}%)`;
-        this.detecting = false;
-        this.cdr.markForCheck();
-        setTimeout(() => {
-          this.camaraService.detenerCamara();
-          this.mostrandoCamara = false;
-          this.seleccionarUsuario(resultado.usuario);
-        }, 800);
-      } else if (resultado && !resultado.confiable) {
-        this.mensajeReconocimiento = `Match insuficiente: ${resultado.usuario.persona?.nombre} (${(resultado.similitudBackend * 100).toFixed(0)}%). Presione para reintentar.`;
-        this.detecting = false;
-        this.cdr.markForCheck();
-      } else {
-        this.mensajeReconocimiento = 'No se encontró coincidencia. Presione para reintentar.';
-        this.detecting = false;
-        this.cdr.markForCheck();
-      }
     } catch (e) {
-      console.error('Error en capturarYReconocer:', e);
+      console.error('Error en iniciarCamaraBusqueda:', e);
       this.mensajeReconocimiento = 'Error al acceder a la cámara.';
       this.mostrandoCamara = false;
       this.detecting = false;
       this.camaraService.detenerCamara();
       this.cdr.markForCheck();
     }
+  }
+
+  private iniciarCountdown(segundos: number): void {
+    this.countdownSegundos = segundos;
+    this.mensajeReconocimiento = `Captura automática en ${this.countdownSegundos}s - Posicione su rostro`;
+    this.cdr.markForCheck();
+
+    this.countdownInterval = setInterval(() => {
+      this.countdownSegundos--;
+      if (this.countdownSegundos <= 0) {
+        this.detenerCountdown();
+        this.capturarSnapshotAutomatico();
+      } else {
+        this.mensajeReconocimiento = `Captura automática en ${this.countdownSegundos}s - Posicione su rostro`;
+        this.cdr.markForCheck();
+      }
+    }, 1000);
+  }
+
+  private detenerCountdown(): void {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+  }
+
+  private detenerAutoSearch(): void {
+    this.buscandoAutomaticamente = false;
+    if (this.autoSearchInterval) {
+      clearTimeout(this.autoSearchInterval);
+      this.autoSearchInterval = null;
+    }
+  }
+
+  async capturarSnapshotAutomatico(): Promise<void> {
+    if (!this.videoElement || !this.mostrandoCamara) return;
+    const video = this.videoElement.nativeElement;
+
+    // Capturar la imagen del video como data URL
+    this.snapshotDataUrl = this.camaraService.capturarFoto(video);
+
+    // Pausar video y mostrar la foto capturada
+    video.pause();
+    this.fotoCapturada = true;
+    this.searchPaused = true;
+    this.detecting = true;
+    this.mensajeReconocimiento = 'Foto capturada. Analizando rostro...';
+    this.cdr.markForCheck();
+
+    // Detener la cámara ya que tenemos el snapshot
+    this.camaraService.detenerCamara();
+
+    try {
+      // Obtener embedding del snapshot usando una imagen
+      this.snapshotEmbedding = await this.faceHelper.obtenerDescriptorReferencia(this.snapshotDataUrl);
+
+      if (!this.snapshotEmbedding) {
+        this.mensajeReconocimiento = 'No se detectó rostro en la foto. Intente nuevamente.';
+        this.detecting = false;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      // Iniciar búsqueda automática con el embedding capturado
+      this.iniciarBusquedaAutomatica();
+    } catch (e) {
+      console.error('Error al procesar snapshot:', e);
+      this.mensajeReconocimiento = 'Error al procesar la captura.';
+      this.detecting = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async iniciarBusquedaAutomatica(): Promise<void> {
+    if (!this.snapshotEmbedding || !this.fotoCapturada) return;
+
+    this.buscandoAutomaticamente = true;
+    this.intentosBusqueda = 0;
+    this.ejecutarBusquedaConSnapshot();
+  }
+
+  private async ejecutarBusquedaConSnapshot(): Promise<void> {
+    if (!this.buscandoAutomaticamente || !this.snapshotEmbedding) return;
+
+    this.intentosBusqueda++;
+    this.detecting = true;
+    this.mensajeReconocimiento = `Buscando persona... (intento ${this.intentosBusqueda}/${this.maxIntentosBusqueda})`;
+    this.cdr.markForCheck();
+
+    try {
+      const resultado = await this.faceHelper.buscarUsuarioPorEmbedding(this.snapshotEmbedding, this.excludedUserIds);
+
+      if (resultado && resultado.confiable) {
+        // ¡Encontrado!
+        this.buscandoAutomaticamente = false;
+        const pct = (resultado.similitudBackend * 100).toFixed(0);
+        this.mensajeReconocimiento = `✓ Identificado: ${resultado.usuario.persona?.nombre} (${pct}%)`;
+        this.detecting = false;
+        this.cdr.markForCheck();
+
+        setTimeout(() => {
+          this.mostrandoCamara = false;
+          this.fotoCapturada = false;
+          this.snapshotDataUrl = null;
+          this.seleccionarUsuario(resultado.usuario);
+        }, 1200);
+        return;
+      }
+
+      if (resultado && !resultado.confiable) {
+        // Validación local falló → excluir este usuario y reintentar inmediatamente
+        const userId = resultado.usuario.id;
+        this.excludedUserIds.push(userId);
+        console.log(`Descartado: ${resultado.usuario.persona?.nombre} (backend: ${(resultado.similitudBackend * 100).toFixed(0)}%, local: ${(resultado.similitudLocal * 100).toFixed(0)}%). Excluidos: [${this.excludedUserIds}]`);
+        this.mensajeReconocimiento = `${resultado.usuario.persona?.nombre} descartado. Buscando siguiente...`;
+        this.cdr.markForCheck();
+
+        // Reintentar inmediatamente con la lista actualizada
+        if (this.intentosBusqueda < this.maxIntentosBusqueda) {
+          this.autoSearchInterval = setTimeout(() => {
+            this.ejecutarBusquedaConSnapshot();
+          }, 500);
+          return;
+        }
+      }
+
+      // No se encontró a nadie o se agotaron los intentos
+      if (this.intentosBusqueda >= this.maxIntentosBusqueda || !resultado) {
+        this.buscandoAutomaticamente = false;
+        this.detecting = false;
+        this.mensajeReconocimiento = 'No se encontró coincidencia. Intente con nueva foto.';
+        this.cdr.markForCheck();
+        return;
+      }
+
+      // Sin resultado del backend → reintentar
+      this.mensajeReconocimiento = `Sin coincidencia. Reintentando... (${this.intentosBusqueda}/${this.maxIntentosBusqueda})`;
+      this.cdr.markForCheck();
+
+      this.autoSearchInterval = setTimeout(() => {
+        this.ejecutarBusquedaConSnapshot();
+      }, 3000);
+
+    } catch (e) {
+      console.error('Error en búsqueda automática:', e);
+      this.buscandoAutomaticamente = false;
+      this.detecting = false;
+      this.mensajeReconocimiento = 'Error en la búsqueda. Intente nuevamente.';
+      this.cdr.markForCheck();
+    }
+  }
+
+  detenerAutoSearchPublic(): void {
+    this.detenerAutoSearch();
+    this.detecting = false;
+    this.mensajeReconocimiento = 'Búsqueda detenida. Intente con nueva foto.';
+    this.cdr.markForCheck();
+  }
+
+  async retomarCamara(): Promise<void> {
+    // Reiniciar todo el flujo: nueva captura
+    this.detenerAutoSearch();
+    this.fotoCapturada = false;
+    this.snapshotDataUrl = null;
+    this.snapshotEmbedding = null;
+    this.detecting = false;
+    this.searchPaused = false;
+    this.intentosBusqueda = 0;
+    this.excludedUserIds = [];
+    this.mostrandoCamara = false;
+    this.cdr.markForCheck();
+
+    // Reiniciar cámara desde cero
+    await this.iniciarCamaraBusqueda();
   }
 
   async reintentarCaptura(): Promise<void> {

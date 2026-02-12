@@ -13,8 +13,8 @@ export interface UsuarioSimilitud {
 })
 export class UsuarioPorEmbeddingGQL extends Query<{ data: UsuarioSimilitud }> {
   document = gql`
-    query usuarioPorEmbedding($embedding: [Float]) {
-      data: usuarioPorEmbedding(embedding: $embedding) {
+    query usuarioPorEmbedding($embedding: [Float], $excludeIds: [Int]) {
+      data: usuarioPorEmbedding(embedding: $embedding, excludeIds: $excludeIds) {
         usuario {
           id
           nickname
