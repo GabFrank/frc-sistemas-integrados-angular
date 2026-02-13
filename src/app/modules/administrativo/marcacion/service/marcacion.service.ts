@@ -62,8 +62,12 @@ export class MarcacionService {
     return this.genericCrudService.onGetById(this.getMarcacion, id, null, null, servidor);
   }
 
-  onGetMarcaciones(page?: number, size?: number, servidor = true): Observable<Marcacion[]> {
-    return this.genericCrudService.onGetAll(this.getMarcaciones, page, size, servidor);
+  onGetMarcaciones(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<Marcacion[]> {
+    return this.genericCrudService.onCustomQuery(
+      this.getMarcaciones,
+      { fechaInicio, fechaFin, page, size },
+      servidor
+    );
   }
 
   onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true, errorConf?: any): Observable<Marcacion[]> {

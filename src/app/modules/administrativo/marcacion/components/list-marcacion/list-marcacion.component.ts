@@ -159,7 +159,10 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
           this.dataSource.data = res || [];
         });
     } else {
-      this.marcacionService.onGetMarcaciones(page, size)
+      const fechaInicio = dateToString(this.fechaInicioControl.value);
+      const fechaFin = dateToString(this.fechaFinControl.value);
+
+      this.marcacionService.onGetMarcaciones(fechaInicio, fechaFin, page, size)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           this.dataSource.data = res || [];

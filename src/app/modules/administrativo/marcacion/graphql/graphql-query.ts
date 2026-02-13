@@ -73,8 +73,8 @@ export const marcacionQuery = gql`
 `;
 
 export const marcacionesQuery = gql`
-  query ($page: Int, $size: Int) {
-    data: marcaciones(page: $page, size: $size) {
+  query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
+    data: marcaciones(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       ${marcacionFragment}
     }
   }

@@ -95,7 +95,7 @@
   .resumen-header {
     background: linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, transparent 100%);
     padding: 12px 20px;
-    font-size: 1.1em;
+    font-size: 1.25em;
     font-weight: 500;
     color: #4caf50;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -147,14 +147,15 @@
 
   table {
     background: transparent !important;
-    width: 100%; border-radius: 8px;
+    width: 100%;
+    border-radius: 8px;
     overflow: hidden;
 
     th.mat-mdc-header-cell {
       color: #4caf50 !important;
       font-weight: 600;
       text-transform: uppercase;
-      font-size: 0.8em;
+      font-size: 0.9em;
       letter-spacing: 1px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       background-color: rgba(255, 255, 255, 0.03) !important;
@@ -162,9 +163,9 @@
 
     td.mat-mdc-cell {
       color: rgba(255, 255, 255, 0.9) !important;
-      font-size: 0.9em;
+      font-size: 1.05em;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 12px 8px !important;
+      padding: 16px 12px !important;
     }
 
     tr.mat-mdc-row:hover {
@@ -176,7 +177,7 @@
     color: #ffb74d;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.85em;
+    font-size: 0.95em;
     padding: 2px 8px;
     background: rgba(255, 152, 0, 0.1);
     border-radius: 4px;
