@@ -228,6 +228,16 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
   }
 
   onGenerarPdf(): void {
+    if (this.fechaFinControl.value == null) {
+      this.fechaFinControl.setValue(this.hoy);
+    }
+
+    if (this.fechaInicioControl.value == null) {
+      const unaSemanaAtras = new Date();
+      unaSemanaAtras.setDate(this.fechaFinControl.value.getDate() - 7);
+      this.fechaInicioControl.setValue(unaSemanaAtras);
+    }
+
     const fechaInicio = this.fechaInicioControl.value
       ? dateToString(this.fechaInicioControl.value)
       : null;
