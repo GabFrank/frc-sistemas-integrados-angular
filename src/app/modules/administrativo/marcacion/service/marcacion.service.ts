@@ -80,7 +80,7 @@ export class MarcacionService {
   }
 
   onSaveMarcacion(input: MarcacionInput, servidor = true, errorConf?: any): Observable<Marcacion> {
-    if (!input.usuarioId) {
+    if (!input.id && !input.usuarioId) {
       input.usuarioId = this.mainService.usuarioActual?.id;
     }
     return this.genericCrudService.onSave(this.saveMarcacion, input, null, null, servidor, errorConf);
@@ -134,6 +134,7 @@ export class MarcacionService {
   ): Observable<Marcacion> {
     const input = new MarcacionInput();
     input.id = marcacionId;
+    input.usuarioId = contexto.usuarioId;
     input.tipo = TipoMarcacion.SALIDA;
     input.sucursalSalidaId = contexto.sucursalId;
     input.fechaSalida = this.toLocalIsoString(new Date());
