@@ -100,6 +100,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.horaActual = new Date();
       this.cdr.markForCheck();
     }, 1000);
+    this.excludedUserIds = [];
   }
 
   ngOnDestroy(): void {
@@ -174,6 +175,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.detenerCountdown();
     this.detenerAutoSearch();
     this.camaraService.detenerCamara();
+  }
+
+  async iniciarReconocimiento(): Promise<void> {
+    if (this.usuarioSeleccionado) {
+      await this.iniciarCamaraParaVerificacion();
+    } else {
+      await this.iniciarCamaraBusqueda();
+    }
   }
   async iniciarCamaraBusqueda(): Promise<void> {
     if (this.usuarioSeleccionado) return;
@@ -255,10 +264,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     if (!this.videoElement || !this.mostrandoCamara) return;
     const video = this.videoElement.nativeElement;
 
-    // Capturar la imagen del video como data URL
     this.snapshotDataUrl = this.camaraService.capturarFoto(video);
 
-    // Pausar video y mostrar la foto capturada
     video.pause();
     this.fotoCapturada = true;
     this.searchPaused = true;
@@ -266,11 +273,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.mensajeReconocimiento = 'Foto capturada. Analizando rostro...';
     this.cdr.markForCheck();
 
-    // Detener la cámara ya que tenemos el snapshot
     this.camaraService.detenerCamara();
 
     try {
-      // Obtener embedding del snapshot usando una imagen
       this.snapshotEmbedding = await this.faceHelper.obtenerDescriptorReferencia(this.snapshotDataUrl);
 
       if (!this.snapshotEmbedding) {
@@ -279,8 +284,6 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
         return;
       }
-
-      // Iniciar búsqueda automática con el embedding capturado
       this.iniciarBusquedaAutomatica();
     } catch (e) {
       console.error('Error al procesar snapshot:', e);

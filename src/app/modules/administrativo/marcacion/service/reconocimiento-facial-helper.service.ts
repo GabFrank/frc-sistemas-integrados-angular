@@ -74,6 +74,7 @@ export class ReconocimientoFacialHelperService {
         const detection = await this.faceService.detect(videoElement);
 
         if (detection.face && detection.face.length > 0) {
+            const tensor = Array.from(detection.face[0].embedding);
             const imageBase64 = this.camaraService.capturarFoto(videoElement);
             this.camaraService.detenerCamara();
 
@@ -82,6 +83,7 @@ export class ReconocimientoFacialHelperService {
                     usuarioId,
                     'perfil',
                     imageBase64,
+                    tensor,
                     false
                 ).toPromise();
 
@@ -102,14 +104,8 @@ export class ReconocimientoFacialHelperService {
         }
         return false;
     }
-
-    /**
-     * Busca un usuario por embedding en el backend y realiza doble validación
-     * comparando el embedding de la cámara contra la foto de perfil del usuario encontrado.
-     */
     async buscarYValidarUsuario(embedding: number[], video: HTMLVideoElement): Promise<ResultadoBusqueda | null> {
         try {
-            // Paso 1: Buscar en el backend (threshold 0.75)
             const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding).toPromise();
             if (!resultado || !resultado.usuario) {
                 return null;
@@ -118,10 +114,8 @@ export class ReconocimientoFacialHelperService {
             const usuario: Usuario = resultado.usuario;
             const similitudBackend: number = resultado.similitud;
 
-            // Paso 2: Doble validación local - obtener la foto de perfil y comparar
             const fotoUrl = await this.obtenerFotoPerfilUsuario(usuario);
             if (!fotoUrl) {
-                // Si no tiene foto, confiar solo en el backend pero con menos confianza
                 console.warn('Usuario sin foto de perfil, confiando solo en backend');
                 return {
                     usuario,

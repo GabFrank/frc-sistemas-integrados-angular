@@ -2,13 +2,13 @@ import { Injectable } from '@angular/core';
 import { Mutation } from 'apollo-angular';
 import gql from 'graphql-tag';
 
-export const saveUserImageMutation = gql`
-  mutation saveUserImage($id: ID!, $type: String!, $image: String!) {
-    data: saveUserImage(id: $id, type: $type, image: $image)
+export const saveUsuarioImageMutation = gql`
+  mutation saveUsuarioImage($id: ID!, $type: String!, $image: String!, $embedding: [Float]) {
+    data: saveUsuarioImage(id: $id, type: $type, image: $image, embedding: $embedding)
   }
 `;
 
 @Injectable({ providedIn: 'root' })
 export class SaveUserImageGQL extends Mutation<boolean> {
-    document = saveUserImageMutation;
+  document = saveUsuarioImageMutation;
 }
