@@ -525,8 +525,8 @@ export class GestionComprasComponent
         // Filtrar sucursales de entrega: deposito=true y activo=true
         this.sucursalesEntregaFiltradas = sucursales.filter(s => s.deposito === true && s.activo === true);
         
-        // Filtrar sucursales de influencia: activo=true y excluir servidor (id 0)
-        this.sucursalesInfluenciaFiltradas = sucursales.filter(s => s.activo === true && s.id !== 0);
+        // Filtrar sucursales de influencia: deposito=true, activo=true y excluir servidor (id 0)
+        this.sucursalesInfluenciaFiltradas = sucursales.filter(s => s.deposito === true && s.activo === true && s.id !== 0);
 
         // Initialize with default values if available
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
@@ -748,10 +748,10 @@ export class GestionComprasComponent
       .map((sucursal) => sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null)
       .filter((s): s is Sucursal => s != null && s.deposito === true && s.activo === true);
     
-    // Para influencia: activo=true y excluir servidor (id 0)
+    // Para influencia: deposito=true, activo=true y excluir servidor (id 0)
     const sucursalesInfluenciaSeleccionadas = pedido.sucursalInfluenciaList
       .map((sucursal) => sucursal.sucursal != null ? this.sucursales.find((s) => s.id === sucursal.sucursal.id) : null)
-      .filter((s): s is Sucursal => s != null && s.activo === true && s.id !== 0);
+      .filter((s): s is Sucursal => s != null && s.deposito === true && s.activo === true && s.id !== 0);
 
     // Verificar si todas las sucursales filtradas están seleccionadas
     const todasSucursalesEntrega = sucursalesEntregaSeleccionadas.length === this.sucursalesEntregaFiltradas.length &&
