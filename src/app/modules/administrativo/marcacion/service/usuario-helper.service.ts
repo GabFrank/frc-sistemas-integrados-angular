@@ -55,6 +55,7 @@ export class UsuarioHelperService {
                 { id: "documento", nombre: "Documento", nested: true, nestedId: "persona", width: "40%" },
             ],
             query: this.searchUsuario,
+            fallbackToLocal: true,
         };
 
         return dialog.open(SearchListDialogComponent, {

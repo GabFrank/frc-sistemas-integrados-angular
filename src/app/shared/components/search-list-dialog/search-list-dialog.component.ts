@@ -4,6 +4,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatTableDataSource, MatTable } from "@angular/material/table";
 import { Query } from "apollo-angular";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 export interface TableData {
   id: string
@@ -28,6 +30,7 @@ export class SearchListtDialogData {
   paginator?: boolean;
   isServidor?: boolean = true;
   searchFieldName?: string;
+  fallbackToLocal?: boolean = false;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -161,51 +164,65 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       this.queryData.size = this.pageSize;
     }
 
-    this.genericCrudService
-      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        console.log('Respuesta recibida en search-list-dialog:', res);
-        if (res != null) {
-          if (this.data?.paginator == true) {
-            this.selectedPageInfo = res;
-            const content = res?.getContent || [];
-            console.log('Contenido a mostrar en tabla:', content);
-            console.log('Total elementos:', res?.getTotalElements);
-            console.log('Tipo de content:', typeof content, Array.isArray(content));
-            console.log('displayedColumns:', this.displayedColumns);
-            console.log('Primer elemento del content:', content.length > 0 ? content[0] : 'Sin datos');
-            this.dataSource.data = content;
-            if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
-              (this.dataSource as any)._updateChangeSubscription();
-            }
-            console.log('DataSource.data después de asignar:', this.dataSource.data);
-            console.log('DataSource.data.length:', this.dataSource.data.length);
-            setTimeout(() => {
-              this.cdr.detectChanges();
-              if (this.table) {
-                this.table.renderRows();
-              }
-            }, 0);
-          } else {
-            this.dataSource.data = res || [];
-            if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
-              (this.dataSource as any)._updateChangeSubscription();
-            }
-            if (this.displayedColumns.length === 0) {
-              this.displayedColumns = ['id', 'nombre'];
-            }
-            setTimeout(() => {
-              this.cdr.detectChanges();
-              if (this.table) {
-                this.table.renderRows();
-              }
-            }, 0);
-          }
-        } else {
-          console.log('Respuesta es null');
-          this.dataSource.data = [];
+    if (this.data?.fallbackToLocal) {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, true,
+          { networkError: { propagate: true, show: false } }, true)
+        .pipe(
+          untilDestroyed(this),
+          timeout(5000),
+          catchError(err => {
+            console.warn('Búsqueda en servidor central falló, intentando en local...', err);
+            return this.genericCrudService.onCustomQuery(this.data.query, this.queryData, false, undefined, true);
+          })
+        )
+        .subscribe((res) => {
+          this.procesarResultados(res);
+        });
+    } else {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, this.data.isServidor)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.procesarResultados(res);
+        });
+    }
+  }
+
+  private procesarResultados(res: any): void {
+    if (res != null) {
+      if (this.data?.paginator == true) {
+        this.selectedPageInfo = res;
+        const content = res?.getContent || [];
+        this.dataSource.data = content;
+        if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
+          (this.dataSource as any)._updateChangeSubscription();
         }
-      });
+        setTimeout(() => {
+          this.cdr.detectChanges();
+          if (this.table) {
+            this.table.renderRows();
+          }
+        }, 0);
+      } else {
+        this.dataSource.data = res || [];
+        if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
+          (this.dataSource as any)._updateChangeSubscription();
+        }
+        if (this.displayedColumns.length === 0) {
+          this.displayedColumns = ['id', 'nombre'];
+        }
+        setTimeout(() => {
+          this.cdr.detectChanges();
+          if (this.table) {
+            this.table.renderRows();
+          }
+        }, 0);
+      }
+    } else {
+      this.dataSource.data = [];
+    }
+    this.cdr.markForCheck();
   }
 
   onRowSelect(row) {

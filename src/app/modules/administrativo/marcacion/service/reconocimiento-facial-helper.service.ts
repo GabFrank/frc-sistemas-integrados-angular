@@ -4,6 +4,8 @@ import { CamaraService } from '../../../../shared/services/camara.service';
 import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
+import { timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 export interface EstadoReconocimiento {
     exito: boolean;
@@ -106,7 +108,20 @@ export class ReconocimientoFacialHelperService {
     }
     async buscarYValidarUsuario(embedding: number[], video: HTMLVideoElement): Promise<ResultadoBusqueda | null> {
         try {
-            const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding).toPromise();
+            let resultado: any = null;
+            try {
+                resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, [], true)
+                    .pipe(
+                        timeout(5000),
+                        catchError(err => {
+                            console.warn('Servidor central no disponible, usando servidor local para validación facial', err?.message || err);
+                            return this.usuarioService.onGetUsuarioPorEmbedding(embedding, [], false);
+                        })
+                    ).toPromise();
+            } catch (e) {
+                console.warn('Fallback a servidor local para validación facial');
+                resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, [], false).toPromise();
+            }
             if (!resultado || !resultado.usuario) {
                 return null;
             }
@@ -178,7 +193,21 @@ export class ReconocimientoFacialHelperService {
     }
     async buscarUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = []): Promise<ResultadoBusqueda | null> {
         try {
-            const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds).toPromise();
+            let resultado: any = null;
+            try {
+                resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds, true)
+                    .pipe(
+                        timeout(5000),
+                        catchError(err => {
+                            console.warn('Servidor central no disponible, usando servidor local para búsqueda facial', err?.message || err);
+                            return this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds, false);
+                        })
+                    ).toPromise();
+            } catch (e) {
+                console.warn('Fallback a servidor local para búsqueda facial');
+                resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds, false).toPromise();
+            }
+
             if (!resultado || !resultado.usuario) {
                 return null;
             }
@@ -268,8 +297,14 @@ export class ReconocimientoFacialHelperService {
         for (let i = 0; i < dim; i++) {
             promedio[i] /= validas.length;
         }
+        const magnitud = Math.sqrt(promedio.reduce((sum, val) => sum + val * val, 0));
+        if (magnitud > 0) {
+            for (let i = 0; i < dim; i++) {
+                promedio[i] /= magnitud;
+            }
+        }
 
-        console.log(`Embedding maestro generado con ${validas.length} vectores`);
+        console.log(`Embedding maestro generado y normalizado con ${validas.length} vectores`);
         return promedio;
     }
     async guardarFotoPerfilConEmbeddingMaestro(
