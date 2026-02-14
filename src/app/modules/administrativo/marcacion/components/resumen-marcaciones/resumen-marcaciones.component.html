@@ -1,0 +1,45 @@
+<mat-card class="resumen-card">
+    <div class="resumen-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+            <span>Resumen del día de <strong>{{ usuarioNombre | titlecase }}</strong></span>
+            <button mat-icon-button (click)="limpiar.emit()" matTooltip="Cambiar Usuario" class="btn-logout">
+                <mat-icon>logout</mat-icon>
+            </button>
+        </div>
+        <div class="sucursal-badge-mini" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="4px">
+            <mat-icon>store</mat-icon>
+            <span>{{ sucursalNombre }}</span>
+        </div>
+    </div>
+    <mat-card-content class="resumen-content">
+        <table mat-table [dataSource]="dataSource" [trackBy]="trackByMarcacionId"
+            class="mat-elevation-z8 tabla-marcaciones">
+            <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef class="celda-centro"> ID </th>
+                <td mat-cell *matCellDef="let element" class="celda-centro"> {{element.usuario?.id}} </td>
+            </ng-container>
+            <ng-container matColumnDef="usuario">
+                <th mat-header-cell *matHeaderCellDef class="celda-centro"> Usuario </th>
+                <td mat-cell *matCellDef="let element" class="celda-centro">
+                    {{element.usuario?.persona?.nombre | titlecase}} </td>
+            </ng-container>
+            <ng-container matColumnDef="entrada">
+                <th mat-header-cell *matHeaderCellDef class="celda-centro"> Entrada </th>
+                <td mat-cell *matCellDef="let element" class="celda-centro">
+                    <span *ngIf="element.fechaEntrada">{{element.fechaEntrada | date:'HH:mm'}}</span>
+                    <span *ngIf="!element.fechaEntrada">--:--</span>
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="salida">
+                <th mat-header-cell *matHeaderCellDef class="celda-centro"> Salida </th>
+                <td mat-cell *matCellDef="let element" class="celda-centro">
+                    <span *ngIf="element.fechaSalida">{{element.fechaSalida | date:'HH:mm'}}</span>
+                    <span *ngIf="!element.fechaSalida" class="en-curso-text">En Curso</span>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+    </mat-card-content>
+</mat-card>

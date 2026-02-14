@@ -1,0 +1,116 @@
+:host {
+    ::ng-deep {
+        .mat-card {
+            border-radius: 16px !important;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2) !important;
+        }
+    }
+}
+
+.resumen-card {
+    background-color: rgba(40, 40, 40, 0.8);
+    backdrop-filter: blur(5px);
+    padding: 0;
+    overflow: hidden;
+}
+
+.resumen-header {
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.1) 0%, transparent 100%);
+    padding: 12px 20px;
+    font-size: 1.25em;
+    font-weight: 500;
+    color: #4caf50;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    &>span:first-child {
+        display: flex;
+        align-items: center;
+
+        &::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: #4caf50;
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+    }
+}
+
+.btn-logout {
+    scale: 0.8;
+    color: #f44336;
+}
+
+.sucursal-badge-mini {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 4px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    span {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+}
+
+.resumen-content {
+    padding: 12px !important;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.tabla-marcaciones {
+    background: transparent !important;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+
+    th.mat-mdc-header-cell {
+        color: #4caf50 !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9em;
+        letter-spacing: 1px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    td.mat-mdc-cell {
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: 1.05em;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 16px 12px !important;
+    }
+
+    tr.mat-mdc-row:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+}
+
+.celda-centro {
+    text-align: center;
+}
+
+.en-curso-text {
+    color: #ffb74d;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.95em;
+    padding: 2px 8px;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 4px;
+}

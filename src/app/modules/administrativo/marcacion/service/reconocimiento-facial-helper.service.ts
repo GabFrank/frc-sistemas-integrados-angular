@@ -121,11 +121,9 @@ export class ReconocimientoFacialHelperService {
                     usuario,
                     similitudBackend,
                     similitudLocal: 0,
-                    confiable: similitudBackend > 0.85 // Más estricto sin doble validación
+                    confiable: similitudBackend > 0.85
                 };
             }
-
-            // Obtener embedding de la foto de perfil
             const descriptorPerfil = await this.obtenerDescriptorReferencia(fotoUrl);
             if (!descriptorPerfil) {
                 console.warn('No se pudo obtener descriptor de foto de perfil');
@@ -158,8 +156,6 @@ export class ReconocimientoFacialHelperService {
                 { networkError: { propagate: true, show: false } }
             ).toPromise();
             if (images && images.length > 0) return images[0];
-
-            // Fallback local
             const localImages = await this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', false).toPromise();
             if (localImages && localImages.length > 0) return localImages[0];
         } catch (e) {
@@ -223,11 +219,6 @@ export class ReconocimientoFacialHelperService {
             return null;
         }
     }
-
-    /**
-     * Captura un frame del video y retorna embedding + score + imagen base64.
-     * Usado para la captura múltiple de fotos de perfil.
-     */
     async capturarFrameConScore(
         videoElement: HTMLVideoElement
     ): Promise<{ imageBase64: string; embedding: number[]; score: number } | null> {
@@ -281,10 +272,6 @@ export class ReconocimientoFacialHelperService {
         console.log(`Embedding maestro generado con ${validas.length} vectores`);
         return promedio;
     }
-
-    /**
-     * Guarda la foto de perfil frontal junto con el embedding maestro fusionado.
-     */
     async guardarFotoPerfilConEmbeddingMaestro(
         usuarioId: number,
         imagenFrontalBase64: string,
