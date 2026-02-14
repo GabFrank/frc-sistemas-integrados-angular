@@ -183,16 +183,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   }
   async iniciarReconocimiento(): Promise<void> {
     if (this.usuarioSeleccionado) {
-      this.modoCamara = 'verificacion';
-      this.mostrandoCamara = true;
-      this.cdr.markForCheck();
-
-      setTimeout(() => {
-        const camaraRef = this.estadoRef?.camaraRef;
-        if (camaraRef) {
-          camaraRef.iniciar();
-        }
-      });
+      this.reconocimientoExitoso = false;
+      this.embeddingCapturado = null;
+      await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
     }
   }
 
