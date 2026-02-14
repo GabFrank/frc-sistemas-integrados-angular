@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Human, Config, Result } from '@vladmandic/human';
 
+export interface DescriptorConScore {
+    embedding: number[];
+    score: number;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -66,5 +71,18 @@ export class FaceRecognitionService {
     similarity(embedding1: number[], embedding2: number[]): number {
         if (!embedding1 || !embedding2) return 0;
         return this.human?.match.similarity(embedding1, embedding2) || 0;
+    }
+
+    async getDescriptorConScore(input: HTMLVideoElement | HTMLImageElement): Promise<DescriptorConScore | null> {
+        await this.init();
+        const result = await this.human!.detect(input);
+        if (result.face && result.face.length > 0) {
+            const face = result.face[0];
+            return {
+                embedding: Array.from(face.embedding),
+                score: face.score ?? 0
+            };
+        }
+        return null;
     }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { FaceRecognitionService } from './face-recognition.service';
+import { FaceRecognitionService, DescriptorConScore } from './face-recognition.service';
 import { CamaraService } from '../../../../shared/services/camara.service';
 import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -221,6 +221,97 @@ export class ReconocimientoFacialHelperService {
         } catch (error) {
             console.error('Error en búsqueda por embedding', error);
             return null;
+        }
+    }
+
+    /**
+     * Captura un frame del video y retorna embedding + score + imagen base64.
+     * Usado para la captura múltiple de fotos de perfil.
+     */
+    async capturarFrameConScore(
+        videoElement: HTMLVideoElement
+    ): Promise<{ imageBase64: string; embedding: number[]; score: number } | null> {
+        const resultado = await this.faceService.getDescriptorConScore(videoElement);
+        if (!resultado) return null;
+
+        const imageBase64 = this.camaraService.capturarFoto(videoElement);
+        return {
+            imageBase64,
+            embedding: resultado.embedding,
+            score: resultado.score
+        };
+    }
+
+    /**
+     * Fusiona múltiples embeddings promediando componente a componente.
+     * Filtra los embeddings con score inferior al umbral mínimo.
+     * @param capturas Array de { embedding, score }
+     * @param scoreMinimo Umbral mínimo de score (default 0.5)
+     * @returns Embedding maestro promediado o null si no hay embeddings válidos
+     */
+    fusionarEmbeddings(
+        capturas: Array<{ embedding: number[]; score: number }>,
+        scoreMinimo: number = 0.5
+    ): number[] | null {
+        const validas = capturas.filter(c => c.score >= scoreMinimo);
+        console.log(`Fusión de embeddings: ${capturas.length} capturas, ${validas.length} válidas (umbral: ${scoreMinimo})`);
+
+        capturas.forEach((c, i) => {
+            console.log(`  Captura ${i + 1}: score=${c.score.toFixed(4)} ${c.score < scoreMinimo ? '(DESCARTADA)' : '(OK)'}`);
+        });
+
+        if (validas.length === 0) {
+            console.warn('No hay capturas con score suficiente para fusionar');
+            return null;
+        }
+
+        const dim = validas[0].embedding.length;
+        const promedio = new Array(dim).fill(0);
+
+        for (const captura of validas) {
+            for (let i = 0; i < dim; i++) {
+                promedio[i] += captura.embedding[i];
+            }
+        }
+
+        for (let i = 0; i < dim; i++) {
+            promedio[i] /= validas.length;
+        }
+
+        console.log(`Embedding maestro generado con ${validas.length} vectores`);
+        return promedio;
+    }
+
+    /**
+     * Guarda la foto de perfil frontal junto con el embedding maestro fusionado.
+     */
+    async guardarFotoPerfilConEmbeddingMaestro(
+        usuarioId: number,
+        imagenFrontalBase64: string,
+        embeddingMaestro: number[]
+    ): Promise<boolean> {
+        try {
+            await this.usuarioService.onSaveUsuarioImage(
+                usuarioId,
+                'perfil',
+                imagenFrontalBase64,
+                embeddingMaestro,
+                false
+            ).toPromise();
+
+            this.notificacionService.notification$.next({
+                texto: 'Foto de perfil guardada con embedding mejorado',
+                color: NotificacionColor.success,
+                duracion: 3
+            });
+            return true;
+        } catch (error) {
+            this.notificacionService.notification$.next({
+                texto: 'Error al guardar la foto de perfil',
+                color: NotificacionColor.danger,
+                duracion: 3
+            });
+            return false;
         }
     }
 }

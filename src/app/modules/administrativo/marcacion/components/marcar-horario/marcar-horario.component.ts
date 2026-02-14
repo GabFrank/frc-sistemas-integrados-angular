@@ -74,6 +74,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   intentosBusqueda = 0;
   maxIntentosBusqueda = 10;
   private excludedUserIds: number[] = [];
+  capturaMultiplePaso = 0;
+  capturaMultipleFotos: Array<{ imageBase64: string; embedding: number[]; score: number }> = [];
+  capturaMultipleMensajes = [
+    '',
+    'Paso 1/3: Gire su rostro ligeramente a la IZQUIERDA',
+    'Paso 2/3: Gire su rostro ligeramente a la DERECHA',
+    'Paso 3/3: Mire de FRENTE a la cámara'
+  ];
 
   marcacionesHoy: Marcacion[] = [];
   dataSource = new MatTableDataSource<Marcacion>([]);
@@ -172,6 +180,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.intentosBusqueda = 0;
     this.countdownSegundos = 0;
     this.excludedUserIds = [];
+    this.capturaMultiplePaso = 0;
+    this.capturaMultipleFotos = [];
     this.detenerCountdown();
     this.detenerAutoSearch();
     this.camaraService.detenerCamara();
@@ -467,7 +477,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
     if (!fotoUrl) {
       this.mensajeErrorFoto = 'Sin foto de perfil';
-      await this.capturarYGuardarFotoPerfil();
+      await this.capturarYGuardarFotoPerfilMultiple();
       return;
     }
 
@@ -536,6 +546,102 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.mensajeErrorFoto = 'Error al capturar. Intente de nuevo.';
       this.esperandoCapturaPerfil = true;
       this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
+      this.cdr.markForCheck();
+    }
+  }
+
+  async capturarYGuardarFotoPerfilMultiple(): Promise<void> {
+    this.mostrandoCamara = true;
+    this.capturaMultiplePaso = 1;
+    this.capturaMultipleFotos = [];
+    this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+    this.cdr.detectChanges();
+
+    try {
+      const stream = await this.camaraService.iniciarCamara();
+      for (let i = 0; i < 5; i++) {
+        if (this.videoElement) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+        this.cdr.detectChanges();
+      }
+
+      if (this.videoElement) {
+        const video = this.videoElement.nativeElement;
+        video.srcObject = stream;
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = async () => {
+            await video.play().catch(err => console.error('Error playing video:', err));
+            resolve();
+          };
+        });
+      }
+      this.cdr.markForCheck();
+    } catch (e) {
+      console.error('Error en capturarYGuardarFotoPerfilMultiple:', e);
+      this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
+      this.capturaMultiplePaso = 0;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async tomarFotoPerfilMultiple(): Promise<void> {
+    if (!this.videoElement || !this.usuarioSeleccionado || this.capturaMultiplePaso === 0) return;
+
+    const video = this.videoElement.nativeElement;
+    this.detecting = true;
+    this.mensajeReconocimiento = 'Capturando foto...';
+    this.cdr.markForCheck();
+
+    const resultado = await this.faceHelper.capturarFrameConScore(video);
+    this.detecting = false;
+
+    if (!resultado) {
+      this.mensajeReconocimiento = `No se detectó rostro. ${this.capturaMultipleMensajes[this.capturaMultiplePaso]}`;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    console.log(`Captura paso ${this.capturaMultiplePaso}: score=${resultado.score.toFixed(4)}`);
+    this.capturaMultipleFotos.push(resultado);
+
+    if (this.capturaMultiplePaso < 3) {
+      this.capturaMultiplePaso++;
+      this.mensajeReconocimiento = this.capturaMultipleMensajes[this.capturaMultiplePaso];
+      this.cdr.markForCheck();
+      return;
+    }
+    this.mensajeReconocimiento = 'Procesando embedding maestro...';
+    this.cdr.markForCheck();
+
+    const embeddingMaestro = this.faceHelper.fusionarEmbeddings(this.capturaMultipleFotos);
+    if (!embeddingMaestro) {
+      this.mensajeReconocimiento = 'Las fotos capturadas no tienen calidad suficiente. Intente de nuevo.';
+      this.capturaMultiplePaso = 1;
+      this.capturaMultipleFotos = [];
+      this.cdr.markForCheck();
+      return;
+    }
+    const fotoFrontal = this.capturaMultipleFotos[this.capturaMultipleFotos.length - 1].imageBase64;
+    const exito = await this.faceHelper.guardarFotoPerfilConEmbeddingMaestro(
+      this.usuarioSeleccionado.id,
+      fotoFrontal,
+      embeddingMaestro
+    );
+
+    if (exito) {
+      if (this.usuarioSeleccionado.persona) this.usuarioSeleccionado.persona.imagenes = 'captured';
+      this.mensajeErrorFoto = '';
+      this.camaraService.detenerCamara();
+      this.mostrandoCamara = false;
+      this.capturaMultiplePaso = 0;
+      this.capturaMultipleFotos = [];
+      this.cdr.markForCheck();
+      await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
+    } else {
+      this.mensajeErrorFoto = 'Error al guardar. Intente de nuevo.';
+      this.capturaMultiplePaso = 1;
+      this.capturaMultipleFotos = [];
+      this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
       this.cdr.markForCheck();
     }
   }

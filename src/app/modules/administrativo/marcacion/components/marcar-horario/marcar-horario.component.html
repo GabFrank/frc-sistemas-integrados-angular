@@ -87,8 +87,26 @@
                                     {{ mensajeReconocimiento }}
                                 </div>
                             </div>
-                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                            <div *ngIf="mostrandoCamara && capturaMultiplePaso > 0" fxLayout="column"
                                 fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                                <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px"
+                                    style="margin-bottom: 4px;">
+                                    <div *ngFor="let step of [1,2,3]" [style.width.px]="32" [style.height.px]="4"
+                                        [style.borderRadius.px]="2"
+                                        [style.background]="step <= capturaMultipleFotos.length ? '#4caf50' : (step === capturaMultiplePaso ? '#ff9800' : '#555')">
+                                    </div>
+                                </div>
+                                <span style="color: #ff9800; font-size: 0.95em; font-weight: 500;">{{
+                                    mensajeReconocimiento }}</span>
+                                <button mat-raised-button color="primary" (click)="tomarFotoPerfilMultiple()"
+                                    [disabled]="detecting">
+                                    <mat-icon>photo_camera</mat-icon>
+                                    {{ capturaMultiplePaso === 3 ? 'Capturar y Guardar' : 'Capturar' }}
+                                </button>
+                            </div>
+                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil && capturaMultiplePaso === 0"
+                                fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px"
+                                style="margin-top: 12px;">
                                 <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
                                 <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
                                     <mat-icon>photo_camera</mat-icon> Guardar Foto
@@ -135,8 +153,26 @@
                                     {{ mensajeReconocimiento }}
                                 </div>
                             </div>
-                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil" fxLayout="column"
+                            <div *ngIf="mostrandoCamara && capturaMultiplePaso > 0" fxLayout="column"
                                 fxLayoutAlign="center center" fxLayoutGap="8px" style="margin-top: 12px;">
+                                <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px"
+                                    style="margin-bottom: 4px;">
+                                    <div *ngFor="let step of [1,2,3]" [style.width.px]="32" [style.height.px]="4"
+                                        [style.borderRadius.px]="2"
+                                        [style.background]="step <= capturaMultipleFotos.length ? '#4caf50' : (step === capturaMultiplePaso ? '#ff9800' : '#555')">
+                                    </div>
+                                </div>
+                                <span style="color: #ff9800; font-size: 0.95em; font-weight: 500;">{{
+                                    mensajeReconocimiento }}</span>
+                                <button mat-raised-button color="primary" (click)="tomarFotoPerfilMultiple()"
+                                    [disabled]="detecting">
+                                    <mat-icon>photo_camera</mat-icon>
+                                    {{ capturaMultiplePaso === 3 ? 'Capturar y Guardar' : 'Capturar' }}
+                                </button>
+                            </div>
+                            <div *ngIf="mostrandoCamara && esperandoCapturaPerfil && capturaMultiplePaso === 0"
+                                fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px"
+                                style="margin-top: 12px;">
                                 <span style="color: #aaa; font-size: 0.9em;">{{ mensajeReconocimiento }}</span>
                                 <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
                                     <mat-icon>photo_camera</mat-icon> Guardar Foto
