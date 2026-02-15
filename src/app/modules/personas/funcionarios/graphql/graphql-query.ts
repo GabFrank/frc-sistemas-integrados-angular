@@ -140,6 +140,9 @@ export const funcionarioQuery = gql`
         documento
         nacimiento
       }
+      usuario {
+        id
+      }
       cargo {
         id
         nombre
@@ -181,6 +184,9 @@ export const funcionarioPorPersonaQuery = gql`
         }
         nacimiento
         documento
+      }
+      usuario {
+        id
       }
       cargo {
         id

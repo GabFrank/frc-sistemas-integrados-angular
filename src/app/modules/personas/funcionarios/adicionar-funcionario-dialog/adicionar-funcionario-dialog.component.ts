@@ -28,6 +28,7 @@ import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { catchError, combineLatest, forkJoin, of } from 'rxjs';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { ClienteService } from '../../clientes/cliente.service';
+import { UsuarioService } from '../../usuarios/usuario.service';
 import { Cliente } from '../../clientes/cliente.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MatSelect } from '@angular/material/select';
@@ -40,7 +41,7 @@ import { MatSelect } from '@angular/material/select';
 })
 export class AdicionarFuncionarioDialogComponent implements OnInit {
 
-  @ViewChild('sucursalSelect', {read: MatSelect}) sucursalSelect: MatSelect;
+  @ViewChild('sucursalSelect', { read: MatSelect }) sucursalSelect: MatSelect;
 
   selectedFuncionario: Funcionario;
   selectedPersona: Persona;
@@ -78,7 +79,8 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<AdicionarFuncionarioDialogComponent>,
     private dialogoService: DialogosService,
     private monedaService: MonedaService,
-    private clienteService: ClienteService
+    private clienteService: ClienteService,
+    private usuarioService: UsuarioService
   ) {
 
   }
@@ -219,6 +221,29 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       this.diaristaControl.setValue(funcionario?.diarista)
       this.supervisadoPorControl.setValue(funcionario?.supervisadoPor)
       this.activoControl.setValue(funcionario?.activo)
+      if (funcionario.persona?.id) {
+        this.usuarioService.onGetUsuarioPorPersonaId(funcionario.persona.id)
+          .pipe(untilDestroyed(this))
+          .subscribe(usuario => {
+            if (usuario?.id) {
+              this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil')
+                .pipe(untilDestroyed(this))
+                .subscribe(imgs => {
+                  if (imgs && imgs.length > 0) {
+                    this.selectedFuncionario.imagenPrincipal = imgs[0];
+                  }
+                });
+            } else if (funcionario.usuario?.id) {
+              this.usuarioService.onGetUsuarioImages(funcionario.usuario.id, 'perfil')
+                .pipe(untilDestroyed(this))
+                .subscribe(imgs => {
+                  if (imgs && imgs.length > 0) {
+                    this.selectedFuncionario.imagenPrincipal = imgs[0];
+                  }
+                });
+            }
+          })
+      }
     }
   }
 
@@ -248,7 +273,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   }
 
   onSave() {
-    if(this.selectedFuncionario == null) this.selectedFuncionario = new Funcionario();
+    if (this.selectedFuncionario == null) this.selectedFuncionario = new Funcionario();
     this.selectedFuncionario.activo = this.activoControl.value;
     this.selectedFuncionario.credito = this.creditoControl.value;
     this.selectedFuncionario.diarista = this.diaristaControl.value;
@@ -266,7 +291,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     })
   }
 
-  onCancel(){
+  onCancel() {
     this.matDialogRef.close()
   }
 
