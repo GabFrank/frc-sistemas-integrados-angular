@@ -3,16 +3,16 @@ import {
   OnInit,
   ViewChild,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  AfterViewInit
+  ChangeDetectorRef
 } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MatPaginator } from '@angular/material/paginator';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { MainService } from '../../../../../main.service';
+import { PageInfo } from '../../../../../app.component';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
@@ -30,11 +30,13 @@ import { PersonaService } from '../../../../personas/persona/persona.service';
   styleUrls: ['./list-marcacion.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ListMarcacionComponent implements OnInit, AfterViewInit {
+export class ListMarcacionComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<Marcacion>([]);
-
+  selectedPageInfo: PageInfo<Marcacion>;
+  pageIndex = 0;
+  pageSize = 15;
 
   usuarioIdControl = new FormControl();
   usuarioNombreControl = new FormControl();
@@ -124,10 +126,10 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
     this.fechaFinControl.setValue(this.hoy);
   }
 
-  ngAfterViewInit(): void {
-    this.paginator.page.pipe(untilDestroyed(this)).subscribe(() => {
-      this.filtrar();
-    });
+  handlePageEvent(e: PageEvent): void {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.filtrar();
   }
 
   filtrar(): void {
@@ -141,8 +143,8 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
       this.fechaInicioControl.setValue(unaSemanaAtras);
     }
 
-    const page = this.paginator ? this.paginator.pageIndex : 0;
-    const size = this.paginator ? this.paginator.pageSize : 15;
+    const page = this.pageIndex;
+    const size = this.pageSize;
 
     if (this.usuarioSeleccionado?.id) {
       const fechaInicio = dateToString(this.fechaInicioControl.value);
@@ -156,7 +158,11 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
         size
       ).pipe(untilDestroyed(this))
         .subscribe(res => {
-          this.dataSource.data = res || [];
+          if (res != null) {
+            this.selectedPageInfo = res;
+            this.dataSource.data = res.getContent || [];
+            this.cdr.markForCheck();
+          }
         });
     } else {
       const fechaInicio = dateToString(this.fechaInicioControl.value);
@@ -165,12 +171,18 @@ export class ListMarcacionComponent implements OnInit, AfterViewInit {
       this.marcacionService.onGetMarcaciones(fechaInicio, fechaFin, page, size)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
-          this.dataSource.data = res || [];
+          if (res != null) {
+            this.selectedPageInfo = res;
+            this.dataSource.data = res.getContent || [];
+            this.cdr.markForCheck();
+          }
         });
     }
   }
 
   resetearFiltro(): void {
+    this.pageIndex = 0;
+    this.pageSize = 15;
     if (this.paginator) {
       this.paginator.firstPage();
     }

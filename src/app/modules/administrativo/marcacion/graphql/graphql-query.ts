@@ -75,7 +75,16 @@ export const marcacionQuery = gql`
 export const marcacionesQuery = gql`
   query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
     data: marcaciones(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
-      ${marcacionFragment}
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        ${marcacionFragment}
+      }
     }
   }
 `;
@@ -83,7 +92,16 @@ export const marcacionesQuery = gql`
 export const marcacionesPorUsuarioQuery = gql`
   query ($usuarioId: ID!, $fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
     data: marcacionesPorUsuario(usuarioId: $usuarioId, fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
-      ${marcacionFragment}
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        ${marcacionFragment}
+      }
     }
   }
 `;

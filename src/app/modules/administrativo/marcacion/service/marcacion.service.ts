@@ -4,6 +4,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { MainService } from '../../../../main.service';
+import { PageInfo } from '../../../../app.component';
 
 import { Marcacion, MarcacionInput } from '../models/marcacion.model';
 import { Jornada } from '../models/jornada.model';
@@ -62,7 +63,7 @@ export class MarcacionService {
     return this.genericCrudService.onGetById(this.getMarcacion, id, null, null, servidor);
   }
 
-  onGetMarcaciones(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<Marcacion[]> {
+  onGetMarcaciones(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Marcacion>> {
     return this.genericCrudService.onCustomQuery(
       this.getMarcaciones,
       { fechaInicio, fechaFin, page, size },
@@ -70,7 +71,7 @@ export class MarcacionService {
     );
   }
 
-  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true, errorConf?: any): Observable<Marcacion[]> {
+  onGetMarcacionesPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true, errorConf?: any): Observable<PageInfo<Marcacion>> {
     return this.genericCrudService.onCustomQuery(
       this.getMarcacionesPorUsuario,
       { usuarioId, fechaInicio, fechaFin, page, size },

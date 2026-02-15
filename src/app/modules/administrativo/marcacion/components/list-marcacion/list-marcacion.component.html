@@ -86,8 +86,9 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"></tr>
         </table>
-        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="100" [pageSize]="15"
-            [pageSizeOptions]="[15, 25, 50, 100]" aria-label="Select page" style="width: 100%" showFirstLastButtons>
+        <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="selectedPageInfo?.getTotalElements"
+            [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)" style="width: 100%"
+            showFirstLastButtons>
         </mat-paginator>
     </div>
 </app-generic-list>

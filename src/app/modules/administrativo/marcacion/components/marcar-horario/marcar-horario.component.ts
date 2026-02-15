@@ -243,9 +243,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
         { networkError: { propagate: true, show: false } }
       ))
     ).subscribe({
-      next: (marcaciones) => {
+      next: (res) => {
         this.cargando = false;
-        this.procesarMarcaciones(marcaciones);
+        this.procesarMarcaciones(res?.getContent || []);
       },
       error: (err) => {
         this.cargando = false;
