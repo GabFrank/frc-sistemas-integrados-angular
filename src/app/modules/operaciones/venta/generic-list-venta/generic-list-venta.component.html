@@ -1,16 +1,17 @@
 
-<div style="width: 100%; height: 100%;">
+<div style="width: 100%; height: 100%;" fxLayout="column">
   <h4 style="text-align: center; margin: 0;">Buscador de ventas</h4>
   <app-generic-list
-    (filtrar)="onFiltar()"
+    (filtrar)="onFiltrarConReset()"
     (resetFiltro)="onResetFiltro()"
+    style="width: 100%; height: 100%;"
   >
     <div filtros>
       <div
         fxLayout="row"
         fxLayoutGap="10px"
         fxLayoutAlign="start center"
-        style="width: 100%;"
+        style="width: 100%;;"
       >
         <div fxFlex="10%">
           <mat-form-field appearance="outline" style="width: 100%;">
@@ -20,7 +21,7 @@
               placeholder="N° de venta"
               type="number"
               [formControl]="idVentaControl"
-              (keyup.enter)="onFiltar()"
+              (keyup.enter)="onFiltrarConReset()"
             >
           </mat-form-field>
         </div>
@@ -186,179 +187,485 @@
     </div>
     <div
       table
-      style="height: 100%; background-color: rgb(70, 70, 70);"
+      style="
+        height: 100%; 
+        background-color: rgb(70, 70, 70); 
+        display: flex; 
+        flex-direction: column;
+      "
       fxLayout="column"
-      fxLayoutAlign="space-between center"
     >
-      <table
-        mat-table
-        [dataSource]="ventaDataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-        style="width: 100%;"
-      >
-        <ng-container matColumnDef="id" style="width: 5%;">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Id
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 15%;"
-          >
-            {{ venta.id  | number: '1.0-2' }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="cliente">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Cliente
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 25%;"
-          >
-            {{ venta?.cliente == null ? 'Sin nombre' : venta?.cliente?.persona.nombre }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="fecha">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Fecha
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 15%;"
-          >
-            {{ venta.creadoEn }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="formaPago">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Forma de pago
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 15%;"
-          >
-            {{ venta.formaPago?.descripcion }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="estado">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Estado
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 15%;"
-            [ngClass]="{ cancelada: venta?.estado == 'CANCELADA' }"
-          >
-            {{ venta.estado | enumToString | titlecase }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="total">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%;"
-          >
-            Total
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta"
-            style="text-align: center; width: 15%;"
-          >
-            {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: '1.0-0' }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="modo">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 5%;"
-          >
-            Modo
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta; let i = dataIndex"
-            style="text-align: center; width: 5%;"
-          >
-          <ng-container *ngIf="venta?.delivery == null; else elseTemplate">
-            <mat-icon matTooltip="Venta en local">
-              store
-            </mat-icon>
-          </ng-container>
-          <ng-template #elseTemplate>
-            <mat-icon class="is-delivery" matTooltip="Venta por delivery">
-              two_wheeler
-            </mat-icon>
-          </ng-template>
-        </td>
-        </ng-container>
-        <ng-container matColumnDef="acciones">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 5%;"
-          >
-            ...
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let venta; let i = dataIndex"
-            style="text-align: center; width: 5%;"
-          >
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
+      <div style="flex: 1; overflow-y: auto; min-height: 0;">
+        <table
+          mat-table
+          [dataSource]="ventaDataSource"
+          multiTemplateDataRows
+          class="mat-elevation-z8"
+          style="width: 100%;"
+        >
+          <ng-container matColumnDef="id">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 5%;"
             >
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button mat-menu-item>
-                Cancelar venta
-              </button>
-              <button mat-menu-item>
-                Adicionar observación
-              </button>
-            </mat-menu>
+              Id
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 5%;"
+            >
+              {{ venta.id  | number: '1.0-2' }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="cliente">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 20%;"
+            >
+              Cliente
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 20%;"
+            >
+              {{ venta?.cliente == null ? 'Sin nombre' : venta?.cliente?.persona.nombre }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="sucursal">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 20%;"
+            >
+              Sucursal
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 20%;"
+            >
+              {{ venta.sucursal?.nombre }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="fecha">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 10%;"
+            >
+              Fecha
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 10%;"
+            >
+              {{ venta.creadoEn }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="formaPago">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 10%;"
+            >
+              Forma de pago
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 10%;"
+            >
+              {{ venta.formaPago?.descripcion }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="estado">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 10%;"
+            >
+              Estado
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 10%;"
+              [ngClass]="{ cancelada: venta?.estado == 'CANCELADA' }"
+            >
+              {{ venta.estado | enumToString | titlecase }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="total">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 10%;"
+            >
+              Total
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 10%;"
+            >
+              {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: '1.0-0' }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="modo">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 5%;"
+            >
+              Modo
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta; let i = dataIndex"
+              style="text-align: center; width: 5%;"
+            >
+            <ng-container *ngIf="venta?.delivery == null; else elseTemplate">
+              <mat-icon matTooltip="Venta en local">
+                store
+              </mat-icon>
+            </ng-container>
+            <ng-template #elseTemplate>
+              <mat-icon class="is-delivery" matTooltip="Venta por delivery">
+                two_wheeler
+              </mat-icon>
+            </ng-template>
           </td>
-        </ng-container>
-        <mat-divider></mat-divider>
+          </ng-container>
+          <ng-container matColumnDef="acciones">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 5%;"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta; let i = dataIndex"
+              style="text-align: center; width: 5%;"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onCancelarVenta(venta, i)">
+                  {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar"}}
+                </button>
+                <button mat-menu-item (click)="onListObservaciones(venta)">
+                  Adicionar observación
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+          
+          <mat-divider></mat-divider>
 
-        <tr mat-header-row *matHeaderRowDef="ventaDisplayedColumns"></tr>
-        <tr mat-row *matRowDef="let element; columns: ventaDisplayedColumns; let i = dataIndex"></tr>
-      </table>
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let venta"
+                [attr.colspan]="ventaDisplayedColumns.length"
+              >
+                <div
+                  class="example-element-detail"
+                  [@detailExpand]="
+                    venta == expandedVenta ? 'expanded' : 'collapsed'
+                  "
+                >
+                  <div
+                    style="
+                      padding-top: 50px;
+                      padding-bottom: 50px;
+                      width: 100%;
+                      background-color: rgb(32, 32, 32);
+                    "
+                  >
+                    <div
+                      fxLayout="row"
+                      fxLayoutAlign="center center"
+                      *ngIf="isLoading"
+                      style="text-align: center"
+                    >
+                      <mat-spinner></mat-spinner>
+                    </div>
+                    <div
+                      fxLayout="column"
+                      *ngIf="!isLoading"
+                      style="width: 100%; text-align: center; padding: 10px"
+                    >
+                      <br />
+                      <div
+                        fxFlex="5%"
+                        style="
+                          width: 100%;
+                          text-align: center;
+                          background-color: rgb(52, 52, 52);
+                        "
+                      >
+                        Productos
+                      </div>
+                      <div
+                        fxFlex="5"
+                        fxLayout="row"
+                        style="width: 100%; background-color: rgb(52, 52, 52)"
+                      >
+                        <div fxFlex="5%">#</div>
+                        <div fxFlex="35%">Descripción</div>
+                        <div fxFlex="10%">Presentación</div>
+                        <div fxFlex="10%">Cantidad</div>
+                        <div fxFlex="20%">Precio</div>
+                        <div fxFlex="20%">Total</div>
+                      </div>
+                      <div fxFlex="5%">
+                        <mat-divider style="height: 100%"></mat-divider>
+                      </div>
+                      <div
+                        *ngFor="
+                          let ventaItem of venta?.ventaItemList;
+                          let i = index
+                        "
+                        fxLayout="column"
+                        fxFlex
+                        style="width: 100%; padding-bottom: 5px; padding-top: 5px"
+                      >
+                        <div fxFlex fxLayout="row">
+                          <div fxFlex="5%"></div>
+                          <div fxFlex="35%">
+                            {{ ventaItem?.producto?.descripcion | uppercase }}
+                          </div>
+                          <div fxFlex="10%">
+                            {{
+                              ventaItem?.precioVenta?.tipoPrecio?.descripcion
+                            }}({{ ventaItem?.presentacion?.cantidad }})
+                          </div>
+                          <div fxFlex="10%">
+                            {{ ventaItem?.cantidad | number : "1.0-2" }}
+                          </div>
+                          <div fxFlex="20%">
+                            {{ ventaItem?.precio | number : "1.0-0" }}
+                          </div>
+                          <div fxFlex="20%">
+                            {{
+                              ventaItem?.cantidad * ventaItem?.precio
+                                | number : "1.0-0"
+                            }}
+                          </div>
+                        </div>
+                        <div fxFlex="10">
+                          <mat-divider></mat-divider>
+                        </div>
+                      </div>
+                      <div
+                        *ngIf="venta?.delivery != null"
+                        fxLayout="column"
+                        fxFlex
+                        style="width: 100%; padding-bottom: 5px; padding-top: 5px"
+                      >
+                        <div fxFlex fxLayout="row">
+                          <div fxFlex="5%"></div>
+                          <div fxFlex="35%">Delivery</div>
+                          <div fxFlex="10%"></div>
+                          <div fxFlex="10%">1</div>
+                          <div fxFlex="20%"></div>
+                          <div fxFlex="20%">
+                            {{
+                              venta?.delivery?.precio?.valor | number : "1.0-0"
+                            }}
+                          </div>
+                        </div>
+                        <div fxFlex="10">
+                          <mat-divider></mat-divider>
+                        </div>
+                      </div>
+                      <div fxFlex fxLayout="row">
+                        <div fxFlex="70%"></div>
+                        <div fxFlex="10%">Total:</div>
+                        <div fxFlex="20%">
+                          {{
+                            venta?.totalGs + venta?.delivery?.precio?.valor
+                              | number : "1.0-0"
+                          }}
+                        </div>
+                      </div>
+                      <br />
+                      <br />
+                      <div
+                        fxFlex="5%"
+                        style="
+                          width: 100%;
+                          text-align: center;
+                          background-color: rgb(52, 52, 52);
+                        "
+                      >
+                        Movimientos
+                      </div>
+                      <div
+                        fxFlex="5"
+                        fxLayout="row"
+                        style="width: 100%; background-color: rgb(52, 52, 52)"
+                      >
+                        <div fxFlex="5%"></div>
+                        <div fxFlex="25%">Operación</div>
+                        <div fxFlex="20%">Forma de Pago</div>
+                        <div fxFlex="10%">Moneda</div>
+                        <div fxFlex="20%">Valor en moneda</div>
+                        <div fxFlex="20%">Valor en Gs</div>
+                      </div>
+                      <div fxFlex="5%">
+                        <mat-divider style="height: 100%"></mat-divider>
+                      </div>
+                      <div
+                        *ngFor="
+                          let cobroDetalle of venta?.cobro?.cobroDetalleList
+                        "
+                        fxLayout="column"
+                        fxFlex
+                        style="width: 100%; padding-bottom: 5px; padding-top: 5px"
+                      >
+                        <div
+                          fxFlex
+                          fxLayout="row"
+                        >
+                          <div fxFlex="5%"></div>
+                          <div fxFlex="25%">
+                            {{
+                              cobroDetalle?.pago
+                                ? "PAGO"
+                                : cobroDetalle?.descuento
+                                ? "DESCUENTO"
+                                : cobroDetalle?.aumento
+                                ? "AUMENTO"
+                                : cobroDetalle?.vuelto
+                                ? "VUELTO"
+                                : "PROBLEMA"
+                            }}
+                          </div>
+                          <div fxFlex="20%">
+                            {{ cobroDetalle?.formaPago?.descripcion | uppercase }}
+                          </div>
+                          <div fxFlex="10%">
+                            {{ cobroDetalle?.moneda?.denominacion | uppercase }}
+                          </div>
+                          <div fxFlex="20%">
+                            {{ cobroDetalle?.valor | number : "1.0-2" }}
+                          </div>
+                          <div fxFlex="20%">
+                            {{
+                              cobroDetalle?.valor * cobroDetalle?.cambio
+                                | number : "1.0-2"
+                            }}
+                          </div>
+                        </div>
+                        <div fxFlex="10">
+                          <mat-divider></mat-divider>
+                        </div>
+                      </div>
+                      <br />
+                      <div fxFlex fxLayout="row">
+                        <div fxFlex="15%">Total recibido Gs:</div>
+                        <div fxFlex="15%">
+                          {{ totalRecibidoGs | number : "1.0-0" }}
+                        </div>
+                        <div fxFlex="40%"></div>
+                        <div fxFlex="15%">Total recibido:</div>
+                        <div fxFlex="15%">
+                          {{ totalRecibido | number : "1.0-0" }}
+                        </div>
+                      </div>
+                      <div fxFlex fxLayout="row">
+                        <div fxFlex="15%">Total recibido Rs:</div>
+                        <div fxFlex="15%">
+                          {{ totalRecibidoRs | number : "1.2-2" }}
+                        </div>
+                        <div fxFlex="40%"></div>
+                        <div fxFlex="15%">Total descuento:</div>
+                        <div fxFlex="15%">
+                          {{ totalDescuento | number : "1.0-0" }}
+                        </div>
+                      </div>
+                      <div fxFlex fxLayout="row">
+                        <div fxFlex="15%">Total recibido Ds:</div>
+                        <div fxFlex="15%">
+                          {{ totalRecibidoDs | number : "1.2-2" }}
+                        </div>
+                        <div fxFlex="40%"></div>
+                        <div fxFlex="15%">Total aumento:</div>
+                        <div fxFlex="15%">
+                          {{ totalAumento | number : "1.0-0" }}
+                        </div>
+                      </div>
+                      <div fxFlex="1">
+                        <mat-divider></mat-divider>
+                      </div>
+                      <div fxFlex fxLayout="row" style="padding-top: 5px">
+                        <ng-container *ngIf="venta?.delivery?.fechaConcluido; else noDelivery">
+                          <div fxFlex="15%">Delivery concluido:</div>
+                          <div fxFlex="15%">
+                            {{
+                              venta?.delivery?.fechaConcluido
+                                | date : "dd/MM/yyyy HH:mm"
+                            }}
+                          </div>
+                        </ng-container>
+                        <ng-template #noDelivery>
+                          <div fxFlex="30%"></div>
+                        </ng-template>
+
+                        <div fxFlex="40%"></div>
+
+                        <div fxFlex="15%">Total final:</div>
+                        <div fxFlex="15%">
+                          {{ totalFinal | number : "1.0-0" }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="ventaDisplayedColumns; sticky: true"></tr>
+          <tr 
+            mat-row 
+            *matRowDef="
+              let element; 
+              columns: ventaDisplayedColumns; 
+              let i = dataIndex
+            "
+            [ngClass]="{'con-observacion': element.hasObservation}"
+            class="example-element-row"
+            [class.example-expanded-row]="expandedVenta === element"
+            (click)="
+              expandedVenta = expandedVenta === element ? null : element; 
+              onClickRow(element, i)"
+          ></tr>
+           <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+        </table>
+      </div>
       <mat-paginator
         [pageSizeOptions]="[15, 25, 50, 100]"
         (page)="handlePageEvent($event)"
         [length]="selectedPageInfo?.getTotalElements"
-        style="width: 100%"
+        style="width: 100%; position: sticky; bottom: 0; z-index: 10;"
         showFirstLastButtons
       >
       </mat-paginator>

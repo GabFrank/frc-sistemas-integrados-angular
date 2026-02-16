@@ -287,6 +287,9 @@ export const ventasPorCajaIdQuery = gql`
         totalGs
         totalRs
         totalDs
+        ventaObservacionList {
+          id
+        }
         delivery {
           id
           precio {
@@ -368,6 +371,7 @@ export const ventasGenericFilterQuery = gql`
     $monedaId: Int
     $conDescuento: Boolean
     $conAumento: Boolean
+    $conObservacion: Boolean
     $clienteId: ID
     $fechaInicio: String
     $fechaFin: String
@@ -385,6 +389,7 @@ export const ventasGenericFilterQuery = gql`
       monedaId: $monedaId
       conDescuento: $conDescuento
       conAumento: $conAumento
+      conObservacion: $conObservacion
       clienteId: $clienteId
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
@@ -399,6 +404,10 @@ export const ventasGenericFilterQuery = gql`
       getContent {
         id
         sucursalId
+        sucursal {
+          id
+          nombre
+        }
         cliente {
           id
           persona {
@@ -414,6 +423,9 @@ export const ventasGenericFilterQuery = gql`
         totalGs
         totalRs
         totalDs
+        ventaObservacionList {
+          id
+        }
         delivery {
           id
           precio {

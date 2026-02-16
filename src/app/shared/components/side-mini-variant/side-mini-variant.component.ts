@@ -153,8 +153,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               action: 'list-caja',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
-            { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' },
-            { name: 'Ventas', icon: 'sell', action: 'generic-list-venta' }
+            { name: 'Ventas', icon: 'local_mall', action: 'generic-list-venta' },
+            { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
         },
         {

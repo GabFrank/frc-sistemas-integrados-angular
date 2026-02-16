@@ -238,6 +238,7 @@ export class VentaService {
     monedaId?,
     conDescuento?,
     conAumento?,
+    conObservacion?,
     clienteId?,
     fechaInicio?,
     fechaFin?,
@@ -256,6 +257,7 @@ export class VentaService {
       monedaId,
       conDescuento,
       conAumento,
+      conObservacion,
       clienteId,
       fechaInicio,
       fechaFin
