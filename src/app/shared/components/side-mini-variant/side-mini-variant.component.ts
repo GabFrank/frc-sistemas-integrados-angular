@@ -461,15 +461,38 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
 
     resetItemVisibility(this.navigationItems);
   }
+
+  resetMenuExpansion(): void {
+    const resetItemExpansion = (items: NavigationItem[]) => {
+      for (const item of items) {
+        if ('isExpanded' in item) {
+          item.isExpanded = false;
+        }
+        if ('items' in item && item.items) {
+          resetItemExpansion(item.items);
+        }
+      }
+    };
+
+    resetItemExpansion(this.navigationItems);
+  }
+
   onSideNavClick(): void {
     if (!this.isExpanded) {
       this.toggleSidenav(true);
     }
   }
+
   toggleSidenav(expanded: boolean): void {
     this.isExpanded = expanded;
     this.toggleSideNav.emit(this.isExpanded);
+    
+    // Resetear el estado de expansión de todos los items cuando se cierra el menú
+    if (!expanded) {
+      this.resetMenuExpansion();
+    }
   }
+
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent): void {
     const sidenavElement = document.querySelector('.side-nav-container');
@@ -489,6 +512,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
+  
   onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
