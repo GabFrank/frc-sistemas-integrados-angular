@@ -32,7 +32,7 @@ import { PageInfo } from "../../../../app.component";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
-import { PageEvent } from "@angular/material/paginator";
+import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 
 export interface OrderList {
@@ -68,6 +68,7 @@ export class ListInventarioComponent implements OnInit {
   @ViewChild("buscarUsuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<InventarioProductoItem>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
@@ -97,6 +98,7 @@ export class ListInventarioComponent implements OnInit {
   buscarProductoControl = new FormControl();
   isPesable = false;
   selectedProducto: Producto;
+  estadoControl = new FormControl();
 
   displayedColumns = [
     "descripcion", //producto
@@ -184,7 +186,11 @@ export class ListInventarioComponent implements OnInit {
     });
   }
 
-  onFiltrar() {
+  onFiltrar(resetPage: boolean = false) {
+    if (resetPage) {
+      this.pageIndex = 0;
+      if (this.paginator) this.paginator.firstPage();
+    }
     let productoIdList: number[];
     this.productoList.forEach((p) => {
       if (productoIdList == null) productoIdList = [];
@@ -204,6 +210,7 @@ export class ListInventarioComponent implements OnInit {
     
     const sucursalIds = this.toSucursalesId(this.sucursalControl.value);
     const usuarioIds = this.selectedUsuario != null ? [this.selectedUsuario.id] : null;
+    const estado = this.estadoControl.value;
     
     this.inventarioService
       .onGetInventarioProductoItemWithFilters(
@@ -215,7 +222,8 @@ export class ListInventarioComponent implements OnInit {
         this.tipoOrdenControl.value?.value,
         sucursalIds,
         usuarioIds,
-        productoIdList
+        productoIdList,
+        estado
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<InventarioProductoItem>) => {
@@ -406,9 +414,10 @@ export class ListInventarioComponent implements OnInit {
     this.buscarUsuarioControl.setValue(null);
     this.ordenarPorControl.setValue(null);
     this.tipoOrdenControl.setValue(null);
+    this.estadoControl.setValue(null);
     }
 
-  private procesarDatosTabData() {
+  procesarDatosTabData() {
     if (this.data?.tabData?.data) {
       const datosMovimiento = this.data.tabData.data;
 
