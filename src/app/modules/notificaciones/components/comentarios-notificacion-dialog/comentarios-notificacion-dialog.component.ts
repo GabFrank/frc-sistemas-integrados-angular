@@ -661,7 +661,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   }
 
   ngOnDestroy(): void {
-    this.audioRecordingService.destruir();
+    this.audioRecordingService.cancelarGrabacion();
   }
 }
 
