@@ -989,8 +989,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               texto: "Venta guardada con éxito",
               duracion: 2,
             });
-
-            // Enviar notificación push si es venta a crédito
             if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
               const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
               const personaId = venta.cliente?.persona?.id;
@@ -1005,6 +1003,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                   next: () => console.log('Notificación enviada exitosamente'),
                   error: (err) => console.error('Error al enviar notificación:', err)
                 });
+              }
+            }
+            if (cobro?.cobroDetalleList?.length > 0) {
+              const pagoTransferencia = cobro.cobroDetalleList.find(
+                (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
+              );
+
+              if (pagoTransferencia) {
+                const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+
+                const totalTransferencia = cobro.cobroDetalleList
+                  .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
+                  .reduce((acc, curr) => acc + curr.valor, 0);
+
+                if (sucursalId && totalTransferencia > 0) {
+                  this.notificationHttpService.sendVentaTransferenciaNotification(
+                    res.id,
+                    sucursalId,
+                    totalTransferencia
+                  ).subscribe({
+                    next: () => console.log('Notificación de Transferencia enviada exitosamente'),
+                    error: (err) => console.error('Error al enviar notificación de transferencia:', err)
+                  });
+                }
               }
             }
 

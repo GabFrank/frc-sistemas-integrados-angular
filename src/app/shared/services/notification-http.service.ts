@@ -53,4 +53,13 @@ export class NotificationHttpService {
         const url = `${this.baseUrl}/notification/retiro/${retiroId}/${sucursalId}/${personaId}/${valorTotal}`;
         return this.http.post(url, {});
     }
+
+    sendVentaTransferenciaNotification(
+        ventaId: number,
+        sucursalId: number,
+        valorTotal: number
+    ): Observable<any> {
+        const url = `${this.baseUrl}/notification/venta-transferencia/${ventaId}/${sucursalId}/${valorTotal}`;
+        return this.http.post(url, {});
+    }
 }
