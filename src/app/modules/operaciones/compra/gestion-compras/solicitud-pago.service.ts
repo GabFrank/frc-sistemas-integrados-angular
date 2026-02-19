@@ -5,11 +5,19 @@ import { SolicitudPago, SolicitudPagoInput, SolicitudPagoEstado } from './solici
 import { NotaRecepcion } from './nota-recepcion.model';
 import { GetSolicitudesPorPedidoGQL } from './graphql/getSolicitudesPorPedido';
 import { GetSolicitudPagoGQL } from './graphql/getSolicitudPago';
+import { GetSolicitudesPagoPaginatedGQL } from './graphql/getSolicitudesPagoPaginated';
 import { GetNotasDisponiblesParaPagoGQL } from './graphql/getNotasDisponiblesParaPago';
+import { GetNotaRecepcionDisponibleParaPagoPorNumeroGQL } from './graphql/getNotaRecepcionDisponibleParaPagoPorNumero';
+import { GetNotasDisponiblesParaPagoPorProveedorGQL } from './graphql/getNotasDisponiblesParaPagoPorProveedor';
+import {
+  GetNotasDisponiblesParaPagoPorProveedorPaginatedGQL
+} from './graphql/getNotasDisponiblesParaPagoPorProveedorPaginated';
+import { NotaRecepcionPageResult } from './graphql/getNotasDisponiblesParaPagoPorProveedorPaginated';
 import { SaveSolicitudPagoGQL } from './graphql/saveSolicitudPago';
 import { DeleteSolicitudPagoGQL } from './graphql/deleteSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
+import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
@@ -21,7 +29,11 @@ export class SolicitudPagoService {
   constructor(
     private getSolicitudesPorPedidoGQL: GetSolicitudesPorPedidoGQL,
     private getSolicitudPagoGQL: GetSolicitudPagoGQL,
+    private getSolicitudesPagoPaginatedGQL: GetSolicitudesPagoPaginatedGQL,
     private getNotasDisponiblesParaPagoGQL: GetNotasDisponiblesParaPagoGQL,
+    private getNotaRecepcionDisponibleParaPagoPorNumeroGQL: GetNotaRecepcionDisponibleParaPagoPorNumeroGQL,
+    private getNotasDisponiblesParaPagoPorProveedorGQL: GetNotasDisponiblesParaPagoPorProveedorGQL,
+    private getNotasDisponiblesParaPagoPorProveedorPaginatedGQL: GetNotasDisponiblesParaPagoPorProveedorPaginatedGQL,
     private saveSolicitudPagoGQL: SaveSolicitudPagoGQL,
     private deleteSolicitudPagoGQL: DeleteSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
@@ -68,6 +80,44 @@ export class SolicitudPagoService {
   }
 
   /**
+   * Obtiene solicitudes de pago paginadas (módulo independiente)
+   */
+  onGetSolicitudesPagoPaginated(
+    page: number,
+    size: number,
+    proveedorId?: number,
+    estado?: string
+  ): Observable<SolicitudPagoPageResult> {
+    return this.genericCrudService.onCustomQuery(
+      this.getSolicitudesPagoPaginatedGQL,
+      { page, size, proveedorId, estado },
+      true,
+      null,
+      true
+    ).pipe(
+      map((pageResult: SolicitudPagoPageResult) => {
+        if (pageResult?.getContent?.length) {
+          pageResult.getContent = this.processComputedProperties(pageResult.getContent as SolicitudPago[]);
+        }
+        return pageResult;
+      })
+    );
+  }
+
+  /**
+   * Obtiene una nota de recepción disponible para pago por número y proveedor (independiente de pedido)
+   */
+  onGetNotaRecepcionDisponibleParaPagoPorNumero(numero: number, proveedorId: number): Observable<NotaRecepcion> {
+    return this.genericCrudService.onCustomQuery(
+      this.getNotaRecepcionDisponibleParaPagoPorNumeroGQL,
+      { numero, proveedorId },
+      true,
+      null,
+      true
+    );
+  }
+
+  /**
    * Obtiene las notas de recepción disponibles para crear solicitudes de pago
    * @param pedidoId ID del pedido
    * @returns Observable con lista de notas disponibles
@@ -78,6 +128,37 @@ export class SolicitudPagoService {
       { pedidoId }, 
       true, 
       null, 
+      true
+    );
+  }
+
+  /**
+   * Obtiene las notas de recepción disponibles para pago por proveedor (módulo solicitud de pago, diálogo Adicionar nota).
+   */
+  onGetNotasDisponiblesParaPagoPorProveedor(proveedorId: number): Observable<NotaRecepcion[]> {
+    return this.genericCrudService.onCustomQuery(
+      this.getNotasDisponiblesParaPagoPorProveedorGQL,
+      { proveedorId },
+      true,
+      null,
+      true
+    );
+  }
+
+  /**
+   * Notas disponibles para pago por proveedor, paginado y filtrable por número (backend).
+   */
+  onGetNotasDisponiblesParaPagoPorProveedorPaginated(
+    proveedorId: number,
+    page: number,
+    size: number,
+    filtroTexto?: string
+  ): Observable<NotaRecepcionPageResult> {
+    return this.genericCrudService.onCustomQuery(
+      this.getNotasDisponiblesParaPagoPorProveedorPaginatedGQL,
+      { proveedorId, page, size, filtroTexto: filtroTexto?.trim() || null },
+      true,
+      null,
       true
     );
   }

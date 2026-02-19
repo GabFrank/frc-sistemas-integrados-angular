@@ -1,0 +1,144 @@
+<app-generic-list
+  [titulo]="titulo"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
+  [isAdicionar]="mainService?.usuarioActual?.roles?.includes('ADMIN') || true"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="25">
+        <mat-label>Proveedor</mat-label>
+        <input
+          matInput
+          [formControl]="proveedorControl"
+          placeholder="Buscar proveedor..."
+          [readonly]="selectedProveedor != null"
+          (click)="!selectedProveedor && onSearchProveedor()"
+          (keydown)="onProveedorKeyDown($event)"
+        />
+        <mat-icon
+          *ngIf="!selectedProveedor"
+          matSuffix
+          (click)="onSearchProveedor()"
+          style="cursor: pointer"
+        >
+          search
+        </mat-icon>
+        <button
+          *ngIf="selectedProveedor"
+          type="button"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="onClearProveedor(); $event.stopPropagation()"
+        >
+          <mat-icon style="cursor: pointer">clear</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">
+            {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="numeroSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Número
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.numeroSolicitud }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="proveedor">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 25%">
+          Proveedor
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 25%">
+          {{ row.proveedor?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Fecha
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.fechaSolicitudFormattedComputed }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoTotal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Monto
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.montoTotal | number:'1.0-0' }} {{ row.moneda?.denominacion }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.estadoDisplayNameComputed }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
+          ...
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 10%">
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onImprimir(row)">
+              <mat-icon>print</mat-icon>
+              Imprimir PDF
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+      ></tr>
+    </table>
+    <mat-paginator
+      itemsPerPageLabel="Items por página"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="length"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>

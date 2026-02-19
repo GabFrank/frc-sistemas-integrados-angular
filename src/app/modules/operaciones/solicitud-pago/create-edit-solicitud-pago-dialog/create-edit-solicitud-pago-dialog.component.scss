@@ -1,0 +1,148 @@
+.dialog-container {
+  min-width: 100%;
+  width: 100%;
+  min-height: 420px;
+  box-sizing: border-box;
+
+  h2[mat-dialog-title] {
+    margin: 0;
+    padding: 0 0 1rem;
+  }
+
+  mat-dialog-content {
+    padding: 1rem 1rem 1rem;
+    min-height: 320px;
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .proveedor-field {
+      min-width: 280px;
+      overflow: visible;
+    }
+
+    .observaciones-field {
+      flex: 1 1 100%;
+    }
+  }
+
+  .section-notas {
+    margin-top: 1.5rem;
+    min-height: 350px;
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+
+      .section-title {
+        margin: 0;
+        // font-size: 1.25rem;
+      }
+    }
+
+    .notas-table-wrapper {
+      &.notas-table-scroll .notas-table-scroll-inner {
+        min-height: 120px;
+        max-height: 280px;
+        overflow-y: auto;
+        overflow-x: auto;
+      }
+
+      .notas-table {
+        width: 100%;
+
+        .mat-column-proveedor {
+          flex: 0 0 50%;
+          min-width: 50%;
+        }
+
+        .mat-column-numero {
+          flex: 0 0 15%;
+          min-width: 15%;
+        }
+
+        .mat-column-fecha {
+          flex: 0 0 15%;
+          min-width: 15%;
+        }
+
+        .mat-column-valorTotal {
+          flex: 0 0 15%;
+          min-width: 15%;
+        }
+
+        .mat-column-quitar {
+          flex: 0 0 5%;
+          min-width: 5%;
+        }
+
+        mat-header-cell,
+        mat-cell {
+          padding: 0.75rem 1rem;
+          // font-size: 0.95rem;
+        }
+
+        mat-header-cell {
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        mat-cell {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        mat-footer-row {
+          mat-footer-cell {
+            padding: 1rem 1rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: rgba(255, 152, 0, 0.15);
+            border-top: 2px solid rgba(255, 152, 0, 0.5);
+            color: rgba(255, 255, 255, 0.95);
+
+            .footer-content {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              width: 100%;
+            }
+
+            .footer-monto-text {
+              color: rgba(255, 193, 7, 0.95);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .titulo-center {
+    text-align: center;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .table-center mat-cell,
+  .table-center mat-header-cell {
+    text-align: center;
+  }
+}

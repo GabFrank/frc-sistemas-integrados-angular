@@ -28,6 +28,7 @@ import { CambioComponent } from './../../../modules/financiero/cambio/cambio.com
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
@@ -105,14 +106,15 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'business_center',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK],
+      visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.ADMIN, ROLES.SOPORTE],
       items: [
         {
           name: 'Compras',
           icon: 'add_shopping_cart',
           isExpanded: false,
           items: [
-            { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' }
+            { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
+            { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
           ]
         },
         {
@@ -558,6 +560,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "compras-dashboard":
         this.tabService.addTab(new Tab(CompraDashboardComponent, "Compras", null, null));
+        break;
+      case "list-solicitud-pago":
+        this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

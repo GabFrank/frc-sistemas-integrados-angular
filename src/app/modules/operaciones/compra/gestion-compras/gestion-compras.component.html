@@ -261,11 +261,18 @@
                           : "Ninguna seleccionada"
                       }}
                     </mat-select-trigger>
+                    <mat-option>
+                      <ngx-mat-select-search
+                        [formControl]="sucursalEntregaSearchControl"
+                        placeholderLabel="Buscar sucursal..."
+                        noEntriesFoundLabel="Sucursal no encontrada"
+                      ></ngx-mat-select-search>
+                    </mat-option>
                     <mat-option [value]="sucursalTodos">
                       Todos
                     </mat-option>
                     <mat-option
-                      *ngFor="let sucursal of sucursalesEntregaFiltradas"
+                      *ngFor="let sucursal of sucursalesEntregaParaSelect"
                       [value]="sucursal"
                     >
                       {{ sucursal.nombre | titlecase }}
@@ -311,11 +318,18 @@
                           : "Ninguna seleccionada"
                       }}
                     </mat-select-trigger>
+                    <mat-option>
+                      <ngx-mat-select-search
+                        [formControl]="sucursalInfluenciaSearchControl"
+                        placeholderLabel="Buscar sucursal..."
+                        noEntriesFoundLabel="Sucursal no encontrada"
+                      ></ngx-mat-select-search>
+                    </mat-option>
                     <mat-option [value]="sucursalTodos">
                       Todos
                     </mat-option>
                     <mat-option
-                      *ngFor="let sucursal of sucursalesInfluenciaFiltradas"
+                      *ngFor="let sucursal of sucursalesInfluenciaParaSelect"
                       [value]="sucursal"
                     >
                       {{ sucursal.nombre | titlecase }}

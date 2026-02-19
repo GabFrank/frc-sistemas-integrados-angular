@@ -58,6 +58,9 @@ import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion
 import { VerificacionRapidaSucursalesDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 import { SolicitudPagoCompraComponent } from './compra/gestion-compras/solicitud-pago-compra/solicitud-pago-compra.component';
 import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-compras/solicitud-pago-compra/create-edit-solicitud-pago-compra-dialog/create-edit-solicitud-pago-compra-dialog.component';
+import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
+import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
 
 @NgModule({
   declarations: [
@@ -109,6 +112,9 @@ import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-c
     VerificacionRapidaSucursalesDialogComponent,
     SolicitudPagoCompraComponent,
     CreateEditSolicitudPagoCompraDialogComponent,
+    ListSolicitudPagoComponent,
+    CreateEditSolicitudPagoDialogComponent,
+    AdicionarNotaDialogComponent,
   ],
   imports: [
     CommonModule,

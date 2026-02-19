@@ -1,3 +1,8 @@
+/**
+ * LEGACY: Este componente ya no está en uso.
+ * El menú lateral activo es side-mini-variant (app-side-mini-variant).
+ * Se mantiene por compatibilidad o referencia.
+ */
 import { Component, OnInit } from "@angular/core";
 import { MatDialog } from '@angular/material/dialog';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
@@ -28,6 +33,7 @@ import { CambioComponent } from './../../../modules/financiero/cambio/cambio.com
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { SolicitudPagoDashboardComponent } from "../../../modules/operaciones/solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
@@ -40,6 +46,7 @@ import { ListReplicationComponent } from '../../../modules/configuracion/logical
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
 
+/** @deprecated LEGACY - En uso: app-side-mini-variant */
 @Component({
   selector: "app-side",
   templateUrl: "./side.component.html",
@@ -121,7 +128,9 @@ export class SideComponent implements OnInit {
 
     this.isOperacionesSectionVisible = this.hasAnyRole([
       ROLES.VER_TRANSFERENCIA,
-      ROLES.CREAR_TRANSFERENCIA
+      ROLES.CREAR_TRANSFERENCIA,
+      ROLES.ADMIN,
+      ROLES.SOPORTE
     ]);
 
     this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
@@ -410,6 +419,11 @@ export class SideComponent implements OnInit {
       case "compras-dashboard":
         this.tabService.addTab(
           new Tab(CompraDashboardComponent, "Compras", null, null)
+        );
+        break;
+      case "solicitud-pago-dashboard":
+        this.tabService.addTab(
+          new Tab(SolicitudPagoDashboardComponent, "Solicitud de pago", null, null)
         );
         break;
       case "list-retiros":

@@ -1,0 +1,109 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title class="titulo-center font-medium">Nueva solicitud de pago</h2>
+
+  <mat-dialog-content>
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="proveedor-field">
+        <mat-label>Proveedor</mat-label>
+        <input
+          #proveedorInput
+          matInput
+          [value]="proveedorNombreDisplay"
+          readonly
+          (click)="$event.preventDefault(); $event.stopPropagation()"
+          (keydown.enter)="$event.preventDefault(); onBuscarProveedor()"
+        />
+        <button matSuffix mat-icon-button (click)="onBuscarProveedor()" type="button" title="Buscar proveedor" tabindex="-1">
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+
+    <form [formGroup]="form">
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Moneda *</mat-label>
+          <mat-select formControlName="monedaId">
+            <mat-option *ngFor="let m of monedaList" [value]="m.id">{{ m.denominacion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Forma de pago *</mat-label>
+          <mat-select formControlName="formaPagoId">
+            <mat-option *ngFor="let f of formaPagoList" [value]="f.id">{{ f.descripcion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha pago propuesta</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="fechaPagoPropuesta" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="observaciones-field">
+          <mat-label>Observaciones</mat-label>
+          <input matInput formControlName="observaciones" />
+        </mat-form-field>
+      </div>
+    </form>
+
+    <div class="section-notas">
+      <div class="section-title-row">
+        <h4 class="titulo-center font-medium section-title">Notas de recepción</h4>
+        <button mat-raised-button color="primary" type="button" (click)="onAgregarNota()" [disabled]="!selectedProveedor?.id">
+          <mat-icon>add</mat-icon>
+          Adicionar nota
+        </button>
+      </div>
+      <div class="notas-table-wrapper notas-table-scroll" *ngIf="notasAgregadas?.length > 0">
+        <div class="notas-table-scroll-inner">
+          <mat-table [dataSource]="notasAgregadas" class="notas-table table-center mat-elevation-z1">
+            <ng-container matColumnDef="proveedor">
+              <mat-header-cell *matHeaderCellDef>Proveedor</mat-header-cell>
+              <mat-cell *matCellDef="let nota">{{ nota.proveedorNombreDisplay }}</mat-cell>
+            </ng-container>
+            <ng-container matColumnDef="numero">
+              <mat-header-cell *matHeaderCellDef>Número</mat-header-cell>
+              <mat-cell *matCellDef="let nota">{{ nota.numero }}</mat-cell>
+            </ng-container>
+            <ng-container matColumnDef="fecha">
+              <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+              <mat-cell *matCellDef="let nota">{{ nota.fecha | date:'dd/MM/yyyy' }}</mat-cell>
+            </ng-container>
+            <ng-container matColumnDef="valorTotal">
+              <mat-header-cell *matHeaderCellDef>Valor total</mat-header-cell>
+              <mat-cell *matCellDef="let nota">{{ nota.valorTotal | number:'1.0-0' }}</mat-cell>
+            </ng-container>
+            <ng-container matColumnDef="quitar">
+              <mat-header-cell *matHeaderCellDef></mat-header-cell>
+              <mat-cell *matCellDef="let nota; let i = index">
+                <button mat-icon-button (click)="onQuitarNota(i)" type="button">
+                  <mat-icon color="warn">delete</mat-icon>
+                </button>
+              </mat-cell>
+            </ng-container>
+            <ng-container matColumnDef="footer">
+              <mat-footer-cell *matFooterCellDef [attr.colspan]="displayedColumnsNotas.length">
+                <div class="footer-content">
+                  <span class="footer-total-text">Total: {{ notasAgregadas.length }} nota(s)</span>
+                  <span class="footer-monto-text">Monto: {{ montoTotalComputed | number:'1.0-0' }}</span>
+                </div>
+              </mat-footer-cell>
+            </ng-container>
+            <mat-header-row *matHeaderRowDef="displayedColumnsNotas"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: displayedColumnsNotas"></mat-row>
+            <mat-footer-row *matFooterRowDef="['footer']"></mat-footer-row>
+          </mat-table>
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="saving || !selectedProveedor || notasAgregadas?.length < 1">
+      {{ saving ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,24 @@
+.titulo-center {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.font-medium {
+  font-weight: 500;
+}
+.filter-field {
+  margin-right: 1rem;
+  min-width: 200px;
+}
+.ml-2 {
+  margin-left: 0.5rem;
+}
+.table-center mat-cell,
+.table-center mat-header-cell {
+  text-align: center;
+}
+.paginator-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}

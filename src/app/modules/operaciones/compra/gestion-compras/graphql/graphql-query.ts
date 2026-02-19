@@ -1737,3 +1737,85 @@ export const imprimirSolicitudPagoPDFMutation = gql`
     data: imprimirSolicitudPagoPDF(solicitudPagoId: $solicitudPagoId)
   }
 `;
+
+export const solicitudesPagoPaginatedQuery = gql`
+  query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado) {
+    data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        numeroSolicitud
+        fechaSolicitud
+        fechaPagoPropuesta
+        montoTotal
+        estado
+        observaciones
+        creadoEn
+        proveedor { id persona { nombre documento } }
+        moneda { id denominacion simbolo }
+        formaPago { id descripcion }
+        usuario { id persona { nombre } }
+        notasRecepcion { id notaRecepcion { id numero valorTotal } }
+      }
+    }
+  }
+`;
+
+export const notaRecepcionDisponibleParaPagoPorNumeroQuery = gql`
+  query ($numero: Int!, $proveedorId: ID!) {
+    data: notaRecepcionDisponibleParaPagoPorNumero(numero: $numero, proveedorId: $proveedorId) {
+      id
+      numero
+      fecha
+      estado
+      valorTotal
+      pedido { id proveedor { id persona { nombre } } }
+    }
+  }
+`;
+
+export const notasDisponiblesParaPagoPorProveedorQuery = gql`
+  query ($proveedorId: ID!) {
+    data: notasDisponiblesParaPagoPorProveedor(proveedorId: $proveedorId) {
+      id
+      numero
+      fecha
+      estado
+      valorTotal
+      pedido { id proveedor { id persona { nombre } } }
+    }
+  }
+`;
+
+export const notasDisponiblesParaPagoPorProveedorPaginatedQuery = gql`
+  query ($proveedorId: ID!, $page: Int, $size: Int, $filtroTexto: String) {
+    data: notasDisponiblesParaPagoPorProveedorPaginated(
+      proveedorId: $proveedorId
+      page: $page
+      size: $size
+      filtroTexto: $filtroTexto
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        numero
+        fecha
+        estado
+        valorTotal
+        pedido { id proveedor { id persona { nombre } } }
+      }
+    }
+  }
+`;

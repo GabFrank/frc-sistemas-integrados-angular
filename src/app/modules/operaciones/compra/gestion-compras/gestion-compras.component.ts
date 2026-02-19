@@ -72,6 +72,8 @@ import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
 import { PedidoService } from "../pedido.service";
 import { MatSelect } from "@angular/material/select";
+import { FormControl } from "@angular/forms";
+import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
@@ -350,7 +352,11 @@ export class GestionComprasComponent
   sucursales: Sucursal[] = [];
   sucursalesEntregaFiltradas: Sucursal[] = []; // Sucursales de entrega: deposito=true y activo=true
   sucursalesInfluenciaFiltradas: Sucursal[] = []; // Sucursales de influencia: activo=true y id != 0
+  sucursalesEntregaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
+  sucursalesInfluenciaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
   sucursalTodos: Sucursal; // Objeto especial "Todos" con id -1
+  sucursalEntregaSearchControl = new FormControl("");
+  sucursalInfluenciaSearchControl = new FormControl("");
 
   // Navigation properties
   selectedProveedorComputed: Proveedor | null = null;
@@ -483,6 +489,14 @@ export class GestionComprasComponent
         this.updateComputedProperties();
       });
 
+    // Suscripción a búsqueda de sucursales para filtrar opciones del dropdown
+    this.sucursalEntregaSearchControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateSucursalesParaSelect());
+    this.sucursalInfluenciaSearchControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateSucursalesParaSelect());
+
     this.datosGeneralesForm
       .get("proveedor")
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -527,6 +541,8 @@ export class GestionComprasComponent
         
         // Filtrar sucursales de influencia: deposito=true, activo=true y excluir servidor (id 0)
         this.sucursalesInfluenciaFiltradas = sucursales.filter(s => s.deposito === true && s.activo === true && s.id !== 0);
+
+        this.updateSucursalesParaSelect();
 
         // Initialize with default values if available
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
@@ -1683,6 +1699,33 @@ export class GestionComprasComponent
     // Tab navega naturalmente al siguiente campo (Sucursal de entrega)
   }
 
+  /**
+   * Actualiza las listas de sucursales mostradas en los dropdowns según el texto de búsqueda.
+   * Permite al usuario encontrar sucursales más rápido al escribir en el campo de búsqueda.
+   */
+  private updateSucursalesParaSelect(): void {
+    const searchEntrega = (this.sucursalEntregaSearchControl.value || "").trim().toUpperCase();
+    const searchInfluencia = (this.sucursalInfluenciaSearchControl.value || "").trim().toUpperCase();
+
+    if (!searchEntrega) {
+      this.sucursalesEntregaParaSelect = [...this.sucursalesEntregaFiltradas];
+    } else {
+      this.sucursalesEntregaParaSelect = this.sucursalesEntregaFiltradas.filter((s) =>
+        comparatorLike(searchEntrega, (s.nombre || "").toUpperCase()) ||
+        (s.id != null && s.id.toString().includes(searchEntrega))
+      );
+    }
+
+    if (!searchInfluencia) {
+      this.sucursalesInfluenciaParaSelect = [...this.sucursalesInfluenciaFiltradas];
+    } else {
+      this.sucursalesInfluenciaParaSelect = this.sucursalesInfluenciaFiltradas.filter((s) =>
+        comparatorLike(searchInfluencia, (s.nombre || "").toUpperCase()) ||
+        (s.id != null && s.id.toString().includes(searchInfluencia))
+      );
+    }
+  }
+
   onSucursalEntregaSelectionChange(event: any): void {
     const currentValue = this.datosGeneralesForm.get("sucursalesEntrega")?.value || [];
     const hasTodos = currentValue.some((s: Sucursal) => s?.id === -1);
@@ -1726,14 +1769,16 @@ export class GestionComprasComponent
   }
 
   onSucursalEntregaClosed(): void {
-    // Navegar al siguiente campo después de que se cierre el dropdown
+    this.sucursalEntregaSearchControl.setValue("", { emitEvent: false });
+    this.updateSucursalesParaSelect();
     setTimeout(() => {
       this.focusSucursalInfluencia();
     }, 100);
   }
 
   onSucursalInfluenciaClosed(): void {
-    // Navegar al siguiente campo después de que se cierre el dropdown
+    this.sucursalInfluenciaSearchControl.setValue("", { emitEvent: false });
+    this.updateSucursalesParaSelect();
     setTimeout(() => {
       this.focusMoneda();
     }, 100);
