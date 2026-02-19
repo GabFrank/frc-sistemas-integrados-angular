@@ -5,6 +5,13 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef
 } from '@angular/core';
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate,
+} from '@angular/animations';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -28,7 +35,17 @@ import { PersonaService } from '../../../../personas/persona/persona.service';
   selector: 'list-marcacion',
   templateUrl: './list-marcacion.component.html',
   styleUrls: ['./list-marcacion.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
+      transition(
+        'expanded <=> collapsed',
+        animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)')
+      ),
+    ]),
+  ]
 })
 export class ListMarcacionComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -46,6 +63,13 @@ export class ListMarcacionComponent implements OnInit {
 
   usuarioSeleccionado: Usuario = null;
   hoy = new Date();
+  mesResumen: string;
+  diasTrabajados: number;
+  horasTrabajadas: string;
+  horasExtras: string;
+  horasAtraso: string;
+
+  expandedMarcacion: Marcacion | null;
 
   displayedColumns = [
     'id',
@@ -53,7 +77,9 @@ export class ListMarcacionComponent implements OnInit {
     'sucursalEntrada',
     'fechaEntrada',
     'sucursalSalida',
-    'fechaSalida'
+    'fechaSalida',
+    'llegadaTardia',
+    'horaExtra'
   ];
 
   constructor(
@@ -237,6 +263,10 @@ export class ListMarcacionComponent implements OnInit {
     this.usuarioNombreControl.setValue(null);
     this.usuarioIdControl.setValue(null);
     this.filtrar();
+  }
+
+  onAdicionarHorario(): void {
+
   }
 
   onGenerarPdf(): void {

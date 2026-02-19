@@ -1,33 +1,69 @@
 <app-generic-list titulo="Marcaciones" (filtrar)="filtrar()" (resetFiltro)="resetearFiltro()" [isAdicionar]="false"
-    [isCustom]="true" customName="Generar PDF" (customFunction)="onGenerarPdf()">
-    <div filtros fxLayout="column" style="width: 100%; height: 100%">
-        <div fxLayout="row wrap" fxLayoutGap="10px">
+    [isCustom]="true" customName="Adicionar Horario" (customFunction)="onAdicionarHorario()" [isCustom2]="true"
+    customName2="Generar PDF" (customFunction2)="onGenerarPdf()">
+    <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%; height: 100%">
+        <div fxFlex="60" fxLayout="column" style="width: 100%">
+            <div fxLayout="row wrap" fxLayoutGap="10px">
 
-            <mat-form-field fxFlex="10">
-                <mat-label>Id Usuario</mat-label>
-                <input type="number" matInput [formControl]="usuarioIdControl" (keyup.enter)="buscarUsuario()"
-                    style="text-align: end" placeholder="Enter..." />
-                <button mat-icon-button matSuffix (click)="buscarUsuario()" type="button" matTooltip="Buscar">
-                    <mat-icon>search</mat-icon>
-                </button>
-            </mat-form-field>
+                <mat-form-field fxFlex="15">
+                    <mat-label>Id Usuario</mat-label>
+                    <input type="number" matInput [formControl]="usuarioIdControl" (keyup.enter)="buscarUsuario()"
+                        style="text-align: end" placeholder="Enter..." />
+                    <button mat-icon-button matSuffix (click)="buscarUsuario()" type="button" matTooltip="Buscar">
+                        <mat-icon>search</mat-icon>
+                    </button>
+                </mat-form-field>
 
 
-            <mat-form-field fxFlex="30">
-                <mat-label>Rango de fecha</mat-label>
-                <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker">
-                    <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="hoy" />
-                    <input matEndDate formControlName="fin" placeholder="Fin" [max]="hoy" />
-                </mat-date-range-input>
-                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-date-range-picker #picker></mat-date-range-picker>
-            </mat-form-field>
+                <mat-form-field fxFlex="40">
+                    <mat-label>Rango de fecha</mat-label>
+                    <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker">
+                        <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="hoy" />
+                        <input matEndDate formControlName="fin" placeholder="Fin" [max]="hoy" />
+                    </mat-date-range-input>
+                    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-date-range-picker #picker></mat-date-range-picker>
+                </mat-form-field>
+            </div>
+        </div>
+
+        <div fxFlex="40" fxLayout="column" fxLayoutGap="10px"
+            style="width: 100%; height: 100%; font-size: 1.15em; padding-right: 20px">
+            <div style="width: 100%; text-align: center">Resumen del mes: {{ mesResumen || '-' }}</div>
+
+            <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+                <div fxFlex="60%">Días trabajados:</div>
+                <div fxFlex="40%" style="text-align: end">
+                    {{ diasTrabajados || 0 }}
+                </div>
+            </div>
+
+            <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+                <div fxFlex="60%">Horas trabajadas:</div>
+                <div fxFlex="40%" style="text-align: end">
+                    {{ horasTrabajadas || '00:00' }}
+                </div>
+            </div>
+
+            <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+                <div fxFlex="60%">Horas extras:</div>
+                <div fxFlex="40%" style="text-align: end">
+                    {{ horasExtras || '00:00' }}
+                </div>
+            </div>
+
+            <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+                <div fxFlex="60%">Horas de atraso:</div>
+                <div fxFlex="40%" style="text-align: end">
+                    {{ horasAtraso || '00:00' }}
+                </div>
+            </div>
         </div>
     </div>
 
     <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
         fxLayoutAlign="space-between start">
-        <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+        <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
             <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
                     Id
@@ -38,7 +74,7 @@
             </ng-container>
 
             <ng-container matColumnDef="usuario">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
                     Funcionario
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
@@ -47,7 +83,7 @@
             </ng-container>
 
             <ng-container matColumnDef="sucursalEntrada">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
                     Suc. Entrada
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
@@ -56,7 +92,7 @@
             </ng-container>
 
             <ng-container matColumnDef="fechaEntrada">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
                     Entrada
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
@@ -65,7 +101,7 @@
             </ng-container>
 
             <ng-container matColumnDef="sucursalSalida">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
                     Suc. Salida
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
@@ -74,7 +110,7 @@
             </ng-container>
 
             <ng-container matColumnDef="fechaSalida">
-                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
                     Salida
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center">
@@ -82,9 +118,68 @@
                 </td>
             </ng-container>
 
+            <ng-container matColumnDef="llegadaTardia">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                    Llegada Tardía
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="horaExtra">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+                    Hora Extra
+                </th>
+                <td mat-cell *matCellDef="let marcacion" style="text-align: center">
+                </td>
+            </ng-container>
+
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let marcacion" [attr.colspan]="displayedColumns.length" class="expanded"
+                    style="background-color: rgb(50, 50, 50); padding: 0px;">
+                    <div class="example-element-detail"
+                        [@detailExpand]="marcacion == expandedMarcacion ? 'expanded' : 'collapsed'"
+                        style="overflow: hidden;">
+                        <div style="width: 100%; padding: 10px;">
+                            <mat-card appearance="outlined" fxLayout="column" fxLayoutAlign="start start"
+                                style="padding: 10px; background-color: rgb(32, 32, 32); width: 100%">
+                                <h3 style="width: 100%; margin-bottom: 15px; text-align: center; color: white;">Detalles
+                                    de la Jornada</h3>
+                                <table style="width: 100%; table-layout: fixed;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: center; color: white; padding: 10px;">Salida Almuerzo
+                                            </th>
+                                            <th style="text-align: center; color: white; padding: 10px;">Retorno
+                                                Almuerzo</th>
+                                            <th style="text-align: center; color: white; padding: 10px;">Llegada Tardía
+                                                Almuerzo</th>
+                                            <th style="text-align: center; color: white; padding: 10px;">Hora Total
+                                                Trabajada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="text-align: center; color: white; padding: 10px;">--:--</td>
+                                            <td style="text-align: center; color: white; padding: 10px;">--:--</td>
+                                            <td style="text-align: center; color: white; padding: 10px;">--:--</td>
+                                            <td style="text-align: center; color: white; padding: 10px;">--:--</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </mat-card>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="example-element-row"
+                [class.example-expanded-row]="expandedMarcacion === row"
+                (click)="expandedMarcacion = expandedMarcacion === row ? null : row" style="cursor: pointer;">
+            </tr>
+            <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
         </table>
         <mat-paginator itemsPerPageLabel="Itens por pagina" [length]="selectedPageInfo?.getTotalElements"
             [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)" style="width: 100%"

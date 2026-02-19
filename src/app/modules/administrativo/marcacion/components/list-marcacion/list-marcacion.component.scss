@@ -1,13 +1,19 @@
-// Estilos para tabla de marcaciones
 .example-element-row {
     cursor: pointer;
 }
 
-.example-element-row:hover {
+.example-element-row:not(.example-expanded-row):hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-// Estilos para el header de la tabla
+.example-element-row:not(.example-expanded-row):active {
+    background: #3a3a3a;
+}
+
+.example-element-row td {
+    border-bottom-width: 0;
+}
+
 table {
     width: 100%;
 }
@@ -22,7 +28,19 @@ td.mat-cell {
     color: rgba(255, 255, 255, 0.87);
 }
 
-// Estilos para indicadores
 .presencial-icon {
     vertical-align: middle;
+}
+
+tr.example-detail-row {
+    height: 0;
+}
+
+.example-element-detail {
+    overflow: hidden;
+    display: flex;
+}
+
+.example-expanded-row {
+    background-color: rgb(50, 50, 50);
 }
