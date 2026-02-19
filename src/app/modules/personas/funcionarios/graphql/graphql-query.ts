@@ -32,6 +32,12 @@ export const funcionariosQuery = gql`
         id
         nombre
       }
+      horario {
+        id
+        descripcion
+        horaEntrada
+        horaSalida
+      }
     }
   }
 `;
@@ -76,6 +82,12 @@ export const funcionariosWithPageQuery = gql`
             id
             nombre
           }
+          horario {
+            id
+            descripcion
+            horaEntrada
+            horaSalida
+          }
         } 
       }
     }
@@ -112,6 +124,12 @@ export const funcionariosSearch = gql`
       sucursal {
         id
         nombre
+      }
+      horario {
+        id
+        descripcion
+        horaEntrada
+        horaSalida
       }
     }
   }
@@ -158,6 +176,12 @@ export const funcionarioQuery = gql`
         id
         nombre
       }
+      horario {
+        id
+        descripcion
+        horaEntrada
+        horaSalida
+      }
     }
   }
 `;
@@ -203,6 +227,12 @@ export const funcionarioPorPersonaQuery = gql`
         id
         nombre
       }
+      horario {
+        id
+        descripcion
+        horaEntrada
+        horaSalida
+      }
     }
   }
 `;
@@ -238,6 +268,12 @@ export const saveFuncionario = gql`
       sucursal {
         id
         nombre
+      }
+      horario {
+        id
+        descripcion
+        horaEntrada
+        horaSalida
       }
     }
   }

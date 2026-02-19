@@ -1,5 +1,5 @@
 
-export class FuncionarioInput  {
+export class FuncionarioInput {
   id: number;
   personaId: number;
   cargoId: number;
@@ -12,5 +12,6 @@ export class FuncionarioInput  {
   supervisadoPorId: number
   creadoEn: Date;
   usuarioId: number = null;
+  horarioId: number;
   activo: boolean;
 }
