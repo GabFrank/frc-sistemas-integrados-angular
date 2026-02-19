@@ -10,6 +10,8 @@ export class Horario {
     finDescanso: string;
     creadoEn: Date;
     usuario: Usuario;
+    dias: string[];
+    turno: string;
 
     toInput(): HorarioInput {
         let input = new HorarioInput();
@@ -21,6 +23,8 @@ export class Horario {
         input.inicioDescanso = this.inicioDescanso;
         input.finDescanso = this.finDescanso;
         input.usuarioId = this.usuario?.id;
+        input.dias = this.dias;
+        input.turno = this.turno;
         return input;
     }
 }
@@ -34,4 +38,6 @@ export class HorarioInput {
     inicioDescanso: string;
     finDescanso: string;
     usuarioId: number;
+    dias: string[];
+    turno: string;
 }

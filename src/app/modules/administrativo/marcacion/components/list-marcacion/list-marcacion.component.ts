@@ -30,6 +30,8 @@ import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PersonaService } from '../../../../personas/persona/persona.service';
 import { AsignarHorarioDialogComponent } from '../../../horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
+import { HorarioService } from '../../../horarios/service/horario.service';
+import { HorarioInput } from '../../../horarios/models/horario.model';
 
 
 @UntilDestroy()
@@ -52,8 +54,8 @@ import { AsignarHorarioDialogComponent } from '../../../horarios/components/asig
 export class ListMarcacionComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<Marcacion>([]);
-  selectedPageInfo: PageInfo<Marcacion>;
+  dataSource = new MatTableDataSource<any>([]);
+  selectedPageInfo: PageInfo<any>;
   pageIndex = 0;
   pageSize = 15;
 
@@ -100,7 +102,8 @@ export class ListMarcacionComponent implements OnInit {
     private usuarioService: UsuarioService,
     private searchUsuario: UsuarioSearchGQL,
     private notificacionService: NotificacionSnackbarService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private horarioService: HorarioService
   ) { }
 
   buscarUsuario(): void {
@@ -137,11 +140,18 @@ export class ListMarcacionComponent implements OnInit {
       });
   }
 
+  selectedJornada: any;
+
   seleccionarUsuario(usuario: Usuario): void {
     this.usuarioSeleccionado = usuario;
     this.usuarioNombreControl.setValue(usuario.persona?.nombre);
     this.usuarioIdControl.setValue(usuario.id);
     this.filtrar();
+  }
+
+  onExpand(row: any): void {
+    this.expandedMarcacion = this.expandedMarcacion === row ? null : row;
+    this.selectedJornada = row;
   }
 
   ngOnInit(): void {
@@ -186,34 +196,71 @@ export class ListMarcacionComponent implements OnInit {
       const fechaInicio = dateToString(this.fechaInicioControl.value);
       const fechaFin = dateToString(this.fechaFinControl.value);
 
-      this.marcacionService.onGetMarcacionesPorUsuario(
+      this.marcacionService.onGetJornadasPorUsuario(
         this.usuarioSeleccionado.id,
         fechaInicio,
-        fechaFin,
-        page,
-        size
+        fechaFin
       ).pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent || [];
+            this.dataSource.data = res || [];
+            this.selectedPageInfo = {
+              getTotalElements: res ? res.length : 0,
+              getContent: res || [],
+              getTotalPages: 1
+            } as any;
             this.cdr.markForCheck();
+            this.calcularResumen(res || []);
           }
         });
     } else {
-      const fechaInicio = dateToString(this.fechaInicioControl.value);
-      const fechaFin = dateToString(this.fechaFinControl.value);
-
-      this.marcacionService.onGetMarcaciones(fechaInicio, fechaFin, page, size)
+      const page = this.pageIndex;
+      const size = this.pageSize;
+      this.marcacionService.onGetJornadas(page, size)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent || [];
+            this.dataSource.data = res || [];
+            this.selectedPageInfo = {
+              getTotalElements: res ? res.length : 0,
+              getContent: res || [],
+              getTotalPages: 1
+            } as any;
             this.cdr.markForCheck();
+            this.calcularResumen(res || []);
           }
         });
     }
+  }
+
+  calcularResumen(jornadas: any[]): void {
+    const uniqueDays = new Set(jornadas.map(j => j.fecha));
+    this.diasTrabajados = uniqueDays.size;
+
+    let totalMinutos = 0;
+    let totalExtras = 0;
+    let totalAtraso = 0;
+
+    jornadas.forEach(j => {
+      totalMinutos += j.minutosTrabajados || 0;
+      totalExtras += j.minutosExtras || 0;
+      totalAtraso += j.minutosLlegadaTardia || 0;
+    });
+
+    this.horasTrabajadas = this.formatMinutes(totalMinutos);
+    this.horasExtras = this.formatMinutes(totalExtras);
+    this.horasAtraso = this.formatMinutes(totalAtraso);
+
+    if (this.fechaInicioControl.value) {
+      const date = new Date(this.fechaInicioControl.value);
+      this.mesResumen = date.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    }
+  }
+
+  formatMinutes(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 
   resetearFiltro(): void {
@@ -277,11 +324,28 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   onAdicionarHorario(): void {
+    const usuarioId = this.usuarioSeleccionado?.id || this.mainService.usuarioActual?.id;
     this.matDialog.open(AsignarHorarioDialogComponent, {
       width: '800px',
-      data: {}
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
-      // Logic for saving will go here later
+      data: { usuarioId: usuarioId }
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: any[]) => {
+      if (result && result.length > 0) {
+        result.forEach(h => {
+          let horarioInput = new HorarioInput();
+          horarioInput.id = h.id;
+          horarioInput.horaEntrada = h.entrada;
+          horarioInput.horaSalida = h.salida;
+          horarioInput.usuarioId = this.usuarioSeleccionado?.id;
+          horarioInput.dias = h.diasValue;
+          horarioInput.turno = h.turnoValue;
+
+          this.horarioService.onSaveHorario(horarioInput).subscribe(res => {
+            if (res) {
+              this.notificacionService.openSucess('Horario asignado correctamente');
+            }
+          });
+        });
+      }
     });
   }
 

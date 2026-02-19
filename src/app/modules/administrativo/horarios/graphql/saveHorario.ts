@@ -4,10 +4,10 @@ import { Mutation } from 'apollo-angular';
 import gql from 'graphql-tag';
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class SaveHorarioGQL extends Mutation<Response> {
-    document = gql`
+  document = gql`
     mutation saveHorario($entity: HorarioInput!) {
       data: saveHorario(horario: $entity) {
         id
@@ -18,6 +18,8 @@ export class SaveHorarioGQL extends Mutation<Response> {
         inicioDescanso
         finDescanso
         creadoEn
+        dias
+        turno
       }
     }
   `;

@@ -8,6 +8,8 @@ export class Jornada {
     fecha: string;
 
     marcacionEntrada: Marcacion;
+    marcacionSalidaAlmuerzo: Marcacion;
+    marcacionEntradaAlmuerzo: Marcacion;
     marcacionSalida: Marcacion;
 
     minutosTrabajados: number;

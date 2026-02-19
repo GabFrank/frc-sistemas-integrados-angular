@@ -10,6 +10,7 @@ import { HorarioByIdGQL } from '../graphql/horarioById';
 import { SaveHorarioGQL } from '../graphql/saveHorario';
 import { DeleteHorarioGQL } from '../graphql/deleteHorario';
 import { HorariosGQL } from '../graphql/horarios';
+import { HorariosPorUsuarioGQL } from '../graphql/horariosPorUsuario';
 
 @Injectable({
     providedIn: 'root'
@@ -22,11 +23,16 @@ export class HorarioService {
         private horarioById: HorarioByIdGQL,
         private saveHorario: SaveHorarioGQL,
         private deleteHorario: DeleteHorarioGQL,
-        private horarios: HorariosGQL
+        private horarios: HorariosGQL,
+        private horariosPorUsuario: HorariosPorUsuarioGQL
     ) { }
 
     onGetHorario(id: number, servidor = true): Observable<Horario> {
         return this.genericCrudService.onGetById(this.horarioById, id, null, null, servidor);
+    }
+
+    onGetHorariosPorUsuario(usuarioId: number, servidor = true): Observable<Horario[]> {
+        return this.genericCrudService.onCustomQuery(this.horariosPorUsuario, { usuarioId }, servidor);
     }
 
     onGetAllHorarios(page?: number, size?: number, servidor = true): Observable<PageInfo<Horario>> {

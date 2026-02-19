@@ -47,6 +47,16 @@ const jornadaFragment = `
       nombre
     }
   }
+  marcacionSalidaAlmuerzo {
+    id
+    tipo
+    fechaEntrada
+  }
+  marcacionEntradaAlmuerzo {
+    id
+    tipo
+    fechaEntrada
+  }
   marcacionSalida {
     id
     tipo
