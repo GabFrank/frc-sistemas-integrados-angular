@@ -1,0 +1,90 @@
+<div fxLayout="column" style="width: 100%;">
+    <div fxLayout="row" fxLayoutAlign="space-between center">
+        <h2 mat-dialog-title style="margin: 0;">Asignar Horario</h2>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <mat-dialog-content>
+        <div fxLayout="column" fxLayoutGap="10px">
+            <div fxLayout="row" fxLayoutGap="10px">
+                <mat-form-field fxFlex="30">
+                    <mat-label>Entrada</mat-label>
+                    <input matInput type="time" [formControl]="entradaControl">
+                </mat-form-field>
+
+                <mat-form-field fxFlex="30">
+                    <mat-label>Salida</mat-label>
+                    <input matInput type="time" [formControl]="salidaControl">
+                </mat-form-field>
+
+                <mat-form-field fxFlex="20">
+                    <mat-label>Turno</mat-label>
+                    <mat-select [formControl]="turnoControl">
+                        <mat-option *ngFor="let turno of listaTurnos" [value]="turno.code">
+                            {{ turno.name }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="30">
+                    <mat-label>Días</mat-label>
+                    <mat-select [formControl]="diasControl" multiple>
+                        <mat-option *ngFor="let dia of diasSemana" [value]="dia.value">
+                            {{ dia.viewValue }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <div fxLayout="row" fxLayoutAlign="end center">
+                <button mat-raised-button color="primary" (click)="onAgregarHorario()">
+                    Agregar
+                </button>
+            </div>
+
+            <div class="table-container mat-elevation-z8">
+                <table mat-table [dataSource]="dataSource" style="width: 100%;">
+
+                    <ng-container matColumnDef="entrada">
+                        <th mat-header-cell *matHeaderCellDef> Entrada </th>
+                        <td mat-cell *matCellDef="let element"> {{element.entrada}} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="salida">
+                        <th mat-header-cell *matHeaderCellDef> Salida </th>
+                        <td mat-cell *matCellDef="let element"> {{element.salida}} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="dias">
+                        <th mat-header-cell *matHeaderCellDef> Días </th>
+                        <td mat-cell *matCellDef="let element"> {{element.dias}} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="turno">
+                        <th mat-header-cell *matHeaderCellDef> Turno </th>
+                        <td mat-cell *matCellDef="let element"> {{element.turno}} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="acciones">
+                        <th mat-header-cell *matHeaderCellDef> ... </th>
+                        <td mat-cell *matCellDef="let element">
+                            <button mat-icon-button color="warn" (click)="onEliminarHorario(element)">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                </table>
+            </div>
+        </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+        <button mat-button (click)="onCancelar()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="onGuardar()">Guardar</button>
+    </mat-dialog-actions>
+</div>

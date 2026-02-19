@@ -29,6 +29,8 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../..
 import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PersonaService } from '../../../../personas/persona/persona.service';
+import { AsignarHorarioDialogComponent } from '../../../horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
+
 
 @UntilDestroy()
 @Component({
@@ -59,6 +61,13 @@ export class ListMarcacionComponent implements OnInit {
   usuarioNombreControl = new FormControl();
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
+  turnoControl = new FormControl('TODOS');
+  listaTurnos = [
+    { code: 'TODOS', name: 'Todos' },
+    { code: 'DIA', name: 'Día' },
+    { code: 'NOCHE', name: 'Noche' },
+    { code: 'MADRUGADA', name: 'Madrugada' }
+  ];
   fechaFormGroup: FormGroup;
 
   usuarioSeleccionado: Usuario = null;
@@ -79,7 +88,8 @@ export class ListMarcacionComponent implements OnInit {
     'sucursalSalida',
     'fechaSalida',
     'llegadaTardia',
-    'horaExtra'
+    'horaExtra',
+    'turno'
   ];
 
   constructor(
@@ -216,6 +226,7 @@ export class ListMarcacionComponent implements OnInit {
     this.usuarioNombreControl.setValue(null);
     this.usuarioSeleccionado = null;
     this.inicializarFechas();
+    this.turnoControl.setValue('TODOS');
     this.filtrar();
   }
 
@@ -266,7 +277,12 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   onAdicionarHorario(): void {
-
+    this.matDialog.open(AsignarHorarioDialogComponent, {
+      width: '800px',
+      data: {}
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
+      // Logic for saving will go here later
+    });
   }
 
   onGenerarPdf(): void {
