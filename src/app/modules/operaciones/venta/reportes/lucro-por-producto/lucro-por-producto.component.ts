@@ -21,6 +21,7 @@ import { NotificacionSnackbarService } from "../../../../../notificacion-snackba
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
+  TableData,
 } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { PersonaService } from "../../../../personas/persona/persona.service";
 import { PersonaSearchGQL } from "../../../../personas/persona/graphql/personaSearch";
@@ -28,6 +29,9 @@ import { Persona } from "../../../../personas/persona/persona.model";
 import { UsuarioService } from "../../../../personas/usuarios/usuario.service";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
 import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
+import { Subfamilia } from "../../../../productos/sub-familia/sub-familia.model";
+import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/subfamiliasSearch";
+import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -53,12 +57,14 @@ export class LucroPorProductoComponent implements OnInit {
   sucursalList: Sucursal[];
   sucursalIdList: number[];
   buscarProductoControl = new FormControl();
+  buscarSubfamiliaControl = new FormControl();
   isPesable = false;
   selectedProducto: Producto;
   isDialogOpen = true;
   productoList: Producto[] = [];
   buscarCajeroControl = new FormControl();
   selectedUsuario: Usuario;
+  selectedSubFamilia: Subfamilia;
   cajeroIdList: number[];
 
   displayedColumns: string[] = [
@@ -93,7 +99,9 @@ export class LucroPorProductoComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private personaService: PersonaService,
     private usuarioSearch: UsuarioSearchGQL,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -171,6 +179,7 @@ export class LucroPorProductoComponent implements OnInit {
           this.toSucursalesId(this.sucursalControl.value),
           this.cajeroIdList,
           productoIdList,
+          this.selectedSubFamilia?.id,
           this.page,
           this.size
         )
@@ -243,7 +252,8 @@ export class LucroPorProductoComponent implements OnInit {
       fechaFin,
       this.toSucursalesId(this.sucursalControl.value),
       this.cajeroIdList,
-      productoIdList
+      productoIdList,
+      this.selectedSubFamilia?.id
     );
   }
 
@@ -375,6 +385,53 @@ export class LucroPorProductoComponent implements OnInit {
             });
         }
       });
+  }
+
+  onBuscarSubFamilia() {
+    let tableData: TableData[] = [
+          {
+            id: "id",
+            nombre: "Id",
+          },
+          {
+            id: "nombre",
+            nombre: "Familia",
+            nested: true,
+            nestedId: "familia",
+            nestedColumnId: "familia",
+          },
+          {
+            id: "nombre",
+            nombre: "Nombre",
+          },
+        ];
+        let data: SearchListtDialogData = {
+          query: this.searchSubfamilia,
+          tableData: tableData,
+          titulo: "Buscar subfamilia",
+          search: true,
+          queryData: { texto: this.buscarSubfamiliaControl.value },
+          inicialSearch: true,
+          paginator: true,
+        };
+        this.matDialog
+          .open(SearchListDialogComponent, {
+            data: data,
+            width: "60%",
+            height: "80%",
+          })
+          .afterClosed()
+          .subscribe((res: Subfamilia | any) => {
+            if (res != null) {
+              this.selectedSubFamilia = res;
+              this.buscarSubfamiliaControl.setValue(res.nombre);
+            }
+          });
+  }
+
+  onClearSubFamilia() {
+    this.selectedSubFamilia = null;
+    this.buscarSubfamiliaControl.setValue(null);
   }
 
   onClearPersona() {

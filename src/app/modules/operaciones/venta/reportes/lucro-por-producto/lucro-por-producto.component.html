@@ -134,6 +134,7 @@
           *ngIf="selectedUsuario != null"
         >
           <mat-icon style="font-size: 2em" (click)="onClearPersona()"
+          class="highlight-hover-danger"
             >clear</mat-icon
           >
         </div>
@@ -141,7 +142,7 @@
     </div>
     <div
       fxLayout="row"
-      fxLayoutAlign="start center"
+      fxLayoutAlign="start start"
       fxLayoutGap="10px"
       style="width: 100%"
     >
@@ -180,6 +181,38 @@
             <mat-icon
               style="font-size: 2em"
               (click)="onClearProducto(producto, index)"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
+        </div>
+      </div>
+      <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
+         <div fxFlex fxLayoutAlign="start center">
+          <div fxFlex="63%" style="margin-left: 20px;">
+            <mat-form-field style="width: 100%">
+            <mat-label>Buscar subfamilia</mat-label>
+            <input
+              #subfamiliaInput
+              type="text"
+              matInput
+              [formControl]="buscarSubfamiliaControl"
+              (keyup.enter)="onBuscarSubFamilia()"
+            />
+          </mat-form-field>
+          </div>
+           <div fxFlex="10%" style="text-align: center">
+            <mat-icon class="icon" 
+              (click)="onBuscarSubFamilia(); $event.stopPropagation()"
+              >search</mat-icon
+            >
+          </div>
+           <div style="text-align: center">
+            <mat-icon
+              style="font-size: 2em"
+              (click)="onClearSubFamilia()"
+              *ngIf="selectedSubFamilia != null"
+              class="highlight-hover-danger"
               >clear</mat-icon
             >
           </div>
