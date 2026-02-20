@@ -203,6 +203,7 @@ export class ProductoService {
     sucursalIdList?,
     usuarioIdList?,
     productoIdList?,
+    subfamiliaId?: number,
     servidor = true
   ) {
     this.genericService
@@ -215,6 +216,7 @@ export class ProductoService {
           usuarioId: this.mainService.usuarioActual.id,
           usuarioIdList,
           productoIdList,
+          subfamiliaId
         },
         servidor
       )
@@ -238,6 +240,7 @@ export class ProductoService {
     sucursalIdList: number[],
     usuarioIdList: number[],
     productoIdList: number[],
+    subfamiliaId?: number,
     page?: number,
     size?: number,
     servidor = true
@@ -248,6 +251,7 @@ export class ProductoService {
       sucursalIdList,
       usuarioIdList,
       productoIdList,
+      subfamiliaId,
       page,
       size
     }, servidor);
