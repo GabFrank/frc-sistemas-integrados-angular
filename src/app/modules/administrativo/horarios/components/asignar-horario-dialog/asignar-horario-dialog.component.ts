@@ -5,12 +5,13 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { ViewChild } from '@angular/core';
 import { HorarioService } from '../../service/horario.service';
-import { TabService } from '../../../../../layouts/tab/tab.service';
+import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { HorarioInput } from '../../models/horario.model';
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { ListFuncioarioComponent } from '../../../../personas/funcionarios/list-funcioario/list-funcioario.component';
 
 export interface HorarioElement {
     id?: number;
@@ -154,11 +155,16 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         this.dataSource.paginator = this.paginator;
     }
 
-    onAdicionarHorarioRow(element: HorarioElement): void {
-        this.entradaControl.setValue(element.entrada);
-        this.salidaControl.setValue(element.salida);
-        this.diasControl.setValue(element.diasValue);
-        this.turnoControl.setValue(element.turnoValue);
+    onAsignarAOtros(element: HorarioElement): void {
+        const data = new TabData(null, { horarioParaAsignar: element });
+        this.tabService.addTab(
+            new Tab(
+                ListFuncioarioComponent,
+                'Lista de funcionarios',
+                data,
+                AsignarHorarioDialogComponent
+            )
+        );
     }
 
     onGuardar(): void {

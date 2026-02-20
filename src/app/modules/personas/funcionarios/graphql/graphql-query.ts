@@ -82,6 +82,9 @@ export const funcionariosWithPageQuery = gql`
             id
             nombre
           }
+          usuario {
+            id
+          }
           horario {
             id
             descripcion
