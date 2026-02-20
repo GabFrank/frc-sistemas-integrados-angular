@@ -6,8 +6,6 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
-
-
 import { FormControl, Validators } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
@@ -23,6 +21,7 @@ import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { FuncionarioInput } from '../funcionario-input.model';
 
@@ -176,7 +175,9 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         let horarioInput = new HorarioInput();
         horarioInput.horaEntrada = this.horarioParaAsignar.entrada;
         horarioInput.horaSalida = this.horarioParaAsignar.salida;
-        horarioInput.usuarioId = funcionario.usuario?.id || this.mainService.usuarioActual?.id;
+        if (funcionario.usuario?.id) {
+          horarioInput.usuarioId = funcionario.usuario.id;
+        }
         horarioInput.dias = this.horarioParaAsignar.diasValue;
         horarioInput.turno = this.horarioParaAsignar.turnoValue;
 
@@ -193,8 +194,11 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
           funcInput.supervisadoPorId = funcionario.supervisadoPor?.id;
           funcInput.activo = funcionario.activo;
           funcInput.usuarioId = funcionario.usuario?.id;
-          // set new horario
           funcInput.horarioId = res.id;
+          if (funcionario.fechaIngreso) {
+            let nD = new Date(funcionario.fechaIngreso);
+            funcInput.fechaIngreso = dateToString(nD);
+          }
 
           this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe(savedFunc => {
             funcionario.horario = savedFunc.horario;

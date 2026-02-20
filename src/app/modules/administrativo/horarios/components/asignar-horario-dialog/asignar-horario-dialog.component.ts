@@ -182,9 +182,6 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
                 });
             });
             this.notificacionService.openSucess('Horarios asignados correctamente');
-            setTimeout(() => this.tabService.removeCurrentTab(), 500);
-        } else {
-            this.tabService.removeCurrentTab();
         }
     }
 

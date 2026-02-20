@@ -15,6 +15,7 @@ export class Jornada {
     minutosTrabajados: number;
     minutosExtras: number;
     minutosLlegadaTardia: number;
+    minutosLlegadaTardiaAlmuerzo: number;
 
     estado: EstadoJornada;
     observacion: string;

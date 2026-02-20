@@ -69,6 +69,7 @@ const jornadaFragment = `
   minutosTrabajados
   minutosExtras
   minutosLlegadaTardia
+  minutosLlegadaTardiaAlmuerzo
   estado
   observacion
   actualizadoEn

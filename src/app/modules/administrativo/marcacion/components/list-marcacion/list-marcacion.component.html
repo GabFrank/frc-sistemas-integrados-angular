@@ -142,8 +142,9 @@
                     Llegada Tardía
                 </th>
                 <td mat-cell *matCellDef="let marcacion" style="text-align: center"
-                    [ngStyle]="{'color': getColorLlegadaTardia(marcacion.minutosLlegadaTardia), 'font-weight': 'bold'}">
-                    {{ formatMinutes(marcacion.minutosLlegadaTardia) }}
+                    [ngStyle]="{'color': getColorLlegadaTardia((marcacion.minutosLlegadaTardia || 0) + (marcacion.minutosLlegadaTardiaAlmuerzo || 0)), 'font-weight': 'bold'}">
+                    {{ formatMinutes((marcacion.minutosLlegadaTardia || 0) + (marcacion.minutosLlegadaTardiaAlmuerzo ||
+                    0)) }}
                 </td>
             </ng-container>
 
@@ -190,9 +191,10 @@
                                                 selectedJornada?.marcacionEntradaAlmuerzo?.fechaEntrada | date:'HH:mm'
                                                 || '--:--' }}</td>
                                             <td style="text-align: center; padding: 10px;"
-                                                [ngStyle]="{'color': getColorLlegadaTardia(selectedJornada?.minutosLlegadaTardia), 'font-weight': 'bold'}">
-                                                {{ selectedJornada?.minutosLlegadaTardia ?
-                                                formatMinutes(selectedJornada?.minutosLlegadaTardia) : '00:00' }}
+                                                [ngStyle]="{'color': getColorLlegadaTardia(selectedJornada?.minutosLlegadaTardiaAlmuerzo), 'font-weight': 'bold'}">
+                                                {{ selectedJornada?.minutosLlegadaTardiaAlmuerzo ?
+                                                formatMinutes(selectedJornada?.minutosLlegadaTardiaAlmuerzo) : '00:00'
+                                                }}
                                             </td>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
                                                 (selectedJornada?.minutosTrabajados / 60) | number:'1.0-2' }} hs</td>
