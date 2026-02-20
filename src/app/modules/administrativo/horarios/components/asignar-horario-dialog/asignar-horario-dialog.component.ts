@@ -1,9 +1,16 @@
 
-import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnInit, AfterViewInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginator } from '@angular/material/paginator';
+import { ViewChild } from '@angular/core';
 import { HorarioService } from '../../service/horario.service';
+import { TabService } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
+import { HorarioInput } from '../../models/horario.model';
+import { MainService } from '../../../../../main.service';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 export interface HorarioElement {
     id?: number;
@@ -15,12 +22,15 @@ export interface HorarioElement {
     turnoValue: string;
 }
 
+@UntilDestroy()
 @Component({
     selector: 'app-asignar-horario-dialog',
     templateUrl: './asignar-horario-dialog.component.html',
     styleUrls: ['./asignar-horario-dialog.component.scss']
 })
-export class AsignarHorarioDialogComponent implements OnInit {
+export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
+    @Input() data: Tab;
+    usuarioId: number;
 
     entradaControl = new FormControl(null, [Validators.required]);
     salidaControl = new FormControl(null, [Validators.required]);
@@ -47,16 +57,22 @@ export class AsignarHorarioDialogComponent implements OnInit {
     displayedColumns: string[] = ['entrada', 'salida', 'dias', 'turno', 'acciones'];
     dataSource = new MatTableDataSource<HorarioElement>([]);
 
+    @ViewChild(MatPaginator) paginator: MatPaginator;
+
+    elementoEnEdicion: HorarioElement | null = null;
+
     constructor(
-        public dialogRef: MatDialogRef<AsignarHorarioDialogComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: any,
         private horarioService: HorarioService,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private tabService: TabService,
+        private mainService: MainService,
+        private notificacionService: NotificacionSnackbarService
     ) { }
 
     ngOnInit(): void {
-        if (this.data?.usuarioId) {
-            this.horarioService.onGetHorariosPorUsuario(this.data.usuarioId).subscribe(res => {
+        this.usuarioId = this.data?.tabData?.id;
+        if (this.usuarioId) {
+            this.horarioService.onGetHorariosPorUsuario(this.usuarioId).subscribe(res => {
                 if (res) {
                     this.dataSource.data = res.map(h => {
                         return {
@@ -69,10 +85,15 @@ export class AsignarHorarioDialogComponent implements OnInit {
                             turnoValue: h.turno
                         }
                     });
+                    this.dataSource.paginator = this.paginator;
                     this.cdr.markForCheck();
                 }
             })
         }
+    }
+
+    ngAfterViewInit() {
+        this.dataSource.paginator = this.paginator;
     }
 
     onAgregarHorario(): void {
@@ -90,6 +111,7 @@ export class AsignarHorarioDialogComponent implements OnInit {
 
             if (!existe) {
                 let item: HorarioElement = {
+                    id: this.elementoEnEdicion?.id,
                     entrada: entrada,
                     salida: salida,
                     dias: this.diasControl.value?.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', '),
@@ -98,7 +120,14 @@ export class AsignarHorarioDialogComponent implements OnInit {
                     turnoValue: turnoValue
                 }
                 this.dataSource.data = [...this.dataSource.data, item];
+                this.dataSource.paginator = this.paginator;
+                this.elementoEnEdicion = null;
+                this.entradaControl.reset();
+                this.salidaControl.reset();
                 this.diasControl.reset();
+                this.turnoControl.reset();
+            } else {
+                this.notificacionService.openWarn('El horario ya existe');
             }
         }
     }
@@ -115,12 +144,53 @@ export class AsignarHorarioDialogComponent implements OnInit {
         }
     }
 
+    onEditarHorario(element: HorarioElement): void {
+        this.entradaControl.setValue(element.entrada);
+        this.salidaControl.setValue(element.salida);
+        this.diasControl.setValue(element.diasValue);
+        this.turnoControl.setValue(element.turnoValue);
+        this.elementoEnEdicion = element;
+        this.dataSource.data = this.dataSource.data.filter(i => i !== element);
+        this.dataSource.paginator = this.paginator;
+    }
+
+    onAdicionarHorarioRow(element: HorarioElement): void {
+        this.entradaControl.setValue(element.entrada);
+        this.salidaControl.setValue(element.salida);
+        this.diasControl.setValue(element.diasValue);
+        this.turnoControl.setValue(element.turnoValue);
+    }
+
     onGuardar(): void {
-        this.dialogRef.close(this.dataSource.data);
+        if (this.dataSource.data && this.dataSource.data.length > 0) {
+            this.dataSource.data.forEach(h => {
+                let horarioInput = new HorarioInput();
+                horarioInput.id = h.id;
+                horarioInput.horaEntrada = h.entrada;
+                horarioInput.horaSalida = h.salida;
+                horarioInput.usuarioId = this.usuarioId;
+                horarioInput.dias = h.diasValue;
+                horarioInput.turno = h.turnoValue;
+
+                this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe(res => {
+                });
+            });
+            this.notificacionService.openSucess('Horarios asignados correctamente');
+            setTimeout(() => this.tabService.removeCurrentTab(), 500);
+        } else {
+            this.tabService.removeCurrentTab();
+        }
     }
 
     onCancelar(): void {
-        this.dialogRef.close();
+        if (this.elementoEnEdicion) {
+            this.dataSource.data = [...this.dataSource.data, this.elementoEnEdicion];
+            this.elementoEnEdicion = null;
+        }
+        this.entradaControl.reset();
+        this.salidaControl.reset();
+        this.diasControl.reset();
+        this.turnoControl.reset();
     }
 }
 

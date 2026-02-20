@@ -32,6 +32,8 @@ import { PersonaService } from '../../../../personas/persona/persona.service';
 import { AsignarHorarioDialogComponent } from '../../../horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
 import { HorarioService } from '../../../horarios/service/horario.service';
 import { HorarioInput } from '../../../horarios/models/horario.model';
+import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
 
 
 @UntilDestroy()
@@ -103,7 +105,8 @@ export class ListMarcacionComponent implements OnInit {
     private searchUsuario: UsuarioSearchGQL,
     private notificacionService: NotificacionSnackbarService,
     private cdr: ChangeDetectorRef,
-    private horarioService: HorarioService
+    private horarioService: HorarioService,
+    private tabService: TabService
   ) { }
 
   buscarUsuario(): void {
@@ -258,9 +261,18 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   formatMinutes(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    if (!minutes) return '00:00';
+    let minA = Math.abs(minutes);
+    const hours = Math.floor(minA / 60);
+    const mins = minA % 60;
+    return `${minutes < 0 ? '-' : ''}${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
+
+  getColorLlegadaTardia(minutos: number): string {
+    if (minutos == null) return '';
+    if (minutos > 10) return '#f44336';
+    if (minutos >= 5) return '#ffeb3b';
+    return '#4caf50';
   }
 
   resetearFiltro(): void {
@@ -325,28 +337,14 @@ export class ListMarcacionComponent implements OnInit {
 
   onAdicionarHorario(): void {
     const usuarioId = this.usuarioSeleccionado?.id || this.mainService.usuarioActual?.id;
-    this.matDialog.open(AsignarHorarioDialogComponent, {
-      width: '800px',
-      data: { usuarioId: usuarioId }
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: any[]) => {
-      if (result && result.length > 0) {
-        result.forEach(h => {
-          let horarioInput = new HorarioInput();
-          horarioInput.id = h.id;
-          horarioInput.horaEntrada = h.entrada;
-          horarioInput.horaSalida = h.salida;
-          horarioInput.usuarioId = this.usuarioSeleccionado?.id;
-          horarioInput.dias = h.diasValue;
-          horarioInput.turno = h.turnoValue;
-
-          this.horarioService.onSaveHorario(horarioInput).subscribe(res => {
-            if (res) {
-              this.notificacionService.openSucess('Horario asignado correctamente');
-            }
-          });
-        });
-      }
-    });
+    this.tabService.addTab(
+      new Tab(
+        AsignarHorarioDialogComponent,
+        'Asignar Horario',
+        new TabData(usuarioId),
+        ListMarcacionComponent
+      )
+    );
   }
 
   onGenerarPdf(): void {
