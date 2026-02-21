@@ -91,8 +91,8 @@ export class MarcacionService {
     return this.genericCrudService.onGetById(this.getJornada, id, null, null, servidor);
   }
 
-  onGetJornadas(page?: number, size?: number, servidor = true): Observable<Jornada[]> {
-    return this.genericCrudService.onGetAll(this.getJornadas, page, size, servidor);
+  onGetJornadas(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<Jornada[]> {
+    return this.genericCrudService.onCustomQuery(this.getJornadas, { fechaInicio, fechaFin, page, size }, servidor);
   }
 
   onGetJornadasPorUsuario(usuarioId: number, fechaInicio?: string, fechaFin?: string, servidor = true): Observable<Jornada[]> {

@@ -140,8 +140,8 @@ export const jornadaQuery = gql`
 `;
 
 export const jornadasQuery = gql`
-  query ($page: Int, $size: Int) {
-    data: jornadas(page: $page, size: $size) {
+  query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
+    data: jornadas(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       ${jornadaFragment}
     }
   }

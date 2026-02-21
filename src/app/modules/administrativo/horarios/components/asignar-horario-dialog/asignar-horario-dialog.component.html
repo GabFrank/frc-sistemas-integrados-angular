@@ -2,12 +2,14 @@
     <div filtros fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%; height: 100%">
         <mat-form-field fxFlex="25">
             <mat-label>Entrada</mat-label>
-            <input matInput type="time" [formControl]="entradaControl">
+            <input matInput [ngxTimepicker]="pickerEntrada" [format]="24" [formControl]="entradaControl" readonly>
+            <ngx-material-timepicker #pickerEntrada></ngx-material-timepicker>
         </mat-form-field>
 
         <mat-form-field fxFlex="25">
             <mat-label>Salida</mat-label>
-            <input matInput type="time" [formControl]="salidaControl">
+            <input matInput [ngxTimepicker]="pickerSalida" [format]="24" [formControl]="salidaControl" readonly>
+            <ngx-material-timepicker #pickerSalida></ngx-material-timepicker>
         </mat-form-field>
 
         <mat-form-field fxFlex="20">

@@ -196,8 +196,8 @@ export class ListMarcacionComponent implements OnInit {
     const size = this.pageSize;
 
     if (this.usuarioSeleccionado?.id) {
-      const fechaInicio = dateToString(this.fechaInicioControl.value);
-      const fechaFin = dateToString(this.fechaFinControl.value);
+      const fechaInicio = dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd');
+      const fechaFin = dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
 
       this.marcacionService.onGetJornadasPorUsuario(
         this.usuarioSeleccionado.id,
@@ -219,7 +219,9 @@ export class ListMarcacionComponent implements OnInit {
     } else {
       const page = this.pageIndex;
       const size = this.pageSize;
-      this.marcacionService.onGetJornadas(page, size)
+      const fechaInicio = dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd');
+      const fechaFin = dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
+      this.marcacionService.onGetJornadas(fechaInicio, fechaFin, page, size)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {
@@ -359,10 +361,10 @@ export class ListMarcacionComponent implements OnInit {
     }
 
     const fechaInicio = this.fechaInicioControl.value
-      ? dateToString(this.fechaInicioControl.value)
+      ? dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd')
       : null;
     const fechaFin = this.fechaFinControl.value
-      ? dateToString(this.fechaFinControl.value)
+      ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
       : null;
     const usuarioId = this.usuarioSeleccionado?.id || null;
 
