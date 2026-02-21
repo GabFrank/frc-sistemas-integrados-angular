@@ -70,6 +70,7 @@ const jornadaFragment = `
   minutosExtras
   minutosLlegadaTardia
   minutosLlegadaTardiaAlmuerzo
+  turno
   estado
   observacion
   actualizadoEn

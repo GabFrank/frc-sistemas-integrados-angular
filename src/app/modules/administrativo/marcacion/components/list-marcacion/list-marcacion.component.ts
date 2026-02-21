@@ -164,6 +164,9 @@ export class ListMarcacionComponent implements OnInit {
     });
 
     this.inicializarFechas();
+    this.turnoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.filtrar();
+    });
     this.filtrar();
   }
 
@@ -192,9 +195,6 @@ export class ListMarcacionComponent implements OnInit {
       this.fechaInicioControl.setValue(unaSemanaAtras);
     }
 
-    const page = this.pageIndex;
-    const size = this.pageSize;
-
     if (this.usuarioSeleccionado?.id) {
       const fechaInicio = dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd');
       const fechaFin = dateToString(this.fechaFinControl.value, 'yyyy-MM-dd');
@@ -206,14 +206,15 @@ export class ListMarcacionComponent implements OnInit {
       ).pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {
-            this.dataSource.data = res || [];
+            const filtradas = this.aplicarFiltroTurno(res || []);
+            this.dataSource.data = filtradas;
             this.selectedPageInfo = {
-              getTotalElements: res ? res.length : 0,
-              getContent: res || [],
+              getTotalElements: filtradas.length,
+              getContent: filtradas,
               getTotalPages: 1
             } as any;
             this.cdr.markForCheck();
-            this.calcularResumen(res || []);
+            this.calcularResumen(filtradas);
           }
         });
     } else {
@@ -225,14 +226,15 @@ export class ListMarcacionComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {
-            this.dataSource.data = res || [];
+            const filtradas = this.aplicarFiltroTurno(res || []);
+            this.dataSource.data = filtradas;
             this.selectedPageInfo = {
-              getTotalElements: res ? res.length : 0,
-              getContent: res || [],
+              getTotalElements: filtradas.length,
+              getContent: filtradas,
               getTotalPages: 1
             } as any;
             this.cdr.markForCheck();
-            this.calcularResumen(res || []);
+            this.calcularResumen(filtradas);
           }
         });
     }
@@ -275,6 +277,14 @@ export class ListMarcacionComponent implements OnInit {
     if (minutos > 10) return '#f44336';
     if (minutos >= 5) return '#ffeb3b';
     return '#4caf50';
+  }
+
+  private aplicarFiltroTurno(jornadas: any[]): any[] {
+    const turno = this.turnoControl.value;
+    if (!turno || turno === 'TODOS') {
+      return jornadas;
+    }
+    return jornadas.filter(j => j.turno === turno);
   }
 
   resetearFiltro(): void {
