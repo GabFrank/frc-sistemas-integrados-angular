@@ -16,6 +16,7 @@ import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
 import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
+import { Jornada } from '../../models/jornada.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 
 import { DispositivoService } from '../../../../../shared/services/dispositivo.service';
@@ -27,6 +28,7 @@ import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-
 import { ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.component';
 import { EstadoMarcacionComponent } from '../estado-marcacion/estado-marcacion.component';
 import { BusquedaUsuarioComponent } from '../busqueda-usuario/busqueda-usuario.component';
+import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -55,6 +57,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   modoCamara: ModoCamara = 'verificacion';
 
   marcacionesHoy: Marcacion[] = [];
+  jornadaActual: Jornada = null;
 
   private referenciaDescriptor: number[] | null = null;
   private embeddingCapturado: number[] | null = null;
@@ -130,6 +133,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.horaEntrada = null;
     this.estaEnJornada = false;
     this.marcacionesHoy = [];
+    this.jornadaActual = null;
     this.cdr.markForCheck();
   }
 
@@ -246,10 +250,38 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.cargando = false;
         this.procesarMarcaciones(res?.getContent || []);
+        this.consultarJornadaActual();
       },
       error: (err) => {
         this.cargando = false;
         console.error('Error al verificar marcación activa', err);
+      }
+    });
+  }
+
+  private consultarJornadaActual(): void {
+    if (!this.usuarioSeleccionado?.id) return;
+    const { inicio, fin } = this.obtenerRangoHoy();
+    this.marcacionService.onGetJornadasPorUsuario(
+      this.usuarioSeleccionado.id, inicio, fin, true
+    ).pipe(
+      untilDestroyed(this),
+      catchError(() => {
+        return this.marcacionService.onGetJornadasPorUsuario(
+          this.usuarioSeleccionado.id, inicio, fin, false
+        );
+      })
+    ).subscribe({
+      next: (jornadas: Jornada[]) => {
+        if (jornadas && jornadas.length > 0) {
+          this.jornadaActual = jornadas[jornadas.length - 1];
+        } else {
+          this.jornadaActual = null;
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.jornadaActual = null;
       }
     });
   }
@@ -285,19 +317,48 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   registrarSalida(): void {
     if (!this.validarRegistro(true)) return;
-    this.ejecutarRegistro(false);
+    const almuerzoCompleto = this.jornadaActual
+      && this.jornadaActual.marcacionSalidaAlmuerzo
+      && this.jornadaActual.marcacionEntradaAlmuerzo;
+
+    if (almuerzoCompleto) {
+      this.ejecutarRegistro(false, false);
+      return;
+    }
+
+    const dialogRef = this.matDialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      disableClose: true,
+      data: {
+        title: 'Tipo de Salida',
+        message: '¿Es horario de almuerzo?',
+        confirmText: 'Sí, es almuerzo',
+        cancelText: 'No, salida definitiva'
+      }
+    });
+
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(esAlmuerzo => {
+      if (esAlmuerzo === null || esAlmuerzo === undefined) return;
+      this.ejecutarRegistro(false, esAlmuerzo);
+    });
   }
 
-  private ejecutarRegistro(esEntrada: boolean) {
+  private ejecutarRegistro(esEntrada: boolean, esSalidaAlmuerzo?: boolean) {
     this.cargando = true;
     this.ubicacionService.obtenerUbicacionActual().subscribe({
       next: (ubicacion) => {
         const contexto = this.crearContexto(ubicacion);
+        if (esSalidaAlmuerzo != null) {
+          contexto.esSalidaAlmuerzo = esSalidaAlmuerzo;
+        }
         esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
       },
       error: (err) => {
         console.warn('Ubicación no disponible', err);
         const contexto = this.crearContexto(null);
+        if (esSalidaAlmuerzo != null) {
+          contexto.esSalidaAlmuerzo = esSalidaAlmuerzo;
+        }
         esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
       }
     });
@@ -382,6 +443,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     }
 
     this.limpiarEstadosCamara();
+    this.consultarJornadaActual();
     this.cdr.markForCheck();
   }
 

@@ -35,6 +35,7 @@ export interface MarcacionContexto {
   deviceId?: string;
   deviceInfo?: string;
   embedding?: number[];
+  esSalidaAlmuerzo?: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -143,6 +144,9 @@ export class MarcacionService {
     input.longitud = contexto.longitud;
     input.precisionGps = contexto.precisionGps;
     input.distanciaSucursalMetros = contexto.distanciaSucursalMetros;
+    if (contexto.esSalidaAlmuerzo != null) {
+      input.esSalidaAlmuerzo = contexto.esSalidaAlmuerzo;
+    }
 
     return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
       catchError(err => {

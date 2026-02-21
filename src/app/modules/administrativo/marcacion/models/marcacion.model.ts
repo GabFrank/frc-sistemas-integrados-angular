@@ -65,4 +65,5 @@ export class MarcacionInput {
 
     codigo: string;
     embedding: number[];
+    esSalidaAlmuerzo: boolean;
 }
