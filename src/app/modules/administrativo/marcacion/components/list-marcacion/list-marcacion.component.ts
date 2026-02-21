@@ -30,6 +30,8 @@ import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { PersonaService } from '../../../../personas/persona/persona.service';
 import { AsignarHorarioDialogComponent } from '../../../horarios/components/asignar-horario-dialog/asignar-horario-dialog.component';
+import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { HorarioService } from '../../../horarios/service/horario.service';
 import { HorarioInput } from '../../../horarios/models/horario.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
@@ -72,6 +74,9 @@ export class ListMarcacionComponent implements OnInit {
     { code: 'NOCHE', name: 'Noche' },
     { code: 'MADRUGADA', name: 'Madrugada' }
   ];
+  sucursalEntradaControl = new FormControl(null);
+  sucursalSalidaControl = new FormControl(null);
+  listaSucursales: Sucursal[] = [];
   fechaFormGroup: FormGroup;
 
   usuarioSeleccionado: Usuario = null;
@@ -106,7 +111,8 @@ export class ListMarcacionComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private cdr: ChangeDetectorRef,
     private horarioService: HorarioService,
-    private tabService: TabService
+    private tabService: TabService,
+    private sucursalService: SucursalService
   ) { }
 
   buscarUsuario(): void {
@@ -164,10 +170,26 @@ export class ListMarcacionComponent implements OnInit {
     });
 
     this.inicializarFechas();
+    this.cargarSucursales();
     this.turnoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       this.filtrar();
     });
+    this.sucursalEntradaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.filtrar();
+    });
+    this.sucursalSalidaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.filtrar();
+    });
     this.filtrar();
+  }
+
+  cargarSucursales(): void {
+    this.sucursalService.onGetAllSucursales(true)
+      .pipe(untilDestroyed(this))
+      .subscribe(sucursales => {
+        this.listaSucursales = sucursales || [];
+        this.cdr.markForCheck();
+      });
   }
 
   inicializarFechas(): void {
@@ -280,11 +302,24 @@ export class ListMarcacionComponent implements OnInit {
   }
 
   private aplicarFiltroTurno(jornadas: any[]): any[] {
+    let resultado = jornadas;
+
     const turno = this.turnoControl.value;
-    if (!turno || turno === 'TODOS') {
-      return jornadas;
+    if (turno && turno !== 'TODOS') {
+      resultado = resultado.filter(j => j.turno === turno);
     }
-    return jornadas.filter(j => j.turno === turno);
+
+    const sucEntradaId = this.sucursalEntradaControl.value;
+    if (sucEntradaId) {
+      resultado = resultado.filter(j => j.marcacionEntrada?.sucursalEntrada?.id === sucEntradaId);
+    }
+
+    const sucSalidaId = this.sucursalSalidaControl.value;
+    if (sucSalidaId) {
+      resultado = resultado.filter(j => j.marcacionSalida?.sucursalSalida?.id === sucSalidaId);
+    }
+
+    return resultado;
   }
 
   resetearFiltro(): void {
@@ -298,6 +333,8 @@ export class ListMarcacionComponent implements OnInit {
     this.usuarioSeleccionado = null;
     this.inicializarFechas();
     this.turnoControl.setValue('TODOS');
+    this.sucursalEntradaControl.setValue(null);
+    this.sucursalSalidaControl.setValue(null);
     this.filtrar();
   }
 

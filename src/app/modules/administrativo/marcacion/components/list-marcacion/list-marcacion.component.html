@@ -34,6 +34,27 @@
                     </mat-select>
                 </mat-form-field>
             </div>
+            <div fxLayout="row" fxLayoutGap="10px">
+                <mat-form-field fxFlex="30">
+                    <mat-label>Suc. Entrada</mat-label>
+                    <mat-select [formControl]="sucursalEntradaControl">
+                        <mat-option [value]="null">Todas</mat-option>
+                        <mat-option *ngFor="let suc of listaSucursales" [value]="suc.id">
+                            {{ suc.nombre }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="30">
+                    <mat-label>Suc. Salida</mat-label>
+                    <mat-select [formControl]="sucursalSalidaControl">
+                        <mat-option [value]="null">Todas</mat-option>
+                        <mat-option *ngFor="let suc of listaSucursales" [value]="suc.id">
+                            {{ suc.nombre }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
         </div>
 
         <div fxFlex="40" fxLayout="column" fxLayoutGap="10px"
