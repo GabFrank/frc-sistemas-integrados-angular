@@ -17,8 +17,10 @@ import { SaveSolicitudPagoGQL } from './graphql/saveSolicitudPago';
 import { DeleteSolicitudPagoGQL } from './graphql/deleteSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
+import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
 import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 @Injectable({
@@ -38,7 +40,9 @@ export class SolicitudPagoService {
     private deleteSolicitudPagoGQL: DeleteSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
-    private genericCrudService: GenericCrudService
+    private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
+    private genericCrudService: GenericCrudService,
+    private configService: ConfiguracionService
   ) {}
 
   /**
@@ -232,6 +236,17 @@ export class SolicitudPagoService {
     return this.genericCrudService.onCustomMutation(
       this.imprimirSolicitudPagoPDFGQL, 
       { solicitudPagoId }
+    );
+  }
+
+  /**
+   * Imprime una solicitud de pago en ticket 58mm
+   */
+  onImprimirSolicitudPagoTicket(solicitudPagoId: number): Observable<boolean> {
+    const printerName = this.configService?.getConfig()?.printers?.ticket;
+    return this.genericCrudService.onCustomMutation(
+      this.imprimirSolicitudPagoTicketGQL,
+      { solicitudPagoId, printerName }
     );
   }
 

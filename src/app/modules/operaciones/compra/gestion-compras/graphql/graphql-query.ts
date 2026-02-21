@@ -1738,6 +1738,12 @@ export const imprimirSolicitudPagoPDFMutation = gql`
   }
 `;
 
+export const imprimirSolicitudPagoTicketMutation = gql`
+  mutation ($solicitudPagoId: ID!, $printerName: String) {
+    data: imprimirSolicitudPagoTicket(solicitudPagoId: $solicitudPagoId, printerName: $printerName)
+  }
+`;
+
 export const solicitudesPagoPaginatedQuery = gql`
   query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado) {
     data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado) {

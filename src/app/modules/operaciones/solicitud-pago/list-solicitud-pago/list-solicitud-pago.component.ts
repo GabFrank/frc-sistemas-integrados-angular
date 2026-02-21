@@ -15,6 +15,7 @@ import { TabService } from '../../../../layouts/tab/tab.service';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { SolicitudPago, SolicitudPagoEstado } from '../../compra/gestion-compras/solicitud-pago.model';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
@@ -177,10 +178,19 @@ export class ListSolicitudPagoComponent implements OnInit {
             `Solicitud de Pago ${row.numeroSolicitud || row.id}`,
             pdfBase64
           );
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
           this.notificacionService.openSucess('PDF agregado a reportes');
         }
       },
       error: () => this.notificacionService.openAlgoSalioMal('Error al generar PDF')
+    });
+  }
+
+  onImprimirTicket(row: SolicitudPago): void {
+    if (!row?.id) return;
+    this.solicitudPagoService.onImprimirSolicitudPagoTicket(row.id).subscribe({
+      next: () => this.notificacionService.openSucess('Ticket enviado a imprimir'),
+      error: () => this.notificacionService.openAlgoSalioMal('Error al imprimir ticket')
     });
   }
 

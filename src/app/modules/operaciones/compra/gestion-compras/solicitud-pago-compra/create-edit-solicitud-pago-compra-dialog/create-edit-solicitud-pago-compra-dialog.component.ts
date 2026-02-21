@@ -6,6 +6,7 @@ import { SolicitudPago, SolicitudPagoInput, SolicitudPagoEstado } from '../../so
 import { NotaRecepcion } from '../../nota-recepcion.model';
 import { SolicitudPagoService } from '../../solicitud-pago.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { MainService } from '../../../../../../main.service';
 import { Pedido } from '../../pedido.model';
 import { FormaPago } from '../../../../../financiero/forma-pago/forma-pago.model';
 import { Moneda } from '../../../../../financiero/moneda/moneda.model';
@@ -63,7 +64,8 @@ export class CreateEditSolicitudPagoCompraDialogComponent implements OnInit {
     private solicitudPagoService: SolicitudPagoService,
     private notificacionService: NotificacionSnackbarService,
     private formaPagoService: FormaPagoService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private mainService: MainService
   ) {
     this.pedido = data.pedido || null;
     this.solicitudPago = data.solicitudPago;
@@ -302,11 +304,8 @@ export class CreateEditSolicitudPagoCompraDialogComponent implements OnInit {
       fechaPagoPropuesta: fechaPagoPropuesta.toISOString().split('T')[0], // Convert to YYYY-MM-DD
       observaciones: this.solicitudForm.get('observaciones')?.value,
       notaRecepcionIds: this.notasSeleccionadasIds,
-      usuarioId: undefined // El generic-crud.service.ts lo agregará automáticamente
+      usuarioId: this.mainService?.usuarioActual?.id
     };
-
-    console.log('Debug - Usuario actual:', this.solicitudPagoService['genericCrudService']['mainService']?.usuarioActual);
-    console.log('Debug - Input antes de guardar:', input);
 
     this.solicitudPagoService.onSaveInput(input)
       .pipe(untilDestroyed(this))

@@ -11,6 +11,9 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { SolicitudPagoPageResult } from '../../compra/gestion-compras/graphql/getSolicitudesPagoPaginated';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService } from '../../../../layouts/tab/tab.service';
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -51,6 +54,7 @@ export class SolicitudPagoDashboardComponent implements OnInit {
     private solicitudPagoService: SolicitudPagoService,
     private notificacionService: NotificacionSnackbarService,
     private reporteService: ReporteService,
+    private tabService: TabService,
     private dialog: MatDialog,
     private proveedorSearchPage: ProveedoresSearchByPersonaPageGQL
   ) {}
@@ -136,10 +140,19 @@ export class SolicitudPagoDashboardComponent implements OnInit {
             `Solicitud de Pago ${row.numeroSolicitud || row.id}`,
             pdfBase64
           );
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
           this.notificacionService.openSucess('PDF agregado a reportes');
         }
       },
       error: () => this.notificacionService.openAlgoSalioMal('Error al generar PDF')
+    });
+  }
+
+  onImprimirTicket(row: SolicitudPago): void {
+    if (!row?.id) return;
+    this.solicitudPagoService.onImprimirSolicitudPagoTicket(row.id).subscribe({
+      next: () => this.notificacionService.openSucess('Ticket enviado a imprimir'),
+      error: () => this.notificacionService.openAlgoSalioMal('Error al imprimir ticket')
     });
   }
 

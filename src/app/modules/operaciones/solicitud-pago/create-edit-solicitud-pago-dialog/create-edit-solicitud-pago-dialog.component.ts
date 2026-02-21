@@ -12,6 +12,7 @@ import { FormaPagoService } from '../../../financiero/forma-pago/forma-pago.serv
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MainService } from '../../../../main.service';
 import { AdicionarNotaDialogComponent } from '../adicionar-nota-dialog/adicionar-nota-dialog.component';
 
 @Component({
@@ -44,7 +45,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     private monedaService: MonedaService,
     private formaPagoService: FormaPagoService,
     private dialog: MatDialog,
-    private proveedorService: ProveedorService
+    private proveedorService: ProveedorService,
+    private mainService: MainService
   ) {
     this.form = this.fb.group({
       monedaId: [null, Validators.required],
@@ -175,7 +177,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       formaPagoId: this.form.get('formaPagoId').value,
       estado: SolicitudPagoEstado.PENDIENTE,
       notaRecepcionIds: this.notasAgregadas.map((n) => n.id),
-      observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined
+      observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined,
+      usuarioId: this.mainService?.usuarioActual?.id
     };
     const fp = this.form.get('fechaPagoPropuesta').value;
     if (fp) {
