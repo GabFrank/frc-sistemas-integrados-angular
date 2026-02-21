@@ -23,6 +23,8 @@ export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
   pedido?: Pedido;
   isEdit: boolean;
+  /** Si true, el diálogo se abre en modo solo lectura; no se permite modificar nada. */
+  readOnly?: boolean;
   // Nuevos campos para asignación automática de ítems
   selectedItemsToAssign?: any[]; // MockPedidoItem[] from parent component
   autoAssignItems?: boolean; // Flag para indicar si debe asignar ítems automáticamente
@@ -65,6 +67,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades para la tabla de ítems
   itemsDataSource = new MatTableDataSource<NotaRecepcionItem>([]);
   displayedColumns: string[] = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'distribucion', 'acciones'];
+  /** Modo solo lectura: formulario y acciones deshabilitados. */
+  readOnly = false;
 
   // PROPIEDADES COMPUTADAS - NO usar funciones en templates
   // Error states para cada campo
@@ -140,7 +144,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private dialogosService: DialogosService,
     private dialog: MatDialog
   ) {
-    this.dialogTitle = data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción';
+    this.readOnly = !!data.readOnly;
+    this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
     this.actionButtonText = data.isEdit ? 'Actualizar' : 'Crear';
     this.notaCreada = false;
     
@@ -184,10 +189,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.setupKeyboardNavigation();
     this.loadItems();
     this.updateComputedProperties();
-    
-    // Si es nota de rechazo, deshabilitar el formulario
-    if (this.data.nota?.esNotaRechazo) {
+
+    // Modo solo lectura o nota de rechazo: deshabilitar el formulario
+    if (this.readOnly || this.data.nota?.esNotaRechazo) {
       this.notaRecepcionForm.disable();
+    }
+    // En modo solo lectura, no mostrar columna de acciones en la tabla de ítems
+    if (this.readOnly) {
+      this.displayedColumns = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'distribucion'];
     }
   }
 

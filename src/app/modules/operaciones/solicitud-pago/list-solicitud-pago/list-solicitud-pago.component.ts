@@ -1,3 +1,10 @@
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate
+} from '@angular/animations';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -14,12 +21,24 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { CreateEditSolicitudPagoDialogComponent } from '../create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
+import { PedidoService } from '../../compra/pedido.service';
+import {
+  AddEditNotaRecepcionDialogComponent,
+  AddEditNotaRecepcionDialogData
+} from '../../compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
 
 @UntilDestroy()
 @Component({
   selector: 'app-list-solicitud-pago',
   templateUrl: './list-solicitud-pago.component.html',
-  styleUrls: ['./list-solicitud-pago.component.scss']
+  styleUrls: ['./list-solicitud-pago.component.scss'],
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
+      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)'))
+    ])
+  ]
 })
 export class ListSolicitudPagoComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -27,6 +46,7 @@ export class ListSolicitudPagoComponent implements OnInit {
   titulo = 'Lista de solicitudes de pago';
 
   dataSource = new MatTableDataSource<SolicitudPago>([]);
+  expandedSolicitud: SolicitudPago | null = null;
 
   proveedorControl = new FormControl();
   estadoControl = new FormControl();
@@ -61,7 +81,8 @@ export class ListSolicitudPagoComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private reporteService: ReporteService,
     private dialog: MatDialog,
-    private proveedorService: ProveedorService
+    private proveedorService: ProveedorService,
+    private pedidoService: PedidoService
   ) {}
 
   ngOnInit(): void {
@@ -167,5 +188,30 @@ export class ListSolicitudPagoComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.loadPage();
+  }
+
+  onRowClick(row: SolicitudPago): void {
+    this.expandedSolicitud = this.expandedSolicitud === row ? null : row;
+  }
+
+  onVerNota(notaRecepcionId: number): void {
+    if (!notaRecepcionId) return;
+    this.pedidoService.onGetNotaRecepcionById(notaRecepcionId).pipe(untilDestroyed(this)).subscribe({
+      next: (nota) => {
+        const data: AddEditNotaRecepcionDialogData = {
+          nota,
+          isEdit: true,
+          readOnly: true
+        };
+        this.dialog.open(AddEditNotaRecepcionDialogComponent, {
+          width: '80%',
+          height: '80%',
+          data
+        });
+      },
+      error: () => {
+        this.notificacionService.openAlgoSalioMal('Error al cargar la nota de recepción');
+      }
+    });
   }
 }

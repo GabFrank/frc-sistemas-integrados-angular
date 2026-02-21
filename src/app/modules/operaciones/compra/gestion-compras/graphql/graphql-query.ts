@@ -1761,7 +1761,7 @@ export const solicitudesPagoPaginatedQuery = gql`
         moneda { id denominacion simbolo }
         formaPago { id descripcion }
         usuario { id persona { nombre } }
-        notasRecepcion { id notaRecepcion { id numero valorTotal } }
+        notasRecepcion { id montoIncluido notaRecepcion { id numero fecha valorTotal estado } }
       }
     }
   }

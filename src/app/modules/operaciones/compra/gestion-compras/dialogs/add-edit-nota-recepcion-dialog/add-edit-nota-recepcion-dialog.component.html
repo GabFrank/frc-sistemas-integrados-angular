@@ -207,6 +207,7 @@
                 </span>
               </div>
               <button
+                *ngIf="!readOnly"
                 mat-raised-button
                 color="accent"
                 type="button"
@@ -353,10 +354,11 @@
 
   <mat-dialog-actions class="dialog-actions">
     <button mat-button type="button" (click)="onCancel()" class="cancel-button" #cancelButton>
-      Cancelar
+      {{ readOnly ? 'Cerrar' : 'Cancelar' }}
     </button>
 
     <button
+      *ngIf="!readOnly"
       mat-raised-button
       color="primary"
       type="button"

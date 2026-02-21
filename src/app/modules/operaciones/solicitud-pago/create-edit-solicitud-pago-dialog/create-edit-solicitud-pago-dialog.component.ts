@@ -81,9 +81,30 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
   }
 
-  onBuscarProveedor(): void {
+  onProveedorKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Tab' || event.key === 'Escape') {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const char = this.getPrintableKey(event);
+    this.onBuscarProveedor(char);
+  }
+
+  private getPrintableKey(event: KeyboardEvent): string {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return '';
+    }
+    if (event.key?.length === 1) {
+      return event.key;
+    }
+    return '';
+  }
+
+  onBuscarProveedor(initialTexto?: string): void {
+    const texto = initialTexto != null ? initialTexto : (this.proveedorNombreDisplay || '');
     this.proveedorService
-      .onSearchProveedorPorTexto(this.proveedorNombreDisplay || '')
+      .onSearchProveedorPorTexto(texto)
       .subscribe((proveedor: Proveedor) => {
         if (proveedor) {
           this.selectedProveedor = proveedor;

@@ -10,8 +10,8 @@
           matInput
           [value]="proveedorNombreDisplay"
           readonly
-          (click)="$event.preventDefault(); $event.stopPropagation()"
-          (keydown.enter)="$event.preventDefault(); onBuscarProveedor()"
+          (click)="onBuscarProveedor()"
+          (keydown)="onProveedorKeydown($event)"
         />
         <button matSuffix mat-icon-button (click)="onBuscarProveedor()" type="button" title="Buscar proveedor" tabindex="-1">
           <mat-icon>search</mat-icon>
