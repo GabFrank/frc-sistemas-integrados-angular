@@ -20,7 +20,6 @@ import { Jornada } from '../../models/jornada.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 
 import { DispositivoService } from '../../../../../shared/services/dispositivo.service';
-import { UbicacionService } from '../../../../../shared/services/ubicacion.service';
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { UsuarioHelperService } from '../../service/usuario-helper.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
@@ -72,7 +71,6 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     private matDialog: MatDialog,
     private cdr: ChangeDetectorRef,
     private dispositivoService: DispositivoService,
-    private ubicacionService: UbicacionService,
     private camaraService: CamaraService,
     private usuarioHelper: UsuarioHelperService,
     private faceHelper: ReconocimientoFacialHelperService
@@ -343,58 +341,23 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     });
   }
 
-  private ejecutarRegistro(esEntrada: boolean, esSalidaAlmuerzo?: boolean) {
-    this.cargando = true;
-    this.ubicacionService.obtenerUbicacionActual().subscribe({
-      next: (ubicacion) => {
-        const contexto = this.crearContexto(ubicacion);
-        if (esSalidaAlmuerzo != null) {
-          contexto.esSalidaAlmuerzo = esSalidaAlmuerzo;
-        }
-        esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
-      },
-      error: (err) => {
-        console.warn('Ubicación no disponible', err);
-        const contexto = this.crearContexto(null);
-        if (esSalidaAlmuerzo != null) {
-          contexto.esSalidaAlmuerzo = esSalidaAlmuerzo;
-        }
-        esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
-      }
-    });
-  }
-
   private crearContexto(ubicacion: any): MarcacionContexto {
     return {
       usuarioId: this.usuarioSeleccionado.id,
       sucursalId: this.sucursalActualId,
-      latitud: ubicacion?.latitud,
-      longitud: ubicacion?.longitud,
-      precisionGps: ubicacion?.precision,
-      distanciaSucursalMetros: ubicacion ? this.ubicacionService.calcularDistanciaMetros(
-        ubicacion.latitud, ubicacion.longitud,
-        this.obtenerLatSucursal(), this.obtenerLonSucursal()
-      ) : undefined,
       deviceId: this.dispositivoService.obtenerDeviceId(),
       deviceInfo: this.dispositivoService.obtenerInfoDispositivo(),
       embedding: this.embeddingCapturado
     };
   }
 
-  private obtenerLatSucursal(): number {
-    if (this.mainService.sucursalActual?.localizacion) {
-      const parts = this.mainService.sucursalActual.localizacion.split(/[,;]/);
-      if (parts.length > 0) return parseFloat(parts[0]);
+  private ejecutarRegistro(esEntrada: boolean, esSalidaAlmuerzo?: boolean) {
+    this.cargando = true;
+    const contexto = this.crearContexto(null);
+    if (esSalidaAlmuerzo != null) {
+      contexto.esSalidaAlmuerzo = esSalidaAlmuerzo;
     }
-    return 0;
-  }
-
-  private obtenerLonSucursal(): number {
-    if (this.mainService.sucursalActual?.localizacion) {
-      const parts = this.mainService.sucursalActual.localizacion.split(/[,;]/);
-      if (parts.length > 1) return parseFloat(parts[1]);
-    }
-    return 0;
+    esEntrada ? this.guardarEntrada(contexto) : this.guardarSalida(contexto);
   }
 
   private guardarEntrada(contexto: MarcacionContexto) {
