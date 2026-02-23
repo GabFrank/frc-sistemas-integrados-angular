@@ -21,6 +21,7 @@ import { GetJornadasPorUsuarioGQL } from '../graphql/getJornadasPorUsuario';
 import { ImprimirReporteMarcacionesGQL } from '../graphql/imprimirReporteMarcaciones';
 import { ReporteService } from '../../../reportes/reporte.service';
 import { TabService } from '../../../../layouts/tab/tab.service';
+import { HoraServidorService } from '../../../../shared/services/hora-servidor.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { ListMarcacionComponent } from '../components/list-marcacion/list-marcacion.component';
@@ -57,7 +58,8 @@ export class MarcacionService {
     private getJornadasPorUsuario: GetJornadasPorUsuarioGQL,
     private imprimirReporteMarcaciones: ImprimirReporteMarcacionesGQL,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private horaServidorService: HoraServidorService
   ) { }
 
   onGetMarcacion(id: number, servidor = true): Observable<Marcacion> {
@@ -110,7 +112,7 @@ export class MarcacionService {
     input.usuarioId = contexto.usuarioId || this.mainService.usuarioActual?.id;
     input.tipo = TipoMarcacion.ENTRADA;
     input.sucursalEntradaId = contexto.sucursalId;
-    input.fechaEntrada = this.toLocalIsoString(new Date());
+    input.fechaEntrada = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());
     input.latitud = contexto.latitud;
     input.longitud = contexto.longitud;
     input.precisionGps = contexto.precisionGps;
@@ -139,7 +141,7 @@ export class MarcacionService {
     input.usuarioId = contexto.usuarioId;
     input.tipo = TipoMarcacion.SALIDA;
     input.sucursalSalidaId = contexto.sucursalId;
-    input.fechaSalida = this.toLocalIsoString(new Date());
+    input.fechaSalida = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());
     input.latitud = contexto.latitud;
     input.longitud = contexto.longitud;
     input.precisionGps = contexto.precisionGps;
