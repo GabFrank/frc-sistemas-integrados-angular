@@ -5,6 +5,9 @@
             <button mat-icon-button (click)="limpiar.emit()" matTooltip="Cambiar Usuario" class="btn-logout">
                 <mat-icon>logout</mat-icon>
             </button>
+            <button *ngIf="similitudInsuficiente" mat-button (click)="busquedaManual.emit()" class="btn-search-manual">
+                <mat-icon>search</mat-icon> Buscar por ID
+            </button>
         </div>
         <div class="sucursal-badge-mini" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="4px">
             <mat-icon>store</mat-icon>

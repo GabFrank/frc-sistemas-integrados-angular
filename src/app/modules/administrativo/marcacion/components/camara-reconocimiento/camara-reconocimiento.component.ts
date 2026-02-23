@@ -35,6 +35,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
     @Output() cerrar = new EventEmitter<void>();
     @Output() busquedaManual = new EventEmitter<void>();
+    @Output() similitudInsuficiente = new EventEmitter<boolean>();
 
     @ViewChild('video') videoElement: ElementRef<HTMLVideoElement>;
     @ViewChild('snapshotCanvas') snapshotCanvas: ElementRef<HTMLCanvasElement>;
@@ -327,6 +328,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         this.mensajeReconocimiento = resultado.mensaje;
 
         if (resultado.exito && resultado.embedding) {
+            this.similitudInsuficiente.emit(false);
             this.embeddingCapturado = resultado.embedding;
             this.detecting = false;
             this.verificacionSnapshotUrl = this.camaraService.capturarFoto(video);
@@ -335,6 +337,12 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             this.identidadVerificada.emit({ embedding: resultado.embedding, snapshotUrl: this.verificacionSnapshotUrl });
             this.cdr.markForCheck();
             return;
+        }
+
+        if (resultado.mensaje.includes('Similitud insuficiente')) {
+            this.similitudInsuficiente.emit(true);
+        } else if (resultado.mensaje.includes('No se detecta rostro')) {
+            this.similitudInsuficiente.emit(false); // Reset if face is lost
         }
 
         this.cdr.markForCheck();

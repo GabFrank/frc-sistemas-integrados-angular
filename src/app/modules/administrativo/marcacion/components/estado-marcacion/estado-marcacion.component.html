@@ -13,7 +13,8 @@
                 <camara-reconocimiento *ngIf="mostrandoCamara" #camaraRef [modo]="modoCamara"
                     [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
                     (identidadVerificada)="identidadVerificada.emit($event)"
-                    (fotoPerfilGuardada)="fotoPerfilGuardada.emit()">
+                    (fotoPerfilGuardada)="fotoPerfilGuardada.emit()"
+                    (similitudInsuficiente)="similitudInsuficiente.emit($event)">
                 </camara-reconocimiento>
 
                 <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
@@ -47,7 +48,8 @@
                 <camara-reconocimiento *ngIf="mostrandoCamara" #camaraRef [modo]="modoCamara"
                     [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
                     (identidadVerificada)="identidadVerificada.emit($event)"
-                    (fotoPerfilGuardada)="fotoPerfilGuardada.emit()">
+                    (fotoPerfilGuardada)="fotoPerfilGuardada.emit()"
+                    (similitudInsuficiente)="similitudInsuficiente.emit($event)">
                 </camara-reconocimiento>
 
                 <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">

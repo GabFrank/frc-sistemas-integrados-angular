@@ -4,9 +4,10 @@
 
     <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="32px" fxFlex>
 
-        <div fxFlex="35" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px" *ngIf="usuarioSeleccionado">
+        <div fxFlex="45" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px" *ngIf="usuarioSeleccionado">
             <resumen-marcaciones [usuarioNombre]="usuarioSeleccionado?.persona?.nombre"
-                [sucursalNombre]="sucursalActualNombre" [marcaciones]="marcacionesHoy" (limpiar)="limpiarEmpleado()">
+                [sucursalNombre]="sucursalActualNombre" [marcaciones]="marcacionesHoy" (limpiar)="limpiarEmpleado()"
+                (busquedaManual)="abrirBuscadorManual()" [similitudInsuficiente]="similitudInsuficiente">
             </resumen-marcaciones>
         </div>
 
@@ -18,7 +19,8 @@
                 [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
                 (registrarEntrada)="registrarEntrada()" (registrarSalida)="registrarSalida()"
                 (iniciarReconocimiento)="onIniciarReconocimiento()"
-                (identidadVerificada)="onIdentidadVerificada($event)" (fotoPerfilGuardada)="onFotoPerfilGuardada()">
+                (identidadVerificada)="onIdentidadVerificada($event)" (fotoPerfilGuardada)="onFotoPerfilGuardada()"
+                (similitudInsuficiente)="similitudInsuficiente = $event">
             </estado-marcacion>
 
             <busqueda-usuario #busquedaRef *ngIf="!usuarioSeleccionado" [mostrandoCamara]="mostrandoCamara"

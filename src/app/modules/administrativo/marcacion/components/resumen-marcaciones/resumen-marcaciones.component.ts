@@ -18,12 +18,14 @@ export class ResumenMarcacionesComponent {
 
     @Input() usuarioNombre = '';
     @Input() sucursalNombre = '';
+    @Input() similitudInsuficiente = false;
     @Input()
     set marcaciones(value: Marcacion[]) {
         this.dataSource.data = value || [];
     }
 
     @Output() limpiar = new EventEmitter<void>();
+    @Output() busquedaManual = new EventEmitter<void>();
 
     dataSource = new MatTableDataSource<Marcacion>([]);
     displayedColumns: string[] = ['id', 'usuario', 'entrada', 'salida'];

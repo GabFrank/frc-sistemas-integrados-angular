@@ -32,6 +32,7 @@ export class EstadoMarcacionComponent {
     @Output() iniciarReconocimiento = new EventEmitter<void>();
     @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string }>();
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
+    @Output() similitudInsuficiente = new EventEmitter<boolean>();
 
     @ViewChild('camaraRef') camaraRef: CamaraReconocimientoComponent;
 }

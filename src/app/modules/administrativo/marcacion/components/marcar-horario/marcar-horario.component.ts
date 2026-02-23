@@ -57,6 +57,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   marcacionesHoy: Marcacion[] = [];
   jornadaActual: Jornada = null;
+  similitudInsuficiente = false;
 
   private referenciaDescriptor: number[] | null = null;
   private embeddingCapturado: number[] | null = null;
@@ -141,6 +142,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.mensajeErrorFoto = '';
     this.referenciaDescriptor = null;
     this.embeddingCapturado = null;
+    this.similitudInsuficiente = false;
     this.camaraService.detenerCamara();
   }
   onUsuarioIdentificado(usuario: Usuario): void {
@@ -272,7 +274,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (jornadas: Jornada[]) => {
         if (jornadas && jornadas.length > 0) {
-          this.jornadaActual = jornadas[jornadas.length - 1];
+          this.jornadaActual = [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
         } else {
           this.jornadaActual = null;
         }
