@@ -464,7 +464,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     }, 1000);
   }
 
-     transferirCaja() {
+  transferirCaja() {
     this.matDialog.open(TransferirCajaDialogComponent, {
       data: {
         cajaId: this.selectedCaja.id

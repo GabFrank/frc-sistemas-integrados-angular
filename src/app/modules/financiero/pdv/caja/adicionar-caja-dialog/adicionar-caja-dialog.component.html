@@ -300,16 +300,16 @@
     </div>
   </div>
 </div>
-<div class="botonTransferir">
+<div class="botonTransferir" *ngIf="selectedCaja != null && selectedCaja.conteoCierre == null">
     <mat-icon matTooltip="Sirve para transferir la caja a otro usuario">info</mat-icon>
     <button
-        color="accent"
-        type="button"
-        mat-raised-button
-        style="width: 15%"
-        (click)="transferirCaja()"
+      color="accent"
+      type="button"
+      mat-raised-button
+      style="width: 15%"
+      (click)="transferirCaja()"
     >
-        Transferir caja
-        <mat-icon style="transform: scale(1.8);">compare_arrows</mat-icon>
+      Transferir caja
+      <mat-icon style="transform: scale(1.8);">compare_arrows</mat-icon>
     </button>
 </div>
