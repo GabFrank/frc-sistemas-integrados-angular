@@ -7,6 +7,7 @@ import {
   CrearComentarioNotificacionGQL,
   NotificacionComentario
 } from '../graphql/comentariosNotificacion.gql';
+import { UsuariosConAccesoNotificacionGQL } from '../graphql/usuariosConAccesoNotificacion.gql';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 
 @Injectable({
@@ -17,6 +18,8 @@ export class ComentariosNotificacionService {
   private readonly getComentariosGQL = inject(GetComentariosNotificacionGQL);
   private readonly getConteoGQL = inject(GetConteoComentariosNotificacionGQL);
   private readonly crearComentarioGQL = inject(CrearComentarioNotificacionGQL);
+  private readonly usuariosConAccesoGQL = inject(UsuariosConAccesoNotificacionGQL);
+
 
   private readonly _comentariosPorNotificacion$ = new BehaviorSubject<Map<number, NotificacionComentario[]>>(new Map());
   private readonly _conteosPorNotificacion$ = new BehaviorSubject<Map<number, number>>(new Map());
@@ -69,6 +72,10 @@ export class ComentariosNotificacionService {
         this._conteosPorNotificacion$.next(conteosActual);
       })
     );
+  }
+
+  obtenerUsuariosConAcceso(notificacionId: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(this.usuariosConAccesoGQL, { notificacionId }, true, null, true);
   }
 
   obtenerComentariosDesdeCache(notificacionId: number): NotificacionComentario[] | null {

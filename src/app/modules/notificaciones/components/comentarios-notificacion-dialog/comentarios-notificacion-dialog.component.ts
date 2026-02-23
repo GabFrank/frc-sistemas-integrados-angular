@@ -12,8 +12,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
 import { NotificacionComentario } from '../../graphql/comentariosNotificacion.gql';
 import { MainService } from '../../../../main.service';
-import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
-import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
+import { NotificacionesTableroService } from '../../services/notificaciones-tablero.service';
 import { Observable, interval, of } from 'rxjs';
 import { switchMap, tap, catchError, map } from 'rxjs/operators';
 import { MediaUploadService } from '../../../../shared/services/media-upload.service';
@@ -49,8 +48,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   private readonly dialogRef = inject(MatDialogRef<ComentariosNotificacionDialogComponent>);
   public readonly data = inject<ComentariosDialogData>(MAT_DIALOG_DATA);
   private readonly comentariosService = inject(ComentariosNotificacionService);
-  private readonly usuariosActivosGQL = inject(UsuariosActivosGQL);
-  private readonly usuariosConAccesoGQL = inject(UsuariosConAccesoNotificacionGQL);
+  private readonly tableroService = inject(NotificacionesTableroService);
   private readonly mainService = inject(MainService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly mediaUploadService = inject(MediaUploadService);
@@ -251,11 +249,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   }
 
   cargarUsuariosActivos(): void {
-    this.usuariosActivosGQL.fetch({}, { fetchPolicy: 'cache-first' })
+    this.tableroService.obtenerUsuariosActivos()
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (result: any) => {
-          this.usuarios = result.data?.data || [];
+        next: (usuarios) => {
+          this.usuarios = usuarios || [];
           this.cdr.markForCheck();
         }
       });
@@ -539,12 +537,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     this.cargandoUsuarios = true;
     this.cdr.markForCheck();
 
-    this.usuariosConAccesoGQL.fetch({ notificacionId: this.data.notificacionId }, { fetchPolicy: 'network-only' })
+    this.comentariosService.obtenerUsuariosConAcceso(this.data.notificacionId)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (result: any) => {
-          const rawUsuarios = result.errors ? [] : result.data?.data || [];
-          this.usuariosDestinatarios = rawUsuarios.map(u => this.mapUsuario(u));
+        next: (usuarios) => {
+          this.usuariosDestinatarios = (usuarios || []).map(u => this.mapUsuario(u));
           this.actualizarUsuariosDestinatariosFiltrados();
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();

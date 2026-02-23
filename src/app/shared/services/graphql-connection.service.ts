@@ -165,8 +165,10 @@ export class GraphqlConnectionService {
     const basic = setContext((operation, context) => ({}));
 
     // Create the context for token-based authentication
-    const auth = setContext((operation, context) => {
-      const token = localStorage.getItem("token");
+    const auth = setContext((_, context) => {
+      const isServidor = context.clientName === "servidor";
+      const token = isServidor ? (localStorage.getItem("token_central") || localStorage.getItem("token")) : localStorage.getItem("token");
+
       if (token === null) {
         return {};
       } else {

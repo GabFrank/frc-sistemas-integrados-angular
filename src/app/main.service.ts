@@ -212,6 +212,7 @@ export class MainService implements OnDestroy {
   logout(): void {
     // Clear authentication tokens
     localStorage.removeItem("token");
+    localStorage.removeItem("token_central");
     localStorage.removeItem("usuarioId");
     localStorage.removeItem("keepLogged");
 
