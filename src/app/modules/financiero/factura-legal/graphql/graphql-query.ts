@@ -13,6 +13,7 @@ export const facturaLegalesQuery = gql`
     $iva10: Boolean
     $isElectronico: Boolean
     $activo: Boolean
+    $sinNombre: Boolean
   ) {
     data: facturaLegales(
       page: $page
@@ -26,6 +27,7 @@ export const facturaLegalesQuery = gql`
       iva10: $iva10
       isElectronico: $isElectronico
       activo: $activo
+      sinNombre: $sinNombre
     ) {
       getTotalPages
       getTotalElements
@@ -336,6 +338,7 @@ export const resumenFacturasQuery = gql`
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $sinNombre: Boolean
   ) {
     data: findResumenFacturas(
       fechaInicio: $fechaInicio
@@ -345,6 +348,7 @@ export const resumenFacturasQuery = gql`
       ruc: $ruc
       iva5: $iva5
       iva10: $iva10
+      sinNombre: $sinNombre
     ) {
       cantFacturas
       maxNumero
