@@ -134,6 +134,7 @@
           *ngIf="selectedUsuario != null"
         >
           <mat-icon style="font-size: 2em" (click)="onClearPersona()"
+          class="highlight-hover-danger"
             >clear</mat-icon
           >
         </div>
@@ -141,7 +142,7 @@
     </div>
     <div
       fxLayout="row"
-      fxLayoutAlign="start center"
+      fxLayoutAlign="start start"
       fxLayoutGap="10px"
       style="width: 100%"
     >
@@ -180,6 +181,38 @@
             <mat-icon
               style="font-size: 2em"
               (click)="onClearProducto(producto, index)"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
+        </div>
+      </div>
+      <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
+         <div fxFlex fxLayoutAlign="start center">
+          <div fxFlex="63%" style="margin-left: 20px;">
+            <mat-form-field style="width: 100%">
+            <mat-label>Buscar subfamilia</mat-label>
+            <input
+              #subfamiliaInput
+              type="text"
+              matInput
+              [formControl]="buscarSubfamiliaControl"
+              (keyup.enter)="onBuscarSubFamilia()"
+            />
+          </mat-form-field>
+          </div>
+           <div fxFlex="10%" style="text-align: center">
+            <mat-icon class="icon" 
+              (click)="onBuscarSubFamilia(); $event.stopPropagation()"
+              >search</mat-icon
+            >
+          </div>
+           <div style="text-align: center">
+            <mat-icon
+              style="font-size: 2em"
+              (click)="onClearSubFamilia()"
+              *ngIf="selectedSubFamilia != null"
+              class="highlight-hover-danger"
               >clear</mat-icon
             >
           </div>
@@ -187,5 +220,226 @@
       </div>
     </div>
   </div>
-  <div table></div>
+  <div table fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start"
+    style="height: 80vh; width: 100%; overflow: hidden;">
+    <div fxFlex="20" fxLayout="column" fxLayoutGap="10px" class="resumen-container"
+      style="
+        background-color: rgb(32, 32, 32); 
+        height: 100%; 
+        overflow-y: auto; 
+        padding-right: 5px;
+      "
+    >
+      <br/>
+      <div class="titulo-center">Resumen</div>
+      
+      <div fxLayout="column" fxLayoutGap="10px" style="padding: 10px;">
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Venta Total:</div>
+          <div>
+            {{ totalVenta | number : "1.0-0" }} Gs.
+          </div>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Costo Total:</div>
+          <div>
+            {{ totalCosto | number : "1.0-0" }} Gs.
+          </div>
+        </div>
+        <mat-divider></mat-divider>
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Descuento Total:</div>
+          <div>
+            {{ totalDescuento | number : "1.0-0" }} Gs.
+          </div>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Aumento Total:</div>
+          <div>
+            {{ totalAumento | number : "1.0-0" }} Gs.
+          </div>
+        </div>
+        <mat-divider></mat-divider>
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Lucro Total:</div>
+          <div style="font-weight: bold; color: #4caf50;">
+            {{ totalLucro | number : "1.0-0" }} Gs.
+          </div>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="space-between center">
+          <div class="titulo">Margen Promedio:</div>
+          <div>
+            {{ margenPromedio | number : "1.2-2" }} %
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div 
+      fxFlex="80" 
+      style="
+        height: 100%; 
+        background-color: rgb(70, 70, 70); 
+        height: 100%; 
+        overflow-y: auto;" 
+      fxLayout="column" 
+      fxLayoutAlign="space-between start"
+    >
+      <div style="flex: 1; overflow: auto; width: 100%">
+        <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+          
+          <!-- ID Column -->
+          <ng-container matColumnDef="id">
+            <th 
+              mat-header-cell 
+              *matHeaderCellDef 
+              style="
+                text-align: center; 
+                width: 5%; 
+                padding: 0
+              "
+            > 
+              ID 
+            </th>
+            <td 
+              mat-cell 
+              *matCellDef="let producto" 
+              style="
+                text-align: center; 
+                width: 5%; 
+                padding: 0
+              "
+            > 
+              {{producto.productoId}} 
+            </td>
+          </ng-container>
+
+          <!-- Product Column -->
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef> 
+              Producto 
+            </th>
+            <td mat-cell *matCellDef="let producto"> 
+              {{producto.descripcion}} 
+            </td>
+          </ng-container>
+
+          <!-- Quantity Column -->
+          <ng-container matColumnDef="cantidad">
+            <th 
+              mat-header-cell 
+              *matHeaderCellDef 
+              style="text-align: center; padding: 0"
+            > 
+              Cantidad 
+            </th>
+            <td 
+              mat-cell 
+              *matCellDef="let producto" 
+              style="text-align: center; padding: 0"
+            > 
+              {{producto.cantidad | number: '1.0-2'}} 
+            </td>
+          </ng-container>
+
+          <!-- Medium Cost Column -->
+          <ng-container matColumnDef="costoUnitario">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Costo Medio 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.costoUnitario | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Medium Sale Column -->
+          <ng-container matColumnDef="ventaMedia">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Venta Media 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{ producto.ventaMedia | number: '1.0-0' }} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Total Cost Column -->
+          <ng-container matColumnDef="costoTotal">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Costo Total 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.costoTotal | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Total Sale Column -->
+          <ng-container matColumnDef="totalVenta">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Venta Total 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.totalVenta | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Discount Column -->
+          <ng-container matColumnDef="totalDescuento">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Descuento 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.totalDescuento | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Increase Column -->
+          <ng-container matColumnDef="totalAumento">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Aumento 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.totalAumento | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Profit Column -->
+          <ng-container matColumnDef="lucro">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Lucro 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment" 
+              [style.color]="producto.lucro >= 0 ? '#4caf50' : '#f44336'"
+              style="font-weight: bold;"
+            > 
+              {{producto.lucro | number: '1.0-0'}} Gs. 
+            </td>
+          </ng-container>
+
+          <!-- Margin Column -->
+          <ng-container matColumnDef="margen">
+            <th mat-header-cell *matHeaderCellDef class="cellAlignment"> 
+              Margen % 
+            </th>
+            <td mat-cell *matCellDef="let producto" class="cellAlignment"> 
+              {{producto.margen | number: '1.2-2'}} % 
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSize]="size"
+        [pageIndex]="page"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="handlePageEvent($event)"
+        showFirstLastButtons
+        aria-label="Select page"
+        style="width: 100%"
+      >
+      </mat-paginator>
+    </div>
+  </div>
 </app-generic-list>

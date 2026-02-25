@@ -1,5 +1,5 @@
 input {
-    text-transform: uppercase;
+  text-transform: uppercase;
 }
 
 .icon:hover {
@@ -9,4 +9,10 @@ input {
 
 .icon {
   font-size: 2em;
+}
+
+.cellAlignment {
+  text-align: center;
+  width: 8%;
+  padding: 0
 }
