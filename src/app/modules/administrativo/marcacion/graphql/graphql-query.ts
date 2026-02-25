@@ -42,6 +42,7 @@ const jornadaFragment = `
     id
     tipo
     fechaEntrada
+    fechaSalida
     sucursalEntrada {
       id
       nombre
@@ -51,15 +52,18 @@ const jornadaFragment = `
     id
     tipo
     fechaEntrada
+    fechaSalida
   }
   marcacionEntradaAlmuerzo {
     id
     tipo
     fechaEntrada
+    fechaSalida
   }
   marcacionSalida {
     id
     tipo
+    fechaEntrada
     fechaSalida
     sucursalSalida {
       id

@@ -17,6 +17,7 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../../n
 import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Jornada } from '../../models/jornada.model';
+import { TipoMarcacion } from '../../enums/tipo-marcacion.enum';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 
 import { DispositivoService } from '../../../../../shared/services/dispositivo.service';
@@ -295,12 +296,41 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   }
 
   private procesarMarcaciones(marcaciones: Marcacion[]) {
-    this.marcacionesHoy = (marcaciones || []).sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime());
-    const activa = marcaciones?.find(m => m.fechaEntrada && !m.fechaSalida);
+    const list = [...(marcaciones || [])];
 
-    if (activa) {
-      this.marcacionActiva = activa;
-      this.horaEntrada = new Date(activa.fechaEntrada);
+    // Extraemos fecha unificada para cada registro y ordenamos cronológicamente (más antiguo a más nuevo)
+    const sorted = list.map(m => {
+      const time = new Date(m.fechaEntrada || m.fechaSalida || 0).getTime();
+      return { m, time };
+    }).sort((a, b) => a.time - b.time);
+
+    const visualList: Marcacion[] = [];
+    let currentRaw: Marcacion = null;
+
+    for (const item of sorted) {
+      const m = item.m;
+      // "ENTRADA" o entrada sin salir (por compatibilidad hacia atrás)
+      if (m.tipo === TipoMarcacion.ENTRADA || (m.fechaEntrada && !m.fechaSalida)) {
+        currentRaw = m;
+        visualList.push(Object.assign(new Marcacion(), m));
+      } else if (m.tipo === TipoMarcacion.SALIDA || m.fechaSalida) {
+        if (currentRaw) {
+          // Si había una entrada pendiente, le acoplamos la salida
+          visualList[visualList.length - 1].fechaSalida = m.fechaSalida;
+          currentRaw = null;
+        } else {
+          // Si no, la agregamos huérfana
+          visualList.push(Object.assign(new Marcacion(), m));
+        }
+      }
+    }
+
+    // Invertimos nuevamente para que el frontend muestre la última arriba
+    this.marcacionesHoy = visualList.reverse();
+
+    if (currentRaw) {
+      this.marcacionActiva = currentRaw;
+      this.horaEntrada = new Date(currentRaw.fechaEntrada);
       this.estaEnJornada = true;
     } else {
       this.marcacionActiva = null;
@@ -372,8 +402,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   }
 
   private guardarSalida(contexto: MarcacionContexto) {
-    if (!this.marcacionActiva?.id) return;
-    this.marcacionService.onRegistrarSalida(this.marcacionActiva.id, contexto)
+    this.marcacionService.onRegistrarSalida(contexto)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => this.finalizarRegistro(res, 'Salida'),
@@ -390,30 +419,13 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       color: NotificacionColor.success,
       duracion: 4
     });
-    if (tipo === 'Entrada') {
-      this.marcacionActiva = marcacion;
-      this.horaEntrada = hora;
-      this.estaEnJornada = true;
-      this.marcacionesHoy = [marcacion, ...this.marcacionesHoy];
-    } else {
-      const index = this.marcacionesHoy.findIndex(m => m.id === marcacion.id);
-      if (index !== -1) {
-        const nuevaLista = [...this.marcacionesHoy];
-        nuevaLista[index] = marcacion;
-        this.marcacionesHoy = nuevaLista;
-      }
-      this.marcacionActiva = null;
-      this.horaEntrada = null;
-      this.estaEnJornada = false;
-    }
 
     this.limpiarEstadosCamara();
-    this.consultarJornadaActual();
-    this.cdr.markForCheck();
+    this.verificarMarcacionActiva();
   }
 
   private validarRegistro(esSalida = false): boolean {
-    if (esSalida && !this.marcacionActiva?.id) {
+    if (esSalida && !this.marcacionActiva) {
       this.notificarError('No hay una entrada activa para registrar salida');
       return false;
     }

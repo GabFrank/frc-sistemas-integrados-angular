@@ -206,7 +206,9 @@
                                     <tbody>
                                         <tr>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
-                                                selectedJornada?.marcacionSalidaAlmuerzo?.fechaEntrada | date:'HH:mm' ||
+                                                (selectedJornada?.marcacionSalidaAlmuerzo?.fechaSalida ||
+                                                selectedJornada?.marcacionSalidaAlmuerzo?.fechaEntrada) | date:'HH:mm'
+                                                ||
                                                 '--:--' }}</td>
                                             <td style="text-align: center; color: white; padding: 10px;">{{
                                                 selectedJornada?.marcacionEntradaAlmuerzo?.fechaEntrada | date:'HH:mm'

@@ -55,7 +55,7 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         { code: 'MADRUGADA', name: 'Madrugada' }
     ];
 
-    displayedColumns: string[] = ['entrada', 'salida', 'dias', 'turno', 'acciones'];
+    displayedColumns: string[] = ['id', 'entrada', 'salida', 'dias', 'turno', 'acciones'];
     dataSource = new MatTableDataSource<HorarioElement>([]);
 
     @ViewChild(MatPaginator) paginator: MatPaginator;

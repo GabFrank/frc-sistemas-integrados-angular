@@ -132,14 +132,13 @@ export class MarcacionService {
   }
 
   onRegistrarSalida(
-    marcacionId: number,
     contexto: MarcacionContexto,
     servidor = true
   ): Observable<Marcacion> {
     const input = new MarcacionInput();
-    input.id = marcacionId;
     input.usuarioId = contexto.usuarioId;
     input.tipo = TipoMarcacion.SALIDA;
+    input.sucursalEntradaId = contexto.sucursalId;
     input.sucursalSalidaId = contexto.sucursalId;
     input.fechaSalida = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());
     input.latitud = contexto.latitud;
