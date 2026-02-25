@@ -272,7 +272,7 @@
                       </div>
 
                       <!-- Dólares -->
-                      <div fxLayout="row" class="info-diferencia">
+                      <div fxLayout="row" class="info-diferencia" style="border-radius: 0 0 10px 10px;">
                         <div fxFlex="25">Dólares (US):</div>
                         <div fxFlex="25" class="center">
                           {{ item.montosCalculados?.cierre?.ds | number:'1.2-2' }}
@@ -532,7 +532,7 @@
                           </div>
                         </div>
 
-                        <div fxLayout="row" class="info-diferencia">
+                        <div fxLayout="row" class="info-diferencia" style="border-radius: 0 0 10px 10px">
                           <div fxFlex="60">Crédito:</div>
                           <div fxFlex="40" class="end">
                             {{ item.balance?.totalCredito | number:'1.0-0' }}
@@ -570,7 +570,7 @@
                           </div>
                         </div>
 
-                        <div fxLayout="row" class="info-diferencia">
+                        <div fxLayout="row" class="info-diferencia" style="border-radius: 0 0 10px 10px">
                           <div fxFlex="60">Dólares:</div>
                           <div fxFlex="40" class="end">
                             <span [ngClass]="{
