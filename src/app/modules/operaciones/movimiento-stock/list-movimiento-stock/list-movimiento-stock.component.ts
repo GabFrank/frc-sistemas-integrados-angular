@@ -637,7 +637,7 @@ export class ListMovimientoStockComponent implements OnInit {
       .subscribe((res: Usuario) => {
         if (res != null) {
           this.usuarioService
-            .onGetUsuarioPorPersonaId(res.id)
+            .onGetUsuario(res.id)
             .pipe(untilDestroyed(this))
             .subscribe((resUsuario) => {
               if (resUsuario != null) {
