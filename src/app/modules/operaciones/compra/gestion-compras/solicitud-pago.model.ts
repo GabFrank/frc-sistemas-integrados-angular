@@ -13,6 +13,37 @@ export enum SolicitudPagoEstado {
     CANCELADO = 'CANCELADO'
 }
 
+export interface SolicitudPagoDetalle {
+    id?: number;
+    moneda?: Moneda;
+    formaPago?: FormaPago;
+    valor: number;
+    fechaPago?: string;
+    observacion?: string;
+    cotizacion?: number;
+    orden?: number;
+    fechaEmisionCheque?: string;
+    portador?: string;
+    nominal?: boolean;
+    diferido?: boolean;
+    creadoEn?: string;
+}
+
+export interface SolicitudPagoDetalleInput {
+    id?: number;
+    monedaId?: number;
+    formaPagoId?: number;
+    valor: number;
+    fechaPago?: string;
+    observacion?: string;
+    cotizacion?: number;
+    orden?: number;
+    fechaEmisionCheque?: string;
+    portador?: string;
+    nominal?: boolean;
+    diferido?: boolean;
+}
+
 export class SolicitudPago {
     id?: number;
     proveedor: Proveedor;
@@ -28,6 +59,7 @@ export class SolicitudPago {
     usuario?: Usuario;
     pago?: Pago;
     notasRecepcion?: SolicitudPagoNotaRecepcion[];
+    detalles?: SolicitudPagoDetalle[];
 
     // Computed properties for UI
     estadoDisplayNameComputed?: string;
@@ -52,6 +84,23 @@ export class SolicitudPago {
         input.usuarioId = this?.usuario?.id;
         input.pagoId = this?.pago?.id;
         input.notaRecepcionIds = this?.notasRecepcion?.map(nr => nr?.notaRecepcion?.id).filter(id => id != null) || [];
+        input.detalles = this?.detalles?.map(d => {
+            const di: SolicitudPagoDetalleInput = {
+                monedaId: d.moneda?.id,
+                formaPagoId: d.formaPago?.id,
+                valor: d.valor,
+                fechaPago: d.fechaPago,
+                observacion: d.observacion,
+                cotizacion: d.cotizacion,
+                orden: d.orden,
+                fechaEmisionCheque: d.fechaEmisionCheque,
+                portador: d.portador,
+                nominal: d.nominal,
+                diferido: d.diferido
+            };
+            if (d.id) di.id = d.id;
+            return di;
+        }) || [];
         return input;
     }
 }
@@ -70,6 +119,7 @@ export class SolicitudPagoInput {
     usuarioId?: number;
     pagoId?: number;
     notaRecepcionIds?: number[];
+    detalles?: SolicitudPagoDetalleInput[];
 }
 
 export class SolicitudPagoNotaRecepcion {

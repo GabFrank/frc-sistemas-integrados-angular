@@ -1,1 +1,110 @@
-<p>list-proveedor works!</p>
+<app-generic-list
+  [titulo]="titulo"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
+  [isAdicionar]="true"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="40">
+        <mat-label>Nombre, documento o apodo</mat-label>
+        <input
+          matInput
+          [formControl]="textoControl"
+          placeholder="Buscar..."
+          (keyup.enter)="onFilter()"
+        />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Id</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Nombre</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          {{ row.persona?.nombre }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="documento">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Documento</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          {{ row.persona?.documento }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="apodo">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Apodo</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          {{ row.persona?.apodo }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="credito">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Crédito</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          {{ row.credito ? 'Sí' : 'No' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="chequeDias">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">Días cheque</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          {{ row.chequeDias }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef class="titulo-center">...</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditar(row)">
+              <mat-icon>edit</mat-icon>
+              Editar
+            </button>
+            <button mat-menu-item (click)="onGestionarProductosProveedor(row)">
+              <mat-icon>inventory_2</mat-icon>
+              Gestionar productos
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+    <mat-paginator
+      itemsPerPageLabel="Items por página"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="length"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>

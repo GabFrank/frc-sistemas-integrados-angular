@@ -7,6 +7,11 @@
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="15">
+        <mat-label>Número</mat-label>
+        <input matInput [formControl]="numeroControl" placeholder="Buscar por número..." (keyup.enter)="onFilter()" />
+      </mat-form-field>
+
       <mat-form-field fxFlex="25">
         <mat-label>Proveedor</mat-label>
         <input
@@ -44,6 +49,16 @@
             {{ opt.label }}
           </mat-option>
         </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+          <input matStartDate formControlName="inicio" placeholder="Desde" [max]="today" />
+          <input matEndDate formControlName="fin" placeholder="Hasta" [max]="today" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
       </mat-form-field>
     </div>
   </div>
@@ -119,6 +134,14 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onEditarPago(row)">
+              <mat-icon>edit</mat-icon>
+              Editar pago
+            </button>
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onGestionarPago(row)">
+              <mat-icon>payments</mat-icon>
+              Gestionar pago
+            </button>
             <button mat-menu-item (click)="onImprimir(row)">
               <mat-icon>print</mat-icon>
               Imprimir PDF
@@ -195,6 +218,7 @@
         *matRowDef="let row; columns: displayedColumns"
         class="example-element-row"
         [class.example-expanded-row]="expandedSolicitud === row"
+        [ngClass]="estadoToRowClass[row.estado] || ''"
         (click)="onRowClick(row)"
       ></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>

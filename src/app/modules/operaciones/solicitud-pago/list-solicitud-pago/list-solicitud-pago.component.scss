@@ -10,6 +10,18 @@ tr.example-detail-row {
   cursor: pointer;
 }
 
+.row-estado-parcial {
+  background-color: rgba(255, 235, 59, 0.5) !important;
+}
+
+.row-estado-concluido {
+  background-color: rgba(76, 175, 80, 0.5) !important;
+}
+
+.row-estado-cancelado {
+  background-color: rgba(244, 67, 54, 0.5) !important;
+}
+
 .example-element-row td {
   border-bottom-width: 0;
 }

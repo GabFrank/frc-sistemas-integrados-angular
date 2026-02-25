@@ -19,6 +19,7 @@ import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
+import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
@@ -300,6 +301,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'badge',
           action: 'funcionario-dashboard',
           visibilityRoles: [ROLES.VER_FUNCIONARIOS]
+        },
+        {
+          name: 'Proveedores',
+          icon: 'local_shipping',
+          action: 'list-proveedor',
+          visibilityRoles: [ROLES.VER_PERSONAS]
         },
         {
           name: 'Roles',
@@ -608,6 +615,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "funcionario-dashboard":
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");
+        break;
+      case "list-proveedor":
+        this.openTabIfAuthorized(ROLES.VER_PERSONAS, ListProveedorComponent, "Proveedores");
         break;
       case "thermal-printer":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)

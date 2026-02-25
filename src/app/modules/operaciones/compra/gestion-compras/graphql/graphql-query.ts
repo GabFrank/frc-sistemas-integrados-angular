@@ -1635,6 +1635,28 @@ export const solicitudPagoQuery = gql`
           valorTotal
         }
       }
+      detalles {
+        id
+        valor
+        fechaPago
+        observacion
+        cotizacion
+        orden
+        fechaEmisionCheque
+        portador
+        nominal
+        diferido
+        creadoEn
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        formaPago {
+          id
+          descripcion
+        }
+      }
     }
   }
 `;
@@ -1716,9 +1738,71 @@ export const saveSolicitudPagoMutation = gql`
   }
 `;
 
+export const actualizarSolicitudPagoMutation = gql`
+  mutation ($entity: SolicitudPagoInput!) {
+    data: actualizarSolicitudPago(entity: $entity) {
+      id
+      numeroSolicitud
+      fechaSolicitud
+      fechaPagoPropuesta
+      montoTotal
+      estado
+      observaciones
+      creadoEn
+      proveedor { id persona { nombre documento } }
+      moneda { id denominacion simbolo }
+      formaPago { id descripcion }
+      usuario { id persona { nombre } }
+      notasRecepcion { id montoIncluido notaRecepcion { id numero fecha valorTotal estado } }
+    }
+  }
+`;
+
 export const deleteSolicitudPagoMutation = gql`
   mutation ($id: ID!) {
     data: deleteSolicitudPago(id: $id)
+  }
+`;
+
+export const eliminarSolicitudPagoDetalleMutation = gql`
+  mutation ($id: ID!) {
+    data: eliminarSolicitudPagoDetalle(id: $id)
+  }
+`;
+
+export const agregarNotaASolicitudPagoMutation = gql`
+  mutation ($solicitudPagoId: ID!, $notaRecepcionId: ID!, $montoIncluido: Float!) {
+    data: agregarNotaASolicitudPago(solicitudPagoId: $solicitudPagoId, notaRecepcionId: $notaRecepcionId, montoIncluido: $montoIncluido) {
+      id
+      montoIncluido
+      creadoEn
+      notaRecepcion { id numero fecha valorTotal estado }
+    }
+  }
+`;
+
+export const removerNotaDeSolicitudPagoMutation = gql`
+  mutation ($solicitudPagoId: ID!, $notaRecepcionId: ID!) {
+    data: removerNotaDeSolicitudPago(solicitudPagoId: $solicitudPagoId, notaRecepcionId: $notaRecepcionId)
+  }
+`;
+
+export const agregarSolicitudPagoDetalleMutation = gql`
+  mutation ($solicitudPagoId: ID!, $detalle: SolicitudPagoDetalleInput!) {
+    data: agregarSolicitudPagoDetalle(solicitudPagoId: $solicitudPagoId, detalle: $detalle) {
+      id
+      valor
+      fechaPago
+      observacion
+      cotizacion
+      orden
+      fechaEmisionCheque
+      portador
+      nominal
+      diferido
+      moneda { id denominacion }
+      formaPago { id descripcion }
+    }
   }
 `;
 
@@ -1745,8 +1829,8 @@ export const imprimirSolicitudPagoTicketMutation = gql`
 `;
 
 export const solicitudesPagoPaginatedQuery = gql`
-  query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado) {
-    data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado) {
+  query ($page: Int, $size: Int, $proveedorId: ID, $estado: SolicitudPagoEstado, $numero: String, $fechaDesde: String, $fechaHasta: String) {
+    data: solicitudesPagoPaginated(page: $page, size: $size, proveedorId: $proveedorId, estado: $estado, numero: $numero, fechaDesde: $fechaDesde, fechaHasta: $fechaHasta) {
       getTotalPages
       getTotalElements
       getNumberOfElements

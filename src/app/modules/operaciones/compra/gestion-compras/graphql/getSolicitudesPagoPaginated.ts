@@ -8,6 +8,9 @@ export interface GetSolicitudesPagoPaginatedVariables {
   size?: number;
   proveedorId?: number;
   estado?: string;
+  numero?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
 }
 
 export interface SolicitudPagoPageResult {

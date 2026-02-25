@@ -62,6 +62,7 @@ import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/sear
 import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-stock-dialog/ajustar-stock-dialog.component";
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -449,6 +450,19 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.expandedProducto = null;
         this.onFiltrar();
       }
+    });
+  }
+
+  onGestionarProveedoresProducto(producto: Producto): void {
+    this.matDialog.open(GestionProveedoresProductoDialogComponent, {
+      data: { producto },
+      width: '50vw',
+      height: '50vh',
+      maxWidth: '50vw',
+      maxHeight: '50vh',
+      panelClass: 'gestion-proveedores-producto-dialog-panel',
+    }).afterClosed().subscribe(() => {
+      this.expandedProducto = null;
     });
   }
 

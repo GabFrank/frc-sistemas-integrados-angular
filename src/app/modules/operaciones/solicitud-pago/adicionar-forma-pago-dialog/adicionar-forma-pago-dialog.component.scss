@@ -1,0 +1,39 @@
+.dialog-container {
+  min-width: 400px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .observaciones-field {
+    flex: 1 1 100%;
+  }
+
+  .valor-field {
+    max-width: 160px;
+  }
+
+  .portador-field {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  mat-checkbox {
+    margin: 0 0.5rem;
+  }
+}
+
+.bloque-cheque {
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}

@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Observable, switchMap } from "rxjs";
+import { map } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { ProveedoresSearchByPersonaGQL } from "./graphql/proveedorSearchByPersona";
 import { SaveProveedorGQL } from "./graphql/saveProveedor";
@@ -13,8 +14,13 @@ import {
   TableData,
 } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { AdicionarProveedorDialogComponent } from "./adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
 import { ProveedoresSearchByPersonaPageGQL } from "./graphql/proveedorSearchByPersonaPage";
+import { EditProveedorComponent } from "./edit-proveedor/edit-proveedor.component";
+
+export interface ProveedorPageResult {
+  getContent?: Proveedor[];
+  getTotalElements?: number;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -30,6 +36,25 @@ export class ProveedorService {
     private proveedorSearchByPersonaPage: ProveedoresSearchByPersonaPageGQL,
     private dialog: MatDialog
   ) {}
+
+  onGetProveedoresPaginated(
+    page: number,
+    size: number,
+    texto?: string
+  ): Observable<ProveedorPageResult> {
+    return this.genericService.onCustomQuery(
+      this.proveedorSearchByPersonaPage,
+      { texto: texto?.trim() || null, page, size },
+      true,
+      null,
+      true
+    ).pipe(
+      map((pageResult: ProveedorPageResult) => ({
+        getContent: pageResult?.getContent ?? [],
+        getTotalElements: pageResult?.getTotalElements ?? 0
+      }))
+    );
+  }
 
   onSearch(text: string): Observable<Proveedor[]> {
     return this.genericService.onGetByTexto(this.proveedorSearch, text);
@@ -99,9 +124,8 @@ export class ProveedorService {
           switchMap((res) => {
             if (res != null) {
               if (res["adicionar"] === true) {
-                // If "adicionar", open the AdicionarProveedorDialogComponent
                 return this.dialog
-                  .open(AdicionarProveedorDialogComponent, { width: "600px" })
+                  .open(EditProveedorComponent, { width: "600px", data: {} })
                   .afterClosed();
               } else if (res?.id != null) {
                 // If a valid result is selected, emit it as an observable
@@ -120,7 +144,10 @@ export class ProveedorService {
         .subscribe({
           next: (result) => {
             if (result) {
-              observer.next(result); // Emit the result to the observer
+              const proveedor = result?.proveedor ?? result;
+              if (proveedor?.id) {
+                observer.next(proveedor);
+              }
             }
           },
           error: (err) => {

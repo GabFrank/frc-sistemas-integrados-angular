@@ -2,7 +2,7 @@ import { Component, Inject, OnInit, AfterViewInit, ViewChild, ElementRef } from 
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
-import { SolicitudPagoInput, SolicitudPagoEstado } from '../../compra/gestion-compras/solicitud-pago.model';
+import { SolicitudPago, SolicitudPagoInput, SolicitudPagoEstado, SolicitudPagoDetalle, SolicitudPagoDetalleInput } from '../../compra/gestion-compras/solicitud-pago.model';
 import { NotaRecepcion } from '../../compra/gestion-compras/nota-recepcion.model';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
@@ -10,10 +10,11 @@ import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { FormaPagoService } from '../../../financiero/forma-pago/forma-pago.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { AdicionarNotaDialogComponent } from '../adicionar-nota-dialog/adicionar-nota-dialog.component';
+import { AdicionarFormaPagoDialogComponent } from '../adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 
 @Component({
   selector: 'app-create-edit-solicitud-pago-dialog',
@@ -29,19 +30,31 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   formaPagoList: FormaPago[] = [];
   /** Notas con display de proveedor para la tabla (sin usar funciones en template). */
   notasAgregadas: (NotaRecepcion & { proveedorNombreDisplay?: string })[] = [];
+  /** Detalles (formas de pago) con display para la tabla. */
+  detallesAgregados: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] = [];
 
   proveedorNombreDisplay = '';
   montoTotalComputed = 0;
+  totalFormasPagoComputed = 0;
   saving = false;
 
-  displayedColumnsNotas: string[] = ['proveedor', 'numero', 'fecha', 'valorTotal', 'quitar'];
+  /** Modo edición: true cuando se abre con solicitudPago existente. */
+  isEditMode = false;
+  /** Solo PENDIENTE permite editar. CANCELADO, CONCLUIDO, PARCIAL = solo lectura. */
+  isEditable = false;
+  tituloDialogo = 'Nueva solicitud de pago';
+  solicitudPagoId: number;
+
+  displayedColumnsNotas: string[] = ['numero', 'fecha', 'valorTotal', 'quitar'];
+  displayedColumnsDetalles: string[] = ['moneda', 'formaPago', 'valor', 'fechaPago', 'observacion', 'quitar'];
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CreateEditSolicitudPagoDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { proveedorId?: number },
+    @Inject(MAT_DIALOG_DATA) public data: { proveedorId?: number; solicitudPago?: SolicitudPago },
     private solicitudPagoService: SolicitudPagoService,
     private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
     private monedaService: MonedaService,
     private formaPagoService: FormaPagoService,
     private dialog: MatDialog,
@@ -49,20 +62,74 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     private mainService: MainService
   ) {
     this.form = this.fb.group({
-      monedaId: [null, Validators.required],
-      formaPagoId: [null, Validators.required],
-      fechaPagoPropuesta: [null],
       observaciones: ['']
     });
   }
 
   ngOnInit(): void {
-    if (this.data?.proveedorId) {
-      this.selectedProveedor = { id: this.data.proveedorId, persona: { nombre: '' } } as Proveedor;
-      this.proveedorNombreDisplay = 'Proveedor preseleccionado';
+    if (this.data?.solicitudPago) {
+      this.isEditMode = true;
+      this.solicitudPagoId = this.data.solicitudPago.id;
+      this.isEditable = this.data.solicitudPago.estado === SolicitudPagoEstado.PENDIENTE;
+      this.tituloDialogo = this.isEditable ? 'Editar solicitud de pago' : 'Ver solicitud de pago';
+      this.loadSolicitudParaEdicion();
+    } else {
+      this.isEditable = true;
+      if (this.data?.proveedorId) {
+        this.selectedProveedor = { id: this.data.proveedorId, persona: { nombre: '' } } as Proveedor;
+        this.proveedorNombreDisplay = 'Proveedor preseleccionado';
+      }
     }
     this.loadMonedas();
     this.loadFormasPago();
+  }
+
+  private loadSolicitudParaEdicion(): void {
+    this.solicitudPagoService.onGetById(this.solicitudPagoId).subscribe({
+      next: (sp: SolicitudPago) => {
+        this.selectedProveedor = sp.proveedor;
+        this.proveedorNombreDisplay = (sp?.proveedor?.persona?.nombre || '').toString().toUpperCase();
+        this.form.patchValue({
+          observaciones: sp.observaciones || ''
+        });
+        if (sp.notasRecepcion?.length) {
+          this.notasAgregadas = sp.notasRecepcion.map((nr) => {
+            const nota = nr.notaRecepcion;
+            const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
+            const n = nota as NotaRecepcion & { proveedorNombreDisplay?: string };
+            n.proveedorNombreDisplay = display;
+            return n;
+          });
+          this.updateMontoTotal();
+        }
+        if (sp.detalles?.length) {
+          this.detallesAgregados = sp.detalles.map((d) => ({
+            id: d.id,
+            monedaId: d.moneda?.id,
+            formaPagoId: d.formaPago?.id,
+            valor: d.valor,
+            fechaPago: d.fechaPago,
+            observacion: d.observacion,
+            cotizacion: d.cotizacion,
+            orden: d.orden,
+            fechaEmisionCheque: d.fechaEmisionCheque,
+            portador: d.portador,
+            nominal: d.nominal,
+            diferido: d.diferido,
+            monedaDenominacion: (d.moneda?.denominacion || '').toString().toUpperCase(),
+            formaPagoDescripcion: (d.formaPago?.descripcion || '').toString().toUpperCase()
+          }));
+          this.updateTotalFormasPago();
+        }
+        if (!this.isEditable) {
+          this.form.disable();
+        }
+      },
+      error: () => {
+        this.notificacionService.openAlgoSalioMal('Error al cargar la solicitud');
+        this.dialogRef.close(false);
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -120,6 +187,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
     }
+    const idsAntes = new Set(this.notasAgregadas.map((n) => n.id));
     const ref = this.dialog.open(AdicionarNotaDialogComponent, {
       width: '50vw',
       data: {
@@ -128,35 +196,230 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       }
     });
     ref.afterClosed().subscribe((notas: NotaRecepcion[] | null) => {
-      if (notas?.length) {
-        const idsAgregados = new Set(this.notasAgregadas.map((n) => n.id));
-        notas.forEach((nota) => {
-          if (!idsAgregados.has(nota.id)) {
-            const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-            const notaWithDisplay = nota as NotaRecepcion & { proveedorNombreDisplay?: string };
-            notaWithDisplay.proveedorNombreDisplay = display;
-            this.notasAgregadas.push(notaWithDisplay);
-            idsAgregados.add(nota.id);
-          }
+      if (!notas?.length) return;
+      const newNotas: (NotaRecepcion & { proveedorNombreDisplay?: string })[] = [];
+      notas.forEach((nota) => {
+        if (!idsAntes.has(nota.id)) {
+          const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
+          const notaWithDisplay = nota as NotaRecepcion & { proveedorNombreDisplay?: string };
+          notaWithDisplay.proveedorNombreDisplay = display;
+          this.notasAgregadas.push(notaWithDisplay);
+          newNotas.push(notaWithDisplay);
+        }
+      });
+      if (newNotas.length === 0) return;
+      this.updateMontoTotal();
+      if (this.solicitudPagoId != null) {
+        this.saving = true;
+        const queue = newNotas.map((nota) =>
+          this.solicitudPagoService.onAgregarNotaASolicitudPago(
+            this.solicitudPagoId,
+            nota.id,
+            nota.valorTotal ?? 0
+          )
+        );
+        let done = 0;
+        const total = queue.length;
+        queue.forEach((obs) => {
+          obs.subscribe({
+            next: () => {
+              done++;
+              if (done === total) this.saving = false;
+            },
+            error: () => {
+              this.notificacionService.openAlgoSalioMal('Error al vincular nota');
+              this.saving = false;
+            }
+          });
         });
-        this.updateMontoTotal();
+      } else {
+        this.crearSolicitudYActivarEdicion();
       }
     });
   }
 
   onQuitarNota(index: number): void {
-    this.notasAgregadas.splice(index, 1);
-    this.updateMontoTotal();
+    const nota = this.notasAgregadas[index];
+    if (!nota) return;
+    const textoNota = nota.numero != null ? `la nota Nº ${nota.numero}` : 'esta nota de recepción';
+    this.dialogosService
+      .confirm('Eliminar nota de recepción', `¿Está seguro de que desea quitar ${textoNota} de la solicitud?`)
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        if (this.solicitudPagoId != null) {
+          this.saving = true;
+          this.solicitudPagoService.onRemoverNotaDeSolicitudPago(this.solicitudPagoId, nota.id).subscribe({
+            next: () => {
+              this.notasAgregadas.splice(index, 1);
+              this.updateMontoTotal();
+              this.saving = false;
+            },
+            error: () => {
+              this.notificacionService.openAlgoSalioMal('No se pudo desvincular la nota');
+              this.saving = false;
+            }
+          });
+        } else {
+          this.notasAgregadas.splice(index, 1);
+          this.updateMontoTotal();
+        }
+      });
+  }
+
+  onAgregarFormaPago(): void {
+    if (!this.selectedProveedor?.id) {
+      this.notificacionService.openWarn('Seleccione un proveedor');
+      return;
+    }
+    if (!this.solicitudPagoId && this.notasAgregadas.length < 1) {
+      this.notificacionService.openWarn('Agregue al menos una nota de recepción antes de agregar forma de pago');
+      return;
+    }
+    const ref = this.dialog.open(AdicionarFormaPagoDialogComponent, {
+      width: '50vw',
+      data: {
+        monedaList: this.monedaList,
+        formaPagoList: this.formaPagoList,
+        proveedorNombre: this.proveedorNombreDisplay,
+        montoSugerido: this.montoTotalComputed,
+        solicitudPagoId: this.isEditMode ? this.solicitudPagoId : undefined
+      }
+    });
+    ref.afterClosed().subscribe((detalle: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }) | null) => {
+      if (!detalle) return;
+      const row = {
+        ...detalle,
+        monedaDenominacion: detalle.monedaDenominacion ?? (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
+        formaPagoDescripcion: detalle.formaPagoDescripcion ?? (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
+      };
+      this.detallesAgregados.push(row);
+      this.updateTotalFormasPago();
+      if (this.solicitudPagoId != null) {
+        this.saving = true;
+        const detalleInput: SolicitudPagoDetalleInput = {
+          monedaId: detalle.monedaId,
+          formaPagoId: detalle.formaPagoId,
+          valor: detalle.valor,
+          fechaPago: detalle.fechaPago,
+          observacion: detalle.observacion,
+          cotizacion: detalle.cotizacion,
+          orden: detalle.orden,
+          fechaEmisionCheque: detalle.fechaEmisionCheque,
+          portador: detalle.portador,
+          nominal: detalle.nominal,
+          diferido: detalle.diferido
+        };
+        this.solicitudPagoService.onAgregarSolicitudPagoDetalle(this.solicitudPagoId, detalleInput).subscribe({
+          next: (res: any) => {
+            if (res?.id != null) {
+              const last = this.detallesAgregados[this.detallesAgregados.length - 1];
+              if (last) last.id = res.id;
+            }
+            this.saving = false;
+          },
+          error: () => {
+            this.notificacionService.openAlgoSalioMal('Error al agregar forma de pago');
+            this.detallesAgregados.pop();
+            this.updateTotalFormasPago();
+            this.saving = false;
+          }
+        });
+      } else {
+        this.crearSolicitudYActivarEdicion();
+      }
+    });
+  }
+
+  onQuitarDetalle(index: number): void {
+    const detalle = this.detallesAgregados[index];
+    if (!detalle) return;
+    const descripcion = detalle.formaPagoDescripcion
+      ? `${detalle.formaPagoDescripcion} - ${detalle.valor != null ? detalle.valor : ''}`
+      : 'esta forma de pago';
+    this.dialogosService
+      .confirm(
+        'Eliminar forma de pago',
+        `¿Está seguro de que desea eliminar ${descripcion}?`
+      )
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        const tieneId = detalle.id != null && this.isEditMode;
+        if (tieneId) {
+          this.solicitudPagoService.onEliminarSolicitudPagoDetalle(detalle.id).subscribe({
+            next: () => {
+              this.detallesAgregados.splice(index, 1);
+              this.updateTotalFormasPago();
+            },
+            error: () => {
+              this.notificacionService.openAlgoSalioMal('No se pudo eliminar la forma de pago');
+            }
+          });
+        } else {
+          this.detallesAgregados.splice(index, 1);
+          this.updateTotalFormasPago();
+        }
+      });
+  }
+
+  private updateTotalFormasPago(): void {
+    this.totalFormasPagoComputed = this.detallesAgregados.reduce((sum, d) => sum + (d.valor ?? 0), 0);
   }
 
   private updateMontoTotal(): void {
-    this.montoTotalComputed = this.notasAgregadas.reduce(
-      (sum, n) => sum + (n.valorTotal ?? (n as any).valor ?? 0),
+    const sum = this.notasAgregadas.reduce(
+      (acc, n) => acc + (n.valorTotal ?? (n as any).valor ?? 0),
       0
     );
+    // Redondear para evitar decimales por errores de punto flotante (valorTotal viene como Double del backend; suma en JS puede dar 962499.9999999)
+    this.montoTotalComputed = Math.round(sum);
+  }
+
+  private buildInputForSave(): SolicitudPagoInput {
+    const detallesInput: SolicitudPagoDetalleInput[] = (this.detallesAgregados || []).map((d) => ({
+      monedaId: d.monedaId,
+      formaPagoId: d.formaPagoId,
+      valor: d.valor,
+      fechaPago: d.fechaPago,
+      observacion: d.observacion,
+      cotizacion: d.cotizacion,
+      orden: d.orden,
+      fechaEmisionCheque: d.fechaEmisionCheque,
+      portador: d.portador,
+      nominal: d.nominal,
+      diferido: d.diferido
+    }));
+    return {
+      proveedorId: this.selectedProveedor.id,
+      montoTotal: this.montoTotalComputed,
+      estado: SolicitudPagoEstado.PENDIENTE,
+      notaRecepcionIds: this.notasAgregadas.map((n) => n.id),
+      observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined,
+      usuarioId: this.mainService?.usuarioActual?.id,
+      detalles: detallesInput
+    };
+  }
+
+  private crearSolicitudYActivarEdicion(): void {
+    if (!this.notasAgregadas.length) return;
+    const input = this.buildInputForSave();
+    this.saving = true;
+    this.solicitudPagoService.onSaveInput(input).subscribe({
+      next: (result: SolicitudPago) => {
+        this.saving = false;
+        if (result?.id != null) {
+          this.solicitudPagoId = result.id;
+          this.isEditMode = true;
+          this.tituloDialogo = 'Editar solicitud de pago';
+        }
+      },
+      error: () => {
+        this.saving = false;
+      }
+    });
   }
 
   onGuardar(): void {
+    if (!this.isEditable) return;
     if (!this.selectedProveedor?.id) {
       this.notificacionService.openWarn('Seleccione un proveedor');
       return;
@@ -169,35 +432,53 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       this.notificacionService.openWarn('Agregue al menos una nota de recepción');
       return;
     }
+    const detallesInput: SolicitudPagoDetalleInput[] = (this.detallesAgregados || []).map((d) => ({
+      monedaId: d.monedaId,
+      formaPagoId: d.formaPagoId,
+      valor: d.valor,
+      fechaPago: d.fechaPago,
+      observacion: d.observacion,
+      cotizacion: d.cotizacion,
+      orden: d.orden,
+      fechaEmisionCheque: d.fechaEmisionCheque,
+      portador: d.portador,
+      nominal: d.nominal,
+      diferido: d.diferido
+    }));
 
     const input: SolicitudPagoInput = {
       proveedorId: this.selectedProveedor.id,
       montoTotal: this.montoTotalComputed,
-      monedaId: this.form.get('monedaId').value,
-      formaPagoId: this.form.get('formaPagoId').value,
       estado: SolicitudPagoEstado.PENDIENTE,
       notaRecepcionIds: this.notasAgregadas.map((n) => n.id),
       observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined,
-      usuarioId: this.mainService?.usuarioActual?.id
+      usuarioId: this.mainService?.usuarioActual?.id,
+      detalles: detallesInput
     };
-    const fp = this.form.get('fechaPagoPropuesta').value;
-    if (fp) {
-      const d = fp instanceof Date ? fp : new Date(fp);
-      if (!isNaN(d.getTime())) {
-        input.fechaPagoPropuesta = dateToString(d);
-      }
-    }
 
     this.saving = true;
-    this.solicitudPagoService.onSaveInput(input).subscribe({
-      next: () => {
-        this.notificacionService.openSucess('Solicitud de pago creada');
-        this.dialogRef.close(true);
-      },
-      error: () => {
-        this.saving = false;
-      }
-    });
+    if (this.isEditMode) {
+      input.id = this.solicitudPagoId;
+      this.solicitudPagoService.onActualizarSolicitudPago(input).subscribe({
+        next: () => {
+          this.notificacionService.openSucess('Solicitud de pago actualizada');
+          this.dialogRef.close(true);
+        },
+        error: () => {
+          this.saving = false;
+        }
+      });
+    } else {
+      this.solicitudPagoService.onSaveInput(input).subscribe({
+        next: () => {
+          this.notificacionService.openSucess('Solicitud de pago creada');
+          this.dialogRef.close(true);
+        },
+        error: () => {
+          this.saving = false;
+        }
+      });
+    }
   }
 
   onCancelar(): void {

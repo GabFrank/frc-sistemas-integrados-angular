@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { SolicitudPago, SolicitudPagoInput, SolicitudPagoEstado } from './solicitud-pago.model';
+import { SolicitudPago, SolicitudPagoInput, SolicitudPagoDetalleInput, SolicitudPagoEstado } from './solicitud-pago.model';
 import { NotaRecepcion } from './nota-recepcion.model';
 import { GetSolicitudesPorPedidoGQL } from './graphql/getSolicitudesPorPedido';
 import { GetSolicitudPagoGQL } from './graphql/getSolicitudPago';
@@ -15,7 +15,12 @@ import {
 import { NotaRecepcionPageResult } from './graphql/getNotasDisponiblesParaPagoPorProveedorPaginated';
 import { SaveSolicitudPagoGQL } from './graphql/saveSolicitudPago';
 import { DeleteSolicitudPagoGQL } from './graphql/deleteSolicitudPago';
+import { EliminarSolicitudPagoDetalleGQL } from './graphql/eliminarSolicitudPagoDetalle';
+import { AgregarSolicitudPagoDetalleGQL } from './graphql/agregarSolicitudPagoDetalle';
+import { AgregarNotaASolicitudPagoGQL } from './graphql/agregarNotaASolicitudPago';
+import { RemoverNotaDeSolicitudPagoGQL } from './graphql/removerNotaDeSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
+import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
 import { SolicitudPagoPageResult } from './graphql/getSolicitudesPagoPaginated';
@@ -38,7 +43,12 @@ export class SolicitudPagoService {
     private getNotasDisponiblesParaPagoPorProveedorPaginatedGQL: GetNotasDisponiblesParaPagoPorProveedorPaginatedGQL,
     private saveSolicitudPagoGQL: SaveSolicitudPagoGQL,
     private deleteSolicitudPagoGQL: DeleteSolicitudPagoGQL,
+    private eliminarSolicitudPagoDetalleGQL: EliminarSolicitudPagoDetalleGQL,
+    private agregarSolicitudPagoDetalleGQL: AgregarSolicitudPagoDetalleGQL,
+    private agregarNotaASolicitudPagoGQL: AgregarNotaASolicitudPagoGQL,
+    private removerNotaDeSolicitudPagoGQL: RemoverNotaDeSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
+    private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
     private genericCrudService: GenericCrudService,
@@ -90,11 +100,14 @@ export class SolicitudPagoService {
     page: number,
     size: number,
     proveedorId?: number,
-    estado?: string
+    estado?: string,
+    numero?: string,
+    fechaDesde?: string,
+    fechaHasta?: string
   ): Observable<SolicitudPagoPageResult> {
     return this.genericCrudService.onCustomQuery(
       this.getSolicitudesPagoPaginatedGQL,
-      { page, size, proveedorId, estado },
+      { page, size, proveedorId, estado, numero, fechaDesde, fechaHasta },
       true,
       null,
       true
@@ -213,11 +226,64 @@ export class SolicitudPagoService {
   }
 
   /**
+   * Elimina un detalle (forma de pago) de solicitud de pago por id.
+   * Usar después de confirmación del usuario (sin diálogo propio).
+   */
+  onEliminarSolicitudPagoDetalle(id: number): Observable<boolean> {
+    return this.genericCrudService.onDelete(
+      this.eliminarSolicitudPagoDetalleGQL,
+      id,
+      null,
+      null,
+      false
+    );
+  }
+
+  /**
+   * Agrega un detalle (forma de pago) a una solicitud existente en el backend.
+   */
+  onAgregarSolicitudPagoDetalle(solicitudPagoId: number, detalle: SolicitudPagoDetalleInput): Observable<any> {
+    return this.genericCrudService.onCustomMutation(
+      this.agregarSolicitudPagoDetalleGQL,
+      { solicitudPagoId, detalle }
+    );
+  }
+
+  /**
+   * Agrega una nota de recepción a una solicitud de pago ya persistida.
+   */
+  onAgregarNotaASolicitudPago(solicitudPagoId: number, notaRecepcionId: number, montoIncluido: number): Observable<any> {
+    return this.genericCrudService.onCustomMutation(
+      this.agregarNotaASolicitudPagoGQL,
+      { solicitudPagoId, notaRecepcionId, montoIncluido }
+    );
+  }
+
+  /**
+   * Remueve el vínculo entre una solicitud de pago y una nota de recepción.
+   */
+  onRemoverNotaDeSolicitudPago(solicitudPagoId: number, notaRecepcionId: number): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(
+      this.removerNotaDeSolicitudPagoGQL,
+      { solicitudPagoId, notaRecepcionId }
+    );
+  }
+
+  /**
    * Actualiza el estado de una solicitud de pago
    * @param id ID de la solicitud de pago
    * @param estado Nuevo estado
    * @returns Observable con la solicitud de pago actualizada
    */
+  onActualizarSolicitudPago(input: SolicitudPagoInput): Observable<SolicitudPago> {
+    return this.genericCrudService.onSave<SolicitudPago>(
+      this.actualizarSolicitudPagoGQL,
+      input
+    ).pipe(
+      map(result => this.processComputedProperty(result as SolicitudPago))
+    );
+  }
+
   onActualizarEstado(id: number, estado: SolicitudPagoEstado): Observable<SolicitudPago> {
     return this.genericCrudService.onCustomMutation(
       this.actualizarEstadoSolicitudPagoGQL, 

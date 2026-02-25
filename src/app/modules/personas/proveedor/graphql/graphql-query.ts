@@ -211,6 +211,8 @@ export const proveedorSearchByPersonaPage = gql`
       hasPrevious
       getContent {
         id
+        credito
+        chequeDias
         persona {
           id
           nombre

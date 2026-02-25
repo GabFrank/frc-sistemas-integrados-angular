@@ -486,3 +486,22 @@ input {
     }
   }
 }
+
+.gestion-proveedores-producto-dialog-panel {
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 50vh;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-surface {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+}

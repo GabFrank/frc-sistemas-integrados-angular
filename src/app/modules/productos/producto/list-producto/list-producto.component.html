@@ -425,6 +425,18 @@
               <mat-icon>price_change</mat-icon>
               Ajustar costo
             </button>
+            <button
+              mat-menu-item
+              (click)="onGestionarProveedoresProducto(producto)"
+              *ngIf="
+                mainService.usuarioActual?.roles?.includes(
+                  ROLES.EDITAR_PRODUCTOS
+                )
+              "
+            >
+              <mat-icon>local_shipping</mat-icon>
+              Gestionar proveedores
+            </button>
           </mat-menu>
         </td>
       </ng-container>

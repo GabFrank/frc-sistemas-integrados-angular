@@ -121,7 +121,7 @@ export class SolicitudPagoDashboardComponent implements OnInit {
   onNuevaSolicitud(): void {
     const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
       width: '60vw',
-      maxHeight: '90vh',
+      height: '70vh',
       data: { proveedorId: this.selectedProveedor?.id }
     });
     dialogRef.afterClosed().subscribe((saved) => {

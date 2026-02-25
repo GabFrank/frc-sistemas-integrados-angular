@@ -3,24 +3,35 @@ import gql from "graphql-tag";
 export const productoProveedorPorProductoId = gql`
   query ($id: ID!, $page: Int, $size: Int) {
     data: productoProveedorPorProductoId(id: $id, page: $page, size: $size) {
-      id
-      producto {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        descripcion
-      }
-      proveedor {
-        id
-        persona {
+        producto {
           id
-          nombre
+          descripcion
         }
-      }
-      pedido {
-        id
-      }
-      creadoEn
-      usuario {
-        id
+        proveedor {
+          id
+          persona {
+            id
+            nombre
+          }
+        }
+        pedido {
+          id
+        }
+        creadoEn
+        usuario {
+          id
+        }
+        activo
+        motivoDesvinculacion
       }
     }
   }
@@ -94,6 +105,26 @@ export const desvincularProductoProveedor = gql`
       id
       activo
       motivoDesvinculacion
+    }
+  }
+`;
+
+export const saveProductoProveedor = gql`
+  mutation saveProductoProveedor($input: ProductoProveedorInput!) {
+    data: saveProductoProveedor(input: $input) {
+      id
+      producto {
+        id
+        descripcion
+      }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      activo
     }
   }
 `;

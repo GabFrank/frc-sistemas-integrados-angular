@@ -1,0 +1,31 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title class="titulo-center font-medium">Gestionar pago</h2>
+
+  <mat-dialog-content>
+    <div class="info-solicitud" *ngIf="data?.solicitudPago">
+      <p class="info-line"><strong>Nro:</strong> {{ data.solicitudPago.numeroSolicitud || data.solicitudPago.id }}</p>
+      <p class="info-line"><strong>Proveedor:</strong> {{ data.solicitudPago.proveedor?.persona?.nombre | uppercase }}</p>
+      <p class="info-line"><strong>Monto:</strong> {{ data.solicitudPago.moneda?.simbolo }} {{ data.solicitudPago.montoTotal | number:'1.0-0' }}</p>
+    </div>
+
+    <form [formGroup]="form">
+      <mat-form-field appearance="outline" class="estado-field">
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="estado">
+          <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">
+            {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </form>
+
+    <!-- TODO: Más opciones serán implementadas futuramente -->
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="saving || form.invalid">
+      {{ saving ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </mat-dialog-actions>
+</div>

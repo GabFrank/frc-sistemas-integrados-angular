@@ -1,8 +1,11 @@
 .dialog-container {
   min-width: 100%;
   width: 100%;
-  min-height: 420px;
+  height: 100%;
+  min-height: 400px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 
   h2[mat-dialog-title] {
     margin: 0;
@@ -11,10 +14,96 @@
 
   mat-dialog-content {
     padding: 1rem 1rem 1rem;
-    min-height: 320px;
-    max-height: calc(90vh - 140px);
-    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-group-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .tab-group-full-height {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+
+      ::ng-deep .mat-mdc-tab-body-wrapper {
+        flex: 1;
+        min-height: 0;
+      }
+
+      ::ng-deep .mat-mdc-tab-body {
+        height: 100%;
+      }
+
+      ::ng-deep .mat-mdc-tab-body-content {
+        height: 100%;
+        overflow: auto;
+      }
+    }
+  }
+
+  .tab-pane-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .resumen-card {
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    mat-card-header {
+      margin-bottom: 1rem;
+
+      mat-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+    }
+
+    .resumen-fields {
+      .resumen-proveedor {
+        margin-bottom: 1rem;
+      }
+
+      .resumen-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .resumen-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 120px;
+      }
+
+      .resumen-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.65);
+        text-transform: uppercase;
+      }
+
+      .resumen-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.95);
+      }
+    }
   }
 
   .form-row {
@@ -39,8 +128,12 @@
   }
 
   .section-notas {
-    margin-top: 1.5rem;
-    min-height: 350px;
+    margin-top: 0.5rem;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 
     .section-title-row {
       display: flex;
@@ -49,28 +142,40 @@
       flex-wrap: wrap;
       gap: 0.75rem;
       margin-bottom: 0.75rem;
+      flex-shrink: 0;
 
       .section-title {
         margin: 0;
-        // font-size: 1.25rem;
       }
     }
 
     .notas-table-wrapper {
+      flex: 1;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+
+      &.notas-table-full-width {
+        width: 100%;
+        max-width: 100%;
+      }
+
       &.notas-table-scroll .notas-table-scroll-inner {
-        min-height: 120px;
-        max-height: 280px;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: auto;
+        width: 100%;
+        max-width: 100%;
       }
 
       .notas-table {
         width: 100%;
-
-        .mat-column-proveedor {
-          flex: 0 0 50%;
-          min-width: 50%;
-        }
+        min-width: 100%;
+        table-layout: fixed;
 
         .mat-column-numero {
           flex: 0 0 15%;
@@ -95,7 +200,6 @@
         mat-header-cell,
         mat-cell {
           padding: 0.75rem 1rem;
-          // font-size: 0.95rem;
         }
 
         mat-header-cell {
@@ -107,27 +211,83 @@
         mat-cell {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+      }
+    }
 
-        mat-footer-row {
-          mat-footer-cell {
-            padding: 1rem 1rem;
-            font-size: 1.8rem;
-            font-weight: 600;
-            background: rgba(255, 152, 0, 0.15);
-            border-top: 2px solid rgba(255, 152, 0, 0.5);
-            color: rgba(255, 255, 255, 0.95);
+    .notas-footer-bar {
+      flex-shrink: 0;
+      padding: 1rem 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: rgba(255, 152, 0, 0.15);
+      border-top: 2px solid rgba(255, 152, 0, 0.5);
+      color: rgba(255, 255, 255, 0.95);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
 
-            .footer-content {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              width: 100%;
-            }
+      .footer-monto-text {
+        color: rgba(255, 193, 7, 0.95);
+      }
+    }
+  }
 
-            .footer-monto-text {
-              color: rgba(255, 193, 7, 0.95);
-            }
-          }
+  .section-formas-pago {
+    margin-top: 0.5rem;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+
+      .section-title {
+        margin: 0;
+      }
+    }
+
+    .detalles-table-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+
+      mat-table {
+        width: 100%;
+
+        .mat-column-moneda,
+        .mat-column-formaPago,
+        .mat-column-valor,
+        .mat-column-fechaPago,
+        .mat-column-observacion {
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-quitar {
+          flex: 0 0 48px;
+          min-width: 48px;
+        }
+
+        mat-header-cell,
+        mat-cell {
+          padding: 0.75rem 1rem;
+        }
+
+        mat-header-cell {
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        mat-cell {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
       }
     }

@@ -61,6 +61,8 @@ import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-c
 import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
 import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
 import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
+import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
+import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 
 @NgModule({
   declarations: [
@@ -115,6 +117,8 @@ import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-di
     ListSolicitudPagoComponent,
     CreateEditSolicitudPagoDialogComponent,
     AdicionarNotaDialogComponent,
+    AdicionarFormaPagoDialogComponent,
+    GestionPagoDialogComponent,
   ],
   imports: [
     CommonModule,
