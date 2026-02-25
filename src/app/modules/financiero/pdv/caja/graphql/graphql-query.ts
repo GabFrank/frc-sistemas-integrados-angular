@@ -729,3 +729,19 @@ export const cajaAbiertoPorSucursalQuery = gql`
     }
   }
 `;
+
+export const transferirCajaQuery = gql`
+    mutation transferirCaja($cajaId: ID!, $usuarioId: ID!) {
+      data: transferirCaja(cajaId: $cajaId, usuarioId: $usuarioId) {
+        id
+        usuario {
+            id
+            nickname
+            persona {
+                id
+                nombre
+            }
+        }
+      }
+    }
+  `;

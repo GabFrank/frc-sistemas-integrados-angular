@@ -48,6 +48,7 @@ import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-
 import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
 import { Delivery } from "../../../../operaciones/delivery/delivery.model";
 import { Tab } from "../../../../../layouts/tab/tab.model";
+import { TransferirCajaDialogComponent } from "../transferir-caja-dialog/transferir-caja-dialog.component";
 
 @UntilDestroy()
 @Component({
@@ -461,5 +462,18 @@ export class AdicionarCajaDialogComponent implements OnInit {
           }
         });
     }, 1000);
+  }
+
+  transferirCaja() {
+    this.matDialog.open(TransferirCajaDialogComponent, {
+      data: {
+        cajaId: this.selectedCaja.id
+      },
+      width: '500px'
+    }).afterClosed().subscribe(res => {
+      if (res) {
+        this.matDialogRef.close();
+      }
+    });
   }
 }
