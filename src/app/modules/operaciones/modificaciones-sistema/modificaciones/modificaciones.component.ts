@@ -3,6 +3,8 @@ import {
   OnInit,
   ViewChild,
   AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef
 } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
@@ -41,6 +43,7 @@ import { forkJoin } from 'rxjs';
       ),
     ]),
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModificacionesComponent implements OnInit, AfterViewInit {
   titulo = 'Modificaciones del Sistema';
@@ -100,7 +103,8 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
 
   constructor(
     private service: ModificacionesService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private cdr: ChangeDetectorRef
   ) {
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
@@ -153,13 +157,13 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
 
     if (this.tipoEntidadControl.value) {
       let schemaParaBuscar: string;
-      
+
       if (this.tipoEntidadControl.value === 'AJUSTE_STOCK') {
         schemaParaBuscar = 'operaciones';
       } else {
         schemaParaBuscar = this.schemaControl.value;
       }
-      
+
       const busquedas = [this.service.onModificacionesPorTipoEntidadAndSchema(
         this.tipoEntidadControl.value,
         schemaParaBuscar,
@@ -189,28 +193,38 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
               }
             });
 
+            // Ordenar por fecha descendente
             contenidoCombinado.sort((a, b) => {
               const fechaA = new Date(a.modificadoEn).getTime();
               const fechaB = new Date(b.modificadoEn).getTime();
               return fechaB - fechaA;
             });
-            const inicio = this.pageIndex * this.pageSize;
-            const fin = inicio + this.pageSize;
-            const contenidoPaginado = contenidoCombinado.slice(inicio, fin);
 
+            // Mapear para evitar métodos en template
+            const contenidoProcesado = contenidoCombinado.map(reg => ({
+              ...reg,
+              tipoOperacionLabel: this.getTipoOperacionLabel(reg.tipoOperacion),
+              tipoOperacionColor: this.getTipoOperacionColor(reg.tipoOperacion)
+            }));
+
+            const contenidoPaginado = contenidoProcesado.slice(0, this.pageSize);
+
+            // No re-vincular todo, solo actualizar datos
             this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
-            this.selectedPageInfo.getContent = contenidoPaginado;
-            this.selectedPageInfo.getTotalElements = contenidoCombinado.length;
+            this.selectedPageInfo.getTotalElements = totalElementos;
             this.dataSource.data = contenidoPaginado;
-            this.isSearching = false;
 
-            if (contenidoPaginado.length === 0) {
+            this.isSearching = false;
+            this.cdr.markForCheck();
+
+            if (contenidoProcesado.length === 0) {
               this.notificacionService.openWarn('No se encontraron modificaciones');
             }
           },
           (error) => {
             this.isSearching = false;
             this.notificacionService.openWarn('Error al buscar modificaciones');
+            this.cdr.markForCheck();
           }
         );
     } else {
@@ -244,23 +258,29 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
               return fechaB - fechaA;
             });
 
-            const inicio = this.pageIndex * this.pageSize;
-            const fin = inicio + this.pageSize;
-            const contenidoPaginado = contenidoCombinado.slice(inicio, fin);
+            const contenidoProcesado = contenidoCombinado.map(reg => ({
+              ...reg,
+              tipoOperacionLabel: this.getTipoOperacionLabel(reg.tipoOperacion),
+              tipoOperacionColor: this.getTipoOperacionColor(reg.tipoOperacion)
+            }));
+
+            const contenidoPaginado = contenidoProcesado.slice(0, this.pageSize);
 
             this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
-            this.selectedPageInfo.getContent = contenidoPaginado;
-            this.selectedPageInfo.getTotalElements = contenidoCombinado.length;
+            this.selectedPageInfo.getTotalElements = totalElementos;
             this.dataSource.data = contenidoPaginado;
-            this.isSearching = false;
 
-            if (contenidoPaginado.length === 0) {
+            this.isSearching = false;
+            this.cdr.markForCheck();
+
+            if (contenidoProcesado.length === 0) {
               this.notificacionService.openWarn('No se encontraron modificaciones');
             }
           },
           (error) => {
             this.isSearching = false;
             this.notificacionService.openWarn('Error al buscar modificaciones');
+            this.cdr.markForCheck();
           }
         );
     }
@@ -281,12 +301,19 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
     this.expandedModificacion = null;
     this.selectedModificacion = null;
     this.detallesModificacion = [];
+    this.cdr.markForCheck();
   }
 
   handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFiltrar();
+  }
+
+  toggleRow(row: ModificacionRegistro): void {
+    const isCurrentlyExpanded = this.expandedModificacion?.id === row.id;
+    this.expandedModificacion = isCurrentlyExpanded ? null : row;
+    this.onRowClick(row, isCurrentlyExpanded);
   }
 
   onRowClick(row: ModificacionRegistro, isCurrentlyExpanded: boolean): void {
@@ -302,10 +329,12 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
           (detalles) => {
             this.detallesModificacion = detalles || [];
             this.loadingDetalles = false;
+            this.cdr.markForCheck();
           },
           (error) => {
             this.loadingDetalles = false;
             this.notificacionService.openAlgoSalioMal('Error al cargar detalles');
+            this.cdr.markForCheck();
           }
         );
     }
@@ -337,6 +366,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
 
     this.fechaInicioControl.setValue(inicio);
     this.fechaFinalControl.setValue(fin);
+    this.cdr.markForCheck();
   }
   getTipoOperacionLabel(tipo: string): string {
     const labels = {

@@ -114,8 +114,8 @@
           Operación
         </th>
         <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 12%">
-          <span [style.color]="getTipoOperacionColor(modificacion?.tipoOperacion)" [style.font-weight]="'bold'">
-            {{ getTipoOperacionLabel(modificacion?.tipoOperacion) }}
+          <span [style.color]="modificacion?.tipoOperacionColor" [style.font-weight]="'bold'">
+            {{ modificacion?.tipoOperacionLabel }}
           </span>
         </td>
       </ng-container>
@@ -160,16 +160,7 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="
-                onRowClick(
-                  modificacion,
-                  expandedModificacion?.id === modificacion?.id
-                );
-                expandedModificacion =
-                  expandedModificacion?.id === modificacion?.id
-                    ? null
-                    : modificacion
-              ">
+            <button mat-menu-item (click)="toggleRow(modificacion)">
               <mat-icon>visibility</mat-icon>
               Ver Detalles
             </button>
@@ -255,10 +246,7 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
         [class.example-expanded-row]="expandedModificacion === row" [class.selectedRow]="expandedModificacion === row"
-        (click)="
-          onRowClick(row, expandedModificacion === row);
-          expandedModificacion = expandedModificacion === row ? null : row
-        "></tr>
+        (click)="toggleRow(row)"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     <mat-paginator itemsPerPageLabel="Items por página" [pageSizeOptions]="[15, 25, 50, 100]"
