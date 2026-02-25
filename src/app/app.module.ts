@@ -31,15 +31,10 @@ import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { SharedModule } from "./shared/shared.module";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
-import { GraphQLError } from "graphql";
-import { GraphQLErrors } from "@apollo/client/errors";
 import { GraphqlConnectionService } from "./shared/services/graphql-connection.service";
 import { BehaviorSubject } from "rxjs";
 
-// Export BehaviorSubject for error handling - referenced by other components
 export const errorObs = new BehaviorSubject<any>(null);
-
-// Define GraphQL response interface
 export interface GraphQLResponse<T> {
   data: T | null | undefined;
   errors: any | null;
@@ -53,7 +48,6 @@ export function appInit(appConfigService: MainService) {
       return appConfigService.load();
     } catch (error) {
       console.error('Error initializing application:', error);
-      // Return a resolved promise to let the app load even with errors
       return Promise.resolve(true);
     }
   };
@@ -62,7 +56,7 @@ export function appInit(appConfigService: MainService) {
 @NgModule({
   declarations: [
     AppComponent,
-    DetailPopupComponent, 
+    DetailPopupComponent,
     FormatNumberPipe
   ],
   imports: [
@@ -103,4 +97,4 @@ export function appInit(appConfigService: MainService) {
   bootstrap: [AppComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class AppModule {}
+export class AppModule { }
