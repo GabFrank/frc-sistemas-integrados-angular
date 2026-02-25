@@ -16,6 +16,7 @@ import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/lis
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { PageInfo } from '../../../../app.component';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -79,7 +80,8 @@ export class ListClientesComponent implements OnInit {
     private clienteService: ClienteService,
     public mainService: MainService,
     private tabService: TabService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private notificacionService: NotificacionSnackbarService
   ) {
 
   }
@@ -99,11 +101,11 @@ export class ListClientesComponent implements OnInit {
       if (res != null && res?.length > 0) {
         this.timer = setTimeout(() => {
           this.onFiltrar()
-        }, 500);
+        }, 800);
       } else {
         this.dataSource.data = []
       }
-    })
+    });
   }
 
   onFiltrar() {
@@ -111,15 +113,20 @@ export class ListClientesComponent implements OnInit {
       if(res!=null){
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
+
+        if (res.getContent && res.getContent.length === 0) {
+          this.notificacionService.openWarn('Cliente no encontrado');
+        }
       }
-    })
+    });
   }
 
   resetFiltro() {
     this.pageIndex = 0;
     this.dataSource.data = [];
     this.selectedPageInfo = null;
-    this.buscarControl.setValue(null)
+    this.buscarControl.setValue(null);
+    this.tipoClienteControl.setValue(null);
   }
 
   onEditCliente(cliente: Cliente, i) {
@@ -134,7 +141,7 @@ export class ListClientesComponent implements OnInit {
         this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, cliente.id);
         this.table.renderRows();
       }
-    })
+    });
   }
 
   onNewCliente() {
@@ -146,7 +153,7 @@ export class ListClientesComponent implements OnInit {
         this.buscarControl.setValue(res.persona.nombre)
         this.dataSource.data = [res]
       }
-    })
+    });
   }
 
   onVerMovimiento(cliente, i) {
