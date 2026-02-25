@@ -153,7 +153,8 @@ export class InventarioService {
     tipoOrder: string,
     sucursalIdList?: number[],
     usuarioIdList?: number[],
-    productoIdList?: number[]
+    productoIdList?: number[],
+    estado?: string
   ) {
     return this.genericCrudService.onCustomQuery(
       this.inventarioProductoItemWithFilters,
@@ -167,6 +168,7 @@ export class InventarioService {
         size,
         orderBy,
         tipoOrder,
+        estado,
       }
     );
   }
