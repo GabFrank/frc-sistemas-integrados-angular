@@ -11,9 +11,9 @@
   overflow: auto !important;
 }
 
-.mat-mdc-tab.mdc-tab {
+::ng-deep .mat-mdc-tab.mdc-tab {
   height: 2em !important;
-  max-width: 200px;
+  max-width: 200px !important;
 }
 
 :host ::ng-deep mat-drawer mat-paginator {
