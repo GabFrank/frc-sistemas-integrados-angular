@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { 
-  ApolloClientOptions, 
-  ApolloLink, 
-  InMemoryCache, 
-  split 
+import {
+  ApolloClientOptions,
+  ApolloLink,
+  InMemoryCache,
+  split
 } from '@apollo/client/core';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
@@ -39,11 +39,11 @@ export class GraphqlConnectionService {
     private notificationService: NotificacionSnackbarService
   ) {
     this.initialize();
-    
+
     // Subscribe to configuration changes
     this.configService.configChanged.subscribe(config => {
       this.isLocal = config.isLocal;
-      
+
       // Reconnect WebSockets whenever configuration changes
       this.reconnectWebSockets();
     });
@@ -60,11 +60,11 @@ export class GraphqlConnectionService {
       console.warn('Error accessing environment variables, assuming development mode', e);
       this.isDev = true;
     }
-    
+
     // Load configuration
     const config = this.configService.getConfig();
     this.isLocal = config.isLocal;
-    
+
     // Default retries and connection settings
     this.maxRetries = 5;
     this.retryCount = 0;
@@ -77,10 +77,10 @@ export class GraphqlConnectionService {
   createApolloOptions(httpLink: HttpLink): ApolloClientOptions<any> {
     // Get configuration
     const config = this.configService.getConfig();
-    
+
     // Create the links
     const link = this.createLink(httpLink, config);
-    
+
     return {
       link,
       cache: new InMemoryCache(),
@@ -95,31 +95,31 @@ export class GraphqlConnectionService {
   private isValidConfig(config: ConfiguracionSistema): boolean {
     // For cloud server, always check the server central configuration
     const isCloudValid = !!(
-      config && 
-      config.serverCentralIp && 
-      config.serverCentralPort && 
-      config.serverCentralIp !== 'undefined' && 
+      config &&
+      config.serverCentralIp &&
+      config.serverCentralPort &&
+      config.serverCentralIp !== 'undefined' &&
       config.serverCentralPort !== 'undefined'
     );
-    
+
     // For local server, only check if isLocal is true
     const isLocalValid = !config.isLocal || !!(
-      config && 
-      config.serverIp && 
-      config.serverPort && 
-      config.serverIp !== 'undefined' && 
+      config &&
+      config.serverIp &&
+      config.serverPort &&
+      config.serverIp !== 'undefined' &&
       config.serverPort !== 'undefined'
     );
-    
+
     // Both must be valid based on our requirements
     const isValid = isCloudValid && isLocalValid;
-    
+
     // In development mode, log warnings but return true to allow operation with defaults
     if (!isValid && this.isDev) {
       console.warn('Invalid GraphQL configuration. Using development defaults.');
       return true;
     }
-    
+
     if (!isValid) {
       console.error('Invalid GraphQL configuration. Connection will not be established.');
       this.notificationService.notification$.next({
@@ -128,7 +128,7 @@ export class GraphqlConnectionService {
         duracion: 5
       });
     }
-    
+
     return isValid;
   }
 
@@ -144,29 +144,31 @@ export class GraphqlConnectionService {
         });
       });
     }
-    
+
     // Use configuration or development defaults
     const serverCentralIp = config.serverCentralIp || (this.isDev ? 'localhost' : null);
     const serverCentralPort = config.serverCentralPort || (this.isDev ? '8081' : null);
-    
+
     // Only use local server config if isLocal is true
     const serverIp = this.isLocal ? (config.serverIp || (this.isDev ? 'localhost' : null)) : null;
     const serverPort = this.isLocal ? (config.serverPort || (this.isDev ? '8081' : null)) : null;
-    
+
     // Create HTTP URLs - only create local URL if isLocal is true
     const url2 = `http://${serverCentralIp}:${serverCentralPort}/graphql`;
     const url = this.isLocal ? `http://${serverIp}:${serverPort}/graphql` : null;
-    
+
     // Create WebSocket URLs - only create local WebSocket URL if isLocal is true
     const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
     const wUri = this.isLocal ? `ws://${serverIp}:${serverPort}/subscriptions` : null;
-    
+
     // Create the context for basic authentication
     const basic = setContext((operation, context) => ({}));
-    
+
     // Create the context for token-based authentication
-    const auth = setContext((operation, context) => {
-      const token = localStorage.getItem("token");
+    const auth = setContext((_, context) => {
+      const isServidor = context.clientName === "servidor";
+      const token = isServidor ? (localStorage.getItem("token_central") || localStorage.getItem("token")) : localStorage.getItem("token");
+
       if (token === null) {
         return {};
       } else {
@@ -194,10 +196,10 @@ export class GraphqlConnectionService {
         errorObs.next(networkError);
       }
     });
-    
+
     // Create an abortable link
     const abortableLink = this.createAbortableLink();
-    
+
     // Create HTTP links - only create local link if isLocal is true
     let http = null;
     if (this.isLocal && url) {
@@ -209,7 +211,7 @@ export class GraphqlConnectionService {
         }),
       ]);
     }
-    
+
     // Create an HTTP link for central server (always required)
     const http2 = ApolloLink.from([
       basic,
@@ -218,19 +220,19 @@ export class GraphqlConnectionService {
         uri: url2,
       }),
     ]);
-    
+
     // Set up WebSocket clients with proper connection handling
     this.setupWebSocketClients(wUri, wUri2);
-    
+
     // Create WebSocket links - only create local link if isLocal is true
     let ws = null;
     if (this.isLocal && this.wsClient) {
       ws = new WebSocketLink(this.wsClient);
     }
-    
+
     // Create central WebSocket link (always required)
     const ws2 = new WebSocketLink(this.wsClient2);
-    
+
     // Build the link chain based on whether we're using local server
     if (this.isLocal) {
       // Using both local and central servers
@@ -276,7 +278,7 @@ export class GraphqlConnectionService {
       );
     }
   }
-  
+
   /**
    * Create an abortable link for better request management
    */
@@ -284,14 +286,21 @@ export class GraphqlConnectionService {
     return new ApolloLink((operation, forward) => {
       const controller = new AbortController();
       const signal = controller.signal;
-      
+
       // Set the signal in the operation context
       operation.setContext({ fetchOptions: { signal } });
-      
+
       return new Observable((observer) => {
         const subscription = forward(operation).subscribe({
           next: (result) => {
-            observer.next(result);
+            if (result) {
+              observer.next(result);
+            } else {
+              observer.next({
+                data: null,
+                errors: [{ message: "Respuesta vacía del servidor" }] as any
+              });
+            }
           },
           error: (error) => {
             observer.error(error);
@@ -300,7 +309,7 @@ export class GraphqlConnectionService {
             observer.complete();
           },
         });
-        
+
         return () => {
           controller.abort();
           subscription.unsubscribe();
@@ -308,21 +317,21 @@ export class GraphqlConnectionService {
       });
     });
   }
-  
+
   /**
    * Set up WebSocket clients with retry logic
    */
   private setupWebSocketClients(wUri: string, wUri2: string): void {
     // Set up cloud connection first (always required)
     this.setupCloudWebSocketClient(wUri2);
-    
+
     // Only set up local connection if isLocal is true and wUri is provided
     if (this.isLocal && wUri) {
       this.setupLocalWebSocketClient(wUri);
     } else {
       // If we're not using local server, set local status to null
       connectionStatusSub.next(null);
-      
+
       // Close existing connection if any
       if (this.wsClient) {
         this.wsClient.close(false);
@@ -330,7 +339,7 @@ export class GraphqlConnectionService {
       }
     }
   }
-  
+
   /**
    * Set up local WebSocket client
    */
@@ -341,7 +350,7 @@ export class GraphqlConnectionService {
       connectionStatusSub.next(null);
       return;
     }
-    
+
     // Primary WebSocket client
     this.wsClient = new SubscriptionClient(wUri, {
       reconnect: true,
@@ -361,24 +370,24 @@ export class GraphqlConnectionService {
         }
       }
     });
-    
+
     // Connection event handlers for local server
     this.wsClient.onConnected(() => {
       connectionStatusSub.next(true);
       // console.log("Local WebSocket connected");
     });
-    
+
     this.wsClient.onDisconnected(() => {
       if (connectionStatusSub.value != false) {
         connectionStatusSub.next(false);
       }
       // console.log("Local WebSocket disconnected");
     });
-    
+
     this.wsClient.onReconnected(() => {
       connectionStatusSub.next(true);
       // console.log("Local WebSocket reconnected");
-      
+
       // Only show notification if both connections are now established
       if (cloudConnectionStatusSub.value === true) {
         this.notificationService.notification$.next({
@@ -388,12 +397,12 @@ export class GraphqlConnectionService {
         });
       }
     });
-    
+
     this.wsClient.onReconnecting(() => {
       // console.log(`Local WebSocket reconnecting... Attempt ${this.retryCount}`);
     });
   }
-  
+
   /**
    * Set up cloud WebSocket client
    */
@@ -417,24 +426,24 @@ export class GraphqlConnectionService {
         }
       }
     });
-    
+
     // Connection event handlers for cloud server
     this.wsClient2.onConnected(() => {
       cloudConnectionStatusSub.next(true);
       // console.log("Cloud WebSocket connected");
     });
-    
+
     this.wsClient2.onDisconnected(() => {
       if (cloudConnectionStatusSub.value != false) {
         cloudConnectionStatusSub.next(false);
       }
       // console.log("Cloud WebSocket disconnected");
     });
-    
+
     this.wsClient2.onReconnected(() => {
       cloudConnectionStatusSub.next(true);
       // console.log("Cloud WebSocket reconnected");
-      
+
       // Only show notification if both connections are now established or if not using local
       if (!this.isLocal || connectionStatusSub.value === true) {
         this.notificationService.notification$.next({
@@ -444,12 +453,12 @@ export class GraphqlConnectionService {
         });
       }
     });
-    
+
     this.wsClient2.onReconnecting(() => {
       // console.log(`Cloud WebSocket reconnecting... Attempt ${this.cloudRetryCount}`);
     });
   }
-  
+
   /**
    * Manually attempt to reconnect WebSockets
    * Can be called after configuration changes
@@ -458,11 +467,11 @@ export class GraphqlConnectionService {
     // Reset retry count when manually reconnecting
     this.retryCount = 0;
     this.cloudRetryCount = 0;
-    
+
     // Update isLocal from config
     const config = this.configService.getConfig();
     this.isLocal = config.isLocal;
-    
+
     // Close existing connections
     if (this.wsClient) {
       this.wsClient.close(false);
@@ -471,16 +480,16 @@ export class GraphqlConnectionService {
         this.wsClient = null;
       }
     }
-    
+
     if (this.wsClient2) {
       this.wsClient2.close(false);
     }
-    
+
     // Get updated configuration    
     if (this.isValidConfig(config)) {
       const serverCentralIp = config.serverCentralIp;
       const serverCentralPort = config.serverCentralPort;
-      
+
       // Only prepare local server URI if isLocal is true
       let wUri = null;
       if (this.isLocal) {
@@ -488,11 +497,11 @@ export class GraphqlConnectionService {
         const serverPort = config.serverPort;
         wUri = `ws://${serverIp}:${serverPort}/subscriptions`;
       }
-      
+
       const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
-      
+
       this.setupWebSocketClients(wUri, wUri2);
-      
+
       this.notificationService.notification$.next({
         texto: "Intentando reconexión con la nueva configuración...",
         color: NotificacionColor.info,

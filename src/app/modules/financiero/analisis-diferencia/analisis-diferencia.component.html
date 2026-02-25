@@ -9,88 +9,47 @@
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px">
       <mat-form-field appearance="outline">
         <mat-label>Cierre de caja (global)</mat-label>
-        <input matInput 
-              #globalCajaFilterInput
-              type="number" 
-              [formControl]="globalCajaFilter" 
-              (keydown.enter)="filtrarGlobal()"
-              (focus)="globalCajaFilterInput.select()"
-        >
+        <input matInput #globalCajaFilterInput type="number" [formControl]="globalCajaFilter"
+          (keydown.enter)="filtrarGlobal()" (focus)="globalCajaFilterInput.select()">
       </mat-form-field>
-      <button 
-        mat-raised-button 
-        color="accent" 
-        (click)="filtrarGlobal()"
-        [disabled]="isLoadingGlobal || !globalCajaFilter.value"
-      >
+      <button mat-raised-button color="accent" (click)="filtrarGlobal()"
+        [disabled]="isLoadingGlobal || !globalCajaFilter.value">
         <mat-icon *ngIf="isLoadingGlobal">refresh</mat-icon>
         {{ isLoadingGlobal ? 'Buscando...' : 'Buscar' }}
       </button>
-      <button 
-        mat-raised-button
-        color="primary" 
-        (click)="limpiarFiltrosGlobal()"
-        [disabled]="isLoadingGlobal"
-      >
+      <button mat-raised-button color="primary" (click)="limpiarFiltrosGlobal()" [disabled]="isLoadingGlobal">
         Limpiar Filtro
       </button>
     </div>
   </div>
-       
+
   <div class="tables-content-wrapper" [class.loading]="isLoadingInitialData">
-    <!-- Columna 1: Tabla de Diferencias -->
     <div class="table-wrapper mat-elevation-z8">
       <div class="column-header">
         <h4>Diferencia en maletines</h4>
       </div>
 
       <div class="filters-row" [formGroup]="diferenciaMaletinFilters">
-        <!-- Primera fila de filtros -->
         <div fxLayout="row" fxLayoutGap="16px">
-          <mat-form-field 
-            fxFlex="25%" 
-            appearance="outline" 
-            style="padding-left: 10px"
-          >
+          <mat-form-field fxFlex="25%" appearance="outline" style="padding-left: 10px">
             <mat-label>Fecha cierre</mat-label>
-            <input 
-              #fechaCierreInput
-              matInput 
-              [matDatepicker]="picker1" 
-              formControlName="fechaCierre"
-              (focus)="fechaCierreInput.select()"
-            >
-            <mat-datepicker-toggle 
-              matSuffix [for]="picker1">
+            <input #fechaCierreInput matInput [matDatepicker]="picker1" formControlName="fechaCierre"
+              (focus)="fechaCierreInput.select()">
+            <mat-datepicker-toggle matSuffix [for]="picker1">
             </mat-datepicker-toggle>
             <mat-datepicker #picker1></mat-datepicker>
           </mat-form-field>
           <div class="filter-item">
-            <mat-form-field 
-              class="w-100 maletin-form-field" 
-              appearance="outline"
-            >
+            <mat-form-field class="w-100 maletin-form-field" appearance="outline">
               <mat-label>Maletín</mat-label>
-              <input matInput
-                    formControlName="maletinDescripcion"
-                    readonly
-                    (click)="onMaletinSearch()"
-                    (keydown.enter)="onMaletinSearch()"
-              >
+              <input matInput formControlName="maletinDescripcion" readonly (click)="onMaletinSearch()"
+                (keydown.enter)="onMaletinSearch()">
               <div matSuffix class="d-flex align-items-center">
-                <button
-                  *ngIf="diferenciaMaletinFilters.value.maletinDescripcion"
-                  mat-icon-button
-                  (click)="clearMaletinFilter()"
-                  type="button"
-                >
+                <button *ngIf="diferenciaMaletinFilters.value.maletinDescripcion" mat-icon-button
+                  (click)="clearMaletinFilter()" type="button">
                   <mat-icon>close</mat-icon>
                 </button>
-                <button
-                  mat-icon-button
-                  (click)="onMaletinSearch()"
-                  type="button"
-                >
+                <button mat-icon-button (click)="onMaletinSearch()" type="button">
                   <mat-icon>search</mat-icon>
                 </button>
               </div>
@@ -102,11 +61,7 @@
               <input matInput type="number" formControlName="cajaAnteriorId">
             </mat-form-field>
           </div>
-          <mat-form-field 
-            fxFlex="25%" 
-            appearance="outline" 
-            style="padding-right: 10px"
-          >
+          <mat-form-field fxFlex="25%" appearance="outline" style="padding-right: 10px">
             <mat-label>Estado diferencia</mat-label>
             <mat-select formControlName="estadoDiferencia">
               <mat-option value="TODAS">Todas</mat-option>
@@ -117,19 +72,12 @@
         </div>
         <!-- Segunda fila de filtros -->
         <div fxLayout="row">
-          <mat-form-field 
-            fxFlex="100%" 
-            appearance="outline" 
-            style="padding: 10px 10px 0 10px"
-          >
+          <mat-form-field fxFlex="100%" appearance="outline" style="padding: 10px 10px 0 10px">
             <mat-label>Sucursal</mat-label>
             <mat-select formControlName="sucursalId">
               <mat-option [value]="null">TODAS</mat-option>
-              <mat-option 
-                *ngFor="let suc of sucursalList" 
-                [value]="suc.id"
-              >
-                  {{ suc.id }} - {{ suc.nombre }}
+              <mat-option *ngFor="let suc of sucursalList" [value]="suc.id">
+                {{ suc.id }} - {{ suc.nombre }}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -164,39 +112,30 @@
             <th mat-header-cell *matHeaderCellDef>Cierre caja</th>
             <td mat-cell *matCellDef="let item" class="center">
               <div style="margin-bottom: 10px">
-              <span>{{ item.cajaAnteriorId || 'N/A' }}</span>
-              <mat-icon 
-                *ngIf="item.cajaAnteriorId" 
-                (click)="onGoToCaja(item.cajaAnteriorId, 'cierre')" 
-                class="icon-link"
-                matTooltip="Ver cierre de caja"
-              >launch</mat-icon>
+                <span>{{ item.cajaAnteriorId || 'N/A' }}</span>
+                <mat-icon *ngIf="item.cajaAnteriorId" (click)="onGoToCaja(item.cajaAnteriorId, 'cierre')"
+                  class="icon-link" matTooltip="Ver cierre de caja">launch</mat-icon>
               </div>
             </td>
           </ng-container>
           <ng-container matColumnDef="aperturaCaja">
             <th mat-header-cell *matHeaderCellDef>Apertura caja</th>
             <td mat-cell *matCellDef="let item" class="center">
-              <div style="margin-bottom: 10px">   
-              <span>{{ item.id || 'N/A' }}</span>
-              <mat-icon 
-                (click)="onGoToCaja(item.id, 'apertura')" 
-                class="icon-link"
-                matTooltip="Ver apertura de caja"
-              >launch</mat-icon>
-            </div>
+              <div style="margin-bottom: 10px">
+                <span>{{ item.id || 'N/A' }}</span>
+                <mat-icon (click)="onGoToCaja(item.id, 'apertura')" class="icon-link"
+                  matTooltip="Ver apertura de caja">launch</mat-icon>
+              </div>
             </td>
           </ng-container>
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef>Estado</th>
             <td mat-cell *matCellDef="let item" class="center">
-              <mat-chip 
-                [ngClass]="{
+              <mat-chip [ngClass]="{
                   'chip-con-diferencia': item.estadoDiferencia === 'CON_DIFERENCIA',
                   'chip-sin-diferencia': item.estadoDiferencia === 'SIN_DIFERENCIA',
                   'chip-sin-datos': item.estadoDiferencia === 'SIN_DATOS'
-                }"
-              >
+                }">
                 {{ (item.estadoDiferencia || '').replace('_', ' ') }}
               </mat-chip>
             </td>
@@ -205,22 +144,11 @@
           <ng-container matColumnDef="expandedDetail">
             <td mat-cell *matCellDef="let item" [attr.colspan]="diferenciaMaletinColumns.length">
               <div class="example-element-detail"
-                   [@detailExpand]="item == expandedElementMaletin ? 'expanded' : 'collapsed'">
-                <div
-                  class="movimiento-container"
-                  fxLayout="column"
-                  fxLayoutGap="15px"
-                > 
-                  <div 
-                    fxLayout="row" 
-                    fxLayoutGap="20px" 
-                    style="padding: 0 20px; justify-content: center"
-                  >
+                [@detailExpand]="item == expandedElementMaletin ? 'expanded' : 'collapsed'">
+                <div class="movimiento-container" fxLayout="column" fxLayoutGap="15px">
+                  <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px; justify-content: center">
                     <div fxFlex="60" fxLayout="column" fxLayoutGap="5px">
-                      <div 
-                        fxLayout="row" 
-                        class="info-diferencia-header" 
-                      >
+                      <div fxLayout="row" class="info-diferencia-header">
                         <div fxFlex="25" class="center">Moneda</div>
                         <div fxFlex="25" class="center">Cierre</div>
                         <div fxFlex="25" class="center">Apertura</div>
@@ -236,20 +164,14 @@
                         <div fxFlex="25" class="center">
                           {{ item.montosCalculados?.apertura?.gs | number:'1.0-0' }}
                         </div>
-                        <div 
-                          fxFlex="25"
-                          class="center"
-                          style="font-weight: bold"
-                          [ngClass]="{
+                        <div fxFlex="25" class="center" style="font-weight: bold" [ngClass]="{
                             'monto-coincide': item.montosCalculados?.apertura?.gs === item.montosCalculados?.cierre?.gs,
                             'monto-diferencia': item.montosCalculados?.apertura?.gs !== item.montosCalculados?.cierre?.gs
-                          }"
-                        >
-                          {{ (item.montosCalculados?.cierre?.gs || 0) - (item.montosCalculados?.apertura?.gs || 0) | number:'1.0-0' }}
+                          }">
+                          {{ (item.montosCalculados?.cierre?.gs || 0) - (item.montosCalculados?.apertura?.gs || 0) |
+                          number:'1.0-0' }}
                         </div>
                       </div>
-
-                      <!-- Reales -->
                       <div fxLayout="row" class="info-diferencia">
                         <div fxFlex="25">Reales (RS):</div>
                         <div fxFlex="25" class="center">
@@ -258,20 +180,14 @@
                         <div fxFlex="25" class="center">
                           {{ item.montosCalculados?.apertura?.rs | number:'1.2-2' }}
                         </div>
-                        <div   
-                          fxFlex="25" 
-                          class="center" 
-                          style="font-weight: bold" 
-                          [ngClass]="{
+                        <div fxFlex="25" class="center" style="font-weight: bold" [ngClass]="{
                             'monto-coincide': item.montosCalculados?.apertura?.rs === item.montosCalculados?.cierre?.rs, 
                             'monto-diferencia': item.montosCalculados?.apertura?.rs !== item.montosCalculados?.cierre?.rs
-                          }"
-                        >
-                          {{ (item.montosCalculados?.cierre?.rs || 0) - (item.montosCalculados?.apertura?.rs || 0) | number:'1.2-2' }}
+                          }">
+                          {{ (item.montosCalculados?.cierre?.rs || 0) - (item.montosCalculados?.apertura?.rs || 0) |
+                          number:'1.2-2' }}
                         </div>
                       </div>
-
-                      <!-- Dólares -->
                       <div fxLayout="row" class="info-diferencia">
                         <div fxFlex="25">Dólares (US):</div>
                         <div fxFlex="25" class="center">
@@ -280,16 +196,12 @@
                         <div fxFlex="25" class="center">
                           {{ item.montosCalculados?.apertura?.ds | number:'1.2-2' }}
                         </div>
-                        <div 
-                          fxFlex="25" 
-                          class="center"
-                          style="font-weight: bold"
-                          [ngClass]="{
+                        <div fxFlex="25" class="center" style="font-weight: bold" [ngClass]="{
                             'monto-coincide': item.montosCalculados?.apertura?.ds === item.montosCalculados?.cierre?.ds,
                             'monto-diferencia': item.montosCalculados?.apertura?.ds !== item.montosCalculados?.cierre?.ds
-                          }"
-                        >
-                          {{ (item.montosCalculados?.cierre?.ds || 0) - (item.montosCalculados?.apertura?.ds || 0) | number:'1.2-2' }}
+                          }">
+                          {{ (item.montosCalculados?.cierre?.ds || 0) - (item.montosCalculados?.apertura?.ds || 0) |
+                          number:'1.2-2' }}
                         </div>
                       </div>
                     </div>
@@ -299,44 +211,25 @@
             </td>
           </ng-container>
 
-          <tr 
-            mat-header-row 
-            *matHeaderRowDef="diferenciaMaletinColumns; 
-            sticky: true"
-          ></tr>
-          <tr 
-            mat-row 
-            *matRowDef="let element; columns: diferenciaMaletinColumns; let i = dataIndex"
-            class="example-element-row"
-            [class.example-expanded-row]="expandedElementMaletin === element"
+          <tr mat-header-row *matHeaderRowDef="diferenciaMaletinColumns; 
+            sticky: true"></tr>
+          <tr mat-row *matRowDef="let element; columns: diferenciaMaletinColumns; let i = dataIndex"
+            class="example-element-row" [class.example-expanded-row]="expandedElementMaletin === element"
             [class.estado-sin-diferencia]="element.estadoDiferencia === 'SIN_DIFERENCIA'"
             [class.estado-con-diferencia]="element.estadoDiferencia === 'CON_DIFERENCIA'"
             [class.estado-poca-diferencia]="element.estadoDiferencia === 'POCA_DIFERENCIA'"
             [class.estado-media-diferencia]="element.estadoDiferencia === 'MEDIA_DIFERENCIA'"
             [class.estado-mucha-diferencia]="element.estadoDiferencia === 'MUCHA_DIFERENCIA'"
-            [class.estado-sin-datos]="element.estadoDiferencia === 'SIN_DATOS'"
-            (click)="onClickRowMaletin(element, i)"
-          ></tr>
-          <tr 
-            mat-row 
-            *matRowDef="let row; columns: ['expandedDetail']" 
-            class="example-detail-row no-padding"
-          ></tr>
+            [class.estado-sin-datos]="element.estadoDiferencia === 'SIN_DATOS'" (click)="onClickRowMaletin(element, i)">
+          </tr>
+          <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row no-padding"></tr>
         </table>
       </div>
-      <mat-paginator 
-        *ngIf="!isLoadingMaletin"
-        itemsPerPageLabel="Itens por pagina" 
-        [pageSizeOptions]="[10, 25, 50, 100]" 
-        (page)="handlePageEventMaletin($event)" 
-        [length]="totalElementsMaletin" 
-        [pageIndex]="pageIndexMaletin" 
-        [pageSize]="pageSizeMaletin" 
-        showFirstLastButtons>
+      <mat-paginator *ngIf="!isLoadingMaletin" itemsPerPageLabel="Itens por pagina"
+        [pageSizeOptions]="[10, 25, 50, 100]" (page)="handlePageEventMaletin($event)" [length]="totalElementsMaletin"
+        [pageIndex]="pageIndexMaletin" [pageSize]="pageSizeMaletin" showFirstLastButtons>
       </mat-paginator>
     </div>
-
-    <!-- Columna 2: Tabla de cajas -->
     <div class="table-wrapper mat-elevation-z8">
       <div class="column-header">
         <h4>Diferencia en cajas</h4>
@@ -344,51 +237,26 @@
 
       <div class="filters-row" [formGroup]="diferenciaCajaFilters">
         <div fxLayout="row" fxLayoutGap="16px">
-          <mat-form-field
-            fxFlex="25%"
-            appearance="outline"
-            style="padding-left: 10px"
-          >
+          <mat-form-field fxFlex="25%" appearance="outline" style="padding-left: 10px">
             <mat-label>Fecha apertura</mat-label>
-            <input matInput 
-                  formControlName="fechaApertura"
-                  [matDatepicker]="picker2" 
-                  (focus)="fechaAperturaInput.select()" 
-                  #fechaAperturaInput
-            > 
-            <mat-datepicker-toggle 
-              matSuffix [for]="picker2">
+            <input matInput formControlName="fechaApertura" [matDatepicker]="picker2"
+              (focus)="fechaAperturaInput.select()" #fechaAperturaInput>
+            <mat-datepicker-toggle matSuffix [for]="picker2">
             </mat-datepicker-toggle>
             <mat-datepicker #picker2></mat-datepicker>
           </mat-form-field>
           <div class="filter-item">
-            <mat-form-field 
-              class="w-100 maletin-form-field" 
-              appearance="outline"
-            >
+            <mat-form-field class="w-100 maletin-form-field" appearance="outline">
               <mat-label>Maletín</mat-label>
-              <input
-                matInput
-                formControlName="maletinDescripcion"
-                readonly
-                (click)="onMaletinSearchCaja()"
-                (keydown.enter)="onMaletinSearchCaja()"
-              >
+              <input matInput formControlName="maletinDescripcion" readonly (click)="onMaletinSearchCaja()"
+                (keydown.enter)="onMaletinSearchCaja()">
               <div matSuffix class="d-flex align-items-center">
-                <button
-                  *ngIf="diferenciaCajaFilters.value.maletinDescripcion"
-                  mat-icon-button
-                  (click)="clearMaletinFilterCaja()"
-                  type="button"
-                >
+                <button *ngIf="diferenciaCajaFilters.value.maletinDescripcion" mat-icon-button
+                  (click)="clearMaletinFilterCaja()" type="button">
                   <mat-icon>close</mat-icon>
                 </button>
-                <button
-                  *ngIf="!diferenciaCajaFilters.value.maletinDescripcion"
-                  mat-icon-button
-                  (click)="onMaletinSearchCaja()"
-                  type="button"
-                >
+                <button *ngIf="!diferenciaCajaFilters.value.maletinDescripcion" mat-icon-button
+                  (click)="onMaletinSearchCaja()" type="button">
                   <mat-icon>search</mat-icon>
                 </button>
               </div>
@@ -400,41 +268,30 @@
               <input matInput type="number" formControlName="cajaAnteriorId">
             </mat-form-field>
           </div>
-            <mat-form-field 
-              fxFlex="25%" 
-              appearance="outline" 
-              style="padding-right: 10px"
-            >
-              <mat-label>Estado diferencia</mat-label>
-              <mat-select formControlName="estadoDiferencia">
-                <mat-option value="TODAS">Todas</mat-option>
-                <mat-option value="SIN_DIFERENCIA">Sin diferencia</mat-option>
-                <mat-option value="POCA_DIFERENCIA">Poca diferencia</mat-option>
-                <mat-option value="MEDIA_DIFERENCIA">Media diferencia</mat-option>
-                <mat-option value="CON_DIFERENCIA">Con diferencia</mat-option>
-                <mat-option value="MUCHA_DIFERENCIA">Mucha diferencia</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <div fxLayout="row">
-            <mat-form-field
-              fxFlex="100%" 
-              appearance="outline"
-              style="padding: 10px 10px 0 10px"  
-            >
-              <mat-label>Sucursal</mat-label>
-              <mat-select formControlName="sucursalId">
-                <mat-option [value]="null">TODAS</mat-option>
-                <mat-option 
-                  *ngFor="let suc of sucursalList" 
-                  [value]="suc.id"
-                >
-                    {{ suc.id }} - {{ suc.nombre }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
+          <mat-form-field fxFlex="25%" appearance="outline" style="padding-right: 10px">
+            <mat-label>Estado diferencia</mat-label>
+            <mat-select formControlName="estadoDiferencia">
+              <mat-option value="TODAS">Todas</mat-option>
+              <mat-option value="SIN_DIFERENCIA">Sin diferencia</mat-option>
+              <mat-option value="POCA_DIFERENCIA">Poca diferencia</mat-option>
+              <mat-option value="MEDIA_DIFERENCIA">Media diferencia</mat-option>
+              <mat-option value="CON_DIFERENCIA">Con diferencia</mat-option>
+              <mat-option value="MUCHA_DIFERENCIA">Mucha diferencia</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
+        <div fxLayout="row">
+          <mat-form-field fxFlex="100%" appearance="outline" style="padding: 10px 10px 0 10px">
+            <mat-label>Sucursal</mat-label>
+            <mat-select formControlName="sucursalId">
+              <mat-option [value]="null">TODAS</mat-option>
+              <mat-option *ngFor="let suc of sucursalList" [value]="suc.id">
+                {{ suc.id }} - {{ suc.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
 
       <div *ngIf="isLoadingCaja" class="table-loading">
         <mat-spinner diameter="40"></mat-spinner>
@@ -464,10 +321,7 @@
             <th mat-header-cell *matHeaderCellDef>Cierre caja</th>
             <td mat-cell *matCellDef="let item" class="center">
               {{item.cajaAnteriorId || 'N/A'}}
-              <mat-icon 
-                class="icon-link" 
-                (click)="onGoToCaja(item.cajaAnteriorId, 'cierre')"
-              >
+              <mat-icon class="icon-link" (click)="onGoToCaja(item.cajaAnteriorId, 'cierre')">
                 launch
               </mat-icon>
             </td>
@@ -475,16 +329,14 @@
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef>Estado</th>
             <td mat-cell *matCellDef="let item" class="center">
-              <mat-chip 
-                [ngClass]="{
+              <mat-chip [ngClass]="{
                   'chip-con-diferencia': item.estadoDiferencia === 'CON_DIFERENCIA',
                   'chip-sin-diferencia': item.estadoDiferencia === 'SIN_DIFERENCIA',
                   'chip-sin-datos': item.estadoDiferencia === 'SIN_DATOS',
                   'chip-poca-diferencia': item.estadoDiferencia === 'POCA_DIFERENCIA',
                   'chip-media-diferencia': item.estadoDiferencia === 'MEDIA_DIFERENCIA',
                   'chip-mucha-diferencia': item.estadoDiferencia === 'MUCHA_DIFERENCIA'
-                }"
-              >
+                }">
                 {{ (item.estadoDiferencia || '').replace('_', ' ') }}
               </mat-chip>
             </td>
@@ -493,24 +345,16 @@
           <ng-container matColumnDef="expandedDetail">
             <td mat-cell *matCellDef="let item" [attr.colspan]="diferenciaCajaColumns.length">
               <div class="example-element-detail"
-                   [@detailExpand]="item == expandedElementCaja ? 'expanded' : 'collapsed'">
-                <div
-                  class="movimiento-container"
-                  fxLayout="column"
-                  fxLayoutGap="15px"
-                >
-                  <div 
-                    fxLayout="row" 
-                    fxLayoutGap="20px" 
-                    style="padding: 0 20px; justify-content: center"
-                  >
+                [@detailExpand]="item == expandedElementCaja ? 'expanded' : 'collapsed'">
+                <div class="movimiento-container" fxLayout="column" fxLayoutGap="15px">
+                  <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px; justify-content: center">
                     <div fxFlex="100" fxLayout="row" fxLayoutGap="20px">
                       <!-- Columna 1: Totales -->
                       <div fxFlex="50" fxLayout="column" fxLayoutGap="5px">
                         <div fxLayout="row" class="info-diferencia-header">
                           <div fxFlex="100" class="center">Totales</div>
                         </div>
-                        
+
                         <div fxLayout="row" class="info-diferencia">
                           <div fxFlex="60">Total General:</div>
                           <div fxFlex="40" class="end">
@@ -521,7 +365,8 @@
                         <div fxLayout="row" class="info-diferencia">
                           <div fxFlex="60">Efectivo:</div>
                           <div fxFlex="40" class="end">
-                            {{ (item.balance?.totalGeneral || 0) - (item.balance?.totalTarjeta || 0) - (item.balance?.totalCredito || 0) | number:'1.0-0' }}
+                            {{ (item.balance?.totalGeneral || 0) - (item.balance?.totalTarjeta || 0) -
+                            (item.balance?.totalCredito || 0) | number:'1.0-0' }}
                           </div>
                         </div>
 
@@ -588,41 +433,23 @@
               </div>
             </td>
           </ng-container>
-          <tr 
-            mat-header-row 
-            *matHeaderRowDef="diferenciaCajaColumns; 
-            sticky: true"
-          ></tr>
-          <tr 
-            mat-row 
-            *matRowDef="let element; columns: diferenciaCajaColumns; let i = dataIndex"
-            class="example-element-row"
-            [class.example-expanded-row]="expandedElementCaja === element"
+          <tr mat-header-row *matHeaderRowDef="diferenciaCajaColumns; 
+            sticky: true"></tr>
+          <tr mat-row *matRowDef="let element; columns: diferenciaCajaColumns; let i = dataIndex"
+            class="example-element-row" [class.example-expanded-row]="expandedElementCaja === element"
             [class.estado-sin-diferencia]="element.estadoDiferencia === 'SIN_DIFERENCIA'"
             [class.estado-con-diferencia]="element.estadoDiferencia === 'CON_DIFERENCIA'"
             [class.estado-poca-diferencia]="element.estadoDiferencia === 'POCA_DIFERENCIA'"
             [class.estado-media-diferencia]="element.estadoDiferencia === 'MEDIA_DIFERENCIA'"
             [class.estado-mucha-diferencia]="element.estadoDiferencia === 'MUCHA_DIFERENCIA'"
-            [class.estado-sin-datos]="element.estadoDiferencia === 'SIN_DATOS'"
-            (click)="onClickRowCaja(element, i)"
-          ></tr>
-          <tr 
-            mat-row 
-            *matRowDef="let row; columns: ['expandedDetail']" 
-            class="example-detail-row no-padding"
-          ></tr>
-        </table>  
+            [class.estado-sin-datos]="element.estadoDiferencia === 'SIN_DATOS'" (click)="onClickRowCaja(element, i)">
+          </tr>
+          <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row no-padding"></tr>
+        </table>
       </div>
-      <mat-paginator 
-        *ngIf="!isLoadingCaja"
-        itemsPerPageLabel="Itens por pagina" 
-        [pageSizeOptions]="[10, 25, 50, 100]" 
-        (page)="handlePageEventCaja($event)" 
-        [length]="totalElementsCaja" 
-        [pageIndex]="pageIndexCaja" 
-        [pageSize]="pageSizeCaja" 
-        style="width: 100%"
-        showFirstLastButtons>
+      <mat-paginator *ngIf="!isLoadingCaja" itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[10, 25, 50, 100]"
+        (page)="handlePageEventCaja($event)" [length]="totalElementsCaja" [pageIndex]="pageIndexCaja"
+        [pageSize]="pageSizeCaja" style="width: 100%" showFirstLastButtons>
       </mat-paginator>
     </div>
   </div>

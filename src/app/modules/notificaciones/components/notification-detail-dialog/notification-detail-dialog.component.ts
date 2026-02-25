@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,13 +39,17 @@ import { NotificacionData } from '../../services/notificaciones-tablero.service'
       background-color: #ffebee;
       color: #c62828;
     }
-  `]
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 16px;
+    }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotificationDetailDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<NotificationDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: NotificacionData
-  ) { }
+  public readonly dialogRef = inject(MatDialogRef<NotificationDetailDialogComponent>);
+  public readonly data = inject<NotificacionData>(MAT_DIALOG_DATA);
 
   close(): void {
     this.dialogRef.close();

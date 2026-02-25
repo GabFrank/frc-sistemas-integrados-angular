@@ -6,7 +6,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL } from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
+
 import {
   MarcarNotificacionLeidaGQL
 } from "../../modules/notificaciones/graphql/notificacionMutations.gql";
@@ -44,7 +44,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
     public dialog: MatDialog,
     public windowInfo: WindowInfoService,
     private mainService: MainService,
-    private notificacionesPorTokenGQL: NotificacionesPorTokenGQL,
+
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
     private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
@@ -82,6 +82,13 @@ export class DefaultComponent implements OnInit, OnDestroy {
         }
       });
   }
+
+  marcarTodasComoLeidas(): void {
+    this.notificacionesTableroService.marcarTodasComoLeidas()
+      .pipe(untilDestroyed(this))
+      .subscribe();
+  }
+
 
 
   ngOnInit(): void {
