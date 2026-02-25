@@ -174,7 +174,13 @@ td.mat-cell.center {
   background-color: rgb(32, 32, 32);
 }
 
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
 .example-element-detail {
+  overflow: hidden;
+  display: flex;
   background-color: transparent;
   padding: 0;
 }
@@ -405,3 +411,9 @@ tr.example-element-row {
     color: #aaa;
   }
 }
+
+tr:focus {
+  outline: none;
+}
+
+

@@ -511,6 +511,9 @@ export const cajasWithFilters = gql`
         fechaApertura
         fechaCierre
         observacion
+        cajaObservacionList {
+           id 
+        }
         verificado
         maletin {
           id

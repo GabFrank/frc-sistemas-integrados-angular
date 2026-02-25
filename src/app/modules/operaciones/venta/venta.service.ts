@@ -37,6 +37,7 @@ import {
 } from "../../financiero/venta-credito/venta-credito.model";
 import { DeliveryInput } from "../delivery/graphql/delivery-input.model";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+import { VentasGenericFilterGQL } from "./graphql/ventasGenericFilter";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -66,7 +67,8 @@ export class VentaService {
     private deleteCobroDetalle: DeleteCobroDetalleGQL,
     private ventaItemPorId: VentaItemPorIdGQL,
     private saveVentaDelivery: SaveVentaDeliveryGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private ventasGenericFilter: VentasGenericFilterGQL
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -220,6 +222,45 @@ export class VentaService {
       monedaId,
       conDescuento,
       conAumento
+    }, servidor);
+  }
+
+  onVentasFilter(
+    idVenta?,
+    idCaja?,
+    page?,
+    size?,
+    asc?,
+    sucId?,
+    formaPago?,
+    estado?,
+    isDelivery?,
+    monedaId?,
+    conDescuento?,
+    conAumento?,
+    conObservacion?,
+    clienteId?,
+    fechaInicio?,
+    fechaFin?,
+    servidor = true
+  ): Observable<PageInfo<Venta>> {
+    return this.genericService.onCustomQuery(this.ventasGenericFilter, {
+      idVenta,
+      idCaja,
+      page,
+      size,
+      asc,
+      sucId,
+      formaPago,
+      estado,
+      isDelivery,
+      monedaId,
+      conDescuento,
+      conAumento,
+      conObservacion,
+      clienteId,
+      fechaInicio,
+      fechaFin
     }, servidor);
   }
 
