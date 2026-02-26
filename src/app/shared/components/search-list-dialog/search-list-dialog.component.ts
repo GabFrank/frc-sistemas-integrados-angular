@@ -46,6 +46,7 @@ export class SearchListtDialogData {
   isServidor?: boolean = true;
   searchFieldName?: string;
   textHint?: string;
+  fallbackToLocal?: boolean = false;
 }
 
 @UntilDestroy({ checkProperties: true })

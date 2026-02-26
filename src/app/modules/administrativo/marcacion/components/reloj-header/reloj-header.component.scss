@@ -1,0 +1,32 @@
+.header-moderno {
+  padding: 0 8px;
+}
+
+.reloj-digital {
+  font-size: 8rem;
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.fecha-actual {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 4px;
+  text-transform: capitalize;
+}
+
+.sync-status {
+  font-size: 0.85rem;
+  color: rgba(255, 200, 50, 0.8);
+  margin-top: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

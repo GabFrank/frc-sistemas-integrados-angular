@@ -36,6 +36,17 @@
     </mat-expansion-panel>
   </mat-accordion>
 
+  <!-- Horarios Section -->
+  <mat-accordion *ngIf="isHorariosSectionVisible">
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Horarios </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('marcar-horario')">Marcar horario</a>
+      <a mat-list-item (click)="onItemClick('list-marcacion')" *ngIf="isListaMarcacionVisible">Lista de horarios</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
   <!-- Operations Section -->
   <mat-accordion *ngIf="isOperacionesSectionVisible">
     <mat-expansion-panel>
@@ -57,9 +68,6 @@
           <mat-expansion-panel-header>
             <mat-panel-title> Gestión de Stock </mat-panel-title>
           </mat-expansion-panel-header>
-          <!-- <a mat-list-item (click)="onItemClick('list-entrada-salida')"
-            >Entrada/Salida</a
-          > -->
 
           <a mat-list-item (click)="onItemClick('list-transferencias')">Transferencias</a>
           <a mat-list-item (click)="onItemClick('list-inventario')">Inventarios</a>

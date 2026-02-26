@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -12,22 +12,20 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
 import { NotificacionComentario } from '../../graphql/comentariosNotificacion.gql';
 import { MainService } from '../../../../main.service';
-import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
-import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
-import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
-import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap } from 'rxjs/operators';
+import { NotificacionesTableroService } from '../../services/notificaciones-tablero.service';
+import { Observable, interval, of } from 'rxjs';
+import { switchMap, tap, catchError, map } from 'rxjs/operators';
+import { MediaUploadService } from '../../../../shared/services/media-upload.service';
+import { AudioRecordingService, EstadoGrabacion } from '../../../../shared/services/audio-recording.service';
+import { AvatarService } from '../../../../shared/services/avatar.service';
+import { MediaTypeService } from '../../../../shared/services/media-type.service';
+import { TextFormatterService } from '../../../../shared/services/text-formatter.service';
+import { MencionUsuarioService } from '../../../../shared/services/mencion-usuario.service';
+import { ComentariosDialogData, UsuarioExtendido, ComentarioExtendido } from './comentarios.models';
 
-export interface ComentariosDialogData {
-  notificacionId: number;
-  notificacion: {
-    id: number;
-    titulo: string;
-  };
-  comentarioId?: number;
-}
+export { ComentariosDialogData } from './comentarios.models';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-comentarios-notificacion-dialog',
   standalone: true,
@@ -46,52 +44,59 @@ export interface ComentariosDialogData {
   styleUrls: ['./comentarios-notificacion-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ComentariosNotificacionDialogComponent implements OnInit {
-  comentarios: NotificacionComentario[] = [];
+export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy {
+  private readonly dialogRef = inject(MatDialogRef<ComentariosNotificacionDialogComponent>);
+  public readonly data = inject<ComentariosDialogData>(MAT_DIALOG_DATA);
+  private readonly comentariosService = inject(ComentariosNotificacionService);
+  private readonly tableroService = inject(NotificacionesTableroService);
+  private readonly mainService = inject(MainService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly mediaUploadService = inject(MediaUploadService);
+  private readonly audioRecordingService = inject(AudioRecordingService);
+  private readonly avatarService = inject(AvatarService);
+  private readonly mediaTypeService = inject(MediaTypeService);
+  private readonly textFormatterService = inject(TextFormatterService);
+  private readonly mencionService = inject(MencionUsuarioService);
+
+  @ViewChild('mensajeTextarea') mensajeTextarea?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+
+  comentarios: ComentarioExtendido[] = [];
   nuevoComentario = '';
   comentarioPadreId: number | null = null;
   cargando = false;
   enviando = false;
 
+  selectedFile: File | null = null;
+  filePreview: string | null = null;
+  isUploading = false;
+  uploadProgress = 0;
+
+  readonly estadoGrabacion$ = this.audioRecordingService.estado$;
+  readonly duracionFormateada$ = this.audioRecordingService.duracionFormateada$;
+
   usuarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
-  usuariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
-  usuariosFiltrados$: Observable<Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }>>;
-  textoBusqueda$ = new BehaviorSubject<string>('');
+  usuariosFiltrados: UsuarioExtendido[] = [];
   mostrarAutocompletado = false;
   posicionCursor = 0;
 
-  usuariosDestinatarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
+  usuariosDestinatarios: UsuarioExtendido[] = [];
+  usuariosDestinatariosFiltrados: UsuarioExtendido[] = [];
   filtroUsuarios: string = '';
   cargandoUsuarios = false;
-  usuariosDestinatariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
-
-  private userColorsCache = new Map<number, string>();
-  private userLightColorsCache = new Map<number, string>();
-  private userInitialsCache = new Map<string, string>();
 
   private ultimoConteoComentarios = 0;
+  audioWaveformBars = Array.from({ length: 30 }, () => Math.floor(Math.random() * 20) + 4);
 
-  constructor(
-    public dialogRef: MatDialogRef<ComentariosNotificacionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ComentariosDialogData,
-    private comentariosService: ComentariosNotificacionService,
-    private usuariosActivosGQL: UsuariosActivosGQL,
-    private usuariosDestinatariosGQL: UsuariosDestinatariosNotificacionGQL,
-    private usuariosConAccesoGQL: UsuariosConAccesoNotificacionGQL,
-    private mainService: MainService,
-    private cdr: ChangeDetectorRef
-  ) {
-    this.usuariosFiltrados$ = this.textoBusqueda$.pipe(
-      debounceTime(200),
-      distinctUntilChanged(),
-      map((busqueda) => {
+  constructor() {
+    this.mencionService.textoBusqueda$.pipe(
+      untilDestroyed(this),
+      map(busqueda => {
         this.usuariosFiltrados = this.filtrarUsuarios(busqueda);
         this.cdr.markForCheck();
         return this.usuariosFiltrados;
       })
-    );
-
-    this.usuariosFiltrados$.pipe(untilDestroyed(this)).subscribe();
+    ).subscribe();
   }
 
   ngOnInit(): void {
@@ -106,79 +111,51 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cargarUsuariosDestinatarios();
     this.iniciarPollingComentarios();
   }
-  getUserColor(usuarioId: number): string {
-    if (!this.userColorsCache.has(usuarioId)) {
-      const colors = [
-        '#f44336', '#43a047', '#e53935', '#66bb6a', '#d32f2f', '#388e3c',
-        '#ef5350', '#81c784', '#c62828', '#2e7d32', '#ff5252', '#4caf50',
-        '#b71c1c', '#1b5e20', '#ff1744', '#00e676',
-      ];
-      this.userColorsCache.set(usuarioId, colors[usuarioId % colors.length]);
-    }
-    return this.userColorsCache.get(usuarioId)!;
+
+  private formatearComentario(comentario: string): string {
+    return this.textFormatterService.formatearComentario(comentario);
   }
 
-  getUserLightColor(usuarioId: number): string {
-    if (!this.userLightColorsCache.has(usuarioId)) {
-      const baseColor = this.getUserColor(usuarioId);
-      const hex = baseColor.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      this.userLightColorsCache.set(usuarioId, `rgba(${r}, ${g}, ${b}, 0.15)`);
-    }
-    return this.userLightColorsCache.get(usuarioId)!;
-  }
+  private mapComentario(c: NotificacionComentario, index: number, array: NotificacionComentario[]): ComentarioExtendido {
+    const isSameAuthor = index > 0 && array[index - 1].usuario.id === c.usuario.id;
+    const datosAvatar = this.avatarService.calcularDatosAvatar(c.usuario);
+    const formattedText = this.formatearComentario(c.comentario);
+    const tipoMedia = c.mediaUrl ? this.mediaTypeService.obtenerTipoMedia(c.mediaUrl) : 'desconocido';
+    const nombreArchivo = c.mediaUrl ? this.mediaTypeService.obtenerNombreArchivo(c.mediaUrl) : '';
 
-  getUserInitials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
-    const key = `${usuario.nickname}-${usuario.persona?.nombre || ''}`;
-    if (!this.userInitialsCache.has(key)) {
-      const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
-      const partes = nombre.trim().split(' ').filter(p => p.length > 0);
-      let initials: string;
-      if (partes.length >= 2) {
-        initials = (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-      } else {
-        initials = nombre.substring(0, Math.min(2, nombre.length)).toUpperCase();
-      }
-      this.userInitialsCache.set(key, initials);
-    }
-    return this.userInitialsCache.get(key)!;
-  }
+    let replyColor: string | undefined;
+    let replyLightColor: string | undefined;
 
-  getComentarioFormateado(comentario: string): string {
-    if (!comentario) {
-      return '';
+    if (c.comentarioPadre) {
+      replyColor = this.avatarService.obtenerColor(c.comentarioPadre.usuario.id);
+      replyLightColor = this.avatarService.obtenerColorClaro(c.comentarioPadre.usuario.id);
     }
 
-    const textoEscapado = comentario
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-    const textoFormateado = textoEscapado.replace(
-      /@([a-zA-Z0-9_]+)/g,
-      '<span class="mention">@$1</span>'
-    );
-
-    return textoFormateado.replace(/\n/g, '<br>');
+    return {
+      ...c,
+      initials: datosAvatar.iniciales,
+      color: datosAvatar.color,
+      color2: this.avatarService.obtenerColor(c.usuario.id + 1),
+      lightColor: datosAvatar.colorClaro,
+      formattedText,
+      isSameAuthor,
+      replyColor,
+      replyLightColor,
+      avatarUrl: datosAvatar.avatarUrl,
+      tipoMedia,
+      nombreArchivo
+    };
   }
 
-  isSameAuthor(currentIndex: number): boolean {
-    return currentIndex > 0 && this.comentarios[currentIndex - 1].usuario.id === this.comentarios[currentIndex].usuario.id;
-  }
-
-  private scrollAComentario(comentarioId: number): void {
-    const element = document.getElementById(`comentario-${comentarioId}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.classList.add('highlighted-comment');
-      setTimeout(() => {
-        element.classList.remove('highlighted-comment');
-      }, 3000);
-    }
+  private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string; imagenes?: string } }): UsuarioExtendido {
+    const datosAvatar = this.avatarService.calcularDatosAvatar(u);
+    return {
+      ...u,
+      initials: datosAvatar.iniciales,
+      color: datosAvatar.color,
+      color2: this.avatarService.obtenerColor(u.id + 1),
+      avatarUrl: datosAvatar.avatarUrl
+    };
   }
 
   cargarComentarios(mostrarCargando: boolean = true): Observable<NotificacionComentario[]> {
@@ -192,7 +169,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         untilDestroyed(this),
         tap({
           next: (comentarios) => {
-            this.comentarios = comentarios;
+            this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
             this.ultimoConteoComentarios = comentarios.length;
             this.cargando = false;
             this.cdr.markForCheck();
@@ -227,7 +204,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
               const habiaComentarios = this.comentarios.length > 0;
               const estabaAlFinal = this.estaAlFinalDelScroll();
 
-              this.comentarios = comentarios;
+              this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
               this.ultimoConteoComentarios = comentarios.length;
 
               if (habiaComentarios && comentarios.length > conteoAnterior && estabaAlFinal) {
@@ -260,18 +237,29 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     }
   }
 
+  private scrollAComentario(comentarioId: number): void {
+    const element = document.getElementById(`comentario-${comentarioId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlighted-comment');
+      setTimeout(() => {
+        element.classList.remove('highlighted-comment');
+      }, 3000);
+    }
+  }
+
   cargarUsuariosActivos(): void {
-    this.usuariosActivosGQL.fetch({}, { fetchPolicy: 'cache-first' })
+    this.tableroService.obtenerUsuariosActivos()
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (result: any) => {
-          this.usuarios = result.data?.data || [];
+        next: (usuarios) => {
+          this.usuarios = usuarios || [];
           this.cdr.markForCheck();
         }
       });
   }
 
-  filtrarUsuarios(busqueda: string): Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> {
+  filtrarUsuarios(busqueda: string): UsuarioExtendido[] {
     if (!busqueda || busqueda.length < 1) {
       return [];
     }
@@ -281,7 +269,8 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       const nickname = usuario.nickname?.toLowerCase() || '';
       const nombre = usuario.persona?.nombre?.toLowerCase() || '';
       return nickname.includes(busquedaLower) || nombre.includes(busquedaLower);
-    }).slice(0, 10);
+    }).slice(0, 10)
+      .map(u => this.mapUsuario(u));
   }
 
   onTextareaInput(event: Event): void {
@@ -289,20 +278,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const texto = textarea.value;
     this.posicionCursor = textarea.selectionStart;
 
-    const textoAntesCursor = texto.substring(0, this.posicionCursor);
-    const ultimoArroba = textoAntesCursor.lastIndexOf('@');
-
-    if (ultimoArroba !== -1) {
-      const textoDespuesArroba = textoAntesCursor.substring(ultimoArroba + 1);
-      if (!textoDespuesArroba.includes('\n') && !textoDespuesArroba.endsWith(' ')) {
-        this.mostrarAutocompletado = true;
-        this.textoBusqueda$.next(textoDespuesArroba);
-        this.cdr.markForCheck();
-        return;
-      }
-    }
-
-    this.mostrarAutocompletado = false;
+    this.mostrarAutocompletado = this.mencionService.detectarMencion(texto, this.posicionCursor);
     this.cdr.markForCheck();
   }
 
@@ -339,9 +315,9 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     });
   }
 
-  seleccionarUsuario(usuario: { id: number; nickname: string; persona?: { id: number; nombre: string } }): void {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
+  seleccionarUsuario(usuario: UsuarioExtendido): void {
+    if (!this.mensajeTextarea) return;
+    const textarea = this.mensajeTextarea.nativeElement;
 
     const texto = textarea.value;
     const textoAntesCursor = texto.substring(0, this.posicionCursor);
@@ -365,36 +341,110 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     }
   }
 
+  triggerFileInput(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.filePreview = reader.result as string;
+        this.cdr.markForCheck();
+      };
+
+      reader.readAsDataURL(this.selectedFile);
+      this.cdr.markForCheck();
+    }
+  }
+
+  removeFile(): void {
+    this.selectedFile = null;
+    this.filePreview = null;
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+    this.cdr.markForCheck();
+  }
+
+  subirArchivo(archivo: File): Observable<string> {
+    this.isUploading = true;
+    this.uploadProgress = 0;
+    this.cdr.markForCheck();
+
+    this.mediaUploadService.progreso$.pipe(
+      untilDestroyed(this)
+    ).subscribe(progreso => {
+      this.uploadProgress = progreso.progreso;
+      this.isUploading = progreso.estado === 'subiendo';
+      this.cdr.markForCheck();
+    });
+
+    return this.mediaUploadService.subirArchivo(archivo).pipe(
+      tap(() => {
+        this.isUploading = false;
+        this.cdr.markForCheck();
+      }),
+      catchError(error => {
+        this.isUploading = false;
+        this.cdr.markForCheck();
+        throw error;
+      })
+    );
+  }
+
   enviarComentario(): void {
     const comentarioTexto = this.nuevoComentario.trim();
-    if (!comentarioTexto || this.enviando) {
+    if ((!comentarioTexto && !this.selectedFile) || this.enviando || this.isUploading) {
       return;
     }
 
+    this.enviando = true;
+
+    if (this.selectedFile) {
+      this.subirArchivo(this.selectedFile).subscribe({
+        next: (url) => {
+          this.procesarEnvioComentario(comentarioTexto, url);
+          this.removeFile();
+        },
+        error: () => {
+          this.enviando = false;
+          this.cdr.markForCheck();
+        }
+      });
+    } else {
+      this.procesarEnvioComentario(comentarioTexto);
+    }
+  }
+
+  private procesarEnvioComentario(comentarioTexto: string, mediaUrl?: string): void {
+    const commentaire = comentarioTexto || (mediaUrl ? 'Adjunto archivo' : '');
     const comentarioPadreIdTemp = this.comentarioPadreId;
 
     this.nuevoComentario = '';
     this.comentarioPadreId = null;
     this.mostrarAutocompletado = false;
 
-    setTimeout(() => {
-      const textarea = document.querySelector('.gemini-textarea') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.style.height = '20px';
-      }
-    }, 0);
+    if (this.mensajeTextarea) {
+      this.mensajeTextarea.nativeElement.style.height = '20px';
+    }
 
     this.cdr.markForCheck();
 
     const usuarioActual = this.mainService.usuarioActual;
+
     if (usuarioActual) {
       const comentarioPadreTemp = comentarioPadreIdTemp
         ? this.comentarios.find(c => c.id === comentarioPadreIdTemp)
         : undefined;
 
-      const comentarioTemporal: NotificacionComentario = {
+      const comentarioTemporalRaw: NotificacionComentario = {
         id: -1,
-        comentario: comentarioTexto,
+        comentario: commentaire,
+        mediaUrl: mediaUrl,
         creadoEn: new Date().toISOString(),
         actualizadoEn: new Date().toISOString(),
         usuario: {
@@ -414,59 +464,58 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         } : undefined
       };
 
+      const comentarioTemporal = this.mapComentario(comentarioTemporalRaw, this.comentarios.length, [...this.comentarios, comentarioTemporalRaw]);
       this.comentarios = [...this.comentarios, comentarioTemporal];
       this.cdr.markForCheck();
 
       setTimeout(() => {
-        const comentariosList = document.querySelector('.comentarios-list');
-        if (comentariosList) {
-          comentariosList.scrollTop = comentariosList.scrollHeight;
-        }
+        this.scrollAlFinal();
       }, 0);
     }
 
-    this.enviando = true;
-    this.cdr.markForCheck();
-
     this.comentariosService.crearComentario(
       this.data.notificacionId,
-      comentarioTexto,
-      comentarioPadreIdTemp || undefined
+      commentaire,
+      comentarioPadreIdTemp || undefined,
+      mediaUrl
     ).pipe(
       untilDestroyed(this),
       switchMap(() => {
         return this.cargarComentarios(false);
+      }),
+      catchError(() => {
+        this.comentarios = this.comentarios.filter(c => c.id !== -1);
+        this.enviando = false;
+        this.cargarComentarios().subscribe();
+        this.cdr.markForCheck();
+        return of([]);
       })
     )
       .subscribe({
         next: (comentarios) => {
-          this.comentarios = comentarios;
-          this.ultimoConteoComentarios = comentarios.length;
-          this.enviando = false;
-          this.comentariosService.obtenerConteoComentarios(this.data.notificacionId, true).subscribe();
+          if (comentarios.length > 0) {
+            this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
+            this.ultimoConteoComentarios = comentarios.length;
+            this.enviando = false;
+            this.comentariosService.obtenerConteoComentarios(this.data.notificacionId).subscribe();
 
-          setTimeout(() => {
-            this.scrollAlFinal();
-          }, 100);
+            setTimeout(() => {
+              this.scrollAlFinal();
+            }, 100);
 
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.comentarios = this.comentarios.filter(c => c.id !== -1);
-          this.enviando = false;
-          this.cargarComentarios().subscribe();
-          this.cdr.markForCheck();
+            this.cdr.markForCheck();
+          }
         }
       });
   }
 
-  responderComentario(comentario: NotificacionComentario): void {
+  responderComentario(comentario: ComentarioExtendido): void {
     this.comentarioPadreId = comentario.id;
     this.nuevoComentario = `@${comentario.usuario.nickname} `;
 
     setTimeout(() => {
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-      if (textarea) {
+      if (this.mensajeTextarea) {
+        const textarea = this.mensajeTextarea.nativeElement;
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
       }
@@ -488,15 +537,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cargandoUsuarios = true;
     this.cdr.markForCheck();
 
-    this.usuariosConAccesoGQL.fetch({ notificacionId: this.data.notificacionId }, { fetchPolicy: 'network-only' })
+    this.comentariosService.obtenerUsuariosConAcceso(this.data.notificacionId)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (result: any) => {
-          if (result.errors) {
-            this.usuariosDestinatarios = [];
-          } else {
-            this.usuariosDestinatarios = result.data?.data || [];
-          }
+        next: (usuarios) => {
+          this.usuariosDestinatarios = (usuarios || []).map(u => this.mapUsuario(u));
           this.actualizarUsuariosDestinatariosFiltrados();
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();
@@ -508,6 +553,112 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           this.cdr.markForCheck();
         }
       });
+  }
+
+  descargarMedia(url: string): void {
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.download = url.split('/').pop() || 'archivo';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  async startRecording(): Promise<void> {
+    await this.audioRecordingService.iniciarGrabacion();
+    this.cdr.markForCheck();
+  }
+
+  stopRecording(): void {
+    this.audioRecordingService.detenerGrabacion();
+    this.cdr.markForCheck();
+  }
+
+  cancelRecording(): void {
+    this.audioRecordingService.cancelarGrabacion();
+    this.cdr.markForCheck();
+  }
+
+  removeRecordedAudio(): void {
+    this.audioRecordingService.eliminarAudioGrabado();
+    this.cdr.markForCheck();
+  }
+
+  sendAudioMessage(): void {
+    const estado = this.audioRecordingService.obtenerEstadoActual();
+    if (!estado.audioGrabado || this.enviando || this.isUploading) {
+      return;
+    }
+
+    this.enviando = true;
+    const audioFile = new File([estado.audioGrabado], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+
+    this.subirArchivo(audioFile).subscribe({
+      next: (url) => {
+        this.procesarEnvioComentario('Adjunto archivo multimedia', url);
+        this.removeRecordedAudio();
+      },
+      error: () => {
+        this.enviando = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  toggleAudioPlay(event: Event): void {
+    const button = event.currentTarget as HTMLElement;
+    const container = button.closest('.whatsapp-audio-player');
+    if (!container) return;
+
+    const audio = container.querySelector('.hidden-audio') as HTMLAudioElement;
+    const icon = button.querySelector('mat-icon');
+    const durationSpan = container.querySelector('.audio-duration');
+
+    if (!audio) return;
+
+    if (audio.paused) {
+      document.querySelectorAll('.hidden-audio').forEach((otherAudio: Element) => {
+        const audioEl = otherAudio as HTMLAudioElement;
+        if (audioEl !== audio && !audioEl.paused) {
+          audioEl.pause();
+          const otherBtn = audioEl.closest('.whatsapp-audio-player')?.querySelector('.audio-play-btn mat-icon');
+          if (otherBtn) otherBtn.textContent = 'play_arrow';
+        }
+      });
+
+      audio.play();
+      if (icon) icon.textContent = 'pause';
+    } else {
+      audio.pause();
+      if (icon) icon.textContent = 'play_arrow';
+    }
+
+    audio.onloadedmetadata = () => {
+      if (durationSpan && audio.duration) {
+        const mins = Math.floor(audio.duration / 60);
+        const secs = Math.floor(audio.duration % 60);
+        durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+
+    audio.ontimeupdate = () => {
+      if (durationSpan) {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+
+    audio.onended = () => {
+      if (icon) icon.textContent = 'play_arrow';
+      audio.currentTime = 0;
+    };
+  }
+
+  ngOnDestroy(): void {
+    this.audioRecordingService.cancelarGrabacion();
   }
 }
 

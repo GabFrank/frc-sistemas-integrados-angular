@@ -45,6 +45,8 @@ import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
 /** @deprecated LEGACY - En uso: app-side-mini-variant */
 @Component({
@@ -63,6 +65,8 @@ export class SideComponent implements OnInit {
   isProductosSectionVisible = false;
   isOperacionesSectionVisible = false;
   isConfiguracionSectionVisible = false;
+  isHorariosSectionVisible = true;
+  isListaMarcacionVisible = false;
 
   constructor(
     public tabService: TabService,
@@ -134,6 +138,16 @@ export class SideComponent implements OnInit {
     ]);
 
     this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
+    this.isHorariosSectionVisible = true;
+    this.isListaMarcacionVisible = this.hasAnyRole([
+      ROLES.VER_PERSONAS,
+      ROLES.EDITAR_PERSONAS,
+      ROLES.VER_USUARIOS,
+      ROLES.EDITAR_USUARIOS,
+      ROLES.VER_FUNCIONARIOS,
+      ROLES.CREAR_FUNCIONARIOS,
+      ROLES.EDITAR_FUNCIONARIOS
+    ]);
   }
   resetMenuVisibility(): void {
     this.isPdvVisible = false;
@@ -144,6 +158,8 @@ export class SideComponent implements OnInit {
     this.isProductosSectionVisible = false;
     this.isOperacionesSectionVisible = false;
     this.isConfiguracionSectionVisible = false;
+    this.isHorariosSectionVisible = false;
+    this.isListaMarcacionVisible = false;
   }
 
   /**
@@ -483,6 +499,20 @@ export class SideComponent implements OnInit {
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
+        }
+        break;
+      case "marcar-horario":
+        this.tabService.addTab(
+          new Tab(MarcarHorarioComponent, "Marcar horario", null, null)
+        );
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(
+            new Tab(ListMarcacionComponent, "Lista de horarios", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.')
         }
         break;
     }

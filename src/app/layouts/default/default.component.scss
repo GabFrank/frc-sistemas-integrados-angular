@@ -11,7 +11,7 @@
   overflow: auto !important;
 }
 
-.mat-mdc-tab.mdc-tab {
+::ng-deep .mat-mdc-tab.mdc-tab {
   height: 2em !important;
   min-width: 200px !important;
   max-width: 250px !important;
@@ -228,6 +228,21 @@
   }
 }
 
+.mark-all-button {
+  height: 40px;
+  min-width: 150px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+
+  mat-icon {
+    margin-right: 4px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
 .btn-crear-notificacion {
   height: 40px;
   min-width: 180px;
@@ -236,7 +251,7 @@
   justify-content: center;
   gap: 8px;
   flex-shrink: 0;
-  
+
   mat-icon {
     margin-right: 0;
   }

@@ -46,6 +46,8 @@ import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
 
 interface BaseNavigationItem {
@@ -111,6 +113,25 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       items: [
         { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
         { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+      ]
+    },
+    {
+      name: 'Horarios',
+      icon: 'schedule',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        {
+          name: 'Marcar horario',
+          icon: 'login',
+          action: 'marcar-horario'
+        },
+        {
+          name: 'Lista de horarios',
+          icon: 'list_alt',
+          action: 'list-marcacion',
+          visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
+        }
       ]
     },
     {
@@ -382,20 +403,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.resetMenuVisibility();
       }
     });
-
-    // Escuchar notificaciones push desde Electron
     if (this.electronService && this.electronService.isElectron) {
       this.electronService.notificationReceived.subscribe((notification: any) => {
-        const path = notification?.data?.path;
-        if (path) {
-          setTimeout(() => {
-            this.onItemClick(path, undefined, true);
-          }, 500);
-        }
       });
     }
-
-    // Escuchar evento de navegación desde notificaciones web (Firebase)
     window.addEventListener('push-path', (event: any) => {
       const path = event.detail;
       if (path) {
@@ -404,8 +415,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }, 500);
       }
     });
-
-    // Escuchar evento de acción desde el tablero de notificaciones
     window.addEventListener('notification-action', (event: any) => {
       const action = event.detail;
       if (action) {
@@ -675,6 +684,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
         break;
+      case "marcar-horario":
+        this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(new Tab(ListMarcacionComponent, "Lista de horarios", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
     }
   }
   private openTabIfAuthorized(role: string, component: any, title: string): void {
@@ -683,6 +702,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
     }
+  }
+
+  private hasAnyRole(roleList: string[]): boolean {
+    if (!this.mainService.usuarioActual?.roles) return false;
+    if (this.mainService.usuarioActual.roles.includes(ROLES.ADMIN)) return true;
+    return roleList.some(role => this.mainService.usuarioActual.roles.includes(role));
   }
 
   async onLogout() {
