@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { SolicitudPago, SolicitudPagoInput, SolicitudPagoEstado, SolicitudPagoDetalle, SolicitudPagoDetalleInput } from '../../compra/gestion-compras/solicitud-pago.model';
 import { NotaRecepcion } from '../../compra/gestion-compras/nota-recepcion.model';
@@ -19,7 +20,14 @@ import { AdicionarFormaPagoDialogComponent } from '../adicionar-forma-pago-dialo
 @Component({
   selector: 'app-create-edit-solicitud-pago-dialog',
   templateUrl: './create-edit-solicitud-pago-dialog.component.html',
-  styleUrls: ['./create-edit-solicitud-pago-dialog.component.scss']
+  styleUrls: ['./create-edit-solicitud-pago-dialog.component.scss'],
+  animations: [
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
+      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)'))
+    ])
+  ]
 })
 export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('proveedorInput') proveedorInput: ElementRef<HTMLInputElement>;
@@ -28,8 +36,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   selectedProveedor: Proveedor;
   monedaList: Moneda[] = [];
   formaPagoList: FormaPago[] = [];
-  /** Notas con display de proveedor para la tabla (sin usar funciones en template). */
-  notasAgregadas: (NotaRecepcion & { proveedorNombreDisplay?: string })[] = [];
+  /** Notas con display de proveedor y datos de pedido para la tabla (sin usar funciones en template). */
+  notasAgregadas: (NotaRecepcion & {
+    proveedorNombreDisplay?: string;
+    pedidoMonedaDisplay?: string;
+    pedidoFormaPagoDisplay?: string;
+    pedidoPlazoDisplay?: string;
+    pedidoObservacionDisplay?: string;
+  })[] = [];
   /** Detalles (formas de pago) con display para la tabla. */
   detallesAgregados: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] = [];
 
@@ -45,8 +59,13 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   tituloDialogo = 'Nueva solicitud de pago';
   solicitudPagoId: number;
 
-  displayedColumnsNotas: string[] = ['numero', 'fecha', 'valorTotal', 'quitar'];
+  displayedColumnsNotas: string[] = ['numero', 'fecha', 'valorTotal', 'moneda', 'formaPago', 'plazo', 'quitar'];
   displayedColumnsDetalles: string[] = ['moneda', 'formaPago', 'valor', 'fechaPago', 'observacion', 'quitar'];
+
+  /** Fila de nota expandida para mostrar observación del pedido. */
+  expandedNota: NotaRecepcion | null = null;
+  /** Mapa id nota -> true si tiene observación de forma de pago (para clase CSS sin funciones en template). */
+  notaTieneObservacionMap: Record<number, boolean> = {};
 
   constructor(
     private fb: FormBuilder,
@@ -96,10 +115,17 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.notasAgregadas = sp.notasRecepcion.map((nr) => {
             const nota = nr.notaRecepcion;
             const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-            const n = nota as NotaRecepcion & { proveedorNombreDisplay?: string };
+            const n = nota as NotaRecepcion & {
+              proveedorNombreDisplay?: string;
+              pedidoMonedaDisplay?: string;
+              pedidoFormaPagoDisplay?: string;
+              pedidoPlazoDisplay?: string;
+              pedidoObservacionDisplay?: string;
+            };
             n.proveedorNombreDisplay = display;
             return n;
           });
+          this.updateNotasDisplay();
           this.updateMontoTotal();
         }
         if (sp.detalles?.length) {
@@ -197,17 +223,30 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
     ref.afterClosed().subscribe((notas: NotaRecepcion[] | null) => {
       if (!notas?.length) return;
-      const newNotas: (NotaRecepcion & { proveedorNombreDisplay?: string })[] = [];
+      const newNotas: (NotaRecepcion & {
+        proveedorNombreDisplay?: string;
+        pedidoMonedaDisplay?: string;
+        pedidoFormaPagoDisplay?: string;
+        pedidoPlazoDisplay?: string;
+        pedidoObservacionDisplay?: string;
+      })[] = [];
       notas.forEach((nota) => {
         if (!idsAntes.has(nota.id)) {
           const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-          const notaWithDisplay = nota as NotaRecepcion & { proveedorNombreDisplay?: string };
+          const notaWithDisplay = nota as NotaRecepcion & {
+            proveedorNombreDisplay?: string;
+            pedidoMonedaDisplay?: string;
+            pedidoFormaPagoDisplay?: string;
+            pedidoPlazoDisplay?: string;
+            pedidoObservacionDisplay?: string;
+          };
           notaWithDisplay.proveedorNombreDisplay = display;
           this.notasAgregadas.push(notaWithDisplay);
           newNotas.push(notaWithDisplay);
         }
       });
       if (newNotas.length === 0) return;
+      this.updateNotasDisplay();
       this.updateMontoTotal();
       if (this.solicitudPagoId != null) {
         this.saving = true;
@@ -281,6 +320,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         monedaList: this.monedaList,
         formaPagoList: this.formaPagoList,
         proveedorNombre: this.proveedorNombreDisplay,
+        proveedor: this.selectedProveedor ?? undefined,
         montoSugerido: this.montoTotalComputed,
         solicitudPagoId: this.isEditMode ? this.solicitudPagoId : undefined
       }
@@ -372,6 +412,30 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     );
     // Redondear para evitar decimales por errores de punto flotante (valorTotal viene como Double del backend; suma en JS puede dar 962499.9999999)
     this.montoTotalComputed = Math.round(sum);
+  }
+
+  /** Rellena propiedades de display de pedido (moneda, formaPago, plazo, observación) para la tabla de notas. */
+  private updateNotasDisplay(): void {
+    const map: Record<number, boolean> = {};
+    this.notasAgregadas.forEach((nota) => {
+      const ped = nota?.pedido;
+      const n = nota as NotaRecepcion & {
+        pedidoMonedaDisplay?: string;
+        pedidoFormaPagoDisplay?: string;
+        pedidoPlazoDisplay?: string;
+        pedidoObservacionDisplay?: string;
+      };
+      n.pedidoMonedaDisplay = (ped?.moneda?.denominacion ?? ped?.moneda?.simbolo ?? '-').toString().toUpperCase();
+      n.pedidoFormaPagoDisplay = (ped?.formaPago?.descripcion ?? '-').toString().toUpperCase();
+      n.pedidoPlazoDisplay = ped?.plazoCredito != null ? String(ped.plazoCredito) : '-';
+      n.pedidoObservacionDisplay = (ped?.observacionFormaPago ?? '').toString().trim();
+      map[nota.id] = !!(n.pedidoObservacionDisplay && n.pedidoObservacionDisplay.length > 0);
+    });
+    this.notaTieneObservacionMap = map;
+  }
+
+  onNotaRowClick(nota: NotaRecepcion): void {
+    this.expandedNota = this.expandedNota === nota ? null : nota;
   }
 
   private buildInputForSave(): SolicitudPagoInput {

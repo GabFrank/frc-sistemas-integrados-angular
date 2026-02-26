@@ -17,7 +17,7 @@ Esta versión incluye mejoras significativas en facturación electrónica, siste
 - 19,308 líneas eliminadas
 - 17 merges de branches
 
-Para más detalles, ver [changelog/v3.0.8.md](./changelog/v3.0.8.md)
+Para más detalles, ver [docs/changelog/v3.0.8.md](./docs/changelog/v3.0.8.md)
 
 ---
 

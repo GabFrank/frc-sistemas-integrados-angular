@@ -83,30 +83,66 @@
             </div>
             <div class="notas-table-wrapper notas-table-scroll notas-table-full-width">
               <div class="notas-table-scroll-inner" *ngIf="notasAgregadas?.length > 0">
-                <mat-table [dataSource]="notasAgregadas" class="notas-table table-center mat-elevation-z1">
+                <table mat-table [dataSource]="notasAgregadas" class="notas-table table-center mat-elevation-z1" multiTemplateDataRows>
                   <ng-container matColumnDef="numero">
-                    <mat-header-cell *matHeaderCellDef>Número</mat-header-cell>
-                    <mat-cell *matCellDef="let nota">{{ nota.numero }}</mat-cell>
+                    <th mat-header-cell *matHeaderCellDef>Número</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.numero }}</td>
                   </ng-container>
                   <ng-container matColumnDef="fecha">
-                    <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
-                    <mat-cell *matCellDef="let nota">{{ nota.fecha | date:'dd/MM/yyyy' }}</mat-cell>
+                    <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.fecha | date:'dd/MM/yyyy' }}</td>
                   </ng-container>
                   <ng-container matColumnDef="valorTotal">
-                    <mat-header-cell *matHeaderCellDef>Valor total</mat-header-cell>
-                    <mat-cell *matCellDef="let nota">{{ nota.valorTotal | number:'1.0-0' }}</mat-cell>
+                    <th mat-header-cell *matHeaderCellDef>Valor total</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.valorTotal | number:'1.0-0' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="moneda">
+                    <th mat-header-cell *matHeaderCellDef>Moneda (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoMonedaDisplay }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="formaPago">
+                    <th mat-header-cell *matHeaderCellDef>Forma pago (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoFormaPagoDisplay }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="plazo">
+                    <th mat-header-cell *matHeaderCellDef>Plazo (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoPlazoDisplay }}</td>
                   </ng-container>
                   <ng-container matColumnDef="quitar">
-                    <mat-header-cell *matHeaderCellDef></mat-header-cell>
-                    <mat-cell *matCellDef="let nota; let i = index">
-                      <button *ngIf="isEditable" mat-icon-button (click)="onQuitarNota(i)" type="button">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let nota; let i = index">
+                      <button *ngIf="isEditable" mat-icon-button (click)="onQuitarNota(i); $event.stopPropagation()" type="button">
                         <mat-icon color="warn">delete</mat-icon>
                       </button>
-                    </mat-cell>
+                    </td>
                   </ng-container>
-                  <mat-header-row *matHeaderRowDef="displayedColumnsNotas"></mat-header-row>
-                  <mat-row *matRowDef="let row; columns: displayedColumnsNotas"></mat-row>
-                </mat-table>
+                  <ng-container matColumnDef="expandedDetail">
+                    <td mat-cell *matCellDef="let nota" [attr.colspan]="displayedColumnsNotas.length" class="expanded">
+                      <div
+                        class="example-element-detail"
+                        [@detailExpand]="nota === expandedNota ? 'expanded' : 'collapsed'"
+                      >
+                        <div class="expand-section expand-section-observacion" *ngIf="nota.pedidoObservacionDisplay">
+                          <div class="expand-section-title">Observación forma de pago (pedido)</div>
+                          <p class="expand-observacion-text">{{ nota.pedidoObservacionDisplay }}</p>
+                        </div>
+                        <div class="expand-section expand-section-observacion" *ngIf="!nota.pedidoObservacionDisplay">
+                          <p class="expand-empty">Sin observación de forma de pago en el pedido</p>
+                        </div>
+                      </div>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="displayedColumnsNotas"></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: displayedColumnsNotas"
+                    class="example-element-row notas-data-row"
+                    [class.example-expanded-row]="expandedNota === row"
+                    [class.row-pedido-con-observacion]="notaTieneObservacionMap[row.id]"
+                    (click)="onNotaRowClick(row)"
+                  ></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+                </table>
               </div>
             </div>
             <div class="notas-footer-bar">
@@ -134,27 +170,27 @@
           <div class="detalles-table-wrapper" *ngIf="detallesAgregados?.length > 0">
             <mat-table [dataSource]="detallesAgregados" class="table-center mat-elevation-z1">
               <ng-container matColumnDef="moneda">
-                <mat-header-cell *matHeaderCellDef>Moneda</mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef>Moneda</th>
                 <mat-cell *matCellDef="let d">{{ d.monedaDenominacion }}</mat-cell>
               </ng-container>
               <ng-container matColumnDef="formaPago">
-                <mat-header-cell *matHeaderCellDef>Forma de pago</mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef>Forma de pago</th>
                 <mat-cell *matCellDef="let d">{{ d.formaPagoDescripcion }}</mat-cell>
               </ng-container>
               <ng-container matColumnDef="valor">
-                <mat-header-cell *matHeaderCellDef>Valor</mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef>Valor</th>
                 <mat-cell *matCellDef="let d">{{ d.valor | number:'1.0-0' }}</mat-cell>
               </ng-container>
               <ng-container matColumnDef="fechaPago">
-                <mat-header-cell *matHeaderCellDef>Fecha pago</mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef>Fecha pago</th>
                 <mat-cell *matCellDef="let d">{{ d.fechaPago | date:'dd/MM/yyyy' }}</mat-cell>
               </ng-container>
               <ng-container matColumnDef="observacion">
-                <mat-header-cell *matHeaderCellDef>Observación</mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef>Observación</th>
                 <mat-cell *matCellDef="let d">{{ d.observacion }}</mat-cell>
               </ng-container>
               <ng-container matColumnDef="quitar">
-                <mat-header-cell *matHeaderCellDef></mat-header-cell>
+                <th mat-header-cell *matHeaderCellDef></th>
                 <mat-cell *matCellDef="let d; let i = index">
                   <button *ngIf="isEditable" mat-icon-button (click)="onQuitarDetalle(i)" type="button">
                     <mat-icon color="warn">delete</mat-icon>

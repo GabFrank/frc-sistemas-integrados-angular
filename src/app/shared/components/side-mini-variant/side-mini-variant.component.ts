@@ -103,21 +103,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
+      name: 'Compras',
+      icon: 'add_shopping_cart',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
+        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+      ]
+    },
+    {
       name: 'Operaciones',
       icon: 'business_center',
       isExpanded: false,
       requiresServerMode: false,
       visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.ADMIN, ROLES.SOPORTE],
       items: [
-        {
-          name: 'Compras',
-          icon: 'add_shopping_cart',
-          isExpanded: false,
-          items: [
-            { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
-            { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
-          ]
-        },
         {
           name: 'Gestión de Stock',
           icon: 'inventory',
@@ -305,8 +306,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         {
           name: 'Proveedores',
           icon: 'local_shipping',
-          action: 'list-proveedor',
-          visibilityRoles: [ROLES.VER_PERSONAS]
+          action: 'list-proveedor'
         },
         {
           name: 'Roles',
@@ -617,7 +617,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");
         break;
       case "list-proveedor":
-        this.openTabIfAuthorized(ROLES.VER_PERSONAS, ListProveedorComponent, "Proveedores");
+        this.tabService.addTab(new Tab(ListProveedorComponent, "Proveedores", null, null));
         break;
       case "thermal-printer":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)

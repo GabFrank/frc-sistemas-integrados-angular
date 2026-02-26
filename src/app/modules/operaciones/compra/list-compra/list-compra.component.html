@@ -3,7 +3,7 @@
   (adicionar)="onAdd()"
   (filtrar)="onFilter()"
   (resetFiltro)="onResetFiltro()"
-  [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || true"
+  [isAdicionar]="true"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">

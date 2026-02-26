@@ -18,6 +18,7 @@ export class Pedido {
   tipoBoleta: string;
   moneda: Moneda;
   plazoCredito: number;
+  observacionFormaPago?: string;
 
   creadoEn: Date;
   usuario: Usuario;
@@ -36,6 +37,7 @@ export class Pedido {
     input.tipoBoleta = this?.tipoBoleta;
     input.monedaId = this?.moneda?.id;
     input.plazoCredito = this?.plazoCredito;
+    input.observacionFormaPago = this?.observacionFormaPago;
 
     input.creadoEn = dateToString(this?.creadoEn);
     input.usuarioId = this?.usuario?.id;
@@ -51,6 +53,7 @@ export class PedidoInput {
   tipoBoleta?: string;
   monedaId?: number;
   plazoCredito?: number;
+  observacionFormaPago?: string;
 
   creadoEn?: string;
   usuarioId?: number;

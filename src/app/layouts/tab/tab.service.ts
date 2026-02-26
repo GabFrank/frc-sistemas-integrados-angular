@@ -83,7 +83,7 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, null))
     // this.addTab(new Tab(GestionComprasComponent, 'Pedido 24', new TabData(24, {id: 24}), null))
     // Open Compra Dashboard
-    this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
+    // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
     this.tabSub.next(this.tabs);
   }
   

@@ -5,7 +5,6 @@ import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ListCompraComponent } from '../list-compra/list-compra.component';
 import { ListSolicitudPagoComponent } from '../../solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
-import { ROLES } from '../../../personas/roles/roles.enum';
 
 @Component({
   selector: 'compra-dashboard',
@@ -23,15 +22,7 @@ export class CompraDashboardComponent {
   }
 
   onListCompras() {
-    if (
-      this.mainService.usuarioActual?.roles.includes(
-        ROLES.ADMIN
-      ) || true
-    ) {
-      this.tabService.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, CompraDashboardComponent))
-    } else {
-      this.notificacionService.openWarn('No tenés acceso a esta opción. ')
-    }
+    this.tabService.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, CompraDashboardComponent));
   }
 
   onListProveedores() {
@@ -45,16 +36,8 @@ export class CompraDashboardComponent {
   }
 
   onListSolicitudesPago() {
-    if (
-      this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) ||
-      this.mainService.usuarioActual?.roles.includes(ROLES.SOPORTE) ||
-      true
-    ) {
-      this.tabService.addTab(
-        new Tab(ListSolicitudPagoComponent, 'Solicitudes de pago', null, CompraDashboardComponent)
-      );
-    } else {
-      this.notificacionService.openWarn('No tenés acceso a esta opción.');
-    }
+    this.tabService.addTab(
+      new Tab(ListSolicitudPagoComponent, 'Solicitudes de pago', null, CompraDashboardComponent)
+    );
   }
 }

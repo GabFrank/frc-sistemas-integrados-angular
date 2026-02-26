@@ -128,12 +128,13 @@
   }
 
   .section-notas {
-    margin-top: 0.5rem;
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
     width: 100%;
+    background-color: #303030;
+    padding: 10px;
 
     .section-title-row {
       display: flex;
@@ -182,19 +183,19 @@
           min-width: 15%;
         }
 
-        .mat-column-fecha {
-          flex: 0 0 15%;
-          min-width: 15%;
-        }
+        // .mat-column-fecha {
+        //   flex: 0 0 15%;
+        //   min-width: 15%;
+        // }
 
-        .mat-column-valorTotal {
-          flex: 0 0 15%;
-          min-width: 15%;
-        }
+        // .mat-column-valorTotal {
+        //   flex: 0 0 15%;
+        //   min-width: 15%;
+        // }
 
         .mat-column-quitar {
-          flex: 0 0 5%;
-          min-width: 5%;
+          flex: 0 0 10%;
+          min-width: 10%;
         }
 
         mat-header-cell,
@@ -212,15 +213,66 @@
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
       }
+
+      tr.example-detail-row {
+        height: 0;
+      }
+
+      .notas-data-row.example-element-row td {
+        border-bottom-width: 0;
+      }
+
+      .example-element-row.notas-data-row {
+        cursor: pointer;
+      }
+
+      .row-pedido-con-observacion {
+        background-color: rgba(255, 235, 59, 0.1) !important;
+      }
+
+      .example-element-detail {
+        overflow: hidden;
+        display: flex;
+      }
+
+      .expanded:hover {
+        background-color: rgb(51, 51, 51) !important;
+      }
+
+      .expand-section.expand-section-observacion {
+        background-color: rgb(32, 32, 32);
+        padding: 1rem;
+        border-radius: 4px;
+        min-height: 60px;
+        flex: 1;
+      }
+
+      .expand-section-title {
+        font-size: 90%;
+        margin-bottom: 0.5rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .expand-observacion-text {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: pre-wrap;
+      }
+
+      .expand-empty {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+      }
     }
 
     .notas-footer-bar {
       flex-shrink: 0;
       padding: 1rem 1rem;
-      font-size: 1.1rem;
+      font-size: 110%;
       font-weight: 600;
-      background: rgba(255, 152, 0, 0.15);
-      border-top: 2px solid rgba(255, 152, 0, 0.5);
+      background: rgba(0, 255, 4, 0.15);
+      border-top: 2px solid rgba(0, 255, 13, 0.5);
       color: rgba(255, 255, 255, 0.95);
       display: flex;
       justify-content: space-between;
@@ -229,13 +281,14 @@
       box-sizing: border-box;
 
       .footer-monto-text {
-        color: rgba(255, 193, 7, 0.95);
+        color: rgba(255, 255, 255, 0.95);
       }
     }
   }
 
   .section-formas-pago {
-    margin-top: 0.5rem;
+    background-color: #303030;
+    padding: 10px;
     flex: 1;
     min-height: 0;
     display: flex;

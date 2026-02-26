@@ -78,7 +78,7 @@ Se resolvieron más de 30 issues (FD-3, FD-4, FD-6, FD-12, FD-14, FD-16, FD-21, 
 ## 📚 Documentación
 
 - Manual de actualización disponible
-- Documentación de facturación electrónica en `manual_implementaciones/sifen/`
+- Documentación de facturación electrónica en `docs/manuales-implementacion/sifen/`
 
 ## ⚠️ Notas de Actualización
 
@@ -92,7 +92,7 @@ Gracias a Gabriel Franco, Maurolando y Diego por sus contribuciones.
 
 ---
 
-📖 **Para más detalles, ver [CHANGELOG.md](./CHANGELOG.md) y [changelog/v3.0.8.md](./changelog/v3.0.8.md)**
+📖 **Para más detalles, ver [CHANGELOG.md](../../CHANGELOG.md) y [v3.0.8.md](./v3.0.8.md)**
 ```
 
 

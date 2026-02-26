@@ -30,6 +30,7 @@ export const pedidoQuery = gql`
         simbolo
       }
       plazoCredito
+      observacionFormaPago
 
       creadoEn
       usuario {
@@ -95,6 +96,7 @@ export const pedidosQuery = gql`
           denominacion
       }
       plazoCredito
+      observacionFormaPago
 
       creadoEn
       usuario {
@@ -156,6 +158,7 @@ export const savePedidoMutation = gql`
         denominacion
       }
       plazoCredito
+      observacionFormaPago
 
       creadoEn
       usuario {
@@ -207,6 +210,7 @@ export const savePedidoFullMutation = gql`
         denominacion
       }
       plazoCredito
+      observacionFormaPago
 
       creadoEn
       usuario {
@@ -1319,6 +1323,7 @@ export const finalizarRecepcionNotasMutation = gql`
         descripcion
       }
       plazoCredito
+      observacionFormaPago
       procesoEtapas {
         id
         tipoEtapa
@@ -1424,6 +1429,7 @@ export const pedidosWithFiltersQuery = gql`
           simbolo
         }
         plazoCredito
+        observacionFormaPago
         creadoEn
         usuario {
           id
@@ -1633,6 +1639,13 @@ export const solicitudPagoQuery = gql`
           fecha
           estado
           valorTotal
+          pedido {
+            id
+            moneda { id denominacion simbolo }
+            formaPago { id descripcion }
+            plazoCredito
+            observacionFormaPago
+          }
         }
       }
       detalles {
@@ -1904,7 +1917,14 @@ export const notasDisponiblesParaPagoPorProveedorPaginatedQuery = gql`
         fecha
         estado
         valorTotal
-        pedido { id proveedor { id persona { nombre } } }
+        pedido {
+          id
+          proveedor { id persona { nombre } }
+          moneda { id denominacion simbolo }
+          formaPago { id descripcion }
+          plazoCredito
+          observacionFormaPago
+        }
       }
     }
   }

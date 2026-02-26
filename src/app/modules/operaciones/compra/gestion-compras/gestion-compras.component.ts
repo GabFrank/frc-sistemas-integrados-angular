@@ -460,6 +460,7 @@ export class GestionComprasComponent
       moneda: ["", Validators.required],
       formaPago: ["", Validators.required],
       plazoCredito: [0],
+      observacionFormaPago: [''],
       sucursalesEntrega: [[], Validators.required],
       sucursalesInfluencia: [[], Validators.required],
     });
@@ -783,6 +784,7 @@ export class GestionComprasComponent
       moneda: pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null,
       formaPago: pedido.formaPago != null ? this.formasPago.find((f) => f.id === pedido.formaPago.id) : null,
       plazoCredito: pedido.plazoCredito || 0,
+      observacionFormaPago: pedido.observacionFormaPago ?? '',
       // Si todas las sucursales están seleccionadas, mostrar "Todos", sino mostrar las específicas
       sucursalesEntrega: todasSucursalesEntrega ? [this.sucursalTodos] : sucursalesEntregaSeleccionadas,
       sucursalesInfluencia: todasSucursalesInfluencia ? [this.sucursalTodos] : sucursalesInfluenciaSeleccionadas,
@@ -894,6 +896,7 @@ export class GestionComprasComponent
       monedaId: formValue.moneda?.id,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
+      observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
       usuarioId: this.currentPedido!.usuario?.id || 1, // Mantener el usuario original
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
@@ -978,6 +981,7 @@ export class GestionComprasComponent
       monedaId: formValue.moneda?.id,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
+      observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
       usuarioId: 1, // TODO: Get from auth service
     };
 

@@ -9,10 +9,14 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
+
 export interface AdicionarFormaPagoDialogData {
   monedaList: Moneda[];
   formaPagoList: FormaPago[];
   proveedorNombre?: string;
+  /** Proveedor seleccionado (para usar chequeDias en cálculo de fecha de pago). */
+  proveedor?: Pick<Proveedor, 'chequeDias'> | null;
   montoSugerido?: number;
   /** Si está en modo edición, se guarda en backend al confirmar. */
   solicitudPagoId?: number;
@@ -42,14 +46,24 @@ export class AdicionarFormaPagoDialogComponent {
     this.monedaList = data?.monedaList || [];
     this.formaPagoList = data?.formaPagoList || [];
     this.proveedorNombreDisplay = (data?.proveedorNombre || '').toString().toUpperCase();
+    const hoy = new Date();
+    const diasCheque = data?.proveedor?.chequeDias != null ? Number(data.proveedor.chequeDias) : null;
+    const fechaPagoInicial =
+      diasCheque != null && !isNaN(diasCheque)
+        ? (() => {
+            const d = new Date(hoy);
+            d.setDate(d.getDate() + diasCheque);
+            return d;
+          })()
+        : null;
     this.form = this.fb.group({
       monedaId: [null, Validators.required],
       formaPagoId: [null, Validators.required],
       valor: [data?.montoSugerido ?? null, [Validators.required, Validators.min(0.01)]],
-      fechaPago: [null],
+      fechaPago: [fechaPagoInicial],
       observacion: [''],
       cotizacion: [null],
-      fechaEmisionCheque: [null],
+      fechaEmisionCheque: [hoy],
       portador: [this.proveedorNombreDisplay],
       nominal: [true],
       diferido: [true]
@@ -57,6 +71,19 @@ export class AdicionarFormaPagoDialogComponent {
     this.form.get('formaPagoId').valueChanges.subscribe((id) => {
       const fp = this.formaPagoList.find((f) => f.id === id);
       this.mostrarCamposCheque = fp?.descripcion != null && (fp.descripcion + '').toUpperCase().includes('CHEQUE');
+      if (this.mostrarCamposCheque) {
+        this.form.patchValue({
+          fechaEmisionCheque: new Date(),
+          fechaPago:
+            diasCheque != null && !isNaN(diasCheque)
+              ? (() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + diasCheque);
+                  return d;
+                })()
+              : this.form.get('fechaPago').value
+        });
+      }
     });
     this.form.get('monedaId').valueChanges.subscribe((id) => {
       const m = this.monedaList.find((mo) => mo.id === id);
