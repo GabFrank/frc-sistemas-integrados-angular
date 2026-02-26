@@ -154,13 +154,6 @@ export class ListCajaComponent implements OnInit {
     } else {
       this.onSelectSucursal(this.mainService.sucursalActual);
     }
-    
-    this.cajaObservacionService.cajaObservacionBS
-      .pipe(untilDestroyed(this))
-      .subscribe((observaciones: CajaObservacion[]) => {
-        this.cajaObservacionList = observaciones;
-        this.dataSource.data = this.onObservado(this.dataSource.data);
-      })
   }
 
   onAdd(caja?: PdvCaja, index?) {
@@ -248,11 +241,7 @@ export class ListCajaComponent implements OnInit {
 
   onObservado(cajas: PdvCaja[]): PdvCaja[] {
     cajas.forEach((caja) => {
-      caja['hasObservation'] = this.cajaObservacionList
-        ? this.cajaObservacionList.some((obs) => 
-            obs.pdvCaja && obs.pdvCaja.id === caja.id && obs.sucursal.id === caja.sucursalId
-          )
-        : false;
+      caja['hasObservation'] = caja.cajaObservacionList && caja.cajaObservacionList.length > 0;
     });
   
     if (this.conObsControl.value) {
@@ -271,7 +260,7 @@ export class ListCajaComponent implements OnInit {
       })
       dialogRef.afterClosed()
         .subscribe(() => {
-          this.cajaObservacionService.onGetCajasObservaciones().subscribe();
+          this.onFilter();
         })
   }
 

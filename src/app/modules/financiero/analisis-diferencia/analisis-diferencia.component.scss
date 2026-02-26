@@ -5,18 +5,22 @@
 }
 
 .tables-content-wrapper {
-  flex: 1; /* Ocupa el espacio restante */
+  flex: 1;
+  /* Ocupa el espacio restante */
   display: flex;
   gap: 16px;
-  min-height: 0; /* Clave para que el flex-item se encoja */
+  min-height: 0;
+  /* Clave para que el flex-item se encoja */
 }
 
 .table-wrapper {
-  flex: 1; /* Cada tabla ocupa 50% del espacio */
+  flex: 1;
+  /* Cada tabla ocupa 50% del espacio */
   display: flex;
   flex-direction: column;
   border-radius: 8px;
-  min-width: 0; /* Clave para que el flex-item se encoja */
+  min-width: 0;
+  /* Clave para que el flex-item se encoja */
 }
 
 .inner-table-container {
@@ -33,7 +37,8 @@
   justify-content: space-between;
   align-items: center;
 
-  h3, h4 {
+  h3,
+  h4 {
     margin: 0;
   }
 }
@@ -143,7 +148,7 @@ mat-chip {
 
   .table-wrapper .mat-sort-header-container {
     justify-content: center;
-    text-align: center !important; 
+    text-align: center !important;
   }
 }
 
@@ -158,7 +163,7 @@ td.mat-cell.center {
 }
 
 .info-diferencia {
-  padding: 8px; 
+  padding: 8px;
   border-bottom: 1px solid #444;
 }
 
@@ -169,7 +174,13 @@ td.mat-cell.center {
   background-color: rgb(32, 32, 32);
 }
 
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
 .example-element-detail {
+  overflow: hidden;
+  display: flex;
   background-color: transparent;
   padding: 0;
 }
@@ -201,49 +212,50 @@ tr.example-detail-row {
 }
 
 .info-diferencia-header {
-  padding: 8px; 
+  padding: 8px;
   border-bottom: 1px solid #444;
   font-weight: bold;
   background-color: rgb(52, 52, 52);
+  border-radius: 10px 10px 0 0;
 }
 
 
 tr.example-element-row {
   transition: background-color 0.2s ease;
   cursor: pointer;
-  
+
   &:hover {
     background-color: rgba(255, 255, 255, 0.1) !important;
   }
-  
+
 
   &.estado-sin-diferencia:hover {
-    background-color: rgba(76, 175, 80, 0.2) !important; 
+    background-color: rgba(76, 175, 80, 0.2) !important;
   }
-  
+
 
   &.estado-con-diferencia:hover {
-    background-color: rgba(244, 67, 54, 0.2) !important; 
+    background-color: rgba(244, 67, 54, 0.2) !important;
   }
-  
+
 
   &.estado-poca-diferencia:hover {
-    background-color: rgba(255, 152, 0, 0.2) !important; 
+    background-color: rgba(255, 152, 0, 0.2) !important;
   }
-  
+
 
   &.estado-media-diferencia:hover {
-    background-color: rgba(255, 87, 34, 0.2) !important; 
+    background-color: rgba(255, 87, 34, 0.2) !important;
   }
-  
+
 
   &.estado-mucha-diferencia:hover {
-    background-color: rgba(211, 47, 47, 0.2) !important; 
+    background-color: rgba(211, 47, 47, 0.2) !important;
   }
-  
+
 
   &.estado-sin-datos:hover {
-    background-color: rgba(158, 158, 158, 0.2) !important; 
+    background-color: rgba(158, 158, 158, 0.2) !important;
   }
 }
 
@@ -270,7 +282,7 @@ tr.example-element-row {
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  
+
   p {
     margin: 0;
     font-size: 14px;
@@ -290,7 +302,7 @@ tr.example-element-row {
   justify-content: center;
   padding: 60px 20px;
   min-height: 200px;
-  
+
   p {
     margin-top: 20px;
     font-size: 14px;
@@ -303,7 +315,7 @@ tr.example-element-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
+
   h4 {
     margin: 0;
     display: flex;
@@ -321,6 +333,7 @@ tr.example-element-row {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -330,26 +343,77 @@ tr.example-element-row {
   opacity: 0.8;
 }
 
-.filters-row, .inner-table-container {
+.filters-row,
+.inner-table-container {
   transition: opacity 0.3s ease;
 }
 
 @media (max-width: 768px) {
   .loading-content {
     padding: 20px;
-    
+
     p {
       font-size: 12px;
     }
   }
-  
+
   .table-loading {
     padding: 40px 20px;
     min-height: 150px;
-    
+
     p {
       font-size: 12px;
     }
   }
 }
+
+
+.actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: end !important;
+}
+
+.action-circle {
+  background-color: #1e1e1e;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #444;
+  transition: all 0.2s ease;
+  color: #888;
+
+  padding: 0; // Ensure no default padding affects centering
+
+  mat-icon {
+    font-size: 20px; // Reduced from 24px to prevent cutoff
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:active,
+  &:focus {
+    border-color: #4caf50;
+    color: #4caf50;
+    background-color: rgba(76, 175, 80, 0.1);
+  }
+
+  &:hover {
+    border-color: #666;
+    color: #aaa;
+  }
+}
+
+tr:focus {
+  outline: none;
+}
+
 

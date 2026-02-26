@@ -45,6 +45,7 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 
 
 interface BaseNavigationItem {
@@ -155,6 +156,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               action: 'list-caja',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
+            { name: 'Ventas', icon: 'local_mall', action: 'generic-list-venta' },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
         },
@@ -469,15 +471,38 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
 
     resetItemVisibility(this.navigationItems);
   }
+
+  resetMenuExpansion(): void {
+    const resetItemExpansion = (items: NavigationItem[]) => {
+      for (const item of items) {
+        if ('isExpanded' in item) {
+          item.isExpanded = false;
+        }
+        if ('items' in item && item.items) {
+          resetItemExpansion(item.items);
+        }
+      }
+    };
+
+    resetItemExpansion(this.navigationItems);
+  }
+
   onSideNavClick(): void {
     if (!this.isExpanded) {
       this.toggleSidenav(true);
     }
   }
+
   toggleSidenav(expanded: boolean): void {
     this.isExpanded = expanded;
     this.toggleSideNav.emit(this.isExpanded);
+    
+    // Resetear el estado de expansión de todos los items cuando se cierra el menú
+    if (!expanded) {
+      this.resetMenuExpansion();
+    }
   }
+
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent): void {
     const sidenavElement = document.querySelector('.side-nav-container');
@@ -497,6 +522,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
+  
   onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
@@ -534,6 +560,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-caja":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListCajaComponent, "Cajas");
+        break;
+      case "generic-list-venta":
+        this.tabService.addTab(new Tab(GenericListVentaComponent, "Ventas", null, null));
         break;
       case "finanzas-dashboard":
         this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");

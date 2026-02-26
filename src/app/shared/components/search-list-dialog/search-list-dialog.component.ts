@@ -14,6 +14,7 @@ import { PageEvent } from "@angular/material/paginator";
  * @property id - Identificador único del campo. Para campos anidados, usar notación de puntos (ej: 'pedido.proveedor.persona.nombre').
  * @property nombre - Nombre/título que se mostrará en la columna
  * @property width - Ancho de la columna (opcional)
+ * @property nested - Si true, la columna muestra un objeto anidado (usar con nestedId/nestedColumnId)
  * @property nestedId - (Legacy) Primera parte del objeto anidado. La nueva forma es usar notación de puntos en `id`.
  * @property nestedColumnId - ID personalizado para la columna
  * @property pipe - Nombre del pipe a aplicar al valor (ej: 'date', 'number', 'currency')
@@ -23,6 +24,8 @@ export interface TableData {
   id: string
   nombre: string
   width?: string
+  nested?: boolean
+  nestedId?: string
   nestedColumnId?: string
   pipe?: string
   pipeArgs?: string

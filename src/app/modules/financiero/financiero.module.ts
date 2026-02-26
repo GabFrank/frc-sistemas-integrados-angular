@@ -48,6 +48,7 @@ import { BootstrapModule } from "../../commons/core/bootstrap.module";
 import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gestion-de-dialog.component';
 import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
+import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog/transferir-caja-dialog.component";
 
 @NgModule({
   declarations: [
@@ -91,7 +92,8 @@ import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-
     AddTimbradoDetalleDialogComponent,
     ListLoteDeComponent,
     GestionDeDialogComponent,
-    InutilizacionNumerosTabComponent
+    InutilizacionNumerosTabComponent,
+    TransferirCajaDialogComponent
 
   ],
   providers: [

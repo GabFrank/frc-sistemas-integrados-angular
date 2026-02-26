@@ -245,6 +245,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
               const arr = [...this.dataSource.data.concat(res)];
               this.dataSource.data = arr;
             }
+
+            if (this.isTransferencia) {
+              this.dataSource.data.forEach((p, index) => {
+                this.mostrarStock(p, index);
+              });
+            }
+
             this.buscarInput.nativeElement.focus();
             this.isSearching = false;
           });

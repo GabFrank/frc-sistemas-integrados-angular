@@ -24,7 +24,8 @@ export class Venta {
     cobro: Cobro
     sucursalId: number;
     isDelivery: boolean;
-    delivery: Delivery
+    delivery: Delivery;
+    ventaObservacionList: any[];
 
     toInput(): VentaInput {
         let input = new VentaInput()

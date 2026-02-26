@@ -44,6 +44,23 @@
             Conteo Cierre
           </button>
         </div>
+        <div fxLayout="row" fxLayoutGap="5px" style="padding: 10px" *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_FINANCIERO)">
+          <div fxFlex>
+            <button style="width: 100%" mat-raised-button (click)="onIrAGastos()">
+              Ver Gastos
+            </button>
+          </div>
+          <div fxFlex>
+            <button style="width: 100%" mat-raised-button (click)="onIrARetiros()">
+              Ver Retiros
+            </button>
+          </div>
+          <div fxFlex>
+            <button style="width: 100%" mat-raised-button (click)="onIrAVentas()">
+              Ver Ventas
+            </button>
+          </div>
+        </div>
         <div style="padding: 10px;">
           <button
             style="width: 100%"
@@ -123,22 +140,27 @@
                 {{ totalDsCierre | number: "1.2-2" }}
               </div>
             </div>
+            <div fxFlex fxLayout="row" style="margin-top: 10px; border-top: 1px solid #555; padding-top: 5px;">
+              <div fxFlex="30%" style="text-align: start">Responsable:</div>
+              <div fxFlex="70%" style="text-align: end">
+                {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end" style="padding: 10px;">
-        <div fxFlex="10" *ngIf="!isTab">
-          <button
+              <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end" style="padding: 10px;">
+          <div fxFlex="10" *ngIf="!isTab">
+            <button
             style="width: 100%"
             color="primary"
             mat-raised-button
             (click)="goTo('salir')"
-          >
+            >
             Salir
           </button>
         </div>
       </div>
-
       <!-- <div fxFlex>
         <h3>Apertura</h3>
       </div>
@@ -299,4 +321,17 @@
       </div> -->
     </div>
   </div>
+</div>
+<div class="botonTransferir" *ngIf="selectedCaja != null && selectedConteoCierre == null">
+    <mat-icon matTooltip="Sirve para transferir la caja a otro usuario">info</mat-icon>
+    <button
+      color="accent"
+      type="button"
+      mat-raised-button
+      style="width: 15%"
+      (click)="transferirCaja()"
+    >
+      Transferir caja
+      <mat-icon style="transform: scale(1.8);">compare_arrows</mat-icon>
+    </button>
 </div>

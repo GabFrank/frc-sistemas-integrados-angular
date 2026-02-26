@@ -41,6 +41,7 @@ import { MainVentaObservacionComponent } from './venta-observacion/main-venta-ob
 import { ListPagoComponent } from './pago/list-pago/list-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
+import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
 
 
 import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
@@ -119,6 +120,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
     AdicionarNotaDialogComponent,
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
+    GenericListVentaComponent
   ],
   imports: [
     CommonModule,
