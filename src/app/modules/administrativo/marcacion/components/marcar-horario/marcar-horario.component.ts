@@ -29,6 +29,7 @@ import { ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.compo
 import { EstadoMarcacionComponent } from '../estado-marcacion/estado-marcacion.component';
 import { BusquedaUsuarioComponent } from '../busqueda-usuario/busqueda-usuario.component';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { cloudConnectionStatusSub } from '../../../../../shared/services/graphql-connection.service';
 
 @UntilDestroy()
 @Component({
@@ -59,6 +60,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   marcacionesHoy: Marcacion[] = [];
   jornadaActual: Jornada = null;
   similitudInsuficiente = false;
+  centralOnline: boolean = false;
 
   private referenciaDescriptor: number[] | null = null;
   private embeddingCapturado: number[] | null = null;
@@ -81,6 +83,11 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.sucursalActualNombre = this.mainService.sucursalActual?.nombre || 'Sin sucursal';
     this.sucursalActualId = this.mainService.sucursalActual?.id;
+
+    cloudConnectionStatusSub.pipe(untilDestroyed(this)).subscribe(status => {
+      this.centralOnline = !!status;
+      this.cdr.markForCheck();
+    });
   }
 
   ngOnDestroy(): void {
@@ -242,11 +249,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       { networkError: { propagate: true, show: false } }
     ).pipe(
       timeout(5000),
-      untilDestroyed(this),
-      catchError(() => this.marcacionService.onGetMarcacionesPorUsuario(
-        this.usuarioSeleccionado.id, inicio, fin, 0, 100, false,
-        { networkError: { propagate: true, show: false } }
-      ))
+      untilDestroyed(this)
     ).subscribe({
       next: (res) => {
         this.cargando = false;
@@ -266,12 +269,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.marcacionService.onGetJornadasPorUsuario(
       this.usuarioSeleccionado.id, inicio, fin, true
     ).pipe(
-      untilDestroyed(this),
-      catchError(() => {
-        return this.marcacionService.onGetJornadasPorUsuario(
-          this.usuarioSeleccionado.id, inicio, fin, false
-        );
-      })
+      untilDestroyed(this)
     ).subscribe({
       next: (jornadas: Jornada[]) => {
         if (jornadas && jornadas.length > 0) {

@@ -2,33 +2,46 @@
 
     <reloj-header></reloj-header>
 
-    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="32px" fxFlex>
+    <ng-container *ngIf="centralOnline === true; else offlineTemplate">
+        <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="32px" fxFlex>
 
-        <div fxFlex="45" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px" *ngIf="usuarioSeleccionado">
-            <resumen-marcaciones [usuarioNombre]="usuarioSeleccionado?.persona?.nombre"
-                [sucursalNombre]="sucursalActualNombre" [marcaciones]="marcacionesHoy" (limpiar)="limpiarEmpleado()"
-                (busquedaManual)="abrirBuscadorManual()" [similitudInsuficiente]="similitudInsuficiente">
-            </resumen-marcaciones>
+            <div fxFlex="45" fxFlex.lt-md="100" fxLayout="column" fxLayoutGap="32px" *ngIf="usuarioSeleccionado">
+                <resumen-marcaciones [usuarioNombre]="usuarioSeleccionado?.persona?.nombre"
+                    [sucursalNombre]="sucursalActualNombre" [marcaciones]="marcacionesHoy" (limpiar)="limpiarEmpleado()"
+                    (busquedaManual)="abrirBuscadorManual()" [similitudInsuficiente]="similitudInsuficiente">
+                </resumen-marcaciones>
+            </div>
+
+            <div fxFlex fxLayout="column" [fxLayoutAlign]="usuarioSeleccionado ? 'start stretch' : 'start center'">
+
+                <estado-marcacion #estadoRef *ngIf="usuarioSeleccionado" [estaEnJornada]="estaEnJornada"
+                    [cargando]="cargando" [reconocimientoExitoso]="reconocimientoExitoso"
+                    [mensajeErrorFoto]="mensajeErrorFoto" [mostrandoCamara]="mostrandoCamara" [modoCamara]="modoCamara"
+                    [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
+                    (registrarEntrada)="registrarEntrada()" (registrarSalida)="registrarSalida()"
+                    (iniciarReconocimiento)="onIniciarReconocimiento()"
+                    (identidadVerificada)="onIdentidadVerificada($event)" (fotoPerfilGuardada)="onFotoPerfilGuardada()"
+                    (similitudInsuficiente)="similitudInsuficiente = $event">
+                </estado-marcacion>
+
+                <busqueda-usuario #busquedaRef *ngIf="!usuarioSeleccionado" [mostrandoCamara]="mostrandoCamara"
+                    (iniciarBusqueda)="onIniciarBusquedaCamara()" (busquedaManual)="abrirBuscadorManual()"
+                    (cerrarCamara)="onCerrarCamara()" (usuarioIdentificado)="onUsuarioIdentificado($event)">
+                </busqueda-usuario>
+
+            </div>
         </div>
+    </ng-container>
 
-        <div fxFlex fxLayout="column" [fxLayoutAlign]="usuarioSeleccionado ? 'start stretch' : 'start center'">
-
-            <estado-marcacion #estadoRef *ngIf="usuarioSeleccionado" [estaEnJornada]="estaEnJornada"
-                [cargando]="cargando" [reconocimientoExitoso]="reconocimientoExitoso"
-                [mensajeErrorFoto]="mensajeErrorFoto" [mostrandoCamara]="mostrandoCamara" [modoCamara]="modoCamara"
-                [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
-                (registrarEntrada)="registrarEntrada()" (registrarSalida)="registrarSalida()"
-                (iniciarReconocimiento)="onIniciarReconocimiento()"
-                (identidadVerificada)="onIdentidadVerificada($event)" (fotoPerfilGuardada)="onFotoPerfilGuardada()"
-                (similitudInsuficiente)="similitudInsuficiente = $event">
-            </estado-marcacion>
-
-            <busqueda-usuario #busquedaRef *ngIf="!usuarioSeleccionado" [mostrandoCamara]="mostrandoCamara"
-                (iniciarBusqueda)="onIniciarBusquedaCamara()" (busquedaManual)="abrirBuscadorManual()"
-                (cerrarCamara)="onCerrarCamara()" (usuarioIdentificado)="onUsuarioIdentificado($event)">
-            </busqueda-usuario>
-
+    <ng-template #offlineTemplate>
+        <div fxFlex fxLayout="column" fxLayoutAlign="center center" style="height: 100%; text-align: center;">
+            <mat-icon
+                style="font-size: 64px; height: 64px; width: 64px; color: #f44336; margin-bottom: 16px;">cloud_off</mat-icon>
+            <h2 style="font-size: 24px; color: #f44336; margin: 0;">Servidor Central No Disponible</h2>
+            <p style="font-size: 16px; color: #666; max-width: 400px; margin-top: 8px;">
+                Sin Internet opcion no disponible
+            </p>
         </div>
-    </div>
+    </ng-template>
 
 </div>
