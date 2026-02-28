@@ -2,6 +2,7 @@ import gql from "graphql-tag";
 
 const marcacionFragment = `
   id
+  sucursalId
   usuario {
     id
     persona {
@@ -31,6 +32,7 @@ const marcacionFragment = `
 
 const jornadaFragment = `
   id
+  sucursalId
   usuario {
     id
     persona {
@@ -81,8 +83,8 @@ const jornadaFragment = `
 `;
 
 export const marcacionQuery = gql`
-  query ($id: ID!) {
-    data: marcacion(id: $id) {
+  query ($id: ID!, $sucursalId: ID!) {
+    data: marcacion(id: $id, sucursalId: $sucursalId) {
       ${marcacionFragment}
     }
   }
@@ -137,8 +139,8 @@ export const deleteMarcacionMutation = gql`
 `;
 
 export const jornadaQuery = gql`
-  query ($id: ID!) {
-    data: jornada(id: $id) {
+  query ($id: ID!, $sucursalId: ID!) {
+    data: jornada(id: $id, sucursalId: $sucursalId) {
       ${jornadaFragment}
     }
   }

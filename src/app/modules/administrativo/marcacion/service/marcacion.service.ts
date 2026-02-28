@@ -62,8 +62,8 @@ export class MarcacionService {
     private horaServidorService: HoraServidorService
   ) { }
 
-  onGetMarcacion(id: number, servidor = true): Observable<Marcacion> {
-    return this.genericCrudService.onGetById(this.getMarcacion, id, null, null, servidor);
+  onGetMarcacion(id: number, sucursalId: number, servidor = true): Observable<Marcacion> {
+    return this.genericCrudService.onGetById(this.getMarcacion, id, null, { sucursalId }, servidor);
   }
 
   onGetMarcaciones(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Marcacion>> {
@@ -90,8 +90,8 @@ export class MarcacionService {
     return this.genericCrudService.onSave(this.saveMarcacion, input, null, null, servidor, errorConf);
   }
 
-  onGetJornada(id: number, servidor = true): Observable<Jornada> {
-    return this.genericCrudService.onGetById(this.getJornada, id, null, null, servidor);
+  onGetJornada(id: number, sucursalId: number, servidor = true): Observable<Jornada> {
+    return this.genericCrudService.onGetById(this.getJornada, id, null, { sucursalId }, servidor);
   }
 
   onGetJornadas(fechaInicio?: string, fechaFin?: string, page?: number, size?: number, servidor = true): Observable<Jornada[]> {
@@ -112,6 +112,7 @@ export class MarcacionService {
     input.usuarioId = contexto.usuarioId || this.mainService.usuarioActual?.id;
     input.tipo = TipoMarcacion.ENTRADA;
     input.sucursalEntradaId = contexto.sucursalId;
+    input.sucursalId = contexto.sucursalId;
     input.fechaEntrada = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());
     input.latitud = contexto.latitud;
     input.longitud = contexto.longitud;
@@ -140,6 +141,7 @@ export class MarcacionService {
     input.tipo = TipoMarcacion.SALIDA;
     input.sucursalEntradaId = contexto.sucursalId;
     input.sucursalSalidaId = contexto.sucursalId;
+    input.sucursalId = contexto.sucursalId;
     input.fechaSalida = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());
     input.latitud = contexto.latitud;
     input.longitud = contexto.longitud;
