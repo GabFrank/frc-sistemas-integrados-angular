@@ -16,11 +16,11 @@
                 matInput
                 [value]="proveedorNombreDisplay"
                 [readonly]="true"
-                (click)="isEditable && onBuscarProveedor()"
-                (keydown)="isEditable && onProveedorKeydown($event)"
+                (click)="puedeEditarProveedorComputed && onBuscarProveedor()"
+                (keydown)="puedeEditarProveedorComputed && onProveedorKeydown($event)"
               />
               <button
-                *ngIf="isEditable"
+                *ngIf="puedeEditarProveedorComputed"
                 matSuffix
                 mat-icon-button
                 (click)="onBuscarProveedor()"
@@ -168,7 +168,7 @@
             </button>
           </div>
           <div class="detalles-table-wrapper" *ngIf="detallesAgregados?.length > 0">
-            <mat-table [dataSource]="detallesAgregados" class="table-center mat-elevation-z1">
+            <mat-table [dataSource]="detallesTableDataSource" class="table-center mat-elevation-z1">
               <ng-container matColumnDef="moneda">
                 <th mat-header-cell *matHeaderCellDef>Moneda</th>
                 <mat-cell *matCellDef="let d">{{ d.monedaDenominacion }}</mat-cell>
@@ -185,22 +185,49 @@
                 <th mat-header-cell *matHeaderCellDef>Fecha pago</th>
                 <mat-cell *matCellDef="let d">{{ d.fechaPago | date:'dd/MM/yyyy' }}</mat-cell>
               </ng-container>
-              <ng-container matColumnDef="observacion">
-                <th mat-header-cell *matHeaderCellDef>Observación</th>
-                <mat-cell *matCellDef="let d">{{ d.observacion }}</mat-cell>
-              </ng-container>
-              <ng-container matColumnDef="quitar">
+              <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <mat-cell *matCellDef="let d; let i = index">
-                  <button *ngIf="isEditable" mat-icon-button (click)="onQuitarDetalle(i)" type="button">
-                    <mat-icon color="warn">delete</mat-icon>
+                  <button
+                    *ngIf="isEditable"
+                    mat-icon-button
+                    [matMenuTriggerFor]="menuFormaPago"
+                    type="button"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <mat-icon>more_vert</mat-icon>
                   </button>
+                  <mat-menu #menuFormaPago="matMenu">
+                    <button mat-menu-item (click)="onEditarDetalle(d, i)" [disabled]="!puedeEditarFormaPagoComputed">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button mat-menu-item (click)="onQuitarDetalle(i)">
+                      <mat-icon color="warn">delete</mat-icon>
+                      <span>Eliminar</span>
+                    </button>
+                  </mat-menu>
                 </mat-cell>
               </ng-container>
               <mat-header-row *matHeaderRowDef="displayedColumnsDetalles"></mat-header-row>
               <mat-row *matRowDef="let row; columns: displayedColumnsDetalles"></mat-row>
             </mat-table>
           </div>
+          <mat-card class="resumen-moneda-card" *ngIf="detallesAgregados?.length > 0">
+            <mat-card-header>
+              <mat-card-title>Resumen por moneda</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="resumen-moneda-row" *ngFor="let item of resumenPorMonedaComputed">
+                <span class="resumen-moneda-label">{{ item.monedaDenominacion }}</span>
+                <span class="resumen-moneda-value">{{ item.total | number:'1.0-0' }}</span>
+              </div>
+              <div class="resumen-moneda-row resumen-total-gs">
+                <span class="resumen-moneda-label">Total en Guaraníes</span>
+                <span class="resumen-moneda-value">{{ totalEnGuaraniesComputed | number:'1.0-0' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
           </div>
         </mat-tab>
       </mat-tab-group>

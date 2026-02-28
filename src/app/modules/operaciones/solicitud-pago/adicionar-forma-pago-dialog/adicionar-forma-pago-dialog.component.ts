@@ -5,6 +5,7 @@ import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { SolicitudPagoDetalleInput } from '../../compra/gestion-compras/solicitud-pago.model';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -20,6 +21,8 @@ export interface AdicionarFormaPagoDialogData {
   montoSugerido?: number;
   /** Si está en modo edición, se guarda en backend al confirmar. */
   solicitudPagoId?: number;
+  /** Si se proporciona, el diálogo abre en modo edición (pre-carga el formulario y al confirmar cierra con el detalle sin llamar API). */
+  detalleExistente?: SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string };
 }
 
 @Component({
@@ -34,6 +37,18 @@ export class AdicionarFormaPagoDialogComponent {
   proveedorNombreDisplay = '';
   mostrarCamposCheque = false;
   mostrarCotizacion = false;
+  tituloDialogo = 'Adicionar forma de pago';
+  textoBoton = 'Agregar';
+  textoConfirmacion = '¿Desea agregar esta forma de pago?';
+  isModoEdicion = false;
+  /** Valor equivalente en Guaraníes (actualizado al cambiar moneda/valor/cotización). */
+  valorEnGuaraniesDisplay = 0;
+  /** Saldo restante en Guaraníes (montoSugerido - valorEnGuaraniesDisplay). */
+  saldoDisplay = 0;
+  /** Opciones ngx-currency para el campo Valor según moneda seleccionada (Guarani: sin decimales, punto miles; otras: decimales). */
+  valorCurrencyOptions: any;
+  /** Opciones ngx-currency para Cotización (siempre con decimales). */
+  cotizacionCurrencyOptions: any;
 
   constructor(
     private fb: FormBuilder,
@@ -41,7 +56,8 @@ export class AdicionarFormaPagoDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: AdicionarFormaPagoDialogData,
     private solicitudPagoService: SolicitudPagoService,
     private dialogosService: DialogosService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private monedaService: MonedaService
   ) {
     this.monedaList = data?.monedaList || [];
     this.formaPagoList = data?.formaPagoList || [];
@@ -87,9 +103,130 @@ export class AdicionarFormaPagoDialogComponent {
     });
     this.form.get('monedaId').valueChanges.subscribe((id) => {
       const m = this.monedaList.find((mo) => mo.id === id);
+      this.valorCurrencyOptions = m ? this.monedaService.currencyOptionsByMoneda(m) : this.monedaService.currencyOptionsGuarani;
       const denom = (m?.denominacion || '').toUpperCase();
       this.mostrarCotizacion = denom !== 'GUARANI' && denom !== 'GS' && denom !== '';
+      if (this.mostrarCotizacion && m?.cambio != null && m.cambio > 0) {
+        this.form.patchValue(
+          { cotizacion: m.cambio },
+          { emitEvent: false }
+        );
+        const montoGs = this.data?.montoSugerido;
+        if (montoGs != null && montoGs > 0 && !this.isModoEdicion) {
+          const valorEnMoneda = montoGs / m.cambio;
+          this.form.patchValue(
+            { valor: Math.round(valorEnMoneda * 100) / 100 },
+            { emitEvent: false }
+          );
+        }
+      } else if (!this.mostrarCotizacion && this.data?.montoSugerido != null && !this.isModoEdicion) {
+        this.form.patchValue(
+          { valor: this.data.montoSugerido },
+          { emitEvent: false }
+        );
+      }
+      this.updateValorEnGuaraniesDisplay();
     });
+    this.cotizacionCurrencyOptions = this.monedaService.currencyOptionsNoGuarani;
+    this.valorCurrencyOptions = this.monedaService.currencyOptionsGuarani;
+    const existente = data?.detalleExistente;
+    if (existente) {
+      this.isModoEdicion = true;
+      this.tituloDialogo = 'Editar forma de pago';
+      this.textoBoton = 'Guardar';
+      this.textoConfirmacion = '¿Desea guardar los cambios?';
+      const moneda = this.monedaList.find((m) => m.id === existente.monedaId);
+      const formaPago = this.formaPagoList.find((f) => f.id === existente.formaPagoId);
+      this.mostrarCotizacion = moneda && (moneda.denominacion || '').toUpperCase() !== 'GUARANI' && (moneda.denominacion || '').toUpperCase() !== 'GS';
+      this.mostrarCamposCheque = formaPago?.descripcion != null && (formaPago.descripcion + '').toUpperCase().includes('CHEQUE');
+      const fechaPago = existente.fechaPago ? new Date(existente.fechaPago) : null;
+      const fechaEmisionCheque = existente.fechaEmisionCheque ? new Date(existente.fechaEmisionCheque) : this.form.get('fechaEmisionCheque').value;
+      this.form.patchValue({
+        monedaId: existente.monedaId,
+        formaPagoId: existente.formaPagoId,
+        valor: existente.valor ?? null,
+        fechaPago: fechaPago && !isNaN(fechaPago.getTime()) ? fechaPago : null,
+        observacion: existente.observacion ?? '',
+        cotizacion: existente.cotizacion ?? null,
+        fechaEmisionCheque: fechaEmisionCheque,
+        portador: existente.portador ?? this.proveedorNombreDisplay,
+        nominal: existente.nominal ?? true,
+        diferido: existente.diferido ?? true
+      });
+    }
+    this.form.get('valor').valueChanges.subscribe(() => this.updateValorEnGuaraniesDisplay());
+    this.form.get('cotizacion').valueChanges.subscribe(() => this.updateValorEnGuaraniesDisplay());
+    this.updateValorEnGuaraniesDisplay();
+  }
+
+  private updateValorEnGuaraniesDisplay(): void {
+    const monedaId = this.form.get('monedaId').value;
+    const valor = Number(this.form.get('valor').value);
+    const moneda = this.monedaList.find((m) => m.id === monedaId);
+    const denom = (moneda?.denominacion || '').toUpperCase();
+    const esGuarani = denom === 'GUARANI' || denom === 'GS' || denom === '';
+    if (esGuarani || isNaN(valor)) {
+      this.valorEnGuaraniesDisplay = isNaN(valor) ? 0 : valor;
+    } else {
+      const cotizacion = Number(this.form.get('cotizacion').value);
+      const tasa = cotizacion != null && !isNaN(cotizacion) && cotizacion > 0 ? cotizacion : moneda?.cambio ?? 0;
+      this.valorEnGuaraniesDisplay = tasa > 0 ? Math.round((valor * tasa)) : 0;
+    }
+    this.saldoDisplay = (this.data?.montoSugerido ?? 0) - this.valorEnGuaraniesDisplay;
+  }
+
+  /** Unidad mínima de redondeo según moneda: Guarani 500, USD 1, Real 0.5, resto 1. */
+  private getUnidadMinima(moneda: Moneda | undefined): number {
+    if (!moneda?.denominacion) return 1;
+    const d = (moneda.denominacion + '').toUpperCase();
+    if (d === 'GUARANI' || d === 'GS') return 500;
+    if (d === 'USD' || d === 'DOLAR' || d === 'DÓLAR') return 1;
+    if (d === 'REAL' || d === 'BRL' || d === 'REALES') return 0.5;
+    return 1;
+  }
+
+  /** Redondeo hacia arriba según unidad mínima de la moneda. */
+  onRedondeoUp(): void {
+    const monedaId = this.form.get('monedaId').value;
+    const moneda = this.monedaList.find((m) => m.id === monedaId);
+    const unidad = this.getUnidadMinima(moneda);
+    let valor = Number(this.form.get('valor').value);
+    if (isNaN(valor) || valor < 0) valor = 0;
+    const redondeado = Math.ceil(valor / unidad) * unidad;
+    this.form.patchValue({ valor: Math.round(redondeado * 100) / 100 });
+    this.updateValorEnGuaraniesDisplay();
+  }
+
+  /** Redondeo hacia abajo según unidad mínima de la moneda. */
+  onRedondeoDown(): void {
+    const monedaId = this.form.get('monedaId').value;
+    const moneda = this.monedaList.find((m) => m.id === monedaId);
+    const unidad = this.getUnidadMinima(moneda);
+    let valor = Number(this.form.get('valor').value);
+    if (isNaN(valor) || valor < 0) valor = 0;
+    const redondeado = Math.floor(valor / unidad) * unidad;
+    this.form.patchValue({ valor: Math.round(redondeado * 100) / 100 });
+    this.updateValorEnGuaraniesDisplay();
+  }
+
+  /** Asigna al valor el monto total en la moneda seleccionada (valor * cotizacion = montoSugerido). */
+  onValorTotal(): void {
+    const montoGs = this.data?.montoSugerido;
+    if (montoGs == null || montoGs <= 0) return;
+    const monedaId = this.form.get('monedaId').value;
+    const moneda = this.monedaList.find((m) => m.id === monedaId);
+    const denom = (moneda?.denominacion || '').toUpperCase();
+    const esGuarani = denom === 'GUARANI' || denom === 'GS' || denom === '';
+    if (esGuarani) {
+      this.form.patchValue({ valor: montoGs });
+    } else {
+      const cotizacion = Number(this.form.get('cotizacion').value);
+      const tasa = cotizacion != null && !isNaN(cotizacion) && cotizacion > 0 ? cotizacion : moneda?.cambio ?? 0;
+      if (tasa <= 0) return;
+      const valorEnMoneda = montoGs / tasa;
+      this.form.patchValue({ valor: Math.round(valorEnMoneda * 100) / 100 });
+    }
+    this.updateValorEnGuaraniesDisplay();
   }
 
   onConfirmar(): void {
@@ -97,11 +234,23 @@ export class AdicionarFormaPagoDialogComponent {
       this.form.markAllAsTouched();
       return;
     }
+    const detalle = this.buildDetalleFromForm();
+    if (this.isModoEdicion && this.data?.detalleExistente) {
+      this.dialogosService.confirm('Guardar cambios', this.textoConfirmacion).subscribe((confirmed) => {
+        if (!confirmed) return;
+        const row = {
+          ...detalle,
+          monedaDenominacion: (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
+          formaPagoDescripcion: (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
+        };
+        this.dialogRef.close(row);
+      });
+      return;
+    }
     this.dialogosService
-      .confirm('Confirmar forma de pago', '¿Desea agregar esta forma de pago?')
+      .confirm('Confirmar forma de pago', this.textoConfirmacion)
       .subscribe((confirmed) => {
         if (!confirmed) return;
-        const detalle = this.buildDetalleFromForm();
         const solicitudPagoId = this.data?.solicitudPagoId;
         if (solicitudPagoId != null) {
           this.solicitudPagoService.onAgregarSolicitudPagoDetalle(solicitudPagoId, detalle).subscribe({
@@ -116,7 +265,12 @@ export class AdicionarFormaPagoDialogComponent {
             }
           });
         } else {
-          this.dialogRef.close(detalle);
+          const row = {
+            ...detalle,
+            monedaDenominacion: (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
+            formaPagoDescripcion: (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
+          };
+          this.dialogRef.close(row);
         }
       });
   }

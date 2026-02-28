@@ -8,6 +8,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SelectionModel } from "@angular/cdk/collections";
 import { PageInfo } from "../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
+import { timeout, catchError } from 'rxjs/operators';
 
 /**
  * Interfaz que define la estructura de los datos de una columna en la tabla
@@ -184,46 +185,90 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.isLoadingComputed = true;
     this.updateComputedProperties();
 
-    let text = this.buscarControl.value;
-    if (text != null) text = text.toUpperCase();
-    
     const searchField = this.data?.searchFieldName || 'texto';
-    
-    if (this.queryData != null && text != null) {
+    if (!this.queryData) {
+      this.queryData = {};
+    }
+    let text = this.buscarControl.value;
+    if (text != null && String(text).trim() !== '' && String(text).trim() !== '%') {
+      text = String(text).toUpperCase();
       this.queryData[searchField] = text;
-    } else if (this.queryData != null) {
+    } else {
       this.queryData[searchField] = '%';
     }
-    
+
     if (this.data?.paginator == true) {
       this.queryData.page = this.pageIndex;
       this.queryData.size = this.pageSize;
     }
-    
-    this.genericCrudService
-      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => {
-          if (res != null) {
-            if (this.data?.paginator == true) {
-              this.selectedPageInfo = res;
-              this.dataSource.data = this.selectedPageInfo?.getContent;
-            } else {
-              this.dataSource.data = res;
-            }
+
+    const finishSearch = () => {
+      this.isSearching = false;
+      this.isLoadingComputed = false;
+      this.updateComputedProperties();
+    };
+
+    if (this.data?.fallbackToLocal) {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, true,
+          { networkError: { propagate: true, show: false } }, true)
+        .pipe(
+          untilDestroyed(this),
+          timeout(5000),
+          catchError(err => {
+            console.warn('Búsqueda en servidor central falló, intentando en local...', err);
+            return this.genericCrudService.onCustomQuery(this.data.query, this.queryData, false, undefined, true);
+          })
+        )
+        .subscribe({
+          next: (res) => {
+            this.procesarResultados(res);
+            finishSearch();
+          },
+          error: (error) => {
+            console.error('Search error:', error);
+            this.dataSource.data = [];
+            finishSearch();
           }
-          this.isSearching = false;
-          this.isLoadingComputed = false;
-          this.updateComputedProperties();
-        },
-        error: (error) => {
-          console.error('Search error:', error);
-          this.dataSource.data = [];
-          this.isSearching = false;
-          this.isLoadingComputed = false;
-          this.updateComputedProperties();
+        });
+    } else {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => {
+            this.procesarResultados(res);
+            finishSearch();
+          },
+          error: (error) => {
+            console.error('Search error:', error);
+            this.dataSource.data = [];
+            finishSearch();
+          }
+        });
+    }
+  }
+
+  private procesarResultados(res: any): void {
+    if (res != null) {
+      if (this.data?.paginator == true) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = this.selectedPageInfo?.getContent || [];
+      } else {
+        this.dataSource.data = res || [];
+      }
+      if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
+        (this.dataSource as any)._updateChangeSubscription();
+      }
+      setTimeout(() => {
+        this.cdr.detectChanges();
+        if (this.table) {
+          this.table.renderRows();
         }
-      });
+      }, 0);
+    } else {
+      this.dataSource.data = [];
+    }
+    this.cdr.markForCheck();
   }
 
   onRowSelect(row): void {

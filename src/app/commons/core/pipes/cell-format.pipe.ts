@@ -19,7 +19,11 @@ export class CellFormatPipe implements PipeTransform {
   transform(element: any, info: TableData): any {
     // 1. Get the value
     let value: any;
-    if (info.id.includes('.')) {
+    if (info.nested && info.nestedId != null) {
+      // Legacy format: nested + nestedId (e.g. id="nombre", nestedId="persona" -> persona.nombre)
+      const path = `${info.nestedId}.${info.id}`;
+      value = this.getNestedValue(element, path);
+    } else if (info.id.includes('.')) {
       // Dot notation: id contains the full path
       value = this.getNestedValue(element, info.id);
     } else {

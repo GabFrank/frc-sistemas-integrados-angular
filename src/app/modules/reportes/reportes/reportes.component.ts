@@ -20,9 +20,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   currentPage: number;
   selectedReporte: ReporteData;
 
-  constructor(private reporteService: ReporteService) {
-
-  }
+  constructor(private reporteService: ReporteService) {}
 
   ngOnInit(): void {
     this.reporteList = [];

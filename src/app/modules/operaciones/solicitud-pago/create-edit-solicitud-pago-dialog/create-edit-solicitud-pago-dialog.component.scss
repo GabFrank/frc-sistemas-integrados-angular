@@ -315,17 +315,34 @@
       mat-table {
         width: 100%;
 
-        .mat-column-moneda,
-        .mat-column-formaPago,
-        .mat-column-valor,
-        .mat-column-fechaPago,
-        .mat-column-observacion {
+        .mat-column-moneda {
+          flex: 0 0 25%;
+          min-width: 25%;
           padding: 0.75rem 0.5rem;
         }
 
-        .mat-column-quitar {
-          flex: 0 0 48px;
-          min-width: 48px;
+        .mat-column-formaPago {
+          flex: 0 0 25%;
+          min-width: 25%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-valor {
+          flex: 0 0 20%;
+          min-width: 20%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-fechaPago {
+          flex: 0 0 25%;
+          min-width: 25%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-quitar,
+        .mat-column-acciones {
+          flex: 0 0 5%;
+          min-width: 5%;
         }
 
         mat-header-cell,
@@ -341,6 +358,50 @@
 
         mat-cell {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+
+    .resumen-moneda-card {
+      margin-top: 1rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      mat-card-header {
+        margin-bottom: 0.5rem;
+
+        mat-card-title {
+          font-size: 1rem;
+          font-weight: 600;
+        }
+      }
+
+      mat-card-content {
+        .resumen-moneda-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.35rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+          .resumen-moneda-label {
+            font-weight: 500;
+          }
+
+          .resumen-moneda-value {
+            font-weight: 500;
+          }
+        }
+
+        .resumen-total-gs {
+          margin-top: 0.5rem;
+          padding-top: 0.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.15);
+          font-weight: 600;
+
+          .resumen-moneda-value {
+            font-weight: 700;
+          }
         }
       }
     }
