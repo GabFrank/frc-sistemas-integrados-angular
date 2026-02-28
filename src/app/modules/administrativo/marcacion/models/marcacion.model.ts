@@ -27,6 +27,7 @@ export class Marcacion {
     toInput(): MarcacionInput {
         let input = new MarcacionInput();
         input.id = this.id;
+        input.sucursalId = this.sucursalEntrada?.id || this.sucursalSalida?.id;
         input.usuarioId = this.usuario?.id;
         input.tipo = this.tipo;
         input.latitud = this.latitud;
@@ -46,6 +47,7 @@ export class Marcacion {
 
 export class MarcacionInput {
     id: number;
+    sucursalId: number;
     usuarioId: number;
     tipo: TipoMarcacion;
 

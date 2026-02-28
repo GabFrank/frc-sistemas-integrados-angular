@@ -4,6 +4,7 @@ import { Marcacion } from "./marcacion.model";
 
 export class Jornada {
     id: number;
+    sucursalId: number;
     usuario: Usuario;
     fecha: string;
 
