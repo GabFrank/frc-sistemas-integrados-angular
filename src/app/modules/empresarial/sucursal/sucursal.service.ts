@@ -206,18 +206,17 @@ export class SucursalService {
     return new Observable((obs) => {
       const dialogData = new SearchListtDialogData();
       dialogData.titulo = title || 'Seleccionar Sucursal';
-      dialogData.query = this.sucursalesSearch;
+      dialogData.query = this.sucursalesByNombre;
       dialogData.tableData = [
         { id: 'id', nombre: 'Id', width: '5%' },
         { id: 'nombre', nombre: 'Nombre', width: '50%' },
-        { id: 'ciudad.nombre', nombre: 'Ciudad', width: '22%', nestedColumnId: 'descripcion' }
+        { id: 'ciudad.descripcion', nombre: 'Ciudad', width: '22%' }
       ];
       dialogData.search = true;
       dialogData.inicialSearch = true;
-      dialogData.paginator = false;
+      dialogData.paginator = true;
       dialogData.isServidor = servidor;
-     dialogData.searchFieldName = 'texto';
-      dialogData.queryData = { texto: '%' };
+      dialogData.searchFieldName = 'nombre';
 
       const dialogRef = this.matDialog.open(SearchListDialogComponent, {
         data: dialogData,

@@ -125,11 +125,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       }
       const searchField = this.data?.searchFieldName || 'texto';
       if (!this.buscarControl.value && this.data?.queryData?.[searchField]) {
-        this.buscarControl.setValue(this.data.queryData[searchField]);
+        const prefillValue = this.data.queryData[searchField];
+        // Never show '%' in the input - it's used internally for "search all"
+        this.buscarControl.setValue(prefillValue === '%' ? '' : prefillValue);
       }
-      if (!this.buscarControl.value) {
-        this.buscarControl.setValue('%');
-      }
+      // Do NOT set '%' in the input - user should see empty field; '%' is passed only to the query in onSearch()
       setTimeout(() => {
         this.onSearch();
       }, 100);

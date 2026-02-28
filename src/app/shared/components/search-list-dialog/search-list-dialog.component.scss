@@ -56,11 +56,11 @@
   }
 }
 
-// Dialog Content
+// Dialog Content - overflow hidden so only table scrolls (search stays visible)
 .dialog-content {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -163,9 +163,10 @@
   min-height: 0;
 }
 
-// Table Card
+// Table Card - min-height 0 allows flex child to shrink and enable scroll
 .table-card {
   flex: 1;
+  min-height: 0;
   background-color: #3a3a3a;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -176,6 +177,7 @@
 
   .mat-card-content {
     flex: 1;
+    min-height: 0;
     padding: 0 !important;
     display: flex;
     flex-direction: column;
@@ -183,9 +185,10 @@
   }
 }
 
-// Table Container
+// Table Container - min-height 0 + flex 1 allows scroll when content exceeds viewport
 .table-container {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   position: relative;
 

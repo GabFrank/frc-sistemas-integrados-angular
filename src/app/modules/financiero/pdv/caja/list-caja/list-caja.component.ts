@@ -30,7 +30,7 @@ import { CajaService } from "../caja.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
-import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
+import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/sucursalesByNombre";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
 import { PageInfo } from "../../../../../app.component";
@@ -127,7 +127,7 @@ export class ListCajaComponent implements OnInit {
     private ventaService: VentaService,
     private searchMaletin: SearchMaletinGQL,
     private mainService: MainService,
-    private searchSucursal: SucursalesSearchGQL,
+    private searchSucursal: SucursalesByNombreGQL,
     private searchUsuario: UsuarioSearchGQL, 
     private cajaObservacionService: CajaObservacionService,
     private notificacionService: NotificacionSnackbarService,
@@ -433,7 +433,7 @@ export class ListCajaComponent implements OnInit {
     // })
   }
 
-  onSucursalSearch(texto?) {
+  onSucursalSearch(texto?: string) {
     let data: SearchListtDialogData = {
       titulo: "Seleccionar sucursal",
       tableData: [
@@ -447,8 +447,10 @@ export class ListCajaComponent implements OnInit {
       ],
       query: this.searchSucursal,
       inicialSearch: true,
-      texto: texto,
+      texto: texto || '',
       isAdicionar: false,
+      paginator: true,
+      searchFieldName: 'nombre',
     };
     this.matDialog
       .open(SearchListDialogComponent, {
