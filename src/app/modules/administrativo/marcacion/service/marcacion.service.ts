@@ -122,14 +122,7 @@ export class MarcacionService {
     input.deviceInfo = contexto.deviceInfo;
     input.embedding = contexto.embedding;
 
-    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
-      catchError(err => {
-        if (servidor) {
-          return this.onSaveMarcacion(input, false);
-        }
-        return throwError(() => err);
-      })
-    );
+    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } });
   }
 
   onRegistrarSalida(
@@ -151,14 +144,7 @@ export class MarcacionService {
       input.esSalidaAlmuerzo = contexto.esSalidaAlmuerzo;
     }
 
-    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } }).pipe(
-      catchError(err => {
-        if (servidor) {
-          return this.onSaveMarcacion(input, false);
-        }
-        return throwError(() => err);
-      })
-    );
+    return this.onSaveMarcacion(input, servidor, { networkError: { propagate: true, show: false } });
   }
 
   private toLocalIsoString(date: Date): string {
