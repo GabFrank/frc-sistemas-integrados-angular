@@ -21,7 +21,7 @@
     "postinstall": "electron-builder install-app-deps",
     "ng": "ng",
     "start": "npm-run-all -p electron:serve ng:serve",
-    "ng:serve": "ng serve -c web --proxy-config proxy.conf.json",
+    "ng:serve": "NODE_OPTIONS=--max_old_space_size=8192 ng serve -c web --proxy-config proxy.conf.json",
     "build": "npm run electron:serve-tsc && ng build --base-href ./",
     "build:dev": "npm run build -- -c dev",
     "build:prod": "npm run build -- -c production",

@@ -221,11 +221,20 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
                   this.mainService.sucursalActual.id,
                   retiro.responsable.persona.id,
                   retiro.retiroGs
-                ).subscribe();
+                ).subscribe({
+                  next: () => { },
+                  error: (err) => console.log("Error sending notification", err)
+                });
               }
 
-              this.retiroService.onSave(retiro, true).subscribe(res => {
-                this.cargandoDialog.closeDialog();
+              this.retiroService.onSave(retiro, true).subscribe({
+                next: (res) => {
+                  this.cargandoDialog.closeDialog();
+                },
+                error: (err) => {
+                  this.cargandoDialog.closeDialog();
+                  console.log("Central offline", err);
+                }
               });
               this.dialogRef.close(true)
             } else {
