@@ -1,12 +1,13 @@
-import { Component, OnInit, ViewEncapsulation, OnDestroy } from "@angular/core";
+import { Component, OnInit, ViewEncapsulation, OnDestroy, ViewChild, ChangeDetectorRef } from "@angular/core";
 import { Router } from "@angular/router";
 import { TabService } from "../tab/tab.service";
 import { Tab } from "../tab/tab.model";
 import { MatDialog } from "@angular/material/dialog";
+import { MatTabGroup } from "@angular/material/tabs";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL } from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
+
 import {
   MarcarNotificacionLeidaGQL
 } from "../../modules/notificaciones/graphql/notificacionMutations.gql";
@@ -23,6 +24,8 @@ import { FormControl, FormGroup } from "@angular/forms";
   encapsulation: ViewEncapsulation.None,
 })
 export class DefaultComponent implements OnInit, OnDestroy {
+
+  @ViewChild(MatTabGroup) matTabGroup: MatTabGroup;
 
   sideBarOpen = false;
   notificationsOpen = false;
@@ -44,7 +47,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
     public dialog: MatDialog,
     public windowInfo: WindowInfoService,
     private mainService: MainService,
-    private notificacionesPorTokenGQL: NotificacionesPorTokenGQL,
+    private cdr: ChangeDetectorRef,
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
     private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
@@ -83,6 +86,13 @@ export class DefaultComponent implements OnInit, OnDestroy {
       });
   }
 
+  marcarTodasComoLeidas(): void {
+    this.notificacionesTableroService.marcarTodasComoLeidas()
+      .pipe(untilDestroyed(this))
+      .subscribe();
+  }
+
+
 
   ngOnInit(): void {
     this.mainService.authenticationSub
@@ -93,7 +103,19 @@ export class DefaultComponent implements OnInit, OnDestroy {
             .pipe(untilDestroyed(this))
             .subscribe((tabs) => {
               this.tabs = tabs;
-              this.selectedTab = tabs.findIndex((tab) => tab.active);
+              const newIndex = tabs.findIndex((tab) => tab.active);
+              this.selectedTab = newIndex;
+              if (newIndex >= 0 && this.matTabGroup) {
+                this.matTabGroup.selectedIndex = newIndex;
+                this.cdr.detectChanges();
+              } else if (newIndex >= 0) {
+                setTimeout(() => {
+                  if (this.matTabGroup) {
+                    this.matTabGroup.selectedIndex = newIndex;
+                    this.cdr.detectChanges();
+                  }
+                }, 0);
+              }
             });
         } else {
           this.sideBarOpen = false;

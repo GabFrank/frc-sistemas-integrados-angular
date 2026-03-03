@@ -5,9 +5,7 @@ import { Pago, PagoEstado } from './pago.model';
 import { PagoQuery } from './graphql/pago';
 import { SavePagoMutation } from './graphql/savePago';
 import { PagoConFiltrosQuery } from './graphql/pagoConFiltros';
-import { NotaRecepcionPorAgrupadaQuery } from './graphql/notaRecepcionPorAgrupada';
 import { PageInfo } from '../../../app.component';
-import { NotaRecepcion } from '../../operaciones/pedido/nota-recepcion/nota-recepcion.model';
 
 @Injectable({
   providedIn: 'root'
@@ -19,7 +17,7 @@ export class PagoService {
     private getPago: PagoQuery,
     private savePagoMutation: SavePagoMutation,
     private pagoConFiltrosQuery: PagoConFiltrosQuery,
-    private notaRecepcionPorAgrupadaQuery: NotaRecepcionPorAgrupadaQuery
+    // private notaRecepcionPorAgrupadaQuery: NotaRecepcionPorAgrupadaQuery
   ) { }
 
   /**
@@ -45,14 +43,14 @@ export class PagoService {
    * @param notaRecepcionAgrupadaId ID de la nota de recepción agrupada
    * @returns Observable con lista de notas de recepción
    */
-  onGetNotasRecepcionPorAgrupada(notaRecepcionAgrupadaId: number): Observable<NotaRecepcion[]> {
-    return this.genericService.onCustomQuery(
-      this.notaRecepcionPorAgrupadaQuery,
-      {
-        id: notaRecepcionAgrupadaId.toString()
-      }
-    );
-  }
+  // onGetNotasRecepcionPorAgrupada(notaRecepcionAgrupadaId: number): Observable<NotaRecepcion[]> {
+  //   return this.genericService.onCustomQuery(
+  //     this.notaRecepcionPorAgrupadaQuery,
+  //     {
+  //       id: notaRecepcionAgrupadaId.toString()
+  //     }
+  //   );
+  // }
 
   /**
    * Busca pagos aplicando filtros

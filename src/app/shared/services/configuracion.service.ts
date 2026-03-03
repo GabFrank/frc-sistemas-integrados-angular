@@ -4,7 +4,6 @@ import { Observable, of, throwError, Subject } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
-import { ConfirmDialogComponent } from '../components/confirm-dialog/confirm-dialog.component';
 
 export interface ConfiguracionSistema {
   serverIp: string;
@@ -23,17 +22,18 @@ export interface ConfiguracionSistema {
   isLocal: boolean;
 }
 
-// Constants for configuration keys
+import { environment } from '../../../environments/environment';
+
 const CONFIG_KEY = 'configuracion-sistema';
 const CONFIG_BACKUP_KEY = 'configuracion-sistema-backup';
 const CONFIG_LEGACY_KEY = 'configuracion';
-const BACKUP_CONFIG_FILE = 'assets/config-backup.json'; // Fallback for web environments
-const BACKUP_FILE_NAME = 'config-backup.json'; // Filename used for backup in all locations
+const BACKUP_CONFIG_FILE = 'assets/config-backup.json';
+const BACKUP_FILE_NAME = 'config-backup.json';
 const DEFAULT_CONFIG: ConfiguracionSistema = {
-  serverIp: 'localhost',
-  serverPort: '8081',
-  serverCentralIp: 'localhost',
-  serverCentralPort: '8081',
+  serverIp: environment.serverIp || 'localhost',
+  serverPort: (environment.serverPort || '8082').toString(),
+  serverCentralIp: environment.serverCentralIp || 'localhost',
+  serverCentralPort: (environment.serverCentralPort || '8081').toString(),
   printers: {
     ticket: 'ticket',
     factura: ''
@@ -46,7 +46,6 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   isLocal: true
 };
 
-// Legacy localStorage keys for backward compatibility
 const LEGACY_KEYS = {
   serverIp: 'ip',
   serverPort: 'puerto',
@@ -65,14 +64,14 @@ const LEGACY_KEYS = {
 })
 export class ConfiguracionService {
   private config: ConfiguracionSistema = null;
-  
+
   // Event emitter for configuration changes
   public configChanged = new Subject<ConfiguracionSistema>();
 
   constructor(
     private http: HttpClient,
     private dialog: MatDialog
-  ) { 
+  ) {
     // Ensure config is synchronized on service initialization
     this.ensureConfigSynced();
   }
@@ -84,7 +83,7 @@ export class ConfiguracionService {
   private ensureConfigSynced(): void {
     // First check if we have consolidated config
     const savedConfig = localStorage.getItem(CONFIG_KEY);
-    
+
     if (savedConfig) {
       try {
         // We have consolidated config, sync it to legacy keys
@@ -101,7 +100,7 @@ export class ConfiguracionService {
       this.loadConfigFromBackupSources();
     }
   }
-  
+
   /**
    * Helper method to load configuration from backup sources in priority order:
    * 1. Backup file
@@ -111,7 +110,7 @@ export class ConfiguracionService {
    */
   private loadConfigFromBackupSources(): void {
     console.log('No valid localStorage configuration, checking backup sources...');
-    
+
     // First check for backup file (highest priority after localStorage)
     this.loadFromBackupFile().subscribe(backupConfig => {
       if (backupConfig) {
@@ -126,25 +125,25 @@ export class ConfiguracionService {
         } else {
           // No legacy keys, try configuracion-local.json
           console.log('No legacy configuration found, trying configuracion-local.json...');
-        this.loadDefaultConfig().subscribe(config => {
-          if (config) {
+          this.loadDefaultConfig().subscribe(config => {
+            if (config) {
               console.log('Configuration loaded from configuracion-local.json file');
-            this.config = config;
+              this.config = config;
               // Save to all storage locations since this is a fresh config
-            this.saveConfig(config);
-          } else {
-            // If all else fails, use default config
-            console.log('Using default configuration as fallback');
-            this.config = { ...DEFAULT_CONFIG };
+              this.saveConfig(config);
+            } else {
+              // If all else fails, use default config
+              console.log('Using default configuration as fallback');
+              this.config = { ...DEFAULT_CONFIG };
               // Save to all storage locations since this is a fresh config
-            this.saveConfig(this.config);
-          }
-        });
+              this.saveConfig(this.config);
+            }
+          });
         }
       }
     });
   }
-  
+
   /**
    * Salva la configuración al localStorage y actualiza claves legacy
    * @param config Configuración a guardar
@@ -157,16 +156,16 @@ export class ConfiguracionService {
         console.error('Invalid configuration object detected, not saving to localStorage');
         return;
       }
-      
+
       // Save to primary localStorage
       localStorage.setItem(CONFIG_KEY, JSON.stringify(validConfig));
-      
+
       // Also save to backup key in localStorage for redundancy
       localStorage.setItem(CONFIG_BACKUP_KEY, JSON.stringify(validConfig));
-      
+
       // Update legacy keys
       this.syncToLegacyKeys(validConfig);
-      
+
       console.log('Configuration saved to localStorage');
     } catch (e) {
       console.error('Error saving configuration to localStorage:', e);
@@ -185,7 +184,7 @@ export class ConfiguracionService {
         try {
           const config = JSON.parse(localBackup);
           console.log('Found configuration backup in localStorage alternate key');
-          
+
           // Validate the configuration before using it
           if (config && config.serverIp && config.serverPort) {
             // Found valid config in localStorage backup
@@ -201,10 +200,10 @@ export class ConfiguracionService {
     } catch (e) {
       console.warn('Error checking localStorage backup:', e);
     }
-    
+
     // Check if we're in Electron environment
     const isElectron = window && typeof window['require'] === 'function';
-    
+
     if (isElectron) {
       try {
         const fs = window['require']('fs');
@@ -212,29 +211,29 @@ export class ConfiguracionService {
         let userDataPath = '';
         let homePath = '';
         let appPath = '';
-        
+
         try {
           // Try to get Electron's app paths
           const remote = window['require']('@electron/remote');
           if (remote && remote.app) {
-            try { userDataPath = remote.app.getPath('userData'); } catch (e) {}
-            try { homePath = remote.app.getPath('home'); } catch (e) {}
-            try { appPath = remote.app.getPath('appData'); } catch (e) {}
+            try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
+            try { homePath = remote.app.getPath('home'); } catch (e) { }
+            try { appPath = remote.app.getPath('appData'); } catch (e) { }
           }
         } catch (e) {
           // Fallback to environment variables
           console.warn('Could not get Electron app paths, falling back to environment variables', e);
           homePath = process.env.HOME || process.env.USERPROFILE || '';
-          try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) {}
+          try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) { }
         }
-        
+
         // Try to find the backup file in the same locations we might have saved it
         const possiblePaths = [
           userDataPath ? path.join(userDataPath, 'config', BACKUP_FILE_NAME) : null,
           appPath ? path.join(appPath, 'frc-sistemas', BACKUP_FILE_NAME) : null,
           homePath ? path.join(homePath, '.frc-sistemas', BACKUP_FILE_NAME) : null
         ].filter(Boolean);
-        
+
         // Try each path until we find the file
         for (const filePath of possiblePaths) {
           try {
@@ -242,7 +241,7 @@ export class ConfiguracionService {
               const fileContent = fs.readFileSync(filePath, 'utf8');
               const config = JSON.parse(fileContent);
               console.log('Found configuration backup file at:', filePath);
-              
+
               // Validate the configuration before using it
               if (config && config.serverIp && config.serverPort) {
                 // Found valid config in file
@@ -256,14 +255,14 @@ export class ConfiguracionService {
             // Continue to next path
           }
         }
-        
+
         // If we got here, we failed to find a valid backup in any of the local paths
         console.warn('No valid configuration found in backup files');
       } catch (e) {
         console.error('Error trying to load backup files in Electron environment:', e);
       }
     }
-    
+
     // If Electron file loading failed or we're not in Electron, try the asset file as a last resort
     return this.http.get<ConfiguracionSistema>(BACKUP_CONFIG_FILE).pipe(
       map(config => {
@@ -271,13 +270,13 @@ export class ConfiguracionService {
           console.warn('Assets backup file contained null or invalid configuration');
           return null;
         }
-        
+
         // Validate the configuration by checking essential fields
         if (!config.serverIp || !config.serverPort) {
           console.warn('Assets backup file missing essential configuration fields');
           return null;
         }
-        
+
         // Validate the config with our helper method
         const validatedConfig = this.validateConfigObject(config);
         console.log('Validated backup configuration from assets file:', validatedConfig);
@@ -289,7 +288,7 @@ export class ConfiguracionService {
       })
     );
   }
-  
+
   /**
    * Helper to validate a configuration object and fill in missing fields
    */
@@ -322,10 +321,10 @@ export class ConfiguracionService {
       try {
         // Create JSON data
         const configData = JSON.stringify(config, null, 2);
-        
+
         // Check if running in Electron environment
         const isElectron = window && typeof window['require'] === 'function';
-        
+
         if (isElectron) {
           try {
             // Electron environment - save to userData folder
@@ -334,22 +333,22 @@ export class ConfiguracionService {
             let userDataPath = '';
             let homePath = '';
             let appPath = '';
-            
+
             try {
               // Try to get Electron's app paths
               const remote = window['require']('@electron/remote');
               if (remote && remote.app) {
-                try { userDataPath = remote.app.getPath('userData'); } catch (e) {}
-                try { homePath = remote.app.getPath('home'); } catch (e) {}
-                try { appPath = remote.app.getPath('appData'); } catch (e) {}
+                try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
+                try { homePath = remote.app.getPath('home'); } catch (e) { }
+                try { appPath = remote.app.getPath('appData'); } catch (e) { }
               }
             } catch (e) {
               // Fallback to environment variables
               console.warn('Could not get Electron app paths, falling back to environment variables', e);
               homePath = process.env.HOME || process.env.USERPROFILE || '';
-              try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) {}
+              try { userDataPath = path.join(homePath, '.config', 'frc-sistemas'); } catch (e) { }
             }
-            
+
             // Define backup file path - first try userData (preferred)
             let backupFilePath = '';
             if (userDataPath) {
@@ -364,7 +363,7 @@ export class ConfiguracionService {
                 console.warn('Failed to create config directory in userData:', e);
               }
             }
-            
+
             // If userData path didn't work, try appData
             if (!backupFilePath && appPath) {
               try {
@@ -378,7 +377,7 @@ export class ConfiguracionService {
                 console.warn('Failed to create config directory in appData:', e);
               }
             }
-            
+
             // Last resort - try home directory
             if (!backupFilePath && homePath) {
               try {
@@ -391,26 +390,26 @@ export class ConfiguracionService {
                 console.warn('Failed to create config directory in home:', e);
               }
             }
-            
+
             // If we have a path, write the file
             if (backupFilePath) {
               fs.writeFileSync(backupFilePath, configData, 'utf8');
               console.log('Configuration backup saved to:', backupFilePath);
-              
+
               // Also save to localStorage backup for additional redundancy
               localStorage.setItem('config_backup', configData);
-              
+
               resolve();
             } else {
               throw new Error('Could not determine a writable location for backup file');
             }
           } catch (e) {
             console.error('Error saving configuration backup in Electron environment:', e);
-            
+
             // Fall back to localStorage backup only
             localStorage.setItem('config_backup', configData);
             console.log('Saved configuration backup to localStorage only');
-            
+
             resolve(); // Still resolve as we at least saved to localStorage
           }
         } else {
@@ -434,7 +433,7 @@ export class ConfiguracionService {
       console.warn('Attempted to sync undefined/null configuration to legacy keys');
       return;
     }
-    
+
     // Update basic keys
     localStorage.setItem(LEGACY_KEYS.serverIp, config.serverIp || 'localhost');
     localStorage.setItem(LEGACY_KEYS.serverPort, config.serverPort || '8081');
@@ -443,13 +442,13 @@ export class ConfiguracionService {
     localStorage.setItem(LEGACY_KEYS.local, config.local || 'Caja 1');
     localStorage.setItem(LEGACY_KEYS.precios, config.precios || 'EXPO, EXPO-DEPOSITO');
     localStorage.setItem(LEGACY_KEYS.modo, config.modo || 'NOT');
-    
+
     // Handle null/undefined pdvId
-    const pdvIdStr = config.pdvId !== null && config.pdvId !== undefined 
-      ? config.pdvId.toString() 
+    const pdvIdStr = config.pdvId !== null && config.pdvId !== undefined
+      ? config.pdvId.toString()
       : '1';
     localStorage.setItem(LEGACY_KEYS.pdvId, pdvIdStr);
-    
+
     // Update printer keys
     if (config.printers) {
       localStorage.setItem(LEGACY_KEYS['printers.ticket'], config.printers.ticket || 'ticket');
@@ -468,7 +467,7 @@ export class ConfiguracionService {
     if (this.config) {
       return of(true);
     }
-    
+
     const savedConfig = localStorage.getItem(CONFIG_KEY);
     if (savedConfig) {
       try {
@@ -480,7 +479,7 @@ export class ConfiguracionService {
         console.error('Error parsing saved configuration', e);
       }
     }
-    
+
     // Set up a cascade of checks for different backup sources, preserving the isConfigured flag
     return this.loadFromBackupFile().pipe(
       switchMap(backupConfig => {
@@ -490,19 +489,19 @@ export class ConfiguracionService {
           this.saveConfigToLocalStorage(backupConfig);
           return of(true);
         } else {
-    // Try reading from legacy localStorage keys
-    if (this.tryMigrateLegacyConfig()) {
-      return of(true);
+          // Try reading from legacy localStorage keys
+          if (this.tryMigrateLegacyConfig()) {
+            return of(true);
           } else {
             // If no backup, try loading from default config file
-    return this.loadDefaultConfig().pipe(
-      map(config => {
-        if (config) {
-          this.config = config;
-          this.saveConfig(config);
-          return true;
-        }
-        return false;
+            return this.loadDefaultConfig().pipe(
+              map(config => {
+                if (config) {
+                  this.config = config;
+                  this.saveConfig(config);
+                  return true;
+                }
+                return false;
               })
             );
           }
@@ -522,17 +521,17 @@ export class ConfiguracionService {
         console.error('Invalid configuration object detected, not saving');
         return;
       }
-      
+
       // Save to localStorage and legacy keys
       this.saveConfigToLocalStorage(validConfig);
-      
+
       // Also save to backup file
       this.saveToBackupFile(validConfig).then(() => {
         console.log('Configuration backup file saved successfully');
       }).catch(error => {
         console.error('Failed to save configuration backup file:', error);
       });
-      
+
       // Update the BehaviorSubject
       this.config = validConfig;
       this.configChanged.next(validConfig);
@@ -549,7 +548,7 @@ export class ConfiguracionService {
       // Check if old configuration keys exist
       const ip = localStorage.getItem(LEGACY_KEYS.serverIp);
       const port = localStorage.getItem(LEGACY_KEYS.serverPort);
-      
+
       if (ip && port) {
         // Create new config from old keys
         const newConfig: ConfiguracionSistema = {
@@ -568,18 +567,18 @@ export class ConfiguracionService {
           isConfigured: false,
           isLocal: true
         };
-        
+
         // Save the migrated config
         this.config = newConfig;
         this.saveConfig(newConfig);
         console.log('Configuración migrada correctamente');
-        
+
         return true;
       }
     } catch (e) {
       console.error('Error al migrar configuración antigua', e);
     }
-    
+
     return false;
   }
 
@@ -591,15 +590,15 @@ export class ConfiguracionService {
     return this.http.get<any>('configuracion-local.json').pipe(
       map(response => {
         console.log('Loaded configuration from file:', response);
-        
+
         if (!response) {
           console.warn('Configuration file loaded but contained null data');
           return { ...DEFAULT_CONFIG };
         }
-        
+
         // Create a validated configuration object with fallback values
         let validatedConfig: ConfiguracionSistema;
-        
+
         // Check if the response is in the new format or legacy format
         if (response.serverIp) {
           // New format - but still mark as not configured since it's from a file
@@ -623,7 +622,7 @@ export class ConfiguracionService {
           // Legacy format - map to new format with validation
           const serverIp = response.ipDefault || DEFAULT_CONFIG.serverIp;
           const serverPort = response.puertoDefault?.toString() || DEFAULT_CONFIG.serverPort;
-          
+
           validatedConfig = {
             serverIp: serverIp,
             serverPort: serverPort,
@@ -641,7 +640,7 @@ export class ConfiguracionService {
             isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal
           };
         }
-        
+
         console.log('Validated file configuration:', validatedConfig);
         return validatedConfig;
       }),
@@ -702,18 +701,18 @@ export class ConfiguracionService {
         if (result) {
           // Get previous configuration to check for server changes
           const previousConfig = this.config;
-          
+
           // Save new configuration with isConfigured set to true
           this.saveConfig({ ...result, isConfigured: true });
-          
+
           // Check if server settings were changed
           const serverChanged = previousConfig && (
-            previousConfig.serverIp !== result.serverIp || 
+            previousConfig.serverIp !== result.serverIp ||
             previousConfig.serverPort !== result.serverPort ||
-            previousConfig.serverCentralIp !== result.serverCentralIp || 
+            previousConfig.serverCentralIp !== result.serverCentralIp ||
             previousConfig.serverCentralPort !== result.serverCentralPort
           );
-          
+
           // do not show restart confirmation dialog, just apply the new configuration
         }
       }),
@@ -735,17 +734,17 @@ export class ConfiguracionService {
   createConfigBackup(): void {
     const config = this.getConfig();
     const configData = JSON.stringify(config, null, 2);
-    
+
     // Check if running in Electron
     const isElectron = window && typeof window['require'] === 'function';
-    
+
     if (isElectron) {
       try {
         // Electron environment
         const fs = window['require']('fs');
         const path = window['require']('path');
         let dialog = null;
-        
+
         // Try to get the dialog module from Electron
         try {
           // First try @electron/remote (preferred in newer Electron)
@@ -765,7 +764,7 @@ export class ConfiguracionService {
             console.error('Could not load Electron dialog module', e2);
           }
         }
-        
+
         if (dialog) {
           // Use dialog to let user select save location
           dialog.showSaveDialog({
@@ -802,7 +801,7 @@ export class ConfiguracionService {
       this.fallbackDownload(configData);
     }
   }
-  
+
   /**
    * Helper method to save configuration to fallback paths when dialog is not available
    */
@@ -811,21 +810,21 @@ export class ConfiguracionService {
     let userDataPath = '';
     let homePath = '';
     let documentsPath = '';
-    
+
     try {
       // Try to get Electron's app paths
       const remote = window['require']('@electron/remote');
       if (remote && remote.app) {
-        try { userDataPath = remote.app.getPath('userData'); } catch (e) {}
-        try { homePath = remote.app.getPath('home'); } catch (e) {}
-        try { documentsPath = remote.app.getPath('documents'); } catch (e) {}
+        try { userDataPath = remote.app.getPath('userData'); } catch (e) { }
+        try { homePath = remote.app.getPath('home'); } catch (e) { }
+        try { documentsPath = remote.app.getPath('documents'); } catch (e) { }
       }
     } catch (e) {
       // Fallback to environment variables
       homePath = process.env.HOME || process.env.USERPROFILE || '';
       documentsPath = homePath ? path.join(homePath, 'Documents') : '';
     }
-    
+
     // Priority order of paths to try
     const possiblePaths = [
       documentsPath ? path.join(documentsPath, BACKUP_FILE_NAME) : null,
@@ -833,7 +832,7 @@ export class ConfiguracionService {
       homePath ? path.join(homePath, BACKUP_FILE_NAME) : null,
       path.join(process.cwd(), BACKUP_FILE_NAME)
     ].filter(Boolean);
-    
+
     // Try each path until one works
     for (const filePath of possiblePaths) {
       try {
@@ -844,12 +843,12 @@ export class ConfiguracionService {
         console.warn(`Failed to write to ${filePath}:`, err);
       }
     }
-    
+
     // If all paths fail, use download method
     console.warn('All fallback paths failed, using browser download method');
     this.fallbackDownload(configData);
   }
-  
+
   /**
    * Save configuration using the File System Access API
    */
@@ -863,40 +862,40 @@ export class ConfiguracionService {
           accept: { 'application/json': ['.json'] }
         }]
       });
-      
+
       // @ts-ignore - TypeScript might not recognize this API
       const writable = await fileHandle.createWritable();
       // @ts-ignore - TypeScript might not recognize this API
       await writable.write(configData);
       // @ts-ignore - TypeScript might not recognize this API
       await writable.close();
-      
+
       console.log('Configuration backup saved with File System Access API');
     } catch (e) {
       console.error('Error using File System Access API:', e);
       this.fallbackDownload(configData);
     }
   }
-  
+
   /**
    * Fallback method to download configuration as a file
    */
   private fallbackDownload(configData: string): void {
     const blob = new Blob([configData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = 'config-backup.json';
     document.body.appendChild(a);
     a.click();
-    
+
     // Cleanup
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 0);
-    
+
     console.log('Configuration backup downloaded via browser download');
   }
 }

@@ -62,33 +62,7 @@ export async function createWindow(): Promise<BrowserWindow> {
     const path = require('path');
     const fs = require('fs');
     const userDataPath = app.getPath('userData');
-    const configFiles = [
-      'electron-push-receiver.json',
-      'config.json',
-      'firebase-config.json',
-      'push-config.json',
-      'fcm-config.json'
-    ];
-
-    configFiles.forEach(filename => {
-      const configPath = path.join(userDataPath, filename);
-      if (fs.existsSync(configPath)) {
-        fs.unlinkSync(configPath);
-      }
-    });
-    const dirsToClean = [
-      path.join(userDataPath, 'push-receiver'),
-      path.join(userDataPath, 'firebase'),
-      path.join(userDataPath, 'fcm')
-    ];
-
-    dirsToClean.forEach(dir => {
-      if (fs.existsSync(dir)) {
-        fs.rmSync(dir, { recursive: true, force: true });
-      }
-    });
   } catch (e) {
-    // Silent cleanup error
   }
 
   setupPushReceiver(win.webContents);
@@ -134,7 +108,7 @@ export async function createWindow(): Promise<BrowserWindow> {
     }
   });
 
-  win.webContents.setZoomFactor(1);
+  // win.webContents.setZoomFactor(1); // Removido para permitir que el zoom se maneje dinámicamente en did-finish-load
 
   win.maximize();
   win.show();
@@ -173,9 +147,22 @@ export async function createWindow(): Promise<BrowserWindow> {
     app.quit();
   });
 
-  win.webContents.on("did-fail-load", () => {
-    console.log("did-fail-load");
-    relaunchElectron()
+  win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+    console.log("did-fail-load", { errorCode, errorDescription, validatedURL });
+    // Solo relanzamos si es un error crítico de carga de la página principal (index.html o localhost:4200)
+    // No relanzamos por errores de recursos secundarios o servicios externos (como FCM/push notifications)
+    const isMainPage = validatedURL && (
+      validatedURL.includes('index.html') || 
+      validatedURL.includes('localhost:4200') ||
+      validatedURL.includes('file://')
+    );
+    
+    if (isMainPage && errorCode !== -3) { // -3 = ABORTED (puede ser cancelado intencionalmente)
+      console.log("Error crítico en página principal, relanzando aplicación");
+      relaunchElectron();
+    } else {
+      console.log("Error en recurso secundario o no crítico, continuando sin relanzar");
+    }
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -187,14 +174,25 @@ export async function createWindow(): Promise<BrowserWindow> {
     win.webContents
       .executeJavaScript('localStorage.getItem("zoomLevel");', true)
       .then((zoomLevel) => {
-        if (zoomLevel !== null && zoomLevel !== undefined) {
+        if (zoomLevel !== null && zoomLevel !== undefined && zoomLevel !== '') {
           const parsedZoom = parseFloat(zoomLevel);
           win.webContents.setZoomLevel(parsedZoom);
         } else {
-          win.webContents.setZoomLevel(1);
+          // Si no hay preferencia guardada, iniciamos con zoom -1.5 como base
+          // Esto soluciona el problema de que se vea muy grande tanto en alta como baja resolución
+          try {
+            const defaultZoom = -1.5;
+            win.webContents.setZoomLevel(defaultZoom);
+            // Guardamos el zoom inicial para evitar que se pierda o cause errores
+            win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
+          } catch (e) {
+            win.webContents.setZoomLevel(-1.5);
+          }
         }
       })
       .catch((error) => {
+        // En caso de error crítico al leer localStorage, forzamos zoom -1.5 para asegurar que inicie
+        win.webContents.setZoomLevel(-1.5);
       });
   });
 
@@ -829,23 +827,28 @@ try {
             {
               label: "Zoom in",
               click() {
-                win.webContents.setZoomLevel(win.webContents.zoomLevel + 1)
+                const currentZoom = win.webContents.getZoomLevel();
+                win.webContents.setZoomLevel(currentZoom + 0.5);
                 win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
-                  .then(result => {
-                    console.log(result);
-                  });
+                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
               },
             },
             {
               label: "Zoom out",
               click() {
-                win.webContents.setZoomLevel(win.webContents.zoomLevel - 1)
+                const currentZoom = win.webContents.getZoomLevel();
+                win.webContents.setZoomLevel(currentZoom - 0.5);
                 win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
-                  .then(result => {
-                    console.log(result);
-                  });
+                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+              },
+            },
+            {
+              label: "Restablecer Zoom",
+              click() {
+                const defaultZoom = -1.5;
+                win.webContents.setZoomLevel(defaultZoom);
+                win.webContents
+                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
               },
             },
             {

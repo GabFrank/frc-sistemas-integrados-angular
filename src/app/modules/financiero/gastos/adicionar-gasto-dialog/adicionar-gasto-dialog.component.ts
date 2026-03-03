@@ -41,6 +41,7 @@ import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
 import { CajaService } from "../../pdv/caja/caja.service";
+import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -121,7 +122,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private tipoGastoService: TipoGastoService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private notificationHttpService: NotificationHttpService
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -376,6 +378,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 Object.assign(gasto, this.selectedGasto);
               }
               gasto.caja = this.selectedCaja;
+              gasto.sucursalId = this.mainService.sucursalActual?.id;
               gasto.responsable = this.selectedResponsable;
               gasto.tipoGasto = this.selectedTipoGasto;
               gasto.autorizadoPor = this.selectedAutorizadoPor;
@@ -398,6 +401,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 .subscribe((gastoResponse) => {
                   this.cargandoDialog.closeDialog();
                   if (gastoResponse != null) {
+                    gasto.id = gastoResponse.id;
+                    if (gasto.responsable?.persona?.id) {
+                      this.notificationHttpService.sendGastoNotification(
+                        gasto.id,
+                        this.mainService.sucursalActual.id,
+                        gasto.responsable.persona.id,
+                        gasto.retiroGs
+                      ).subscribe();
+                    }
+
+                    this.gastoService.onSave(gasto, true).subscribe(res => {
+                      this.cargandoDialog.closeDialog();
+                    });
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");

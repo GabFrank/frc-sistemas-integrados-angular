@@ -19,6 +19,7 @@ import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
+import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
@@ -28,12 +29,12 @@ import { CambioComponent } from './../../../modules/financiero/cambio/cambio.com
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
@@ -45,6 +46,9 @@ import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { GraficosComponent } from '../../../modules/grafico/graficos/graficos.component';
+import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
 
 interface BaseNavigationItem {
@@ -103,20 +107,41 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
+      name: 'Compras',
+      icon: 'add_shopping_cart',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
+        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+      ]
+    },
+    {
+      name: 'Horarios',
+      icon: 'schedule',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        {
+          name: 'Marcar horario',
+          icon: 'login',
+          action: 'marcar-horario'
+        },
+        {
+          name: 'Lista de horarios',
+          icon: 'list_alt',
+          action: 'list-marcacion',
+          visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
+        }
+      ]
+    },
+    {
       name: 'Operaciones',
       icon: 'business_center',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK],
+      visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.ADMIN, ROLES.SOPORTE],
       items: [
-        {
-          name: 'Compras',
-          icon: 'add_shopping_cart',
-          isExpanded: false,
-          items: [
-            { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' }
-          ]
-        },
         {
           name: 'Gestión de Stock',
           icon: 'inventory',
@@ -153,6 +178,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               action: 'list-caja',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
+            { name: 'Ventas', icon: 'local_mall', action: 'generic-list-venta' },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
         },
@@ -302,6 +328,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_FUNCIONARIOS]
         },
         {
+          name: 'Proveedores',
+          icon: 'local_shipping',
+          action: 'list-proveedor'
+        },
+        {
           name: 'Roles',
           icon: 'admin_panel_settings',
           action: 'list-roles',
@@ -380,20 +411,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.resetMenuVisibility();
       }
     });
-
-    // Escuchar notificaciones push desde Electron
     if (this.electronService && this.electronService.isElectron) {
       this.electronService.notificationReceived.subscribe((notification: any) => {
-        const path = notification?.data?.path;
-        if (path) {
-          setTimeout(() => {
-            this.onItemClick(path, undefined, true);
-          }, 500);
-        }
       });
     }
-
-    // Escuchar evento de navegación desde notificaciones web (Firebase)
     window.addEventListener('push-path', (event: any) => {
       const path = event.detail;
       if (path) {
@@ -402,8 +423,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }, 500);
       }
     });
-
-    // Escuchar evento de acción desde el tablero de notificaciones
     window.addEventListener('notification-action', (event: any) => {
       const action = event.detail;
       if (action) {
@@ -469,15 +488,38 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
 
     resetItemVisibility(this.navigationItems);
   }
+
+  resetMenuExpansion(): void {
+    const resetItemExpansion = (items: NavigationItem[]) => {
+      for (const item of items) {
+        if ('isExpanded' in item) {
+          item.isExpanded = false;
+        }
+        if ('items' in item && item.items) {
+          resetItemExpansion(item.items);
+        }
+      }
+    };
+
+    resetItemExpansion(this.navigationItems);
+  }
+
   onSideNavClick(): void {
     if (!this.isExpanded) {
       this.toggleSidenav(true);
     }
   }
+
   toggleSidenav(expanded: boolean): void {
     this.isExpanded = expanded;
     this.toggleSideNav.emit(this.isExpanded);
+
+    // Resetear el estado de expansión de todos los items cuando se cierra el menú
+    if (!expanded) {
+      this.resetMenuExpansion();
+    }
   }
+
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent): void {
     const sidenavElement = document.querySelector('.side-nav-container');
@@ -497,6 +539,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
+
   onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
@@ -535,6 +578,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-caja":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListCajaComponent, "Cajas");
         break;
+      case "generic-list-venta":
+        this.tabService.addTab(new Tab(GenericListVentaComponent, "Ventas", null, null));
+        break;
       case "finanzas-dashboard":
         this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");
         break;
@@ -542,7 +588,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListGastosComponent, "Gastos");
         break;
       case "list-pagos":
-        this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
+        // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
         break;
       case "list-transferencias":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, TransferenciaComponent, "Transferencia");
@@ -567,6 +613,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "compras-dashboard":
         this.tabService.addTab(new Tab(CompraDashboardComponent, "Compras", null, null));
+        break;
+      case "list-solicitud-pago":
+        this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
@@ -613,6 +662,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "funcionario-dashboard":
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");
         break;
+      case "list-proveedor":
+        this.tabService.addTab(new Tab(ListProveedorComponent, "Proveedores", null, null));
+        break;
       case "thermal-printer":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
           || this.mainService.usuarioActual?.roles.includes("CONFIGURACION")) {
@@ -643,6 +695,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "graficos":
         this.openTabIfAuthorized(ROLES.ADMIN, GraficosComponent, "Gráficos");
         break;
+      case "marcar-horario":
+        this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(new Tab(ListMarcacionComponent, "Lista de horarios", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
     }
   }
   private openTabIfAuthorized(role: string, component: any, title: string): void {
@@ -651,6 +713,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
     }
+  }
+
+  private hasAnyRole(roleList: string[]): boolean {
+    if (!this.mainService.usuarioActual?.roles) return false;
+    if (this.mainService.usuarioActual.roles.includes(ROLES.ADMIN)) return true;
+    return roleList.some(role => this.mainService.usuarioActual.roles.includes(role));
   }
 
   async onLogout() {

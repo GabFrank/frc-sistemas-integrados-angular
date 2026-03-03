@@ -167,6 +167,30 @@
             </mat-select>
           </mat-form-field>
         </div>
+        <div fxFlex="20%" fxLayoutAlign="center center">
+          <mat-label>Sin nombre</mat-label>
+          <mat-checkbox 
+            [checked]="sinNombreControl.value == true" 
+            [indeterminate]="sinNombreControl.value == null" 
+            (click)="
+              sinNombreControl.setValue(
+                sinNombreControl.value === null
+                  ? true
+                  : sinNombreControl.value === true
+                  ? false
+                  : null
+              );
+            "
+          >
+           {{
+              sinNombreControl.value == null
+                ? "Todos"
+                : sinNombreControl.value == true
+                ? "Si"
+                : "No"
+            }}
+        </mat-checkbox>
+        </div>
       </div>
       <div fxLayout="row" fxLayoutGap="20px">
         <div

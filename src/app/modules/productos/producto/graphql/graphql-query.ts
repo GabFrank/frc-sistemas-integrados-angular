@@ -457,6 +457,13 @@ export const productoUltimasComprasQuery = gql`
         cantidad
         precio
         creadoEn
+        presentacionEnNota {
+          id
+          cantidad
+          tipoPresentacion {
+            descripcion
+          }
+        }
         pedido {
           id
           proveedor {
@@ -665,6 +672,7 @@ export const lucroPorProductoQuery = gql`
     $usuarioId: ID!
     $usuarioIdList: [ID]
     $productoIdList: [ID]
+    $subfamiliaId: ID
   ) {
     data: lucroPorProducto(
       fechaInicio: $fechaInicio
@@ -673,6 +681,7 @@ export const lucroPorProductoQuery = gql`
       usuarioId: $usuarioId
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
+      subfamiliaId: $subfamiliaId
     )
   }
 `;
@@ -718,5 +727,56 @@ export const exportarReporteConFiltrosQuery = gql`
         usuarioId: $usuarioId, 
         usuario: $usuario
       )
+    }
+  `;
+
+  export const lucroPorProductoListQuery = gql`
+    query lucroPorProductoList(
+      $fechaInicio: String
+      $fechaFin: String
+      $sucursalIdList: [ID]
+      $usuarioIdList: [ID]
+      $productoIdList: [ID]
+      $subfamiliaId: ID
+      $page: Int
+      $size: Int
+    ) {
+       data: lucroPorProductoList(
+        fechaInicio: $fechaInicio
+        fechaFin: $fechaFin
+        sucursalIdList: $sucursalIdList
+        usuarioIdList: $usuarioIdList
+        productoIdList: $productoIdList
+        subfamiliaId: $subfamiliaId
+        page: $page
+        size: $size
+      ) {
+        content {
+          productoId
+          descripcion
+          cantidad
+          costoTotal
+          costoUnitario
+          totalVenta
+          lucro
+          percent
+          ventaMedia
+          margen
+          totalDescuento
+          totalAumento
+        }
+        totalElements
+        summary {
+          cantidad
+          costoTotal
+          totalVenta
+          lucro
+          margen
+          totalDescuento
+          totalAumento
+          ventaMedia
+          costoUnitario
+        }
+      }
     }
   `;

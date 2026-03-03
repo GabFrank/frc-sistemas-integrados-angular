@@ -1,0 +1,422 @@
+.dialog-container {
+  min-width: 100%;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+
+  h2[mat-dialog-title] {
+    margin: 0;
+    padding: 0 0 1rem;
+  }
+
+  mat-dialog-content {
+    padding: 1rem 1rem 1rem;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-group-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .tab-group-full-height {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+
+      ::ng-deep .mat-mdc-tab-body-wrapper {
+        flex: 1;
+        min-height: 0;
+      }
+
+      ::ng-deep .mat-mdc-tab-body {
+        height: 100%;
+      }
+
+      ::ng-deep .mat-mdc-tab-body-content {
+        height: 100%;
+        overflow: auto;
+      }
+    }
+  }
+
+  .tab-pane-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .resumen-card {
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    mat-card-header {
+      margin-bottom: 1rem;
+
+      mat-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+    }
+
+    .resumen-fields {
+      .resumen-proveedor {
+        margin-bottom: 1rem;
+      }
+
+      .resumen-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .resumen-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 120px;
+      }
+
+      .resumen-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.65);
+        text-transform: uppercase;
+      }
+
+      .resumen-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.95);
+      }
+    }
+  }
+
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .proveedor-field {
+      min-width: 280px;
+      overflow: visible;
+    }
+
+    .observaciones-field {
+      flex: 1 1 100%;
+    }
+  }
+
+  .section-notas {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background-color: #303030;
+    padding: 10px;
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      flex-shrink: 0;
+
+      .section-title {
+        margin: 0;
+      }
+    }
+
+    .notas-table-wrapper {
+      flex: 1;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+
+      &.notas-table-full-width {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      &.notas-table-scroll .notas-table-scroll-inner {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: auto;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .notas-table {
+        width: 100%;
+        min-width: 100%;
+        table-layout: fixed;
+
+        .mat-column-numero {
+          flex: 0 0 15%;
+          min-width: 15%;
+        }
+
+        // .mat-column-fecha {
+        //   flex: 0 0 15%;
+        //   min-width: 15%;
+        // }
+
+        // .mat-column-valorTotal {
+        //   flex: 0 0 15%;
+        //   min-width: 15%;
+        // }
+
+        .mat-column-quitar {
+          flex: 0 0 10%;
+          min-width: 10%;
+        }
+
+        mat-header-cell,
+        mat-cell {
+          padding: 0.75rem 1rem;
+        }
+
+        mat-header-cell {
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        mat-cell {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+
+      tr.example-detail-row {
+        height: 0;
+      }
+
+      .notas-data-row.example-element-row td {
+        border-bottom-width: 0;
+      }
+
+      .example-element-row.notas-data-row {
+        cursor: pointer;
+      }
+
+      .row-pedido-con-observacion {
+        background-color: rgba(255, 235, 59, 0.1) !important;
+      }
+
+      .example-element-detail {
+        overflow: hidden;
+        display: flex;
+      }
+
+      .expanded:hover {
+        background-color: rgb(51, 51, 51) !important;
+      }
+
+      .expand-section.expand-section-observacion {
+        background-color: rgb(32, 32, 32);
+        padding: 1rem;
+        border-radius: 4px;
+        min-height: 60px;
+        flex: 1;
+      }
+
+      .expand-section-title {
+        font-size: 90%;
+        margin-bottom: 0.5rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .expand-observacion-text {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: pre-wrap;
+      }
+
+      .expand-empty {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    .notas-footer-bar {
+      flex-shrink: 0;
+      padding: 1rem 1rem;
+      font-size: 110%;
+      font-weight: 600;
+      background: rgba(0, 255, 4, 0.15);
+      border-top: 2px solid rgba(0, 255, 13, 0.5);
+      color: rgba(255, 255, 255, 0.95);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+
+      .footer-monto-text {
+        color: rgba(255, 255, 255, 0.95);
+      }
+    }
+  }
+
+  .section-formas-pago {
+    background-color: #303030;
+    padding: 10px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+
+      .section-title {
+        margin: 0;
+      }
+    }
+
+    .detalles-table-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+
+      mat-table {
+        width: 100%;
+
+        .mat-column-moneda {
+          flex: 0 0 25%;
+          min-width: 25%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-formaPago {
+          flex: 0 0 25%;
+          min-width: 25%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-valor {
+          flex: 0 0 20%;
+          min-width: 20%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-fechaPago {
+          flex: 0 0 25%;
+          min-width: 25%;
+          padding: 0.75rem 0.5rem;
+        }
+
+        .mat-column-quitar,
+        .mat-column-acciones {
+          flex: 0 0 5%;
+          min-width: 5%;
+        }
+
+        mat-header-cell,
+        mat-cell {
+          padding: 0.75rem 1rem;
+        }
+
+        mat-header-cell {
+          font-weight: 600;
+          background: rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        mat-cell {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+
+    .resumen-moneda-card {
+      margin-top: 1rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      mat-card-header {
+        margin-bottom: 0.5rem;
+
+        mat-card-title {
+          font-size: 1rem;
+          font-weight: 600;
+        }
+      }
+
+      mat-card-content {
+        .resumen-moneda-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.35rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+          .resumen-moneda-label {
+            font-weight: 500;
+          }
+
+          .resumen-moneda-value {
+            font-weight: 500;
+          }
+        }
+
+        .resumen-total-gs {
+          margin-top: 0.5rem;
+          padding-top: 0.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.15);
+          font-weight: 600;
+
+          .resumen-moneda-value {
+            font-weight: 700;
+          }
+        }
+      }
+    }
+  }
+
+  .titulo-center {
+    text-align: center;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .table-center mat-cell,
+  .table-center mat-header-cell {
+    text-align: center;
+  }
+}

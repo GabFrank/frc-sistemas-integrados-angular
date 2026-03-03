@@ -1,21 +1,8 @@
-<div #container fxLayout="column" style="width: 100%; height: 100%; padding: 10px" fxLayoutGap="10px">
-  <div style="width: 100%; text-align: center; font-size: large">
-    {{ data.titulo }}
-  </div>
-  <div fxLayout="row" style="width: 100%" fxLayoutGap="10px">
-    <div fxFlex="80%" style="width: 100%">
-      <mat-form-field style="width: 100%">
-        <mat-label>Buscar</mat-label>
-        <input type="text" matInput [formControl]="buscarControl" (keyup.enter)="onBuscar()" />
-      </mat-form-field>
-    </div>
-    <div fxFlex="20%" fxLayout="column" fxLayoutGap="10px">
-      <button mat-raised-button color="primary" style="width: 100%" (click)="onBuscar()">
-        Buscar
-      </button>
-      <button *ngIf="data?.isAdicionar" mat-raised-button color="primary" style="width: 100%" (click)="onAdicionar()">
-        + Adicionar
-      </button>
+<div class="dialog-container" #container>
+  <!-- Dialog Header with gradient background -->
+  <div class="dialog-header">
+    <div class="header-title">
+      {{ data.titulo }}
     </div>
   </div>
   <div fxFlex fxLayout="column" fxLayoutAlign="space-between center">
@@ -44,23 +31,95 @@
           </ng-container>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="onRowSelect(row)"
-          (keyup.enter)="onRowSelect(row)" [class.selected]="selectedItem == row" #tableRows tabindex="0"></tr>
-      </table>
+        <!-- Dialog Content -->
+        <div class="dialog-content">
+          <!-- Search Section Card -->
+          <mat-card class="search-card">
+            <mat-card-content>
+              <div class="search-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Buscar</mat-label>
+                  <input type="text" matInput [formControl]="buscarControl" (keyup.enter)="onBuscar()"
+                    [placeholder]="data.textHint || 'Ingrese texto para buscar...'" />
+                  <mat-icon matSuffix class="search-icon">search</mat-icon>
+                </mat-form-field>
+
+                <div class="action-buttons">
+                  <button mat-raised-button color="primary" (click)="onBuscar()">
+                    <mat-icon>search</mat-icon>
+                    Buscar
+                  </button>
+
+                  <button *ngIf="data?.isAdicionar" mat-raised-button color="accent" (click)="onAdicionar()"
+                    class="add-btn">
+                    <mat-icon>add</mat-icon>
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Results Section -->
+          <div class="results-section">
+            <!-- Data Table Card -->
+            <mat-card class="table-card">
+              <mat-card-content>
+                <div class="table-container">
+                  <table mat-table #table [dataSource]="dataSource" class="results-table">
+                    <ng-container *ngFor="let item of data?.tableData">
+                      <ng-container [matColumnDef]="
+                    item?.nestedColumnId != null ? item?.nestedColumnId : item?.id
+                  ">
+                        <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef class="table-header">
+                          {{ item["nombre"] }}
+                        </th>
+                        <td [style.width]="item?.width" mat-cell *matCellDef="let element" class="table-cell">
+                          {{ element | cellFormat: item }}
+                        </td>
+                      </ng-container>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="onRowSelect(row)"
+                      (keyup.enter)="onRowSelect(row)" [class.selected-row]="selectedItem == row" #tableRows
+                      tabindex="0" class="table-row"></tr>
+                  </table>
+
+                  <!-- Empty state message -->
+                  <div class="empty-state" *ngIf="dataSource.data.length === 0">
+                    <mat-icon>search_off</mat-icon>
+                    <p>No se encontraron resultados</p>
+                    <small>Intente modificar los criterios de búsqueda</small>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Pagination -->
+            <mat-paginator *ngIf="data?.paginator == true" itemsPerPageLabel="Items por página"
+              [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)"
+              [length]="selectedPageInfo?.getTotalElements" showFirstLastButtons
+              class="results-paginator"></mat-paginator>
+          </div>
+        </div>
+
+        <!-- Dialog Actions -->
+        <div class="dialog-actions">
+          <div class="actions-left">
+            <!-- Space for additional actions if needed -->
+          </div>
+
+          <div class="actions-right">
+            <button mat-raised-button (click)="onCancelar()" class="cancel-btn">
+              <mat-icon>close</mat-icon>
+              Cancelar
+            </button>
+
+            <button mat-raised-button color="primary" (click)="onAceptar()" [disabled]="selectedItem == null">
+              <mat-icon>check</mat-icon>
+              Aceptar
+            </button>
+          </div>
+        </div>
     </div>
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
-    <br />
-    <div style="width: 100%; text-align: center">
-      <button mat-raised-button (click)="onCancelar()" color="primary" style="width: 200px">
-        Cancelar
-      </button>
-      <button mat-raised-button (click)="onAceptar()" color="accent" [disabled]="selectedItem == null"
-        style="width: 200px; margin-left: 20px">
-        Aceptar
-      </button>
-    </div>
-  </div>
-</div>

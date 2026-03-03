@@ -1,218 +1,124 @@
-<app-generic-list
-  [data]="dataSource.data"
-  style="height: 100%"
-  [isAdicionar]="true"
-  (adicionar)="onAddFuncionario()"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="onResetFiltro()"
->
+<app-generic-list [data]="dataSource.data" style="height: 100%" [isAdicionar]="true" (adicionar)="onAddFuncionario()"
+  [isCustom]="!!horarioParaAsignar" customName="Agregar Selección" [disableCustom]="seleccionados.selected.length === 0"
+  (customFunction)="onAsignarHorario()" (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
   <div filtros>
     <div fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Nombre o nickname</mat-label>
-          <input
-            type="text"
-            matInput
-            [formControl]="nombreControl"
-            (keyup.enter)="onFiltrar()"
-          />
+          <input type="text" matInput [formControl]="nombreControl" (keyup.enter)="onFiltrar()" />
         </mat-form-field>
       </div>
       <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursal</mat-label>
-          <mat-select
-            #sucursalSelect
-            [formControl]="sucursalControl"
-            multiple
-            (keyup.enter)="onFiltrar()"
-          >
+          <mat-select #sucursalSelect [formControl]="sucursalControl" multiple (keyup.enter)="onFiltrar()">
             <mat-select-trigger>
               {{(sucursalControl.value?.[0]?.nombre || '')}}
-              <span
-                *ngIf="(sucursalControl.value?.length || 0) > 1"
-                class="example-additional-selection"
-              >
+              <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
                 (+{{ (sucursalControl.value?.length || 0) - 1 }}
                 {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
               </span>
             </mat-select-trigger>
-            <div
-              style="
+            <div style="
                 width: 100%;
                 text-align: end;
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
                 color: white;
-              "
-            >
-              <mat-icon
-                (click)="sucursalSelect.close()"
-                class="highlight-hover-danger"
-                >clear</mat-icon
-              >
+              ">
+              <mat-icon (click)="sucursalSelect.close()" class="highlight-hover-danger">clear</mat-icon>
             </div>
-            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
-              >{{ sucursal?.id }} -
-              {{ sucursal?.nombre | titlecase }}</mat-option
-            >
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
           Id
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 5%">
           {{ funcionario.id }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="nombre">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Nombre
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: start; width: 20%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: start; width: 20%">
           {{ funcionario?.persona?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="sucursal">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Sucursal
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 20%">
           {{ funcionario?.sucursal?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="cargo">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 15%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
           Cargo
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 15%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 15%">
           {{ funcionario?.cargo?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="supervisadoPor">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Supervisado por
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 20%">
           {{ funcionario?.supervisadoPor?.persona?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="telefono">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Teléfono
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 5%">
           {{ funcionario?.persona?.telefono }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="nickname">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Nickname
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          style="text-align: center; width: 10%"
-        >
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 10%">
           {{ funcionario?.nickname | uppercase }}
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="horario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Horario Asignado
+        </th>
+        <td mat-cell *matCellDef="let funcionario" style="text-align: center; width: 15%">
+          {{ funcionario?.horario ? (funcionario?.horario?.horaEntrada + ' A ' + funcionario?.horario?.horaSalida) :
+          'SIN ASIGNAR' }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let funcionario; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let funcionario; let i = index" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
@@ -226,42 +132,23 @@
       <mat-divider></mat-divider>
 
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let funcionario"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-funcionario-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let funcionario" [attr.colspan]="displayedColumns.length" class="expanded">
+          <div class="example-funcionario-detail" [@detailExpand]="
               funcionario == expandedFuncionario ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          ></div>
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start"></div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        (click)="horarioParaAsignar ? seleccionados.toggle(row) : null"
+        [style.background-color]="seleccionados.isSelected(row) ? '#ffeb3b' : ''"
+        [style.cursor]="horarioParaAsignar ? 'pointer' : ''"
+        [style.color]="seleccionados.isSelected(row) ? 'black' : ''"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

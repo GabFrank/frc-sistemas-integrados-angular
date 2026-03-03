@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewCh
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
+import { MainService } from '../../../../main.service';
 import { CurrencyMask, stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -22,6 +23,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CajaService } from '../../pdv/caja/caja.service';
+import { NotificationHttpService } from '../../../../shared/services/notification-http.service';
 import { Moneda } from '../../moneda/moneda.model';
 
 @UntilDestroy({ checkProperties: true })
@@ -74,7 +76,9 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     private monedaService: MonedaService,
     private cargandoService: CargandoDialogService,
     private notificacionService: NotificacionSnackbarService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private notificationHttpService: NotificationHttpService,
+    private mainService: MainService
   ) {
     if (data?.caja != null) {
       //find all monedas using monedaService.onGetAll() and assign to monedaList
@@ -127,7 +131,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     })
   }
 
-  onResponsableSearch(){
+  onResponsableSearch() {
     if (this.responsableControl.valid) {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
@@ -145,20 +149,20 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
-  onResponsableSearchByTexto(){
+  onResponsableSearchByTexto() {
     this.funcionarioService
-    .onFuncionarioSearch(this.responsableControl.value, false)
-    .pipe(untilDestroyed(this))
-    .subscribe((response) => {
-      this.funcionarioList = response;
-      if (this.funcionarioList.length == 1) {
-        this.onResponsableSelect(this.funcionarioList[0]);
-        this.onResponsableAutocompleteClose();
-      } else {
-        this.onResponsableAutocompleteClose();
-        this.onResponsableSelect(null);
-      }
-    });
+      .onFuncionarioSearch(this.responsableControl.value, false)
+      .pipe(untilDestroyed(this))
+      .subscribe((response) => {
+        this.funcionarioList = response;
+        if (this.funcionarioList.length == 1) {
+          this.onResponsableSelect(this.funcionarioList[0]);
+          this.onResponsableAutocompleteClose();
+        } else {
+          this.onResponsableAutocompleteClose();
+          this.onResponsableSelect(null);
+        }
+      });
   }
 
   onResponsableSelect(e) {
@@ -170,7 +174,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
         this.selectedResponsable?.persona?.nombre, { emitEvent: false }
       );
     }
-    if(e != null && this.responsableInput != null){
+    if (e != null && this.responsableInput != null) {
       this.responsableInput.nativeElement.select();
     }
   }
@@ -186,6 +190,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
         if (res) {
           let retiro = new Retiro()
           retiro.cajaSalida = this.selectedCajaSalida;
+          retiro.sucursalId = this.mainService.sucursalActual?.id;
           retiro.observacion = this.observacionControl.value;
           retiro.responsable = this.selectedResponsable;
           let guaraniDetalle = new RetiroDetalle()
@@ -207,6 +212,30 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
           this.retiroService.onSave(retiro, false).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
             this.cargandoDialog.closeDialog()
             if (retiroResponse != null) {
+              retiro.id = retiroResponse.id;
+
+              // Enviar notificación inmediatamente después de guardar
+              if (retiro.responsable?.persona?.id) {
+                this.notificationHttpService.sendRetiroNotification(
+                  retiro.id,
+                  this.mainService.sucursalActual.id,
+                  retiro.responsable.persona.id,
+                  retiro.retiroGs
+                ).subscribe({
+                  next: () => { },
+                  error: (err) => console.log("Error sending notification", err)
+                });
+              }
+
+              this.retiroService.onSave(retiro, true).subscribe({
+                next: (res) => {
+                  this.cargandoDialog.closeDialog();
+                },
+                error: (err) => {
+                  this.cargandoDialog.closeDialog();
+                  console.log("Central offline", err);
+                }
+              });
               this.dialogRef.close(true)
             } else {
 

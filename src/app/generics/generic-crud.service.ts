@@ -11,6 +11,27 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { Apollo } from "apollo-angular";
+
+/**
+ * Interfaz para gestionar el manejo de errores en una solicitud GraphQL.
+ * Esta interfaz permite configurar cómo se deben mostrar y propagar
+ * los errores tanto a nivel de GraphQL como de red.
+ *
+ * Propiedades:
+ *
+ * - graphError:
+ *   - Configuración para manejar los errores relacionados con GraphQL.
+ *   - show: Indica si se debe mostrar el error (booleano).
+ *   - color: Define el color de la notificación cuando se muestra el error (NotificacionColor).
+ *   - propagate: Indica si se debe propagar el error para su manejo en otros niveles (booleano).
+ *
+ * - networkError:
+ *   - Configuración para manejar los errores de red.
+ *   - show: Indica si se debe mostrar el error de red (booleano).
+ *   - color: Define el color de la notificación para errores de red (NotificacionColor).
+ *   - propagate: Indica si se debe propagar el error de red (booleano).
+ */
 export interface QueryError {
   graphError?: {
     show?: boolean;
@@ -38,7 +59,8 @@ export class GenericCrudService {
     private dialogoService: DialogosService,
     private notificacionBar: NotificacionSnackbarService,
     private cargandoService: CargandoDialogService,
-    private injector: Injector
+    private injector: Injector,
+    private apollo: Apollo
   ) {
     setTimeout(() => (this.mainService = injector.get(MainService)));
   }
@@ -88,29 +110,32 @@ export class GenericCrudService {
     silentLoad?: boolean
   ): Observable<any> {
     this.isLoading = true;
+    // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
+    const shouldShowDialog = silentLoad !== true;
     let { requestId = null, signal = null } =
-      silentLoad != true
+      shouldShowDialog
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
     return new Observable((obs) => {
-      gql
-        .fetch(data, {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-          context: {
-            clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
-          },
-        })
+      this.apollo.query({
+        query: gql.document,
+        variables: data,
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all',
+        context: {
+          clientName: servidor == null || servidor ? "servidor" : null,
+          fetchOptions: { signal },
+        },
+      })
         .pipe(
           untilDestroyed(this),
           timeout(300000) // Adjust as per your needs
         )
         .subscribe({
           next: (res) => {
-            silentLoad != true
-              ? this.cargandoService.closeDialog(requestId)
-              : null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -125,9 +150,9 @@ export class GenericCrudService {
           },
           error: (error) => {
             this.isLoading = false;
-            silentLoad != true
-              ? this.cargandoService.closeDialog(requestId)
-              : null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             if (errorConf?.networkError?.show == true) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
@@ -161,18 +186,26 @@ export class GenericCrudService {
           },
         })
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+              obs.error(res.errors);
+            }
+          },
+          error: (error) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            obs.error(error);
           }
         });
     });

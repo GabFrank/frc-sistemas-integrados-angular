@@ -15,7 +15,8 @@ export interface LoginResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { catchError, tap } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
@@ -74,6 +75,10 @@ export class LoginService {
               }
 
               this.mainService.sucursalActual = res["sucursal"];
+              if (config.isLocal) {
+                this.autenticarEnCentral(nickname, password).subscribe();
+              }
+
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
                   this.usuarioService
@@ -109,6 +114,7 @@ export class LoginService {
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
+                              this.notificarInicioSesionGQL.mutate({ usuarioId: res.usuario.id }).pipe(untilDestroyed(this)).subscribe();
                               this.mainService.usuarioActual.inicioSesion = res;
                               this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                             });
@@ -136,5 +142,28 @@ export class LoginService {
     });
   }
   private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
+  }
+
+  autenticarEnCentral(nickname: string, password: string): Observable<any> {
+    const config = this.configService.getConfig();
+    const centralIp = config.serverCentralIp;
+    const centralPort = config.serverCentralPort;
+
+    if (!centralIp || !centralPort) return of(null);
+
+    return this.http.post(`http://${centralIp}:${centralPort}/login`, {
+      nickname: nickname,
+      password: password
+    }, this.httpOptions).pipe(
+      tap((res: any) => {
+        if (res && res.token) {
+          localStorage.setItem("token_central", res.token);
+        }
+      }),
+      catchError(err => {
+        console.error("Error al autenticar en servidor central para notificaciones", err);
+        return of(null);
+      })
+    );
   }
 }

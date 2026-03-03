@@ -42,6 +42,16 @@ export class TabService implements OnInit {
     // open list transferencia, add set timeout 1000
     // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null))
     // this.addTab(new Tab(ListInventarioComponent, 'Lista de inventario', null, null))
+    // this.addTab(new Tab(EditPedidoComponent, 'Pedido 1', new TabData(1, {id: 1}), null))
+    // Test both components - remove one when testing the other
+    // this.addTab(new Tab(EditPedidoComponent, 'Pedido 2 (Original)', new TabData(2, {id: 2}), null))
+    // this.addTab(new Tab(EditPedido2Component, 'Pedido 14', new TabData(14, {id: 14}), null))
+    // open edit pedido 2 for a new pedido
+    // list pedidos
+    // this.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, null))
+    // this.addTab(new Tab(GestionComprasComponent, 'Pedido 24', new TabData(24, {id: 24}), null))
+    // Open Compra Dashboard
+    // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
     this.tabSub.next(this.tabs);
   }
 

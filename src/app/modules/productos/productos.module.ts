@@ -29,6 +29,8 @@ import { ListGrupoComponent } from './list-grupo/list-grupo.component';
 import { PrintLabelDialogComponent } from './producto/list-producto/print-label-dialog/print-label-dialog.component';
 import { AjustarStockDialogComponent } from './producto/ajustar-stock-dialog/ajustar-stock-dialog.component';
 import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/ajustar-costo-dialog.component';
+import { GestionProveedoresProductoDialogComponent } from './producto/gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component';
+import { GestionProductosProveedorDialogComponent } from './producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
 
 
 
@@ -57,7 +59,9 @@ import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/aju
     ListGrupoComponent,
     PrintLabelDialogComponent,
     AjustarStockDialogComponent,
-    AjustarCostoDialogComponent
+    AjustarCostoDialogComponent,
+    GestionProveedoresProductoDialogComponent,
+    GestionProductosProveedorDialogComponent
   ],
   imports: [
     CommonModule,
@@ -70,6 +74,9 @@ import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/aju
   providers: [
     { provide: MAT_DIALOG_DATA, useValue: {} },
     { provide: MatDialogRef, useValue: {} }
-]
+  ],
+  exports: [
+    GestionProductosProveedorDialogComponent
+  ]
 })
 export class ProductoModule { }

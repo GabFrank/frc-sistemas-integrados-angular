@@ -114,6 +114,7 @@ export class FacturaLegalService {
     full?: boolean,
     isElectronico?: boolean,
     activo?: boolean,
+    sinNombre?: boolean,
     servidor: boolean = true
   ) {
     return this.genericService.onCustomQuery(
@@ -129,7 +130,8 @@ export class FacturaLegalService {
         iva5,
         iva10,
         isElectronico,
-        activo
+        activo,
+        sinNombre
       },
       servidor
     );
@@ -177,6 +179,7 @@ export class FacturaLegalService {
     nombre?: string,
     iva5?: boolean,
     iva10?: boolean,
+    sinNombre?: boolean,
     servidor: boolean = true
   ): Observable<ResumenFacturasDto> {
     return this.genericService.onCustomQuery(this.getResumenFacturas, {
@@ -187,6 +190,7 @@ export class FacturaLegalService {
       nombre,
       iva5,
       iva10,
+      sinNombre
     }, servidor);
   }
 

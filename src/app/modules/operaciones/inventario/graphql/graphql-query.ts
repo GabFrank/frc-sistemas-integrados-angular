@@ -390,6 +390,7 @@ export const inventarioProductoItemWithFilterQuery = gql`
     $size: Int
     $orderBy: String
     $tipoOrder: String
+    $estado: String
   ) {
     data: inventarioProductoItemWithFilter(
       startDate: $startDate
@@ -401,6 +402,7 @@ export const inventarioProductoItemWithFilterQuery = gql`
       size: $size
       orderBy: $orderBy
       tipoOrder: $tipoOrder
+      estado: $estado
     ) {
       getTotalPages
       getTotalElements

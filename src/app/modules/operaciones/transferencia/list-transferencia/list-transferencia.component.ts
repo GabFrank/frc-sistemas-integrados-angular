@@ -225,7 +225,7 @@ export class ListTransferenciaComponent implements OnInit {
     this.tabService.addTab(
       new Tab(
         EditTransferenciaComponent,
-        "Transferencia " + transferencia.id,
+        "Transf. " + transferencia.id,
         new TabData(transferencia.id),
         ListTransferenciaComponent
       )

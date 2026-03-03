@@ -1,86 +1,74 @@
 <app-generic-list
-  [data]="dataSource.data"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="resetFiltro()"
-  (adicionar)="onNewSolicitudPago()"
-  [isAdicionar]="true"
+  [titulo]="titulo"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
+  [isAdicionar]="mainService?.usuarioActual?.roles?.includes('ADMIN') || true"
 >
-  <div filtros>
-    <div
-      fxLayout="row wrap"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
-      <!-- ID filter -->
-      <div fxFlex="20%">
-        <mat-form-field style="width: 90%">
-          <mat-label>ID Solicitud</mat-label>
-          <input
-            type="number"
-            matInput
-            [formControl]="idControl"
-            (keyup.enter)="onFiltrar()"
-          />
-        </mat-form-field>
-      </div>
-      
-      <!-- Referencia ID filter -->
-      <div fxFlex="20%">
-        <mat-form-field style="width: 90%">
-          <mat-label>Referencia</mat-label>
-          <input
-            #buscar
-            type="text"
-            matInput
-            [formControl]="buscarControl"
-            (keyup.enter)="onFiltrar()"
-          />
-        </mat-form-field>
-      </div>
-      
-      <!-- Estado filter -->
-      <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Estado</mat-label>
-          <mat-select [formControl]="estadoControl" name="estado">
-            <mat-option [value]="null"> Todos </mat-option>
-            <mat-option *ngFor="let estado of estadoList" [value]="estado">
-              {{ estado | titlecase }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-      
-      <!-- Tipo filter -->
-      <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Tipo</mat-label>
-          <mat-select [formControl]="tipoControl" name="tipo">
-            <mat-option [value]="null"> Todos </mat-option>
-            <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
-              {{ tipo | titlecase }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="15">
+        <mat-label>Número</mat-label>
+        <input matInput [formControl]="numeroControl" placeholder="Buscar por número..." (keyup.enter)="onFilter()" />
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Proveedor</mat-label>
+        <input
+          matInput
+          [formControl]="proveedorControl"
+          placeholder="Buscar proveedor..."
+          [readonly]="selectedProveedor != null"
+          (click)="!selectedProveedor && onSearchProveedor()"
+          (keydown)="onProveedorKeyDown($event)"
+        />
+        <mat-icon
+          *ngIf="!selectedProveedor"
+          matSuffix
+          (click)="onSearchProveedor()"
+          style="cursor: pointer"
+        >
+          search
+        </mat-icon>
+        <button
+          *ngIf="selectedProveedor"
+          type="button"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="onClearProveedor(); $event.stopPropagation()"
+        >
+          <mat-icon style="cursor: pointer">clear</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">
+            {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+          <input matStartDate formControlName="inicio" placeholder="Desde" [max]="today" />
+          <input matEndDate formControlName="fin" placeholder="Hasta" [max]="today" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+      </mat-form-field>
     </div>
   </div>
-  
+
   <div
     table
     style="height: 100%; background-color: rgb(70, 70, 70)"
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >
-    <!-- Loading indicator -->
-    <div 
-      *ngIf="isSearching" 
-      style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999;"
-    >
-      <mat-spinner diameter="40"></mat-spinner>
-    </div>
-    
     <table
       mat-table
       [dataSource]="dataSource"
@@ -88,85 +76,56 @@
       class="mat-elevation-z8"
       style="width: 100%"
     >
-      <!-- ID Column -->
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
-          Id
+      <ng-container matColumnDef="numeroSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Número
         </th>
-        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center; width: 5%">
-          {{ solicitudPago?.id }}
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.numeroSolicitud }}
         </td>
       </ng-container>
 
-      <!-- Usuario Column -->
-      <ng-container matColumnDef="usuario">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Usuario
+      <ng-container matColumnDef="proveedor">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 25%">
+          Proveedor
         </th>
-        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
-          {{ solicitudPago?.usuario?.nickname }}
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 25%">
+          {{ row.proveedor?.persona?.nombre | uppercase }}
         </td>
       </ng-container>
 
-      <!-- Fecha Creación Column -->
-      <ng-container matColumnDef="creadoEn">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Fecha Creación
+      <ng-container matColumnDef="fechaSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Fecha
         </th>
-        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
-          {{ solicitudPago?.creadoEn | date:'dd/MM/yyyy HH:mm' }}
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.fechaSolicitudFormattedComputed }}
         </td>
       </ng-container>
 
-      <!-- Estado Column -->
+      <ng-container matColumnDef="montoTotal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Monto
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.moneda?.simbolo }} {{ row.montoTotal | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
           Estado
         </th>
-        <td 
-          mat-cell 
-          *matCellDef="let solicitudPago" 
-          style="text-align: center"
-          [ngClass]="'estado-' + (solicitudPago?.estado | lowercase)"
-        >
-          {{ solicitudPago?.estado | titlecase }}
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.estadoDisplayNameComputed }}
         </td>
       </ng-container>
 
-      <!-- Tipo Column -->
-      <ng-container matColumnDef="tipo">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Tipo
-        </th>
-        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
-          {{ solicitudPago?.tipo | titlecase }}
-        </td>
-      </ng-container>
-
-      <!-- Referencia ID Column -->
-      <ng-container matColumnDef="referenciaId">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Referencia
-        </th>
-        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
-          {{ solicitudPago?.referenciaId }}
-        </td>
-      </ng-container>
-
-      <!-- Action column -->
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let solicitudPago; let i = index"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 10%">
           <button
             mat-icon-button
             [matMenuTriggerFor]="menu"
@@ -175,74 +134,102 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              (click)="onEditSolicitudPago(solicitudPago, i)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
-            >
-              Editar
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onEditarPago(row)">
+              <mat-icon>edit</mat-icon>
+              Editar pago
             </button>
-            <button
-              mat-menu-item
-              (click)="onViewDetails(solicitudPago)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
-            >
-              Ver detalles
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onGestionarPago(row)">
+              <mat-icon>payments</mat-icon>
+              Gestionar pago
             </button>
-            <button
-              mat-menu-item
-              (click)="onCrearEditarPago(solicitudPago)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
-            >
-              Crear/Editar pago
+            <button mat-menu-item (click)="onImprimir(row)">
+              <mat-icon>print</mat-icon>
+              Imprimir PDF
+            </button>
+            <button mat-menu-item (click)="onImprimirTicket(row)">
+              <mat-icon>receipt_long</mat-icon>
+              Imprimir ticket
             </button>
           </mat-menu>
         </td>
       </ng-container>
 
-      <!-- Row definitions -->
-      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
-
-      <!-- Expandable row detail (optional) -->
       <ng-container matColumnDef="expandedDetail">
         <td
           mat-cell
-          *matCellDef="let solicitudPago"
+          *matCellDef="let row"
           [attr.colspan]="displayedColumns.length"
           class="expanded"
         >
           <div
-            class="example-solicitudPago-detail"
-            [@detailExpand]="
-              solicitudPago == expandedSolicitudPago ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
+            class="example-element-detail"
+            [@detailExpand]="row === expandedSolicitud ? 'expanded' : 'collapsed'"
+            fxLayout="row"
+            fxLayoutGap="16px"
           >
-            <!-- Expanded detail content can be added here -->
+            <div class="expand-section expand-section-notas" fxFlex="50">
+              <div class="expand-section-title">Notas vinculadas</div>
+              <div *ngIf="row?.notasRecepcion?.length; else sinNotas" class="expand-table-wrapper">
+                <table mat-table [dataSource]="row.notasRecepcion" class="expand-table expand-table-notas">
+                  <ng-container matColumnDef="numero">
+                    <th mat-header-cell *matHeaderCellDef>Número</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.numero }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="fecha">
+                    <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.fecha | date:'dd/MM/yyyy' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="monto">
+                    <th mat-header-cell *matHeaderCellDef>Monto</th>
+                    <td mat-cell *matCellDef="let nr">{{ (nr.montoIncluido ?? nr.notaRecepcion?.valorTotal) | number:'1.0-0' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="estado">
+                    <th mat-header-cell *matHeaderCellDef>Estado</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.estado }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="ver">
+                    <th mat-header-cell *matHeaderCellDef>Ver nota</th>
+                    <td mat-cell *matCellDef="let nr">
+                      <button mat-button color="primary" (click)="onVerNota(nr.notaRecepcion?.id); $event.stopPropagation()" type="button">
+                        <mat-icon>visibility</mat-icon>
+                        Ver nota
+                      </button>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="['numero','fecha','monto','estado','ver']"></tr>
+                  <tr mat-row *matRowDef="let r; columns: ['numero','fecha','monto','estado','ver']"></tr>
+                </table>
+              </div>
+              <ng-template #sinNotas>
+                <p class="expand-empty">No hay notas vinculadas</p>
+              </ng-template>
+            </div>
+            <div class="expand-section expand-section-pagos" fxFlex="50">
+              <div class="expand-section-title">Pagos vinculados</div>
+              <p class="expand-placeholder">(Próximamente)</p>
+            </div>
           </div>
         </td>
       </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr
         mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
+        *matRowDef="let row; columns: displayedColumns"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedSolicitud === row"
+        [ngClass]="estadoToRowClass[row.estado] || ''"
+        (click)="onRowClick(row)"
       ></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    
-    <!-- Pagination -->
     <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
+      itemsPerPageLabel="Items por página"
       [pageSizeOptions]="[15, 25, 50, 100]"
       (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
+      [length]="length"
       style="width: 100%"
       showFirstLastButtons
     ></mat-paginator>
   </div>
-</app-generic-list> 
+</app-generic-list>

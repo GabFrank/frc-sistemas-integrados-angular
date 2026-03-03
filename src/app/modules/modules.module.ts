@@ -14,6 +14,7 @@ import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { GraficosModule } from './grafico/graficos.module';
+import { AdministrativoModule } from './administrativo/administrativo.module';
 
 
 @NgModule({
@@ -34,6 +35,7 @@ import { GraficosModule } from './grafico/graficos.module';
     ConfiguracionModule,
     NotificacionesModule,
     GraficosModule,
+    AdministrativoModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

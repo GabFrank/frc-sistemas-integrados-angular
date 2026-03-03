@@ -16,6 +16,12 @@ import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/lis
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { PageInfo } from '../../../../app.component';
+import { SelectionModel } from '@angular/cdk/collections';
+import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
+import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
+import { forkJoin } from 'rxjs';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -42,6 +48,7 @@ export class ListClientesComponent implements OnInit {
   readonly ROLES = ROLES;
 
   displayedColumns = [
+    "select",
     "id",
     "tipo",
     "nombre",
@@ -73,13 +80,17 @@ export class ListClientesComponent implements OnInit {
   orderById = null;
   orderByNombre = null;
   selectedPageInfo: PageInfo<Cliente>;
+  selection = new SelectionModel<Cliente>(true, []);
 
 
   constructor(
     private clienteService: ClienteService,
     public mainService: MainService,
     private tabService: TabService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private ventaCreditoService: VentaCreditoService,
+    private dialogoService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {
 
   }
@@ -99,27 +110,40 @@ export class ListClientesComponent implements OnInit {
       if (res != null && res?.length > 0) {
         this.timer = setTimeout(() => {
           this.onFiltrar()
-        }, 500);
+        }, 800);
       } else {
         this.dataSource.data = []
       }
-    })
+    });
   }
 
-  onFiltrar() {
+  onFiltrar(keepSelection = false) {
+    const selectedIds = this.selection.selected.map(s => s.id);
     this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
+        this.selection.clear();
+        if (keepSelection) {
+          this.dataSource.data.forEach(item => {
+            if (selectedIds.includes(item.id)) {
+              this.selection.select(item);
+            }
+          });
+        }
+        if (res.getContent && res.getContent.length === 0) {
+          this.notificacionService.openWarn('Cliente no encontrado');
+        }
       }
-    })
+    });
   }
 
   resetFiltro() {
     this.pageIndex = 0;
     this.dataSource.data = [];
     this.selectedPageInfo = null;
-    this.buscarControl.setValue(null)
+    this.buscarControl.setValue(null);
+    this.tipoClienteControl.setValue(null);
   }
 
   onEditCliente(cliente: Cliente, i) {
@@ -134,7 +158,7 @@ export class ListClientesComponent implements OnInit {
         this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, cliente.id);
         this.table.renderRows();
       }
-    })
+    });
   }
 
   onNewCliente() {
@@ -146,12 +170,12 @@ export class ListClientesComponent implements OnInit {
         this.buscarControl.setValue(res.persona.nombre)
         this.dataSource.data = [res]
       }
-    })
+    });
   }
 
   onVerMovimiento(cliente, i) {
     console.log(cliente);
-    
+
     this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id, cliente), ListClientesComponent))
   }
 
@@ -159,6 +183,164 @@ export class ListClientesComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFiltrar();
+  }
+
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected == numRows;
+  }
+
+  masterToggle(ref) {
+    if (this.isSomeSelected()) {
+      this.selection.clear();
+      ref.checked = false;
+    } else {
+      this.isAllSelected()
+        ? this.selection.clear()
+        : this.dataSource.data.forEach((row) => this.selection.select(row));
+    }
+  }
+
+  isSomeSelected() {
+    return this.selection.selected.length > 0;
+  }
+
+  async onCobrarTodo() {
+    if (this.selection.selected.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Por favor seleccione al menos un cliente');
+      return;
+    }
+
+    this.dialogoService
+      .confirm(
+        'Atención!!',
+        `¿Realmente desea cobrar todas las ventas de ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
+        'Este proceso marcará las ventas como finalizadas'
+      )
+      .subscribe((res) => {
+        if (res == true) {
+          this.procesarAccionMasiva(true);
+        }
+      });
+  }
+
+  async onImprimirRecibo() {
+    if (this.selection.selected.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Por favor seleccione al menos un cliente');
+      return;
+    }
+
+    this.dialogoService
+      .confirm(
+        'Atención!!',
+        `¿Desea imprimir el recibo de ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
+        ''
+      )
+      .subscribe((res) => {
+        if (res == true) {
+          this.procesarAccionMasiva(false);
+        }
+      });
+  }
+
+  private async procesarAccionMasiva(esCobro: boolean) {
+    const clientesSeleccionados = this.selection.selected;
+
+    if (clientesSeleccionados.length === 0) {
+      return;
+    }
+
+    const observables = [];
+
+    for (const cliente of clientesSeleccionados) {
+      const ventaCreditoObservable = this.ventaCreditoService.onGetPorCliente(
+        cliente.id,
+        null,
+        null,
+        esCobro ? EstadoVentaCredito.ABIERTO : null,
+        false
+      );
+
+      observables.push(
+        ventaCreditoObservable.pipe(
+          untilDestroyed(this)
+        )
+      );
+    }
+
+    if (observables.length === 0) {
+      this.notificacionService.openAlgoSalioMal('No hay clientes para procesar');
+      return;
+    }
+
+    forkJoin(observables).pipe(untilDestroyed(this)).subscribe({
+      next: (results: VentaCredito[][]) => {
+        const clienteVentaCreditoList: any[] = [];
+        const todasLasVentas: VentaCreditoInput[] = [];
+        let totalClientesConVentas = 0;
+
+        results.forEach((ventaCreditos, index) => {
+          const cliente = clientesSeleccionados[index];
+
+          if (ventaCreditos && ventaCreditos.length > 0) {
+            const ventaCreditoInputList: VentaCreditoInput[] = [];
+            const ventasFiltradas = esCobro ? ventaCreditos : ventaCreditos.filter(v =>
+              v.estado === EstadoVentaCredito.ABIERTO ||
+              (v.fechaCobro && new Date(v.fechaCobro).toDateString() === new Date().toDateString())
+            );
+
+            if (ventasFiltradas.length > 0) {
+              ventasFiltradas.forEach((vc) => {
+                let aux: VentaCredito = new VentaCredito();
+                Object.assign(aux, vc);
+                const input = aux.toInput();
+                ventaCreditoInputList.push(input);
+                todasLasVentas.push(input);
+              });
+
+              clienteVentaCreditoList.push({
+                clienteId: cliente.id,
+                ventaCreditoInputList: ventaCreditoInputList
+              });
+              totalClientesConVentas++;
+            }
+          }
+        });
+
+        if (totalClientesConVentas > 0) {
+          if (esCobro) {
+            this.ventaCreditoService.onFinalizarVentaCreditos(todasLasVentas).subscribe(res => {
+              if (res) {
+                this.notificacionService.openSucess(
+                  `Se cobraron las ventas de ${totalClientesConVentas} cliente(s) correctamente`
+                );
+                this.onFiltrar(true);
+              }
+            });
+          } else {
+            this.ventaCreditoService.onImprimirReporteCobroMultiplesClientes(
+              clienteVentaCreditoList,
+              this.mainService.usuarioActual.id
+            );
+
+            this.notificacionService.openSucess(
+              `Se generó el reporte combinado con ${totalClientesConVentas} cliente(s) correctamente`
+            );
+          }
+        } else {
+          this.notificacionService.openAlgoSalioMal(
+            'No se encontraron ventas a crédito para procesar'
+          );
+        }
+      },
+      error: (error) => {
+        console.error('Error al procesar acción masiva:', error);
+        this.notificacionService.openAlgoSalioMal(
+          'Ocurrió un error al procesar la solicitud. Por favor intente nuevamente.'
+        );
+      }
+    });
   }
 
 }

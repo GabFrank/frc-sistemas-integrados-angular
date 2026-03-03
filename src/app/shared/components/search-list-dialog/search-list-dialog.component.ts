@@ -4,7 +4,23 @@ import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatTableDataSource, MatTable } from "@angular/material/table";
 import { Query } from "apollo-angular";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { SelectionModel } from "@angular/cdk/collections";
+import { PageInfo } from "../../../app.component";
+import { PageEvent } from "@angular/material/paginator";
+import { timeout, catchError } from 'rxjs/operators';
 
+/**
+ * Interfaz que define la estructura de los datos de una columna en la tabla
+ * @property id - Identificador único del campo. Para campos anidados, usar notación de puntos (ej: 'pedido.proveedor.persona.nombre').
+ * @property nombre - Nombre/título que se mostrará en la columna
+ * @property width - Ancho de la columna (opcional)
+ * @property nested - Si true, la columna muestra un objeto anidado (usar con nestedId/nestedColumnId)
+ * @property nestedId - (Legacy) Primera parte del objeto anidado. La nueva forma es usar notación de puntos en `id`.
+ * @property nestedColumnId - ID personalizado para la columna
+ * @property pipe - Nombre del pipe a aplicar al valor (ej: 'date', 'number', 'currency')
+ * @property pipeArgs - Argumentos para el pipe (ej: 'shortDate', '1.0-2')
+ */
 export interface TableData {
   id: string
   nombre: string
@@ -12,6 +28,8 @@ export interface TableData {
   nested?: boolean
   nestedId?: string
   nestedColumnId?: string
+  pipe?: string
+  pipeArgs?: string
 }
 
 export class SearchListtDialogData {
@@ -28,11 +46,9 @@ export class SearchListtDialogData {
   paginator?: boolean;
   isServidor?: boolean = true;
   searchFieldName?: string;
+  textHint?: string;
+  fallbackToLocal?: boolean = false;
 }
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from "../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -56,6 +72,17 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   pageIndex = 0;
   pageSize = 15;
 
+  // **PERFORMANCE**: Computed properties for template usage (avoid getters/functions in template)
+  dialogTitleComputed = '';
+  hasDataComputed = false;
+  isLoadingComputed = false;
+  hasSelectedItemComputed = false;
+  showPaginatorComputed = false;
+  showAdicionarButtonComputed = false;
+  searchPlaceholderComputed = '';
+
+  // **PERFORMANCE**: Loading states
+  private isSearching = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SearchListtDialogData,
@@ -63,18 +90,27 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     private genericCrudService: GenericCrudService,
     private cdr: ChangeDetectorRef
   ) {
-    console.log('Inicializando search-list-dialog con data:', data);
+    // Initialize display columns
+    data?.tableData.forEach(e => {
+      this.displayedColumns.push(e.id);
+    });
+
+    // Set initial data if provided
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
     }
+
+    // Initialize query data
     if (data?.queryData != null) {
       this.queryData = data.queryData;
     }
+
+    // Set initial search text
     const searchField = data?.searchFieldName || 'texto';
     if (data?.queryData?.[searchField] != null) {
-      this.buscarControl.setValue(data.queryData[searchField])
+      this.buscarControl.setValue(data.queryData[searchField]);
     } else if (data?.queryData?.texto != null) {
-      this.buscarControl.setValue(data?.queryData?.texto)
+      this.buscarControl.setValue(data.queryData.texto);
     }
   }
 
@@ -89,26 +125,29 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     if (this.displayedColumns.length === 0) {
       this.displayedColumns = ['id', 'nombre'];
     }
+    // **PERFORMANCE**: Initialize computed properties
+    this.updateComputedProperties();
 
+    // Perform initial search if configured
     if (this.data?.inicialSearch) {
       if (this.data?.texto != null) {
-        this.buscarControl.setValue(this.data.texto)
+        this.buscarControl.setValue(this.data.texto);
       }
       const searchField = this.data?.searchFieldName || 'texto';
       if (!this.buscarControl.value && this.data?.queryData?.[searchField]) {
-        this.buscarControl.setValue(this.data.queryData[searchField]);
+        const prefillValue = this.data.queryData[searchField];
+        // Never show '%' in the input - it's used internally for "search all"
+        this.buscarControl.setValue(prefillValue === '%' ? '' : prefillValue);
       }
-      if (!this.buscarControl.value) {
-        this.buscarControl.setValue('%');
-      }
+      // Do NOT set '%' in the input - user should see empty field; '%' is passed only to the query in onSearch()
       setTimeout(() => {
         this.onSearch();
       }, 100);
     }
-
   }
 
   ngAfterViewInit(): void {
+    // Setup keyboard navigation for table rows
     this.container.nativeElement.addEventListener("keydown", (e) => {
       if (e.key == 'ArrowUp') {
         this.onArrowDown(true)
@@ -116,6 +155,10 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
         this.onArrowDown(false)
       }
     });
+
+    // this.tableRows.changes.subscribe(() => {
+    //   this.focusRow(0); // Whenever the rows change, reset the focus to the first row
+    // });
   }
 
   onArrowDown(up: boolean): void {
@@ -132,21 +175,33 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
         this.selectedItem = this.dataSource.data[currentIndex];
       }
       this.tableRows.toArray()[currentIndex].nativeElement.focus();
+
+      // **PERFORMANCE**: Update computed properties after selection change
+      this.updateComputedProperties();
     }
   }
 
-  onBuscar() {
+  onBuscar(): void {
     this.onSearch()
   }
 
-  onSearch() {
-    let text = this.buscarControl.value;
+  onSearch(): void {
+    // **PERFORMANCE**: Prevent multiple simultaneous searches
+    if (this.isSearching) {
+      return;
+    }
+
+    this.isSearching = true;
+    this.isLoadingComputed = true;
+    this.updateComputedProperties();
+
     const searchField = this.data?.searchFieldName || 'texto';
     if (!this.queryData) {
       this.queryData = {};
     }
-    if (text != null && text.trim() !== '' && text.trim() !== '%') {
-      text = text.toUpperCase();
+    let text = this.buscarControl.value;
+    if (text != null && String(text).trim() !== '' && String(text).trim() !== '%') {
+      text = String(text).toUpperCase();
       this.queryData[searchField] = text;
     } else {
       this.queryData[searchField] = '%';
@@ -157,63 +212,91 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       this.queryData.size = this.pageSize;
     }
 
-    this.genericCrudService
-      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        console.log('Respuesta recibida en search-list-dialog:', res);
-        if (res != null) {
-          if (this.data?.paginator == true) {
-            this.selectedPageInfo = res;
-            const content = res?.getContent || [];
-            console.log('Contenido a mostrar en tabla:', content);
-            console.log('Total elementos:', res?.getTotalElements);
-            console.log('Tipo de content:', typeof content, Array.isArray(content));
-            console.log('displayedColumns:', this.displayedColumns);
-            console.log('Primer elemento del content:', content.length > 0 ? content[0] : 'Sin datos');
-            this.dataSource.data = content;
-            if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
-              (this.dataSource as any)._updateChangeSubscription();
-            }
-            console.log('DataSource.data después de asignar:', this.dataSource.data);
-            console.log('DataSource.data.length:', this.dataSource.data.length);
-            setTimeout(() => {
-              this.cdr.detectChanges();
-              if (this.table) {
-                this.table.renderRows();
-              }
-            }, 0);
-          } else {
-            this.dataSource.data = res || [];
-            if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
-              (this.dataSource as any)._updateChangeSubscription();
-            }
-            if (this.displayedColumns.length === 0) {
-              this.displayedColumns = ['id', 'nombre'];
-            }
-            setTimeout(() => {
-              this.cdr.detectChanges();
-              if (this.table) {
-                this.table.renderRows();
-              }
-            }, 0);
+    const finishSearch = () => {
+      this.isSearching = false;
+      this.isLoadingComputed = false;
+      this.updateComputedProperties();
+    };
+
+    if (this.data?.fallbackToLocal) {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, true,
+          { networkError: { propagate: true, show: false } }, true)
+        .pipe(
+          untilDestroyed(this),
+          timeout(5000),
+          catchError(err => {
+            console.warn('Búsqueda en servidor central falló, intentando en local...', err);
+            return this.genericCrudService.onCustomQuery(this.data.query, this.queryData, false, undefined, true);
+          })
+        )
+        .subscribe({
+          next: (res) => {
+            this.procesarResultados(res);
+            finishSearch();
+          },
+          error: (error) => {
+            console.error('Search error:', error);
+            this.dataSource.data = [];
+            finishSearch();
           }
-        } else {
-          console.log('Respuesta es null');
-          this.dataSource.data = [];
+        });
+    } else {
+      this.genericCrudService
+        .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => {
+            this.procesarResultados(res);
+            finishSearch();
+          },
+          error: (error) => {
+            console.error('Search error:', error);
+            this.dataSource.data = [];
+            finishSearch();
+          }
+        });
+    }
+  }
+
+  private procesarResultados(res: any): void {
+    if (res != null) {
+      if (this.data?.paginator == true) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = this.selectedPageInfo?.getContent || [];
+      } else {
+        this.dataSource.data = res || [];
+      }
+      if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
+        (this.dataSource as any)._updateChangeSubscription();
+      }
+      setTimeout(() => {
+        this.cdr.detectChanges();
+        if (this.table) {
+          this.table.renderRows();
         }
-      });
+      }, 0);
+    } else {
+      this.dataSource.data = [];
+    }
+    this.cdr.markForCheck();
   }
 
-  onRowSelect(row) {
-    if (row == this.selectedItem) this.matDialogRef.close(row)
+  onRowSelect(row): void {
+    if (row == this.selectedItem) {
+      // Double-click behavior: close dialog with selection
+      this.matDialogRef.close(row)
+      return;
+    }
+
     this.selectedItem = row;
+    this.updateComputedProperties();
   }
 
-  onAceptar() {
+  onAceptar(): void {
     this.matDialogRef.close(this.selectedItem)
   }
 
-  onCancelar() {
+  onCancelar(): void {
     this.matDialogRef.close()
   }
 
@@ -221,12 +304,68 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.matDialogRef.close({ adicionar: true })
   }
 
-  handlePageEvent(e: PageEvent) {
+  handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onSearch();
   }
 
+  /**
+   * **PERFORMANCE**: Update computed properties for template usage
+   * This avoids function calls and getters in templates which cause performance issues
+   */
+  private updateComputedProperties(): void {
+    // Dialog title
+    this.dialogTitleComputed = this.data?.titulo || 'Buscar';
 
+    // Data state
+    this.hasDataComputed = this.dataSource.data.length > 0;
 
+    // Selection state
+    this.hasSelectedItemComputed = this.selectedItem != null;
+
+    // Pagination
+    this.showPaginatorComputed = this.data?.paginator === true && this.selectedPageInfo != null;
+
+    // Adicionar button
+    this.showAdicionarButtonComputed = this.data?.isAdicionar === true;
+
+    // Search placeholder
+    this.searchPlaceholderComputed = this.data?.textHint || this.data?.searchFieldName || 'Ingrese texto para buscar...';
+  }
+
+  /**
+   * **PERFORMANCE**: Method to check if an item is selected (for template usage)
+   */
+  isItemSelected(item: any): boolean {
+    return this.selectedItem === item;
+  }
+
+  /**
+   * **PERFORMANCE**: Method to get total elements count (for template usage)
+   */
+  getTotalElementsCount(): number {
+    return this.selectedPageInfo?.getTotalElements || 0;
+  }
+
+  /**
+   * Clear search and reset to initial state
+   */
+  clearSearch(): void {
+    this.buscarControl.setValue('');
+    this.selectedItem = null;
+    this.pageIndex = 0;
+    this.dataSource.data = this.data?.inicialData || [];
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Focus on search input field
+   */
+  focusSearchField(): void {
+    const searchInput = this.container?.nativeElement?.querySelector('input[matInput]');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }
 }

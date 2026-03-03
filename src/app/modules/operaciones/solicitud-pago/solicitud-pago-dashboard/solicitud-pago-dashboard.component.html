@@ -1,0 +1,68 @@
+<div class="titulo-center font-medium">Solicitud de pago</div>
+
+<mat-form-field appearance="outline" class="filter-field">
+  <mat-label>Proveedor</mat-label>
+  <input matInput [value]="proveedorNombreDisplay" readonly />
+  <button matSuffix mat-icon-button (click)="onBuscarProveedor()" type="button">
+    <mat-icon>search</mat-icon>
+  </button>
+  <button matSuffix mat-icon-button *ngIf="selectedProveedor" (click)="onQuitarProveedor()" type="button">
+    <mat-icon>close</mat-icon>
+  </button>
+</mat-form-field>
+
+<mat-form-field appearance="outline" class="filter-field">
+  <mat-label>Estado</mat-label>
+  <mat-select [(value)]="selectedEstado">
+    <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">{{ opt.label }}</mat-option>
+  </mat-select>
+</mat-form-field>
+
+<button mat-raised-button color="primary" (click)="onFiltrar()">Filtrar</button>
+<button mat-raised-button color="accent" (click)="onNuevaSolicitud()" class="ml-2">Nueva solicitud</button>
+
+<mat-table [dataSource]="dataSource" class="mat-elevation-z2 table-center">
+  <ng-container matColumnDef="numeroSolicitud">
+    <mat-header-cell *matHeaderCellDef>Número</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.numeroSolicitud }}</mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="proveedor">
+    <mat-header-cell *matHeaderCellDef>Proveedor</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.proveedor?.persona?.nombre }}</mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="fechaSolicitud">
+    <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.fechaSolicitudFormattedComputed }}</mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="montoTotal">
+    <mat-header-cell *matHeaderCellDef>Monto</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.montoTotal | number:'1.0-0' }} {{ row.moneda?.denominacion }}</mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="estado">
+    <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.estadoDisplayNameComputed }}</mat-cell>
+  </ng-container>
+  <ng-container matColumnDef="acciones">
+    <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <button mat-icon-button (click)="onImprimir(row)" matTooltip="Imprimir PDF">
+        <mat-icon>print</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onImprimirTicket(row)" matTooltip="Imprimir ticket">
+        <mat-icon>receipt_long</mat-icon>
+      </button>
+    </mat-cell>
+  </ng-container>
+
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+  <tr class="mat-row" *matNoDataRow>
+    <td class="mat-cell" [attr.colspan]="displayedColumns.length">No hay solicitudes</td>
+  </tr>
+</mat-table>
+
+<div class="paginator-row" *ngIf="page && (page.hasPrevious || page.hasNext)">
+  <button mat-button [disabled]="!page.hasPrevious" (click)="prevPage()">Anterior</button>
+  <span>{{ currentPageIndex + 1 }} / {{ (page.getTotalPages || 0) || 1 }}</span>
+  <button mat-button [disabled]="!page.hasNext" (click)="nextPage()">Siguiente</button>
+</div>

@@ -1,0 +1,278 @@
+<div class="dialog-container">
+  <div class="dialog-header center">
+    <h3 style="margin: 0px">
+      Verificación Detallada de Item
+    </h3>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <form [formGroup]="verificarForm" class="form-container">
+      <div class="main-layout">
+        <!-- Panel Superior: Información del Producto y Resumen (30%) -->
+        <div class="top-panel">
+          <div class="producto-info-card">
+            <div class="producto-header">
+              <mat-icon class="producto-icon">inventory</mat-icon>
+              <div class="producto-text">
+                <h3 class="producto-nombre">{{ item.producto.descripcion }}</h3>
+                <span class="producto-codigo" *ngIf="item.producto.codigoPrincipal">
+                  Código: {{ item.producto.codigoPrincipal }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Selector de Presentación -->
+            <div class="presentacion-section">
+              <h5 class="section-title">Presentación</h5>
+              <div *ngIf="loadingPresentaciones" class="loading-presentaciones">
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>Cargando presentaciones...</span>
+              </div>
+              <mat-form-field appearance="outline" class="presentacion-field" *ngIf="!loadingPresentaciones">
+                <mat-label>Presentación *</mat-label>
+                <mat-select 
+                  formControlName="presentacionGlobal"
+                  (selectionChange)="onPresentacionChange()"
+                  [compareWith]="comparePresentaciones">
+                  <mat-option *ngFor="let presentacion of presentacionesDisponibles" [value]="presentacion">
+                    {{ presentacion.descripcion | uppercase }} ({{ presentacion.cantidad }} unidades)
+                  </mat-option>
+                </mat-select>
+                <mat-error *ngIf="verificarForm.get('presentacionGlobal')?.hasError('required')">
+                  Presentación requerida
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Resumen de Cantidades en Row -->
+            <div class="cantidades-summary-row">
+              <div class="summary-item">
+                <span class="label">Esperado:</span>
+                <span class="value esperado">{{ (cantidadTotalEsperadaComputed || 0) | number }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Recibido:</span>
+                <span class="value recibido" [class.negative]="cantidadTotalRecibidaComputed > cantidadTotalEsperadaComputed">
+                  {{ (cantidadTotalRecibidaComputed || 0) | number }}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Diferencia:</span>
+                <span class="value diferencia" [class]="cantidadDiferenciaComputed === 0 ? 'diferencia-cero' : 'diferencia-no-cero'">
+                  {{ (cantidadDiferenciaComputed || 0) | number }}
+                </span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Discrepancias:</span>
+                <span class="value discrepancias" [class]="hayDiscrepanciasComputed ? 'discrepancias-si' : 'discrepancias-no'">
+                  {{ hayDiscrepanciasComputed ? 'Sí' : 'No' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel Inferior: Formulario de Verificación (70%) -->
+        <div class="bottom-panel">
+          <h4 class="panel-title">Distribución por Sucursal</h4>
+
+          <!-- Lista de Distribuciones con Expanded Rows -->
+          <div class="distribuciones-container">
+            <mat-accordion>
+              <mat-expansion-panel 
+                *ngFor="let dist of distribucionesFormData; let i = index" 
+                class="distribucion-panel"
+                [expanded]="dist.tieneDiscrepancia">
+                
+                <!-- Header del Panel (Sucursal, Cantidad Esperada y Recibida) -->
+                <mat-expansion-panel-header class="distribucion-header">
+                  <div class="distribucion-header-content">
+                    <div class="sucursal-info">
+                      <mat-icon class="sucursal-icon">store</mat-icon>
+                      <span class="sucursal-nombre">{{ dist.sucursalNombre }}</span>
+                    </div>
+                    <div class="cantidad-info">
+                      <span class="cantidad-esperada">Esperado: {{ dist.cantidadEsperada | number }}</span>
+                      <span class="cantidad-recibida" [class]="dist.tieneDiscrepancia ? 'cantidad-discrepancia' : 'cantidad-correcta'">
+                        Recibido: {{ dist.cantidadRecibida | number }}
+                      </span>
+                    </div>
+                    <div class="cantidad-input-section">
+                      <mat-form-field appearance="outline" class="cantidad-header-field">
+                        <mat-label>Cantidad Recibida *</mat-label>
+                        <input 
+                          matInput 
+                          type="number"
+                          [formControlName]="'dist_' + i + '_cantidadRecibida'"
+                          [max]="dist.cantidadEsperada"
+                          [min]="0"
+                          (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_cantidadRecibida')"
+                          [class.invalid]="!isCantidadValid(i)"
+                          placeholder="0">
+                        <mat-error *ngIf="getCantidadRecibidaControl(i)?.hasError('required')">
+                          Cantidad requerida
+                        </mat-error>
+                        <mat-error *ngIf="getCantidadRecibidaControl(i)?.hasError('min')">
+                          Mínimo 0
+                        </mat-error>
+                        <mat-error *ngIf="getCantidadRecibidaControl(i)?.hasError('max')">
+                          Máximo {{ dist.cantidadEsperada }}
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+                    <div class="discrepancia-indicator" *ngIf="dist.tieneDiscrepancia">
+                      <mat-icon class="warning-icon">warning</mat-icon>
+                      <span class="discrepancia-text">Discrepancia</span>
+                    </div>
+                  </div>
+                </mat-expansion-panel-header>
+
+                <!-- Contenido Expandido -->
+                <div class="distribucion-content">
+                  <!-- Sección Expandida: Información Adicional -->
+                  <div class="seccion-expandida">
+                    <h5 class="section-title">Información Adicional</h5>
+                    
+                    <div class="form-row">
+                      <mat-form-field appearance="outline" class="vencimiento-field">
+                        <mat-label>Fecha de Vencimiento</mat-label>
+                        <input 
+                          matInput 
+                          [matDatepicker]="vencimientoPicker"
+                          [formControlName]="'dist_' + i + '_vencimiento'"
+                          (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_vencimiento')"
+                          placeholder="DD/MM/YYYY">
+                        <mat-datepicker-toggle matSuffix [for]="vencimientoPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #vencimientoPicker></mat-datepicker>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="lote-field">
+                        <mat-label>Número de Lote</mat-label>
+                        <input 
+                          matInput 
+                          [formControlName]="'dist_' + i + '_lote'"
+                          maxlength="50"
+                          (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_lote')"
+                          placeholder="Ej: LOTE2024001">
+                        <mat-error *ngIf="getLoteControl(i)?.hasError('maxlength')">
+                          Máximo 50 caracteres
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+
+                    <mat-form-field appearance="outline" class="observaciones-field">
+                      <mat-label>Observaciones</mat-label>
+                      <textarea 
+                        matInput 
+                        [formControlName]="'dist_' + i + '_observaciones'"
+                        maxlength="500"
+                        rows="3"
+                        (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_observaciones')"
+                        placeholder="Observaciones adicionales sobre la recepción..."></textarea>
+                      <mat-hint>{{ getObservacionesControl(i)?.value?.length || 0 }}/500</mat-hint>
+                      <mat-error *ngIf="getObservacionesControl(i)?.hasError('maxlength')">
+                        Máximo 500 caracteres
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <!-- Sección de Motivo (solo si hay discrepancia) -->
+                  <div class="seccion-motivo" *ngIf="dist.tieneDiscrepancia">
+                    <h5 class="section-title">
+                      <mat-icon class="warning-icon">warning</mat-icon>
+                      Motivo de Modificación *
+                    </h5>
+                    
+                    <div class="form-row">
+                      <mat-form-field appearance="outline" class="motivo-field">
+                        <mat-label>Motivo *</mat-label>
+                        <mat-select 
+                          [formControlName]="'dist_' + i + '_motivoModificacion'"
+                          (selectionChange)="onMotivoModificacionChange(i)">
+                          <mat-option *ngFor="let motivo of motivosDisponibles" [value]="motivo">
+                            {{ MOTIVO_MODIFICACION_LABELS[motivo] }}
+                          </mat-option>
+                        </mat-select>
+                        <mat-error *ngIf="getMotivoModificacionControl(i)?.hasError('required')">
+                          Motivo requerido
+                        </mat-error>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="motivo-otro-field" 
+                                    *ngIf="getMotivoModificacionControl(i)?.value === MotivoModificacion.OTRO">
+                        <mat-label>Especifique Otro Motivo *</mat-label>
+                        <textarea 
+                          matInput 
+                          [formControlName]="'dist_' + i + '_motivoOtro'"
+                          maxlength="200"
+                          rows="2"
+                          (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_motivoOtro')"
+                          placeholder="Especifique el motivo de la modificación..."></textarea>
+                        <mat-hint>{{ getMotivoOtroControl(i)?.value?.length || 0 }}/200</mat-hint>
+                        <mat-error *ngIf="getMotivoOtroControl(i)?.hasError('required')">
+                          Motivo requerido
+                        </mat-error>
+                        <mat-error *ngIf="getMotivoOtroControl(i)?.hasError('maxlength')">
+                          Máximo 200 caracteres
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+            </mat-accordion>
+          </div>
+
+          <!-- Resumen de Verificación -->
+          <div class="verificacion-summary-section">
+            <h5 class="section-title">Resumen de Verificación</h5>
+            
+            <div class="summary-content">
+              <div class="summary-item">
+                <span class="summary-label">Producto:</span>
+                <span class="summary-value">{{ item.producto.descripcion }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Presentación:</span>
+                <span class="summary-value">{{ (presentacionSeleccionadaComputed?.descripcion | uppercase) || 'No especificada' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Cantidad Total Verificada:</span>
+                <span class="summary-value">{{ cantidadTotalRecibidaComputed | number }}</span>
+              </div>
+              <div class="summary-item" *ngIf="cantidadDiferenciaComputed !== 0">
+                <span class="summary-label">Diferencia Total:</span>
+                <span class="summary-value diferencia">{{ cantidadDiferenciaComputed | number }}</span>
+              </div>
+              <div class="summary-item" *ngIf="hayDiscrepanciasComputed">
+                <span class="summary-label">Discrepancias:</span>
+                <span class="summary-value discrepancias">Hay discrepancias que requieren motivo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button 
+      mat-button 
+      type="button"
+      (click)="onCancel()"
+      #cancelButton>
+      <mat-icon>cancel</mat-icon>
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="primary" 
+      type="submit"
+      [disabled]="!formValidComputed"
+      (click)="onSave()"
+      #saveButton>
+      <mat-icon>check</mat-icon>
+      Verificar
+    </button>
+  </mat-dialog-actions>
+</div> 

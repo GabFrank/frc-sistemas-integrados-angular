@@ -5,7 +5,7 @@ import { SkeletonComponent } from '../../../skeleton.component';
 
 @Component({
   selector: 'app-tab-content',
-  template: '<ng-template content-container></ng-template>'
+  template: '<ng-template style="height: 100%; flex: 1; display: flex; flex-direction: column;" content-container></ng-template>'
 })
 
 export class TabContentComponent implements OnInit {

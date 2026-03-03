@@ -1,6 +1,70 @@
+/* Main container with dark background */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  min-width: 60vw;
+  min-height: 70vh;
+  height: 100%;
+  gap: 10px;
+  padding: 0px;
+  background-color: rgb(52, 52, 52);
+  color: white;
+}
 
+/* Header section with gradient background */
+.header-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 4px;
+  margin: 0;
+}
 
-tr:focus{
+.header-section .dialog-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Content container */
+.content-container {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* Footer section */
+.footer-section {
+  padding: 16px 20px;
+  margin: 0 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 8px 8px;
+}
+
+.footer-section .footer-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.footer-section .footer-buttons .exit-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.footer-section .footer-buttons .exit-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+}
+
+/* Table styling */
+tr:focus {
       outline: none;
   }
 
@@ -11,7 +75,6 @@ tr:focus{
   tr.example-detail-row {
     height: 0;
   }
-
   
   .example-producto-row td {
     border-bottom-width: 0;
@@ -33,10 +96,27 @@ tr:focus{
   display: table-cell;
   padding: 0px 10px;
   line-break: unset;
-  /* width: 100%; */
   white-space: nowrap;
   overflow: hidden;
   vertical-align: middle;
+} 
+
+/* Form styling for dark theme */
+::ng-deep .mat-mdc-form-field .mat-mdc-form-field-outline {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+::ng-deep .mat-mdc-form-field .mat-mdc-form-field-label {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+::ng-deep .mat-mdc-form-field input {
+  color: white !important;
+}
+
+/* Button styling for dark theme */
+::ng-deep .mat-mdc-button {
+  color: white !important;
 } 
   
 input::-webkit-outer-spin-button,
@@ -45,10 +125,9 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-.highlight{
+.highlight {
   background: #42A948;
 }
-
 
 .selectedCard {
   background-color: #43A047 !important;
@@ -68,4 +147,28 @@ th {
 
 input {
   text-transform: uppercase;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-container {
+    width: 95vw;
+    gap: 8px;
+  }
+  
+  .header-section {
+    padding: 16px;
+  }
+  
+  .header-section .dialog-title {
+    font-size: 1.5rem;
+  }
+  
+  .content-container {
+    padding: 8px;
+  }
+  
+  .footer-section {
+    margin: 0 8px;
+  }
 }

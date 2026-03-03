@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -11,7 +11,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionesTableroService, NotificacionData } from '../../services/notificaciones-tablero.service';
 import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
-import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from '../../graphql/notificacionMutations.gql';
+import { MarcarNotificacionLeidaGQL } from '../../graphql/notificacionMutations.gql';
 import { NotificationDetailDialogComponent } from '../notification-detail-dialog/notification-detail-dialog.component';
 import { ComentariosNotificacionDialogComponent } from '../comentarios-notificacion-dialog/comentarios-notificacion-dialog.component';
 import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../enums/estado-notificacion-tablero.enum';
@@ -25,8 +25,17 @@ import { ListMovimientoStockComponent } from '../../../operaciones/movimiento-st
 import { ListProductoComponent } from '../../../productos/producto/list-producto/list-producto.component';
 import { ProductoComponent } from '../../../productos/producto/edit-producto/producto.component';
 import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { ListGastosComponent } from '../../../financiero/gastos/list-gastos/list-gastos.component';
+import { ListRetiroComponent } from '../../../financiero/retiro/list-retiro/list-retiro.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
+import { MainService } from '../../../../main.service';
+
+interface NotificacionExtendida extends NotificacionData {
+    conteoComentarios: number;
+    tieneAccion: boolean;
+    mostrarBotonModificacion: boolean;
+}
 
 @UntilDestroy()
 @Component({
@@ -47,6 +56,14 @@ import { map, take, delay, switchMap } from 'rxjs/operators';
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotificationBoardComponent implements OnInit {
+    private readonly notificacionesTableroService = inject(NotificacionesTableroService);
+    private readonly comentariosService = inject(ComentariosNotificacionService);
+    private readonly marcarNotificacionLeidaGQL = inject(MarcarNotificacionLeidaGQL);
+
+    private readonly dialog = inject(MatDialog);
+    private readonly tabService = inject(TabService);
+    private readonly mainService = inject(MainService);
+    private readonly cdr = inject(ChangeDetectorRef);
 
     readonly ESTADOS_TABLERO = [
         EstadoNotificacionTablero.POR_VERIFICAR,
@@ -56,16 +73,28 @@ export class NotificationBoardComponent implements OnInit {
     readonly ESTADOS_LABELS = ESTADOS_TABLERO_LABELS;
     readonly pageSizeOptions = [15, 25, 50, 100];
 
+    private readonly tieneAccionCache = new Map<string, boolean>();
+    private readonly tiposConAccion = [
+        'AJUSTE_STOCK',
+        'PRODUCTO_CREADO',
+        'TRANSFERENCIA_INICIADA',
+        'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA',
+        'PRECIO_ACTUALIZADO',
+        'AJUSTE_COSTO',
+        'INVENTARIO_INICIADO',
+        'GASTO',
+        'RETIRO'
+    ];
+
     notificaciones$ = this.notificacionesTableroService.notificaciones$;
     paginationState$ = this.notificacionesTableroService.paginationState$;
-    private tieneAccionCache = new Map<string, boolean>();
 
     notificacionesConConteos$ = combineLatest([
         this.notificacionesTableroService.notificaciones$,
         this.comentariosService.conteosPorNotificacion$
     ]).pipe(
         map(([notificaciones, conteos]) => {
-            const resultado: { [key: string]: Array<NotificacionData & { conteoComentarios: number; tieneAccion: boolean }> } = {};
+            const resultado: { [key: string]: NotificacionExtendida[] } = {};
 
             Object.keys(notificaciones).forEach(estado => {
                 resultado[estado] = notificaciones[estado].map(notif => {
@@ -75,7 +104,6 @@ export class NotificationBoardComponent implements OnInit {
                         ? conteoDesdeCache
                         : (notif.notificacion?.conteoComentarios || 0);
 
-
                     const cacheKey = `${notif.notificacion?.tipo}-${notif.notificacion?.titulo}-${notif.notificacion?.mensaje}`;
                     let tieneAccion = this.tieneAccionCache.get(cacheKey);
                     if (tieneAccion === undefined) {
@@ -83,10 +111,13 @@ export class NotificationBoardComponent implements OnInit {
                         this.tieneAccionCache.set(cacheKey, tieneAccion);
                     }
 
+                    const mostrarBotonModificacion = this.validarMostrarBotonModificacion(notif, tieneAccion);
+
                     return {
                         ...notif,
                         conteoComentarios,
-                        tieneAccion
+                        tieneAccion,
+                        mostrarBotonModificacion
                     };
                 });
             });
@@ -95,28 +126,9 @@ export class NotificationBoardComponent implements OnInit {
         })
     );
 
-    private readonly tiposConAccion = [
-        'AJUSTE_STOCK',
-        'PRODUCTO_CREADO',
-        'TRANSFERENCIA_INICIADA',
-        'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA',
-        'PRECIO_ACTUALIZADO',
-        'AJUSTE_COSTO',
-        'INVENTARIO_INICIADO'
-    ];
-
-    constructor(
-        private notificacionesTableroService: NotificacionesTableroService,
-        private comentariosService: ComentariosNotificacionService,
-        private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
-        private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL,
-        private dialog: MatDialog,
-        private tabService: TabService,
-        private cdr: ChangeDetectorRef
-    ) {
-    }
-
     ngOnInit(): void {
+        if (!this.mainService.logged) return;
+
         this.ESTADOS_TABLERO.forEach(estado => {
             this.notificacionesTableroService.cargarNotificaciones(estado, 0, 15);
         });
@@ -153,26 +165,21 @@ export class NotificationBoardComponent implements OnInit {
         this.openDetail(n);
     }
 
-    calcularTieneAccion(n: NotificacionData): boolean {
+    private calcularTieneAccion(n: NotificacionData): boolean {
         const tipo = n.notificacion?.tipo;
         const titulo = n.notificacion?.titulo || '';
         const mensaje = n.notificacion?.mensaje || '';
 
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
-        
-        if (esMencionado) {
-            return true;
-        }
+        if (esMencionado) return true;
 
         const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
-        if (esInicioSesion) {
-            return false;
-        }
+        if (esInicioSesion) return false;
 
         return tipo ? this.tiposConAccion.includes(tipo) : false;
     }
 
-    mostrarBotonModificacion(n: NotificacionData & { tieneAccion?: boolean }): boolean {
+    private validarMostrarBotonModificacion(n: NotificacionData, tieneAccion: boolean): boolean {
         const tipo = n.notificacion?.tipo;
         const titulo = n.notificacion?.titulo || '';
         const mensaje = n.notificacion?.mensaje || '';
@@ -180,35 +187,26 @@ export class NotificationBoardComponent implements OnInit {
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
         const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
 
-        if (esMencionado || esInicioSesion) {
-            return false;
-        }
+        if (esMencionado || esInicioSesion) return false;
 
-        return n.tieneAccion !== undefined ? n.tieneAccion : this.calcularTieneAccion(n);
+        return tieneAccion;
     }
 
     navegarAModificaciones(n: NotificacionData, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
-
+        if (event) event.stopPropagation();
         this.tabService.addTab(
             new Tab(ModificacionesComponent, 'Modificaciones del Sistema', null, null)
         );
     }
 
     navegarAAccion(n: NotificacionData, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
+        if (event) event.stopPropagation();
 
         const tipo = n.notificacion?.tipo;
         const titulo = n.notificacion?.titulo || '';
         const mensaje = n.notificacion?.mensaje || '';
 
-        if (!tipo) {
-            return;
-        }
+        if (!tipo) return;
 
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
 
@@ -269,10 +267,7 @@ export class NotificationBoardComponent implements OnInit {
                             }
                         }
 
-                        if (mejorNotificacion) {
-                            return mejorNotificacion.id;
-                        }
-
+                        if (mejorNotificacion) return mejorNotificacion.id;
                         return null;
                     }),
                     untilDestroyed(this)
@@ -286,8 +281,6 @@ export class NotificationBoardComponent implements OnInit {
                             }
                         }, event);
                     } else {
-                        const notificacionIdActual = n.notificacion?.id;
-
                         this.buscarNotificacionPorTituloEnBackend(tituloNotificacionOriginal, event, n);
                     }
                 });
@@ -316,96 +309,58 @@ export class NotificationBoardComponent implements OnInit {
                 entityId = parsedData?.id || parsedData?.transferenciaId || parsedData?.inventarioId || parsedData?.productoId || null;
             } catch (e) {
                 const match = n.notificacion.data.match(/\/(\d+)$/);
-                if (match) {
-                    entityId = parseInt(match[1], 10);
-                }
+                if (match) entityId = parseInt(match[1], 10);
             }
         }
 
         switch (tipo) {
             case 'AJUSTE_STOCK':
-                this.tabService.addTab(
-                    new Tab(ListMovimientoStockComponent, 'Movimientos de Stock', null, null)
-                );
+                this.tabService.addTab(new Tab(ListMovimientoStockComponent, 'Movimientos de Stock', null, null));
                 break;
             case 'PRODUCTO_CREADO':
             case 'PRECIO_ACTUALIZADO':
             case 'AJUSTE_COSTO':
                 if (entityId) {
-                    this.tabService.addTab(
-                        new Tab(
-                            ProductoComponent,
-                            `Producto #${entityId}`,
-                            new TabData(entityId, { id: entityId }),
-                            null
-                        )
-                    );
+                    this.tabService.addTab(new Tab(ProductoComponent, `Producto #${entityId}`, new TabData(entityId, { id: entityId }), null));
                 } else {
-                    this.tabService.addTab(
-                        new Tab(ListProductoComponent, 'Lista de productos', null, null)
-                    );
+                    this.tabService.addTab(new Tab(ListProductoComponent, 'Lista de productos', null, null));
                 }
                 break;
             case 'TRANSFERENCIA_INICIADA':
             case 'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA':
                 if (entityId) {
-                    this.tabService.addTab(
-                        new Tab(
-                            EditTransferenciaComponent,
-                            `Transferencia #${entityId}`,
-                            new TabData(entityId, { id: entityId }),
-                            null
-                        )
-                    );
+                    this.tabService.addTab(new Tab(EditTransferenciaComponent, `Transferencia #${entityId}`, new TabData(entityId, { id: entityId }), null));
                 } else {
-                    this.tabService.addTab(
-                        new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null)
-                    );
+                    this.tabService.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null));
                 }
                 break;
             case 'INVENTARIO_INICIADO':
                 if (entityId) {
-                    this.tabService.addTab(
-                        new Tab(
-                            EditInventarioComponent,
-                            `Inventario #${entityId}`,
-                            new TabData(entityId, { id: entityId }),
-                            null
-                        )
-                    );
+                    this.tabService.addTab(new Tab(EditInventarioComponent, `Inventario #${entityId}`, new TabData(entityId, { id: entityId }), null));
                 } else {
-                    this.tabService.addTab(
-                        new Tab(ListInventarioComponent, 'Lista de inventarios', null, null)
-                    );
+                    this.tabService.addTab(new Tab(ListInventarioComponent, 'Lista de inventarios', null, null));
                 }
                 break;
             case 'COTIZACION_ACTUALIZADA':
-                if (n.notificacion?.data && n.notificacion.data.trim() !== '' && n.notificacion.data !== '/') {
-                    const action = n.notificacion.data;
-                    window.dispatchEvent(new CustomEvent('notification-action', { detail: action }));
-                }
-                break;
             case 'PERSONALIZADA':
                 if (n.notificacion?.data && n.notificacion.data.trim() !== '' && n.notificacion.data !== '/') {
                     const action = n.notificacion.data;
                     window.dispatchEvent(new CustomEvent('notification-action', { detail: action }));
                 }
                 break;
-            default:
+            case 'GASTO':
+                this.tabService.addTab(new Tab(ListGastosComponent, 'Lista de Gastos', null, null));
+                break;
+            case 'RETIRO':
+                this.tabService.addTab(new Tab(ListRetiroComponent, 'Lista de Retiros', null, null));
                 break;
         }
     }
 
     abrirDialogoComentarios(n: NotificacionData, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
-
+        if (event) event.stopPropagation();
         const notificacionId = n.notificacion?.id;
-        if (!notificacionId) {
-            return;
-        }
-
+        if (!notificacionId) return;
         this.abrirDialogoComentariosConScroll({
             notificacionId,
             notificacion: n.notificacion
@@ -460,9 +415,7 @@ export class NotificationBoardComponent implements OnInit {
     }
 
     private abrirDialogoComentariosConScroll(data: { notificacionId: number; notificacion: { id: number; titulo: string }; comentarioId?: number }, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
+        if (event) event.stopPropagation();
 
         const dialogRef = this.dialog.open(ComentariosNotificacionDialogComponent, {
             width: '100%',
@@ -475,7 +428,7 @@ export class NotificationBoardComponent implements OnInit {
         });
 
         dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
-            this.comentariosService.obtenerConteoComentarios(data.notificacionId, true).subscribe(() => {
+            this.comentariosService.obtenerConteoComentarios(data.notificacionId).subscribe(() => {
                 this.cdr.markForCheck();
             });
         });
@@ -490,45 +443,31 @@ export class NotificationBoardComponent implements OnInit {
         });
 
         dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
-            if (!n.leida) {
-                this.markAsRead(n);
-            }
+            if (!n.leida) this.markAsRead(n);
         });
     }
 
     markAsRead(n: NotificacionData, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
-
+        if (event) event.stopPropagation();
         if (n.leida) return;
 
         this.notificacionesTableroService
             .marcarComoLeida(n.notificacion.id)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: () => {
-                    this.cdr.markForCheck();
-                }
+                next: () => this.cdr.markForCheck()
             });
     }
 
     changeEstadoTablero(n: NotificacionData, nuevoEstado: string, event?: Event): void {
-        if (event) {
-            event.stopPropagation();
-        }
-
-        if (!n || n.notificacion.estadoTablero === nuevoEstado) {
-            return;
-        }
+        if (event) event.stopPropagation();
+        if (!n || n.notificacion.estadoTablero === nuevoEstado) return;
 
         this.notificacionesTableroService
             .actualizarEstadoTablero(n.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe({
-                next: () => {
-                    this.cdr.markForCheck();
-                }
+                next: () => this.cdr.markForCheck()
             });
     }
 
@@ -541,9 +480,7 @@ export class NotificationBoardComponent implements OnInit {
         const notificacion = event.previousContainer.data[event.previousIndex];
         const estadoAnterior = notificacion.notificacion.estadoTablero;
 
-        if (estadoAnterior === nuevoEstado) {
-            return;
-        }
+        if (estadoAnterior === nuevoEstado) return;
 
         transferArrayItem(
             event.previousContainer.data,

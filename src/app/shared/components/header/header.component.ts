@@ -71,7 +71,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private usuarioService: UsuarioService,
     private loginDialogService: LoginDialogService,
     private notificacionesTableroService: NotificacionesTableroService
-  ) { }
+  ) { 
+    setTimeout(() => {
+      console.log(this.mainService.usuarioActual);
+    }, 2000);
+  }
 
   ngOnInit(): void {
     const config = this.configService.getConfig();
