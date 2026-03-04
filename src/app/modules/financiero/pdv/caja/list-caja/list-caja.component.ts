@@ -45,6 +45,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../../../notificacion-snackbar.service";
 import { GenericCrudService } from "../../../../../generics/generic-crud.service";
+import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -127,7 +128,7 @@ export class ListCajaComponent implements OnInit {
     private ventaService: VentaService,
     private searchMaletin: SearchMaletinGQL,
     private mainService: MainService,
-    private searchSucursal: SucursalesByNombreGQL,
+    private searchSucursal: SucursalesSearchGQL,
     private searchUsuario: UsuarioSearchGQL, 
     private cajaObservacionService: CajaObservacionService,
     private notificacionService: NotificacionSnackbarService,
@@ -450,7 +451,7 @@ export class ListCajaComponent implements OnInit {
       texto: texto || '',
       isAdicionar: false,
       paginator: true,
-      searchFieldName: 'nombre',
+      searchFieldName: 'texto',
     };
     this.matDialog
       .open(SearchListDialogComponent, {

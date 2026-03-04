@@ -191,7 +191,7 @@ export class SucursalService {
   onSearchSucursal(filtro: any, servidor: boolean = true): Observable<Sucursal[]> {
     return this.genericService.onCustomQuery(this.sucursalesSearch, {
       filtro: filtro,
-    }, servidor);
+    }, servidor).pipe(map((res: any) => res ? (res.getContent || res) : []));
   }
 
   onSaveSucursal(sucursalInput: any, servidor: boolean = true): Observable<Sucursal> {
