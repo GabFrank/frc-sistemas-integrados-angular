@@ -12,6 +12,7 @@ export interface EstadoReconocimiento {
     mensaje: string;
     embedding?: number[];
     mostrarCamara: boolean;
+    result?: any;
 }
 
 export interface ResultadoBusqueda {
@@ -54,20 +55,23 @@ export class ReconocimientoFacialHelperService {
                     exito: true,
                     mensaje: 'Rostro verificado',
                     embedding: tensor,
-                    mostrarCamara: false
+                    mostrarCamara: false,
+                    result: detection
                 };
             } else {
                 return {
                     exito: false,
                     mensaje: `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`,
-                    mostrarCamara: true
+                    mostrarCamara: true,
+                    result: detection
                 };
             }
         } else {
             return {
                 exito: false,
                 mensaje: 'No se detecta rostro. Centra tu cara.',
-                mostrarCamara: true
+                mostrarCamara: true,
+                result: detection
             };
         }
     }

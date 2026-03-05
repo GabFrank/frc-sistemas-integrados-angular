@@ -53,9 +53,11 @@
 <ng-container *ngIf="modo === 'verificacion'">
     <div class="camera-container" *ngIf="!verificacionSnapshotUrl">
         <video #video autoplay playsinline muted></video>
-        <canvas #canvas></canvas>
-        <div *ngIf="detecting" class="detecting-overlay">
-            {{ mensajeReconocimiento }}
+        <canvas #canvas class="canvas-hidden"></canvas>
+        <div class="liveness-overlay" *ngIf="detecting">
+            <mat-icon [class.success]="livenessStep === 'DONE'">{{ livenessStep === 'DONE' ? 'check_circle' :
+                'visibility' }}</mat-icon>
+            <span>{{ mensajeReconocimiento }}</span>
         </div>
     </div>
     <div class="camera-container snapshot-container" *ngIf="verificacionSnapshotUrl">
