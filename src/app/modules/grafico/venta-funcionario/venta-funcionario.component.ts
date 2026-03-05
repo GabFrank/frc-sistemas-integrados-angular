@@ -55,7 +55,8 @@ export class VentaFuncionarioComponent implements OnInit {
 
   anhos: number[] = [];
 
-  funcionarioSeleccionado: Usuario | null = null;
+  private funcionarioSeleccionadoSubject = new BehaviorSubject<Usuario | null>(null);
+  funcionarioSeleccionado$ = this.funcionarioSeleccionadoSubject.asObservable();
   private allData: any[] = [];
 
 
@@ -96,13 +97,14 @@ export class VentaFuncionarioComponent implements OnInit {
       this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
       this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged()),
-      this.fechaControl.valueChanges.pipe(startWith(this.fechaControl.value), distinctUntilChanged())
+      this.fechaControl.valueChanges.pipe(startWith(this.fechaControl.value), distinctUntilChanged()),
+      this.funcionarioSeleccionadoSubject.pipe(distinctUntilChanged())
     ]).pipe(
       debounceTime(300),
       tap(() => this.cargandoSubject.next(true)),
-      switchMap(([sucId, anho, mes, fechaDia]) => {
+      switchMap(([sucId, anho, mes, fechaDia, funcionario]) => {
         const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes, fechaDia);
-        return this.graficoService.obtenerVentasPorFuncionario(inicio, fin, sucId || undefined).pipe(
+        return this.graficoService.obtenerVentasPorFuncionario(inicio, fin, sucId || undefined, funcionario?.id).pipe(
           finalize(() => this.cargandoSubject.next(false))
         );
       }),
@@ -131,15 +133,17 @@ export class VentaFuncionarioComponent implements OnInit {
       height: '600px'
     }).afterClosed().subscribe((selected: Usuario) => {
       if (selected) {
-        this.funcionarioSeleccionado = selected;
-        this.actualizarGrafico();
+        this.funcionarioSeleccionadoSubject.next(selected);
       }
     });
   }
 
+  get funcionarioSeleccionado() {
+    return this.funcionarioSeleccionadoSubject.value;
+  }
+
   limpiarFuncionario() {
-    this.funcionarioSeleccionado = null;
-    this.actualizarGrafico();
+    this.funcionarioSeleccionadoSubject.next(null);
   }
 
   private actualizarGrafico() {

@@ -7,8 +7,8 @@ import gql from 'graphql-tag';
 })
 export class VentasPorFuncionarioGQL extends Query<any> {
   override document = gql`
-    query ventasPorFuncionario($inicio: String!, $fin: String!, $sucId: ID) {
-      data: ventasPorFuncionario(inicio: $inicio, fin: $fin, sucId: $sucId) {
+    query ventasPorFuncionario($inicio: String!, $fin: String!, $sucId: ID, $usuarioId: ID) {
+      data: ventasPorFuncionario(inicio: $inicio, fin: $fin, sucId: $sucId, usuarioId: $usuarioId) {
 
         id
         funcionario

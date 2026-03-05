@@ -78,10 +78,14 @@ export class GraficoService {
     );
   }
 
-  obtenerVentasPorFuncionario(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+  obtenerVentasPorFuncionario(inicio: string, fin: string, sucId?: number, usuarioId?: number): Observable<any[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorFuncionarioGQL,
-      { inicio, fin, sucId: sucId ? String(sucId) : null },
+      {
+        inicio, fin,
+        sucId: sucId ? String(sucId) : null,
+        usuarioId: usuarioId ? String(usuarioId) : null
+      },
       true,
       null,
       true
