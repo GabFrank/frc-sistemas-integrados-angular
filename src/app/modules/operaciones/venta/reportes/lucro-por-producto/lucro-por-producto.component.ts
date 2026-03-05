@@ -395,20 +395,17 @@ export class LucroPorProductoComponent implements OnInit {
           },
           {
             id: "nombre",
-            nombre: "Familia",
-            nested: true,
-            nestedId: "familia",
-            nestedColumnId: "familia",
+            nombre: "Nombre",
           },
           {
-            id: "nombre",
-            nombre: "Nombre",
+            id: "familia.nombre",
+            nombre: "Familia",
           },
         ];
         let data: SearchListtDialogData = {
           query: this.searchSubfamilia,
           tableData: tableData,
-          titulo: "Buscar subfamilia",
+          titulo: "Buscar Subfamilia",
           search: true,
           queryData: { texto: this.buscarSubfamiliaControl.value },
           inicialSearch: true,
