@@ -364,16 +364,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.monedas = res;
         this.cambioRs = this.monedas.find(
           (m) => m.denominacion == "REAL"
-          )?.cambio;
-          this.cambioDs = this.monedas.find(
-            (m) => m.denominacion == "DOLAR"
-          )?.cambio;
-          this.cambioArg = this.monedas.find(
-            (m) => m.denominacion == "PESO ARG"
-          )?.cambio;
-          this.formGroup.controls.moneda.setValue(
-            this.monedas.find((m) => m.denominacion == "GUARANI")?.id
-          );
+        )?.cambio;
+        this.cambioDs = this.monedas.find(
+          (m) => m.denominacion == "DOLAR"
+        )?.cambio;
+        this.cambioArg = this.monedas.find(
+          (m) => m.denominacion == "PESO ARG"
+        )?.cambio;
+        this.formGroup.controls.moneda.setValue(
+          this.monedas.find((m) => m.denominacion == "GUARANI")?.id
+        );
       });
   }
 
@@ -492,9 +492,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  onOtrasMonedasClick() {}
+  onOtrasMonedasClick() { }
 
-  onOtrasFormaPagoClick() {}
+  onOtrasFormaPagoClick() { }
 
   openTecladoNumerico() {
     let ref = this.matDialog.open(TecladoNumericoComponent, {
@@ -514,7 +514,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addCobroDetalle(selectedValor?: number, selectedItem?: CobroDetalle) {
-    if(this.selectedFormaPago.descripcion == "CONVENIO"){
+    if (this.selectedFormaPago.descripcion == "CONVENIO") {
       this.onConvenioClick();
       return;
     }
@@ -556,7 +556,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .get("valor")
         .setValue(
           (this.data.valor - this.valorParcialPagado) /
-            this.selectedMoneda.cambio
+          this.selectedMoneda.cambio
         );
       this.formGroup.controls.saldo.setValue(
         this.data.valor - this.valorParcialPagado
@@ -619,7 +619,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             );
             this.formGroup.controls.valor.setValue(
               (this.data.valor - this.valorParcialPagado) /
-                this.selectedMoneda.cambio
+              this.selectedMoneda.cambio
             );
             this.cobroDetalleList.splice(i, 1);
             this.setFocusToValorInput();
@@ -639,6 +639,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDescuento() {
+    if (this.cobroDetalleList.some(item => item.descuento)) {
+      this.notificacionSnackbar.openWarn("Ya se aplicó un descuento a esta venta.");
+      return;
+    }
     this.isDialogOpen = true;
     let valorCosto = 0;
     this.data.itemList.forEach((i) => {
@@ -687,9 +691,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  onTicket() {}
+  onTicket() { }
 
-  onPresupuesto() {}
+  onPresupuesto() { }
 
   onFactura() {
     this.isDialogOpen = true;
