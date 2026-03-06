@@ -36,6 +36,8 @@ import { HorarioService } from '../../../horarios/service/horario.service';
 import { HorarioInput } from '../../../horarios/models/horario.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
+import { ObservacionJornadaDialogComponent } from '../observacion-jornada-dialog.component';
+import { EstadoJornada } from '../../enums/estado-jornada.enum';
 
 
 @UntilDestroy()
@@ -57,6 +59,8 @@ import { Tab } from '../../../../../layouts/tab/tab.model';
 })
 export class ListMarcacionComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  estadoJornada = EstadoJornada;
 
   dataSource = new MatTableDataSource<any>([]);
   selectedPageInfo: PageInfo<any>;
@@ -98,7 +102,8 @@ export class ListMarcacionComponent implements OnInit {
     'fechaSalida',
     'llegadaTardia',
     'horaExtra',
-    'turno'
+    'turno',
+    'acciones'
   ];
 
   constructor(
@@ -416,5 +421,49 @@ export class ListMarcacionComponent implements OnInit {
     const usuarioId = this.usuarioSeleccionado?.id || null;
 
     this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
+  }
+
+  onAjustar8Horas(marcacion: any): void {
+    this.matDialog.open(ObservacionJornadaDialogComponent, {
+      data: {
+        title: 'Ajustar Jornada a 8 Horas',
+        observacion: marcacion.observacion,
+        required: false
+      },
+      width: '450px'
+    }).afterClosed().subscribe(obs => {
+      if (obs !== undefined) {
+        this.marcacionService.onAjustarJornadaA8Horas(marcacion.id, marcacion.sucursalId, obs)
+          .pipe(untilDestroyed(this))
+          .subscribe(res => {
+            if (res) {
+              this.notificacionService.openSucess('Jornada ajustada correctamente');
+              this.filtrar();
+            }
+          });
+      }
+    });
+  }
+
+  onAgregarObservacion(marcacion: any): void {
+    this.matDialog.open(ObservacionJornadaDialogComponent, {
+      data: {
+        title: 'Agregar Observación',
+        observacion: marcacion.observacion,
+        required: true
+      },
+      width: '450px'
+    }).afterClosed().subscribe(obs => {
+      if (obs !== undefined && obs !== null) {
+        this.marcacionService.onGuardarObservacionJornada(marcacion.id, marcacion.sucursalId, obs)
+          .pipe(untilDestroyed(this))
+          .subscribe(res => {
+            if (res) {
+              this.notificacionService.openSucess('Observación guardada correctamente');
+              this.filtrar();
+            }
+          });
+      }
+    });
   }
 }
