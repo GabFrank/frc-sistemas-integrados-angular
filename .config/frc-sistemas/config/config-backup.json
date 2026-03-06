@@ -6,7 +6,7 @@
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 3,
+  "pdvId": 0,
   "isConfigured": true,
   "isLocal": false,
   "printers": {

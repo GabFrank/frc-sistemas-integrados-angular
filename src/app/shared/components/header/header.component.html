@@ -12,7 +12,13 @@
             {{ isDev && isLocalhost ? "DEV" : null }}
           </ng-container>
           <ng-template #cloudTitle>
-            BODEGA FRANCO CLOUD {{ isDev ? "DEV" : null }}
+            <ng-container *ngIf="mainService?.sucursalActual?.id != null && mainService?.sucursalActual?.id != 0; else defaultCloudTitle">
+              BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+              {{ isDev ? "DEV" : null }}
+            </ng-container>
+            <ng-template #defaultCloudTitle>
+              BODEGA FRANCO CLOUD {{ isDev ? "DEV" : null }}
+            </ng-template>
           </ng-template>
         </span>
         <span style="
