@@ -85,25 +85,25 @@
           </mat-expansion-panel-header>
           <div fxLayout="column" style="width: 100%">
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Fecha:</div>
+              <div fxFlex="50%" style="text-align: start">Fecha:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.fechaApertura }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoApertura?.totalGs | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoApertura?.totalRs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoApertura?.totalDs | number : "1.2-2" }}
               </div>
@@ -126,7 +126,7 @@
               Total General
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalGeneral | number : "1.0-0" }}
               </div>
@@ -145,25 +145,64 @@
           </div> -->
             <div fxFlex style="width: 100%; text-align: center">Efectivo</div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
-                {{
-                  selectedCaja?.balance?.totalGeneral -
-                    selectedCaja?.balance?.totalTarjeta -
-                    selectedCaja?.balance?.totalCredito | number : "1.0-0"
-                }}
+                {{ selectedCaja?.balance?.totalVentaGs | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalVentaRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalVentaDs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex style="width: 100%; text-align: center">Tarjeta</div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalTarjeta | number : "1.0-0" }}
               </div>
             </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTarjetaRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTarjetaDs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex style="width: 100%; text-align: center">Transferencia</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTransferencia | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTransferenciaRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTransferenciaDs | number : "1.2-2" }}
+              </div>
+            </div>
             <div fxFlex style="width: 100%; text-align: center">Crédito</div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalCredito | number : "1.0-0" }}
               </div>
@@ -199,19 +238,19 @@
           </div> -->
             <div fxFlex style="width: 100%; text-align: center">Diferencia</div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.diferenciaGs | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.diferenciaRs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.diferenciaDs | number : "1.2-2" }}
               </div>
@@ -224,25 +263,25 @@
           </mat-expansion-panel-header>
           <div fxLayout="column" style="width: 100%">
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Fecha:</div>
+              <div fxFlex="50%" style="text-align: start">Fecha:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.fechaCierre }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoCierre?.totalGs | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoCierre?.totalRs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.conteoCierre?.totalDs | number : "1.2-2" }}
               </div>
@@ -262,19 +301,19 @@
             style="width: 100%"
           >
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Descuento:</div>
+              <div fxFlex="50%" style="text-align: start">Descuento:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalDescuento | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Aumento:</div>
+              <div fxFlex="50%" style="text-align: start">Aumento:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalAumento | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Canceladas:</div>
+              <div fxFlex="50%" style="text-align: start">Canceladas:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalCanceladas | number : "1.0-0" }}
               </div>
@@ -339,19 +378,19 @@
             style="width: 100%"
           >
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalRetiroGs | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalRetiroRs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalRetiroDs | number : "1.2-2" }}
               </div>
@@ -384,19 +423,19 @@
             style="width: 100%"
           >
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="text-align: start">Guaranies:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalGastoGs | number : "1.0-0" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="text-align: start">Reales:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalGastoRs | number : "1.2-2" }}
               </div>
             </div>
             <div fxFlex fxLayout="row">
-              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="text-align: start">Dolares:</div>
               <div fxFlex="50%" style="width: 100%; text-align: end">
                 {{ selectedCaja?.balance?.totalGastoDs | number : "1.2-2" }}
               </div>

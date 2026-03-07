@@ -126,6 +126,11 @@ export const balancePorCajaIdQuery = gql`
       totalVentaRs
       totalVentaDs
       totalTarjeta
+      totalTarjetaRs
+      totalTarjetaDs
+      totalTransferencia
+      totalTransferenciaRs
+      totalTransferenciaDs
       totalCredito
       totalRetiroGs
       totalRetiroRs
@@ -162,6 +167,11 @@ export const balancePorCajaIAndSucursalIdQuery = gql`
       totalVentaRs
       totalVentaDs
       totalTarjeta
+      totalTarjetaRs
+      totalTarjetaDs
+      totalTransferencia
+      totalTransferenciaRs
+      totalTransferenciaDs
       totalCredito
       totalRetiroGs
       totalRetiroRs
@@ -701,6 +711,11 @@ export const cajaAbiertoPorSucursalQuery = gql`
         totalVentaRs
         totalVentaDs
         totalTarjeta
+        totalTarjetaRs
+        totalTarjetaDs
+        totalTransferencia
+        totalTransferenciaRs
+        totalTransferenciaDs
         totalCredito
         totalRetiroGs
         totalRetiroRs
