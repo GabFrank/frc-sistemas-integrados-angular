@@ -71,12 +71,15 @@
 
                 <h3 class="details-title">Detalle de Ventas</h3>
                 <div class="details-list">
-                    <div *ngFor="let item of datos.detalles; let i = index" 
-                         class="detail-item" 
-                         [class.disabled]="item.oculto"
-                         (click)="toggleItem(i)">
+                    <div *ngFor="let item of datos.detalles; let i = index; trackBy: trackByProductoId"
+                        class="detail-item" [class.item-oculto]="item.oculto">
                         <span class="rank-badge">#{{ i + 1 }}</span>
-                        <div class="item-indicator" [style.background-color]="item.color"></div>
+                        <div class="item-toggle-btn" [style.background-color]="item.oculto ? '#555' : item.color"
+                            (click)="toggleItem(item.productoId)"
+                            [matTooltip]="item.oculto ? 'Mostrar en gráfico' : 'Ocultar del gráfico'"
+                            matTooltipPosition="above">
+                            <mat-icon class="toggle-icon" *ngIf="item.oculto">visibility_off</mat-icon>
+                        </div>
                         <div class="item-info">
                             <span class="item-name">{{ item.descripcion }}</span>
                             <span class="item-qty">{{ item.cantidadFormateada }}</span>

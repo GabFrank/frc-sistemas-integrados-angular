@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, ChangeDetectorRef } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ProductoVendidoEstadistica } from '../models/producto-vendido-estadistica.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
@@ -9,6 +9,7 @@ import { Familia } from '../../productos/familia/familia.model';
 import { GraficoService } from '../grafico.service';
 
 interface DetalleProcesado {
+  productoId: string;
   descripcion: string;
   montoFormateado: string;
   cantidadFormateada: string;
@@ -36,6 +37,7 @@ interface DatosGraficoProcesados {
 export class ProductoVendidoComponent implements OnInit {
 
   private graficoService = inject(GraficoService);
+  private cdr = inject(ChangeDetectorRef);
 
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
   datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
@@ -49,8 +51,11 @@ export class ProductoVendidoComponent implements OnInit {
   private cargandoSubject = new BehaviorSubject<boolean>(false);
   cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
 
-  private indicesOcultosSubject = new BehaviorSubject<Set<number>>(new Set());
+  private indicesOcultosSubject = new BehaviorSubject<Set<string>>(new Set());
   indicesOcultos$ = this.indicesOcultosSubject.asObservable();
+
+  // BehaviorSubject para mantener las estadísticas vivas (no completa como el observable de Apollo)
+  private estadisticasSubject = new BehaviorSubject<ProductoVendidoEstadistica[]>([]);
 
   sucursalControl = new FormControl<number | null>(null);
   anhoControl = new FormControl<number>(new Date().getFullYear());
@@ -113,7 +118,8 @@ export class ProductoVendidoComponent implements OnInit {
       this.limitControl.valueChanges.pipe(startWith(this.limitControl.value), distinctUntilChanged())
     ]).pipe(debounceTime(300));
 
-    const estadisticas$ = filtros$.pipe(
+    // Cuando cambian los filtros, hacer la consulta y guardar el resultado en el BehaviorSubject
+    filtros$.pipe(
       tap(() => {
         this.cargandoSubject.next(true);
         this.indicesOcultosSubject.next(new Set());
@@ -124,13 +130,19 @@ export class ProductoVendidoComponent implements OnInit {
           finalize(() => this.cargandoSubject.next(false))
         );
       }),
-      shareReplay(1)
-    );
-
-    combineLatest([estadisticas$, this.indicesOcultosSubject]).pipe(
-      map(([estadisticas, indicesOcultos]) => this.procesarDatos(estadisticas, indicesOcultos)),
       untilDestroyed(this)
-    ).subscribe(datos => this.datosSubject.next(datos));
+    ).subscribe(estadisticas => {
+      this.estadisticasSubject.next(estadisticas || []);
+    });
+
+    // Combinar las estadísticas (BehaviorSubject, nunca completa) con los índices ocultos
+    combineLatest([this.estadisticasSubject.asObservable(), this.indicesOcultosSubject.asObservable()]).pipe(
+      map(([estadisticas, idsOcultos]) => this.procesarDatos(estadisticas, idsOcultos)),
+      untilDestroyed(this)
+    ).subscribe(datos => {
+      this.datosSubject.next(datos);
+      this.cdr.markForCheck();
+    });
   }
 
   private generarRangoFecha(anho: number, mes: number | null): { inicio: string; fin: string } {
@@ -143,19 +155,22 @@ export class ProductoVendidoComponent implements OnInit {
       return { inicio: `${anho}-01-01 00:00:00`, fin: `${anho + 1}-01-01 00:00:00` };
     }
   }
-
-  private procesarDatos(estadisticas: ProductoVendidoEstadistica[], indicesOcultos: Set<number>): DatosGraficoProcesados {
+  private procesarDatos(estadisticas: ProductoVendidoEstadistica[], idsOcultos: Set<string>): DatosGraficoProcesados {
     const validasTotal = (estadisticas || []).filter(e => e.cantidad > 0);
-    
-    const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => ({
-      descripcion: e.descripcion,
-      montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
-      cantidadFormateada: `${e.cantidad.toLocaleString('es-PY')} unidades`,
-      color: this.paletaColores[i % this.paletaColores.length],
-      oculto: indicesOcultos.has(i)
-    }));
 
-    const datosParaGrafico = (estadisticas || []).filter((e, i) => e.cantidad > 0 && !indicesOcultos.has(i));
+    const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => {
+      const idStr = String(e.productoId);
+      return {
+        productoId: e.productoId,
+        descripcion: e.descripcion,
+        montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
+        cantidadFormateada: `${e.cantidad.toLocaleString('es-PY')} unidades`,
+        color: this.paletaColores[i % this.paletaColores.length],
+        oculto: idsOcultos.has(idStr)
+      };
+    });
+
+    const datosParaGrafico = (estadisticas || []).filter((e) => e.cantidad > 0 && !idsOcultos.has(String(e.productoId)));
     const totalMontoNum = datosParaGrafico.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
 
     const opciones: EChartsOption = {
@@ -178,9 +193,9 @@ export class ProductoVendidoComponent implements OnInit {
         itemStyle: { borderRadius: 6, borderColor: this.colores.backgroundDark, borderWidth: 2 },
         label: { show: false },
         data: (estadisticas || []).map((e, i) => {
-          if (e.cantidad <= 0 || indicesOcultos.has(i)) return null;
+          if (e.cantidad <= 0 || idsOcultos.has(String(e.productoId))) return null;
           return {
-            value: e.totalMonto, 
+            value: e.totalMonto,
             name: e.descripcion,
             itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
           };
@@ -191,14 +206,40 @@ export class ProductoVendidoComponent implements OnInit {
     return { opciones, detalles: detallesProcesados, totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`, hayDatos: validasTotal.length > 0 };
   }
 
-  toggleItem(index: number): void {
-    const nuevosIndices = new Set(this.indicesOcultosSubject.value);
-    if (nuevosIndices.has(index)) {
-      nuevosIndices.delete(index);
-    } else {
-      nuevosIndices.add(index);
+  toggleItem(id: any): void {
+    console.log('=== TOGGLE ITEM ===');
+    console.log('ID recibido:', id, '| Tipo:', typeof id);
+    if (id === null || id === undefined) {
+      console.log('ID es null/undefined, saliendo');
+      return;
     }
+    const idStr = String(id);
+    const nuevosIndices = new Set(this.indicesOcultosSubject.value);
+    console.log('Set ANTES:', [...nuevosIndices]);
+    console.log('Esta en el set?', nuevosIndices.has(idStr));
+    if (nuevosIndices.has(idStr)) {
+      nuevosIndices.delete(idStr);
+      console.log('ACCION: ELIMINADO del set (volver a mostrar)');
+    } else {
+      nuevosIndices.add(idStr);
+      console.log('ACCION: AGREGADO al set (ocultar)');
+    }
+    console.log('Set DESPUES:', [...nuevosIndices]);
     this.indicesOcultosSubject.next(nuevosIndices);
+    const estadisticasActuales = this.estadisticasSubject.value;
+    console.log('Estadisticas actuales:', estadisticasActuales?.length, 'items');
+    if (estadisticasActuales && estadisticasActuales.length > 0) {
+      const datos = this.procesarDatos(estadisticasActuales, nuevosIndices);
+      console.log('Ocultos:', datos.detalles.filter(d => d.oculto).map(d => d.productoId));
+      console.log('Visibles:', datos.detalles.filter(d => !d.oculto).map(d => d.productoId));
+      this.datosSubject.next(datos);
+    }
+    this.cdr.detectChanges();
+    console.log('=== FIN TOGGLE ===');
+  }
+
+  trackByProductoId(index: number, item: DetalleProcesado): string {
+    return item.productoId;
   }
 
   limpiarFiltros(): void {
