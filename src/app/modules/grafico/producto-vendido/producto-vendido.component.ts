@@ -207,35 +207,26 @@ export class ProductoVendidoComponent implements OnInit {
   }
 
   toggleItem(id: any): void {
-    console.log('=== TOGGLE ITEM ===');
-    console.log('ID recibido:', id, '| Tipo:', typeof id);
-    if (id === null || id === undefined) {
-      console.log('ID es null/undefined, saliendo');
-      return;
-    }
+    if (id === null || id === undefined) return;
+
     const idStr = String(id);
     const nuevosIndices = new Set(this.indicesOcultosSubject.value);
-    console.log('Set ANTES:', [...nuevosIndices]);
-    console.log('Esta en el set?', nuevosIndices.has(idStr));
+
     if (nuevosIndices.has(idStr)) {
       nuevosIndices.delete(idStr);
-      console.log('ACCION: ELIMINADO del set (volver a mostrar)');
     } else {
       nuevosIndices.add(idStr);
-      console.log('ACCION: AGREGADO al set (ocultar)');
     }
-    console.log('Set DESPUES:', [...nuevosIndices]);
+
     this.indicesOcultosSubject.next(nuevosIndices);
+
+    // Recalcular datos directamente para garantizar la actualización inmediata
     const estadisticasActuales = this.estadisticasSubject.value;
-    console.log('Estadisticas actuales:', estadisticasActuales?.length, 'items');
     if (estadisticasActuales && estadisticasActuales.length > 0) {
       const datos = this.procesarDatos(estadisticasActuales, nuevosIndices);
-      console.log('Ocultos:', datos.detalles.filter(d => d.oculto).map(d => d.productoId));
-      console.log('Visibles:', datos.detalles.filter(d => !d.oculto).map(d => d.productoId));
       this.datosSubject.next(datos);
     }
     this.cdr.detectChanges();
-    console.log('=== FIN TOGGLE ===');
   }
 
   trackByProductoId(index: number, item: DetalleProcesado): string {
