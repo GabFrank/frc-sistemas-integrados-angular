@@ -60,7 +60,7 @@
     <ng-container *ngIf="datos$ | async as datos">
         <div class="main-content" [class.loading]="cargando$ | async">
             <div class="chart-card">
-                <div echarts [options]="datos.opciones" class="pie-chart"></div>
+                <div echarts [options]="datos.opciones" [merge]="false" class="pie-chart"></div>
             </div>
 
             <div class="details-card">
@@ -71,7 +71,10 @@
 
                 <h3 class="details-title">Detalle de Ventas</h3>
                 <div class="details-list">
-                    <div *ngFor="let item of datos.detalles; let i = index" class="detail-item">
+                    <div *ngFor="let item of datos.detalles; let i = index" 
+                         class="detail-item" 
+                         [class.disabled]="item.oculto"
+                         (click)="toggleItem(i)">
                         <span class="rank-badge">#{{ i + 1 }}</span>
                         <div class="item-indicator" [style.background-color]="item.color"></div>
                         <div class="item-info">

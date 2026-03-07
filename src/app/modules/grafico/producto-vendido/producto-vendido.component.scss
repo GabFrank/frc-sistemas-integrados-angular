@@ -212,11 +212,24 @@ $border: #555;
     border-radius: 8px;
     border: 1px solid rgba($border, 0.3);
     gap: 12px;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    cursor: pointer;
 
     &:hover {
         transform: translateY(-2px);
         border-color: rgba($primary, 0.5);
+    }
+
+    &.disabled {
+        opacity: 0.4;
+        filter: grayscale(0.8);
+        border-color: transparent;
+        &:hover {
+            transform: none;
+        }
+        .item-indicator {
+            background-color: #757575 !important;
+        }
     }
 }
 

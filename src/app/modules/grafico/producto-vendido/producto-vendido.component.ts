@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged, shareReplay } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ProductoVendidoEstadistica } from '../models/producto-vendido-estadistica.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
@@ -13,6 +13,7 @@ interface DetalleProcesado {
   montoFormateado: string;
   cantidadFormateada: string;
   color: string;
+  oculto: boolean;
 }
 
 interface DatosGraficoProcesados {
@@ -47,6 +48,9 @@ export class ProductoVendidoComponent implements OnInit {
 
   private cargandoSubject = new BehaviorSubject<boolean>(false);
   cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+
+  private indicesOcultosSubject = new BehaviorSubject<Set<number>>(new Set());
+  indicesOcultos$ = this.indicesOcultosSubject.asObservable();
 
   sucursalControl = new FormControl<number | null>(null);
   anhoControl = new FormControl<number>(new Date().getFullYear());
@@ -101,22 +105,30 @@ export class ProductoVendidoComponent implements OnInit {
   }
 
   private configurarDataStream(): void {
-    combineLatest([
+    const filtros$ = combineLatest([
       this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
       this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged()),
       this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value), distinctUntilChanged()),
       this.limitControl.valueChanges.pipe(startWith(this.limitControl.value), distinctUntilChanged())
-    ]).pipe(
-      debounceTime(300),
-      tap(() => this.cargandoSubject.next(true)),
+    ]).pipe(debounceTime(300));
+
+    const estadisticas$ = filtros$.pipe(
+      tap(() => {
+        this.cargandoSubject.next(true);
+        this.indicesOcultosSubject.next(new Set());
+      }),
       switchMap(([sucId, anho, mes, famId, limit]) => {
         const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
         return this.graficoService.obtenerProductosMasVendidos(inicio, fin, sucId || undefined, famId || undefined, limit || 10).pipe(
-          map(res => this.procesarDatos(res)),
           finalize(() => this.cargandoSubject.next(false))
         );
       }),
+      shareReplay(1)
+    );
+
+    combineLatest([estadisticas$, this.indicesOcultosSubject]).pipe(
+      map(([estadisticas, indicesOcultos]) => this.procesarDatos(estadisticas, indicesOcultos)),
       untilDestroyed(this)
     ).subscribe(datos => this.datosSubject.next(datos));
   }
@@ -132,16 +144,19 @@ export class ProductoVendidoComponent implements OnInit {
     }
   }
 
-  private procesarDatos(estadisticas: ProductoVendidoEstadistica[]): DatosGraficoProcesados {
-    const validas = (estadisticas || []).filter(e => e.cantidad > 0);
-    const totalMontoNum = validas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
-
+  private procesarDatos(estadisticas: ProductoVendidoEstadistica[], indicesOcultos: Set<number>): DatosGraficoProcesados {
+    const validasTotal = (estadisticas || []).filter(e => e.cantidad > 0);
+    
     const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => ({
       descripcion: e.descripcion,
       montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
       cantidadFormateada: `${e.cantidad.toLocaleString('es-PY')} unidades`,
-      color: this.paletaColores[i % this.paletaColores.length]
+      color: this.paletaColores[i % this.paletaColores.length],
+      oculto: indicesOcultos.has(i)
     }));
+
+    const datosParaGrafico = (estadisticas || []).filter((e, i) => e.cantidad > 0 && !indicesOcultos.has(i));
+    const totalMontoNum = datosParaGrafico.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
 
     const opciones: EChartsOption = {
       title: {
@@ -157,19 +172,33 @@ export class ProductoVendidoComponent implements OnInit {
         textStyle: { color: this.colores.text },
         formatter: (params: any) => `<strong>${params.name}</strong><br/>Monto: ₲ ${params.value.toLocaleString('es-PY')}<br/>Porcentaje: ${params.percent.toFixed(2)}%`
       },
-      legend: { orient: 'vertical', right: '2%', top: 'middle', textStyle: { color: this.colores.textSecondary, fontSize: 11 } },
+      legend: { show: false }, // Ocultamos la leyenda nativa ya que usamos las tarjetas
       series: [{
-        name: 'Producto', type: 'pie', radius: ['35%', '65%'], center: ['35%', '55%'],
+        name: 'Producto', type: 'pie', radius: ['35%', '65%'], center: ['50%', '55%'], // Ajuste center para dejar más espacio al gráfico
         itemStyle: { borderRadius: 6, borderColor: this.colores.backgroundDark, borderWidth: 2 },
         label: { show: false },
-        data: validas.map((e, i) => ({
-          value: e.totalMonto, name: e.descripcion,
-          itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
-        }))
+        data: (estadisticas || []).map((e, i) => {
+          if (e.cantidad <= 0 || indicesOcultos.has(i)) return null;
+          return {
+            value: e.totalMonto, 
+            name: e.descripcion,
+            itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
+          };
+        }).filter(item => item !== null)
       }]
     };
 
-    return { opciones, detalles: detallesProcesados, totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`, hayDatos: validas.length > 0 };
+    return { opciones, detalles: detallesProcesados, totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`, hayDatos: validasTotal.length > 0 };
+  }
+
+  toggleItem(index: number): void {
+    const nuevosIndices = new Set(this.indicesOcultosSubject.value);
+    if (nuevosIndices.has(index)) {
+      nuevosIndices.delete(index);
+    } else {
+      nuevosIndices.add(index);
+    }
+    this.indicesOcultosSubject.next(nuevosIndices);
   }
 
   limpiarFiltros(): void {
