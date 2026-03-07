@@ -12,6 +12,9 @@ export class VentasPorMesGQL extends Query<any> {
                 mes
                 total
                 cantidad
+                efvo
+                tarjeta
+                otros
             }
         }
     `;
