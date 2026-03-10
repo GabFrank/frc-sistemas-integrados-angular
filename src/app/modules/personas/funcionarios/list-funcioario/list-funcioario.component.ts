@@ -47,7 +47,9 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort: MatSort;
 
   @Input() data: Tab;
-  horarioParaAsignar: any;
+  get horarioParaAsignar(): any {
+    return this.data?.tabData?.data?.horarioParaAsignar;
+  }
   seleccionados = new SelectionModel<Funcionario>(true, []);
 
   idControl = new FormControl(null, Validators.required)
@@ -88,9 +90,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.onFiltrar()
     }, 0);
 
-    if (this.data?.tabData?.data?.horarioParaAsignar) {
-      this.horarioParaAsignar = this.data.tabData.data.horarioParaAsignar;
-    }
+
 
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       this.sucursalList = res.filter((s) => {

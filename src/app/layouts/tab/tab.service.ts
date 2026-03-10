@@ -156,6 +156,7 @@ export class TabService implements OnInit {
       this.tabs.push(tab);
       this.setTabActive(tab.id - 1);
     } else {
+      this.tabs[duplicado].tabData = tab.tabData;
       this.setTabActive(duplicado);
     }
     setTimeout(() => {
