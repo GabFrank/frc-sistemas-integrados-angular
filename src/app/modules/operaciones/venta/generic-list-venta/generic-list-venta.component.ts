@@ -331,15 +331,12 @@ export class GenericListVentaComponent implements OnInit {
         width: "10%"
       },
       {
-        id: "nombre",
+        id: "persona.nombre",
         nombre: "Persona",
-        nested: true,
-        nestedId: "persona",
-        nestedColumnId: "persona"
       },
       {
-        id: "nombre",
-        nombre: "Nombre",
+        id: "persona.documento",
+        nombre: "Documento",
       },
     ];
     let data: SearchListtDialogData = {
@@ -355,8 +352,8 @@ export class GenericListVentaComponent implements OnInit {
     this.matDialog
       .open(SearchListDialogComponent, {
         data: data,
-        width: '30%',
-        height: '50%',
+        width: '60%',
+        height: '70%',
         
       })
       .afterClosed()

@@ -27,30 +27,38 @@ export const sucursalesQuery = gql
   }`;
 
 export const sucursalesSearch = gql
-  `query($texto: String, $activo: Boolean){
-    data : sucursalesSearch(texto: $texto, activo: $activo){
-      id
-      nombre
-      localizacion
-      ciudad{
+  `query($texto: String, $activo: Boolean, $page: Int, $size: Int){
+    data : sucursalesSearch(texto: $texto, activo: $activo, page: $page, size: $size){
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        descripcion
+        nombre
+        localizacion
+        ciudad{
+          id
+          descripcion
+        }
+        creadoEn
+        usuario{
+          id
+          nickname
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
       }
-      creadoEn
-      usuario{
-        id
-        nickname
-      }
-      ip
-      puerto
-      direccion
-      nroDelivery
-      depositoPredeterminado
-      deposito
-      codigoEstablecimientoFactura
-      isConfigured
-      activo
-        
     }
   }`
 

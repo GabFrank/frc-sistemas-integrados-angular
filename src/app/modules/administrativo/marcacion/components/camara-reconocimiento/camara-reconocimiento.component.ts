@@ -59,6 +59,13 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         'Paso 3/3: Mire de FRENTE a la cámara'
     ];
 
+    // Liveness detection state
+    livenessStep: 'BLINK' | 'DONE' = 'BLINK';
+    livenessInstruction = 'Parpadee para verificar';
+    livenessIcon = 'eye-outline';
+    livenessColor = 'primary';
+    private hasBlinked = false;
+
     esperandoCapturaPerfil = false;
 
     private snapshotEmbedding: number[] | null = null;
@@ -99,6 +106,9 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     private async iniciarCamaraBusqueda(): Promise<void> {
         this.limpiarEstados();
+        this.livenessStep = 'BLINK';
+        this.livenessInstruction = 'Parpadee para verificar';
+        this.hasBlinked = false;
         this.fotoCapturada = false;
         this.snapshotDataUrl = null;
         this.mensajeReconocimiento = 'Iniciando cámara...';
@@ -290,6 +300,9 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     }
     private async iniciarCamaraParaVerificacion(): Promise<void> {
         this.mensajeReconocimiento = 'Iniciando cámara...';
+        this.livenessStep = 'BLINK';
+        this.livenessInstruction = 'Parpadee para verificar';
+        this.hasBlinked = false;
         this.cdr.detectChanges();
 
         try {
@@ -325,18 +338,35 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
         const resultado = await this.faceHelper.procesarFrame(video, this.referenciaDescriptor);
 
-        this.mensajeReconocimiento = resultado.mensaje;
-
         if (resultado.exito && resultado.embedding) {
-            this.similitudInsuficiente.emit(false);
-            this.embeddingCapturado = resultado.embedding;
-            this.detecting = false;
-            this.verificacionSnapshotUrl = this.camaraService.capturarFoto(video);
-            video.pause();
-            this.camaraService.detenerCamara();
-            this.identidadVerificada.emit({ embedding: resultado.embedding, snapshotUrl: this.verificacionSnapshotUrl });
-            this.cdr.markForCheck();
-            return;
+            // Liveness detection check
+            if (this.livenessStep === 'BLINK' && resultado.result) {
+                const blinkGesture = resultado.result.gesture?.find((g: any) => g.gesture.toLowerCase().includes('blink'));
+                const liveness = resultado.result.face?.[0]?.liveness;
+
+                if (blinkGesture || (liveness !== undefined && liveness < 0.15)) {
+                    this.hasBlinked = true;
+                    this.livenessStep = 'DONE';
+                    this.livenessInstruction = 'Verificación completa';
+                }
+            }
+
+            if (this.livenessStep === 'DONE') {
+                this.mensajeReconocimiento = '✓ Rostro verificado y parpadeo detectado';
+                this.similitudInsuficiente.emit(false);
+                this.embeddingCapturado = resultado.embedding;
+                this.detecting = false;
+                this.verificacionSnapshotUrl = this.camaraService.capturarFoto(video);
+                video.pause();
+                this.camaraService.detenerCamara();
+                this.identidadVerificada.emit({ embedding: resultado.embedding, snapshotUrl: this.verificacionSnapshotUrl });
+                this.cdr.markForCheck();
+                return;
+            } else {
+                this.mensajeReconocimiento = this.livenessInstruction;
+            }
+        } else {
+            this.mensajeReconocimiento = resultado.mensaje;
         }
 
         if (resultado.mensaje.includes('Similitud insuficiente')) {
@@ -496,8 +526,10 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         this.countdownSegundos = 0;
         this.excludedUserIds = [];
         this.esperandoCapturaPerfil = false;
-        this.capturaMultiplePaso = 0;
         this.capturaMultipleFotos = [];
+        this.livenessStep = 'BLINK';
+        this.livenessInstruction = 'Parpadee para verificar';
+        this.hasBlinked = false;
         this.detenerCountdown();
         this.detenerAutoSearch();
     }

@@ -71,7 +71,77 @@
     text-transform: uppercase;
 }
 
-// Countdown
+.liveness-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 80%);
+    padding: 64px 0 24px 0;
+    z-index: 15;
+
+    mat-icon {
+        font-size: 40px;
+        width: 40px;
+        height: 40px;
+        color: #ffc107;
+        filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.4));
+        animation: pulseHeart 1.5s ease-in-out infinite;
+
+        &.success {
+            color: #4caf50;
+            filter: drop-shadow(0 0 12px rgba(76, 175, 80, 0.6));
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    }
+
+    span {
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-size: 1.1em;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+}
+
+@keyframes pulseHeart {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    70% {
+        transform: scale(0.9);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 .countdown-overlay {
     position: absolute;
     top: 0;
