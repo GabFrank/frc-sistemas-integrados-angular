@@ -62,8 +62,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   similitudInsuficiente = false;
   centralOnline: boolean = false;
 
-  private referenciaDescriptor: number[] | null = null;
-  private embeddingCapturado: number[] | null = null;
+  public referenciaDescriptor: number[] | null = null;
+  public embeddingCapturado: number[] | null = null;
 
   @ViewChild('estadoRef') estadoRef: EstadoMarcacionComponent;
   @ViewChild('busquedaRef') busquedaRef: BusquedaUsuarioComponent;
