@@ -105,7 +105,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
     ModificarSucursalPagoDetalleComponent,
     AcompanhanteComponent,
     RutaHojaComponent,
-    EntregadoresComponent
+    EntregadoresComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
     SelectSucursalesDialogComponent,

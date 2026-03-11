@@ -700,6 +700,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-vehiculo":
         this.tabService.addTab(new Tab(VehiculosDashboardComponent, "Vehículos", null, null));
+        break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
         break;
