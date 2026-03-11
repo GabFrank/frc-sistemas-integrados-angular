@@ -12,7 +12,7 @@ export interface DescriptorConScore {
 export class FaceRecognitionService {
     private human: Human | null = null;
     private config: Partial<Config> = {
-        backend: 'webgl',
+        // Quitamos el backend fijo de aquí para manejarlo dinámicamente en init()
         modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/',
         filter: { enabled: true, equalization: false },
         face: {
@@ -34,9 +34,27 @@ export class FaceRecognitionService {
 
     async init(): Promise<void> {
         if (!this.human) {
-            this.human = new Human(this.config);
-            await this.human.load();
-            await this.human.warmup();
+            // Intentamos inicializar con el mejor backend disponible
+            // Primero WebGL (GPU), si falla vamos a WASM (CPU optimizado)
+            try {
+                this.human = new Human({ ...this.config, backend: 'webgl' });
+                await this.human.load();
+                await this.human.warmup();
+                console.log('FaceRecognition: WebGL inicializado (GPU)');
+            } catch (e) {
+                console.warn('FaceRecognition: WebGL no disponible, intentando Plan B (WASM)...', e);
+                try {
+                    this.human = new Human({ ...this.config, backend: 'wasm' });
+                    await this.human.load();
+                    await this.human.warmup();
+                    console.log('FaceRecognition: WASM inicializado (CPU)');
+                } catch (e2) {
+                    console.error('FaceRecognition: Error crítico de inicialización, usando CPU genérico', e2);
+                    this.human = new Human({ ...this.config, backend: 'cpu' });
+                    await this.human.load();
+                    await this.human.warmup();
+                }
+            }
         }
     }
 
