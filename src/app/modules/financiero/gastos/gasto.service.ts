@@ -37,7 +37,12 @@ export class GastoService {
   // }
 
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
-    return this.genericService.onSave(this.saveGasto, gasto.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
+    let gastoAux = gasto;
+    if (!(gasto instanceof Gasto)) {
+      gastoAux = new Gasto();
+      Object.assign(gastoAux, gasto);
+    }
+    return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
 
   onGetByDate(inicio?: Date, fin?: Date, servidor = true): Observable<Gasto[]> {

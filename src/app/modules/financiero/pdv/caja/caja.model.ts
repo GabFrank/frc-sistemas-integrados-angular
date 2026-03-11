@@ -3,6 +3,8 @@ import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Conteo } from "../../conteo/conteo.model";
 import { Maletin } from "../../maletin/maletin.model";
 
+import { CajaObservacion } from "../caja-observacion/caja-observacion.model";
+
 export class PdvCaja {
     id:number;
     descripcion: string
@@ -12,6 +14,7 @@ export class PdvCaja {
     fechaApertura: Date
     fechaCierre: Date
     observacion: String
+    cajaObservacionList: CajaObservacion[]
     maletin: Maletin
     creadoEn: Date
     usuario: Usuario

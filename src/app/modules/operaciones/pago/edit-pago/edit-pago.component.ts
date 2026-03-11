@@ -6,8 +6,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { MainService } from '../../../../main.service';
-import { SolicitudPago } from '../../solicitud-pago/solicitud-pago.model';
-import { SolicitudPagoService } from '../../solicitud-pago/solicitud-pago.service';
+import { SolicitudPago } from '../../compra/gestion-compras/solicitud-pago.model';
+import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { PagoDetalle, PagoDetalleEstado } from '../pago-detalle/pago-detalle.model';
 import { Pago, PagoEstado } from '../pago.model';
 import { PagoService } from '../pago.service';
@@ -15,9 +15,10 @@ import { PagoDetalleService } from '../pago-detalle/pago-detalle.service';
 import { PagoDetalleCuotaService } from '../pago-detalle-cuota/pago-detalle-cuota.service';
 import { PagoDetalleCuota, PagoDetalleCuotaEstado } from '../pago-detalle-cuota/pago-detalle-cuota.model';
 import { PagoDetalleDialogComponent } from './pago-detalle-dialog/pago-detalle-dialog.component';
-import { NotaRecepcionAgrupada } from '../../../operaciones/pedido/nota-recepcion/nota-recepcion-agrupada/nota-recepcion-agrupada.model';
+// NotaRecepcionAgrupada fue refactorizado - usar Devolucion en su lugar si es necesario
+// import { NotaRecepcionAgrupada } from '../../../operaciones/pedido/nota-recepcion/nota-recepcion-agrupada/nota-recepcion-agrupada.model';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { NotaRecepcion } from '../../../operaciones/pedido/nota-recepcion/nota-recepcion.model';
+import { NotaRecepcion } from '../../compra/gestion-compras/nota-recepcion.model';
 import { catchError, forkJoin, of } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -62,7 +63,8 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
   // Entity data
   solicitudPago: SolicitudPago;
   pago: Pago;
-  selectedNotaRecepcionAgregada: NotaRecepcionAgrupada;
+  // NotaRecepcionAgrupada fue refactorizado - este código necesita actualización
+  // selectedNotaRecepcionAgregada: NotaRecepcionAgrupada;
   notasRecepcion: NotaRecepcion[] = [];
   
 
@@ -145,7 +147,7 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
     if (!this.solicitudPagoId) return;
     
     this.loadingSolicitudPago = true;
-    this.solicitudPagoService.onGetSolicitudPago(this.solicitudPagoId)
+    this.solicitudPagoService.onGetById(this.solicitudPagoId)
       .pipe(untilDestroyed(this))
       .subscribe(
         (solicitudPago) => {
@@ -154,9 +156,10 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
           this.solicitudPago = solicitudPago;
           this.loadingSolicitudPago = false;
 
-          // Si es de tipo COMPRA, buscar la información de las notas de recepción
-          if (this.solicitudPago.tipo === 'COMPRA' && this.solicitudPago.referenciaId) {
-            this.loadNotaRecepcionInfo(this.solicitudPago.referenciaId);
+          // En la nueva versión, las notas vienen dentro de la solicitud
+          if (this.solicitudPago.notasRecepcion && this.solicitudPago.notasRecepcion.length > 0) {
+            this.notasRecepcion = this.solicitudPago.notasRecepcion.map(nr => nr.notaRecepcion);
+            this.calcularTotalesNotasRecepcion();
           }
           
           if(this.solicitudPago.pago){
@@ -181,27 +184,26 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
   /**
    * Carga la información de las notas de recepción asociadas a una notaRecepcionAgrupada
    * @param notaRecepcionAgrupadaId ID de la nota de recepción agrupada
+   * TODO: Este método necesita ser refactorizado - NotaRecepcionAgrupada fue eliminado
    */
   loadNotaRecepcionInfo(notaRecepcionAgrupadaId: number): void {
-    this.loadingNotasRecepcion = true;
-    
-    // En primer lugar, cargamos las notas de recepción asociadas a la nota de recepción agrupada
-    this.pagoService.onGetNotasRecepcionPorAgrupada(notaRecepcionAgrupadaId)
-      .pipe(
-        untilDestroyed(this),
-        catchError(error => {
-          console.error('Error al cargar notas de recepción:', error);
-          this.loadingNotasRecepcion = false;
-          return of([]);
-        })
-      )
-      .subscribe(notasRecepcion => {
-        this.notasRecepcion = notasRecepcion;
-        this.loadingNotasRecepcion = false;
-        
-        // Calculamos el total de notas y el valor total
-        this.calcularTotalesNotasRecepcion();
-      });
+    console.warn('loadNotaRecepcionInfo: Este método necesita refactorización - NotaRecepcionAgrupada fue eliminado');
+    this.loadingNotasRecepcion = false;
+    // TODO: Implementar nueva lógica usando SolicitudPagoNotaRecepcion
+    // this.pagoService.onGetNotasRecepcionPorAgrupada(notaRecepcionAgrupadaId)
+    //   .pipe(
+    //     untilDestroyed(this),
+    //     catchError(error => {
+    //       console.error('Error al cargar notas de recepción:', error);
+    //       this.loadingNotasRecepcion = false;
+    //       return of([]);
+    //     })
+    //   )
+    //   .subscribe(notasRecepcion => {
+    //     this.notasRecepcion = notasRecepcion;
+    //     this.loadingNotasRecepcion = false;
+    //     this.calcularTotalesNotasRecepcion();
+    //   });
   }
 
   /**
@@ -217,9 +219,9 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
     // Cantidad de notas es simplemente el número de notas de recepción
     this.cantidadNotas = this.notasRecepcion.length;
     
-    // Valor total es la suma de (valor - descuento) de cada nota
+    // Valor total es la suma de valorTotal de cada nota (ya incluye descuentos)
     this.valorTotal = this.notasRecepcion.reduce((total, nota) => {
-      const valorNeto = (nota.valor || 0) - (nota.descuento || 0);
+      const valorNeto = (nota.valorTotal || 0);
       return total + valorNeto;
     }, 0);
     
@@ -467,7 +469,8 @@ export class EditPagoComponent implements OnInit, AfterViewInit {
     if (!this.solicitudPago) return;
     
     const newPago = new Pago();
-    newPago.solicitudPago = this.solicitudPago;
+    // solicitudPago fue removido del modelo Pago - usar relación a través de PagoDetalle
+    // newPago.solicitudPago = this.solicitudPago;
     newPago.estado = PagoEstado.ABIERTO;
     newPago.programado = false;
     

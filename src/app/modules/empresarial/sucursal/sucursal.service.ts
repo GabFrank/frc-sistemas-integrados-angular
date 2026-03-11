@@ -19,6 +19,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Apollo } from 'apollo-angular';
 import { map } from 'rxjs';
 import { SucursalesSearchGQL } from "./graphql/sucursalesSearch";
+import { SucursalesSearchConFiltrosGQL } from "./graphql/sucursalesSearchConFiltros";
 import { PageInfo } from "../../../app.component";
 import { QueryRef } from 'apollo-angular';
 import { SaveSucursalGQL } from "./graphql/saveSucursal";
@@ -43,6 +44,7 @@ export class SucursalService {
   constructor(
     private getAllSucursales: SucursalesGQL,
     private sucursalesSearch: SucursalesSearchGQL,
+    private sucursalesSearchConFiltros: SucursalesSearchConFiltrosGQL,
     private sucursalesByNombre: SucursalesByNombreGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
@@ -189,7 +191,7 @@ export class SucursalService {
   onSearchSucursal(filtro: any, servidor: boolean = true): Observable<Sucursal[]> {
     return this.genericService.onCustomQuery(this.sucursalesSearch, {
       filtro: filtro,
-    }, servidor);
+    }, servidor).pipe(map((res: any) => res ? (res.getContent || res) : []));
   }
 
   onSaveSucursal(sucursalInput: any, servidor: boolean = true): Observable<Sucursal> {
@@ -204,18 +206,17 @@ export class SucursalService {
     return new Observable((obs) => {
       const dialogData = new SearchListtDialogData();
       dialogData.titulo = title || 'Seleccionar Sucursal';
-      dialogData.query = this.sucursalesSearch;
+      dialogData.query = this.sucursalesByNombre;
       dialogData.tableData = [
         { id: 'id', nombre: 'Id', width: '5%' },
         { id: 'nombre', nombre: 'Nombre', width: '50%' },
-        { id: 'descripcion', nombre: 'Ciudad', width: '22%', nested: true, nestedId: 'ciudad' }
+        { id: 'ciudad.descripcion', nombre: 'Ciudad', width: '22%' }
       ];
       dialogData.search = true;
       dialogData.inicialSearch = true;
-      dialogData.paginator = false;
+      dialogData.paginator = true;
       dialogData.isServidor = servidor;
-     dialogData.searchFieldName = 'texto';
-      dialogData.queryData = { texto: '%' };
+      dialogData.searchFieldName = 'nombre';
 
       const dialogRef = this.matDialog.open(SearchListDialogComponent, {
         data: dialogData,

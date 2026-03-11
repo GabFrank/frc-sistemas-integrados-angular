@@ -27,8 +27,44 @@ export const sucursalesQuery = gql
   }`;
 
 export const sucursalesSearch = gql
-  `query($texto: String, $activo: Boolean){
-    data : sucursalesSearch(texto: $texto, activo: $activo){
+  `query($texto: String, $activo: Boolean, $page: Int, $size: Int){
+    data : sucursalesSearch(texto: $texto, activo: $activo, page: $page, size: $size){
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        localizacion
+        ciudad{
+          id
+          descripcion
+        }
+        creadoEn
+        usuario{
+          id
+          nickname
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
+      }
+    }
+  }`
+
+export const sucursalesSearchConFiltros = gql
+  `query($texto: String, $deposito: Boolean, $activo: Boolean, $page: Int, $size: Int){
+    data : findByNombreConFiltros(nombre: $texto, deposito: $deposito, activo: $activo, page: $page, size: $size){
       id
       nombre
       localizacion
@@ -39,16 +75,14 @@ export const sucursalesSearch = gql
       creadoEn
       usuario{
         id
-        nickname
       }
+      deposito
       ip
       puerto
       direccion
       nroDelivery
-      depositoPredeterminado
-      deposito
-      codigoEstablecimientoFactura
       isConfigured
+      activo
       activo
     }
   }`

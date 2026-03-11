@@ -68,6 +68,7 @@ export class ListFacturaLegalComponent implements OnInit {
   fechaFinControl = new FormControl(null, Validators.required);
   iva5Control = new FormControl(true);
   iva10Control = new FormControl(true);
+  sinNombreControl = new FormControl(null); // null: Todos, true: Sin Nombre, false: Con Nombre
   fechaFormGroup: FormGroup;
 
   length = 25;
@@ -161,6 +162,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.iva10Control.disable();
         this.tipoControl.disable();
         this.estadoControl.disable();
+        this.sinNombreControl.disable();
       } else {
         this.sucursalControl.enable();
         this.nombreControl.enable();
@@ -171,6 +173,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.iva10Control.enable();
         this.tipoControl.enable();
         this.estadoControl.enable();
+        this.sinNombreControl.enable();
       }
     });
 
@@ -196,6 +199,10 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onFilter() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.onGetFacturas();
     this.onGetResumen();
   }
@@ -216,7 +223,8 @@ export class ListFacturaLegalComponent implements OnInit {
             ? `%${this.nombreControl.value?.toUpperCase()}%`
             : null,
           this.iva5Control.value,
-          this.iva10Control.value
+          this.iva10Control.value,
+          this.sinNombreControl.value
         )
         .subscribe((res) => {
           if (res != null) {
@@ -260,7 +268,8 @@ export class ListFacturaLegalComponent implements OnInit {
           this.iva10Control.value,
           false,
           isElectronico,
-          activo
+          activo,
+          this.sinNombreControl.value
         )
         .subscribe((res) => {
           this.selectedPageInfo = res;
@@ -396,6 +405,7 @@ export class ListFacturaLegalComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.nombreControl.setValue(null);
     this.rucControl.setValue(null);
+    this.sinNombreControl.setValue(null);
     this.selectedResumenFacturas = null;
     this.dataSource.data = [];
   }

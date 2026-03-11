@@ -20,7 +20,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MonedaService } from "../moneda/moneda.service";
 import { Moneda } from "../moneda/moneda.model";
 import { CambioService } from "../cambio/cambio.service";
-import { ListSolicitudPagoComponent } from "../../operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
+// import { ListSolicitudPagoComponent } from "../../operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { CambioComponent } from "../cambio/cambio.component";
 import { FormControl } from "@angular/forms";
 import { MatDatepickerInputEvent } from "@angular/material/datepicker";
@@ -190,7 +190,7 @@ export class FinancieroDashboardComponent implements OnInit {
   }
   
   abrirModuloSolicitudPago(): void {
-    this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitudes de Pago"));
+    // this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitudes de Pago"));
   }
   
   abrirModuloCambio(): void {

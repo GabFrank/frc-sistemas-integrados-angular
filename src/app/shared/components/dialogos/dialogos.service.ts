@@ -19,12 +19,14 @@ export class DialogosService {
     action?: boolean,
     btn1Name?: string,
     btn2Name?: string,
+    btn3Name?: string,
     servidor: boolean = true
   ): Observable<any> {
     this.dialogRef = this.dialog.open(DialogosComponent, {
       autoFocus: false,
       restoreFocus: true,
       minHeight: "200px",
+      disableClose: btn3Name ? false : true, // Permitir cerrar con ESC si hay botón de cancelar
       data: {
         title,
         message1,
@@ -33,6 +35,7 @@ export class DialogosService {
         action: action == null ? true : action,
         btn1Name,
         btn2Name,
+        btn3Name,
       },
     });
 

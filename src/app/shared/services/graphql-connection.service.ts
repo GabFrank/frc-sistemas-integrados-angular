@@ -165,8 +165,10 @@ export class GraphqlConnectionService {
     const basic = setContext((operation, context) => ({}));
 
     // Create the context for token-based authentication
-    const auth = setContext((operation, context) => {
-      const token = localStorage.getItem("token");
+    const auth = setContext((_, context) => {
+      const isServidor = context.clientName === "servidor";
+      const token = isServidor ? (localStorage.getItem("token_central") || localStorage.getItem("token")) : localStorage.getItem("token");
+
       if (token === null) {
         return {};
       } else {
@@ -206,6 +208,7 @@ export class GraphqlConnectionService {
         auth,
         httpLink.create({
           uri: url,
+          useGETForQueries: false // Force all requests to use POST
         }),
       ]);
     }
@@ -216,6 +219,7 @@ export class GraphqlConnectionService {
       auth,
       httpLink.create({
         uri: url2,
+        useGETForQueries: false // Force all requests to use POST
       }),
     ]);
 
@@ -291,7 +295,14 @@ export class GraphqlConnectionService {
       return new Observable((observer) => {
         const subscription = forward(operation).subscribe({
           next: (result) => {
-            observer.next(result);
+            if (result) {
+              observer.next(result);
+            } else {
+              observer.next({
+                data: null,
+                errors: [{ message: "Respuesta vacía del servidor" }] as any
+              });
+            }
           },
           error: (error) => {
             observer.error(error);

@@ -1,3 +1,8 @@
+/**
+ * LEGACY: Este componente ya no está en uso.
+ * El menú lateral activo es side-mini-variant (app-side-mini-variant).
+ * Se mantiene por compatibilidad o referencia.
+ */
 import { Component, OnInit } from "@angular/core";
 import { MatDialog } from '@angular/material/dialog';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
@@ -13,7 +18,6 @@ import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caj
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
-import { PedidoDashboardComponent } from '../../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
@@ -29,6 +33,7 @@ import { CambioComponent } from './../../../modules/financiero/cambio/cambio.com
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { SolicitudPagoDashboardComponent } from "../../../modules/operaciones/solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
@@ -36,12 +41,14 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
+/** @deprecated LEGACY - En uso: app-side-mini-variant */
 @Component({
   selector: "app-side",
   templateUrl: "./side.component.html",
@@ -58,6 +65,8 @@ export class SideComponent implements OnInit {
   isProductosSectionVisible = false;
   isOperacionesSectionVisible = false;
   isConfiguracionSectionVisible = false;
+  isHorariosSectionVisible = true;
+  isListaMarcacionVisible = false;
 
   constructor(
     public tabService: TabService,
@@ -123,10 +132,22 @@ export class SideComponent implements OnInit {
 
     this.isOperacionesSectionVisible = this.hasAnyRole([
       ROLES.VER_TRANSFERENCIA,
-      ROLES.CREAR_TRANSFERENCIA
+      ROLES.CREAR_TRANSFERENCIA,
+      ROLES.ADMIN,
+      ROLES.SOPORTE
     ]);
 
     this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
+    this.isHorariosSectionVisible = true;
+    this.isListaMarcacionVisible = this.hasAnyRole([
+      ROLES.VER_PERSONAS,
+      ROLES.EDITAR_PERSONAS,
+      ROLES.VER_USUARIOS,
+      ROLES.EDITAR_USUARIOS,
+      ROLES.VER_FUNCIONARIOS,
+      ROLES.CREAR_FUNCIONARIOS,
+      ROLES.EDITAR_FUNCIONARIOS
+    ]);
   }
   resetMenuVisibility(): void {
     this.isPdvVisible = false;
@@ -137,6 +158,8 @@ export class SideComponent implements OnInit {
     this.isProductosSectionVisible = false;
     this.isOperacionesSectionVisible = false;
     this.isConfiguracionSectionVisible = false;
+    this.isHorariosSectionVisible = false;
+    this.isListaMarcacionVisible = false;
   }
 
   /**
@@ -197,9 +220,9 @@ export class SideComponent implements OnInit {
       case "list-compra":
         break;
       case "list-pedido":
-        this.tabService.addTab(
-          new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
+        // );
         break;
       case "pdv-restaurant":
         break;
@@ -308,9 +331,9 @@ export class SideComponent implements OnInit {
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
         ) {
-          this.tabService.addTab(
-            new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
-          );
+          // this.tabService.addTab(
+          //   new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
+          // );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
@@ -414,6 +437,11 @@ export class SideComponent implements OnInit {
           new Tab(CompraDashboardComponent, "Compras", null, null)
         );
         break;
+      case "solicitud-pago-dashboard":
+        this.tabService.addTab(
+          new Tab(SolicitudPagoDashboardComponent, "Solicitud de pago", null, null)
+        );
+        break;
       case "list-retiros":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
@@ -471,6 +499,20 @@ export class SideComponent implements OnInit {
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
+        }
+        break;
+      case "marcar-horario":
+        this.tabService.addTab(
+          new Tab(MarcarHorarioComponent, "Marcar horario", null, null)
+        );
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(
+            new Tab(ListMarcacionComponent, "Lista de horarios", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.')
         }
         break;
     }

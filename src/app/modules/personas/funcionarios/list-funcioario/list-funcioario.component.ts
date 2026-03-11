@@ -6,16 +6,24 @@ import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
-
-
 import { FormControl, Validators } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { SelectionModel } from '@angular/cdk/collections';
+import { Input } from '@angular/core';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService } from '../../../../layouts/tab/tab.service';
+import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
+import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MainService } from '../../../../main.service';
+import { FuncionarioInput } from '../funcionario-input.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -38,6 +46,12 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
+  @Input() data: Tab;
+  get horarioParaAsignar(): any {
+    return this.data?.tabData?.data?.horarioParaAsignar;
+  }
+  seleccionados = new SelectionModel<Funcionario>(true, []);
+
   idControl = new FormControl(null, Validators.required)
   nombreControl = new FormControl(null, Validators.required)
   sucursalControl = new FormControl(null)
@@ -52,7 +66,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
-  displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
+  displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'horario', 'acciones'];
 
   sucursalList: Sucursal[];
   sucursalIdList = [];
@@ -61,7 +75,11 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     public service: FuncionarioService,
     public windowInfoService: WindowInfoService,
     private matDialog: MatDialog,
-    private sucursalService: SucursalService
+    private sucursalService: SucursalService,
+    private horarioService: HorarioService,
+    private tabService: TabService,
+    private notificacionService: NotificacionSnackbarService,
+    private mainService: MainService
   ) {
   }
 
@@ -72,8 +90,9 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.onFiltrar()
     }, 0);
 
+
+
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
-      //this.sucursalList = res.filter(s => s.deposito == true);
       this.sucursalList = res.filter((s) => {
         if (s.id != 0) {
           this.sucursalIdList.push(s.id);
@@ -109,7 +128,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     })
   }
 
-  onFiltrar() {    
+  onFiltrar() {
     let sucursalIdList = [];
     this.sucursalControl.value?.forEach(s => {
       if (s != null) {
@@ -133,6 +152,66 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFiltrar();
+  }
+
+  isAllSelected() {
+    const numSelected = this.seleccionados.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected === numRows;
+  }
+
+  masterToggle() {
+    this.isAllSelected() ?
+      this.seleccionados.clear() :
+      this.dataSource.data.forEach(row => this.seleccionados.select(row));
+  }
+
+  onAsignarHorario(): void {
+    if (this.seleccionados.selected.length > 0 && this.horarioParaAsignar) {
+      let peticionesCompletadas = 0;
+      let totalPeticiones = this.seleccionados.selected.length;
+
+      this.seleccionados.selected.forEach(funcionario => {
+        let horarioInput = new HorarioInput();
+        horarioInput.horaEntrada = this.horarioParaAsignar.entrada;
+        horarioInput.horaSalida = this.horarioParaAsignar.salida;
+        if (funcionario.usuario?.id) {
+          horarioInput.usuarioId = funcionario.usuario.id;
+        }
+        horarioInput.dias = this.horarioParaAsignar.diasValue;
+        horarioInput.turno = this.horarioParaAsignar.turnoValue;
+
+        this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe((res: any) => {
+          let funcInput = new FuncionarioInput();
+          funcInput.id = funcionario.id;
+          funcInput.personaId = funcionario.persona?.id;
+          funcInput.cargoId = funcionario.cargo?.id;
+          funcInput.sucursalId = funcionario.sucursal?.id;
+          funcInput.credito = funcionario.credito;
+          funcInput.sueldo = funcionario.sueldo;
+          funcInput.fasePrueba = funcionario.fasePrueba;
+          funcInput.diarista = funcionario.diarista;
+          funcInput.supervisadoPorId = funcionario.supervisadoPor?.id;
+          funcInput.activo = funcionario.activo;
+          funcInput.usuarioId = funcionario.usuario?.id;
+          funcInput.horarioId = res.id;
+          if (funcionario.fechaIngreso) {
+            let nD = new Date(funcionario.fechaIngreso);
+            funcInput.fechaIngreso = dateToString(nD);
+          }
+
+          this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe(savedFunc => {
+            funcionario.horario = savedFunc.horario;
+            this.dataSource.data = [...this.dataSource.data];
+            peticionesCompletadas++;
+            if (peticionesCompletadas === totalPeticiones) {
+              this.notificacionService.openSucess('Horarios asignados correctamente');
+              this.seleccionados.clear();
+            }
+          });
+        });
+      });
+    }
   }
 
 }

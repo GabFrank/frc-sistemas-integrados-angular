@@ -1,0 +1,120 @@
+.dialog-container {
+  width: 100%;
+  min-width: 500px;
+  max-width: 700px;
+
+  .titulo-center {
+    text-align: center;
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+}
+
+mat-dialog-content {
+  padding: 20px 24px;
+  margin: 0;
+  min-height: 300px;
+  max-height: 70vh;
+  overflow-y: auto;
+
+  .form-container {
+    width: 100%;
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .field-tipo {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .field-numero {
+        flex: 2;
+        min-width: 250px;
+      }
+
+      .field-fecha {
+        flex: 1;
+        min-width: 180px;
+      }
+
+      .field-monto {
+        flex: 1;
+        max-width: 300px;
+      }
+
+      .field-full {
+        flex: 1;
+        width: 100%;
+      }
+
+      // Responsive adjustments
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 12px;
+
+        mat-form-field {
+          width: 100%;
+          min-width: unset;
+        }
+      }
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  margin: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+  button {
+    margin-left: 8px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+// Dark theme specific adjustments
+.mat-form-field {
+  .mat-form-field-outline {
+    color: rgba(255, 255, 255, 0.3);
+  }
+  
+  &.mat-focused .mat-form-field-outline-thick {
+    color: #ffa726;
+  }
+}
+
+.mat-form-field-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mat-input-element {
+  color: rgba(255, 255, 255, 0.87);
+}
+
+// Error states
+.mat-form-field.mat-form-field-invalid {
+  .mat-form-field-outline-thick {
+    color: #f44336;
+  }
+}
+
+// Disabled button styles
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+} 

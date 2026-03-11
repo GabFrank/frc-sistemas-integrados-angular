@@ -68,6 +68,13 @@ export class ListSucursalComponent implements OnInit {
   pageEvent: PageEvent;
   selectedPageInfo: PageInfo<Sucursal>;
 
+  // Opciones para el filtro de estado activo
+  activoOptions = [
+    { value: 'TODAS', label: 'Todas' },
+    { value: 'ACTIVAS', label: 'Activas' },
+    { value: 'INACTIVAS', label: 'Inactivas' }
+  ];
+
   constructor(
     private sucursalService: SucursalService,
     public mainService: MainService,

@@ -1,0 +1,241 @@
+.dialog-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .dialog-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 16px;
+    flex-shrink: 0;
+
+    h3 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+}
+
+mat-dialog-content {
+  padding: 20px;
+  margin: 0;
+  min-height: 550px;
+  max-height: 80vh;
+  overflow: hidden;
+
+  .form-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .main-layout {
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+      height: 100%;
+      overflow: hidden;
+
+      .left-panel {
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+        padding-right: 12px;
+
+        &::-webkit-scrollbar { width: 4px; }
+        &::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+        .producto-info-card {
+          background-color: #363636;
+          border: 1px solid #444;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .producto-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
+
+          .producto-icon {
+            color: #ffa726;
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+          }
+
+          .producto-nombre {
+            color: #ffffff;
+            font-weight: 600;
+            margin: 0;
+            line-height: 1.2;
+            font-size: 16px;
+          }
+
+          .producto-codigo {
+            color: #f57c00;
+            font-size: 12px;
+            display: block;
+          }
+        }
+      }
+
+      .right-panel {
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        background-color: #252525;
+        border-radius: 8px;
+        border: 1px solid #333;
+        overflow: hidden;
+        padding-left: 12px;
+
+        .distribucion-header {
+          padding: 16px;
+          background: #2d2d2d;
+          border-bottom: 1px solid #444;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          
+          .section-title { margin: 0; }
+        }
+
+        .distribuciones-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+
+          &::-webkit-scrollbar { width: 6px; }
+          &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        }
+      }
+    }
+  }
+}
+
+.section-title {
+  color: #ffa726;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.presentacion-section,
+.cantidad-total-rechazo-section,
+.motivo-observaciones-section {
+  padding: 12px;
+  background-color: #2d2d2d;
+  border-radius: 6px;
+  border: 1px solid #444;
+  margin-bottom: 12px;
+
+  .presentacion-field,
+  .cantidad-total-rechazo-field,
+  .motivo-global-field,
+  .observaciones-global-field {
+    width: 100%;
+  }
+}
+
+.summary-dashboard {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: #252525;
+  border-radius: 8px;
+  border: 1px solid #333;
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: #2d2d2d;
+    border-radius: 4px;
+    
+    .label { font-size: 9px; color: #888; font-weight: 600; margin-bottom: 2px; }
+    .value { font-size: 16px; font-weight: 700; color: #fff; }
+    
+    &.highlight {
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      .value { color: #f44336; }
+    }
+  }
+}
+
+.distribucion-card {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  &.has-rechazo {
+    border-left: 4px solid #f44336;
+    background: rgba(244, 67, 54, 0.05);
+  }
+
+  .sucursal-info {
+    display: flex;
+    flex-direction: column;
+    .nombre { font-weight: 600; color: #fff; font-size: 14px; }
+    .esperado { font-size: 12px; color: #888; }
+  }
+
+  .input-section {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    
+    .cantidad-input {
+      width: 100%;
+      max-width: 150px;
+      margin-bottom: -1.25em;
+    }
+  }
+}
+
+.count-badge {
+  font-size: 10px;
+  background: #444;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #bbb;
+}
+
+.info-text.small {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
+mat-dialog-actions {
+  padding: 12px 20px;
+  border-top: 1px solid #444;
+}

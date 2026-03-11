@@ -1,0 +1,134 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.proveedor-card {
+  width: 100%;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+
+  mat-card-content {
+    padding: 0.75rem 1rem;
+  }
+
+  .card-row {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .card-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9em; /* 10% menor que el valor (1em) */
+    flex-shrink: 0;
+  }
+
+  .card-value {
+    color: #fff;
+    font-size: 1rem; /* tamaño por defecto */
+  }
+}
+
+.buscar-producto-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  flex-shrink: 0;
+
+  .search-field {
+    flex: 0 0 80%;
+    max-width: 80%;
+    cursor: pointer;
+
+    .search-icon-click {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    input {
+      cursor: pointer;
+    }
+  }
+
+  .btn-adicionar {
+    flex: 0 0 calc(20% - 0.75rem);
+    min-width: 0;
+  }
+}
+
+.lista-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+
+  .section-title {
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .table-wrapper {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-container {
+    overflow: auto;
+    flex: 1 1 0;
+    min-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+}
+
+mat-dialog-content {
+  min-width: 500px;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+mat-paginator {
+  background: transparent;
+  flex-shrink: 0;
+}
+
+// El panel del diálogo debe usar flex y altura 100% para que el scroll quede solo en la tabla.
+// Forzamos width/min-width 50vw porque al usar display:flex el contenedor puede encogerse al contenido.
+::ng-deep .gestion-productos-proveedor-dialog-panel {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    width: 50vw !important;
+    min-width: 50vw !important;
+    max-width: 50vw !important;
+  }
+}

@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "strict": false,
+    "skipLibCheck": true,
     "strictNullChecks": false,
     "outDir": "./dist/out-tsc",
     "module": "es2022",

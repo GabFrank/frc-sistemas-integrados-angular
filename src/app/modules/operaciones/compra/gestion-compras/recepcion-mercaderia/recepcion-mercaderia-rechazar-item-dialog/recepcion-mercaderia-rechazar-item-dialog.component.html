@@ -1,0 +1,156 @@
+<div class="dialog-container">
+  <div class="dialog-header center">
+    <h3 style="margin: 0px">
+      Rechazo Detallado de Item
+    </h3>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <form [formGroup]="rechazarForm" class="form-container">
+      <div class="main-layout">
+        <!-- Columna Izquierda: Configuración y Resumen (40%) -->
+        <div class="left-panel">
+          <div class="producto-info-card">
+            <div class="producto-header">
+              <mat-icon class="producto-icon">inventory</mat-icon>
+              <div class="producto-text">
+                <h3 class="producto-nombre">{{ item.producto.descripcion }}</h3>
+                <span class="producto-codigo" *ngIf="item.producto.codigoPrincipal">
+                  Código: {{ item.producto.codigoPrincipal }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Selector de Presentación -->
+            <div class="presentacion-section">
+              <h5 class="section-title">Presentación</h5>
+              <div *ngIf="loadingPresentaciones" class="loading-presentaciones">
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>Cargando...</span>
+              </div>
+              <mat-form-field appearance="outline" class="presentacion-field" *ngIf="!loadingPresentaciones">
+                <mat-label>Presentación *</mat-label>
+                <mat-select
+                  formControlName="presentacionGlobal"
+                  (selectionChange)="onPresentacionChange()"
+                  [compareWith]="comparePresentaciones">
+                  <mat-option *ngFor="let p of presentacionesDisponibles" [value]="p">
+                    {{ p.descripcion | uppercase }} ({{ p.cantidad }} unid.)
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            
+            <!-- Distribución Automática -->
+            <div class="cantidad-total-rechazo-section" *ngIf="!loadingPresentaciones && distribucionesFormData.length > 1">
+              <h5 class="section-title">Distribución Automática</h5>
+              <mat-form-field appearance="outline" class="cantidad-total-rechazo-field">
+                <mat-label>Cantidad Total a Rechazar</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="cantidadTotalRechazo"
+                  placeholder="0"
+                  min="0"
+                  [max]="cantidadTotalEsperadaComputed"
+                  step="0.01"
+                  (keydown)="onKeyDown($event, 'cantidadTotalRechazo')"
+                />
+                <mat-icon matPrefix>calculate</mat-icon>
+              </mat-form-field>
+              <p class="info-text small">
+                <mat-icon class="info-icon">info</mat-icon>
+                Se distribuirá proporcionalmente entre las sucursales.
+              </p>
+            </div>
+            
+            <!-- Motivo y Observaciones Globales -->
+            <div class="motivo-observaciones-section" *ngIf="!loadingPresentaciones">
+              <h5 class="section-title">Motivo y Observaciones</h5>
+              <mat-form-field appearance="outline" class="motivo-global-field">
+                <mat-label>Motivo *</mat-label>
+                <mat-select formControlName="motivoRechazoGlobal" (keydown)="onKeyDown($any($event), 'motivoRechazoGlobal')">
+                  <mat-option *ngFor="let motivo of motivosRechazo" [value]="motivo.value">
+                    {{ motivo.label }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="observaciones-global-field">
+                <mat-label>Observaciones</mat-label>
+                <textarea matInput rows="2" formControlName="observacionesGlobal" placeholder="Opcional..." (keydown.enter)="onKeyDown($any($event), 'observacionesGlobal')"></textarea>
+              </mat-form-field>
+            </div>
+
+            <!-- Resumen de Cantidades -->
+            <div class="summary-dashboard">
+              <div class="summary-item">
+                <span class="label">ESPERADO</span>
+                <span class="value">{{ (cantidadTotalEsperadaComputed || 0) | number }}</span>
+              </div>
+              <div class="summary-item highlight">
+                <span class="label">RECHAZADO</span>
+                <span class="value">{{ (cantidadTotalRechazadaComputed || 0) | number }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">DISPONIBLE</span>
+                <span class="value">{{ (cantidadDisponibleComputed || 0) | number }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">RECHAZOS</span>
+                <span class="value">{{ hayRechazosComputed ? 'SÍ' : 'NO' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Distribución por Sucursal (60%) -->
+        <div class="right-panel">
+          <div class="distribucion-header">
+            <h5 class="section-title">Distribución por Sucursal</h5>
+            <span class="count-badge">{{ distribucionesFormData.length }} sucursales</span>
+          </div>
+          
+          <div class="distribuciones-scroll">
+            <div class="distribuciones-list">
+              <div *ngFor="let dist of distribucionesFormData; let i = index" class="distribucion-card" [class.has-rechazo]="dist.tieneRechazo">
+                <div class="sucursal-info">
+                  <span class="nombre">{{ dist.sucursalNombre }}</span>
+                  <span class="esperado">Esperado: {{ dist.cantidadEsperada | number }}</span>
+                </div>
+                
+                <div class="input-section">
+                  <mat-form-field appearance="outline" class="cantidad-input">
+                    <mat-label>Rechazar</mat-label>
+                    <input matInput type="number" [formControlName]="'dist_' + i + '_cantidadRechazada'" [max]="dist.cantidadEsperada" [min]="0" placeholder="0" (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_cantidadRechazada')">
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button 
+      mat-button 
+      type="button"
+      (click)="onCancel()"
+      #cancelButton>
+      <mat-icon>cancel</mat-icon>
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      color="warn"
+      type="submit"
+      [disabled]="!formValidComputed"
+      (click)="onSave()"
+      #saveButton>
+      <mat-icon>cancel</mat-icon>
+      Rechazar
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,0 +1,115 @@
+<h2 mat-dialog-title class="titulo-center" style="font-weight: 500;">Gestionar productos del proveedor</h2>
+
+<mat-dialog-content>
+  <mat-card class="proveedor-card">
+    <mat-card-content>
+      <div class="card-row">
+        <span class="card-label">Proveedor</span>
+        <span class="card-value">{{ proveedor?.id }} - {{ headerNombreComputed }}</span>
+      </div>
+      <div class="card-row" *ngIf="documentoConDigitoVerificadorComputed">
+        <span class="card-label">Documento</span>
+        <span class="card-value">{{ documentoConDigitoVerificadorComputed }}</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="buscar-producto-section">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Producto seleccionado</mat-label>
+      <input
+        matInput
+        [value]="selectedProductoDisplayComputed"
+        placeholder="Clic para buscar y seleccionar..."
+        readonly
+        (click)="onBuscarProducto()"
+      />
+      <mat-icon matSuffix (click)="onBuscarProducto()" class="search-icon-click">search</mat-icon>
+      <button
+        mat-icon-button
+        matSuffix
+        *ngIf="selectedProductoComputed"
+        (click)="onRemoverProducto(); $event.stopPropagation()"
+        matTooltip="Quitar producto"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+    <button
+      mat-raised-button
+      color="accent"
+      class="btn-adicionar"
+      [disabled]="addButtonDisabledComputed"
+      (click)="onAdicionarProducto()"
+    >
+      <mat-icon>add</mat-icon>
+      Adicionar
+    </button>
+  </div>
+
+  <div class="lista-section">
+    <h4 class="section-title titulo-center" style="font-weight: 500;">Productos vinculados</h4>
+    <div class="table-wrapper">
+      <div class="table-container">
+        <table mat-table [dataSource]="dataSource" class="full-width">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef class="text-center">ID</th>
+            <td mat-cell *matCellDef="let row" class="text-center">{{ row.producto?.id }}</td>
+          </ng-container>
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Descripción</th>
+            <td mat-cell *matCellDef="let row" class="text-center">{{ row.productoDescripcionComputed }}</td>
+          </ng-container>
+          <ng-container matColumnDef="codigo">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Código</th>
+            <td mat-cell *matCellDef="let row" class="text-center">{{ row.productoCodigoComputed }}</td>
+          </ng-container>
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Acciones</th>
+            <td mat-cell *matCellDef="let row" class="text-center">
+              <button mat-icon-button [matMenuTriggerFor]="menuDesvincular" aria-label="Desvincular">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menuDesvincular="matMenu">
+                <button mat-menu-item [matMenuTriggerFor]="submenuMotivos">
+                  <mat-icon>link_off</mat-icon>
+                  <span>Desvincular producto</span>
+                </button>
+              </mat-menu>
+              <mat-menu #submenuMotivos="matMenu">
+                <button
+                  mat-menu-item
+                  *ngFor="let m of motivosDesvincularComputed"
+                  (click)="onDesvincular(row, m.value)"
+                >
+                  {{ m.label }}
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let r; columns: displayedColumns"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell text-center" [attr.colspan]="displayedColumns.length">
+              <span *ngIf="!loading">No hay productos vinculados</span>
+              <span *ngIf="loading">Cargando...</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <mat-paginator
+      [length]="totalElements"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="[5, 10, 25]"
+      (page)="onPageEvent($event)"
+      showFirstLastButtons
+    >
+    </mat-paginator>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCerrar()">Cerrar</button>
+</mat-dialog-actions>

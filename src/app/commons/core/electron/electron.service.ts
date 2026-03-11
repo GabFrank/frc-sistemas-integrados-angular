@@ -65,6 +65,13 @@ export class ElectronService {
     if (!firebaseConfig.apiKey || !firebaseConfig.appId || !firebaseConfig.projectId) {
       return;
     }
+
+    // Remove existing listeners to prevent duplicates
+    ipcRenderer.removeAllListeners(NOTIFICATION_SERVICE_STARTED);
+    ipcRenderer.removeAllListeners(TOKEN_UPDATED);
+    ipcRenderer.removeAllListeners(NOTIFICATION_SERVICE_ERROR);
+    ipcRenderer.removeAllListeners(ON_NOTIFICATION_RECEIVED);
+
     ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (_: any, token: string) => {
       if (token) {
         localStorage.setItem('pushToken', token);
@@ -73,6 +80,7 @@ export class ElectronService {
         }
       }
     });
+
     ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
       if (token) {
         localStorage.setItem('pushToken', token);
@@ -83,15 +91,38 @@ export class ElectronService {
     });
 
     ipcRenderer.on(NOTIFICATION_SERVICE_ERROR, (_: any, error: any) => {
+      // Log del error pero no bloqueamos la aplicación
+      // PHONE_REGISTRATION_ERROR es un error conocido de la librería cuando falla el registro con FCM
+      // Puede deberse a problemas de red, configuración de Firebase, o bugs de la librería
+      console.warn('Push notification service error:', error);
+      // La aplicación continúa funcionando normalmente aunque las notificaciones push fallen
     });
+
+    let lastNotificationTime = 0;
+    let lastNotificationJson = '';
+
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
-        ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
+        const now = Date.now();
+        const notificationJson = JSON.stringify(notification);
+
+        // Prevent duplicates within 2 seconds
+        if (notificationJson === lastNotificationJson && (now - lastNotificationTime < 2000)) {
+          return;
+        }
+
+        // Rate limit: Enforce at least 500ms between notifications to please libnotify
+        if (now - lastNotificationTime > 500) {
+          ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
+          lastNotificationTime = now;
+          lastNotificationJson = notificationJson;
+        }
 
         this.notificationReceived.next(notification);
       } catch (e) {
       }
     });
+
     const pushConfig = {
       senderId: firebaseConfig.messagingSenderId,
       firebase: {

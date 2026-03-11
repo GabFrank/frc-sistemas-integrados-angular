@@ -30,7 +30,7 @@ import { CajaService } from "../caja.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
-import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
+import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/sucursalesByNombre";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
 import { PageInfo } from "../../../../../app.component";
@@ -45,6 +45,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../../../notificacion-snackbar.service";
 import { GenericCrudService } from "../../../../../generics/generic-crud.service";
+import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -154,13 +155,6 @@ export class ListCajaComponent implements OnInit {
     } else {
       this.onSelectSucursal(this.mainService.sucursalActual);
     }
-    
-    this.cajaObservacionService.cajaObservacionBS
-      .pipe(untilDestroyed(this))
-      .subscribe((observaciones: CajaObservacion[]) => {
-        this.cajaObservacionList = observaciones;
-        this.dataSource.data = this.onObservado(this.dataSource.data);
-      })
   }
 
   onAdd(caja?: PdvCaja, index?) {
@@ -248,11 +242,7 @@ export class ListCajaComponent implements OnInit {
 
   onObservado(cajas: PdvCaja[]): PdvCaja[] {
     cajas.forEach((caja) => {
-      caja['hasObservation'] = this.cajaObservacionList
-        ? this.cajaObservacionList.some((obs) => 
-            obs.pdvCaja && obs.pdvCaja.id === caja.id && obs.sucursal.id === caja.sucursalId
-          )
-        : false;
+      caja['hasObservation'] = caja.cajaObservacionList && caja.cajaObservacionList.length > 0;
     });
   
     if (this.conObsControl.value) {
@@ -271,7 +261,7 @@ export class ListCajaComponent implements OnInit {
       })
       dialogRef.afterClosed()
         .subscribe(() => {
-          this.cajaObservacionService.onGetCajasObservaciones().subscribe();
+          this.onFilter();
         })
   }
 
@@ -283,17 +273,13 @@ export class ListCajaComponent implements OnInit {
       tableData: [
         { id: "id", nombre: "Id", width: "5%" },
         {
-          id: "nombre",
+          id: "persona.nombre",
           nombre: "Nombre",
-          nested: true,
-          nestedId: "persona",
           width: "50%",
         },
         {
-          id: "documento",
+          id: "persona.documento",
           nombre: "Documento",
-          nested: true,
-          nestedId: "persona",
           width: "40%",
         },
       ],
@@ -448,24 +434,24 @@ export class ListCajaComponent implements OnInit {
     // })
   }
 
-  onSucursalSearch(texto?) {
+  onSucursalSearch(texto?: string) {
     let data: SearchListtDialogData = {
       titulo: "Seleccionar sucursal",
       tableData: [
         { id: "id", nombre: "Id", width: "5%" },
         { id: "nombre", nombre: "Nombre", width: "50%" },
         {
-          id: "descripcion",
+          id: "ciudad.descripcion",
           nombre: "Ciudad",
           width: "22%",
-          nested: true,
-          nestedId: "ciudad",
         },
       ],
       query: this.searchSucursal,
       inicialSearch: true,
-      texto: texto,
+      texto: texto || '',
       isAdicionar: false,
+      paginator: true,
+      searchFieldName: 'texto',
     };
     this.matDialog
       .open(SearchListDialogComponent, {

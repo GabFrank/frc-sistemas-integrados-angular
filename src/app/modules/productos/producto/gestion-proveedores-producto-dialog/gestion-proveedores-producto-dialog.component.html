@@ -1,0 +1,110 @@
+<h2 mat-dialog-title class="titulo-center" style="font-weight: 500;">Gestionar proveedores del producto</h2>
+
+<mat-dialog-content>
+  <mat-card class="producto-card">
+    <mat-card-content class="producto-card-content">
+      <div class="producto-card-row producto-card-header">
+        <span class="producto-card-cell">Id</span>
+        <span class="producto-card-cell">Nombre</span>
+        <span class="producto-card-cell">Código</span>
+      </div>
+      <div class="producto-card-row">
+        <span class="producto-card-cell">{{ producto?.id }}</span>
+        <span class="producto-card-cell">{{ headerDescripcionComputed }}</span>
+        <span class="producto-card-cell">{{ headerCodigoComputed }}</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="buscar-proveedor-section">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar proveedor</mat-label>
+      <input
+        matInput
+        [formControl]="proveedorControl"
+        placeholder="Clic para buscar..."
+        readonly
+        (click)="onBuscarProveedor()"
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        *ngIf="selectedProveedorComputed"
+        (click)="onRemoverProveedor(); $event.stopPropagation()"
+        matTooltip="Quitar proveedor"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="addButtonDisabledComputed"
+      (click)="onAdicionarProveedor()"
+    >
+      <mat-icon>add</mat-icon>
+      Adicionar
+    </button>
+  </div>
+
+  <div class="lista-section">
+    <h4 class="section-title titulo-center" style="font-weight: 500;">Proveedores vinculados</h4>
+    <div class="table-container">
+      <table mat-table [dataSource]="dataSource" class="full-width">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="text-center">ID</th>
+          <td mat-cell *matCellDef="let row" class="text-center">{{ row.id }}</td>
+        </ng-container>
+        <ng-container matColumnDef="proveedor">
+          <th mat-header-cell *matHeaderCellDef class="text-center">Proveedor</th>
+          <td mat-cell *matCellDef="let row" class="text-center">{{ row.proveedorNombreComputed }}</td>
+        </ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="text-center">Acciones</th>
+          <td mat-cell *matCellDef="let row" class="text-center">
+            <button mat-icon-button [matMenuTriggerFor]="menuDesvincular" aria-label="Desvincular">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menuDesvincular="matMenu">
+              <button mat-menu-item [matMenuTriggerFor]="submenuMotivos">
+                <mat-icon>link_off</mat-icon>
+                <span>Desvincular proveedor</span>
+              </button>
+            </mat-menu>
+            <mat-menu #submenuMotivos="matMenu">
+              <button
+                mat-menu-item
+                *ngFor="let m of motivosDesvincularComputed"
+                (click)="onDesvincular(row, m.value)"
+              >
+                {{ m.label }}
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let r; columns: displayedColumns"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell text-center" [attr.colspan]="displayedColumns.length">
+            <span *ngIf="!loading">No hay proveedores vinculados</span>
+            <span *ngIf="loading">Cargando...</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <mat-paginator
+      [length]="totalElements"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="[5, 10, 25]"
+      (page)="onPageEvent($event)"
+      showFirstLastButtons
+    >
+    </mat-paginator>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCerrar()">Cerrar</button>
+</mat-dialog-actions>

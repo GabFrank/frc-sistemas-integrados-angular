@@ -145,7 +145,7 @@ export class EditNecesidadComponent implements OnInit {
             fetchPolicy: 'no-cache'
           }
         ).pipe(untilDestroyed(this)).subscribe((data) => {
-          this.sucursales = data.data.data;
+          this.sucursales = data.data.data.getContent;
           if (this.sucursales.length == 1) {
             setTimeout(() => {
               this.formGroup.get('sucursal').setValue(this.sucursales[0].id);

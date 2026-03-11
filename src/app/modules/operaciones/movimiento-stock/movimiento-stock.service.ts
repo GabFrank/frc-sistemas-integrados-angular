@@ -71,7 +71,8 @@ export class MovimientoStockService {
     usuarioId: number,
     page: number,
     size: number,
-    servidor = true
+    servidor = true,
+    silentLoad = false
   ): Observable<PageInfo<MovimientoStock>> {
     return this.genericService.onCustomQuery(this.getMovimientoStockPorFilters, {
       inicio,
@@ -82,7 +83,7 @@ export class MovimientoStockService {
       usuarioId,
       page,
       size,
-    }, servidor);
+    }, servidor, undefined, silentLoad);
   }
 
   onGetStockPorFiltros(

@@ -1,0 +1,107 @@
+<ng-container *ngIf="modo === 'busqueda'">
+    <div *ngIf="!fotoCapturada" class="camera-container">
+        <video #video autoplay playsinline muted></video>
+        <canvas #snapshotCanvas class="canvas-hidden"></canvas>
+        <div *ngIf="countdownSegundos > 0" class="countdown-overlay">
+            <div class="countdown-circle">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" class="countdown-bg" />
+                    <circle cx="50" cy="50" r="45" class="countdown-progress"
+                        [style.stroke-dashoffset]="283 - (283 * (countdownSegundos / 3))" />
+                </svg>
+                <span class="countdown-number">{{ countdownSegundos }}</span>
+            </div>
+        </div>
+        <div class="detecting-overlay">
+            {{ mensajeReconocimiento }}
+        </div>
+    </div>
+    <div *ngIf="fotoCapturada && snapshotDataUrl" class="camera-container snapshot-container">
+        <img [src]="snapshotDataUrl" class="snapshot-image" alt="Foto capturada" />
+        <div class="detecting-overlay snapshot-overlay">
+            <div *ngIf="buscandoAutomaticamente" class="search-indicator">
+                <mat-spinner diameter="24" color="accent"></mat-spinner>
+                <span>{{ mensajeReconocimiento }}</span>
+            </div>
+            <div *ngIf="!buscandoAutomaticamente">
+                {{ mensajeReconocimiento }}
+            </div>
+        </div>
+        <div *ngIf="buscandoAutomaticamente" class="search-progress-bar">
+            <div class="search-progress-fill" [style.width.%]="(intentosBusqueda / maxIntentosBusqueda) * 100">
+            </div>
+        </div>
+    </div>
+    <mat-progress-bar mode="indeterminate" *ngIf="detecting && !fotoCapturada"></mat-progress-bar>
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones-camara">
+        <button *ngIf="fotoCapturada && !buscandoAutomaticamente" mat-raised-button color="warn"
+            (click)="retomarCamara()">
+            <mat-icon>refresh</mat-icon> Nueva Foto
+        </button>
+        <button *ngIf="fotoCapturada && !buscandoAutomaticamente" mat-stroked-button color="primary"
+            (click)="onBusquedaManual()">
+            <mat-icon>search</mat-icon> Buscar por ID
+        </button>
+        <button *ngIf="buscandoAutomaticamente" mat-stroked-button color="warn" (click)="detenerAutoSearchPublic()">
+            <mat-icon>stop</mat-icon> Detener Búsqueda
+        </button>
+        <button mat-stroked-button (click)="onCerrar()">
+            <mat-icon>close</mat-icon> Cerrar
+        </button>
+    </div>
+</ng-container>
+<ng-container *ngIf="modo === 'verificacion'">
+    <div class="camera-container" *ngIf="!verificacionSnapshotUrl">
+        <video #video autoplay playsinline muted></video>
+        <canvas #canvas class="canvas-hidden"></canvas>
+        <div class="liveness-overlay" *ngIf="detecting">
+            <mat-icon [class.success]="livenessStep === 'DONE'">{{ livenessStep === 'DONE' ? 'check_circle' :
+                'visibility' }}</mat-icon>
+            <span>{{ mensajeReconocimiento }}</span>
+        </div>
+    </div>
+    <div class="camera-container snapshot-container" *ngIf="verificacionSnapshotUrl">
+        <img [src]="verificacionSnapshotUrl" class="snapshot-image" alt="Foto verificada" />
+    </div>
+</ng-container>
+
+<ng-container *ngIf="modo === 'captura-perfil'">
+    <div class="camera-container">
+        <video #video autoplay playsinline muted></video>
+        <canvas #canvas></canvas>
+        <div *ngIf="detecting" class="detecting-overlay">
+            {{ mensajeReconocimiento }}
+        </div>
+    </div>
+    <div *ngIf="esperandoCapturaPerfil && capturaMultiplePaso === 0" fxLayout="column" fxLayoutAlign="center center"
+        fxLayoutGap="8px" class="acciones-captura">
+        <span class="mensaje-captura">{{ mensajeReconocimiento }}</span>
+        <button mat-raised-button color="primary" (click)="tomarFotoPerfil()">
+            <mat-icon>photo_camera</mat-icon> Guardar Foto
+        </button>
+    </div>
+</ng-container>
+<ng-container *ngIf="modo === 'captura-multiple'">
+    <div class="camera-container">
+        <video #video autoplay playsinline muted></video>
+        <canvas #canvas></canvas>
+        <div *ngIf="detecting" class="detecting-overlay">
+            {{ mensajeReconocimiento }}
+        </div>
+    </div>
+    <div *ngIf="capturaMultiplePaso > 0" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px"
+        class="acciones-captura">
+        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px" class="progress-steps">
+            <div *ngFor="let step of [1,2,3]" class="step-indicator"
+                [class.step-complete]="step <= capturaMultipleFotos.length"
+                [class.step-active]="step === capturaMultiplePaso"
+                [class.step-pending]="step > capturaMultipleFotos.length && step !== capturaMultiplePaso">
+            </div>
+        </div>
+        <span class="mensaje-captura-multiple">{{ mensajeReconocimiento }}</span>
+        <button mat-raised-button color="primary" (click)="tomarFotoPerfilMultiple()" [disabled]="detecting">
+            <mat-icon>photo_camera</mat-icon>
+            {{ capturaMultiplePaso === 3 ? 'Capturar y Guardar' : 'Capturar' }}
+        </button>
+    </div>
+</ng-container>

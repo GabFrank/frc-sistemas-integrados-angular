@@ -45,7 +45,7 @@ export class EditSucursalDialogComponent implements OnInit {
   direccionControl = new FormControl(null);
   nroDeliveryControl = new FormControl(null);
   isConfiguredControl = new FormControl(false);
-  activoControl = new FormControl(false);
+  activoControl = new FormControl(true); // Por defecto activo
 
   // Lists for selects
   ciudadList: Ciudad[] = [];

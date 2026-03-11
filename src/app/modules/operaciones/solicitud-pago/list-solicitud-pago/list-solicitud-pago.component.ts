@@ -1,209 +1,298 @@
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate
+} from '@angular/animations';
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { MatTable, MatTableDataSource } from '@angular/material/table';
+import { FormControl, FormGroup } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { animate, state, style, transition, trigger } from '@angular/animations';
-import { MatDialog } from '@angular/material/dialog';
-import { MainService } from '../../../../main.service';
-import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
-import { ROLES } from '../../../personas/roles/roles.enum';
-import { updateDataSource, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
-import { PageInfo } from '../../../../app.component';
-import { SolicitudPago, SolicitudPagoEstado, TipoSolicitudPago } from '../solicitud-pago.model';
-import { SolicitudPagoService } from '../solicitud-pago.service';
-import { EditPagoComponent } from '../../pago/edit-pago/edit-pago.component';
+import { TabService } from '../../../../layouts/tab/tab.service';
+import { MainService } from '../../../../main.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
+import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
+import { SolicitudPago, SolicitudPagoEstado } from '../../compra/gestion-compras/solicitud-pago.model';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
+import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
+import { CreateEditSolicitudPagoDialogComponent } from '../create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
+import { MatDialog } from '@angular/material/dialog';
+import { PedidoService } from '../../compra/pedido.service';
+import {
+  AddEditNotaRecepcionDialogComponent,
+  AddEditNotaRecepcionDialogData
+} from '../../compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
+import { GestionPagoDialogComponent } from '../gestion-pago-dialog/gestion-pago-dialog.component';
 
-@UntilDestroy({ checkProperties: true })
+@UntilDestroy()
 @Component({
   selector: 'app-list-solicitud-pago',
   templateUrl: './list-solicitud-pago.component.html',
   styleUrls: ['./list-solicitud-pago.component.scss'],
   animations: [
-    trigger("detailExpand", [
-      state("collapsed", style({ height: "0px", minHeight: "0" })),
-      state("expanded", style({ height: "*" })),
-      transition(
-        "expanded <=> collapsed",
-        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
-      ),
-    ]),
-  ],
+    trigger('detailExpand', [
+      state('collapsed', style({ height: '0px', minHeight: '0' })),
+      state('expanded', style({ height: '*' })),
+      transition('expanded <=> collapsed', animate('225ms cubic-bezier(0.4, 0.0, 0.2, 1)'))
+    ])
+  ]
 })
 export class ListSolicitudPagoComponent implements OnInit {
-
   @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild(MatSort) sort: MatSort;
-  @ViewChild(MatTable) table: MatTable<any>;
 
-  readonly ROLES = ROLES;
+  titulo = 'Lista de solicitudes de pago';
+
+  dataSource = new MatTableDataSource<SolicitudPago>([]);
+  expandedSolicitud: SolicitudPago | null = null;
+
+  proveedorControl = new FormControl();
+  estadoControl = new FormControl();
+  numeroControl = new FormControl();
+  fechaInicioControl = new FormControl();
+  fechaFinControl = new FormControl();
+  fechaFormGroup: FormGroup;
+  today = new Date();
+
+  selectedProveedor: Proveedor;
+
+  estadoToRowClass: Record<string, string> = {
+    PENDIENTE: '',
+    PARCIAL: 'row-estado-parcial',
+    CONCLUIDO: 'row-estado-concluido',
+    CANCELADO: 'row-estado-cancelado'
+  };
 
   displayedColumns = [
-    "id",
-    "usuario",
-    "creadoEn",
-    "estado",
-    "tipo",
-    "referenciaId",
-    "acciones"
-  ]
+    'numeroSolicitud',
+    'proveedor',
+    'fechaSolicitud',
+    'montoTotal',
+    'estado',
+    'acciones'
+  ];
 
-  // Form controls for filters
-  idControl = new FormControl(null);
-  buscarControl = new FormControl(null); // Now used only for referenciaId
-  estadoControl = new FormControl(null);
-  tipoControl = new FormControl(null);
-  
-  dataSource = new MatTableDataSource<SolicitudPago>([]);
-  isLastPage = false;
-  isSearching = false;
-  expandedSolicitudPago: SolicitudPago;
-  timer;
-  
-  estadoList = Object.keys(SolicitudPagoEstado);
-  tipoList = Object.keys(TipoSolicitudPago);
+  estadoOpciones: { value: string; label: string }[] = [
+    { value: '', label: 'Todos' },
+    { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
+    { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
+    { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
+    { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
+  ];
 
-  length = 25;
+  length = 0;
   pageSize = 25;
   pageIndex = 0;
-  pageEvent: PageEvent;
-  selectedPageInfo: PageInfo<SolicitudPago>;
 
   constructor(
     private solicitudPagoService: SolicitudPagoService,
-    public mainService: MainService,
     private tabService: TabService,
-    private dialog: MatDialog
-  ) { }
+    public mainService: MainService,
+    private notificacionService: NotificacionSnackbarService,
+    private reporteService: ReporteService,
+    private dialog: MatDialog,
+    private proveedorService: ProveedorService,
+    private pedidoService: PedidoService
+  ) {}
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
-      this.pageSize = this.paginator.pageSizeOptions[1]
-      this.onFiltrar()
-    }, 0);
-
-    //do not add any value change filter
+    const hoy = new Date();
+    const hace7Dias = new Date(hoy);
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    this.fechaInicioControl.setValue(hace7Dias);
+    this.fechaFinControl.setValue(hoy);
+    this.fechaFormGroup = new FormGroup({
+      inicio: this.fechaInicioControl,
+      fin: this.fechaFinControl
+    });
+    this.loadPage();
   }
 
-  onFiltrar() {
-    // Check if we have a valid ID - if so, prioritize it in the search
-    const solicitudId = this.idControl.value;
-    this.isSearching = true;
-    
-    // Call the service with all filters, prioritizing ID if present
-    this.solicitudPagoService.onSearchConFiltros(
-      solicitudId && !isNaN(solicitudId) ? Number(solicitudId) : null,
-      this.buscarControl.value, // referenciaId
-      this.tipoControl.value,
-      this.estadoControl.value,
-      null, // fechaInicio - podría implementarse con un rango de fechas
-      null, // fechaFin - podría implementarse con un rango de fechas
-      this.pageIndex,
-      this.pageSize
-    )
-    .pipe(untilDestroyed(this))
-    .subscribe(
-      (res) => {
-        this.isSearching = false;
-        if (res) {
-          this.selectedPageInfo = res;
-          this.dataSource.data = this.selectedPageInfo.getContent;
-          
-          // Actualizar información de paginación
-          this.isLastPage = this.selectedPageInfo.isLast;
+  loadPage(): void {
+    const proveedorId = this.selectedProveedor?.id ?? null;
+    const estado = this.estadoControl.value?.trim() || undefined;
+    const numero = this.numeroControl.value?.trim() || undefined;
+    const fechaDesde = this.fechaInicioControl.value
+      ? dateToString(this.fechaInicioControl.value, 'yyyy-MM-dd')
+      : undefined;
+    const fechaHasta = this.fechaFinControl.value
+      ? dateToString(this.fechaFinControl.value, 'yyyy-MM-dd')
+      : undefined;
+
+    this.solicitudPagoService
+      .onGetSolicitudesPagoPaginated(
+        this.pageIndex,
+        this.pageSize,
+        proveedorId,
+        estado,
+        numero,
+        fechaDesde,
+        fechaHasta
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pageResult) => {
+          this.dataSource.data = pageResult?.getContent ?? [];
+          this.length = pageResult?.getTotalElements ?? 0;
+        },
+        error: () => {
+          this.notificacionService.openAlgoSalioMal('Error al cargar solicitudes');
+        }
+      });
+  }
+
+  onFilter(): void {
+    this.pageIndex = 0;
+    this.loadPage();
+  }
+
+  onResetFiltro(): void {
+    this.selectedProveedor = null;
+    this.proveedorControl.setValue(null);
+    this.proveedorControl.enable();
+    this.estadoControl.setValue(null);
+    this.numeroControl.setValue(null);
+    const hoy = new Date();
+    const hace7Dias = new Date(hoy);
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    this.fechaInicioControl.setValue(hace7Dias);
+    this.fechaFinControl.setValue(hoy);
+    this.pageIndex = 0;
+    this.loadPage();
+  }
+
+  onAdd(): void {
+    const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
+      width: '60vw',
+      height: '70vh',
+      data: { proveedorId: this.selectedProveedor?.id }
+    });
+    dialogRef.afterClosed().subscribe((saved) => {
+      if (saved) {
+        this.loadPage();
+      }
+    });
+  }
+
+  onSearchProveedor(): void {
+    if (this.selectedProveedor) return;
+    const searchText = this.proveedorControl.value?.trim() || null;
+    this.proveedorService.onSearchProveedorPorTexto(searchText).subscribe({
+      next: (result: Proveedor) => {
+        if (result) {
+          this.selectedProveedor = result;
+          this.proveedorControl.setValue(
+            result.persona?.nombre != null
+              ? String(result.persona.nombre).toUpperCase()
+              : `${result.id}`
+          );
+          this.proveedorControl.disable();
         } else {
-          this.dataSource.data = [];
-          this.selectedPageInfo = null;
+          this.proveedorControl.setValue(null);
         }
       },
-      (error) => {
-        this.isSearching = false;
-        console.error('Error al filtrar solicitudes de pago:', error);
-        this.dataSource.data = [];
+      error: () => this.proveedorControl.setValue(null)
+    });
+  }
+
+  onProveedorKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !this.selectedProveedor) {
+      event.preventDefault();
+      this.onSearchProveedor();
+    }
+  }
+
+  onClearProveedor(): void {
+    this.selectedProveedor = null;
+    this.proveedorControl.setValue(null);
+    this.proveedorControl.enable();
+  }
+
+  onEditarPago(row: SolicitudPago): void {
+    if (!row?.id) return;
+    const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
+      width: '60vw',
+      height: '70vh',
+      data: { solicitudPago: row }
+    });
+    dialogRef.afterClosed().subscribe((saved) => {
+      if (saved) {
+        this.loadPage();
       }
-    );
+    });
   }
 
-  /**
-   * Navega a la pantalla de crear/editar pago para la solicitud de pago seleccionada
-   * @param solicitudPago La solicitud de pago seleccionada
-   */
-  onCrearEditarPago(solicitudPago: SolicitudPago): void {
-    // Dynamic import to avoid circular dependencies
-
-        this.tabService.addTab(
-          new Tab(
-            EditPagoComponent,
-            `Pago para solicitud #${solicitudPago.id}`,
-            new TabData(solicitudPago.id, { solicitudPagoId: solicitudPago.id }),
-            ListSolicitudPagoComponent
-          )
-        );
+  onGestionarPago(row: SolicitudPago): void {
+    if (!row?.id) return;
+    const dialogRef = this.dialog.open(GestionPagoDialogComponent, {
+      width: '420px',
+      data: { solicitudPago: row }
+    });
+    dialogRef.afterClosed().subscribe((saved) => {
+      if (saved) {
+        this.loadPage();
+      }
+    });
   }
 
-  resetFiltro() {
-    this.pageIndex = 0;
-    this.dataSource.data = [];
-    this.selectedPageInfo = null;
-    this.idControl.setValue(null, { emitEvent: false });
-    this.buscarControl.setValue(null, { emitEvent: false });
-    this.estadoControl.setValue(null, { emitEvent: false });
-    this.tipoControl.setValue(null, { emitEvent: false });
-    // Cargar datos iniciales después de resetear
-    this.onFiltrar();
-  }
-
-  onEditSolicitudPago(solicitudPago: SolicitudPago, i) {
-    // In a real app, you would open a dialog to edit the entity
-    // For now, we'll just log it
-    console.log('Edit SolicitudPago:', solicitudPago);
-    
-    // Example of dialog implementation (commented out for now)
-    /*
-    this.dialog.open(EditSolicitudPagoDialogComponent, {
-      data: {
-        solicitudPago: solicitudPago
+  onImprimir(row: SolicitudPago): void {
+    if (!row?.id) return;
+    this.solicitudPagoService.onImprimirSolicitudPagoPDF(row.id).subscribe({
+      next: (pdfBase64) => {
+        if (pdfBase64) {
+          this.reporteService.onAdd(
+            `Solicitud de Pago ${row.numeroSolicitud || row.id}`,
+            pdfBase64
+          );
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+          this.notificacionService.openSucess('PDF agregado a reportes');
+        }
       },
-      width: '60%',
-      disableClose: true
-    }).afterClosed().subscribe(res => {
-      if (res != null) {
-        this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, solicitudPago.id);
-        this.table.renderRows();
-      }
+      error: () => this.notificacionService.openAlgoSalioMal('Error al generar PDF')
     });
-    */
   }
 
-  onNewSolicitudPago() {
-    // In a real app, you would open a dialog to create a new entity
-    // For now, we'll just log it
-    console.log('Create new SolicitudPago');
-    
-    // Example of dialog implementation (commented out for now)
-    /*
-    this.dialog.open(EditSolicitudPagoDialogComponent, {
-      width: '60%',
-      disableClose: true
-    }).afterClosed().subscribe((res: SolicitudPago) => {
-      if (res != null) {
-        this.onFiltrar();
-      }
+  onImprimirTicket(row: SolicitudPago): void {
+    if (!row?.id) return;
+    this.solicitudPagoService.onImprimirSolicitudPagoTicket(row.id).subscribe({
+      next: () => this.notificacionService.openSucess('Ticket enviado a imprimir'),
+      error: () => this.notificacionService.openAlgoSalioMal('Error al imprimir ticket')
     });
-    */
   }
 
-  onViewDetails(solicitudPago: SolicitudPago) {
-    console.log('View details for SolicitudPago:', solicitudPago);
-    // Implement navigation or detail display logic here
-  }
-
-  handlePageEvent(e: PageEvent) {
+  handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.loadPage();
   }
-} 
+
+  onRowClick(row: SolicitudPago): void {
+    this.expandedSolicitud = this.expandedSolicitud === row ? null : row;
+  }
+
+  onVerNota(notaRecepcionId: number): void {
+    if (!notaRecepcionId) return;
+    this.pedidoService.onGetNotaRecepcionById(notaRecepcionId).pipe(untilDestroyed(this)).subscribe({
+      next: (nota) => {
+        const data: AddEditNotaRecepcionDialogData = {
+          nota,
+          isEdit: true,
+          readOnly: true
+        };
+        this.dialog.open(AddEditNotaRecepcionDialogComponent, {
+          width: '80%',
+          height: '80%',
+          data
+        });
+      },
+      error: () => {
+        this.notificacionService.openAlgoSalioMal('Error al cargar la nota de recepción');
+      }
+    });
+  }
+}

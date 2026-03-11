@@ -11,9 +11,30 @@
   overflow: auto !important;
 }
 
-.mat-mdc-tab.mdc-tab {
+::ng-deep .mat-mdc-tab.mdc-tab {
   height: 2em !important;
-  max-width: 200px;
+  min-width: 200px !important;
+  max-width: 250px !important;
+}
+
+::ng-deep .mat-mdc-tab {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+  min-width: 200px !important;
+  max-width: 250px !important;
+
+  .mdc-tab__content {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    max-width: none !important;
+  }
+
+  .mdc-tab-indicator {
+    width: 100% !important;
+  }
 }
 
 :host ::ng-deep mat-drawer mat-paginator {
@@ -207,6 +228,21 @@
   }
 }
 
+.mark-all-button {
+  height: 40px;
+  min-width: 150px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+
+  mat-icon {
+    margin-right: 4px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
 .btn-crear-notificacion {
   height: 40px;
   min-width: 180px;
@@ -215,7 +251,7 @@
   justify-content: center;
   gap: 8px;
   flex-shrink: 0;
-  
+
   mat-icon {
     margin-right: 0;
   }
@@ -309,12 +345,12 @@ mat-drawer-container {
 }
 
 .tab-label-text {
-  font-size: 1em;
-  text-align: center;
+  font-size: 0.9em;
+  text-align: left;
   color: white;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
-  max-width: 100%;
+  flex: 1;
 }

@@ -1,0 +1,93 @@
+.dialog-container {
+  min-width: 400px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .observaciones-field {
+    flex: 1 1 100%;
+  }
+
+  .valor-field {
+    max-width: 160px;
+  }
+
+  .valor-with-menu {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    min-width: 140px;
+    flex: 1;
+
+    .valor-field {
+      flex: 1;
+      max-width: 160px;
+    }
+
+    .valor-menu-trigger {
+      flex-shrink: 0;
+      margin-top: 0.5rem;
+    }
+  }
+
+  .cotizacion-field {
+    max-width: 140px;
+  }
+
+  .portador-field {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  mat-checkbox {
+    margin: 0 0.5rem;
+  }
+}
+
+.bloque-cheque {
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.total-gs-card {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  mat-card-content {
+    padding: 0.75rem 1rem;
+
+    .total-gs-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.35rem 0;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .total-gs-label {
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .total-gs-value {
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.95);
+      }
+    }
+  }
+}

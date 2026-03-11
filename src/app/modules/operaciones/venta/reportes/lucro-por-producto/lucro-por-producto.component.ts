@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from "@angular/core";
+import { Component, ElementRef, OnInit, ViewChild, Injectable } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import { LucroPorProducto } from "./lucro-por-producto.model";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
@@ -21,12 +21,17 @@ import { NotificacionSnackbarService } from "../../../../../notificacion-snackba
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
+  TableData,
 } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { PersonaService } from "../../../../personas/persona/persona.service";
 import { PersonaSearchGQL } from "../../../../personas/persona/graphql/personaSearch";
 import { Persona } from "../../../../personas/persona/persona.model";
 import { UsuarioService } from "../../../../personas/usuarios/usuario.service";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
+import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
+import { Subfamilia } from "../../../../productos/sub-familia/sub-familia.model";
+import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/subfamiliasSearch";
+import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -36,7 +41,7 @@ import { Usuario } from "../../../../personas/usuarios/usuario.model";
 })
 export class LucroPorProductoComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  @ViewChild("buscadorCajeroInput", { static: true })
+  @ViewChild("cajeroInput", { static: true })
   buscadorCajeroInput: ElementRef;
 
   dataSource = new MatTableDataSource<LucroPorProducto>([]);
@@ -52,13 +57,40 @@ export class LucroPorProductoComponent implements OnInit {
   sucursalList: Sucursal[];
   sucursalIdList: number[];
   buscarProductoControl = new FormControl();
+  buscarSubfamiliaControl = new FormControl();
   isPesable = false;
   selectedProducto: Producto;
   isDialogOpen = true;
   productoList: Producto[] = [];
   buscarCajeroControl = new FormControl();
   selectedUsuario: Usuario;
+  selectedSubFamilia: Subfamilia;
   cajeroIdList: number[];
+
+  displayedColumns: string[] = [
+    "id",
+    "descripcion",
+    "cantidad",
+    "costoUnitario",
+    "ventaMedia",
+    "costoTotal",
+    "totalVenta",
+    "totalDescuento",
+    "totalAumento",
+    "lucro",
+    "margen",
+  ];
+
+  totalVenta = 0;
+  totalCosto = 0;
+  totalLucro = 0;
+  totalDescuento = 0;
+  totalAumento = 0;
+  margenPromedio = 0;
+
+  page = 0;
+  size = 20;
+  totalElements = 0;
 
   constructor(
     private sucursalService: SucursalService,
@@ -66,8 +98,10 @@ export class LucroPorProductoComponent implements OnInit {
     private dialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private personaService: PersonaService,
-    private personaSearch: PersonaSearchGQL,
-    private usuarioService: UsuarioService
+    private usuarioSearch: UsuarioSearchGQL,
+    private usuarioService: UsuarioService,
+    private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -103,13 +137,82 @@ export class LucroPorProductoComponent implements OnInit {
     });
   }
 
-  cargarMasDatos() {}
-  onFiltrar() {
+  onFiltrar(isPagination: boolean = false) {
+    if (!isPagination) {
+      this.page = 0;
+    }
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
+      if (this.horaInicioControl.value == null)
+        this.horaInicioControl.setValue("07:00");
+      if (this.horaFinalControl.value == null)
+        this.horaFinalControl.setValue("06:59");
+      this.fechaInicioControl.setValue(
+        combineDateTime(
+          this.fechaInicioControl.value,
+          this.horaInicioControl.value
+        )
+      );
+      this.fechaFinalControl.setValue(
+        combineDateTime(
+          this.fechaFinalControl.value,
+          this.horaFinalControl.value
+        )
+      );
       let fechaInicio = dateToString(this.fechaInicioControl.value);
       let fechaFin = dateToString(this.fechaFinalControl.value);
+      let productoIdList: number[];
+      this.productoList.forEach((p) => {
+        if (productoIdList == null) productoIdList = [];
+        productoIdList.push(p.id);
+      });
+      if (this.selectedUsuario != null) {
+        this.cajeroIdList = [];
+        this.cajeroIdList.push(this.selectedUsuario?.id);
+      } else {
+        this.cajeroIdList = [];
+      }
+
+      this.productoService
+        .onGetLucroPorProducto(
+          fechaInicio,
+          fechaFin,
+          this.toSucursalesId(this.sucursalControl.value),
+          this.cajeroIdList,
+          productoIdList,
+          this.selectedSubFamilia?.id,
+          this.page,
+          this.size
+        )
+        .subscribe((res) => {
+          console.log('Data received:', res);
+          if (res) {
+            this.dataSource.data = res.content || [];
+            this.totalElements = res.totalElements || 0;
+            if (res.summary) {
+              this.populateSummary(res.summary);
+            }
+          }
+        });
     }
   }
+
+  handlePageEvent(e: any) {
+    this.page = e.pageIndex;
+    this.size = e.pageSize;
+    this.onFiltrar(true);
+  }
+
+  populateSummary(summary: any) {
+    this.totalVenta = summary.totalVenta || 0;
+    this.totalCosto = summary.costoTotal || 0;
+    this.totalLucro = summary.lucro || 0;
+    this.totalDescuento = summary.totalDescuento || 0;
+    this.totalAumento = summary.totalAumento || 0;
+    this.margenPromedio = summary.margen || 0;
+  }
+
+  cargarMasDatos() {}
+
   resetFiltro() {
     this.fechaInicioControl.setValue(null);
     this.fechaFinalControl.setValue(null);
@@ -141,13 +244,16 @@ export class LucroPorProductoComponent implements OnInit {
     if (this.selectedUsuario != null) {
       this.cajeroIdList = [];
       this.cajeroIdList.push(this.selectedUsuario?.id);
+    } else {
+      this.cajeroIdList = [];
     }
     this.productoService.onImprimirReporteLucroPorProducto(
       fechaInicio,
       fechaFin,
       this.toSucursalesId(this.sucursalControl.value),
       this.cajeroIdList,
-      productoIdList
+      productoIdList,
+      this.selectedSubFamilia?.id
     );
   }
 
@@ -242,12 +348,11 @@ export class LucroPorProductoComponent implements OnInit {
 
   onBuscarCajero() {
     let data: SearchListtDialogData = {
-      titulo: "Buscar Persona",
-      query: this.personaSearch,
+      titulo: "Buscar Cajero",
+      query: this.usuarioSearch,
       tableData: [
         { id: "id", nombre: "Id", width: "10%" },
-        { id: "nombre", nombre: "Nombre", width: "70%" },
-        { id: "documento", nombre: "Documento/Ruc", width: "20%" },
+        { id: "nickname", nombre: "Nombre", width: "90%" },
       ],
       texto: this.buscarCajeroControl.value,
       search: true,
@@ -257,20 +362,20 @@ export class LucroPorProductoComponent implements OnInit {
     this.dialog
       .open(SearchListDialogComponent, {
         data,
+        width: "50%",
         height: "80%",
-        width: "80%",
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res: Persona) => {
+      .subscribe((res: Usuario) => {
         if (res != null) {
           this.usuarioService
-            .onGetUsuarioPorPersonaId(res.id)
+            .onGetUsuario(res.id)
             .pipe(untilDestroyed(this))
             .subscribe((resUsuario) => {
               if (resUsuario != null) {
                 this.selectedUsuario = resUsuario;
-                this.buscarCajeroControl.setValue(res.id + " - " + res.nombre);
+                this.buscarCajeroControl.setValue(res.id + " - " + res.nickname);
               } else {
                 this.notificacionService.openWarn(
                   "No posee usuario registrado"
@@ -280,6 +385,53 @@ export class LucroPorProductoComponent implements OnInit {
             });
         }
       });
+  }
+
+  onBuscarSubFamilia() {
+    let tableData: TableData[] = [
+          {
+            id: "id",
+            nombre: "Id",
+          },
+          {
+            id: "nombre",
+            nombre: "Familia",
+            nested: true,
+            nestedId: "familia",
+            nestedColumnId: "familia",
+          },
+          {
+            id: "nombre",
+            nombre: "Nombre",
+          },
+        ];
+        let data: SearchListtDialogData = {
+          query: this.searchSubfamilia,
+          tableData: tableData,
+          titulo: "Buscar subfamilia",
+          search: true,
+          queryData: { texto: this.buscarSubfamiliaControl.value },
+          inicialSearch: true,
+          paginator: true,
+        };
+        this.matDialog
+          .open(SearchListDialogComponent, {
+            data: data,
+            width: "60%",
+            height: "80%",
+          })
+          .afterClosed()
+          .subscribe((res: Subfamilia | any) => {
+            if (res != null) {
+              this.selectedSubFamilia = res;
+              this.buscarSubfamiliaControl.setValue(res.nombre);
+            }
+          });
+  }
+
+  onClearSubFamilia() {
+    this.selectedSubFamilia = null;
+    this.buscarSubfamiliaControl.setValue(null);
   }
 
   onClearPersona() {

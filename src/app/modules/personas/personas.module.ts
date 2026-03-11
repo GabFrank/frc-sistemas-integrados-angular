@@ -25,6 +25,7 @@ import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cli
 import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component';
 import { ClienteDashboardComponent } from './clientes/cliente-dashboard/cliente-dashboard.component';
 import { ListClientesComponent } from './clientes/list-clientes/list-clientes.component';
+import { ProductoModule } from '../productos/productos.module';
 
 
 @NgModule({
@@ -55,7 +56,8 @@ import { ListClientesComponent } from './clientes/list-clientes/list-clientes.co
     ReactiveFormsModule,
     FormsModule,
     MaterialModule,
-    SharedModule
+    SharedModule,
+    ProductoModule
   ],
   providers: [
     { provide: MAT_DIALOG_DATA, useValue: {} },

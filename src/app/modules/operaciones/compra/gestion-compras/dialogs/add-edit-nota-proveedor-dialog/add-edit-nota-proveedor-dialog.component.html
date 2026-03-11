@@ -1,0 +1,129 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title class="titulo-center">{{ titleComputed }}</h2>
+
+  <mat-dialog-content>
+    <form [formGroup]="notaForm" class="form-container">
+      
+      <!-- Row 1: Tipo de documento y número -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="field-tipo">
+          <mat-label>Tipo de Documento</mat-label>
+          <mat-select 
+            formControlName="tipoDocumento"
+            (selectionChange)="onTipoDocumentoSelectionChange()">
+            <mat-option 
+              *ngFor="let tipo of tiposDocumento" 
+              [value]="tipo">
+              {{ tipo.replace('_', ' ') }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="notaForm.get('tipoDocumento')?.hasError('required')">
+            Tipo de documento es requerido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field-numero">
+          <mat-label>Número de Documento</mat-label>
+          <input 
+            matInput 
+            formControlName="numeroDocumento"
+            placeholder="Ej: F001-001-0000123"
+            (keydown)="onKeydown($event, 'numeroDocumento')">
+          <mat-error *ngIf="notaForm.get('numeroDocumento')?.hasError('required')">
+            Número de documento es requerido
+          </mat-error>
+          <mat-error *ngIf="notaForm.get('numeroDocumento')?.hasError('minlength')">
+            Debe tener al menos 3 caracteres
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Row 2: Fechas -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="field-fecha">
+          <mat-label>Fecha de Emisión</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="pickerEmision"
+            formControlName="fechaEmision"
+            readonly
+            (keydown)="onKeydown($event, 'fechaEmision')">
+          <mat-datepicker-toggle matSuffix [for]="pickerEmision"></mat-datepicker-toggle>
+          <mat-datepicker #pickerEmision></mat-datepicker>
+          <mat-error *ngIf="notaForm.get('fechaEmision')?.hasError('required')">
+            Fecha de emisión es requerida
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="field-fecha">
+          <mat-label>Fecha de Vencimiento</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="pickerVencimiento"
+            formControlName="fechaVencimiento"
+            readonly
+            (keydown)="onKeydown($event, 'fechaVencimiento')">
+          <mat-datepicker-toggle matSuffix [for]="pickerVencimiento"></mat-datepicker-toggle>
+          <mat-datepicker #pickerVencimiento></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <!-- Row 3: Monto -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="field-monto">
+          <mat-label>Monto Total</mat-label>
+          <input 
+            matInput 
+            type="number"
+            formControlName="montoTotal"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+            (keydown)="onKeydown($event, 'montoTotal')">
+          <span matPrefix>{{ data.pedido?.moneda?.simbolo || 'Gs.' }}&nbsp;</span>
+          <mat-error *ngIf="notaForm.get('montoTotal')?.hasError('required')">
+            Monto total es requerido
+          </mat-error>
+          <mat-error *ngIf="notaForm.get('montoTotal')?.hasError('min')">
+            El monto debe ser mayor a 0
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Row 4: Observaciones -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="field-full">
+          <mat-label>Observaciones</mat-label>
+          <textarea 
+            matInput 
+            formControlName="observaciones"
+            rows="3"
+            placeholder="Observaciones adicionales sobre el documento..."
+            (keydown)="onKeydown($event, 'observaciones')">
+          </textarea>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button 
+      mat-button 
+      type="button"
+      (click)="onCancel()">
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent"
+      type="button"
+      #saveButton
+      [disabled]="isSaveDisabledComputed"
+      (click)="onSave()">
+      <mat-icon>save</mat-icon>
+      {{ isEditComputed ? 'Actualizar' : 'Guardar' }}
+    </button>
+  </mat-dialog-actions>
+
+</div> 

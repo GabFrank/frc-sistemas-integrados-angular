@@ -1,0 +1,104 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title class="titulo-center font-medium">{{ tituloDialogo }}</h2>
+
+  <mat-dialog-content style="padding-top: 10px;">
+    <form [formGroup]="form">
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Moneda *</mat-label>
+          <mat-select formControlName="monedaId">
+            <mat-option *ngFor="let m of monedaList" [value]="m.id">{{ m.denominacion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Forma de pago *</mat-label>
+          <mat-select formControlName="formaPagoId">
+            <mat-option *ngFor="let f of formaPagoList" [value]="f.id">{{ f.descripcion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field *ngIf="mostrarCotizacion" appearance="outline" class="cotizacion-field">
+          <mat-label>Cotización</mat-label>
+          <input matInput type="text" formControlName="cotizacion" currencyMask [options]="cotizacionCurrencyOptions" />
+        </mat-form-field>
+        <div class="valor-with-menu">
+          <mat-form-field appearance="outline" class="valor-field">
+            <mat-label>Valor *</mat-label>
+            <input matInput type="text" formControlName="valor" currencyMask [options]="valorCurrencyOptions" />
+          </mat-form-field>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="menuValorAcciones" class="valor-menu-trigger">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menuValorAcciones="matMenu">
+            <button mat-menu-item (click)="onRedondeoUp()">
+              <mat-icon>arrow_drop_up</mat-icon>
+              <span>Redondeo hacia arriba</span>
+            </button>
+            <button mat-menu-item (click)="onRedondeoDown()">
+              <mat-icon>arrow_drop_down</mat-icon>
+              <span>Redondeo hacia abajo</span>
+            </button>
+            <button mat-menu-item (click)="onValorTotal()">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <span>Valor total</span>
+            </button>
+          </mat-menu>
+        </div>
+      </div>
+      <div class="form-row" *ngIf="mostrarCamposCheque">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha emisión cheque</mat-label>
+          <input matInput [matDatepicker]="pickerCheque" formControlName="fechaEmisionCheque" />
+          <mat-datepicker-toggle matSuffix [for]="pickerCheque"></mat-datepicker-toggle>
+          <mat-datepicker #pickerCheque></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de pago</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="fechaPago" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div class="form-row" *ngIf="!mostrarCamposCheque">
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de pago</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="fechaPago" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div class="form-row bloque-cheque" *ngIf="mostrarCamposCheque">
+        <mat-form-field appearance="outline" class="portador-field">
+          <mat-label>Portador</mat-label>
+          <input matInput formControlName="portador" />
+        </mat-form-field>
+        <mat-checkbox formControlName="nominal">Nominal</mat-checkbox>
+        <mat-checkbox formControlName="diferido">Diferido</mat-checkbox>
+      </div>
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="observaciones-field">
+          <mat-label>Observación</mat-label>
+          <input matInput formControlName="observacion" />
+        </mat-form-field>
+      </div>
+      <mat-card class="total-gs-card">
+        <mat-card-content>
+          <div class="total-gs-row">
+            <span class="total-gs-label">Total en Guaraníes</span>
+            <span class="total-gs-value">{{ valorEnGuaraniesDisplay | currency:'' : '' : '1.0-0' }} Gs</span>
+          </div>
+          <div class="total-gs-row">
+            <span class="total-gs-label">Saldo</span>
+            <span class="total-gs-value">{{ saldoDisplay | currency:'' : '' : '1.0-0' }} Gs</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="!form.valid">
+      {{ textoBoton }}
+    </button>
+  </mat-dialog-actions>
+</div>

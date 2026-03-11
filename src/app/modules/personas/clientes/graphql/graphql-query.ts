@@ -101,10 +101,10 @@ export const clientePorPersonaDocumentoDetallado = gql`
           nombre
           direccion
           email
+          documento
         }
         tipo
         nombre
-        documento
         credito
         creadoEn
         usuario {

@@ -1,1 +1,243 @@
-<p>edit-proveedor works!</p>
+<div class="dialog-container">
+  <div class="dialog-header background-gradient">
+    <div class="dialog-title titulo-center">
+      {{ dialogTitleComputed }}
+    </div>
+  </div>
+
+  <div class="dialog-content">
+    <div class="search-section" *ngIf="!isEditingModeComputed">
+      <div class="section-header">
+        <span>Buscar Persona Existente</span>
+      </div>
+      <div class="search-content">
+        <div class="search-field-wrapper">
+          <frc-searchable-select
+            titulo="Buscar por nombre o documento"
+            [list]="personaList"
+            [compareFields]="['nombre', 'documento']"
+            [currentData]="selectedPersona"
+            (selectionChanged)="onPersonaSelectionChange($event)"
+            (inputChanged)="onPersonaInputChange($event)"
+            [isFilter]="false"
+            [initialValue]="false"
+          >
+            <ng-template let-item>
+              {{ item.id }} - {{ item.nombre }} - {{ item.documento }}
+            </ng-template>
+          </frc-searchable-select>
+        </div>
+        <button
+          mat-icon-button
+          color="primary"
+          [disabled]="!hasPersonaSelectedComputed"
+          (click)="onClearPersonaSelection()"
+          class="clear-button"
+        >
+          <mat-icon>clear</mat-icon>
+        </button>
+      </div>
+      <div class="search-loading" *ngIf="isSearching">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Buscando personas...</span>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-header">
+        <span>{{
+          hasPersonaSelectedComputed
+            ? "Datos de la Persona"
+            : "Datos de Nueva Persona"
+        }}</span>
+      </div>
+
+      <form [formGroup]="proveedorFormGroup" class="proveedor-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Nombre Completo / Razón Social *</mat-label>
+            <input
+              matInput
+              #nombreInput
+              formControlName="nombre"
+              placeholder="Ingrese el nombre completo"
+              (keydown)="onNombreEnter($event)"
+              [readonly]="hasPersonaSelectedComputed && !isEditingModeComputed"
+            />
+            <mat-icon
+              matSuffix
+              [ngClass]="{
+                'field-valid-icon': nombreValidComputed,
+                'field-invalid-icon': nombreInvalidComputed
+              }"
+            >
+              {{ nombreIconComputed }}
+            </mat-icon>
+            <mat-error *ngIf="nombreInvalidComputed">
+              {{ nombreErrorMessageComputed }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Nombre Comercial / Apodo</mat-label>
+            <input
+              matInput
+              #apodoInput
+              formControlName="apodo"
+              placeholder="Ingrese el apodo (opcional)"
+              (keydown)="onApodoEnter($event)"
+              [readonly]="hasPersonaSelectedComputed && !isEditingModeComputed"
+            />
+            <mat-icon matSuffix>person_outline</mat-icon>
+            <mat-error *ngIf="apodoInvalidComputed">
+              {{ apodoErrorMessageComputed }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>CI/RUC (Sin dígito verificador) *</mat-label>
+            <input
+              matInput
+              #documentoInput
+              formControlName="documento"
+              placeholder="Ingrese CI o RUC sin dígito verificador"
+              (keydown)="onDocumentoEnter($event)"
+              [readonly]="hasPersonaSelectedComputed && !isEditingModeComputed"
+            />
+            <mat-icon
+              matSuffix
+              [ngClass]="{
+                'field-valid-icon': documentoValidComputed,
+                'field-invalid-icon': documentoInvalidComputed
+              }"
+            >
+              {{ documentoIconComputed }}
+            </mat-icon>
+            <mat-error *ngIf="documentoInvalidComputed">
+              {{ documentoErrorMessageComputed }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div
+          class="verification-status"
+          *ngIf="documentVerificationState !== 'none'"
+        >
+          <div
+            class="status-content"
+            [ngClass]="{
+              'status-checking': documentVerificationState === 'checking',
+              'status-found': documentVerificationState === 'found',
+              'status-available': documentVerificationState === 'available',
+              'status-warning': showDocumentWarning
+            }"
+          >
+            <mat-icon>
+              {{
+                documentVerificationState === "checking"
+                  ? "search"
+                  : documentVerificationState === "found"
+                    ? "person"
+                    : documentVerificationState === "available"
+                      ? "check_circle"
+                      : "info"
+              }}
+            </mat-icon>
+            <span>{{ documentVerificationMessage }}</span>
+          </div>
+          <mat-progress-bar
+            *ngIf="documentVerificationState === 'checking'"
+            mode="indeterminate"
+          ></mat-progress-bar>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field full-width">
+            <mat-label>Teléfono</mat-label>
+            <input
+              matInput
+              #telefonoInput
+              formControlName="telefono"
+              placeholder="Ingrese número de teléfono"
+              (keydown)="onTelefonoEnter($event)"
+            />
+            <mat-icon matSuffix>phone</mat-icon>
+            <mat-error *ngIf="telefonoInvalidComputed">
+              {{ telefonoErrorMessageComputed }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="section-divider"></div>
+        <div class="section-header">
+          <span>Datos del Proveedor</span>
+        </div>
+
+        <div class="form-row credit-row">
+          <div class="credit-toggle">
+            <mat-slide-toggle formControlName="credito" color="primary">
+              <span class="toggle-label">
+                <mat-icon>{{ creditoIconComputed }}</mat-icon>
+                {{ creditoLabelComputed }}
+              </span>
+            </mat-slide-toggle>
+          </div>
+          <div class="credit-terms" *ngIf="showCreditTermsComputed">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Plazo en días</mat-label>
+              <input
+                matInput
+                formControlName="chequeDias"
+                type="number"
+                min="1"
+                max="365"
+              />
+              <mat-icon matSuffix>schedule</mat-icon>
+              <mat-error *ngIf="chequeDiasInvalidComputed">
+                {{ chequeDiasErrorMessageComputed }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="loading-overlay" *ngIf="isSaving">
+      <mat-progress-spinner
+        diameter="60"
+        mode="indeterminate"
+      ></mat-progress-spinner>
+      <span>{{
+        isEditingModeComputed
+          ? "Actualizando proveedor..."
+          : "Creando proveedor..."
+      }}</span>
+    </div>
+  </div>
+
+  <div class="dialog-actions">
+    <button
+      mat-stroked-button
+      color="primary"
+      (click)="onCancelar()"
+      [disabled]="isSaving"
+    >
+      <mat-icon>close</mat-icon>
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      #guardarButton
+      color="accent"
+      [disabled]="!canSaveComputed"
+      (click)="onGuardar()"
+      (keydown)="onGuardarButtonEnter($event)"
+    >
+      {{ isEditingModeComputed ? "Actualizar" : "Crear" }} Proveedor
+    </button>
+  </div>
+</div>

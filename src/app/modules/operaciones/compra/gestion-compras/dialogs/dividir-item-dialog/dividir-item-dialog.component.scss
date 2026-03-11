@@ -1,0 +1,459 @@
+// Main dialog container
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  width: 100%;
+  height: 100%;
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+.dialog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+  flex-shrink: 0;
+
+  h2 {
+    margin: 0px;
+  }
+}
+
+.dialog-content {
+  flex: 1;
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+
+  .form-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Información de contexto
+  .context-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .info-label {
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+      }
+
+      .info-value {
+        font-weight: 600;
+        color: #ffffff;
+        font-size: 14px;
+
+        &.text-warning {
+          color: #ffc107;
+        }
+
+        &.text-success {
+          color: #4CAF50;
+        }
+      }
+    }
+  }
+
+  // Secciones de pasos
+  .step-section {
+
+    h3 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 8px;
+    }
+  }
+
+  .step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      border: none;
+      padding: 0;
+    }
+  }
+
+  // Lista de items
+  .items-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+
+    .item-form {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .item-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .item-label {
+          flex-shrink: 0;
+          min-width: 60px;
+
+          .item-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            background: rgba(76, 175, 80, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+          }
+        }
+
+        .item-cantidad {
+          flex: 1;
+          width: 100%;
+
+          mat-form-field {
+            width: 100%;
+
+            input {
+              text-align: center;
+            }
+          }
+        }
+
+        .item-nota {
+          flex: 1;
+          width: 100%;
+
+          mat-form-field {
+            width: 100%;
+          }
+        }
+
+        .item-actions {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
+
+    // Scrollbar styling
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+    }
+  }
+
+  // Campos del formulario
+  .form-field {
+    .mat-form-field {
+      width: 100%;
+    }
+
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+  }
+
+  // Mensajes
+  .help-message, .warning-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-top: 16px;
+    font-size: 14px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .help-message {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+
+  .warning-message {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+  }
+}
+
+// Botones de acción
+.dialog-actions {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+
+  button {
+    min-width: 100px;
+
+    &.cancel-btn {
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+    }
+
+    &.save-btn {
+      background: #4CAF50;
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: #45a049;
+      }
+
+      &:disabled {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Estilos para Material Design
+::ng-deep {
+  // Mat-form-field styling
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+    color: #4CAF50;
+  }
+
+  .mat-form-field-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .mat-form-field.mat-focused .mat-form-field-label {
+    color: #4CAF50;
+  }
+
+  .mat-select-value {
+    color: #ffffff;
+  }
+
+  .mat-select-arrow {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .mat-input-element {
+    color: #ffffff;
+  }
+
+  // Mat-select panel styling
+  .mat-mdc-select-panel {
+    background: #424242;
+
+    .mat-mdc-option {
+      color: #fff;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      &.mat-mdc-option-selected {
+        background: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+      }
+    }
+  }
+
+  // Checkbox styling
+  .mat-checkbox-frame {
+    border-color: rgba(255, 255, 255, 0.42);
+  }
+
+  .mat-checkbox-checked .mat-checkbox-background {
+    background-color: #4CAF50;
+  }
+
+  .mat-checkbox-label {
+    color: #ffffff;
+  }
+
+  // Button styling
+  .mat-button, .mat-raised-button {
+    &.mat-accent {
+      background-color: #4CAF50;
+      color: #ffffff;
+
+      &:hover:not(:disabled) {
+        background-color: #45a049;
+      }
+    }
+
+    &.mat-warn {
+      background-color: #f44336;
+      color: #ffffff;
+
+      &:hover:not(:disabled) {
+        background-color: #d32f2f;
+      }
+    }
+  }
+
+  // Tooltip styling
+  .mat-mdc-tooltip {
+    background: rgba(97, 97, 97, 0.95);
+    color: #fff;
+    font-size: 12px;
+  }
+
+  // Error styling
+  .mat-mdc-form-field-error {
+    color: #f44336;
+    font-size: 12px;
+  }
+
+  // Date picker styling
+  .mat-datepicker-popup {
+    .mat-calendar {
+      background: #424242;
+      color: #fff;
+    }
+
+    .mat-calendar-header {
+      background: #4CAF50;
+      color: #fff;
+    }
+
+    .mat-calendar-body-cell-content {
+      color: #fff;
+    }
+
+    .mat-calendar-body-selected {
+      background: #4CAF50;
+      color: #fff;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dialog-container {
+    .dialog-content {
+      padding: 16px;
+
+      .items-list {
+        .item-form {
+          .item-row {
+            flex-direction: column;
+            gap: 12px;
+            align-items: stretch;
+
+            .item-label {
+              min-width: auto;
+              text-align: center;
+            }
+
+            .item-cantidad {
+              min-width: auto;
+              max-width: none;
+            }
+
+            .item-nota {
+              min-width: auto;
+            }
+
+            .item-actions {
+              justify-content: center;
+            }
+          }
+        }
+      }
+    }
+
+    .dialog-actions {
+      padding: 12px 16px;
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Animation for smooth transitions
+.step-section > * {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 
