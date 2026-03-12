@@ -2,6 +2,7 @@
 @import url('https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css');
 
 @import 'material-design-icons-iconfont/dist/material-design-icons.css';
+@import 'leaflet/dist/leaflet.css';
 
 @include mat.legacy-core();
 @include mat.core();

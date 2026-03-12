@@ -58,16 +58,16 @@ export class GpsWebSocketService implements OnDestroy {
         this.configSubscription = this.configService.configChanged.subscribe(
             (newConfig: ConfiguracionSistema) => {
                 const serverChanged =
-                    this.currentServerIp !== newConfig.serverIp ||
-                    this.currentServerPort !== newConfig.serverPort;
+                    this.currentServerIp !== newConfig.serverCentralIp ||
+                    this.currentServerPort !== newConfig.serverCentralPort;
 
                 if (serverChanged) {
-                    console.log('WebSocket GPS: Configuración del servidor cambió, reconectando...');
+                    console.log('WebSocket GPS: Configuración del servidor central cambió, reconectando...');
                     console.log(`  Anterior: ${this.currentServerIp}:${this.currentServerPort}`);
-                    console.log(`  Nueva: ${newConfig.serverIp}:${newConfig.serverPort}`);
+                    console.log(`  Nueva: ${newConfig.serverCentralIp}:${newConfig.serverCentralPort}`);
 
-                    this.currentServerIp = newConfig.serverIp;
-                    this.currentServerPort = newConfig.serverPort;
+                    this.currentServerIp = newConfig.serverCentralIp;
+                    this.currentServerPort = newConfig.serverCentralPort;
                     if (this.client) {
                         this.reconnectWithNewConfig();
                     }
@@ -77,8 +77,8 @@ export class GpsWebSocketService implements OnDestroy {
     }
     private loadCurrentConfig(): void {
         const config = this.configService.getConfig();
-        this.currentServerIp = config.serverIp || 'localhost';
-        this.currentServerPort = config.serverPort || '8080';
+        this.currentServerIp = config.serverCentralIp || 'localhost';
+        this.currentServerPort = config.serverCentralPort || '8081';
     }
 
     private reconnectWithNewConfig(): void {

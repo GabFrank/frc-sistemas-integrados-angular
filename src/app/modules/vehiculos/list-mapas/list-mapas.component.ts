@@ -235,43 +235,22 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
 
       const satelliteHybrid = L.layerGroup([esriSatellite, esriReference, esriTransportation]);
 
-      const osmHOT = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap HOT',
-        maxZoom: 19
-      });
-
-      const openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenTopoMap',
-        maxZoom: 17
-      });
-
-      const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-      });
-
-      const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20
-      });
-
       const osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       });
 
-      osmStandard.addTo(this.map);
+      const googleMaps = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}', {
+        attribution: '&copy; Google Maps',
+        maxZoom: 19
+      });
+
+      googleMaps.addTo(this.map);
 
       const baseMaps = {
         "OpenStreetMap": osmStandard,
-        "Humanitario (edificios)": osmHOT,
-        "Topográfico Detallado": openTopoMap,
         "Satelital + Nombres": satelliteHybrid,
-        "Solo Satelital": esriSatellite,
-        "Voyager (Moderno)": cartoVoyager,
-        "Oscuro": cartoDark
+        "Google Maps": googleMaps
       };
 
       L.control.layers(baseMaps).addTo(this.map);
