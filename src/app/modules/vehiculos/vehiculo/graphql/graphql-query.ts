@@ -60,6 +60,38 @@ export const vehiculosSearchWithPageQuery = gql`
   }
 `;
 
+export const vehiculosSearchPageQuery = gql`
+  query vehiculoSearchPage($texto: String, $page: Int, $size: Int) {
+    data: vehiculoSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        chapa
+        color
+        anho
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
+        tipoVehiculo {
+          id
+          descripcion
+        }
+      }
+    }
+  }
+`;
+
 export const countVehiculoQuery = gql`
   query {
     data: countVehiculo

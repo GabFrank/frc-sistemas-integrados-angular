@@ -9,9 +9,10 @@ import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
 import { Persona } from '../../../personas/persona/persona.model';
 import { HojaRuta, HojaRutaInput } from '../transferencia.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
-import { BuscarPersonaDialogComponent } from '../../../personas/persona/buscar-persona-dialog/buscar-persona-dialog.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { BuscarVehiculoDialogComponent } from '../../../vehiculos/vehiculo/buscar-vehiculo-dialog/buscar-vehiculo-dialog.component';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { VehiculoSearchPageGQL } from '../../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
+import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -42,7 +43,9 @@ export class RutaHojaComponent implements OnInit {
     private vehiculoService: VehiculoService,
     private transferenciaService: TransferenciaService,
     private matDialog: MatDialog,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private vehiculoSearchPageGQL: VehiculoSearchPageGQL,
+    private personaSearchGQL: PersonaSearchGQL
   ) { }
 
   ngOnInit(): void {
@@ -69,10 +72,29 @@ export class RutaHojaComponent implements OnInit {
   }
 
   onBuscarVehiculo() {
-    this.matDialog.open(BuscarVehiculoDialogComponent, {
-      width: '60%',
-      height: '70%'
-    }).afterClosed().subscribe(res => {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      { id: 'chapa', nombre: 'Chapa' },
+      { id: 'modelo.marca.descripcion', nombre: 'Marca' },
+      { id: 'modelo.descripcion', nombre: 'Modelo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.vehiculoSearchPageGQL,
+      tableData,
+      titulo: 'Buscar Vehículo',
+      search: true,
+      inicialSearch: true,
+      textHint: 'Buscar por chapa, marca o modelo...',
+      paginator: true,
+      queryData: { page: 0, size: 15 }
+    };
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '70%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Vehiculo) => {
       if (res) {
         this.selectedVehiculo = res;
         this.vehiculoControl.setValue(res);
@@ -81,10 +103,28 @@ export class RutaHojaComponent implements OnInit {
   }
 
   onBuscarChofer() {
-    this.matDialog.open(BuscarPersonaDialogComponent, {
-      width: '60%',
-      height: '70%'
-    }).afterClosed().subscribe(res => {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      { id: 'nombre', nombre: 'Nombre' },
+      { id: 'documento', nombre: 'Documento' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.personaSearchGQL,
+      tableData,
+      titulo: 'Buscar Chofer',
+      search: true,
+      inicialSearch: true,
+      textHint: 'Buscar por nombre o documento...',
+      paginator: false,
+      queryData: { texto: '' }
+    };
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '70%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Persona) => {
       if (res) {
         this.selectedChofer = res;
         this.choferControl.setValue(res.nombre);
@@ -93,10 +133,28 @@ export class RutaHojaComponent implements OnInit {
   }
 
   onAddAcompanhante() {
-    this.matDialog.open(BuscarPersonaDialogComponent, {
-      width: '60%',
-      height: '70%'
-    }).afterClosed().subscribe(res => {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      { id: 'nombre', nombre: 'Nombre' },
+      { id: 'documento', nombre: 'Documento' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.personaSearchGQL,
+      tableData,
+      titulo: 'Buscar Acompañante',
+      search: true,
+      inicialSearch: true,
+      textHint: 'Buscar por nombre o documento...',
+      paginator: false,
+      queryData: { texto: '' }
+    };
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '70%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Persona) => {
       if (res) {
         if (!this.acompanhantes.find(p => p.id === res.id)) {
           this.acompanhantes.push(res);

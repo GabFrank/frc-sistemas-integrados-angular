@@ -1,5 +1,8 @@
 import { AfterViewInit, ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { VehiculoSearchPageGQL } from '../vehiculo/graphql/vehiculoSearchPage';
 import { GpsService } from '../vehiculo/gps.service';
 import { Gps } from '../vehiculo/models/gps.model';
 import { VehiculoService } from '../vehiculo/vehiculo.service';
@@ -21,6 +24,8 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   private vehiculoService = inject(VehiculoService);
   private wsService = inject(GpsWebSocketService);
   private cdr = inject(ChangeDetectorRef);
+  private matDialog = inject(MatDialog);
+  private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
 
   private map: L.Map | undefined;
   private markers: Map<number, L.Marker> = new Map();
@@ -30,8 +35,16 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   wsConnected = false;
   lastUpdate: Date | null = null;
 
-  vehiculos: Vehiculo[] = [];
-  selectedVehiculoControl = new FormControl<Vehiculo | null>(null);
+  vehiculoSelected: Vehiculo | null = null;
+  vehiculoDescripcion: string = '';
+
+  private actualizarVehiculoDescripcion(): void {
+    if (this.vehiculoSelected) {
+      this.vehiculoDescripcion = `${this.vehiculoSelected.chapa} - ${this.vehiculoSelected.modelo?.descripcion || ''}`.toUpperCase();
+    } else {
+      this.vehiculoDescripcion = '';
+    }
+  }
 
   // Icono personalizado para vehículos
   private carIcon = L.divIcon({
@@ -64,7 +77,6 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.cargarVehiculos();
     this.setupWebSocket();
   }
 
@@ -97,7 +109,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     this.wsService.connect();
   }
   private procesarTelemetriaWs(telemetria: TelemetriaWsDTO): void {
-    const selectedVehiculo = this.selectedVehiculoControl.value;
+    const selectedVehiculo = this.vehiculoSelected;
 
     if (selectedVehiculo && selectedVehiculo.id && telemetria.vehiculoId !== selectedVehiculo.id) {
       return;
@@ -182,13 +194,6 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private cargarVehiculos(): void {
-    this.vehiculoService.onFiltrar('', 0, 100)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.vehiculos = res;
-      });
-  }
 
   private initMap(): void {
     const mapElement = document.getElementById('map');
@@ -277,7 +282,7 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private procesarDatosGpsIniciales(gpsList: Gps[]): void {
-    const selectedVehiculo = this.selectedVehiculoControl.value;
+    const selectedVehiculo = this.vehiculoSelected;
     let filteredList = gpsList;
 
     if (selectedVehiculo && selectedVehiculo.id) {
@@ -364,13 +369,51 @@ export class ListMapasComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  onBuscarVehiculo(): void {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      { id: 'chapa', nombre: 'Chapa' },
+      { id: 'modelo.marca.descripcion', nombre: 'Marca' },
+      { id: 'modelo.descripcion', nombre: 'Modelo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.vehiculoSearchPageGQL,
+      tableData,
+      titulo: 'Buscar Vehículo',
+      search: true,
+      inicialSearch: true,
+      textHint: 'Buscar por chapa, marca o modelo...',
+      paginator: true,
+      queryData: { page: 0, size: 15 }
+    };
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '70%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Vehiculo) => {
+      if (res) {
+        this.vehiculoSelected = res;
+        this.actualizarVehiculoDescripcion();
+        this.onVehiculoSelect();
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onLimpiarVehiculo(event: Event): void {
+    event.stopPropagation();
+    this.vehiculoSelected = null;
+    this.actualizarVehiculoDescripcion();
+    this.onVehiculoSelect();
+    this.cdr.markForCheck();
+  }
+
   onVehiculoSelect(): void {
-    const selectedVehiculo = this.selectedVehiculoControl.value;
+    const selectedVehiculo = this.vehiculoSelected;
 
     if (selectedVehiculo && selectedVehiculo.id) {
-      const marker = Array.from(this.markers.values()).find(m => {
-        return true;
-      });
 
       this.gpsService.onGetByVehiculoId(selectedVehiculo.id)
         .pipe(untilDestroyed(this))

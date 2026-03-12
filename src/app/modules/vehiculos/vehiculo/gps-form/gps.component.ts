@@ -6,7 +6,8 @@ import { GpsService } from '../gps.service';
 import { Gps } from '../models/gps.model';
 import { GpsInput } from '../models/gps-input.model';
 import { Vehiculo } from '../models/vehiculo.model';
-import { BuscarVehiculoDialogComponent } from '../buscar-vehiculo-dialog/buscar-vehiculo-dialog.component';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { VehiculoSearchPageGQL } from '../graphql/vehiculoSearchPage';
 
 @UntilDestroy()
 @Component({
@@ -20,6 +21,7 @@ export class GpsComponent implements OnInit {
     private gpsService = inject(GpsService);
     private matDialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
+    private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<GpsComponent>,
@@ -29,12 +31,14 @@ export class GpsComponent implements OnInit {
     form: FormGroup;
     gps: Gps;
     vehiculoSelected: Vehiculo | null = null;
+    vehiculoDescripcion: string = 'SELECCIONE UN VEHICULO';
 
-    get vehiculoDescripcion(): string {
+    private actualizarVehiculoDescripcion(): void {
         if (this.vehiculoSelected) {
-            return `${this.vehiculoSelected.chapa} - ${this.vehiculoSelected.modelo?.descripcion || ''}`.toUpperCase();
+            this.vehiculoDescripcion = `${this.vehiculoSelected.chapa} - ${this.vehiculoSelected.modelo?.descripcion || ''}`.toUpperCase();
+        } else {
+            this.vehiculoDescripcion = 'SELECCIONE UN VEHICULO';
         }
-        return 'SELECCIONE UN VEHICULO';
     }
 
     ngOnInit(): void {
@@ -71,21 +75,39 @@ export class GpsComponent implements OnInit {
 
         if (this.gps.vehiculo) {
             this.vehiculoSelected = this.gps.vehiculo;
+            this.actualizarVehiculoDescripcion();
         }
         this.cdr.markForCheck();
     }
 
     onBuscarVehiculo(): void {
-        const dialogRef = this.matDialog.open(BuscarVehiculoDialogComponent, {
-            width: '800px',
-            disableClose: true,
-            autoFocus: false
-        });
+        const tableData: TableData[] = [
+            { id: 'id', nombre: 'Id' },
+            { id: 'chapa', nombre: 'Chapa' },
+            { id: 'modelo.marca.descripcion', nombre: 'Marca' },
+            { id: 'modelo.descripcion', nombre: 'Modelo' }
+        ];
 
-        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        const data: SearchListtDialogData = {
+            query: this.vehiculoSearchPageGQL,
+            tableData,
+            titulo: 'Buscar Vehículo',
+            search: true,
+            inicialSearch: true,
+            textHint: 'Buscar por chapa, marca o modelo...',
+            paginator: true,
+            queryData: { page: 0, size: 15 }
+        };
+
+        this.matDialog.open(SearchListDialogComponent, {
+            data,
+            width: '70%',
+            height: '80%'
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Vehiculo) => {
             if (res) {
                 this.vehiculoSelected = res;
                 this.form.get('vehiculoId')?.setValue(res.id);
+                this.actualizarVehiculoDescripcion();
                 this.cdr.markForCheck();
             }
         });
@@ -95,6 +117,7 @@ export class GpsComponent implements OnInit {
         event.stopPropagation();
         this.vehiculoSelected = null;
         this.form.get('vehiculoId')?.setValue(null);
+        this.actualizarVehiculoDescripcion();
     }
 
     onGuardar(): void {

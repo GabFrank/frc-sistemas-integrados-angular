@@ -1,15 +1,16 @@
 <div class="main-container">
     <div class="header-controls">
         <div class="search-wrapper">
-            <mat-icon class="search-icon">search</mat-icon>
             <mat-form-field appearance="fill" class="vehiculo-select">
                 <mat-label>Buscar vehículo por chapa o modelo...</mat-label>
-                <mat-select [formControl]="selectedVehiculoControl" (selectionChange)="onVehiculoSelect()">
-                    <mat-option [value]="null">Mostrar Todos</mat-option>
-                    <mat-option *ngFor="let vehiculo of vehiculos" [value]="vehiculo">
-                        {{ vehiculo.chapa }} - {{ vehiculo.modelo?.descripcion }}
-                    </mat-option>
-                </mat-select>
+                <input matInput [value]="vehiculoDescripcion" readonly (click)="onBuscarVehiculo()" 
+                    placeholder="Mostrar Todos" style="cursor: pointer;">
+                <button mat-icon-button matSuffix (click)="onBuscarVehiculo()" *ngIf="!vehiculoSelected">
+                    <mat-icon>search</mat-icon>
+                </button>
+                <button mat-icon-button matSuffix *ngIf="vehiculoSelected" (click)="onLimpiarVehiculo($event)">
+                    <mat-icon>close</mat-icon>
+                </button>
             </mat-form-field>
         </div>
         <div class="ws-status">

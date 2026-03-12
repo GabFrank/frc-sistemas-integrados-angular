@@ -42,19 +42,21 @@ export class VehiculoComponent implements OnInit {
     tiposVehiculo$ = new BehaviorSubject<TipoVehiculo[]>([]);
     modeloSelected: Modelo;
     tipoVehiculoSelected: TipoVehiculo;
+    modeloDescripcion: string = 'SELECCIONE UN MODELO';
+    tipoVehiculoDescripcion: string = 'SELECCIONE UN TIPO';
 
-    get modeloDescripcion(): string {
+    private actualizarDescripciones(): void {
         if (this.modeloSelected) {
-            return `${this.modeloSelected.descripcion} (${this.modeloSelected.marca?.descripcion})`.toUpperCase();
+            this.modeloDescripcion = `${this.modeloSelected.descripcion} (${this.modeloSelected.marca?.descripcion})`.toUpperCase();
+        } else {
+            this.modeloDescripcion = 'SELECCIONE UN MODELO';
         }
-        return 'SELECCIONE UN MODELO';
-    }
 
-    get tipoVehiculoDescripcion(): string {
         if (this.tipoVehiculoSelected) {
-            return `${this.tipoVehiculoSelected.descripcion}`.toUpperCase();
+            this.tipoVehiculoDescripcion = `${this.tipoVehiculoSelected.descripcion}`.toUpperCase();
+        } else {
+            this.tipoVehiculoDescripcion = 'SELECCIONE UN TIPO';
         }
-        return 'SELECCIONE UN TIPO';
     }
 
     ngOnInit(): void {
@@ -131,6 +133,7 @@ export class VehiculoComponent implements OnInit {
             this.tipoVehiculoSelected = this.vehiculo.tipoVehiculo;
             this.tiposVehiculo$.next([this.vehiculo.tipoVehiculo]);
         }
+        this.actualizarDescripciones();
         this.cdr.markForCheck();
     }
 
@@ -176,6 +179,7 @@ export class VehiculoComponent implements OnInit {
             if (res && Number.isFinite(id)) {
                 this.modeloSelected = res;
                 this.form.get('modeloId')?.setValue(id);
+                this.actualizarDescripciones();
                 setTimeout(() => this.cdr.markForCheck(), 0);
             }
         });
@@ -193,6 +197,7 @@ export class VehiculoComponent implements OnInit {
             if (res && Number.isFinite(id)) {
                 this.tipoVehiculoSelected = res;
                 this.form.get('tipoVehiculoId')?.setValue(id);
+                this.actualizarDescripciones();
                 setTimeout(() => this.cdr.markForCheck(), 0);
             }
         });

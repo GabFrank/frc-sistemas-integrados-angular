@@ -11,6 +11,7 @@ import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { Vehiculo } from '../models/vehiculo.model';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
+import { VehiculoSearchPageGQL } from '../graphql/vehiculoSearchPage';
 
 export interface VehiculoSucursalDialogData {
     vehiculoSucursal?: VehiculoSucursal;
@@ -28,14 +29,16 @@ export class VehiculoSucursalDialogComponent implements OnInit {
     private mainService = inject(MainService);
     private dialog = inject(MatDialog);
     private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
+    private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
 
     form: FormGroup;
     sucursales: Sucursal[] = [];
-    vehiculos: Vehiculo[] = [];
     isLoading = false;
     mostrarVehiculo = false;
     selectedResponsable: Funcionario | null = null;
     responsableControlDisplay = new FormControl('');
+    selectedVehiculo: Vehiculo | null = null;
+    vehiculoControlDisplay = new FormControl('');
 
     constructor(
         public dialogRef: MatDialogRef<VehiculoSucursalDialogComponent>,
@@ -52,17 +55,18 @@ export class VehiculoSucursalDialogComponent implements OnInit {
     ngOnInit(): void {
         this.cargarSucursales();
         
-        if (this.mostrarVehiculo) {
-            this.cargarVehiculos();
-        }
-        
         if (this.data?.vehiculo) {
+            this.selectedVehiculo = this.data.vehiculo;
+            this.vehiculoControlDisplay.setValue(this.getVehiculoDisplay(this.data.vehiculo));
             this.form.patchValue({
                 vehiculoControl: this.data.vehiculo.id
             });
         }
         
         if (this.data?.vehiculoSucursal) {
+            const vehiculo = this.data.vehiculoSucursal.vehiculo || this.data.vehiculo || null;
+            this.selectedVehiculo = vehiculo;
+            this.vehiculoControlDisplay.setValue(vehiculo ? this.getVehiculoDisplay(vehiculo) : '');
             this.selectedResponsable = this.data.vehiculoSucursal.responsable || null;
             this.responsableControlDisplay.setValue(this.selectedResponsable?.persona?.nombre || '');
             
@@ -80,9 +84,38 @@ export class VehiculoSucursalDialogComponent implements OnInit {
         });
     }
 
-    cargarVehiculos(): void {
-        this.vehiculoService.onFiltrar('', 0, 1000).subscribe(res => {
-            this.vehiculos = res || [];
+    onBuscarVehiculo(): void {
+        const tableData: TableData[] = [
+            { id: 'id', nombre: 'Id' },
+            { id: 'chapa', nombre: 'Chapa' },
+            { id: 'modelo.marca.descripcion', nombre: 'Marca' },
+            { id: 'modelo.descripcion', nombre: 'Modelo' }
+        ];
+
+        const data: SearchListtDialogData = {
+            query: this.vehiculoSearchPageGQL,
+            tableData,
+            titulo: 'Buscar Vehículo',
+            search: true,
+            inicialSearch: true,
+            textHint: 'Buscar por chapa, marca o modelo...',
+            paginator: true,
+            // El backend requiere page/size (size >= 1)
+            queryData: { page: 0, size: 15 }
+        };
+
+        this.dialog.open(SearchListDialogComponent, {
+            data,
+            width: '70%',
+            height: '80%'
+        }).afterClosed().subscribe((res: Vehiculo) => {
+            if (res) {
+                this.selectedVehiculo = res;
+                this.vehiculoControlDisplay.setValue(this.getVehiculoDisplay(res));
+                this.form.patchValue({
+                    vehiculoControl: res.id
+                });
+            }
         });
     }
 
@@ -122,6 +155,14 @@ export class VehiculoSucursalDialogComponent implements OnInit {
                 });
             }
         });
+    }
+
+    private getVehiculoDisplay(v: Vehiculo | null | undefined): string {
+        if (!v) return '';
+        const marca = v.modelo?.marca?.descripcion ? ` ${v.modelo.marca.descripcion}` : '';
+        const modelo = v.modelo?.descripcion ? ` ${v.modelo.descripcion}` : '';
+        const detalle = `${marca}${modelo}`.trim();
+        return detalle ? `${v.chapa} - ${detalle}` : (v.chapa || '');
     }
 
     onGuardar(): void {
