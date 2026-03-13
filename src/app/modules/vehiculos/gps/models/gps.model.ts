@@ -15,4 +15,12 @@ export class Gps {
     ultimaFechaReporte: Date;
     ultimaIgnicion: boolean;
     ultimaVelocidad: number;
+    modoSueno: boolean;
+    intervaloReporte: number;
+    motorBloqueado: boolean;
+    alertaVelocidad: boolean;
+    velocidadLimite: number;
+    alertaVibracion: boolean;
+    alertaBateriaBaja: boolean;
+    alertaAcc: boolean;
 }

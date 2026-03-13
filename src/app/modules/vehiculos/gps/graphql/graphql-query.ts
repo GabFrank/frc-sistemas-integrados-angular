@@ -9,6 +9,14 @@ export const gpsQuery = gql`
       simNumero
       activo
       creadoEm
+      modoSueno
+      intervaloReporte
+      motorBloqueado
+      alertaVelocidad
+      velocidadLimite
+      alertaVibracion
+      alertaBateriaBaja
+      alertaAcc
       vehiculo {
         id
         chapa
@@ -44,6 +52,14 @@ export const gpsListQuery = gql`
       simNumero
       activo
       creadoEm
+      modoSueno
+      intervaloReporte
+      motorBloqueado
+      alertaVelocidad
+      velocidadLimite
+      alertaVibracion
+      alertaBateriaBaja
+      alertaAcc
       vehiculo {
         id
         chapa
@@ -84,6 +100,14 @@ export const gpsSearchQuery = gql`
       ultimaFechaReporte
       ultimaIgnicion
       ultimaVelocidad
+      modoSueno
+      intervaloReporte
+      motorBloqueado
+      alertaVelocidad
+      velocidadLimite
+      alertaVibracion
+      alertaBateriaBaja
+      alertaAcc
       vehiculo {
         id
         chapa
@@ -186,5 +210,24 @@ export const saveGpsMutation = gql`
 export const deleteGpsMutation = gql`
   mutation deleteGps($id: ID!) {
     data: deleteGps(id: $id)
+  }
+`;
+
+export const enviarComandoGpsMutation = gql`
+  mutation enviarComandoGps($id: ID!, $tipo: String!, $valor: String) {
+    data: enviarComandoGps(id: $id, tipo: $tipo, valor: $valor)
+  }
+`;
+
+export const guardarConfigAlertasGpsMutation = gql`
+  mutation guardarConfigAlertasGps($id: ID!, $alertaVelocidad: Boolean, $velocidadLimite: Int, $alertaVibracion: Boolean, $alertaBateriaBaja: Boolean, $alertaAcc: Boolean) {
+    data: guardarConfigAlertasGps(id: $id, alertaVelocidad: $alertaVelocidad, velocidadLimite: $velocidadLimite, alertaVibracion: $alertaVibracion, alertaBateriaBaja: $alertaBateriaBaja, alertaAcc: $alertaAcc) {
+      id
+      alertaVelocidad
+      velocidadLimite
+      alertaVibracion
+      alertaBateriaBaja
+      alertaAcc
+    }
   }
 `;

@@ -289,7 +289,61 @@
       &:hover { background: rgba(255,255,255,0.05); }
     }
   }
+
+  .update-card-btn {
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.8rem;
+    height: 36px;
+    line-height: normal;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    mat-icon { font-size: 18px; width: 18px; height: 18px; margin: 0; }
+    mat-spinner { display: inline-block; }
+  }
+
+  .mini-update-btn {
+    color: #ff5252;
+    background: rgba(255, 82, 82, 0.1);
+    
+    &:hover:not([disabled]) {
+      background: rgba(255, 82, 82, 0.2);
+    }
+    
+    &[disabled] {
+      opacity: 0.5;
+    }
+  }
+
+  .apn-send-btn {
+    height: 52px;
+    border-radius: 8px;
+    padding: 0 20px;
+    font-weight: 600;
+    mat-icon { margin-right: 8px; }
+  }
+
+  .save-alertas-btn {
+    height: 44px;
+    border-radius: 8px;
+    padding: 0 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    mat-spinner { display: inline-block; }
+  }
 }
+
+::ng-deep .mat-spinner circle {
+  stroke: currentColor !important;
+}
+
 
 ::ng-deep .mat-dialog-container {
   padding: 0 !important;

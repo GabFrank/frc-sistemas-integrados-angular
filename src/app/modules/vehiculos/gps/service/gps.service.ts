@@ -10,6 +10,8 @@ import { GpsListGQL } from '../graphql/gpsList';
 import { GpsSearchGQL } from '../graphql/gpsSearch';
 import { GpsByVehiculoGQL } from '../graphql/gpsByVehiculo';
 import { GpsByImeiGQL } from '../graphql/gpsByImei';
+import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
+import { GuardarConfigAlertasGpsGQL } from '../graphql/guardarConfigAlertasGps';
 
 @Injectable({
     providedIn: 'root'
@@ -23,6 +25,8 @@ export class GpsService {
     private gpsSearchGQL = inject(GpsSearchGQL);
     private gpsByVehiculoGQL = inject(GpsByVehiculoGQL);
     private gpsByImeiGQL = inject(GpsByImeiGQL);
+    private enviarComandoGpsGQL = inject(EnviarComandoGpsGQL);
+    private guardarConfigAlertasGpsGQL = inject(GuardarConfigAlertasGpsGQL);
 
     onGetById(id: number): Observable<Gps> {
         return this.genericService.onGetById(this.gpsByIdGQL, id);
@@ -58,5 +62,16 @@ export class GpsService {
 
     onGetByImei(imei: string): Observable<Gps> {
         return this.genericService.onCustomQuery(this.gpsByImeiGQL, { imei });
+    }
+
+    onEnviarComando(id: number, tipo: string, valor?: string): Observable<boolean> {
+        return this.genericService.onCustomMutation(this.enviarComandoGpsGQL, { id, tipo, valor });
+    }
+
+    onGuardarConfigAlertas(id: number, alertaVelocidad: boolean, velocidadLimite: number,
+        alertaVibracion: boolean, alertaBateriaBaja: boolean, alertaAcc: boolean): Observable<Gps> {
+        return this.genericService.onCustomMutation(this.guardarConfigAlertasGpsGQL, {
+            id, alertaVelocidad, velocidadLimite, alertaVibracion, alertaBateriaBaja, alertaAcc
+        });
     }
 }
