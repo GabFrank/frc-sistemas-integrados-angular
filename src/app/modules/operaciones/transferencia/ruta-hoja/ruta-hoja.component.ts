@@ -3,7 +3,7 @@ import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { VehiculoService } from '../../../vehiculos/vehiculo/vehiculo.service';
+import { VehiculoService } from '../../../vehiculos/vehiculo/service/vehiculo.service';
 import { TransferenciaService } from '../transferencia.service';
 import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
 import { Persona } from '../../../personas/persona/persona.model';

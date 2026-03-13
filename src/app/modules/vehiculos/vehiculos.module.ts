@@ -1,22 +1,23 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VehiculoComponent } from './vehiculo/vehiculo-form/vehiculo.component';
-import { ListVehiculosComponent } from './vehiculo/list-vehiculos/list-vehiculos.component';
+import { VehiculoComponent } from './vehiculo/dialogs/vehiculo-form/vehiculo.component';
+import { ListVehiculosComponent } from './vehiculo/components/list-vehiculos/list-vehiculos.component';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
-import { PreRegistroVehiculoComponent } from './vehiculo/pre-registro/pre-registro-vehiculo.component';
-import { BuscarModeloDialogComponent } from './vehiculo/buscar-modelo-dialog/buscar-modelo-dialog.component';
-import { BuscarTipoVehiculoDialogComponent } from './vehiculo/buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
-import { VehiculoSucursalDialogComponent } from './vehiculo/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
+import { PreRegistroVehiculoComponent } from './vehiculo/dialogs/pre-registro/pre-registro-vehiculo.component';
+import { BuscarModeloDialogComponent } from './vehiculo/dialogs/buscar-modelo-dialog/buscar-modelo-dialog.component';
+import { BuscarTipoVehiculoDialogComponent } from './vehiculo/dialogs/buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
+import { VehiculoSucursalDialogComponent } from './vehiculo/dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { VehiculosDashboardComponent } from './vehiculos-dashboard/vehiculos-dashboard.component';
-import { ListVehiculoSucursalComponent } from './vehiculo-sucursal/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
-import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
-import { AdicionarModeloDialogComponent } from './vehiculo/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
-import { ListGpsComponent } from './list-gps/list-gps.component';
-import { GpsComponent } from './vehiculo/gps-form/gps.component';
-import { ListMapasComponent } from './list-mapas/list-mapas.component';
+import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
+import { AdicionarModeloDialogComponent } from './vehiculo/dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
+import { ListVehiculoSucursalComponent } from './vehiculo/components/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
+import { ListGpsComponent } from './gps/components/list-gps/list-gps.component';
+import { GpsComponent } from './gps/dialogs/gps-form/gps.component';
+import { GpsConfigDialogComponent } from './gps/dialogs/gps-config-dialog/gps-config-dialog.component';
+import { ListMapasComponent } from './gps/components/list-mapas/list-mapas.component';
 @NgModule({
   declarations: [
     VehiculoComponent,
@@ -31,7 +32,8 @@ import { ListMapasComponent } from './list-mapas/list-mapas.component';
     AdicionarModeloDialogComponent,
     ListGpsComponent,
     GpsComponent,
-    ListMapasComponent
+    ListMapasComponent,
+    GpsConfigDialogComponent
   ],
   imports: [
     CommonModule,

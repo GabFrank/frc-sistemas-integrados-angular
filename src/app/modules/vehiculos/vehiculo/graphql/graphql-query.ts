@@ -247,191 +247,47 @@ export const vehiculosSucursalBySucursalQuery = gql`
   }
 `;
 
-export const gpsQuery = gql`
-  query gps($id: ID!) {
-    data: gps(id: $id) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-      vehiculo {
+export const vehiculosSucursalSearchPageQuery = gql`
+  query vehiculosSucursalSearchPage($sucursalId: ID, $responsableId: ID, $page: Int, $size: Int) {
+    data: vehiculosSucursalSearchPage(sucursalId: $sucursalId, responsableId: $responsableId, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        chapa
-        modelo {
+        creadoEn
+        vehiculo {
           id
-          descripcion
-          marca {
+          chapa
+          modelo {
             id
             descripcion
+            marca {
+              id
+              descripcion
+            }
           }
         }
-      }
-      ultimaTelemetria {
-        id
-        fechaGps
-        latitud
-        longitud
-        velocidad
-        direccion
-        ignicion
-        alarma
-      }
-    }
-  }
-`;
-
-export const gpsListQuery = gql`
-  query gpsList($page: Int, $size: Int) {
-    data: gpsList(page: $page, size: $size) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-      vehiculo {
-        id
-        chapa
-        modelo {
+        sucursal {
           id
-          descripcion
-          marca {
-            id
-            descripcion
-          }
+          nombre
         }
-      }
-      ultimaTelemetria {
-        id
-        fechaGps
-        latitud
-        longitud
-        velocidad
-        direccion
-        ignicion
-        alarma
-      }
-    }
-  }
-`;
-
-export const gpsSearchQuery = gql`
-  query gpsSearch($texto: String) {
-    data: gpsSearch(texto: $texto) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-      ultimaLatitud
-      ultimaLongitud
-      ultimaFechaReporte
-      ultimaIgnicion
-      ultimaVelocidad
-      vehiculo {
-        id
-        chapa
-        modelo {
+        responsable {
           id
-          descripcion
-          marca {
+          persona {
             id
-            descripcion
+            nombre
           }
         }
-      }
-      ultimaTelemetria {
-        id
-        fechaGps
-        latitud
-        longitud
-        velocidad
-        direccion
-        ignicion
-        alarma
-      }
-    }
-  }
-`;
-
-export const gpsByVehiculoQuery = gql`
-  query gpsByVehiculo($vehiculoId: ID!) {
-    data: gpsByVehiculo(vehiculoId: $vehiculoId) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-      ultimaLatitud
-      ultimaLongitud
-      ultimaFechaReporte
-      ultimaIgnicion
-      ultimaVelocidad
-      vehiculo {
-        id
-        chapa
-        modelo {
+        usuario {
           id
-          descripcion
-          marca {
-            id
-            descripcion
-          }
+          nickname
         }
       }
-      ultimaTelemetria {
-        id
-        latitud
-        longitud
-        velocidad
-        ignicion
-      }
     }
-  }
-`;
-
-export const gpsByImeiQuery = gql`
-  query gpsByImei($imei: String!) {
-    data: gpsByImei(imei: $imei) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-      vehiculo {
-        id
-        chapa
-      }
-      ultimaTelemetria {
-        id
-        latitud
-        longitud
-        velocidad
-      }
-    }
-  }
-`;
-
-export const saveGpsMutation = gql`
-  mutation saveGps($entity: GpsInput!) {
-    data: saveGps(gps: $entity) {
-      id
-      imei
-      modeloTracker
-      simNumero
-      activo
-      creadoEm
-    }
-  }
-`;
-
-export const deleteGpsMutation = gql`
-  mutation deleteGps($id: ID!) {
-    data: deleteGps(id: $id)
   }
 `;

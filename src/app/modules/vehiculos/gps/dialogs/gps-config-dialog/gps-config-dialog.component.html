@@ -1,0 +1,257 @@
+<div class="config-container">
+  <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
+    <div fxLayout="column">
+      <h2 class="title">Configuración SinoTrack ST-901L-R</h2>
+      <span class="subtitle">IMEI: {{ gps?.imei }} | Vehículo: {{ gps?.vehiculo?.modelo?.descripcion }}</span>
+    </div>
+    <button mat-icon-button (click)="onCancel()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <form [formGroup]="configForm" class="content-form">
+    <mat-tab-group dynamicHeight animationDuration="500ms">
+      
+      <!-- TAB: GENERAL Y MOTOR -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">settings_remote</mat-icon>
+          <span>Control y Energía</span>
+        </ng-template>
+        
+        <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
+          <div class="card-section motor-control" [class.motor-cut]="!configForm.get('motorEstado')?.value">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="column">
+                <span class="section-title">Corte de Combustible / Energía</span>
+                <span class="section-desc">Detiene el motor de forma remota (Seguro a < 20km/h)</span>
+              </div>
+              <mat-slide-toggle formControlName="motorEstado" color="warn">
+                {{ configForm.get('motorEstado')?.value ? 'MOTOR ENCENDIDO' : 'MOTOR BLOQUEADO' }}
+              </mat-slide-toggle>
+            </div>
+            <div *ngIf="!configForm.get('motorEstado')?.value" class="warning-box">
+              <mat-icon>warning</mat-icon>
+              <span>El vehículo no encenderá hasta que se restablezca la energía.</span>
+            </div>
+          </div>
+
+          <div class="grid-configs" fxLayout="row wrap" fxLayoutGap="20px">
+            <div class="config-card" fxFlex="48%">
+              <div fxLayout="row" fxLayoutAlign="space-between center">
+                <div fxLayout="column">
+                  <span class="card-label">Modo Sueño (Sleep)</span>
+                  <span class="card-desc">Ahorro de batería al estar detenido</span>
+                </div>
+                <mat-slide-toggle formControlName="sleepMode"></mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="config-card" fxFlex="48%">
+              <div fxLayout="column" fxLayoutGap="10px">
+                <div fxLayout="row" fxLayoutAlign="space-between center">
+                  <span class="card-label">Intervalo de Reporte</span>
+                  <span class="value-badge">{{ configForm.get('reportInterval')?.value }}s</span>
+                </div>
+                <mat-slider min="10" max="180" step="10" thumbLabel>
+                  <input matSliderThumb formControlName="reportInterval">
+                </mat-slider>
+                <span class="card-desc">Frecuencia de actualización de ubicación</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: ALERTAS -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">notifications_active</mat-icon>
+          <span>Alertas Push</span>
+        </ng-template>
+        
+        <div class="tab-body" fxLayout="column" fxLayoutGap="15px">
+          <div class="config-card alert-card">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                <mat-icon class="alert-icon speeding">speed</mat-icon>
+                <div fxLayout="column">
+                  <span class="card-label">Exceso de Velocidad</span>
+                  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                    <mat-form-field appearance="outline" class="small-input dens-field">
+                      <input matInput type="number" formControlName="velocidadLimite">
+                      <span matSuffix>km/h</span>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+              <mat-slide-toggle formControlName="alertaVelocidad"></mat-slide-toggle>
+            </div>
+          </div>
+
+          <div class="config-card alert-card">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                <mat-icon class="alert-icon shock">vibration</mat-icon>
+                <div fxLayout="column">
+                  <span class="card-label">Sensor de Choque / Vibración</span>
+                  <span class="card-desc">Notificar movimientos bruscos estacionado</span>
+                </div>
+              </div>
+              <mat-slide-toggle formControlName="alertaVibracion"></mat-slide-toggle>
+            </div>
+          </div>
+
+          <div class="config-card alert-card">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                <mat-icon class="alert-icon battery">battery_alert</mat-icon>
+                <div fxLayout="column">
+                  <span class="card-label">Batería Baja (20%)</span>
+                  <span class="card-desc">Alerta cuando el rastreador se queda sin carga</span>
+                </div>
+              </div>
+              <mat-slide-toggle formControlName="alertaBateriaBaja"></mat-slide-toggle>
+            </div>
+          </div>
+
+          <div class="config-card alert-card">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                <mat-icon class="alert-icon acc">vpn_key</mat-icon>
+                <div fxLayout="column">
+                  <span class="card-label">Ignición (ACC)</span>
+                  <span class="card-desc">Avisar cuando se enciende/apaga el vehículo</span>
+                </div>
+              </div>
+              <mat-slide-toggle formControlName="alertaACC"></mat-slide-toggle>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: GEOCERCA -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">gps_fixed</mat-icon>
+          <span>Geocerca</span>
+        </ng-template>
+        <div class="tab-body">
+          <div class="geofence-container" fxLayout="column" fxLayoutGap="20px">
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+              <div fxLayout="column">
+                <span class="section-title">Perímetro de Seguridad</span>
+                <span class="section-desc">Define un círculo de protección (Mín. 1000m)</span>
+              </div>
+              <mat-slide-toggle formControlName="geofenceEnabled"></mat-slide-toggle>
+            </div>
+
+            <div class="map-placeholder">
+              <div class="map-overlay" *ngIf="!configForm.get('geofenceEnabled')?.value">
+                <span>HABILITAR PARA CONFIGURAR</span>
+              </div>
+              <div class="fake-map" [class.enabled]="configForm.get('geofenceEnabled')?.value">
+                <div class="center-marker"></div>
+                <div class="circle-zone" [style.width.px]="configForm.get('geofenceRadio')?.value / 10" [style.height.px]="configForm.get('geofenceRadio')?.value / 10"></div>
+              </div>
+            </div>
+
+            <div fxLayout="row" fxLayoutAlign="space-between center" class="radius-control">
+              <span class="card-label">Radio de Alerta:</span>
+              <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                <mat-form-field appearance="outline" class="small-input">
+                  <input matInput type="number" formControlName="geofenceRadio">
+                  <span matSuffix>metros</span>
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: RED -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">router</mat-icon>
+          <span>Red / APN</span>
+        </ng-template>
+        <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
+          <span class="section-title">Configuración del Operador (APN)</span>
+          <div class="apn-form" fxLayout="column" fxLayoutGap="10px">
+            <mat-form-field appearance="outline">
+              <mat-label>Nombre del APN</mat-label>
+              <input matInput formControlName="apnName" placeholder="Ej: internet.tigo.py">
+              <mat-icon matPrefix>language</mat-icon>
+            </mat-form-field>
+
+            <div fxLayout="row" fxLayoutGap="15px">
+              <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Usuario APN</mat-label>
+                <input matInput formControlName="apnUser">
+                <mat-icon matPrefix>person</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Contraseña APN</mat-label>
+                <input matInput type="password" formControlName="apnPass">
+                <mat-icon matPrefix>lock</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+          
+          <div class="info-box">
+            <mat-icon>info</mat-icon>
+            <span>Estos ajustes permiten que el dispositivo se conecte a internet a través de la red celular.</span>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB: ESTADÍSTICAS -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">bar_chart</mat-icon>
+          <span>Estadísticas</span>
+        </ng-template>
+        <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
+          <div class="stats-grid" fxLayout="row wrap" fxLayoutGap="15px">
+            <div class="stat-card" fxFlex="31%">
+              <span class="stat-val">12</span>
+              <span class="stat-label">Paradas Largas</span>
+            </div>
+            <div class="stat-card" fxFlex="31%">
+              <span class="stat-val">4</span>
+              <span class="stat-label">Zonas Visitadas</span>
+            </div>
+            <div class="stat-card" fxFlex="31%">
+              <span class="stat-val">45km</span>
+              <span class="stat-label">Recorrido Hoy</span>
+            </div>
+          </div>
+          
+          <div class="history-placeholder">
+            <span class="section-title">Historial de Movimiento</span>
+            <div class="chart-mock">
+              <!-- Representación visual de un gráfico -->
+              <div class="bar" style="height: 40%"></div>
+              <div class="bar" style="height: 70%"></div>
+              <div class="bar" style="height: 50%"></div>
+              <div class="bar" style="height: 90%"></div>
+              <div class="bar" style="height: 60%"></div>
+              <div class="bar" style="height: 30%"></div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  </form>
+
+  <div class="footer-actions" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px">
+    <button mat-button (click)="onCancel()" class="secondary-btn">CANCELAR</button>
+    <button mat-raised-button color="primary" (click)="onSave()" class="primary-btn">
+      <mat-icon>save_alt</mat-icon>
+      ENVIAR AL DISPOSITIVO
+    </button>
+  </div>
+</div>
