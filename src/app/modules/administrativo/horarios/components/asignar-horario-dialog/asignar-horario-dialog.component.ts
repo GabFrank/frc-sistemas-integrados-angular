@@ -75,17 +75,28 @@ export class AsignarHorarioDialogComponent implements OnInit, AfterViewInit {
         if (this.usuarioId) {
             this.horarioService.onGetHorariosPorUsuario(this.usuarioId).subscribe(res => {
                 if (res) {
-                    this.dataSource.data = res.map(h => {
-                        return {
-                            id: h.id,
-                            entrada: h.horaEntrada,
-                            salida: h.horaSalida,
-                            dias: h.dias?.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', '),
-                            turno: this.listaTurnos.find(t => t.code == h.turno)?.name,
-                            diasValue: h.dias,
-                            turnoValue: h.turno
+                    const uniqueSchedules = [];
+                    res.forEach(h => {
+                        const daysKey = JSON.stringify((h.dias || []).sort());
+                        const isDuplicate = uniqueSchedules.some(us => 
+                            us.entrada === h.horaEntrada &&
+                            us.salida === h.horaSalida &&
+                            us.turnoValue === h.turno &&
+                            JSON.stringify((us.diasValue || []).sort()) === daysKey
+                        );
+                        if (!isDuplicate) {
+                            uniqueSchedules.push({
+                                id: h.id,
+                                entrada: h.horaEntrada,
+                                salida: h.horaSalida,
+                                dias: h.dias?.map(d => this.diasSemana.find(ds => ds.value == d)?.viewValue).join(', '),
+                                turno: this.listaTurnos.find(t => t.code == h.turno)?.name,
+                                diasValue: h.dias,
+                                turnoValue: h.turno
+                            });
                         }
                     });
+                    this.dataSource.data = uniqueSchedules;
                     this.dataSource.paginator = this.paginator;
                     this.cdr.markForCheck();
                 }
