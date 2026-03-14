@@ -24,7 +24,7 @@ import { TabService } from '../../../../layouts/tab/tab.service';
 import { HoraServidorService } from '../../../../shared/services/hora-servidor.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
-import { ListMarcacionComponent } from '../components/list-marcacion/list-marcacion.component';
+import { ListMarcacionComponent } from '../pages/list-marcacion/list-marcacion.component';
 
 export interface MarcacionContexto {
   usuarioId?: number;

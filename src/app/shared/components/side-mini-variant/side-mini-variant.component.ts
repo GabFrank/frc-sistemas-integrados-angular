@@ -46,8 +46,8 @@ import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
-import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
-import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/pages/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 
 
 interface BaseNavigationItem {
@@ -505,7 +505,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
   toggleSidenav(expanded: boolean): void {
     this.isExpanded = expanded;
     this.toggleSideNav.emit(this.isExpanded);
-    
+
     // Resetear el estado de expansión de todos los items cuando se cierra el menú
     if (!expanded) {
       this.resetMenuExpansion();
@@ -531,7 +531,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
-  
+
   onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();

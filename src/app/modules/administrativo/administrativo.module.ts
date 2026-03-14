@@ -7,8 +7,8 @@ import { SharedModule } from '../../shared/shared.module';
 import { PersonasModule } from '../personas/personas.module';
 import { MaterialModule } from '../../commons/core/material.module';
 
-import { ListMarcacionComponent } from './marcacion/components/list-marcacion/list-marcacion.component';
-import { MarcarHorarioComponent } from './marcacion/components/marcar-horario/marcar-horario.component';
+import { ListMarcacionComponent } from './marcacion/pages/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from './marcacion/pages/marcar-horario/marcar-horario.component';
 import { RelojHeaderComponent } from './marcacion/components/reloj-header/reloj-header.component';
 import { CamaraReconocimientoComponent } from './marcacion/components/camara-reconocimiento/camara-reconocimiento.component';
 import { ResumenMarcacionesComponent } from './marcacion/components/resumen-marcaciones/resumen-marcaciones.component';
