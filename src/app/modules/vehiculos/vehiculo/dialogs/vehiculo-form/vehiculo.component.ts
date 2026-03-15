@@ -15,6 +15,8 @@ import { MainService } from '../../../../../main.service';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { ModeloSearchGQL } from '../../graphql/modeloSearch';
 import { TipoVehiculoSearchGQL } from '../../graphql/tipoVehiculoSearch';
+import { AdicionarModeloDialogComponent } from '../adicionar-modelo-dialog/adicionar-modelo-dialog.component';
+import { AdicionarTipoVehiculoDialogComponent } from '../adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -182,7 +184,8 @@ export class VehiculoComponent implements OnInit {
             query: this.modeloSearchGQL,
             tableData: tableData,
             inicialSearch: true,
-            isServidor: true
+            isServidor: true,
+            isAdicionar: true
         };
 
         this.matDialog.open(SearchListDialogComponent, {
@@ -190,11 +193,24 @@ export class VehiculoComponent implements OnInit {
             data: data
         }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
-                const id = Number(res.id);
-                this.modeloSelected = res;
-                this.form.get('modeloId')?.setValue(id);
-                this.actualizarDescripciones();
-                this.cdr.markForCheck();
+                if (res.adicionar) {
+                    this.matDialog.open(AdicionarModeloDialogComponent, {
+                        width: '500px'
+                    }).afterClosed().pipe(untilDestroyed(this)).subscribe(nuevoModelo => {
+                        if (nuevoModelo) {
+                            this.modeloSelected = nuevoModelo;
+                            this.form.get('modeloId')?.setValue(Number(nuevoModelo.id));
+                            this.actualizarDescripciones();
+                            this.cdr.markForCheck();
+                        }
+                    });
+                } else {
+                    const id = Number(res.id);
+                    this.modeloSelected = res;
+                    this.form.get('modeloId')?.setValue(id);
+                    this.actualizarDescripciones();
+                    this.cdr.markForCheck();
+                }
             }
         });
     }
@@ -210,7 +226,8 @@ export class VehiculoComponent implements OnInit {
             query: this.tipoVehiculoSearchGQL,
             tableData: tableData,
             inicialSearch: true,
-            isServidor: true
+            isServidor: true,
+            isAdicionar: true
         };
 
         this.matDialog.open(SearchListDialogComponent, {
@@ -218,11 +235,24 @@ export class VehiculoComponent implements OnInit {
             data: data
         }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
-                const id = Number(res.id);
-                this.tipoVehiculoSelected = res;
-                this.form.get('tipoVehiculoId')?.setValue(id);
-                this.actualizarDescripciones();
-                this.cdr.markForCheck();
+                if (res.adicionar) {
+                    this.matDialog.open(AdicionarTipoVehiculoDialogComponent, {
+                        width: '500px'
+                    }).afterClosed().pipe(untilDestroyed(this)).subscribe(nuevoTipo => {
+                        if (nuevoTipo) {
+                            this.tipoVehiculoSelected = nuevoTipo;
+                            this.form.get('tipoVehiculoId')?.setValue(Number(nuevoTipo.id));
+                            this.actualizarDescripciones();
+                            this.cdr.markForCheck();
+                        }
+                    });
+                } else {
+                    const id = Number(res.id);
+                    this.tipoVehiculoSelected = res;
+                    this.form.get('tipoVehiculoId')?.setValue(id);
+                    this.actualizarDescripciones();
+                    this.cdr.markForCheck();
+                }
             }
         });
     }
