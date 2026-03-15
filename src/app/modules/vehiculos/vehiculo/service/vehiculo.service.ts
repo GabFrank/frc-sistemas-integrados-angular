@@ -29,9 +29,14 @@ import { DeleteVehiculoSucursalGQL } from '../graphql/deleteVehiculoSucursal';
 import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
+import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { MatDialog } from '@angular/material/dialog';
 import { VehiculoComponent } from '../dialogs/vehiculo-form/vehiculo.component';
 import { VehiculoSucursalDialogComponent } from '../dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
+import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 
 @Injectable({
   providedIn: 'root'
@@ -55,6 +60,7 @@ export class VehiculoService {
   private saveVehiculoSucursalGQL = inject(SaveVehiculoSucursalGQL);
   private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
+  private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
   private dialog = inject(MatDialog);
   private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
   public vehiculos$ = this.vehiculosSubject.asObservable();
@@ -337,6 +343,90 @@ export class VehiculoService {
         if (res) this.refrescarSucursal();
       })
     );
+  }
+
+  abrirBuscadorTipoVehiculo(isAdicionar: boolean = false): Observable<TipoVehiculo | any> {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID', width: '10%' },
+      { id: 'descripcion', nombre: 'Descripción' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Tipo de Vehículo',
+      query: this.tipoVehiculoSearchPageGQL,
+      tableData: tableData,
+      inicialSearch: true,
+      isServidor: true,
+      isAdicionar: isAdicionar,
+      paginator: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '800px',
+      data: data
+    }).afterClosed();
+  }
+
+  abrirBuscadorModelo(isAdicionar: boolean = false): Observable<Modelo | any> {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID', width: '10%' },
+      { id: 'marca.descripcion', nombre: 'Marca' },
+      { id: 'descripcion', nombre: 'Modelo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Modelo',
+      query: this.modeloSearchPageGQL,
+      tableData: tableData,
+      inicialSearch: true,
+      isServidor: true,
+      isAdicionar: isAdicionar,
+      paginator: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '800px',
+      data: data
+    }).afterClosed();
+  }
+
+  abrirAdicionarModelo(): Observable<Modelo> {
+    return this.dialog.open(AdicionarModeloDialogComponent, {
+      width: '500px'
+    }).afterClosed();
+  }
+
+  abrirAdicionarTipoVehiculo(): Observable<TipoVehiculo> {
+    return this.dialog.open(AdicionarTipoVehiculoDialogComponent, {
+      width: '500px'
+    }).afterClosed();
+  }
+
+  abrirBuscadorResponsable(): Observable<Funcionario | any> {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      {
+        id: 'nombre',
+        nombre: 'Nombre',
+        nested: true,
+        nestedId: 'persona',
+        nestedColumnId: 'nombre'
+      }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.funcionarioSearchGQL,
+      tableData: tableData,
+      titulo: 'Buscar Responsable',
+      search: true,
+      inicialSearch: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      data: data,
+      width: '60%',
+      height: '80%'
+    }).afterClosed();
   }
 }
 

@@ -13,10 +13,6 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dial
 import { Inject, Optional } from '@angular/core';
 import { MainService } from '../../../../../main.service';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { ModeloSearchPageGQL } from '../../graphql/modeloSearchPage';
-import { TipoVehiculoSearchPageGQL } from '../../graphql/tipoVehiculoSearchPage';
-import { AdicionarModeloDialogComponent } from '../adicionar-modelo-dialog/adicionar-modelo-dialog.component';
-import { AdicionarTipoVehiculoDialogComponent } from '../adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -32,8 +28,6 @@ export class VehiculoComponent implements OnInit {
     private matDialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
     public mainService = inject(MainService);
-    private modeloSearchPageGQL = inject(ModeloSearchPageGQL);
-    private tipoVehiculoSearchPageGQL = inject(TipoVehiculoSearchPageGQL);
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
@@ -173,31 +167,10 @@ export class VehiculoComponent implements OnInit {
     }
 
     onBuscarModelo(): void {
-        const tableData: TableData[] = [
-            { id: 'id', nombre: 'ID', width: '10%' },
-            { id: 'marca.descripcion', nombre: 'Marca' },
-            { id: 'descripcion', nombre: 'Modelo' }
-        ];
-
-        const data: SearchListtDialogData = {
-            titulo: 'Buscar Modelo',
-            query: this.modeloSearchPageGQL,
-            tableData: tableData,
-            inicialSearch: true,
-            isServidor: true,
-            isAdicionar: true,
-            paginator: true
-        };
-
-        this.matDialog.open(SearchListDialogComponent, {
-            width: '800px',
-            data: data
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        this.vehiculoService.abrirBuscadorModelo(true).pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
                 if (res.adicionar) {
-                    this.matDialog.open(AdicionarModeloDialogComponent, {
-                        width: '500px'
-                    }).afterClosed().pipe(untilDestroyed(this)).subscribe(nuevoModelo => {
+                    this.vehiculoService.abrirAdicionarModelo().pipe(untilDestroyed(this)).subscribe(nuevoModelo => {
                         if (nuevoModelo) {
                             this.modeloSelected = nuevoModelo;
                             this.form.get('modeloId')?.setValue(Number(nuevoModelo.id));
@@ -217,30 +190,10 @@ export class VehiculoComponent implements OnInit {
     }
 
     onBuscarTipoVehiculo(): void {
-        const tableData: TableData[] = [
-            { id: 'id', nombre: 'ID', width: '10%' },
-            { id: 'descripcion', nombre: 'Descripción' }
-        ];
-
-        const data: SearchListtDialogData = {
-            titulo: 'Buscar Tipo de Vehículo',
-            query: this.tipoVehiculoSearchPageGQL,
-            tableData: tableData,
-            inicialSearch: true,
-            isServidor: true,
-            isAdicionar: true,
-            paginator: true
-        };
-
-        this.matDialog.open(SearchListDialogComponent, {
-            width: '800px',
-            data: data
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        this.vehiculoService.abrirBuscadorTipoVehiculo(true).pipe(untilDestroyed(this)).subscribe(res => {
             if (res) {
                 if (res.adicionar) {
-                    this.matDialog.open(AdicionarTipoVehiculoDialogComponent, {
-                        width: '500px'
-                    }).afterClosed().pipe(untilDestroyed(this)).subscribe(nuevoTipo => {
+                    this.vehiculoService.abrirAdicionarTipoVehiculo().pipe(untilDestroyed(this)).subscribe(nuevoTipo => {
                         if (nuevoTipo) {
                             this.tipoVehiculoSelected = nuevoTipo;
                             this.form.get('tipoVehiculoId')?.setValue(Number(nuevoTipo.id));

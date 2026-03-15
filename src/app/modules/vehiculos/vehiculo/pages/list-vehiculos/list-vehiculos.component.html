@@ -9,13 +9,18 @@
         </mat-form-field>
       </div>
       <div fxFlex="20%">
-        <frc-searchable-select [list]="tiposVehiculo$ | async" titulo="Tipo de Vehículo" [isFilter]="true"
-          [compareFields]="[{id:'descripcion'}]" (selectionChanged)="tipoControl.setValue($event?.id)"
-          [currentData]="tipoControl.value">
-          <ng-template let-item>
-            {{ item.descripcion | titlecase }}
-          </ng-template>
-        </frc-searchable-select>
+        <mat-form-field style="width: 100%;">
+          <mat-label>Tipo de Vehículo</mat-label>
+          <input matInput [value]="tipoVehiculoDescripcion" readonly (click)="onBuscarTipoVehiculo()"
+            style="cursor: pointer; font-weight: 500;">
+          <button mat-icon-button matSuffix *ngIf="tipoControl.value" (click)="resetTipoFilter($event)"
+            class="search-icon-btn">
+            <mat-icon>close</mat-icon>
+          </button>
+          <button mat-icon-button matSuffix (click)="onBuscarTipoVehiculo()" class="search-icon-btn">
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-form-field>
       </div>
     </div>
   </div>

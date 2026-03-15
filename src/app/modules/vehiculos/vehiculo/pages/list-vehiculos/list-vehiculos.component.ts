@@ -6,6 +6,7 @@ import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
 @UntilDestroy()
 @Component({
     selector: 'app-list-vehiculos',
@@ -16,6 +17,8 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 export class ListVehiculosComponent implements OnInit {
     public vehiculoService = inject(VehiculoService);
     private cdr = inject(ChangeDetectorRef);
+
+    tipoVehiculoDescripcion: string = 'TODOS LOS TIPOS';
 
     dataSource = new MatTableDataSource<Vehiculo>();
     displayedColumns = ['id', 'chapa', 'marca', 'modelo', 'tipo', 'anho', 'color', 'acciones'];
@@ -77,9 +80,27 @@ export class ListVehiculosComponent implements OnInit {
         }
     }
 
+    onBuscarTipoVehiculo(): void {
+        this.vehiculoService.abrirBuscadorTipoVehiculo(false).subscribe((res: TipoVehiculo) => {
+            if (res) {
+                this.tipoControl.setValue(Number(res.id));
+                this.tipoVehiculoDescripcion = res.descripcion.toUpperCase();
+                this.cdr.markForCheck();
+            }
+        });
+    }
+
+    resetTipoFilter(event?: any): void {
+        if (event) event.stopPropagation();
+        this.tipoControl.setValue(null);
+        this.tipoVehiculoDescripcion = 'TODOS LOS TIPOS';
+        this.cdr.markForCheck();
+    }
+
     resetFiltro(): void {
         this.filtroControl.setValue('');
         this.tipoControl.setValue(null);
+        this.tipoVehiculoDescripcion = 'TODOS LOS TIPOS';
         this.vehiculoService.updateTipoFilter(null);
         this.vehiculoService.refrescar();
     }

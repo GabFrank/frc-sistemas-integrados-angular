@@ -4,12 +4,9 @@ import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
 import { VehiculoSucursal } from '../../models/vehiculo-sucursal.model';
 import { VehiculoService } from '../../service/vehiculo.service';
-import { MatDialog } from '@angular/material/dialog';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy()
@@ -21,10 +18,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ListVehiculoSucursalComponent implements OnInit {
     public vehiculoService = inject(VehiculoService);
-    private dialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
     private sucursalService = inject(SucursalService);
-    private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
 
     dataSource = new MatTableDataSource<VehiculoSucursal>();
     displayedColumns = ['id', 'vehiculo', 'sucursal', 'responsable', 'usuario', 'creadoEn', 'acciones'];
@@ -75,36 +70,11 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
     onBuscarResponsable(): void {
-        const tableData: TableData[] = [
-            {
-                id: 'id',
-                nombre: 'Id'
-            },
-            {
-                id: 'nombre',
-                nombre: 'Nombre',
-                nested: true,
-                nestedId: 'persona',
-                nestedColumnId: 'nombre'
-            }
-        ];
-
-        const data: SearchListtDialogData = {
-            query: this.funcionarioSearchGQL,
-            tableData: tableData,
-            titulo: 'Buscar Responsable',
-            search: true,
-            inicialSearch: true
-        };
-
-        this.dialog.open(SearchListDialogComponent, {
-            data: data,
-            width: '60%',
-            height: '80%'
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Funcionario) => {
+        this.vehiculoService.abrirBuscadorResponsable().pipe(untilDestroyed(this)).subscribe((res: Funcionario) => {
             if (res) {
                 this.responsableControl.setValue(res.persona?.nombre || '');
                 this.vehiculoService.setResponsableFilter(res.id);
+                this.cdr.markForCheck();
             }
         });
     }
