@@ -9,24 +9,42 @@ export const marcaSearchQuery = gql`
   }
 `;
 
-export const modeloSearchQuery = gql`
-  query modeloSearch($texto: String) {
-    data: modeloSearch(texto: $texto) {
-      id
-      descripcion
-      marca {
+export const modeloSearchPageQuery = gql`
+  query modeloSearchPage($texto: String, $page: Int, $size: Int) {
+    data: modeloSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
         descripcion
+        marca {
+          id
+          descripcion
+        }
       }
     }
   }
 `;
 
-export const tipoVehiculoSearchQuery = gql`
-  query tipoVehiculoSearch($texto: String) {
-    data: tipoVehiculoSearch(texto: $texto) {
-      id
-      descripcion
+export const tipoVehiculoSearchPageQuery = gql`
+  query tipoVehiculoSearchPage($texto: String, $page: Int, $size: Int) {
+    data: tipoVehiculoSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+      }
     }
   }
 `;

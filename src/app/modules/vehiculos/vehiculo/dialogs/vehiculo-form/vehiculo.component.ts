@@ -13,8 +13,8 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dial
 import { Inject, Optional } from '@angular/core';
 import { MainService } from '../../../../../main.service';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { ModeloSearchGQL } from '../../graphql/modeloSearch';
-import { TipoVehiculoSearchGQL } from '../../graphql/tipoVehiculoSearch';
+import { ModeloSearchPageGQL } from '../../graphql/modeloSearchPage';
+import { TipoVehiculoSearchPageGQL } from '../../graphql/tipoVehiculoSearchPage';
 import { AdicionarModeloDialogComponent } from '../adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 
@@ -32,8 +32,8 @@ export class VehiculoComponent implements OnInit {
     private matDialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
     public mainService = inject(MainService);
-    private modeloSearchGQL = inject(ModeloSearchGQL);
-    private tipoVehiculoSearchGQL = inject(TipoVehiculoSearchGQL);
+    private modeloSearchPageGQL = inject(ModeloSearchPageGQL);
+    private tipoVehiculoSearchPageGQL = inject(TipoVehiculoSearchPageGQL);
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
@@ -181,11 +181,12 @@ export class VehiculoComponent implements OnInit {
 
         const data: SearchListtDialogData = {
             titulo: 'Buscar Modelo',
-            query: this.modeloSearchGQL,
+            query: this.modeloSearchPageGQL,
             tableData: tableData,
             inicialSearch: true,
             isServidor: true,
-            isAdicionar: true
+            isAdicionar: true,
+            paginator: true
         };
 
         this.matDialog.open(SearchListDialogComponent, {
@@ -223,11 +224,12 @@ export class VehiculoComponent implements OnInit {
 
         const data: SearchListtDialogData = {
             titulo: 'Buscar Tipo de Vehículo',
-            query: this.tipoVehiculoSearchGQL,
+            query: this.tipoVehiculoSearchPageGQL,
             tableData: tableData,
             inicialSearch: true,
             isServidor: true,
-            isAdicionar: true
+            isAdicionar: true,
+            paginator: true
         };
 
         this.matDialog.open(SearchListDialogComponent, {

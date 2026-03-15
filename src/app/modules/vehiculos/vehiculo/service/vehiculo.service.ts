@@ -7,8 +7,8 @@ import { VehiculoSearchGQL } from '../graphql/vehiculoSearch';
 import { Observable } from 'rxjs';
 import { Vehiculo } from '../models/vehiculo.model';
 import { VehiculoInput } from '../models/vehiculo-input.model';
-import { ModeloSearchGQL } from '../graphql/modeloSearch';
-import { TipoVehiculoSearchGQL } from '../graphql/tipoVehiculoSearch';
+import { ModeloSearchPageGQL } from '../graphql/modeloSearchPage';
+import { TipoVehiculoSearchPageGQL } from '../graphql/tipoVehiculoSearchPage';
 import { MarcaSearchGQL } from '../graphql/marcaSearch';
 import { SaveMarcaGQL } from '../graphql/saveMarca';
 import { SaveModeloGQL } from '../graphql/saveModelo';
@@ -38,8 +38,8 @@ export class VehiculoService {
   private saveVehiculoGQL = inject(SaveVehiculoGQL);
   private deleteVehiculoGQL = inject(DeleteVehiculoGQL);
   private vehiculoSearchGQL = inject(VehiculoSearchGQL);
-  private modeloSearchGQL = inject(ModeloSearchGQL);
-  private tipoVehiculoSearchGQL = inject(TipoVehiculoSearchGQL);
+  private modeloSearchPageGQL = inject(ModeloSearchPageGQL);
+  private tipoVehiculoSearchPageGQL = inject(TipoVehiculoSearchPageGQL);
   private marcaSearchGQL = inject(MarcaSearchGQL);
   private saveMarcaGQL = inject(SaveMarcaGQL);
   private saveModeloGQL = inject(SaveModeloGQL);
@@ -77,11 +77,21 @@ export class VehiculoService {
   }
 
   onFiltrarModelos(texto: string): Observable<Modelo[]> {
-    return this.genericService.onGetByTexto(this.modeloSearchGQL, texto);
+    return new Observable(obs => {
+      this.genericService.onCustomQuery(this.modeloSearchPageGQL, { texto, page: 0, size: 500 }).subscribe(res => {
+        obs.next(res?.getContent || []);
+        obs.complete();
+      });
+    });
   }
 
   onFiltrarTipos(texto: string): Observable<TipoVehiculo[]> {
-    return this.genericService.onGetByTexto(this.tipoVehiculoSearchGQL, texto);
+    return new Observable(obs => {
+      this.genericService.onCustomQuery(this.tipoVehiculoSearchPageGQL, { texto, page: 0, size: 500 }).subscribe(res => {
+        obs.next(res?.getContent || []);
+        obs.complete();
+      });
+    });
   }
 
   onFiltrarMarcas(texto: string): Observable<Marca[]> {
