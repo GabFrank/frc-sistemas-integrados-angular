@@ -27,7 +27,7 @@
             <mat-form-field fxFlex="50">
                 <mat-label class="required-field">IMEI</mat-label>
                 <input matInput formControlName="imei" placeholder="123456789012345" numeric-only no-spaces (keyup.enter)="modelo.focus()">
-                <mat-error *ngIf="form.get('imei')?.hasError('required')">El IMEI es requerido</mat-error>
+                <mat-error *ngIf="hasError('imei', 'required')">El IMEI es requerido</mat-error>
             </mat-form-field>
 
             <mat-form-field fxFlex="50">

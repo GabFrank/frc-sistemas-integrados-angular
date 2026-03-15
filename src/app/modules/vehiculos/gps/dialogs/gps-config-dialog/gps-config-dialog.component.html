@@ -1,59 +1,56 @@
-<div class="config-container">
+<div class="dialog-container dark-theme">
   <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
-    <div fxLayout="column">
-      <h2 class="title">Configuración SinoTrack ST-901L-R</h2>
-      <span class="subtitle">IMEI: {{ gps?.imei }} | Vehículo: {{ gps?.vehiculo?.modelo?.descripcion }}</span>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+      <div class="icon-circle">
+        <mat-icon>settings_input_component</mat-icon>
+      </div>
+      <div fxLayout="column">
+        <h2 class="mat-h2">CONFIGURACIÓN GPS</h2>
+        <span class="subtitle">Identificador: {{ gps?.identificador }}</span>
+      </div>
     </div>
     <button mat-icon-button (click)="onCancel()" class="close-btn">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 
-  <mat-divider></mat-divider>
-
   <form [formGroup]="configForm" class="content-form">
     <mat-tab-group dynamicHeight animationDuration="500ms">
-      
-      <!-- TAB: GENERAL Y MOTOR -->
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">settings_remote</mat-icon>
-          <span>Control y Energía</span>
+          <span>GENERAL</span>
         </ng-template>
-        
+
         <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
-          <div class="card-section motor-control" [class.motor-cut]="!configForm.get('motorEstado')?.value">
+          <div class="card-section motor-control" [class.motor-cut]="!getControlValue('motorEstado')">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="column">
-                <span class="section-title">Corte de Combustible / Energía</span>
-                <span class="section-desc">Detiene el motor de forma remota (Seguro a < 20km/h)</span>
+                <span class="label">CORTE DE MOTOR</span>
+                <span class="status-desc">{{ getControlValue('motorEstado') ? 'El motor está habilitado' : 'El motor se encuentra bloqueado' }}</span>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
                 <mat-slide-toggle formControlName="motorEstado" color="warn">
-                  {{ configForm.get('motorEstado')?.value ? 'MOTOR ENCENDIDO' : 'MOTOR BLOQUEADO' }}
+                  {{ getMotorLabel() }}
                 </mat-slide-toggle>
-                <button mat-stroked-button color="warn" class="update-card-btn" 
-                        (click)="onUpdateMotor()" [disabled]="loading.motor">
+                <button mat-stroked-button color="warn" class="update-card-btn" (click)="onUpdateMotor()"
+                  [disabled]="loading.motor">
                   <mat-icon *ngIf="!loading.motor">sync</mat-icon>
                   <mat-spinner diameter="20" *ngIf="loading.motor"></mat-spinner>
                   ACTUALIZAR
                 </button>
               </div>
             </div>
-            <div *ngIf="!configForm.get('motorEstado')?.value" class="warning-box">
-              <mat-icon>warning</mat-icon>
-              <span>El vehículo no encenderá hasta que se restablezca la energía.</span>
-            </div>
           </div>
 
-          <div class="grid-configs" fxLayout="row wrap" fxLayoutGap="20px">
-            <div class="config-card" fxFlex="48%">
+          <div fxLayout="row" fxLayoutGap="20px">
+            <div class="config-card" fxFlex="50">
               <div fxLayout="row" fxLayoutAlign="space-between center">
-                <div fxLayout="column">
-                  <span class="card-label">Modo Sueño (Sleep)</span>
-                  <span class="card-desc">Ahorro de batería al estar detenido</span>
-                </div>
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                  <mat-icon class="card-icon" [color]="getControlValue('sleepMode') ? 'accent' : ''">bedtime</mat-icon>
+                  <span class="card-label">MODO SUEÑO (AHORRO)</span>
+                </div>
+                <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px">
                   <mat-slide-toggle formControlName="sleepMode"></mat-slide-toggle>
                   <button mat-icon-button (click)="onUpdateSleep()" [disabled]="loading.sleep" class="mini-update-btn">
                     <mat-icon *ngIf="!loading.sleep">send</mat-icon>
@@ -63,170 +60,160 @@
               </div>
             </div>
 
-            <div class="config-card" fxFlex="48%">
-              <div fxLayout="column" fxLayoutGap="10px">
-                <div fxLayout="row" fxLayoutAlign="space-between center">
-                  <span class="card-label">Intervalo de Reporte</span>
-                  <span class="value-badge">{{ configForm.get('reportInterval')?.value }}s</span>
-                </div>
+            <div class="config-card" fxFlex="50">
+              <div fxLayout="row" fxLayoutAlign="space-between center">
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                  <mat-icon class="card-icon">timer</mat-icon>
+                  <span class="card-label">INTERVALO: {{ getControlValue('reportInterval') }}s</span>
+                </div>
+                <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px" fxFlex="60">
                   <mat-slider min="10" max="180" step="10" thumbLabel fxFlex>
                     <input matSliderThumb formControlName="reportInterval">
                   </mat-slider>
-                  <button mat-icon-button (click)="onUpdateInterval()" [disabled]="loading.interval" class="mini-update-btn">
+                  <button mat-icon-button (click)="onUpdateInterval()" [disabled]="loading.interval"
+                    class="mini-update-btn">
                     <mat-icon *ngIf="!loading.interval">send</mat-icon>
                     <mat-spinner diameter="18" *ngIf="loading.interval"></mat-spinner>
                   </button>
                 </div>
-                <span class="card-desc">Frecuencia de actualización de ubicación</span>
               </div>
             </div>
           </div>
         </div>
       </mat-tab>
-
-      <!-- TAB: ALERTAS -->
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">notifications_active</mat-icon>
-          <span>Alertas Push</span>
+          <span>ALERTAS PUSH</span>
         </ng-template>
-        
-        <div class="tab-body" fxLayout="column" fxLayoutGap="15px">
 
-          <!-- Info -->
+        <div class="tab-body" fxLayout="column" fxLayoutGap="15px">
           <div class="info-box">
             <mat-icon>info</mat-icon>
-            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. Presiona el botón de guardar junto a cada opción para persistir los cambios.</span>
+            <span>Activa o desactiva las notificaciones push para cada tipo de alerta. Presiona el botón de guardar
+              junto a cada opción para persistir los cambios.</span>
           </div>
-
-          <!-- Exceso de Velocidad -->
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon class="alert-icon speeding">speed</mat-icon>
+                <mat-icon [color]="getControlValue('alertaVelocidad') ? 'warn' : ''">speed</mat-icon>
                 <div fxLayout="column">
-                  <span class="card-label">Exceso de Velocidad</span>
+                  <span class="alert-name">EXCESO DE VELOCIDAD</span>
                   <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-                    <mat-form-field appearance="outline" class="small-input dens-field">
-                      <input matInput type="number" formControlName="velocidadLimite">
-                      <span matSuffix>km/h</span>
-                    </mat-form-field>
+                    <span class="alert-desc">Límite: {{ getControlValue('velocidadLimite') }} km/h</span>
+                    <mat-slider min="10" max="180" step="5" thumbLabel style="width: 100px;">
+                      <input matSliderThumb formControlName="velocidadLimite">
+                    </mat-slider>
                   </div>
                 </div>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                 <mat-slide-toggle formControlName="alertaVelocidad"></mat-slide-toggle>
-                <button mat-icon-button (click)="onGuardarAlerta('alertaVelocidad')" [disabled]="loading['alertaVelocidad']" class="mini-update-btn" color="primary">
-                  <mat-icon *ngIf="!loading['alertaVelocidad']">save</mat-icon>
-                  <mat-spinner diameter="18" *ngIf="loading['alertaVelocidad']"></mat-spinner>
+                <button mat-icon-button (click)="onGuardarAlerta('alertaVelocidad')"
+                  [disabled]="loading.alertaVelocidad" class="mini-update-btn" color="primary">
+                  <mat-icon *ngIf="!loading.alertaVelocidad">save</mat-icon>
+                  <mat-spinner diameter="18" *ngIf="loading.alertaVelocidad"></mat-spinner>
                 </button>
               </div>
             </div>
           </div>
-
-          <!-- Sensor de Choque / Vibración -->
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon class="alert-icon shock">vibration</mat-icon>
+                <mat-icon [color]="getControlValue('alertaVibracion') ? 'warn' : ''">vibration</mat-icon>
                 <div fxLayout="column">
-                  <span class="card-label">Sensor de Choque / Vibración</span>
-                  <span class="card-desc">Notificar movimientos bruscos estacionado</span>
+                  <span class="alert-name">SENSOR DE CHOQUE / VIBRACIÓN</span>
+                  <span class="alert-desc">Notificar si se detecta movimiento brusco</span>
                 </div>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                 <mat-slide-toggle formControlName="alertaVibracion"></mat-slide-toggle>
-                <button mat-icon-button (click)="onGuardarAlerta('alertaVibracion')" [disabled]="loading['alertaVibracion']" class="mini-update-btn" color="primary">
-                  <mat-icon *ngIf="!loading['alertaVibracion']">save</mat-icon>
-                  <mat-spinner diameter="18" *ngIf="loading['alertaVibracion']"></mat-spinner>
+                <button mat-icon-button (click)="onGuardarAlerta('alertaVibracion')"
+                  [disabled]="loading.alertaVibracion" class="mini-update-btn" color="primary">
+                  <mat-icon *ngIf="!loading.alertaVibracion">save</mat-icon>
+                  <mat-spinner diameter="18" *ngIf="loading.alertaVibracion"></mat-spinner>
                 </button>
               </div>
             </div>
           </div>
-
-          <!-- Batería Baja -->
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon class="alert-icon battery">battery_alert</mat-icon>
+                <mat-icon [color]="getControlValue('alertaBateriaBaja') ? 'warn' : ''">battery_alert</mat-icon>
                 <div fxLayout="column">
-                  <span class="card-label">Batería Baja (20%)</span>
-                  <span class="card-desc">Alerta cuando el rastreador se queda sin carga</span>
+                  <span class="alert-name">BATERÍA BAJA</span>
+                  <span class="alert-desc">Notificar si la batería del GPS es crítica</span>
                 </div>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                 <mat-slide-toggle formControlName="alertaBateriaBaja"></mat-slide-toggle>
-                <button mat-icon-button (click)="onGuardarAlerta('alertaBateriaBaja')" [disabled]="loading['alertaBateriaBaja']" class="mini-update-btn" color="primary">
-                  <mat-icon *ngIf="!loading['alertaBateriaBaja']">save</mat-icon>
-                  <mat-spinner diameter="18" *ngIf="loading['alertaBateriaBaja']"></mat-spinner>
+                <button mat-icon-button (click)="onGuardarAlerta('alertaBateriaBaja')"
+                  [disabled]="loading.alertaBateriaBaja" class="mini-update-btn" color="primary">
+                  <mat-icon *ngIf="!loading.alertaBateriaBaja">save</mat-icon>
+                  <mat-spinner diameter="18" *ngIf="loading.alertaBateriaBaja"></mat-spinner>
                 </button>
               </div>
             </div>
           </div>
-
-          <!-- Ignición (ACC) -->
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon class="alert-icon acc">vpn_key</mat-icon>
+                <mat-icon [color]="getControlValue('alertaAcc') ? 'warn' : ''">vpn_key</mat-icon>
                 <div fxLayout="column">
-                  <span class="card-label">Ignición (ACC)</span>
-                  <span class="card-desc">Avisar cuando se enciende/apaga el vehículo</span>
+                  <span class="alert-name">IGNICIÓN (ACC)</span>
+                  <span class="alert-desc">Notificar cuando el vehículo se enciende/apaga</span>
                 </div>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                 <mat-slide-toggle formControlName="alertaAcc"></mat-slide-toggle>
-                <button mat-icon-button (click)="onGuardarAlerta('alertaAcc')" [disabled]="loading['alertaAcc']" class="mini-update-btn" color="primary">
-                  <mat-icon *ngIf="!loading['alertaAcc']">save</mat-icon>
-                  <mat-spinner diameter="18" *ngIf="loading['alertaAcc']"></mat-spinner>
+                <button mat-icon-button (click)="onGuardarAlerta('alertaAcc')" [disabled]="loading.alertaAcc"
+                  class="mini-update-btn" color="primary">
+                  <mat-icon *ngIf="!loading.alertaAcc">save</mat-icon>
+                  <mat-spinner diameter="18" *ngIf="loading.alertaAcc"></mat-spinner>
                 </button>
               </div>
             </div>
           </div>
 
-
         </div>
       </mat-tab>
-
-      <!-- TAB: RED -->
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">router</mat-icon>
-          <span>Red / APN</span>
+          <span>CONEXIÓN / RED</span>
         </ng-template>
+
         <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
-          <span class="section-title">Configuración del Operador (APN)</span>
-          <div class="apn-form" fxLayout="column" fxLayoutGap="10px">
-            <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+          <div class="config-card apn-card">
+            <div fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="20px">
               <mat-form-field appearance="outline" fxFlex>
-                <mat-label>Nombre del APN</mat-label>
+                <mat-label>Operadora (APN)</mat-label>
                 <mat-select formControlName="apnName">
-                  <mat-option value="internet">Tigo Paraguay - internet</mat-option>
-                  <mat-option value="internet-personal">Personal Paraguay - internet</mat-option>
-                  <mat-option value="internet-vox">VOX Paraguay - internet</mat-option>
-                  <mat-option value="otro">Otro (personalizado)</mat-option>
+                  <mat-option value="internet">Tigo (internet.tigo.py)</mat-option>
+                  <mat-option value="mms.tigo.py">Tigo MMS</mat-option>
+                  <mat-option value="internet.personal.com.py">Personal</mat-option>
+                  <mat-option value="internet.claro.com.py">Claro</mat-option>
+                  <mat-option value="otro">Otro...</mat-option>
                 </mat-select>
                 <mat-icon matPrefix>language</mat-icon>
               </mat-form-field>
-              <button mat-raised-button color="accent" (click)="onUpdateApn()" 
-                      [disabled]="loading.apn" class="apn-send-btn">
+              <button mat-raised-button color="accent" (click)="onUpdateApn()" [disabled]="loading.apn"
+                class="apn-send-btn">
                 <mat-icon *ngIf="!loading.apn">dns</mat-icon>
                 <mat-spinner diameter="20" *ngIf="loading.apn"></mat-spinner>
                 ENVIAR APN
               </button>
             </div>
 
-            <div *ngIf="configForm.get('apnName')?.value === 'otro'" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+            <div *ngIf="getControlValue('apnName') === 'otro'" fxLayout="row" fxLayoutAlign="start center"
+              fxLayoutGap="15px">
               <mat-form-field appearance="outline" fxFlex>
                 <mat-label>APN personalizado</mat-label>
                 <input matInput formControlName="apnName" placeholder="Ej: internet.tigo.py">
               </mat-form-field>
             </div>
-
-
           </div>
-          
+
           <div class="info-box">
             <mat-icon>info</mat-icon>
             <span>Estos ajustes permiten que el dispositivo se conecte a internet a través de la red celular.</span>
