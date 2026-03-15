@@ -53,9 +53,7 @@ export class GpsConfigDialogComponent implements OnInit {
       alertaAcc: [this.gps.alertaAcc ?? true],
 
       // APN
-      apnName: ['internet'],
-      apnUser: [''],
-      apnPass: ['']
+      apnName: ['internet']
     });
   }
 
@@ -141,9 +139,7 @@ export class GpsConfigDialogComponent implements OnInit {
     this.loading.apn = true;
     this.cdr.markForCheck();
     const apn = this.configForm.get('apnName')?.value;
-    const user = this.configForm.get('apnUser')?.value || '';
-    const pass = this.configForm.get('apnPass')?.value || '';
-    const valor = [apn, user, pass].join(',');
+    const valor = [apn, '', ''].join(',');
     return new Promise((resolve) => {
       this.gpsService.onEnviarComando(this.gps.id, 'APN', valor)
         .pipe(
