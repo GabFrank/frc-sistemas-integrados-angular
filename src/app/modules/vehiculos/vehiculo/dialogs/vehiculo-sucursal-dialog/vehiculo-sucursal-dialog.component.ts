@@ -100,7 +100,6 @@ export class VehiculoSucursalDialogComponent implements OnInit {
             inicialSearch: true,
             textHint: 'Buscar por chapa, marca o modelo...',
             paginator: true,
-            // El backend requiere page/size (size >= 1)
             queryData: { page: 0, size: 15 }
         };
 

@@ -10,7 +10,6 @@
     </div>
 
     <div fxLayout="column" fxLayoutGap="15px">
-        <!-- Tipo y Marca in one row -->
         <div fxLayout="row" fxLayoutGap="20px">
             <div fxFlex="50" fxLayout="column" [class.saved-section]="tipoSaved">
                 <form [formGroup]="tipoForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
@@ -42,8 +41,6 @@
         </div>
 
         <mat-divider style="opacity: 0.1;"></mat-divider>
-
-        <!-- Modelo section -->
         <div fxLayout="column" fxLayoutGap="10px" [class.saved-section]="modeloSaved">
             <h4 class="titulo" style="font-size: 14px;">NUEVO MODELO</h4>
             <div fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="start center">

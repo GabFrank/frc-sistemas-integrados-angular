@@ -14,7 +14,7 @@
     >
       <div fxFlex="30%">
         <frc-searchable-select [list]="sucursales" titulo="Sucursal" [isFilter]="true"
-          [compareFields]="[{id:'nombre'}]" (selectionChanged)="sucursalControl.setValue($event?.id); onFiltrar()"
+          [compareFields]="[{id:'nombre'}]" (selectionChanged)="sucursalControl.setValue($event?.id)"
           [currentData]="sucursalControl.value">
           <ng-template let-item>
             {{ item.nombre }}
@@ -35,8 +35,8 @@
           <button
             mat-icon-button
             matSuffix
-            *ngIf="selectedResponsable"
-            (click)="selectedResponsable = null; responsableControl.setValue(''); onFiltrar(); $event.stopPropagation()"
+            *ngIf="responsableControl.value"
+            (click)="resetFiltro(); $event.stopPropagation()"
             style="margin-right: -8px;"
           >
             <mat-icon>clear</mat-icon>
@@ -147,9 +147,9 @@
       itemsPerPageLabel="Itens por pagina"
       [pageSizeOptions]="[15, 25, 50, 100]"
       (page)="handlePageEvent($event)"
-      [length]="totalElements"
-      [pageIndex]="pageIndex"
-      [pageSize]="pageSize"
+      [length]="(vehiculoService.paginationSucursalState$ | async)?.totalElements || 0"
+      [pageIndex]="(vehiculoService.paginationSucursalState$ | async)?.pageIndex || 0"
+      [pageSize]="(vehiculoService.paginationSucursalState$ | async)?.pageSize || 15"
       style="width: 100%"
       showFirstLastButtons
     ></mat-paginator>

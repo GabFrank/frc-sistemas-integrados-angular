@@ -31,6 +31,7 @@ import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
 import { MatDialog } from '@angular/material/dialog';
 import { VehiculoComponent } from '../dialogs/vehiculo-form/vehiculo.component';
+import { VehiculoSucursalDialogComponent } from '../dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 
 @Injectable({
   providedIn: 'root'
@@ -103,6 +104,21 @@ export class VehiculoService {
       return filtered.slice(start, end);
     })
   );
+  private vehiculosSucursalSubject = new BehaviorSubject<VehiculoSucursal[]>([]);
+  public vehiculosSucursal$ = this.vehiculosSucursalSubject.asObservable();
+
+  private _sucursalFilter$ = new BehaviorSubject<number | null>(null);
+  public sucursalFilter$ = this._sucursalFilter$.asObservable();
+
+  private _responsableFilter$ = new BehaviorSubject<number | null>(null);
+  public responsableFilter$ = this._responsableFilter$.asObservable();
+
+  private _paginationSucursalState$ = new BehaviorSubject<{ pageIndex: number, pageSize: number, totalElements: number }>({
+    pageIndex: 0,
+    pageSize: 15,
+    totalElements: 0
+  });
+  public paginationSucursalState$ = this._paginationSucursalState$.asObservable();
 
   onBuscarPorId(id: number): Observable<Vehiculo> {
     return this.genericService.onGetById(this.vehiculoByIdGQL, id);
@@ -241,17 +257,6 @@ export class VehiculoService {
     return this.genericService.onSave(this.saveVehiculoSucursalGQL, input);
   }
 
-  onEliminarVehiculoSucursal(id: number): Observable<boolean> {
-    return this.genericService.onDelete(
-      this.deleteVehiculoSucursalGQL,
-      id,
-      '¿Eliminar asignación de vehículo a sucursal?',
-      null,
-      true,
-      true,
-      '¿Está seguro que desea eliminar esta asignación?'
-    );
-  }
 
   onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<VehiculoSucursal[]> {
     return this.genericService.onCustomQuery(this.vehiculosSucursalGQL, { page, size });
@@ -263,6 +268,75 @@ export class VehiculoService {
 
   onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<any> {
     return this.genericService.onCustomQuery(this.vehiculosSucursalSearchPageGQL, { sucursalId, responsableId, page, size });
+  }
+
+  refrescarSucursal(): void {
+    this.loadingSubject.next(true);
+    const sucursalId = this._sucursalFilter$.value;
+    const responsableId = this._responsableFilter$.value;
+    const { pageIndex, pageSize } = this._paginationSucursalState$.value;
+
+    this.onBuscarVehiculosSucursalSearchPage(sucursalId, responsableId, pageIndex, pageSize).subscribe({
+      next: (res) => {
+        this.vehiculosSucursalSubject.next(res?.getContent || []);
+        this._paginationSucursalState$.next({
+          ...this._paginationSucursalState$.value,
+          totalElements: res?.getTotalElements || 0
+        });
+        this.loadingSubject.next(false);
+      },
+      error: () => this.loadingSubject.next(false)
+    });
+  }
+
+  setSucursalFilter(id: number | null): void {
+    this._sucursalFilter$.next(id);
+    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
+  }
+
+  setResponsableFilter(id: number | null): void {
+    this._responsableFilter$.next(id);
+    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
+  }
+
+  updatePaginationSucursal(pageIndex: number, pageSize: number): void {
+    this._paginationSucursalState$.next({
+      ...this._paginationSucursalState$.value,
+      pageIndex,
+      pageSize
+    });
+    this.refrescarSucursal();
+  }
+
+  abrirFormularioSucursal(vehiculoSucursal?: VehiculoSucursal): Observable<any> {
+    const dialogRef = this.dialog.open(VehiculoSucursalDialogComponent, {
+      width: '500px',
+      disableClose: true,
+      autoFocus: false,
+      data: vehiculoSucursal ? { vehiculoSucursal, vehiculo: vehiculoSucursal.vehiculo } : {}
+    });
+
+    return dialogRef.afterClosed().pipe(
+      tap(res => {
+        if (res) this.refrescarSucursal();
+      })
+    );
+  }
+
+  onEliminarVehiculoSucursal(id: number): Observable<boolean> {
+    return this.genericService.onDelete(
+      this.deleteVehiculoSucursalGQL,
+      id,
+      '¿Eliminar asignación de vehículo a sucursal?',
+      null,
+      true,
+      true,
+      '¿Está seguro que desea eliminar esta asignación?'
+    ).pipe(
+      tap(res => {
+        if (res) this.refrescarSucursal();
+      })
+    );
   }
 }
 

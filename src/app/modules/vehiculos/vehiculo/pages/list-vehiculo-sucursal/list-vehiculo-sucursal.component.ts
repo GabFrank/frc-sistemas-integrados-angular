@@ -1,17 +1,18 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTableDataSource, MatTable } from '@angular/material/table';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatTableDataSource } from '@angular/material/table';
+import { PageEvent } from '@angular/material/paginator';
 import { VehiculoSucursal } from '../../models/vehiculo-sucursal.model';
 import { VehiculoService } from '../../service/vehiculo.service';
 import { MatDialog } from '@angular/material/dialog';
-import { VehiculoSucursalDialogComponent } from '../../dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy()
 @Component({
     selector: 'app-list-vehiculo-sucursal',
     templateUrl: './list-vehiculo-sucursal.component.html',
@@ -19,10 +20,7 @@ import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ListVehiculoSucursalComponent implements OnInit {
-    @ViewChild(MatPaginator) paginator: MatPaginator;
-    @ViewChild(MatTable) table: MatTable<any>;
-
-    private vehiculoService = inject(VehiculoService);
+    public vehiculoService = inject(VehiculoService);
     private dialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
     private sucursalService = inject(SucursalService);
@@ -34,22 +32,30 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     sucursalControl = new FormControl(null);
     responsableControl = new FormControl('');
-    selectedResponsable: Funcionario | null = null;
     sucursales: Sucursal[] = [];
-
-    pageIndex = 0;
-    pageSize = 15;
-    totalElements = 0;
 
     ngOnInit(): void {
         this.cargarSucursales();
-        setTimeout(() => {
-            if (this.paginator) {
-                this.paginator._changePageSize(this.paginator.pageSizeOptions[0]);
-                this.pageSize = this.paginator.pageSizeOptions[0];
-            }
-            this.onFiltrar();
-        }, 0);
+        this.vehiculoService.refrescarSucursal();
+        this.initFiltros();
+        this.initDataStream();
+    }
+
+    private initFiltros(): void {
+        this.sucursalControl.valueChanges.pipe(
+            untilDestroyed(this)
+        ).subscribe(id => {
+            this.vehiculoService.setSucursalFilter(id);
+        });
+    }
+
+    private initDataStream(): void {
+        this.vehiculoService.vehiculosSucursal$.pipe(
+            untilDestroyed(this)
+        ).subscribe(res => {
+            this.dataSource.data = res;
+            this.cdr.markForCheck();
+        });
     }
 
     cargarSucursales(): void {
@@ -60,37 +66,12 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
     onFiltrar(): void {
-        this.pageIndex = 0;
-        if (this.paginator) {
-            this.paginator.pageIndex = 0;
-        }
-        this.cargarDatos();
+        this.vehiculoService.refrescarSucursal();
     }
 
-    cargarDatos(): void {
-        this.isLoading = true;
-        const sucursalId = this.sucursalControl.value;
-        const responsableId = this.selectedResponsable?.id;
-
-        this.vehiculoService.onBuscarVehiculosSucursalSearchPage(sucursalId, responsableId, this.pageIndex, this.pageSize).subscribe({
-            next: (res) => {
-                const pageResult = res || { getContent: [], getTotalElements: 0 };
-                this.dataSource.data = pageResult.getContent || [];
-                this.totalElements = pageResult.getTotalElements || 0;
-                this.isLoading = false;
-                this.cdr.markForCheck();
-            },
-            error: () => {
-                this.isLoading = false;
-                this.cdr.markForCheck();
-            }
-        });
-    }
 
     handlePageEvent(event: PageEvent): void {
-        this.pageIndex = event.pageIndex;
-        this.pageSize = event.pageSize;
-        this.cargarDatos();
+        this.vehiculoService.updatePaginationSucursal(event.pageIndex, event.pageSize);
     }
 
     onBuscarResponsable(): void {
@@ -120,11 +101,10 @@ export class ListVehiculoSucursalComponent implements OnInit {
             data: data,
             width: '60%',
             height: '80%'
-        }).afterClosed().subscribe((res: Funcionario) => {
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Funcionario) => {
             if (res) {
-                this.selectedResponsable = res;
                 this.responsableControl.setValue(res.persona?.nombre || '');
-                this.onFiltrar();
+                this.vehiculoService.setResponsableFilter(res.id);
             }
         });
     }
@@ -132,56 +112,22 @@ export class ListVehiculoSucursalComponent implements OnInit {
     resetFiltro(): void {
         this.sucursalControl.setValue(null);
         this.responsableControl.setValue('');
-        this.selectedResponsable = null;
-        this.pageIndex = 0;
-        if (this.paginator) {
-            this.paginator.pageIndex = 0;
-        }
-        this.cargarDatos();
+        this.vehiculoService.setSucursalFilter(null);
+        this.vehiculoService.setResponsableFilter(null);
     }
 
     onAdicionar(): void {
-        // Necesitamos un diálogo que permita seleccionar el vehículo primero
-        // Por ahora, usar el diálogo sin vehículo y que permita seleccionarlo
-        const dialogRef = this.dialog.open(VehiculoSucursalDialogComponent, {
-            width: '500px',
-            disableClose: true,
-            autoFocus: false,
-            data: {}
-        });
-
-        dialogRef.afterClosed().subscribe(res => {
-            if (res) {
-                this.cargarDatos();
-            }
-        });
+        this.vehiculoService.abrirFormularioSucursal().subscribe();
     }
 
     onEditar(vehiculoSucursal: VehiculoSucursal): void {
-        if (!vehiculoSucursal.vehiculo?.id) return;
-
-        const dialogRef = this.dialog.open(VehiculoSucursalDialogComponent, {
-            width: '500px',
-            disableClose: true,
-            autoFocus: false,
-            data: { vehiculoSucursal, vehiculo: vehiculoSucursal.vehiculo }
-        });
-
-        dialogRef.afterClosed().subscribe(res => {
-            if (res) {
-                this.cargarDatos();
-            }
-        });
+        this.vehiculoService.abrirFormularioSucursal(vehiculoSucursal).subscribe();
     }
 
     onEliminar(vehiculoSucursal: VehiculoSucursal): void {
-        if (!vehiculoSucursal.id) return;
-
-        this.vehiculoService.onEliminarVehiculoSucursal(vehiculoSucursal.id).subscribe({
-            next: () => {
-                this.cargarDatos();
-            }
-        });
+        if (vehiculoSucursal.id) {
+            this.vehiculoService.onEliminarVehiculoSucursal(vehiculoSucursal.id).subscribe();
+        }
     }
 }
 
