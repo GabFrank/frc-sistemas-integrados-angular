@@ -9,15 +9,13 @@
         </mat-form-field>
       </div>
       <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Tipo de Vehículo</mat-label>
-          <mat-select [formControl]="tipoControl" name="tipoVehiculo">
-            <mat-option [value]="null"> Todas </mat-option>
-            <mat-option *ngFor="let tipo of tiposVehiculo$ | async" [value]="tipo.id">
-              {{ tipo.descripcion | titlecase }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <frc-searchable-select [list]="tiposVehiculo$ | async" titulo="Tipo de Vehículo" [isFilter]="true"
+          [compareFields]="[{id:'descripcion'}]" (selectionChanged)="tipoControl.setValue($event?.id)"
+          [currentData]="tipoControl.value">
+          <ng-template let-item>
+            {{ item.descripcion | titlecase }}
+          </ng-template>
+        </frc-searchable-select>
       </div>
     </div>
   </div>

@@ -25,7 +25,7 @@
         <div fxLayout="row" fxLayoutGap="20px">
             <mat-form-field fxFlex="50">
                 <mat-label class="required-field">Chapa / Matrícula</mat-label>
-                <input matInput formControlName="chapa" placeholder="ABC 123" (keyup.enter)="color.focus()">
+                <input matInput formControlName="chapa" placeholder="ABC 123" no-spaces (keyup.enter)="color.focus()">
             </mat-form-field>
 
             <mat-form-field fxFlex="50">
@@ -63,7 +63,7 @@
         <div fxLayout="row" fxLayoutGap="20px">
             <mat-form-field fxFlex="50">
                 <mat-label class="required-field">Año de Fabricación</mat-label>
-                <input #anho matInput type="number" formControlName="anho" placeholder="2020"
+                <input #anho matInput type="number" formControlName="anho" placeholder="2020" numeric-only
                     (keyup.enter)="km.focus()">
             </mat-form-field>
 
@@ -85,7 +85,7 @@
 
             <mat-form-field fxFlex="50">
                 <mat-label>Capacidad de Carga (Kg)</mat-label>
-                <input matInput type="number" formControlName="capacidadKg" placeholder="0.00">
+                <input matInput type="number" formControlName="capacidadKg" placeholder="0.00" numeric-only>
             </mat-form-field>
         </div>
 

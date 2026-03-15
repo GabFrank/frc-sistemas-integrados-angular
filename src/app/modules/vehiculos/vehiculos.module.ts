@@ -7,8 +7,6 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { PreRegistroVehiculoComponent } from './vehiculo/dialogs/pre-registro/pre-registro-vehiculo.component';
-import { BuscarModeloDialogComponent } from './vehiculo/dialogs/buscar-modelo-dialog/buscar-modelo-dialog.component';
-import { BuscarTipoVehiculoDialogComponent } from './vehiculo/dialogs/buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
 import { VehiculoSucursalDialogComponent } from './vehiculo/dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { VehiculosDashboardComponent } from './vehiculos-dashboard/vehiculos-dashboard.component';
 import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
@@ -23,8 +21,6 @@ import { ListMapasComponent } from './gps/pages/list-mapas/list-mapas.component'
     VehiculoComponent,
     ListVehiculosComponent,
     PreRegistroVehiculoComponent,
-    BuscarModeloDialogComponent,
-    BuscarTipoVehiculoDialogComponent,
     VehiculoSucursalDialogComponent,
     VehiculosDashboardComponent,
     ListVehiculoSucursalComponent,

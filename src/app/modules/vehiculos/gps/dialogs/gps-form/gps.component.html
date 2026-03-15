@@ -26,7 +26,7 @@
         <div fxLayout="row" fxLayoutGap="20px">
             <mat-form-field fxFlex="50">
                 <mat-label class="required-field">IMEI</mat-label>
-                <input matInput formControlName="imei" placeholder="123456789012345" (keyup.enter)="modelo.focus()">
+                <input matInput formControlName="imei" placeholder="123456789012345" numeric-only no-spaces (keyup.enter)="modelo.focus()">
                 <mat-error *ngIf="form.get('imei')?.hasError('required')">El IMEI es requerido</mat-error>
             </mat-form-field>
 
@@ -40,7 +40,7 @@
         <div fxLayout="row" fxLayoutGap="20px">
             <mat-form-field fxFlex="50">
                 <mat-label>Número SIM</mat-label>
-                <input #sim matInput formControlName="simNumero" placeholder="09XX XXX XXX">
+                <input #sim matInput formControlName="simNumero" placeholder="09XX XXX XXX" numeric-only no-spaces>
             </mat-form-field>
 
             <div fxFlex="50">

@@ -13,15 +13,13 @@
       style="width: 100%"
     >
       <div fxFlex="30%">
-        <mat-form-field style="width: 100%">
-          <mat-label>Sucursal</mat-label>
-          <mat-select [formControl]="sucursalControl" name="sucursal">
-            <mat-option [value]="null"> Todas </mat-option>
-            <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
-              {{ sucursal.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <frc-searchable-select [list]="sucursales" titulo="Sucursal" [isFilter]="true"
+          [compareFields]="[{id:'nombre'}]" (selectionChanged)="sucursalControl.setValue($event?.id); onFiltrar()"
+          [currentData]="sucursalControl.value">
+          <ng-template let-item>
+            {{ item.nombre }}
+          </ng-template>
+        </frc-searchable-select>
       </div>
       <div fxFlex="30%">
         <mat-form-field style="width: 100%">

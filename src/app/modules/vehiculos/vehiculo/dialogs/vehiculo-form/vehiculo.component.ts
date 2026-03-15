@@ -11,9 +11,10 @@ import { BehaviorSubject } from 'rxjs';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Inject, Optional } from '@angular/core';
-import { BuscarModeloDialogComponent } from '../buscar-modelo-dialog/buscar-modelo-dialog.component';
-import { BuscarTipoVehiculoDialogComponent } from '../buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
 import { MainService } from '../../../../../main.service';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { ModeloSearchGQL } from '../../graphql/modeloSearch';
+import { TipoVehiculoSearchGQL } from '../../graphql/tipoVehiculoSearch';
 
 @UntilDestroy()
 @Component({
@@ -29,6 +30,8 @@ export class VehiculoComponent implements OnInit {
     private matDialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
     public mainService = inject(MainService);
+    private modeloSearchGQL = inject(ModeloSearchGQL);
+    private tipoVehiculoSearchGQL = inject(TipoVehiculoSearchGQL);
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
@@ -168,37 +171,58 @@ export class VehiculoComponent implements OnInit {
     }
 
     onBuscarModelo(): void {
-        const dialogRef = this.matDialog.open(BuscarModeloDialogComponent, {
-            width: '800px',
-            disableClose: true,
-            autoFocus: false
-        });
+        const tableData: TableData[] = [
+            { id: 'id', nombre: 'ID', width: '10%' },
+            { id: 'marca.descripcion', nombre: 'Marca' },
+            { id: 'descripcion', nombre: 'Modelo' }
+        ];
 
-        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-            const id = Number(res?.id);
-            if (res && Number.isFinite(id)) {
+        const data: SearchListtDialogData = {
+            titulo: 'Buscar Modelo',
+            query: this.modeloSearchGQL,
+            tableData: tableData,
+            inicialSearch: true,
+            isServidor: true
+        };
+
+        this.matDialog.open(SearchListDialogComponent, {
+            width: '800px',
+            data: data
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                const id = Number(res.id);
                 this.modeloSelected = res;
                 this.form.get('modeloId')?.setValue(id);
                 this.actualizarDescripciones();
-                setTimeout(() => this.cdr.markForCheck(), 0);
+                this.cdr.markForCheck();
             }
         });
     }
 
     onBuscarTipoVehiculo(): void {
-        const dialogRef = this.matDialog.open(BuscarTipoVehiculoDialogComponent, {
-            width: '800px',
-            disableClose: true,
-            autoFocus: false
-        });
+        const tableData: TableData[] = [
+            { id: 'id', nombre: 'ID', width: '10%' },
+            { id: 'descripcion', nombre: 'Descripción' }
+        ];
 
-        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-            const id = Number(res?.id);
-            if (res && Number.isFinite(id)) {
+        const data: SearchListtDialogData = {
+            titulo: 'Buscar Tipo de Vehículo',
+            query: this.tipoVehiculoSearchGQL,
+            tableData: tableData,
+            inicialSearch: true,
+            isServidor: true
+        };
+
+        this.matDialog.open(SearchListDialogComponent, {
+            width: '800px',
+            data: data
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                const id = Number(res.id);
                 this.tipoVehiculoSelected = res;
                 this.form.get('tipoVehiculoId')?.setValue(id);
                 this.actualizarDescripciones();
-                setTimeout(() => this.cdr.markForCheck(), 0);
+                this.cdr.markForCheck();
             }
         });
     }
