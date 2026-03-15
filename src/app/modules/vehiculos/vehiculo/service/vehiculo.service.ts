@@ -4,9 +4,10 @@ import { VehiculoByIdGQL } from '../graphql/vehiculoById';
 import { SaveVehiculoGQL } from '../graphql/saveVehiculo';
 import { DeleteVehiculoGQL } from '../graphql/deleteVehiculo';
 import { VehiculoSearchGQL } from '../graphql/vehiculoSearch';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { Vehiculo } from '../models/vehiculo.model';
 import { VehiculoInput } from '../models/vehiculo-input.model';
+import { map, tap } from 'rxjs/operators';
 import { ModeloSearchPageGQL } from '../graphql/modeloSearchPage';
 import { TipoVehiculoSearchPageGQL } from '../graphql/tipoVehiculoSearchPage';
 import { MarcaSearchGQL } from '../graphql/marcaSearch';
@@ -28,6 +29,8 @@ import { DeleteVehiculoSucursalGQL } from '../graphql/deleteVehiculoSucursal';
 import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
+import { MatDialog } from '@angular/material/dialog';
+import { VehiculoComponent } from '../dialogs/vehiculo-form/vehiculo.component';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +54,55 @@ export class VehiculoService {
   private saveVehiculoSucursalGQL = inject(SaveVehiculoSucursalGQL);
   private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
+  private dialog = inject(MatDialog);
+  private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
+  public vehiculos$ = this.vehiculosSubject.asObservable();
+
+  private loadingSubject = new BehaviorSubject<boolean>(false);
+  public loading$ = this.loadingSubject.asObservable();
+
+  private _searchText$ = new BehaviorSubject<string>('');
+  public searchText$ = this._searchText$.asObservable();
+
+  private _tiposVehiculoSubject = new BehaviorSubject<TipoVehiculo[]>([]);
+  public tiposVehiculo$ = this._tiposVehiculoSubject.asObservable();
+
+  private _paginationState$ = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({
+    pageIndex: 0,
+    pageSize: 15
+  });
+  public paginationState$ = this._paginationState$.asObservable();
+
+  private _tipoFilter$ = new BehaviorSubject<number | null>(null);
+  public tipoFilter$ = this._tipoFilter$.asObservable();
+
+  public totalElements$ = combineLatest([
+    this.vehiculos$,
+    this._tipoFilter$
+  ]).pipe(
+    map(([vehiculos, tipoId]) => {
+      if (tipoId) {
+        return vehiculos.filter(v => v.tipoVehiculo?.id === tipoId).length;
+      }
+      return vehiculos.length;
+    })
+  );
+
+  public filteredVehiculos$ = combineLatest([
+    this.vehiculos$,
+    this._tipoFilter$,
+    this._paginationState$
+  ]).pipe(
+    map(([vehiculos, tipoId, pag]) => {
+      let filtered = vehiculos;
+      if (tipoId) {
+        filtered = vehiculos.filter(v => v.tipoVehiculo?.id === tipoId);
+      }
+      const start = pag.pageIndex * pag.pageSize;
+      const end = start + pag.pageSize;
+      return filtered.slice(start, end);
+    })
+  );
 
   onBuscarPorId(id: number): Observable<Vehiculo> {
     return this.genericService.onGetById(this.vehiculoByIdGQL, id);
@@ -60,8 +112,63 @@ export class VehiculoService {
     return this.genericService.onCustomQuery(this.vehiculoSearchGQL, { texto, page, size });
   }
 
+  refrescar(): void {
+    this.loadingSubject.next(true);
+    const texto = this._searchText$.value;
+    this.onFiltrar(texto, 0, 1000).subscribe({
+      next: (res) => {
+        this.vehiculosSubject.next(res || []);
+        this.loadingSubject.next(false);
+      },
+      error: () => {
+        this.loadingSubject.next(false);
+      }
+    });
+  }
+
+  setSearchText(texto: string): void {
+    this._searchText$.next(texto);
+    this.refrescar();
+  }
+
+  cargarTiposCache(): void {
+    if (this._tiposVehiculoSubject.value.length === 0) {
+      this.onFiltrarTipos('%').subscribe(res => {
+        this._tiposVehiculoSubject.next(res);
+      });
+    }
+  }
+
+  abrirFormulario(vehiculo?: Vehiculo): Observable<any> {
+    const dialogRef = this.dialog.open(VehiculoComponent, {
+      width: '800px',
+      data: vehiculo,
+      disableClose: true,
+      autoFocus: false
+    });
+
+    return dialogRef.afterClosed().pipe(
+      tap(res => {
+        if (res) this.refrescar();
+      })
+    );
+  }
+
+  updatePagination(pageIndex: number, pageSize: number): void {
+    this._paginationState$.next({ pageIndex, pageSize });
+  }
+
+  updateTipoFilter(tipoId: number | null): void {
+    this._tipoFilter$.next(tipoId);
+    this.updatePagination(0, this._paginationState$.value.pageSize);
+  }
+
   onGuardar(input: VehiculoInput): Observable<Vehiculo> {
-    return this.genericService.onSave(this.saveVehiculoGQL, input);
+    return this.genericService.onSave(this.saveVehiculoGQL, input).pipe(
+      tap(res => {
+        if (res) this.refrescar();
+      })
+    );
   }
 
   onEliminar(id: number): Observable<boolean> {
@@ -73,6 +180,10 @@ export class VehiculoService {
       true,
       true,
       '¿Está seguro que desea eliminar este vehículo?'
+    ).pipe(
+      tap(res => {
+        if (res) this.refrescar();
+      })
     );
   }
 

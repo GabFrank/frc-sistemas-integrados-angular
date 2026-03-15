@@ -111,7 +111,11 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"></tr>
     </table>
     <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="totalElements" style="width: 100%"
+      (page)="handlePageEvent($event)" 
+      [length]="(vehiculoService.totalElements$ | async) || 0"
+      [pageIndex]="(vehiculoService.paginationState$ | async)?.pageIndex || 0"
+      [pageSize]="(vehiculoService.paginationState$ | async)?.pageSize || 15"
+      style="width: 100%"
       showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

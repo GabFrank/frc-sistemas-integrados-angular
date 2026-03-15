@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Gps } from '../../models/gps.model';
 import { GpsService } from '../../service/gps.service';
-import { GpsComponent } from '../../dialogs/gps-form/gps.component';
-import { GpsConfigDialogComponent } from '../../dialogs/gps-config-dialog/gps-config-dialog.component';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
@@ -17,8 +15,7 @@ import { GpsConfigDialogComponent } from '../../dialogs/gps-config-dialog/gps-co
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ListGpsComponent implements OnInit {
-  private gpsService = inject(GpsService);
-  private dialog = inject(MatDialog);
+  public gpsService = inject(GpsService);
   private cdr = inject(ChangeDetectorRef);
 
   dataSource = new MatTableDataSource<Gps>();
@@ -26,92 +23,62 @@ export class ListGpsComponent implements OnInit {
 
   filtroControl = new FormControl('');
 
-  pageIndex = 0;
-  pageSize = 15;
-  totalElements = 0;
-  allData: Gps[] = [];
-
   ngOnInit(): void {
-    this.onFiltrar();
+    this.gpsService.refrescar();
+    this.initFiltros();
+    this.initDataStream();
+  }
+
+  private initFiltros(): void {
+    this.filtroControl.valueChanges.pipe(
+      untilDestroyed(this),
+      debounceTime(500),
+      distinctUntilChanged()
+    ).subscribe(texto => {
+      this.gpsService.setSearchText(texto || '');
+    });
+  }
+
+  private initDataStream(): void {
+    this.gpsService.filteredGps$.pipe(
+      untilDestroyed(this)
+    ).subscribe(res => {
+      if (res) {
+        this.dataSource.data = res;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   onFiltrar(): void {
-    const texto = this.filtroControl.value || '';
-    this.pageIndex = 0;
-
-    this.gpsService.onSearch(texto).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.allData = res;
-        this.aplicarPaginacion();
-      }
-    });
+    this.gpsService.refrescar();
   }
 
   handlePageEvent(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
-    this.aplicarPaginacion();
-  }
-
-  aplicarPaginacion(): void {
-    const startIndex = this.pageIndex * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.dataSource.data = this.allData.slice(startIndex, endIndex);
-    this.totalElements = this.allData.length;
-    this.cdr.markForCheck();
+    this.gpsService.updatePagination(event.pageIndex, event.pageSize);
   }
 
   onAdicionar(): void {
-    const dialogRef = this.dialog.open(GpsComponent, {
-      width: '800px',
-      disableClose: true,
-      autoFocus: false
-    });
-
-    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.onFiltrar();
-      }
-    });
+    this.gpsService.abrirFormulario().subscribe();
   }
 
   onEditar(gps: Gps): void {
-    const dialogRef = this.dialog.open(GpsComponent, {
-      width: '800px',
-      data: gps,
-      disableClose: true,
-      autoFocus: false
-    });
-
-    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.onFiltrar();
-      }
-    });
+    this.gpsService.abrirFormulario(gps).subscribe();
   }
 
   onConfigurar(gps: Gps): void {
-    this.dialog.open(GpsConfigDialogComponent, {
-      width: '900px',
-      data: gps,
-      disableClose: false,
-      autoFocus: false,
-      panelClass: 'modern-dialog'
-    });
+    this.gpsService.abrirConfiguracion(gps);
   }
 
   onEliminar(gps: Gps): void {
     if (gps.id) {
-      this.gpsService.onDelete(gps.id).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) {
-          this.onFiltrar();
-        }
-      });
+      this.gpsService.onDelete(gps.id).subscribe();
     }
   }
 
   resetFiltro(): void {
     this.filtroControl.setValue('');
-    this.onFiltrar();
+    this.gpsService.updatePagination(0, 15);
+    this.gpsService.refrescar();
   }
 }
