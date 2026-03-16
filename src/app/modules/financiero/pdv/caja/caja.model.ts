@@ -86,6 +86,11 @@ export class CajaBalance {
     totalVentaRs: number;
     totalVentaDs: number;
     totalTarjeta: number;
+    totalTarjetaRs: number;
+    totalTarjetaDs: number;
+    totalTransferencia: number;
+    totalTransferenciaRs: number;
+    totalTransferenciaDs: number;
     totalRetiroGs: number;
     totalRetiroRs: number;
     totalRetiroDs: number;
