@@ -11,7 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.relaunchElectron = exports.createWindow = void 0;
 const electron_1 = require("electron");
-const electron_updater_1 = require("electron-updater");
 const fs = require("fs");
 const path = require("path");
 const url = require("url");
@@ -21,13 +20,6 @@ const log = require('electron-log');
 const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
 let printers = [];
-electron_updater_1.autoUpdater.logger = log;
-electron_updater_1.autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'GabFrank',
-    repo: 'franco-system-frontend-general',
-    private: false
-});
 const { ipcMain } = require('electron');
 let instanceCount = 0;
 require("@electron/remote/main").initialize();
@@ -690,36 +682,6 @@ function registerPrinterIpcHandlers() {
 }
 try {
     electron_1.app.on('ready', () => {
-        if (!isDev) {
-            electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
-            setInterval(() => {
-                log.info('Buscando actualizacion');
-                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
-            }, 100000);
-        }
-        electron_updater_1.autoUpdater.on('update-available', () => {
-            log.info('Actualizacion disponible, descargando...');
-        });
-        electron_updater_1.autoUpdater.on('update-not-available', () => {
-            log.info('No existen actualizaciones disponibles...');
-        });
-        electron_updater_1.autoUpdater.on('update-downloaded', (event) => {
-            const dialogOpts = {
-                type: 'info',
-                buttons: ['Reiniciar'],
-                title: 'Actualización disponible',
-                message: event.releaseName + ' - ' + event.version,
-                detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
-            };
-            electron_1.dialog.showMessageBox(dialogOpts).then((returnValue) => {
-                if (returnValue.response === 0)
-                    electron_updater_1.autoUpdater.quitAndInstall();
-            });
-        });
-        electron_updater_1.autoUpdater.on('error', message => {
-            console.error('There was a problem updating the application');
-            console.error(message);
-        });
         electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate([
             {
                 role: "appMenu",
