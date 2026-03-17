@@ -28,7 +28,7 @@ import { PersonaSearchGQL } from "../../../../personas/persona/graphql/personaSe
 import { Persona } from "../../../../personas/persona/persona.model";
 import { UsuarioService } from "../../../../personas/usuarios/usuario.service";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
-import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
+import { UsuarioSearchPageGQL } from "../../../../personas/usuarios/graphql/usuarioSearchPage";
 import { Subfamilia } from "../../../../productos/sub-familia/sub-familia.model";
 import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/subfamiliasSearch";
 import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
@@ -98,7 +98,7 @@ export class LucroPorProductoComponent implements OnInit {
     private dialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private personaService: PersonaService,
-    private usuarioSearch: UsuarioSearchGQL,
+    private usuarioSearch: UsuarioSearchPageGQL,
     private usuarioService: UsuarioService,
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
     private matDialog: MatDialog
@@ -357,6 +357,8 @@ export class LucroPorProductoComponent implements OnInit {
       texto: this.buscarCajeroControl.value,
       search: true,
       inicialSearch: true,
+      paginator: true,
+      searchFieldName: 'texto',
     };
     // data.
     this.dialog

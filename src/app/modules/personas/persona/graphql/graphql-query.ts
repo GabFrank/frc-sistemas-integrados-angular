@@ -27,6 +27,42 @@ query ($page: Int) {
   }
 `;
 
+export const personasPageQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: personasPage(page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        apodo
+        nacimiento
+        sexo
+        direccion
+        documento
+        telefono
+        socialMedia
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        isFuncionario
+        isCliente
+        isProveedor
+        isUsuario
+      }
+    }
+  }
+`;
+
 export const personasSearch = gql`
   query ($texto: String) {
     data: personaSearch(texto: $texto) {
@@ -51,6 +87,43 @@ export const personasSearch = gql`
       isCliente
       isProveedor
       isUsuario
+    }
+  }
+`;
+
+export const personaSearchPageQuery = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: personaSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        apodo
+        nacimiento
+        documento
+        sexo
+        direccion
+        telefono
+        socialMedia
+        creadoEn
+        email
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        isFuncionario
+        isCliente
+        isProveedor
+        isUsuario
+      }
     }
   }
 `;

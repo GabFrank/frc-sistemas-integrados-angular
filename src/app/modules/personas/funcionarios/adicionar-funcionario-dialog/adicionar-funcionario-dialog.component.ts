@@ -19,7 +19,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { PersonaSearchGQL } from '../../persona/graphql/personaSearch';
+import { PersonaSearchPageGQL } from '../../persona/graphql/personaSearchPage';
 import { Persona } from '../../persona/persona.model';
 import { FuncionarioService } from '../funcionario.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -74,7 +74,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     private sucursalService: SucursalService,
     private funcionarioService: FuncionarioService,
     @Inject(MAT_DIALOG_DATA) private data: AdicionarFuncionarioDialogData,
-    private personaSearch: PersonaSearchGQL,
+    private personaSearch: PersonaSearchPageGQL,
     private dialog: MatDialog,
     private matDialogRef: MatDialogRef<AdicionarFuncionarioDialogComponent>,
     private dialogoService: DialogosService,
@@ -175,7 +175,10 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       tableData: tableData,
       titulo: 'Buscar persona',
       search: true,
-      isAdicionar: true
+      isAdicionar: true,
+      paginator: true,
+      inicialSearch: true,
+      searchFieldName: 'texto',
     }
     this.dialog.open(SearchListDialogComponent, {
       data: data,

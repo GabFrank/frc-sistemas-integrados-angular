@@ -34,7 +34,7 @@ import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
 import { PageInfo } from "../../../../../app.component";
-import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
+import { UsuarioSearchPageGQL } from "../../../../personas/usuarios/graphql/usuarioSearchPage";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
 import { CajaObservacionDashboardComponent } from "../../caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component";
 import { CajaObservacionService } from "../../caja-observacion/caja-observacion.service";
@@ -129,7 +129,7 @@ export class ListCajaComponent implements OnInit {
     private searchMaletin: SearchMaletinGQL,
     private mainService: MainService,
     private searchSucursal: SucursalesSearchGQL,
-    private searchUsuario: UsuarioSearchGQL, 
+    private searchUsuario: UsuarioSearchPageGQL, 
     private cajaObservacionService: CajaObservacionService,
     private notificacionService: NotificacionSnackbarService,
     private genericCrudService: GenericCrudService
@@ -284,6 +284,9 @@ export class ListCajaComponent implements OnInit {
         },
       ],
       query: this.searchUsuario,
+      paginator: true,
+      inicialSearch: true,
+      searchFieldName: 'texto',
     };
     this.matDialog
       .open(SearchListDialogComponent, {
