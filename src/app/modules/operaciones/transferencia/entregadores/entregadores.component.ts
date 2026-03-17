@@ -23,7 +23,7 @@ import { finalize } from 'rxjs/operators';
 })
 export class EntregadoresComponent implements OnInit, AfterViewInit {
 
-  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'ubicacion'];
+  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'qr'];
   dataSource = new MatTableDataSource<HojaRuta>([]);
   isLoading = true;
   expandedElement: HojaRuta | null;
@@ -136,7 +136,7 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
         }
       });
   }
-  onVerUbicacion(hojaRuta: HojaRuta): void {
-    console.log('Ver ubicación para hoja de ruta:', hojaRuta.id);
+  onScanQr(hojaRuta: HojaRuta): void {
+    console.log('Escanear QR para hoja de ruta:', hojaRuta.id);
   }
 }
