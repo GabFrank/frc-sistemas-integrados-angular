@@ -1,5 +1,4 @@
 import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "electron";
-import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
@@ -24,13 +23,6 @@ interface PrinterConfig {
 
 let printers: PrinterConfig[] = [];
 
-autoUpdater.logger = log
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: 'GabFrank',
-  repo: 'franco-system-frontend-general',
-  private: false
-});
 
 const { ipcMain } = require('electron');
 let instanceCount = 0;
@@ -759,41 +751,6 @@ function registerPrinterIpcHandlers() {
 
 try {
   app.on('ready', () => {
-    if (!isDev) {
-      autoUpdater.checkForUpdatesAndNotify();
-      setInterval(() => {
-        log.info('Buscando actualizacion');
-        autoUpdater.checkForUpdatesAndNotify();
-      }, 100000)
-    }
-
-    autoUpdater.on('update-available', () => {
-      log.info('Actualizacion disponible, descargando...');
-    })
-
-    autoUpdater.on('update-not-available', () => {
-      log.info('No existen actualizaciones disponibles...');
-    })
-
-    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
-      const dialogOpts: MessageBoxOptions = {
-        type: 'info',
-        buttons: ['Reiniciar'],
-        title: 'Actualización disponible',
-        message: event.releaseName + ' - ' + event.version,
-        detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
-      }
-
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall()
-      })
-    })
-
-    autoUpdater.on('error', message => {
-      console.error('There was a problem updating the application')
-      console.error(message)
-    })
-
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([
         {
