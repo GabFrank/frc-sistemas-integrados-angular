@@ -20,7 +20,8 @@ platformBrowserDynamic()
   })
   .catch(err => console.error(err));
 
-if ('serviceWorker' in navigator) {
+const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+if ('serviceWorker' in navigator && !isElectron) {
   navigator.serviceWorker.register('./firebase-messaging-sw.js')
     .then((registration) => {
       console.log('Service Worker registered with scope:', registration.scope);
