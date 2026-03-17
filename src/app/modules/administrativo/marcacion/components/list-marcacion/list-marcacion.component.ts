@@ -24,7 +24,7 @@ import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { MarcacionService } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
-import { UsuarioSearchGQL } from '../../../../personas/usuarios/graphql/usuarioSearch';
+import { UsuarioSearchPageGQL } from '../../../../personas/usuarios/graphql/usuarioSearchPage';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
@@ -107,7 +107,7 @@ export class ListMarcacionComponent implements OnInit {
     private matDialog: MatDialog,
     private personaService: PersonaService,
     private usuarioService: UsuarioService,
-    private searchUsuario: UsuarioSearchGQL,
+    private searchUsuarioPage: UsuarioSearchPageGQL,
     private notificacionService: NotificacionSnackbarService,
     private cdr: ChangeDetectorRef,
     private horarioService: HorarioService,
@@ -358,7 +358,9 @@ export class ListMarcacionComponent implements OnInit {
           width: "40%",
         },
       ],
-      query: this.searchUsuario,
+      query: this.searchUsuarioPage,
+      paginator: true,
+      inicialSearch: true,
     };
 
     this.matDialog

@@ -38,6 +38,36 @@ export const usuariosSearch = gql`
   }
 `;
 
+export const usuariosSearchPage = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: usuarioSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nickname
+        activo
+        persona {
+          id
+          nombre
+          imagenes
+        }
+        creadoEn
+        usuario {
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const usuarioQuery = gql`
   query ($id: ID!) {
     data: usuario(id: $id) {

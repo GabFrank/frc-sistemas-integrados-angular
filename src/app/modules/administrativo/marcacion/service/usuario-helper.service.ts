@@ -6,7 +6,7 @@ import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { PersonaService } from '../../../personas/persona/persona.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { UsuarioSearchGQL } from '../../../personas/usuarios/graphql/usuarioSearch';
+import { UsuarioSearchPageGQL } from '../../../personas/usuarios/graphql/usuarioSearchPage';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 
 @Injectable({
@@ -18,7 +18,7 @@ export class UsuarioHelperService {
         private usuarioService: UsuarioService,
         private personaService: PersonaService,
         private notificacionService: NotificacionSnackbarService,
-        private searchUsuario: UsuarioSearchGQL
+        private searchUsuarioPage: UsuarioSearchPageGQL
     ) { }
 
     buscarUsuarioPorId(id: number): Observable<Usuario | null> {
@@ -54,7 +54,9 @@ export class UsuarioHelperService {
                 { id: "nombre", nombre: "Nombre", nested: true, nestedId: "persona", width: "50%" },
                 { id: "documento", nombre: "Documento", nested: true, nestedId: "persona", width: "40%" },
             ],
-            query: this.searchUsuario,
+            query: this.searchUsuarioPage,
+            paginator: true,
+            inicialSearch: true,
             fallbackToLocal: true,
         };
 
