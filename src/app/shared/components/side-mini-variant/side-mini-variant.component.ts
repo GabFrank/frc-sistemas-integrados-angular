@@ -48,6 +48,7 @@ import { ModificacionesComponent } from '../../../modules/operaciones/modificaci
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
+import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 
 
 interface BaseNavigationItem {
@@ -220,6 +221,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Análisis de diferencias',
           icon: 'equalizer',
           action: 'analisis-diferencias',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Caja Virtual',
+          icon: 'account_balance_wallet',
+          action: 'list-caja-virtual',
           visibilityRoles: [ROLES.ADMIN]
         },
         {
@@ -590,6 +597,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-timbrado":
         this.openTabIfAuthorized(ROLES.ADMIN, ListTimbradoComponent, "Timbrado");
+        break;
+      case "list-caja-virtual":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListCajaVirtualComponent, "Caja Virtual");
         break;
       case "list-roles":
         this.openTabIfAuthorized(ROLES.SOPORTE, ListRolesComponent, "Lista de roles");

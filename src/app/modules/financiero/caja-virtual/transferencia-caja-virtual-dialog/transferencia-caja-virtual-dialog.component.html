@@ -1,0 +1,120 @@
+<div style="margin: 20px">
+  <h2
+    class="titulo-center" 
+    style="font-weight: 500;"
+  >
+    Transferencia entre Cajas — {{ cajaOrigen?.nombre }}
+  </h2>
+
+<mat-dialog-content 
+  [formGroup]="formGroup" 
+  style="padding: 16px 0;"
+>
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <!-- Saldo disponible en origen -->
+    <mat-card 
+      style="
+        padding: 12px; 
+        background: rgba(255,255,255,0.05);
+      "
+    >
+      <div fxLayout="row" fxLayoutAlign="space-between center">
+        <span>Saldo disponible en 
+          <strong>{{ cajaOrigen?.nombre }}</strong>:
+        </span>
+        <strong style="font-size: 1.2em; color: #4caf50;">
+          {{ 
+            getSaldoActual() | number:(monedaControl.value?.denominacion?.includes('GUARANI') ? '1.0-0' : '1.2-2') 
+          }}
+          {{ monedaControl.value?.simbolo }}
+        </strong>
+      </div>
+    </mat-card>
+
+    <!-- Moneda -->
+    <mat-form-field appearance="outline">
+      <mat-label>Moneda *</mat-label>
+      <mat-select [formControl]="monedaControl">
+        <mat-option 
+          *ngFor="let m of monedaList" 
+          [value]="m"
+        >
+          {{ m.denominacion }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="monedaControl.hasError('required')">
+        Seleccione una moneda
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Monto -->
+    <mat-form-field appearance="outline">
+      <mat-label>Monto a transferir</mat-label>
+      <input 
+        matInput
+        currencyMask
+        [options]="currencyOptions"
+        [formControl]="cantidadControl"
+        placeholder="0" 
+      />
+      <span 
+        style="margin-right: 10px; margin-left: 5px;" 
+        matSuffix 
+        *ngIf="monedaControl.value"
+      >
+        {{ monedaControl.value?.simbolo }}
+      </span>
+      <mat-error *ngIf="cantidadControl.hasError('required')">
+        El monto es requerido
+      </mat-error>
+      <mat-error *ngIf="cantidadControl.hasError('min')">
+        El monto debe ser mayor a 0
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Caja destino -->
+    <mat-form-field appearance="outline">
+      <mat-label>Caja Destino</mat-label>
+      <mat-select [formControl]="cajaDestinoControl">
+        <mat-option *ngFor="let c of cajasList" [value]="c">
+          {{ c.nombre }} ({{ c.tipo === 'CAJA_MAYOR' ? 'Mayor' : 'Chica' }})
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="cajaDestinoControl.hasError('required')">
+        Seleccione la caja destino
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Descripción -->
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <input 
+        matInput 
+        [formControl]="descripcionControl" 
+        placeholder="Motivo de la transferencia (opcional)" 
+      />
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button 
+    mat-stroked-button 
+    (click)="onCancel()"
+  >
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSave()"
+    [disabled]="formGroup.invalid || isSaving"
+  >
+    <mat-icon style="transform: scale(1.5);">swap_horiz</mat-icon>
+      Transferir
+  </button>
+</mat-dialog-actions>
+
+</div>

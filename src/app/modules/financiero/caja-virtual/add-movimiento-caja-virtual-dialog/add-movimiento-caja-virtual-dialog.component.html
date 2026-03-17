@@ -1,0 +1,90 @@
+<div style="margin: 20px;">
+<h2 class="titulo-center" style="font-weight: 500;">
+  {{ getTitulo() }} — {{ data?.cajaVirtual?.nombre }}
+</h2>
+
+<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <!-- Saldo actual -->
+    <mat-card style="padding: 12px; background: rgba(255,255,255,0.05);">
+      <div fxLayout="row" fxLayoutAlign="space-between center">
+        <span>Saldo actual en moneda seleccionada:</span>
+        <strong style="font-size: 1.2em; color: #4caf50;">
+          {{ getSaldoActual() | number:(monedaControl.value?.denominacion?.includes('GUARANI') ? '1.0-0' : '1.2-2') }}
+          {{ monedaControl.value?.simbolo }}
+        </strong>
+      </div>
+    </mat-card>
+
+    <!-- Moneda -->
+    <mat-form-field appearance="outline">
+      <mat-label>Moneda</mat-label>
+      <mat-select [formControl]="monedaControl">
+        <mat-option *ngFor="let m of monedaList" [value]="m">
+          {{ m.denominacion }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="monedaControl.hasError('required')">
+        Seleccione una moneda
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Cantidad -->
+    <mat-form-field appearance="outline">
+      <mat-label>Monto</mat-label>
+      <input 
+        matInput
+        currencyMask
+        [options]="currencyOptions"
+        [formControl]="cantidadControl"
+        placeholder="0" 
+      />
+      <span 
+        style="margin-right: 10px; margin-left: 5px;" 
+        matSuffix 
+        *ngIf="monedaControl.value"
+      >
+        {{ monedaControl.value?.simbolo }}
+      </span>
+      <mat-error *ngIf="cantidadControl.hasError('required')">
+        El monto es requerido
+      </mat-error>
+      <mat-error *ngIf="cantidadControl.hasError('min')">
+        El monto debe ser mayor a 0
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Descripción -->
+    <mat-form-field 
+      appearance="outline" 
+      style="margin-top: 10px !important; text-transform: uppercase;">
+      <mat-label>Descripción / Motivo</mat-label>
+      <textarea 
+        matInput 
+        [formControl]="descripcionControl" 
+        rows="2" 
+        placeholder="Ej: RETIRO PARA PAGO DE PROVEEDORES"
+      ></textarea>
+      <mat-error *ngIf="descripcionControl.hasError('required')">
+        La descripción es requerida
+      </mat-error>
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSave()"
+    [disabled]="formGroup.invalid || isSaving"
+  >
+    <mat-icon style="transform: scale(1.5);">save</mat-icon>
+      Confirmar
+  </button>
+</mat-dialog-actions>
+</div>

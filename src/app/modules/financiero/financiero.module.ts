@@ -49,6 +49,12 @@ import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-d
 import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gestion-de-dialog.component';
 import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
 import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog/transferir-caja-dialog.component";
+import { ListCajaVirtualComponent } from "./caja-virtual/list-caja-virtual/list-caja-virtual.component";
+import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-dialog/add-caja-virtual-dialog.component';
+import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
+import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
+import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
+import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 
 @NgModule({
   declarations: [
@@ -93,7 +99,13 @@ import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog
     ListLoteDeComponent,
     GestionDeDialogComponent,
     InutilizacionNumerosTabComponent,
-    TransferirCajaDialogComponent
+    TransferirCajaDialogComponent,
+    ListCajaVirtualComponent,
+    AddCajaVirtualDialogComponent,
+    AddMovimientoCajaVirtualDialogComponent,
+    TransferenciaCajaVirtualDialogComponent,
+    HistorialMovimientosCajaVirtualComponent,
+    CajaVirtualDashboardComponent
 
   ],
   providers: [

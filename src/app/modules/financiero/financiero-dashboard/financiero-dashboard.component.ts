@@ -11,6 +11,7 @@ import { ROLES } from "../../personas/roles/roles.enum";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import { ListRetiroComponent } from "../retiro/list-retiro/list-retiro.component";
 import { ListGastosComponent } from "../gastos/list-gastos/list-gastos.component";
+import { ListCajaVirtualComponent } from "../caja-virtual/list-caja-virtual/list-caja-virtual.component";
 import { PagoDetalleCuota, PagoDetalleCuotaEstado } from "../../operaciones/pago/pago-detalle-cuota/pago-detalle-cuota.model";
 import { PagoDetalleCuotaService } from "../../operaciones/pago/pago-detalle-cuota/pago-detalle-cuota.service";
 import { MatPaginator } from "@angular/material/paginator";
@@ -195,6 +196,10 @@ export class FinancieroDashboardComponent implements OnInit {
   
   abrirModuloCambio(): void {
     this.tabService.addTab(new Tab(CambioComponent, "Cambio"));
+  }
+
+  abrirModuloCajaVirtual(): void {
+    this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Cajas Virtuales"));
   }
   
   actualizarCambio(moneda: Moneda): void {
