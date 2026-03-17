@@ -51,6 +51,8 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
   @Input() currentData: any; //valor actual
   @Input() isFilter: boolean = true; //si el filtro sera realizado en el componte, si es un campo de busqueda en el servidor, desactivar filtro
   @Input() disabled = false; //desactivar el componente si es true
+  @Input() showSearch: boolean = true; //mostrar el campo de busqueda
+  @Input() nullOption: string; //texto para la opcion nula (vacia)
 
   filteredList: any[];
   isLoading: boolean = true;
@@ -75,7 +77,7 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
     if (changes.list && changes.list.currentValue) {
       this.isLoading = false;
       this.filteredList = this.list;
-      if (this.initialValue) {
+      if (this.initialValue && this.filteredList.length > 0) {
         this.control.setValue(this.filteredList[0]);
         this.selectionChanged.emit(this.filteredList[0]);
       }

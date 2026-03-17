@@ -4,12 +4,15 @@
   <mat-label>{{titulo}}</mat-label>
   <mat-select #matSelect [formControl]="control" (selectionChange)="onSelectionChange($event)" [placeholder]="titulo"
     [multiple]="isMultiple" [compareWith]="compareBy">
-    <mat-option>
+    <mat-option *ngIf="showSearch">
       <ngx-mat-select-search [formControl]="filterControl" [placeholderLabel]="titulo"
         noEntriesFoundLabel="Item no encontrado"></ngx-mat-select-search>
       <span ngxMatSelectNoEntriesFound *ngIf="filterControl.valid && filteredList?.length == 0 && isAdicionar">
         <app-boton nombre="Adicionar" style="height: 100%; width: 100%"></app-boton>
       </span>
+    </mat-option>
+    <mat-option *ngIf="nullOption" [value]="null">
+      {{nullOption}}
     </mat-option>
 
     <mat-option *ngFor="let item of filteredList" [value]="item" style="width: 100%">
