@@ -1,0 +1,46 @@
+<div class="remove-replication-dialog">
+  <h2 mat-dialog-title class="titulo-center">ELIMINAR REPLICACIÓN</h2>
+
+  <div mat-dialog-content class="dialog-content" *ngIf="resultLog !== null">
+    <div class="result-section" [class.result-success]="resultSuccess" [class.result-error]="!resultSuccess">
+      <p class="result-title">{{ resultSuccess ? 'Eliminación completada' : 'Eliminación fallida' }}</p>
+      <pre class="log-output">{{ resultLog }}</pre>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="resultLog === null">
+    <div mat-dialog-content class="dialog-content">
+      <p class="sucursal-label">Sucursal: <strong>{{ sucursalNombre }}</strong></p>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>QUÉ ELIMINAR</mat-label>
+        <mat-select formControlName="target">
+          <mat-option *ngFor="let opt of targetOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>DÓNDE ELIMINAR</mat-label>
+        <mat-select formControlName="scope">
+          <mat-option *ngFor="let opt of scopeOptions" [value]="opt.value">{{ opt.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div mat-dialog-actions class="dialog-actions">
+      <button mat-button type="button" (click)="onCancel()" [disabled]="isSubmitting">
+        SALIR
+      </button>
+      <button mat-raised-button color="warn" type="submit" [disabled]="form.invalid || isSubmitting">
+        <mat-spinner *ngIf="isSubmitting" diameter="20" class="spinner-button"></mat-spinner>
+        <span *ngIf="!isSubmitting">EJECUTAR</span>
+      </button>
+    </div>
+  </form>
+
+  <div mat-dialog-actions class="dialog-actions" *ngIf="resultLog !== null">
+    <button mat-button type="button" (click)="clearResult()" *ngIf="!resultSuccess">
+      REINTENTAR
+    </button>
+    <button mat-raised-button color="primary" type="button" (click)="closeAfterResult()">
+      CERRAR
+    </button>
+  </div>
+</div>

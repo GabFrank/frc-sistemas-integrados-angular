@@ -2,9 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { MainService } from '../../../main.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 
 import { ReplicationDirection, ReplicationTable, ReplicationTableModel } from './replication-table.model';
 import { ReplicationTablesGQL } from './graphql/replication-tables-gql';
@@ -36,9 +36,9 @@ export class ReplicationTableService {
     private deleteReplicationTableGQL: DeleteReplicationTableGQL,
     private toggleReplicationTableEnabledGQL: ToggleReplicationTableEnabledGQL,
     private updateReplicationServiceTablesGQL: UpdateReplicationServiceTablesGQL,
-    private snackBar: MatSnackBar,
     private mainService: MainService,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private notificacionSnackBar: NotificacionSnackbarService
   ) { }
 
   /**
@@ -102,7 +102,7 @@ export class ReplicationTableService {
         }),
         catchError(error => {
           console.error('Error fetching replication tables with pagination:', error);
-          this.snackBar.open('Error al obtener tablas de replicación', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openAlgoSalioMal('ERROR AL OBTENER TABLAS DE REPLICACIÓN');
           // Return empty page instead of throwing to avoid unhandled errors
           return of({
             getContent: [],
@@ -122,7 +122,7 @@ export class ReplicationTableService {
       );
     } catch (error) {
       console.error('Exception in getReplicationTablesWithPagination method:', error);
-      this.snackBar.open('Error inesperado al obtener tablas de replicación', 'Cerrar', { duration: 3000 });
+      this.notificacionSnackBar.openAlgoSalioMal('ERROR INESPERADO AL OBTENER TABLAS DE REPLICACIÓN');
       return of({
         getContent: [],
         getTotalElements: 0,
@@ -205,7 +205,9 @@ export class ReplicationTableService {
     replicationTableModel.description = replicationTable.description;
     replicationTableModel.direction = replicationTable.direction;
     replicationTableModel.enabled = replicationTable.enabled;
-    
+    replicationTableModel.branchIds = replicationTable.branchIds ?? [];
+    replicationTableModel.replicateCentralToBranchWithFilter = replicationTable.replicateCentralToBranchWithFilter ?? false;
+
     // Set the current user if creating a new record
     if (!replicationTableModel.id) {
       replicationTableModel.usuario = this.mainService.usuarioActual;
@@ -218,18 +220,14 @@ export class ReplicationTableService {
       map(response => {
         const result = response.data?.data;
         if (result) {
-          this.snackBar.open(
-            `Configuración de tabla ${result.tableName} guardada correctamente`,
-            'Cerrar',
-            { duration: 3000 }
-          );
+          this.notificacionSnackBar.openSucess(`CONFIGURACIÓN DE TABLA ${result.tableName} GUARDADA CORRECTAMENTE`);
           return result as ReplicationTable;
         }
         return null;
       }),
       catchError(error => {
         console.error('Error saving replication table:', error);
-        this.snackBar.open('Error al guardar la tabla de replicación', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL GUARDAR LA TABLA DE REPLICACIÓN');
         return throwError(() => error);
       })
     );
@@ -246,11 +244,7 @@ export class ReplicationTableService {
       map(response => {
         const result = response.data?.data;
         if (result) {
-          this.snackBar.open(
-            'Configuración de tabla eliminada correctamente',
-            'Cerrar',
-            { duration: 3000 }
-          );
+          this.notificacionSnackBar.openSucess('CONFIGURACIÓN DE TABLA ELIMINADA CORRECTAMENTE');
         }
         return result;
       })
@@ -268,11 +262,7 @@ export class ReplicationTableService {
       map(response => {
         const result = response.data?.data;
         if (result) {
-          this.snackBar.open(
-            'Estado de la tabla actualizado correctamente',
-            'Cerrar',
-            { duration: 3000 }
-          );
+          this.notificacionSnackBar.openSucess('ESTADO DE LA TABLA ACTUALIZADO CORRECTAMENTE');
         }
         return result;
       })
@@ -290,11 +280,7 @@ export class ReplicationTableService {
       map(response => {
         const result = response.data?.data;
         if (result) {
-          this.snackBar.open(
-            'Configuración de replicación actualizada correctamente',
-            'Cerrar',
-            { duration: 3000 }
-          );
+          this.notificacionSnackBar.openSucess('CONFIGURACIÓN DE REPLICACIÓN ACTUALIZADA CORRECTAMENTE');
         }
         return result;
       })

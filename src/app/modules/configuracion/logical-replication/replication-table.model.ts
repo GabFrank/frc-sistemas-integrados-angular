@@ -42,6 +42,8 @@ export interface ReplicationTable {
   
   // Lista de IDs de sucursales para MAIN_TO_SPECIFIC
   branchIds?: number[];
+  // Para BRANCH_TO_MAIN: si true, la tabla también va en central_filialX_pub (central → sucursal con filtro)
+  replicateCentralToBranchWithFilter?: boolean;
 }
 
 export class ReplicationTableModel {
@@ -52,9 +54,12 @@ export class ReplicationTableModel {
   description: string;
   creadoEn: Date;
   usuario: Usuario;
+  branchIds: number[];
+  replicateCentralToBranchWithFilter: boolean;
 
   constructor() {
     this.enabled = true;
+    this.replicateCentralToBranchWithFilter = false;
   }
 
   toInput(): any {
@@ -65,7 +70,9 @@ export class ReplicationTableModel {
       enabled: this.enabled,
       description: this.description?.toUpperCase(),
       usuarioId: this.usuario?.id,
-      creadoEn: dateToString(this.creadoEn)
+      creadoEn: dateToString(this.creadoEn),
+      branchIds: this.branchIds ?? [],
+      replicateCentralToBranchWithFilter: this.replicateCentralToBranchWithFilter ?? false
     };
   }
 

@@ -32,6 +32,25 @@
         </mat-error>
       </mat-form-field>
       
+      <!-- Branches (for MAIN_TO_SPECIFIC) -->
+      <mat-form-field appearance="outline" class="full-width" *ngIf="tableForm.get('direction')?.value === 'MAIN_TO_SPECIFIC'">
+        <mat-label>Sucursales Destino</mat-label>
+        <mat-select formControlName="branchIds" multiple>
+          <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+            {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+        <mat-hint>Seleccione las sucursales específicas para esta tabla</mat-hint>
+      </mat-form-field>
+
+      <!-- Bidirectional flag (for BRANCH_TO_MAIN) -->
+      <div class="bidirectional-toggle full-width" *ngIf="tableForm.get('direction')?.value === 'BRANCH_TO_MAIN'">
+        <mat-slide-toggle formControlName="replicateCentralToBranchWithFilter" color="primary">
+          También replicar central → sucursal (con filtro por sucursal)
+        </mat-slide-toggle>
+        <span class="toggle-hint">Incluir esta tabla en central_filialX_pub para todas las sucursales activas</span>
+      </div>
+      
       <!-- Description -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Descripción</mat-label>

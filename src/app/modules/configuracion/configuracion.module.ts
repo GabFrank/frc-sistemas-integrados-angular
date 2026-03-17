@@ -20,6 +20,9 @@ import { EditRemoteSubscriptionDialogComponent } from './logical-replication/edi
 import { ConfiguracionRoutingModule } from './configuracion-routing.module';
 import { ListReplicationTablesComponent } from './logical-replication/list-replication-tables/list-replication-tables.component';
 import { EditReplicationTableDialogComponent } from './logical-replication/edit-replication-table-dialog/edit-replication-table-dialog.component';
+import { SetupReplicationDialogComponent } from './logical-replication/setup-replication-dialog/setup-replication-dialog.component';
+import { RemoveReplicationDialogComponent } from './logical-replication/remove-replication-dialog/remove-replication-dialog.component';
+import { EmpresarialModule } from '../empresarial/empresarial.module';
 
 @NgModule({
   declarations: [
@@ -35,7 +38,9 @@ import { EditReplicationTableDialogComponent } from './logical-replication/edit-
     EditRemotePublicationDialogComponent,
     EditRemoteSubscriptionDialogComponent,
     ListReplicationTablesComponent,
-    EditReplicationTableDialogComponent
+    EditReplicationTableDialogComponent,
+    SetupReplicationDialogComponent,
+    RemoveReplicationDialogComponent
   ],
   imports: [
     CommonModule,
@@ -45,7 +50,8 @@ import { EditReplicationTableDialogComponent } from './logical-replication/edit-
     MaterialModule,
     SharedModule,
     ThermalPrinterModule,
-    ConfiguracionRoutingModule
+    ConfiguracionRoutingModule,
+    EmpresarialModule
   ],
   providers: [
     LogicalReplicationService

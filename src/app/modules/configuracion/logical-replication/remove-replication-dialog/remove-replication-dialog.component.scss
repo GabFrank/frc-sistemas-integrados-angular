@@ -1,0 +1,65 @@
+.remove-replication-dialog {
+  .full-width {
+    width: 100%;
+  }
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .sucursal-label {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .spinner-button {
+    margin-right: 8px;
+  }
+
+  .result-section {
+    margin: 16px 0;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    &.result-success {
+      border-color: rgba(76, 175, 80, 0.5);
+      background: rgba(76, 175, 80, 0.08);
+    }
+
+    &.result-error {
+      border-color: rgba(255, 82, 82, 0.5);
+      background: rgba(255, 82, 82, 0.08);
+    }
+  }
+
+  .result-title {
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+  }
+
+  .log-output {
+    margin: 0;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 1rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
