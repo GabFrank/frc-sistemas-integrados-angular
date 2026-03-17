@@ -9,7 +9,7 @@ import { ClienteService } from '../../../personas/clientes/cliente.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
+import { PersonaSearchPageGQL } from '../../../personas/persona/graphql/personaSearchPage';
 import { Persona } from '../../../personas/persona/persona.model';
 import { EstadoDE } from '../../documento-electronico/documento-electronico.model';
 
@@ -50,7 +50,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     private cargandoService: CargandoDialogService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private personaSearch: PersonaSearchGQL
+    private personaSearch: PersonaSearchPageGQL
   ) {
     this.factura = data.factura;
   }
@@ -141,7 +141,11 @@ export class EditFacturaLegalDialogComponent implements OnInit {
         { id: 'nombre', nombre: 'Nombre', width: '70%' },
         { id: 'documento', nombre: 'Documento/Ruc', width: '20%' }
       ],
-      search: true
+      search: true,
+      paginator: true,
+      inicialSearch: true,
+      texto: this.rucControl?.value || this.clienteControl?.value || '',
+      searchFieldName: 'texto',
     };
 
     this.matDialog

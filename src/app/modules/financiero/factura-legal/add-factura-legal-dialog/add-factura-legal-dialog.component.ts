@@ -38,7 +38,7 @@ import {
   FacturaLegalItemInput,
 } from "../factura-legal.model";
 import { FacturaLegalService } from "../factura-legal.service";
-import { PersonaSearchGQL } from "../../../personas/persona/graphql/personaSearch";
+import { PersonaSearchPageGQL } from "../../../personas/persona/graphql/personaSearchPage";
 import { BotonComponent } from "../../../../shared/components/boton/boton.component";
 import { TimbradoDetalle } from "../../timbrado/timbrado.modal";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
@@ -128,7 +128,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private matDialog: MatDialog,
     private personaService: PersonaService,
     private cajaService: CajaService,
-    private personaSearch: PersonaSearchGQL,
+    private personaSearch: PersonaSearchPageGQL,
     private dialog: MatDialog,
     private sucursalService: SucursalService,
     private timbradoService: TimbradoService,
@@ -709,6 +709,10 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       ],
       search: true,
       isServidor: this.isServidor,
+      paginator: true,
+      inicialSearch: true,
+      texto: this.rucControl?.value || this.clienteDescripcionControl?.value || "",
+      searchFieldName: "texto",
     };
     this.dialog
       .open(SearchListDialogComponent, {

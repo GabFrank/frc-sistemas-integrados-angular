@@ -12,7 +12,7 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
-import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
+import { UsuarioSearchPageGQL } from "../../../personas/usuarios/graphql/usuarioSearchPage";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import {
   PdvSearchProductoData,
@@ -110,7 +110,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   constructor(
     private sucursalService: SucursalService,
     private tabService: TabService,
-    private usuarioSearchGQL: UsuarioSearchGQL,
+    private usuarioSearchGQL: UsuarioSearchPageGQL,
     private productosVencidosGQL: ProductosVencidosGQL,
     private dialog: MatDialog,
     private cdRef: ChangeDetectorRef,
@@ -181,7 +181,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.updateFilters();
     this.loadSucursales();
   }
-  t
+
   private loadSucursales(): void {
     this.sucursalService.onGetAllSucursales()
       .pipe(untilDestroyed(this))
@@ -411,6 +411,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       texto: this.buscarUsuarioControl.value,
       search: true,
       inicialSearch: true,
+      paginator: true,
+      searchFieldName: "texto",
     };
 
     const dialogRef = this.dialog.open(SearchListDialogComponent, {

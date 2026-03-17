@@ -16,7 +16,7 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
-import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
+import { UsuarioSearchPageGQL } from "../../../personas/usuarios/graphql/usuarioSearchPage";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import {
   PdvSearchProductoData,
@@ -146,7 +146,7 @@ export class ListInventarioComponent implements OnInit {
 
   constructor(
     private sucursalService: SucursalService,
-    private usuarioSearch: UsuarioSearchGQL,
+    private usuarioSearch: UsuarioSearchPageGQL,
     private dialog: MatDialog,
     private productoService: ProductoService,
     private inventarioService: InventarioService,
@@ -240,7 +240,7 @@ export class ListInventarioComponent implements OnInit {
 
   onBuscarUsuario() {
     let data: SearchListtDialogData = {
-      titulo: "Buscar Persona",
+      titulo: "Buscar Usuario",
       query: this.usuarioSearch,
       tableData: [
         { id: "id", nombre: "Id", width: "10%" },
@@ -249,6 +249,8 @@ export class ListInventarioComponent implements OnInit {
       texto: this.buscarUsuarioControl.value,
       search: true,
       inicialSearch: true,
+      paginator: true,
+      searchFieldName: "texto",
     };
     // data.
     this.dialog

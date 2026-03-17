@@ -37,7 +37,7 @@ import {
   SearchListtDialogData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { UsuarioService } from "../../../personas/usuarios/usuario.service";
-import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
+import { UsuarioSearchPageGQL } from "../../../personas/usuarios/graphql/usuarioSearchPage";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { PageInfo } from "../../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
@@ -142,7 +142,7 @@ export class ListMovimientoStockComponent implements OnInit {
     private sucursalService: SucursalService,
     private productoService: ProductoService,
     private dialog: MatDialog,
-    private usuarioSearch: UsuarioSearchGQL,
+    private usuarioSearch: UsuarioSearchPageGQL,
     private usuarioService: UsuarioService,
     private notificacionService: NotificacionSnackbarService,
     private tabService: TabService,
@@ -624,6 +624,8 @@ export class ListMovimientoStockComponent implements OnInit {
       texto: this.buscarUsuarioControl.value,
       search: true,
       inicialSearch: true,
+      paginator: true,
+      searchFieldName: "texto",
     };
     // data.
     this.dialog
