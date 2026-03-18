@@ -37,6 +37,9 @@ import { VehiculoSucursalDialogComponent } from '../dialogs/vehiculo-sucursal-di
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
+import { PageInfo } from '../../../../app.component';
+
+export type SearchDialogResponse<T> = T & { adicionar?: boolean };
 
 @Injectable({
   providedIn: 'root'
@@ -88,8 +91,8 @@ export class VehiculoService {
     this._tipoFilter$
   ]).pipe(
     map(([vehiculos, tipoId]) => {
-      if (tipoId) {
-        return vehiculos.filter(v => v.tipoVehiculo?.id === tipoId).length;
+      if (tipoId !== null && tipoId !== undefined) {
+        return vehiculos.filter(v => v.tipoVehiculo?.id == tipoId).length;
       }
       return vehiculos.length;
     })
@@ -102,8 +105,8 @@ export class VehiculoService {
   ]).pipe(
     map(([vehiculos, tipoId, pag]) => {
       let filtered = vehiculos;
-      if (tipoId) {
-        filtered = vehiculos.filter(v => v.tipoVehiculo?.id === tipoId);
+      if (tipoId !== null && tipoId !== undefined) {
+        filtered = vehiculos.filter(v => v.tipoVehiculo?.id == tipoId);
       }
       const start = pag.pageIndex * pag.pageSize;
       const end = start + pag.pageSize;
@@ -161,7 +164,7 @@ export class VehiculoService {
     }
   }
 
-  abrirFormulario(vehiculo?: Vehiculo): Observable<any> {
+  abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
     const dialogRef = this.dialog.open(VehiculoComponent, {
       width: '800px',
       data: vehiculo,
@@ -272,7 +275,7 @@ export class VehiculoService {
     return this.genericService.onCustomQuery(this.vehiculosSucursalBySucursalGQL, { sucursalId });
   }
 
-  onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<any> {
+  onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<VehiculoSucursal>> {
     return this.genericService.onCustomQuery(this.vehiculosSucursalSearchPageGQL, { sucursalId, responsableId, page, size });
   }
 
@@ -314,7 +317,7 @@ export class VehiculoService {
     this.refrescarSucursal();
   }
 
-  abrirFormularioSucursal(vehiculoSucursal?: VehiculoSucursal): Observable<any> {
+  abrirFormularioSucursal(vehiculoSucursal?: VehiculoSucursal): Observable<VehiculoSucursal | undefined> {
     const dialogRef = this.dialog.open(VehiculoSucursalDialogComponent, {
       width: '500px',
       disableClose: true,
@@ -345,7 +348,7 @@ export class VehiculoService {
     );
   }
 
-  abrirBuscadorTipoVehiculo(isAdicionar: boolean = false): Observable<TipoVehiculo | any> {
+  abrirBuscadorTipoVehiculo(isAdicionar: boolean = false): Observable<SearchDialogResponse<TipoVehiculo> | undefined> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'descripcion', nombre: 'Descripción' }
@@ -367,7 +370,7 @@ export class VehiculoService {
     }).afterClosed();
   }
 
-  abrirBuscadorModelo(isAdicionar: boolean = false): Observable<Modelo | any> {
+  abrirBuscadorModelo(isAdicionar: boolean = false): Observable<SearchDialogResponse<Modelo> | undefined> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'marca.descripcion', nombre: 'Marca' },
@@ -402,7 +405,7 @@ export class VehiculoService {
     }).afterClosed();
   }
 
-  abrirBuscadorResponsable(): Observable<Funcionario | any> {
+  abrirBuscadorResponsable(): Observable<SearchDialogResponse<Funcionario> | undefined> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'Id' },
       {

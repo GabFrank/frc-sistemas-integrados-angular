@@ -31,7 +31,7 @@ export class VehiculoComponent implements OnInit {
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
-        @Optional() @Inject(MAT_DIALOG_DATA) public data: any
+        @Optional() @Inject(MAT_DIALOG_DATA) public data: Vehiculo
     ) { }
 
     form: FormGroup;

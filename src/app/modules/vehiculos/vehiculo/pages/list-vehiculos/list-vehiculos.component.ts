@@ -81,7 +81,7 @@ export class ListVehiculosComponent implements OnInit {
     }
 
     onBuscarTipoVehiculo(): void {
-        this.vehiculoService.abrirBuscadorTipoVehiculo(false).subscribe((res: TipoVehiculo) => {
+        this.vehiculoService.abrirBuscadorTipoVehiculo(false).pipe(untilDestroyed(this)).subscribe((res: TipoVehiculo) => {
             if (res) {
                 this.tipoControl.setValue(Number(res.id));
                 this.tipoVehiculoDescripcion = res.descripcion.toUpperCase();
@@ -90,7 +90,7 @@ export class ListVehiculosComponent implements OnInit {
         });
     }
 
-    resetTipoFilter(event?: any): void {
+    resetTipoFilter(event?: MouseEvent): void {
         if (event) event.stopPropagation();
         this.tipoControl.setValue(null);
         this.tipoVehiculoDescripcion = 'TODOS LOS TIPOS';

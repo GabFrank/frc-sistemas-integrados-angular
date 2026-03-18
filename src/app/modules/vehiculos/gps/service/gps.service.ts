@@ -66,8 +66,8 @@ export class GpsService {
         return this.genericService.onGetById(this.gpsByIdGQL, id);
     }
 
-    onSave(input: GpsInput): Observable<any> {
-        return this.genericService.onSave(this.saveGpsGQL, input).pipe(
+    onSave(input: GpsInput): Observable<Gps> {
+        return (this.genericService.onSave(this.saveGpsGQL, input) as Observable<Gps>).pipe(
             tap(res => {
                 if (res) this.refrescar();
             })
@@ -113,7 +113,7 @@ export class GpsService {
         this.refrescar();
     }
 
-    abrirFormulario(gps?: Gps): Observable<any> {
+    abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
         const dialogRef = this.dialog.open(GpsComponent, {
             width: '800px',
             data: gps,
