@@ -161,7 +161,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
 
       this.loginService
         .login(
-          this.nicknameControl.value,
+          this.nicknameControl.value?.trim(),
           this.passwordControl.value,
           this.keepLoggedControl.value
         )

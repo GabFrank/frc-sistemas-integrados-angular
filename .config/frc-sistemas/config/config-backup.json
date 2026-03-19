@@ -2,13 +2,13 @@
   "serverIp": "localhost",
   "serverPort": "8082",
   "serverCentralIp": "localhost",
-  "serverCentralPort": "8081",
+  "serverCentralPort": "8082",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 3,
+  "pdvId": 12,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "printers": {
     "ticket": "acer28",
     "factura": ""
