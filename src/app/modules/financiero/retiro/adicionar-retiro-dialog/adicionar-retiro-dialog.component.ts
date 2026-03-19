@@ -213,6 +213,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
             this.cargandoDialog.closeDialog()
             if (retiroResponse != null) {
               retiro.id = retiroResponse.id;
+              retiro.creadoEn = retiroResponse.creadoEn;
 
               // Enviar notificación inmediatamente después de guardar
               if (retiro.responsable?.persona?.id) {
