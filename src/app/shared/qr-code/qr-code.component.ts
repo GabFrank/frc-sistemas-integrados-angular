@@ -16,9 +16,10 @@ export interface QrData {
 
 export interface QrCodeDialogData {
   nombre: any;
-  codigo: QrData;
+  codigo?: QrData;
   segundos?: number;
   imprimir?: boolean;
+  textoCustom?: string;
 }
 
 import { UntilDestroy } from '@ngneat/until-destroy';
@@ -43,8 +44,13 @@ export class QrCodeComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: QrCodeDialogData,
     public dialogRef: MatDialogRef<QrCodeComponent>,
   ) {
-    this.value = codificarQr(data.codigo)
-    this.codigoAlfanumerico = data.codigo.tipoEntidad + '-' + data.codigo.sucursalId + '-' + data.codigo.idOrigen;
+    if (data.textoCustom) {
+      this.value = data.textoCustom;
+      this.codigoAlfanumerico = 'CUSTOM';
+    } else {
+      this.value = codificarQr(data.codigo)
+      this.codigoAlfanumerico = data.codigo?.tipoEntidad + '-' + data.codigo?.sucursalId + '-' + data.codigo?.idOrigen;
+    }
     if (data.segundos != null) {
       this.countdown = data.segundos;
       this.timer = setInterval(() => {

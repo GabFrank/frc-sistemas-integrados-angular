@@ -1219,10 +1219,12 @@ export const transferenciasPorHojaRutaQuery = gql`
       sucursalOrigen {
         id
         nombre
+        localizacion
       }
       sucursalDestino {
         id
         nombre
+        localizacion
       }
       estado
       fecha: creadoEn

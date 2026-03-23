@@ -1,12 +1,16 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { TransferenciaService } from '../transferencia.service';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { HojaRuta, Transferencia } from '../transferencia.model';
 import { finalize } from 'rxjs/operators';
+import { UbicacionService } from '../../../../shared/services/ubicacion.service';
+import { TransferenciaService } from '../transferencia.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { QrCodeComponent } from '../../../../shared/qr-code/qr-code.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -29,7 +33,6 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
   expandedElement: HojaRuta | null;
   transferenciasCache: { [key: number]: Transferencia[] } = {};
   loadingTransferencias: { [key: number]: boolean } = {};
-
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   fechaInicioControl = new FormControl(new Date());
@@ -38,7 +41,10 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
   searchControl = new FormControl('');
 
   constructor(
-    private transferenciaService: TransferenciaService
+    private transferenciaService: TransferenciaService,
+    public dialog: MatDialog,
+    private ubicacionService: UbicacionService,
+    private notificacionService: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -136,7 +142,83 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
         }
       });
   }
+
   onScanQr(hojaRuta: HojaRuta): void {
-    console.log('Escanear QR para hoja de ruta:', hojaRuta.id);
+    if (this.transferenciasCache[hojaRuta.id]) {
+      this.generarYMostrarQr(hojaRuta, this.transferenciasCache[hojaRuta.id]);
+    } else {
+      this.loadingTransferencias[hojaRuta.id] = true;
+      this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRuta.id, 0, 50)
+        .pipe(
+          untilDestroyed(this),
+          finalize(() => this.loadingTransferencias[hojaRuta.id] = false)
+        )
+        .subscribe({
+          next: (transferencias) => {
+            this.transferenciasCache[hojaRuta.id] = transferencias;
+            this.generarYMostrarQr(hojaRuta, transferencias);
+          },
+          error: (err) => {
+            console.error(`Error al cargar transferencias para hoja de ruta ${hojaRuta.id}:`, err);
+            this.notificacionService.openWarn('Error de red: No se lograron cargar las transferencias del backend.');
+          }
+        });
+    }
+  }
+
+  private generarYMostrarQr(hojaRuta: HojaRuta, transferencias: Transferencia[]): void {
+    const idsTransf = transferencias.map(t => t.id).join(', ');
+    const chofer = hojaRuta.chofer?.nombre || 'Desconocido';
+    const acompList = hojaRuta.acompanantes && hojaRuta.acompanantes.length > 0
+      ? hojaRuta.acompanantes.map((a: any) => a.nombre).join(', ')
+      : 'Ninguno';
+
+    const origenStr = transferencias.length > 0 && transferencias[0].sucursalOrigen ? transferencias[0].sucursalOrigen.nombre : 'Desconocida';
+
+    const sucursalesMap = new Map<string, {destino: string, km: number}>();
+    let maxKm = -1;
+    let sucursalMayorKm = 'Ninguna';
+
+    transferencias.forEach(t => {
+      let km = 0;
+      let locOrigen = t.sucursalOrigen?.localizacion;
+      let locDestino = t.sucursalDestino?.localizacion;
+
+      if (locOrigen && locDestino && locOrigen.includes(',') && locDestino.includes(',')) {
+        let [lat1, lon1] = locOrigen.split(',').map(v => parseFloat(v));
+        let [lat2, lon2] = locDestino.split(',').map(v => parseFloat(v));
+        if (!isNaN(lat1) && !isNaN(lon1) && !isNaN(lat2) && !isNaN(lon2)) {
+          let metros = this.ubicacionService.calcularDistanciaMetros(lat1, lon1, lat2, lon2);
+          km = Math.round(metros / 1000);
+        }
+      }
+
+      const sucDestinoStr = t.sucursalDestino?.nombre || 'Desconocida';
+      const key = sucDestinoStr;
+
+      if (!sucursalesMap.has(key)) {
+        sucursalesMap.set(key, { destino: sucDestinoStr, km });
+      }
+
+      if (km > maxKm) {
+        maxKm = km;
+        sucursalMayorKm = sucDestinoStr;
+      }
+    });
+
+    let sucursalesInfo = '';
+    sucursalesMap.forEach(info => {
+      sucursalesInfo += `- ${info.destino}: ${info.km} km\n`;
+    });
+
+    let customStr = `Chofer: ${chofer}\nAcompañantes: ${acompList}\nCarga: ${idsTransf}\nSaliendo desde: ${origenStr}\nA sucursales:\n${sucursalesInfo}Sucursal mas lejana: ${sucursalMayorKm} (${maxKm} km)`;
+
+    this.dialog.open(QrCodeComponent, {
+      data: {
+        nombre: "Manifiesto",
+        textoCustom: customStr,
+        imprimir: false
+      }
+    });
   }
 }
