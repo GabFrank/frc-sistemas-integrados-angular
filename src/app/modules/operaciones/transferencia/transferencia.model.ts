@@ -2,8 +2,8 @@ import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Presentacion } from "../../productos/presentacion/presentacion.model";
 import { dateToString } from '../../../commons/core/utils/dateUtils';
-import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
 import { Persona } from '../../personas/persona/persona.model';
+import { Vehiculo } from "../../activos/vehiculos/vehiculo/models/vehiculo.model";
 
 export enum TransferenciaEstado {
   ABIERTA = 'ABIERTA', //la transferencia esta siendo creada

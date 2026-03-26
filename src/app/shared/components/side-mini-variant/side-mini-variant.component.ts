@@ -45,10 +45,10 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
-import { VehiculosDashboardComponent } from '../../../modules/vehiculos/vehiculos-dashboard/vehiculos-dashboard.component';
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
+import { VehiculosDashboardComponent } from '../../../modules/activos/vehiculos/vehiculos-dashboard/vehiculos-dashboard.component';
 
 
 interface BaseNavigationItem {

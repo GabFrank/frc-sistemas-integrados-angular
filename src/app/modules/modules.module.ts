@@ -13,8 +13,8 @@ import { FinancieroModule } from './financiero/financiero.module';
 import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
-import { VehiculosModule } from './vehiculos/vehiculos.module';
 import { AdministrativoModule } from './administrativo/administrativo.module';
+import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
 
 
 @NgModule({

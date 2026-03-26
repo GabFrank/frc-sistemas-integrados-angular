@@ -3,16 +3,16 @@ import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { VehiculoService } from '../../../vehiculos/vehiculo/service/vehiculo.service';
 import { TransferenciaService } from '../transferencia.service';
-import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
 import { Persona } from '../../../personas/persona/persona.model';
 import { HojaRuta, HojaRutaInput } from '../transferencia.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { VehiculoSearchPageGQL } from '../../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
+import { Vehiculo } from '../../../activos/vehiculos/vehiculo/models/vehiculo.model';
+import { VehiculoService } from '../../../activos/vehiculos/vehiculo/service/vehiculo.service';
+import { VehiculoSearchPageGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearchPage';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
