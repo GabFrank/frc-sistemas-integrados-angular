@@ -1,0 +1,6 @@
+export enum TipoEnte {
+    VEHICULO = 'VEHICULO',
+    INMUEBLE = 'INMUEBLE',
+    MUEBLE = 'MUEBLE',
+    INSTITUCION = 'INSTITUCION'
+}
