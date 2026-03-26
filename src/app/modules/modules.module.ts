@@ -15,6 +15,7 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { AdministrativoModule } from './administrativo/administrativo.module';
 import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
+import { DashboardActivosModule } from './activos/dashboard/dashboard-activos.module';
 
 
 @NgModule({
@@ -35,6 +36,7 @@ import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
     ConfiguracionModule,
     NotificacionesModule,
     VehiculosModule,
+    DashboardActivosModule,
     AdministrativoModule,
     MDBBootstrapModule.forRoot()
   ],

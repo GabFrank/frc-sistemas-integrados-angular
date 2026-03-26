@@ -6,7 +6,6 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { PreRegistroVehiculoComponent } from './vehiculo/dialogs/pre-registro/pre-registro-vehiculo.component';
 import { VehiculoSucursalDialogComponent } from './vehiculo/dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
-import { VehiculosDashboardComponent } from './vehiculos-dashboard/vehiculos-dashboard.component';
 import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 import { AdicionarModeloDialogComponent } from './vehiculo/dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { ListVehiculoSucursalComponent } from './vehiculo/pages/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
@@ -16,6 +15,7 @@ import { GpsConfigDialogComponent } from './gps/dialogs/gps-config-dialog/gps-co
 import { ListMapasComponent } from './gps/pages/list-mapas/list-mapas.component';
 import { MaterialModule } from '../../../commons/core/material.module';
 import { SharedModule } from '../../../shared/shared.module';
+import { VehiculosDashboardComponent } from '../dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 @NgModule({
   declarations: [
     VehiculoComponent,

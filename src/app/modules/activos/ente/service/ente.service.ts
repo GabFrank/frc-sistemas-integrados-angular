@@ -3,14 +3,11 @@ import { EnteByIdGQL } from '../graphql/enteById';
 import { SaveEnteGQL } from '../graphql/saveEnte';
 import { DeleteEnteGQL } from '../graphql/deleteEnte';
 import { EnteSearchPageGQL } from '../graphql/enteSearchPage';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Ente } from '../models/ente.model';
-import { TipoEnte } from '../enums/tipo-ente.enum';
 import { EnteInput } from '../models/ente-input.model';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
-import { EnteArchivo } from '../models/ente-archivo.model';
-import { EnteArchivoInput } from '../models/ente-archivo-input.model';
 
 @Injectable({
   providedIn: 'root'

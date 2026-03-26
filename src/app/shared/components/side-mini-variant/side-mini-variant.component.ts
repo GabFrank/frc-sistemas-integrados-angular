@@ -48,7 +48,8 @@ import { ModificacionesComponent } from '../../../modules/operaciones/modificaci
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
-import { VehiculosDashboardComponent } from '../../../modules/activos/vehiculos/vehiculos-dashboard/vehiculos-dashboard.component';
+import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
+import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -312,6 +313,19 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Vehículo',
           icon: 'commute',
           action: 'list-vehiculo'
+        }
+      ]
+    },
+    {
+      name: 'Bienes',
+      icon: 'forest',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        {
+          name: 'Bien',
+          icon: 'check_circle',
+          action: 'bienes-dashboard'
         }
       ]
     },
@@ -700,6 +714,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-vehiculo":
         this.tabService.addTab(new Tab(VehiculosDashboardComponent, "Vehículos", null, null));
+        break;
+      case "bienes-dashboard":
+        this.tabService.addTab(new Tab(BienesDashboardComponent, "Bien", null, null));
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));

@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { ListVehiculosComponent } from '../vehiculo/pages/list-vehiculos/list-vehiculos.component';
-import { ListVehiculoSucursalComponent } from '../vehiculo/pages/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
-import { ListGpsComponent } from '../gps/pages/list-gps/list-gps.component';
-import { ListMapasComponent } from '../gps/pages/list-mapas/list-mapas.component';
 import { BotonData } from '../../../../shared/components/boton/boton.component';
 import { MainService } from '../../../../main.service';
 import { TabService } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
+import { ListVehiculosComponent } from '../../vehiculos/vehiculo/pages/list-vehiculos/list-vehiculos.component';
+import { ListVehiculoSucursalComponent } from '../../vehiculos/vehiculo/pages/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
+import { ListGpsComponent } from '../../vehiculos/gps/pages/list-gps/list-gps.component';
+import { ListMapasComponent } from '../../vehiculos/gps/pages/list-mapas/list-mapas.component';
 @Component({
   selector: 'app-vehiculos-dashboard',
   templateUrl: './vehiculos-dashboard.component.html',
