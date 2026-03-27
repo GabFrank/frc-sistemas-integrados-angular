@@ -140,12 +140,12 @@ export class InmuebleService {
       titulo: 'Buscar Propietario',
       query: this.personaSearchGQL,
       tableData: tableData,
-      inicialSearch: true,
-      paginator: true
+      inicialSearch: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
-      width: '800px',
+      width: '60%',
+      height: '80%',
       data: data
     }).afterClosed();
   }

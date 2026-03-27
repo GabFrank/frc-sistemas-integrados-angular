@@ -131,7 +131,22 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onBuscarPropietario(): void {
-    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarPropietario();
+        } else {
+          this.propietarioSelected = res;
+          this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
+          this.form.get('propietarioId')?.setValue(Number(res.id));
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarPropietario(): void {
+    this.muebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.propietarioSelected = res;
         this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
@@ -194,8 +209,23 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onBuscarProveedor(): void {
-    // We use the same proprietor search for vendor, since they are all Personas
-    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+    // Usamos el mismo buscador de propietario para proveedor ya que todos son Personas
+    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarProveedor();
+        } else {
+          this.proveedorSelected = res;
+          this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
+          this.form.get('proveedorId')?.setValue(Number(res.id));
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarProveedor(): void {
+    this.muebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.proveedorSelected = res;
         this.proveedorDescripcion = res.nombre?.toUpperCase() || '';

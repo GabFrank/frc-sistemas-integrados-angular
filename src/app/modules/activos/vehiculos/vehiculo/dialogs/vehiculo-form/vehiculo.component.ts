@@ -6,6 +6,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Modelo } from '../../models/modelo.model';
 import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
+import { Persona } from '../../../../../personas/persona/persona.model';
 import { BehaviorSubject } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Inject, Optional } from '@angular/core';
@@ -40,8 +41,10 @@ export class VehiculoComponent implements OnInit {
     tiposVehiculo$ = new BehaviorSubject<TipoVehiculo[]>([]);
     modeloSelected: Modelo;
     tipoVehiculoSelected: TipoVehiculo;
+    propietarioSelected: Persona;
     modeloDescripcion: string = 'SELECCIONE UN MODELO';
     tipoVehiculoDescripcion: string = 'SELECCIONE UN TIPO';
+    propietarioDescripcion: string = 'SELECCIONE UN PROPIETARIO';
 
     private actualizarDescripciones(): void {
         if (this.modeloSelected) {
@@ -150,6 +153,11 @@ export class VehiculoComponent implements OnInit {
             diaVencimiento: (this.vehiculo as any)?.diaVencimiento || 1
         });
 
+        if ((this.vehiculo as any)?.propietario) {
+            this.propietarioSelected = (this.vehiculo as any).propietario;
+            this.propietarioDescripcion = `${this.propietarioSelected.nombre}`.toUpperCase();
+        }
+
         if (this.vehiculo?.modelo) {
             this.modeloSelected = this.vehiculo.modelo;
             this.modelos$.next([this.vehiculo.modelo]);
@@ -232,6 +240,28 @@ export class VehiculoComponent implements OnInit {
                     this.tipoVehiculoSelected = res;
                     this.form.get('tipoVehiculoId')?.setValue(id);
                     this.actualizarDescripciones();
+                    this.cdr.markForCheck();
+                }
+            }
+        });
+    }
+
+    onBuscarPropietario(): void {
+        this.vehiculoService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                if (res.adicionar) {
+                    this.vehiculoService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(nuevaPersona => {
+                        if (nuevaPersona) {
+                            this.propietarioSelected = nuevaPersona;
+                            this.propietarioDescripcion = `${nuevaPersona.nombre}`.toUpperCase();
+                            this.form.get('propietarioId')?.setValue(Number(nuevaPersona.id));
+                            this.cdr.markForCheck();
+                        }
+                    });
+                } else {
+                    this.propietarioSelected = res;
+                    this.propietarioDescripcion = `${res.nombre}`.toUpperCase();
+                    this.form.get('propietarioId')?.setValue(Number(res.id));
                     this.cdr.markForCheck();
                 }
             }

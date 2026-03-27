@@ -57,8 +57,8 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="50">
                             <mat-label>Propietario</mat-label>
-                            <input matInput placeholder="Buscar dueño (Persona)">
-                            <mat-icon matSuffix>search</mat-icon>
+                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()" style="cursor: pointer;" placeholder="Persona dueña del activo">
+                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPropietario()">search</mat-icon>
                         </mat-form-field>
                         <mat-form-field fxFlex="50">
                             <mat-label>Identificador Interno</mat-label>

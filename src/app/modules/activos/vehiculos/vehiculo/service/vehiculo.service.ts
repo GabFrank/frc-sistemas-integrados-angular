@@ -38,6 +38,9 @@ import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PageInfo } from '../../../../../app.component';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
+import { PersonaSearchGQL } from '../../../../personas/persona/graphql/personaSearch';
+import { Persona } from '../../../../personas/persona/persona.model';
+import { AdicionarPersonaDialogComponent } from '../../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 
 export type SearchDialogResponse<T> = T & { adicionar?: boolean };
 
@@ -64,6 +67,7 @@ export class VehiculoService {
   private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
+  private personaSearchGQL = inject(PersonaSearchGQL);
   private dialog = inject(MatDialog);
   private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
   public vehiculos$ = this.vehiculosSubject.asObservable();
@@ -429,6 +433,34 @@ export class VehiculoService {
       data: data,
       width: '60%',
       height: '80%'
+    }).afterClosed();
+  }
+
+  abrirBuscadorPropietario(): Observable<SearchDialogResponse<Persona> | undefined> {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID', width: '10%' },
+      { id: 'nombre', nombre: 'Nombre' },
+      { id: 'documento', nombre: 'Documento' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Propietario',
+      query: this.personaSearchGQL,
+      tableData: tableData,
+      inicialSearch: true,
+      isAdicionar: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '60%',
+      height: '80%',
+      data: data
+    }).afterClosed();
+  }
+
+  abrirAdicionarPersona(): Observable<Persona | undefined> {
+    return this.dialog.open(AdicionarPersonaDialogComponent, {
+      width: '700px'
     }).afterClosed();
   }
 }

@@ -10,31 +10,14 @@
     <div fxLayout="column" fxLayoutGap="20px">
 
         <div class="form-section">
-            <h3 class="section-title">1. REGISTRAR NUEVA FAMILIA (SI NO EXISTE)</h3>
-            <form [formGroup]="familiaForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-form-field appearance="outline" fxFlex>
-                    <mat-label>Nombre de la Familia</mat-label>
-                    <input matInput formControlName="descripcion" placeholder="Ej: OFICINA"
-                        (keyup.enter)="onGuardarFamilia()">
-                </mat-form-field>
-                <button mat-raised-button color="accent" [disabled]="familiaForm.invalid" (click)="onGuardarFamilia()">
-                    <mat-icon>save</mat-icon> GUARDAR FAMILIA
-                </button>
-            </form>
-        </div>
-
-        <mat-divider style="opacity: 0.1;"></mat-divider>
-
-        <div class="form-section">
-            <h3 class="section-title">2. REGISTRAR NUEVO TIPO</h3>
+            <h3 class="section-title">SELECCIONE FAMILIA Y REGISTRE NUEVO TIPO</h3>
             <div fxLayout="column" fxLayoutGap="15px">
-                <frc-searchable-select titulo="Seleccione Familia" [list]="familias$ | async" [isFilter]="false"
-                    [initialValue]="false" [currentData]="currentFamilia" (inputChanged)="onFiltrarFamilias($event)"
-                    (selectionChanged)="onSelectFamilia($event)" [compareFields]="['descripcion']">
-                    <ng-template let-familia>
-                        {{ familia.descripcion | uppercase }}
-                    </ng-template>
-                </frc-searchable-select>
+                
+                <mat-form-field appearance="outline" fxFlex>
+                    <mat-label>Familia de Mueble</mat-label>
+                    <input matInput [value]="currentFamilia?.descripcion | uppercase" readonly (click)="onBuscarFamilia()" style="cursor: pointer;">
+                    <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarFamilia()">search</mat-icon>
+                </mat-form-field>
 
                 <form [formGroup]="tipoForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
                     <mat-form-field appearance="outline" fxFlex>
