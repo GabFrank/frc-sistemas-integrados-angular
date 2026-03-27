@@ -14,6 +14,13 @@ export interface Mueble {
     consumeEnergia?: boolean;
     consumoValor?: string;
     valorTasacion?: number;
+    situacionPago?: string;
+    proveedor?: Persona;
+    moneda?: import('../../../financiero/moneda/moneda.model').Moneda;
+    montoTotal?: number;
+    montoYaPagado?: number;
+    cantidadCuotas?: number;
+    diaVencimiento?: number;
     usuario?: Usuario;
     creadoEn?: Date;
 }

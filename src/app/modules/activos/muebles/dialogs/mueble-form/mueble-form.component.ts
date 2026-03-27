@@ -34,8 +34,14 @@ export class MuebleFormComponent implements OnInit {
   familiaDescripcion: string = 'SELECCIONE UNA FAMILIA';
   tipoMuebleDescripcion: string = 'SELECCIONE UN TIPO';
 
-  situacionesPago = ['PAGADO', 'PAGANDO', 'DADO', 'GANADO'];
+  situacionesPago = ['PAGADO', 'PAGANDO', 'DADO', 'GANADO', 'COMODATO'];
   monedas = ['PYG', 'USD', 'BRL'];
+
+  proveedorSelected: Persona;
+  proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
+
+  monedaSelected: any;
+  monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
 
   constructor(
     public dialogRef: MatDialogRef<MuebleFormComponent>,
@@ -70,9 +76,12 @@ export class MuebleFormComponent implements OnInit {
       consumoValor: [''],
       valorTasacion: [0],
       situacionPago: ['PAGADO'],
-      proveedor: [null],
-      moneda: ['PYG'],
-      montoTotal: [0]
+      proveedorId: [null],
+      monedaId: [null],
+      montoTotal: [0],
+      montoYaPagado: [0],
+      cantidadCuotas: [1],
+      diaVencimiento: [1]
     });
   }
 
@@ -87,12 +96,19 @@ export class MuebleFormComponent implements OnInit {
         tipoMuebleId: this.mueble.tipoMueble?.id,
         consumeEnergia: this.mueble.consumeEnergia,
         consumoValor: this.mueble.consumoValor,
-        valorTasacion: this.mueble.valorTasacion
+        valorTasacion: this.mueble.valorTasacion,
+        situacionPago: this.mueble.situacionPago || 'PAGADO',
+        proveedorId: this.mueble.proveedor?.id,
+        monedaId: this.mueble.moneda?.id,
+        montoTotal: this.mueble.montoTotal || 0,
+        montoYaPagado: this.mueble.montoYaPagado || 0,
+        cantidadCuotas: this.mueble.cantidadCuotas || 1,
+        diaVencimiento: this.mueble.diaVencimiento || 1
       });
 
       if (this.mueble.propietario) {
         this.propietarioSelected = this.mueble.propietario;
-        this.propietarioDescripcion = this.mueble.propietario.nombre?.toUpperCase() || '';
+        this.propietarioDescripcion = `${this.mueble.propietario.nombre}`.toUpperCase();
       }
       if (this.mueble.familia) {
         this.familiaSelected = this.mueble.familia;
@@ -101,6 +117,14 @@ export class MuebleFormComponent implements OnInit {
       if (this.mueble.tipoMueble) {
         this.tipoMuebleSelected = this.mueble.tipoMueble;
         this.tipoMuebleDescripcion = this.mueble.tipoMueble.descripcion?.toUpperCase() || '';
+      }
+      if (this.mueble.proveedor) {
+        this.proveedorSelected = this.mueble.proveedor;
+        this.proveedorDescripcion = this.mueble.proveedor.nombre?.toUpperCase() || '';
+      }
+      if (this.mueble.moneda) {
+        this.monedaSelected = this.mueble.moneda;
+        this.monedaDescripcion = this.mueble.moneda.denominacion?.toUpperCase() || '';
       }
     }
     this.cdr.markForCheck();
@@ -111,29 +135,82 @@ export class MuebleFormComponent implements OnInit {
       if (res) {
         this.propietarioSelected = res;
         this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('propietarioId')?.setValue(res.id);
+        this.form.get('propietarioId')?.setValue(Number(res.id));
         this.cdr.markForCheck();
       }
     });
   }
 
   onBuscarFamilia(): void {
-    this.muebleService.abrirBuscadorFamilia().pipe(untilDestroyed(this)).subscribe(res => {
+    this.muebleService.abrirBuscadorFamilia().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarFamilia();
+        } else {
+          this.familiaSelected = res;
+          this.familiaDescripcion = res.descripcion?.toUpperCase() || '';
+          this.form.get('familiaId')?.setValue(res.id);
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarFamilia(): void {
+    this.muebleService.abrirAdicionarFamilia().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.familiaSelected = res;
         this.familiaDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('familiaId')?.setValue(res.id);
+        this.form.get('familiaId')?.setValue(Number(res.id));
         this.cdr.markForCheck();
       }
     });
   }
 
   onBuscarTipo(): void {
-    this.muebleService.abrirBuscadorTipo().pipe(untilDestroyed(this)).subscribe(res => {
+    this.muebleService.abrirBuscadorTipo().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarTipo();
+        } else {
+          this.tipoMuebleSelected = res;
+          this.tipoMuebleDescripcion = res.descripcion?.toUpperCase() || '';
+          this.form.get('tipoMuebleId')?.setValue(res.id);
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarTipo(): void {
+    this.muebleService.abrirAdicionarTipo(this.familiaSelected?.id).pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.tipoMuebleSelected = res;
         this.tipoMuebleDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('tipoMuebleId')?.setValue(res.id);
+        this.form.get('tipoMuebleId')?.setValue(Number(res.id));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onBuscarProveedor(): void {
+    // We use the same proprietor search for vendor, since they are all Personas
+    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.proveedorSelected = res;
+        this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
+        this.form.get('proveedorId')?.setValue(Number(res.id));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onBuscarMoneda(): void {
+    this.muebleService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.monedaSelected = res;
+        this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase() || '';
+        this.form.get('monedaId')?.setValue(res.id);
         this.cdr.markForCheck();
       }
     });
@@ -152,6 +229,8 @@ export class MuebleFormComponent implements OnInit {
         propietarioId: Number(values.propietarioId),
         familiaId: Number(values.familiaId),
         tipoMuebleId: Number(values.tipoMuebleId),
+        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
         usuarioId: this.mainService.usuarioActual?.id || this.mueble?.usuario?.id
       };
       this.muebleService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {

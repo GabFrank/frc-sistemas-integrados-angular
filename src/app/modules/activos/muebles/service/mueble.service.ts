@@ -11,9 +11,14 @@ import { SaveMuebleGQL } from '../graphql/saveMueble';
 import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
 import { MuebleFormComponent } from '../dialogs/mueble-form/mueble-form.component';
+import { AdicionarFamiliaMuebleDialogComponent } from '../dialogs/adicionar-familia-mueble-dialog/adicionar-familia-mueble-dialog.component';
+import { AdicionarTipoMuebleDialogComponent } from '../dialogs/adicionar-tipo-mueble-dialog/adicionar-tipo-mueble-dialog.component';
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
 import { FamiliaMuebleSearchGQL } from '../graphql/familiaMuebleSearch';
 import { TipoMuebleSearchGQL } from '../graphql/tipoMuebleSearch';
+import { SaveFamiliaMuebleGQL } from '../graphql/saveFamiliaMueble';
+import { SaveTipoMuebleGQL } from '../graphql/saveTipoMueble';
+import { MonedasSearchGQL } from '../../../financiero/moneda/graphql/monedasSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Persona } from '../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../models/familia-mueble.model';
@@ -33,6 +38,9 @@ export class MuebleService {
   private personaSearchGQL = inject(PersonaSearchGQL);
   private familiaSearchGQL = inject(FamiliaMuebleSearchGQL);
   private tipoMuebleSearchGQL = inject(TipoMuebleSearchGQL);
+  private saveFamiliaGQL = inject(SaveFamiliaMuebleGQL);
+  private saveTipoGQL = inject(SaveTipoMuebleGQL);
+  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
 
   private mueblesSubject = new BehaviorSubject<Mueble[]>([]);
@@ -160,7 +168,8 @@ export class MuebleService {
       titulo: 'Buscar Familia de Mueble',
       query: this.familiaSearchGQL,
       tableData: tableData,
-      inicialSearch: true
+      inicialSearch: true,
+      isAdicionar: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
@@ -179,11 +188,60 @@ export class MuebleService {
       titulo: 'Buscar Tipo de Mueble',
       query: this.tipoMuebleSearchGQL,
       tableData: tableData,
-      inicialSearch: true
+      inicialSearch: true,
+      isAdicionar: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
       width: '600px',
+      data: data
+    }).afterClosed();
+  }
+
+  abrirAdicionarFamilia(): Observable<FamiliaMueble | undefined> {
+    return this.dialog.open(AdicionarFamiliaMuebleDialogComponent, {
+      width: '600px'
+    }).afterClosed();
+  }
+
+  onGuardarFamilia(input: any): Observable<FamiliaMueble> {
+    return this.genericService.onSave(this.saveFamiliaGQL, input);
+  }
+
+  onGuardarTipo(input: any): Observable<TipoMueble> {
+    return this.genericService.onSave(this.saveTipoGQL, input);
+  }
+
+  onFiltrarFamilias(texto: string): Observable<FamiliaMueble[]> {
+    return this.genericService.onGetByTexto(this.familiaSearchGQL, texto);
+  }
+
+  onFiltrarTipos(texto: string): Observable<TipoMueble[]> {
+    return this.genericService.onGetByTexto(this.tipoMuebleSearchGQL, texto);
+  }
+
+  abrirAdicionarTipo(familiaId?: number): Observable<TipoMueble | undefined> {
+    return this.dialog.open(AdicionarTipoMuebleDialogComponent, {
+      width: '600px',
+      data: { familiaId }
+    }).afterClosed();
+  }
+
+  abrirBuscadorMoneda(): Observable<any | undefined> {
+    const tableData: TableData[] = [
+      { id: 'denominacion', nombre: 'Denominación' },
+      { id: 'simbolo', nombre: 'Símbolo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Moneda',
+      query: this.monedasSearchGQL,
+      tableData: tableData,
+      inicialSearch: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '400px',
       data: data
     }).afterClosed();
   }

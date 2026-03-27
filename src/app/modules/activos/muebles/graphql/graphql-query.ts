@@ -22,6 +22,20 @@ export const muebleByIdQuery = gql`
         id
         descripcion
       }
+      situacionPago
+      proveedor {
+        id
+        nombre
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      montoTotal
+      montoYaPagado
+      cantidadCuotas
+      diaVencimiento
       usuario {
         id
         nickname
@@ -68,6 +82,16 @@ export const muebleSearchPageQuery = gql`
         tipoMueble {
             id
             descripcion
+        }
+        situacionPago
+        proveedor {
+            id
+            nombre
+        }
+        moneda {
+            id
+            denominacion
+            simbolo
         }
       }
     }

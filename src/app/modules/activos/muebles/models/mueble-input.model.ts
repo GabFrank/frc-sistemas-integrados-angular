@@ -8,5 +8,12 @@ export interface MuebleInput {
     consumeEnergia?: boolean;
     consumoValor?: string;
     valorTasacion?: number;
+    situacionPago?: string;
+    proveedorId?: number;
+    monedaId?: number;
+    montoTotal?: number;
+    montoYaPagado?: number;
+    cantidadCuotas?: number;
+    diaVencimiento?: number;
     usuarioId?: number;
 }
