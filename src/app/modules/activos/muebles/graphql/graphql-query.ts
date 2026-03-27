@@ -54,6 +54,13 @@ export const muebleSearchPageQuery = gql`
         id
         identificador
         descripcion
+        consumeEnergia
+        consumoValor
+        valorTasacion
+        propietario {
+            id
+            nombre
+        }
         familia {
             id
             descripcion
@@ -63,6 +70,24 @@ export const muebleSearchPageQuery = gql`
             descripcion
         }
       }
+    }
+  }
+`;
+
+export const familiaMuebleSearchQuery = gql`
+  query familiaMuebleSearch($texto: String!) {
+    data: familiaMuebleSearch(texto: $texto) {
+      id
+      descripcion
+    }
+  }
+`;
+
+export const tipoMuebleSearchQuery = gql`
+  query tipoMuebleSearch($texto: String!) {
+    data: tipoMuebleSearch(texto: $texto) {
+      id
+      descripcion
     }
   }
 `;

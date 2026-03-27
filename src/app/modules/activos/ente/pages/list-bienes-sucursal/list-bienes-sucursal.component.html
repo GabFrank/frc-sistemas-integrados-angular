@@ -1,1 +1,68 @@
-<p>list-bienes-sucursal works!</p>
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onAdicionar()" [isAdicionar]="true">
+  <div filtros>
+    <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="40%">
+        <mat-form-field appearance="outline" style="width: 100%" floatLabel="always">
+          <mat-label>Filtro por texto</mat-label>
+          <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+      
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoEnte">
+        <th mat-header-cell *matHeaderCellDef>Tipo de Bien</th>
+        <td mat-cell *matCellDef="let row">
+            <span class="badge">{{ row.tipoEnte }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="referenciaId">
+        <th mat-header-cell *matHeaderCellDef>Ref. ID</th>
+        <td mat-cell *matCellDef="let row">{{ row.referenciaId }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Estado</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+            <mat-icon [style.color]="row.activo ? '#4CAF50' : '#F44336'">
+                {{ row.activo ? 'check_circle' : 'cancel' }}
+            </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item>Ver Detalles</button>
+            <button mat-menu-item>Historial de Movimientos</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="(enteService.totalElements$ | async) || 0"
+      [pageIndex]="(enteService.paginationState$ | async)?.pageIndex || 0"
+      [pageSize]="(enteService.paginationState$ | async)?.pageSize || 15" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

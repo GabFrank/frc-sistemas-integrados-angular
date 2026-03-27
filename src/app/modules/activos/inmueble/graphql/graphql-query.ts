@@ -55,6 +55,19 @@ export const inmuebleSearchPageQuery = gql`
         nombreAsignado
         direccion
         codigoCatastral
+        valorTasacion
+        pais {
+          id
+          descripcion
+        }
+        ciudad {
+          id
+          descripcion
+        }
+        propietario {
+          id
+          nombre
+        }
       }
     }
   }

@@ -1,1 +1,11 @@
-/* empty */
+/* empty */table {
+    width: 100%;
+}
+
+:host {
+    ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+        }
+    }
+}

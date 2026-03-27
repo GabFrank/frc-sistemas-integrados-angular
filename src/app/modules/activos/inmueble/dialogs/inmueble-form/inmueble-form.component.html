@@ -1,0 +1,170 @@
+<div mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+        <div class="icon-circle" style="background: #e64a19; border-radius: 50%; padding: 8px; display: flex;">
+            <mat-icon style="color: white;">domain</mat-icon>
+        </div>
+        <div>
+            <h2 class="titulo" style="margin: 0;">{{ data?.id ? 'Editar Inmueble' : 'Nuevo Inmueble' }}</h2>
+            <p class="sub-descripcion" style="margin: 0; opacity: 0.7; font-size: 0.9em;">
+                Complete los campos para registrar un nuevo inmueble según inventario
+            </p>
+        </div>
+        <span fxFlex></span>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</div>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-content style="padding-top: 20px;">
+    <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
+
+        <mat-tab-group animationDuration="0ms">
+            <!-- PESTAÑA 1: DATOS GENERALES -->
+            <mat-tab label="General">
+                <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
+                    <div fxLayout="row" fxLayoutGap="20px">
+                        <mat-form-field fxFlex="70">
+                            <mat-label>Propietario</mat-label>
+                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()" style="cursor: pointer;" placeholder="Buscar propietario (Persona)">
+                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPropietario()">search</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field fxFlex="30">
+                            <mat-label>Nombre Asignado / Apodo</mat-label>
+                            <input matInput formControlName="nombreAsignado" placeholder="Ej: Local Centro">
+                        </mat-form-field>
+                    </div>
+
+                    <div fxLayout="row" fxLayoutGap="20px">
+                        <mat-form-field fxFlex="50">
+                            <mat-label>País</mat-label>
+                            <input matInput [value]="paisDescripcion" readonly (click)="onBuscarPais()" style="cursor: pointer;">
+                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPais()">search</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field fxFlex="50">
+                            <mat-label>Ciudad</mat-label>
+                            <input matInput [value]="ciudadDescripcion" readonly (click)="onBuscarCiudad()" style="cursor: pointer;">
+                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarCiudad()">search</mat-icon>
+                        </mat-form-field>
+                    </div>
+
+                    <mat-form-field>
+                        <mat-label>Dirección Completa</mat-label>
+                        <input matInput formControlName="direccion">
+                    </mat-form-field>
+
+                    <div fxLayout="row" fxLayoutGap="20px">
+                        <mat-form-field fxFlex="50">
+                            <mat-label>Google Maps URL</mat-label>
+                            <input matInput formControlName="googleMapsUrl">
+                            <mat-icon matSuffix>location_on</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field fxFlex="50">
+                            <mat-label>Código Catastral</mat-label>
+                            <input matInput formControlName="codigoCatastral">
+                        </mat-form-field>
+                    </div>
+
+                    <mat-form-field>
+                        <mat-label>Valor Tasación (Estimado)</mat-label>
+                        <input matInput type="number" formControlName="valorTasacion">
+                        <span matPrefix>$&nbsp;</span>
+                    </mat-form-field>
+                </div>
+            </mat-tab>
+
+            <!-- PESTAÑA 2: SITUACIÓN FINANCIERA (Requisito 3.5 & 3.6 & 5.1-9) -->
+            <mat-tab label="Finanzas">
+                <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
+                    <mat-form-field>
+                        <mat-label>Situación de Pago</mat-label>
+                        <mat-select formControlName="situacionPago">
+                            <mat-option *ngFor="let s of situacionesPago" [value]="s">{{s}}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <div *ngIf="form.get('situacionPago')?.value === 'PAGADO' || form.get('situacionPago')?.value === 'PAGANDO'"
+                        fxLayout="column" fxLayoutGap="15px"
+                        style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+
+                        <div fxLayout="row" fxLayoutGap="20px">
+                            <mat-form-field fxFlex="70">
+                                <mat-label>Proveedor (Vendedor)</mat-label>
+                                <input matInput formControlName="proveedor">
+                                <mat-icon matSuffix>search</mat-icon>
+                            </mat-form-field>
+
+                            <mat-form-field fxFlex="30">
+                                <mat-label>Moneda</mat-label>
+                                <mat-select formControlName="moneda">
+                                    <mat-option *ngFor="let m of monedas" [value]="m">{{m}}</mat-option>
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+
+                        <mat-form-field *ngIf="form.get('situacionPago')?.value === 'PAGADO'">
+                            <mat-label>Monto Total Pagado</mat-label>
+                            <input matInput type="number" formControlName="montoTotal">
+                        </mat-form-field>
+
+                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row wrap"
+                            fxLayoutGap="15px">
+                            <mat-form-field fxFlex="45">
+                                <mat-label>Monto ya Pagado / Entrega</mat-label>
+                                <input matInput type="number" formControlName="montoYaPagado">
+                            </mat-form-field>
+
+                            <mat-form-field fxFlex="45">
+                                <mat-label>Cantidad de Cuotas</mat-label>
+                                <input matInput type="number" formControlName="cantidadCuotas">
+                            </mat-form-field>
+
+                            <mat-form-field fxFlex="45">
+                                <mat-label>Día Vencimiento (1-31)</mat-label>
+                                <input matInput type="number" formControlName="diaVencimiento">
+                            </mat-form-field>
+
+                            <div fxFlex="100" style="padding: 10px;">
+                                <button mat-stroked-button color="accent">
+                                    <mat-icon>add</mat-icon> Cargar Cuotas Pendientes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </mat-tab>
+
+            <!-- PESTAÑA 3: ARCHIVOS (5.1-10) -->
+            <mat-tab label="Archivos">
+                <div fxLayout="column" fxLayoutGap="20px" style="padding-top: 15px;">
+                    <button mat-raised-button color="primary">
+                        <mat-icon>upload_file</mat-icon> SUBIR DOCUMENTOS DE COMPRA
+                    </button>
+                    <button mat-raised-button color="accent">
+                        <mat-icon>photo_camera</mat-icon> SUBIR FOTOS ESTADO INICIAL
+                    </button>
+
+                    <div style="opacity: 0.5; font-size: 0.8em;">* Los archivos subidos mantendrán historial de
+                        vigencia.</div>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+
+    </form>
+</mat-dialog-content>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
+    <button mat-raised-button (click)="onCancelar()">
+        CANCELAR
+    </button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="form.invalid">
+        {{ data?.id ? 'GUARDAR' : 'REGISTRAR INMUEBLE' }}
+    </button>
+</mat-dialog-actions>

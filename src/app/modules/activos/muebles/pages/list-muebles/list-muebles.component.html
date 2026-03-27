@@ -1,1 +1,70 @@
-<p>list-muebles works!</p>
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onAdicionar()" [isAdicionar]="true">
+  <div filtros fxLayout="row" fxLayoutGap="15px" style="width: 100%">
+    <mat-form-field appearance="outline" fxFlex="40" floatLabel="always">
+      <mat-label>Código o descripción</mat-label>
+      <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: M-OFF-01" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+      
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="identificador">
+        <th mat-header-cell *matHeaderCellDef>Código</th>
+        <td mat-cell *matCellDef="let row" style="font-weight: 600;">{{ row.identificador }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row">{{ row.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="familiaTipo">
+        <th mat-header-cell *matHeaderCellDef>Familia / Tipo</th>
+        <td mat-cell *matCellDef="let row">{{ row.familia?.descripcion }} - {{ row.tipoMueble?.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="propietario">
+        <th mat-header-cell *matHeaderCellDef>Propietario</th>
+        <td mat-cell *matCellDef="let row">{{ row.propietario?.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tasacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right">Tasación</th>
+        <td mat-cell *matCellDef="let row" style="text-align: right">
+            {{ row.valorTasacion | currency:'USD':'symbol':'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditar(row)">Editar</button>
+            <button mat-menu-item>Mover de sucursal</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="(muebleService.paginationState$ | async)?.totalElements || 0"
+      [pageIndex]="(muebleService.paginationState$ | async)?.pageIndex || 0"
+      [pageSize]="(muebleService.paginationState$ | async)?.pageSize || 15" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

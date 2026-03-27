@@ -91,7 +91,22 @@ export class VehiculoComponent implements OnInit {
             primerKilometraje: [null],
             fechaAdquisicion: [null],
             modeloId: [null, [Validators.required]],
-            tipoVehiculoId: [null, [Validators.required]]
+            tipoVehiculoId: [null, [Validators.required]],
+            // Nuevos campos Etapa 1
+            propietarioId: [null],
+            identificadorInterno: [''],
+            tipoCombustibleId: [null],
+            chasis: [''],
+            aireAcondicionado: [false],
+            valorEstimado: [0],
+            mantenimientoMotorIntervalo: [null],
+            mantenimientoCajaIntervalo: [null],
+            situacionPago: ['PAGADO'],
+            proveedor: [null],
+            moneda: ['PYG'],
+            montoTotal: [0],
+            montoYaPagado: [0],
+            diaVencimiento: [1]
         });
     }
 
@@ -120,7 +135,19 @@ export class VehiculoComponent implements OnInit {
             primerKilometraje: this.vehiculo?.primerKilometraje,
             fechaAdquisicion: fechaValida,
             modeloId: this.vehiculo?.modelo?.id,
-            tipoVehiculoId: this.vehiculo?.tipoVehiculo?.id
+            tipoVehiculoId: this.vehiculo?.tipoVehiculo?.id,
+            // Nuevos campos
+            propietarioId: (this.vehiculo as any)?.propietario?.id,
+            identificadorInterno: (this.vehiculo as any)?.identificadorInterno || '',
+            tipoCombustibleId: (this.vehiculo as any)?.tipoCombustible?.id,
+            chasis: (this.vehiculo as any)?.chasis || '',
+            aireAcondicionado: (this.vehiculo as any)?.aireAcondicionado || false,
+            valorEstimado: (this.vehiculo as any)?.valorEstimado || 0,
+            mantenimientoMotorIntervalo: (this.vehiculo as any)?.mantenimientoMotorIntervalo,
+            mantenimientoCajaIntervalo: (this.vehiculo as any)?.mantenimientoCajaIntervalo,
+            situacionPago: (this.vehiculo as any)?.situacionPago || 'PAGADO',
+            moneda: (this.vehiculo as any)?.moneda || 'PYG',
+            diaVencimiento: (this.vehiculo as any)?.diaVencimiento || 1
         });
 
         if (this.vehiculo?.modelo) {
