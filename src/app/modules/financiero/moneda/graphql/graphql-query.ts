@@ -28,7 +28,7 @@ export const monedasQuery = gql`
 
 export const monedasSearch = gql`
   query ($texto: String) {
-    monedas: monedasSearch(texto: $texto) {
+    data: monedasSearch(texto: $texto) {
       id
       denominacion
       simbolo

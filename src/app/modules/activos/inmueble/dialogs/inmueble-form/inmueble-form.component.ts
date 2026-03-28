@@ -2,13 +2,12 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, 
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { InmuebleService } from '../../service/inmueble.service';
+import { InmuebleDialogService } from '../../service/inmueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Inmueble } from '../../models/inmueble.model';
 import { Pais } from '../../../../general/pais/pais.model';
 import { Ciudad } from '../../../../general/ciudad/ciudad.model';
 import { Persona } from '../../../../personas/persona/persona.model';
-import { InmuebleInput } from '../../models/inmueble-input.model';
-import { MainService } from '../../../../../main.service';
 
 @UntilDestroy()
 @Component({
@@ -20,8 +19,8 @@ import { MainService } from '../../../../../main.service';
 export class InmuebleFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private inmuebleService = inject(InmuebleService);
+  private inmuebleDialogService = inject(InmuebleDialogService);
   private cdr = inject(ChangeDetectorRef);
-  private mainService = inject(MainService);
 
   form: FormGroup;
   inmueble: Inmueble;
@@ -129,110 +128,55 @@ export class InmuebleFormComponent implements OnInit {
   }
 
   onBuscarPropietario(): void {
-    this.inmuebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarPropietario();
-        } else {
-          this.propietarioSelected = res;
-          this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-          this.form.get('propietarioId')?.setValue(res.id);
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarPropietario(): void {
-    this.inmuebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.propietarioSelected = res;
-        this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('propietarioId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.inmuebleDialogService.onBuscarPropietario((persona: Persona) => {
+      this.propietarioSelected = persona;
+      this.propietarioDescripcion = persona.nombre?.toUpperCase() || '';
+      this.form.get('propietarioId')?.setValue(persona.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarProveedor(): void {
-    this.inmuebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarProveedor();
-        } else {
-          this.proveedorSelected = res;
-          this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
-          this.form.get('proveedorId')?.setValue(res.id);
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarProveedor(): void {
-    this.inmuebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.proveedorSelected = res;
-        this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('proveedorId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.inmuebleDialogService.onBuscarProveedor((persona: Persona) => {
+      this.proveedorSelected = persona;
+      this.proveedorDescripcion = persona.nombre?.toUpperCase() || '';
+      this.form.get('proveedorId')?.setValue(persona.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarMoneda(): void {
-    this.inmuebleService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.monedaSelected = res;
-        this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase() || '';
-        this.form.get('monedaId')?.setValue(res.id);
-        this.cdr.markForCheck();
-      }
+    this.inmuebleDialogService.onBuscarMoneda((moneda: any) => {
+      this.monedaSelected = moneda;
+      this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase() || '';
+      this.form.get('monedaId')?.setValue(moneda.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarPais(): void {
-    this.inmuebleService.abrirBuscadorPais().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.paisSelected = res;
-        this.paisDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('paisId')?.setValue(res.id);
-        this.cdr.markForCheck();
-      }
+    this.inmuebleDialogService.onBuscarPais((pais: Pais) => {
+      this.paisSelected = pais;
+      this.paisDescripcion = pais.descripcion?.toUpperCase() || '';
+      this.form.get('paisId')?.setValue(pais.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarCiudad(): void {
-    this.inmuebleService.abrirBuscadorCiudad().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.ciudadSelected = res;
-        this.ciudadDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('ciudadId')?.setValue(res.id);
-        this.cdr.markForCheck();
-      }
+    this.inmuebleDialogService.onBuscarCiudad((ciudad: Ciudad) => {
+      this.ciudadSelected = ciudad;
+      this.ciudadDescripcion = ciudad.descripcion?.toUpperCase() || '';
+      this.form.get('ciudadId')?.setValue(ciudad.id);
+      this.cdr.markForCheck();
     });
   }
 
   onCancelar(): void {
-    this.dialogRef.close();
+    this.inmuebleDialogService.onCancelar(this.dialogRef);
   }
 
   onGuardar(): void {
-    if (this.form.valid) {
-      const values = this.form.getRawValue();
-      const input: InmuebleInput = {
-        ...values,
-        id: values.id ? Number(values.id) : undefined,
-        propietarioId: Number(values.propietarioId),
-        paisId: Number(values.paisId),
-        ciudadId: Number(values.ciudadId),
-        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
-        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
-        usuarioId: this.mainService.usuarioActual?.id || this.inmueble?.usuario?.id
-      };
-      this.inmuebleService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) this.dialogRef.close(true);
-      });
-    }
+    this.inmuebleDialogService.onGuardar(this.form, this.inmueble, this.dialogRef);
   }
 }

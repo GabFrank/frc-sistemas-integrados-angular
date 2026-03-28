@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { DeleteMuebleGQL } from '../graphql/deleteMueble';
 import { MuebleSearchPageGQL } from '../graphql/muebleSearchPage';
 import { BehaviorSubject, Observable } from 'rxjs';
@@ -11,7 +11,7 @@ import { SaveMuebleGQL } from '../graphql/saveMueble';
 import { FamiliaMuebleByIdGQL } from '../graphql/familiaMuebleById';
 import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
-import { MuebleFormComponent } from '../dialogs/mueble-form/mueble-form.component';
+import { MuebleDialogService } from './mueble-dialog-service.service';
 import { AdicionarFamiliaMuebleDialogComponent } from '../dialogs/adicionar-familia-mueble-dialog/adicionar-familia-mueble-dialog.component';
 import { AdicionarTipoMuebleDialogComponent } from '../dialogs/adicionar-tipo-mueble-dialog/adicionar-tipo-mueble-dialog.component';
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
@@ -45,6 +45,14 @@ export class MuebleService {
   private saveTipoGQL = inject(SaveTipoMuebleGQL);
   private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
+  private injector = inject(Injector);
+  private _muebleDialogService: MuebleDialogService;
+  private get muebleDialogService(): MuebleDialogService {
+    if (!this._muebleDialogService) {
+      this._muebleDialogService = this.injector.get(MuebleDialogService);
+    }
+    return this._muebleDialogService;
+  }
 
   private mueblesSubject = new BehaviorSubject<Mueble[]>([]);
   public muebles$ = this.mueblesSubject.asObservable();
@@ -102,18 +110,7 @@ export class MuebleService {
   }
 
   abrirFormulario(mueble?: Mueble): Observable<boolean | undefined> {
-    const dialogRef = this.dialog.open(MuebleFormComponent, {
-      width: '800px',
-      data: mueble,
-      disableClose: true,
-      autoFocus: false,
-    });
-
-    return dialogRef.afterClosed().pipe(
-      tap((res) => {
-        if (res) this.refrescar();
-      })
-    );
+    return this.muebleDialogService.abrirFormulario(mueble);
   }
 
   onGuardar(input: MuebleInput): Observable<Mueble> {

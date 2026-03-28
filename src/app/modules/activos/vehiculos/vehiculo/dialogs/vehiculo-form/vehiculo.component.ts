@@ -1,18 +1,16 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VehiculoService } from '../../service/vehiculo.service';
-import { VehiculoInput } from '../../models/vehiculo-input.model';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { VehiculoDialogService } from '../../service/vehiculo-dialog-service.service';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Modelo } from '../../models/modelo.model';
 import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
 import { Persona } from '../../../../../personas/persona/persona.model';
 import { BehaviorSubject } from 'rxjs';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Inject, Optional } from '@angular/core';
 import { TabService } from '../../../../../../layouts/tab/tab.service';
-import { MainService } from '../../../../../../main.service';
-import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy()
 @Component({
@@ -24,10 +22,9 @@ import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
 export class VehiculoComponent implements OnInit {
     private fb = inject(FormBuilder);
     private vehiculoService = inject(VehiculoService);
+    private vehiculoDialogService = inject(VehiculoDialogService);
     private tabService = inject(TabService);
-    private matDialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
-    public mainService = inject(MainService);
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
@@ -67,11 +64,7 @@ export class VehiculoComponent implements OnInit {
     ngOnInit(): void {
         const tabData = this.tabService.currentTab()?.tabData?.data;
         this.vehiculo = this.data || tabData;
-
-        // Inicializar formulario primero para evitar errores en el template
         this.inicializarFormulario();
-
-        // Si hay un ID, cargar todos los datos completos del vehículo
         if (this.vehiculo?.id) {
             this.vehiculoService.onBuscarPorId(this.vehiculo.id).pipe(untilDestroyed(this)).subscribe(vehiculoCompleto => {
                 if (vehiculoCompleto) {
@@ -99,7 +92,6 @@ export class VehiculoComponent implements OnInit {
             fechaAdquisicion: [null],
             modeloId: [null, [Validators.required]],
             tipoVehiculoId: [null, [Validators.required]],
-            // Nuevos campos Etapa 1
             propietarioId: [null],
             identificadorInterno: [''],
             tipoCombustibleId: [null],
@@ -144,7 +136,6 @@ export class VehiculoComponent implements OnInit {
             fechaAdquisicion: fechaValida,
             modeloId: this.vehiculo?.modelo?.id,
             tipoVehiculoId: this.vehiculo?.tipoVehiculo?.id,
-            // Nuevos campos
             propietarioId: (this.vehiculo as any)?.propietario?.id,
             identificadorInterno: (this.vehiculo as any)?.identificadorInterno || '',
             tipoCombustibleId: (this.vehiculo as any)?.tipoCombustible?.id,
@@ -188,135 +179,51 @@ export class VehiculoComponent implements OnInit {
     }
 
     onGuardar(): void {
-        if (this.form.valid) {
-            const values = this.form.getRawValue();
-            const modeloId = Number(values.modeloId);
-            const tipoVehiculoId = Number(values.tipoVehiculoId);
-            const input: VehiculoInput = {
-                ...values,
-                id: values.id ? Number(values.id) : undefined,
-                chapa: values.chapa?.trim()?.toUpperCase(),
-                color: values.color?.trim()?.toUpperCase(),
-                fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion), 'yyyy-MM-dd') : null,
-                primerKilometraje: values.primerKilometraje || null,
-                capacidadKg: values.capacidadKg || null,
-                capacidadPasajeros: values.capacidadPasajeros || null,
-                modeloId: Number.isFinite(modeloId) ? modeloId : null,
-                tipoVehiculoId: Number.isFinite(tipoVehiculoId) ? tipoVehiculoId : null,
-                proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
-                monedaId: values.monedaId ? Number(values.monedaId) : undefined,
-                usuarioId: this.mainService.usuarioActual?.id || this.vehiculo?.usuario?.id
-            };
-            this.vehiculoService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
-                if (res) {
-                    if (this.dialogRef) {
-                        this.dialogRef.close(true);
-                    } else {
-                        this.tabService.removeTab(this.tabService.currentIndex);
-                    }
-                }
-            });
-        }
+        this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef);
     }
 
     onBuscarModelo(): void {
-        this.vehiculoService.abrirBuscadorModelo(true).pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) {
-                if (res.adicionar) {
-                    this.vehiculoService.abrirAdicionarModelo().pipe(untilDestroyed(this)).subscribe(nuevoModelo => {
-                        if (nuevoModelo) {
-                            this.modeloSelected = nuevoModelo;
-                            this.form.get('modeloId')?.setValue(Number(nuevoModelo.id));
-                            this.actualizarDescripciones();
-                            this.cdr.markForCheck();
-                        }
-                    });
-                } else {
-                    const id = Number(res.id);
-                    this.modeloSelected = res;
-                    this.form.get('modeloId')?.setValue(id);
-                    this.actualizarDescripciones();
-                    this.cdr.markForCheck();
-                }
-            }
+        this.vehiculoDialogService.onBuscarModelo((modelo: Modelo) => {
+            this.modeloSelected = modelo;
+            this.form.get('modeloId')?.setValue(Number(modelo.id));
+            this.actualizarDescripciones();
+            this.cdr.markForCheck();
         });
     }
 
     onBuscarTipoVehiculo(): void {
-        this.vehiculoService.abrirBuscadorTipoVehiculo(true).pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) {
-                if (res.adicionar) {
-                    this.vehiculoService.abrirAdicionarTipoVehiculo().pipe(untilDestroyed(this)).subscribe(nuevoTipo => {
-                        if (nuevoTipo) {
-                            this.tipoVehiculoSelected = nuevoTipo;
-                            this.form.get('tipoVehiculoId')?.setValue(Number(nuevoTipo.id));
-                            this.actualizarDescripciones();
-                            this.cdr.markForCheck();
-                        }
-                    });
-                } else {
-                    const id = Number(res.id);
-                    this.tipoVehiculoSelected = res;
-                    this.form.get('tipoVehiculoId')?.setValue(id);
-                    this.actualizarDescripciones();
-                    this.cdr.markForCheck();
-                }
-            }
+        this.vehiculoDialogService.onBuscarTipoVehiculo((tipo: TipoVehiculo) => {
+            this.tipoVehiculoSelected = tipo;
+            this.form.get('tipoVehiculoId')?.setValue(Number(tipo.id));
+            this.actualizarDescripciones();
+            this.cdr.markForCheck();
         });
     }
 
     onBuscarPropietario(): void {
-        this.vehiculoService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) {
-                if (res.adicionar) {
-                    this.vehiculoService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(nuevaPersona => {
-                        if (nuevaPersona) {
-                            this.propietarioSelected = nuevaPersona;
-                            this.propietarioDescripcion = `${nuevaPersona.nombre}`.toUpperCase();
-                            this.form.get('propietarioId')?.setValue(Number(nuevaPersona.id));
-                            this.cdr.markForCheck();
-                        }
-                    });
-                } else {
-                    this.propietarioSelected = res;
-                    this.propietarioDescripcion = `${res.nombre}`.toUpperCase();
-                    this.form.get('propietarioId')?.setValue(Number(res.id));
-                    this.cdr.markForCheck();
-                }
-            }
+        this.vehiculoDialogService.onBuscarPropietario((persona: Persona) => {
+            this.propietarioSelected = persona;
+            this.propietarioDescripcion = `${persona.nombre}`.toUpperCase();
+            this.form.get('propietarioId')?.setValue(Number(persona.id));
+            this.cdr.markForCheck();
         });
     }
 
     onBuscarProveedor(): void {
-        this.vehiculoService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) {
-                if (res.adicionar) {
-                    this.vehiculoService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(nuevaPersona => {
-                        if (nuevaPersona) {
-                            this.proveedorSelected = nuevaPersona;
-                            this.proveedorDescripcion = `${nuevaPersona.nombre}`.toUpperCase();
-                            this.form.get('proveedorId')?.setValue(Number(nuevaPersona.id));
-                            this.cdr.markForCheck();
-                        }
-                    });
-                } else {
-                    this.proveedorSelected = res;
-                    this.proveedorDescripcion = `${res.nombre}`.toUpperCase();
-                    this.form.get('proveedorId')?.setValue(Number(res.id));
-                    this.cdr.markForCheck();
-                }
-            }
+        this.vehiculoDialogService.onBuscarProveedor((persona: Persona) => {
+            this.proveedorSelected = persona;
+            this.proveedorDescripcion = `${persona.nombre}`.toUpperCase();
+            this.form.get('proveedorId')?.setValue(Number(persona.id));
+            this.cdr.markForCheck();
         });
     }
 
     onBuscarMoneda(): void {
-        this.vehiculoService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
-            if (res) {
-                this.monedaSelected = res;
-                this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase();
-                this.form.get('monedaId')?.setValue(Number(res.id));
-                this.cdr.markForCheck();
-            }
+        this.vehiculoDialogService.onBuscarMoneda((moneda: any) => {
+            this.monedaSelected = moneda;
+            this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase();
+            this.form.get('monedaId')?.setValue(Number(moneda.id));
+            this.cdr.markForCheck();
         });
     }
 
@@ -325,10 +232,6 @@ export class VehiculoComponent implements OnInit {
     }
 
     onCancelar(): void {
-        if (this.dialogRef) {
-            this.dialogRef.close();
-        } else {
-            this.tabService.removeTab(this.tabService.currentIndex);
-        }
+        this.vehiculoDialogService.onCancelar(this.dialogRef);
     }
 }

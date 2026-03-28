@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GpsService } from '../../service/gps.service';
-import { VehiculoSearchPageGQL } from '../../../vehiculo/graphql/vehiculoSearchPage';
+import { GpsDialogService } from '../../service/gps-dialog-service.service';
 import { Gps } from '../../models/gps.model';
 import { Vehiculo } from '../../../vehiculo/models/vehiculo.model';
-import { GpsInput } from '../../models/gps-input.model';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -18,10 +16,8 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../
 })
 export class GpsComponent implements OnInit {
     private readonly fb = inject(FormBuilder);
-    private readonly gpsService = inject(GpsService);
-    private readonly matDialog = inject(MatDialog);
+    private readonly gpsDialogService = inject(GpsDialogService);
     private readonly cdr = inject(ChangeDetectorRef);
-    private readonly vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
     public readonly dialogRef = inject(MatDialogRef<GpsComponent>);
     public readonly data = inject<Gps>(MAT_DIALOG_DATA);
 
@@ -79,35 +75,11 @@ export class GpsComponent implements OnInit {
     }
 
     onBuscarVehiculo(): void {
-        const tableData: TableData[] = [
-            { id: 'id', nombre: 'Id' },
-            { id: 'chapa', nombre: 'Chapa' },
-            { id: 'modelo.marca.descripcion', nombre: 'Marca' },
-            { id: 'modelo.descripcion', nombre: 'Modelo' }
-        ];
-
-        const searchData: SearchListtDialogData = {
-            query: this.vehiculoSearchPageGQL,
-            tableData,
-            titulo: 'Buscar Vehículo',
-            search: true,
-            inicialSearch: true,
-            textHint: 'Buscar por chapa, marca o modelo...',
-            paginator: true,
-            queryData: { page: 0, size: 15 }
-        };
-
-        this.matDialog.open(SearchListDialogComponent, {
-            data: searchData,
-            width: '70%',
-            height: '80%'
-        }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Vehiculo) => {
-            if (res) {
-                this.vehiculoSelected = res;
-                this.form.get('vehiculoId')?.setValue(res.id);
-                this.actualizarVehiculoDescripcion();
-                this.cdr.markForCheck();
-            }
+        this.gpsDialogService.onBuscarVehiculo((vehiculo: Vehiculo) => {
+            this.vehiculoSelected = vehiculo;
+            this.form.get('vehiculoId')?.setValue(vehiculo.id);
+            this.actualizarVehiculoDescripcion();
+            this.cdr.markForCheck();
         });
     }
 
@@ -119,27 +91,10 @@ export class GpsComponent implements OnInit {
     }
 
     onGuardar(): void {
-        if (this.form.valid) {
-            const values = this.form.getRawValue();
-            const input: GpsInput = {
-                id: values.id,
-                imei: values.imei,
-                modeloTracker: values.modeloTracker,
-                simNumero: values.simNumero,
-                vehiculoId: values.vehiculoId,
-                activo: values.activo
-            };
-
-            this.gpsService.onSave(input).pipe(untilDestroyed(this)).subscribe(res => {
-                if (res) {
-                    this.dialogRef.close(true);
-                }
-            });
-        }
+        this.gpsDialogService.onGuardar(this.form, this.dialogRef);
     }
 
     onCancelar(): void {
-        this.dialogRef.close();
+        this.gpsDialogService.onCancelar(this.dialogRef);
     }
 }
-

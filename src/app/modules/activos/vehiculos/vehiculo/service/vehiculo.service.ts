@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { VehiculoByIdGQL } from '../graphql/vehiculoById';
 import { SaveVehiculoGQL } from '../graphql/saveVehiculo';
 import { DeleteVehiculoGQL } from '../graphql/deleteVehiculo';
@@ -42,6 +42,8 @@ import { Funcionario } from '../../../../personas/funcionarios/funcionario.model
 import { PersonaSearchGQL } from '../../../../personas/persona/graphql/personaSearch';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { AdicionarPersonaDialogComponent } from '../../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
+import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/personaSearchPage';
+import { VehiculoDialogService } from './vehiculo-dialog-service.service';
 
 export type SearchDialogResponse<T> = T & { adicionar?: boolean };
 
@@ -71,6 +73,14 @@ export class VehiculoService {
   private personaSearchGQL = inject(PersonaSearchGQL);
   private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
+  private injector = inject(Injector);
+  private _vehiculoDialogService: VehiculoDialogService;
+  private get vehiculoDialogService(): VehiculoDialogService {
+    if (!this._vehiculoDialogService) {
+      this._vehiculoDialogService = this.injector.get(VehiculoDialogService);
+    }
+    return this._vehiculoDialogService;
+  }
   private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
   public vehiculos$ = this.vehiculosSubject.asObservable();
 
@@ -171,18 +181,7 @@ export class VehiculoService {
   }
 
   abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
-    const dialogRef = this.dialog.open(VehiculoComponent, {
-      width: '800px',
-      data: vehiculo,
-      disableClose: true,
-      autoFocus: false
-    });
-
-    return dialogRef.afterClosed().pipe(
-      tap(res => {
-        if (res) this.refrescar();
-      })
-    );
+    return this.vehiculoDialogService.abrirFormulario(vehiculo);
   }
 
   updatePagination(pageIndex: number, pageSize: number): void {
@@ -442,15 +441,18 @@ export class VehiculoService {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' }
+      { id: 'documento', nombre: 'Documento' },
+      { id: 'nickname', nombre: 'Usuario', nested: true, nestedId: 'usuario', nestedColumnId: 'nickname' }
     ];
 
     const data: SearchListtDialogData = {
       titulo: 'Buscar Propietario',
-      query: this.personaSearchGQL,
+      query: inject(PersonaSearchPageGQL),
       tableData: tableData,
       inicialSearch: true,
-      isAdicionar: true
+      isAdicionar: true,
+      paginator: true,
+      isServidor: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {

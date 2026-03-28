@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { Gps } from '../models/gps.model';
 import { GpsInput } from '../models/gps-input.model';
@@ -13,8 +13,7 @@ import { GpsByImeiGQL } from '../graphql/gpsByImei';
 import { EnviarComandoGpsGQL } from '../graphql/enviarComandoGps';
 import { GuardarConfigAlertasGpsGQL } from '../graphql/guardarConfigAlertasGps';
 import { MatDialog } from '@angular/material/dialog';
-import { GpsComponent } from '../dialogs/gps-form/gps.component';
-import { GpsConfigDialogComponent } from '../dialogs/gps-config-dialog/gps-config-dialog.component';
+import { GpsDialogService } from './gps-dialog-service.service';
 import { GenericCrudService } from '../../../../../generics/generic-crud.service';
 
 @Injectable({
@@ -32,6 +31,14 @@ export class GpsService {
     private enviarComandoGpsGQL = inject(EnviarComandoGpsGQL);
     private guardarConfigAlertasGpsGQL = inject(GuardarConfigAlertasGpsGQL);
     private dialog = inject(MatDialog);
+    private injector = inject(Injector);
+    private _gpsDialogService: GpsDialogService;
+    private get gpsDialogService(): GpsDialogService {
+        if (!this._gpsDialogService) {
+            this._gpsDialogService = this.injector.get(GpsDialogService);
+        }
+        return this._gpsDialogService;
+    }
     private gpsSubject = new BehaviorSubject<Gps[]>([]);
     public gps$ = this.gpsSubject.asObservable();
 
@@ -114,29 +121,11 @@ export class GpsService {
     }
 
     abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
-        const dialogRef = this.dialog.open(GpsComponent, {
-            width: '800px',
-            data: gps,
-            disableClose: true,
-            autoFocus: false
-        });
-
-        return dialogRef.afterClosed().pipe(
-            take(1),
-            tap(res => {
-                if (res) this.refrescar();
-            })
-        );
+        return this.gpsDialogService.abrirFormulario(gps);
     }
 
     abrirConfiguracion(gps: Gps): void {
-        this.dialog.open(GpsConfigDialogComponent, {
-            width: '900px',
-            data: gps,
-            disableClose: false,
-            autoFocus: false,
-            panelClass: 'modern-dialog'
-        });
+        this.gpsDialogService.abrirConfiguracion(gps);
     }
 
     updatePagination(pageIndex: number, pageSize: number): void {

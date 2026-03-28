@@ -2,13 +2,12 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, 
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
+import { MuebleDialogService } from '../../service/mueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Mueble } from '../../models/mueble.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
 import { TipoMueble } from '../../models/tipo-mueble.model';
-import { MuebleInput } from '../../models/mueble-input.model';
-import { MainService } from '../../../../../main.service';
 
 @UntilDestroy()
 @Component({
@@ -20,8 +19,8 @@ import { MainService } from '../../../../../main.service';
 export class MuebleFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private muebleService = inject(MuebleService);
+  private muebleDialogService = inject(MuebleDialogService);
   private cdr = inject(ChangeDetectorRef);
-  private mainService = inject(MainService);
 
   form: FormGroup;
   mueble: Mueble;
@@ -131,141 +130,55 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onBuscarPropietario(): void {
-    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarPropietario();
-        } else {
-          this.propietarioSelected = res;
-          this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-          this.form.get('propietarioId')?.setValue(Number(res.id));
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarPropietario(): void {
-    this.muebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.propietarioSelected = res;
-        this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('propietarioId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.muebleDialogService.onBuscarPropietario((persona: Persona) => {
+      this.propietarioSelected = persona;
+      this.propietarioDescripcion = persona.nombre?.toUpperCase() || '';
+      this.form.get('propietarioId')?.setValue(Number(persona.id));
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarFamilia(): void {
-    this.muebleService.abrirBuscadorFamilia().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarFamilia();
-        } else {
-          this.familiaSelected = res;
-          this.familiaDescripcion = res.descripcion?.toUpperCase() || '';
-          this.form.get('familiaId')?.setValue(res.id);
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarFamilia(): void {
-    this.muebleService.abrirAdicionarFamilia().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.familiaSelected = res;
-        this.familiaDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('familiaId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.muebleDialogService.onBuscarFamilia((familia: FamiliaMueble) => {
+      this.familiaSelected = familia;
+      this.familiaDescripcion = familia.descripcion?.toUpperCase() || '';
+      this.form.get('familiaId')?.setValue(familia.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarTipo(): void {
-    this.muebleService.abrirBuscadorTipo().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarTipo();
-        } else {
-          this.tipoMuebleSelected = res;
-          this.tipoMuebleDescripcion = res.descripcion?.toUpperCase() || '';
-          this.form.get('tipoMuebleId')?.setValue(res.id);
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarTipo(): void {
-    this.muebleService.abrirAdicionarTipo(this.familiaSelected?.id).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.tipoMuebleSelected = res;
-        this.tipoMuebleDescripcion = res.descripcion?.toUpperCase() || '';
-        this.form.get('tipoMuebleId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.muebleDialogService.onBuscarTipo(this.familiaSelected?.id, (tipo: TipoMueble) => {
+      this.tipoMuebleSelected = tipo;
+      this.tipoMuebleDescripcion = tipo.descripcion?.toUpperCase() || '';
+      this.form.get('tipoMuebleId')?.setValue(tipo.id);
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarProveedor(): void {
-    // Usamos el mismo buscador de propietario para proveedor ya que todos son Personas
-    this.muebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.onAdicionarProveedor();
-        } else {
-          this.proveedorSelected = res;
-          this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
-          this.form.get('proveedorId')?.setValue(Number(res.id));
-          this.cdr.markForCheck();
-        }
-      }
-    });
-  }
-
-  onAdicionarProveedor(): void {
-    this.muebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.proveedorSelected = res;
-        this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('proveedorId')?.setValue(Number(res.id));
-        this.cdr.markForCheck();
-      }
+    this.muebleDialogService.onBuscarProveedor((persona: Persona) => {
+      this.proveedorSelected = persona;
+      this.proveedorDescripcion = persona.nombre?.toUpperCase() || '';
+      this.form.get('proveedorId')?.setValue(Number(persona.id));
+      this.cdr.markForCheck();
     });
   }
 
   onBuscarMoneda(): void {
-    this.muebleService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.monedaSelected = res;
-        this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase() || '';
-        this.form.get('monedaId')?.setValue(res.id);
-        this.cdr.markForCheck();
-      }
+    this.muebleDialogService.onBuscarMoneda((moneda: any) => {
+      this.monedaSelected = moneda;
+      this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase() || '';
+      this.form.get('monedaId')?.setValue(moneda.id);
+      this.cdr.markForCheck();
     });
   }
 
   onCancelar(): void {
-    this.dialogRef.close();
+    this.muebleDialogService.onCancelar(this.dialogRef);
   }
 
   onGuardar(): void {
-    if (this.form.valid) {
-      const values = this.form.getRawValue();
-      const input: MuebleInput = {
-        ...values,
-        id: values.id ? Number(values.id) : undefined,
-        propietarioId: Number(values.propietarioId),
-        familiaId: Number(values.familiaId),
-        tipoMuebleId: Number(values.tipoMuebleId),
-        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
-        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
-        usuarioId: this.mainService.usuarioActual?.id || this.mueble?.usuario?.id
-      };
-      this.muebleService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) this.dialogRef.close(true);
-      });
-    }
+    this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef);
   }
 }

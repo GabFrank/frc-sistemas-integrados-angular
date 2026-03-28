@@ -43,13 +43,15 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="50">
                             <mat-label>Modelo</mat-label>
-                            <input matInput [value]="modeloDescripcion" readonly (click)="onBuscarModelo()" style="cursor: pointer;">
+                            <input matInput [value]="modeloDescripcion" readonly (click)="onBuscarModelo()"
+                                style="cursor: pointer;">
                             <mat-icon matSuffix>search</mat-icon>
                         </mat-form-field>
 
                         <mat-form-field fxFlex="50">
                             <mat-label>Tipo de Vehículo</mat-label>
-                            <input matInput [value]="tipoVehiculoDescripcion" readonly (click)="onBuscarTipoVehiculo()" style="cursor: pointer;">
+                            <input matInput [value]="tipoVehiculoDescripcion" readonly (click)="onBuscarTipoVehiculo()"
+                                style="cursor: pointer;">
                             <mat-icon matSuffix>search</mat-icon>
                         </mat-form-field>
                     </div>
@@ -57,8 +59,10 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="50">
                             <mat-label>Propietario</mat-label>
-                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()" style="cursor: pointer;" placeholder="Persona dueña del activo">
-                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPropietario()">search</mat-icon>
+                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()"
+                                style="cursor: pointer;" placeholder="Persona dueña del activo">
+                            <mat-icon matSuffix style="cursor: pointer;"
+                                (click)="onBuscarPropietario()">search</mat-icon>
                         </mat-form-field>
                         <mat-form-field fxFlex="50">
                             <mat-label>Identificador Interno</mat-label>
@@ -82,6 +86,7 @@
                                 <mat-option [value]="1">NAFTA</mat-option>
                                 <mat-option [value]="2">DIESEL</mat-option>
                                 <mat-option [value]="3">ELÉCTRICO</mat-option>
+                                <mat-option [value]="4">HÍBRIDO</mat-option>
                             </mat-select>
                         </mat-form-field>
                     </div>
@@ -112,15 +117,14 @@
                         </mat-form-field>
                     </div>
 
-                    <div fxLayout="row wrap" fxLayoutGap="20px" style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                    <div fxLayout="row wrap" fxLayoutGap="20px"
+                        style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
                         <mat-slide-toggle formControlName="aireAcondicionado">Aire Acondicionado</mat-slide-toggle>
                         <mat-slide-toggle formControlName="refrigerado">Refrigerado</mat-slide-toggle>
                         <mat-slide-toggle formControlName="documentacion">Documentación al día</mat-slide-toggle>
                     </div>
                 </div>
             </mat-tab>
-
-            <!-- FINANZAS (3.5 & 3.6) -->
             <mat-tab label="Finanzas">
                 <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
                     <mat-form-field>
@@ -137,12 +141,14 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="70">
                             <mat-label>Proveedor / Vendedor</mat-label>
-                            <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()" style="cursor: pointer;" placeholder="Empresa o persona proveedora">
+                            <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()"
+                                style="cursor: pointer;" placeholder="Empresa o persona proveedora">
                             <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarProveedor()">search</mat-icon>
                         </mat-form-field>
                         <mat-form-field fxFlex="30">
                             <mat-label>Moneda</mat-label>
-                            <input matInput [value]="monedaDescripcion" readonly (click)="onBuscarMoneda()" style="cursor: pointer;" placeholder="Moneda">
+                            <input matInput [value]="monedaDescripcion" readonly (click)="onBuscarMoneda()"
+                                style="cursor: pointer;" placeholder="Moneda">
                             <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarMoneda()">search</mat-icon>
                         </mat-form-field>
                     </div>

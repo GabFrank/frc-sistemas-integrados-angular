@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Inmueble } from '../models/inmueble.model';
 import { InmuebleInput } from '../models/inmueble-input.model';
@@ -10,7 +10,7 @@ import { DeleteInmuebleGQL } from '../graphql/deleteInmueble';
 import { InmuebleSearchPageGQL } from '../graphql/inmuebleSearchPage';
 import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
-import { InmuebleFormComponent } from '../dialogs/inmueble-form/inmueble-form.component';
+import { InmuebleDialogService } from './inmueble-dialog-service.service';
 import { PaisSearchGQL } from '../../../general/pais/graphql/paisSearch';
 import { MonedasSearchGQL } from '../../../financiero/moneda/graphql/monedasSearch';
 import { AdicionarPersonaDialogComponent } from '../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
@@ -21,6 +21,7 @@ import { Persona } from '../../../personas/persona/persona.model';
 import { Pais } from '../../../general/pais/pais.model';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { PersonaSearchPageGQL } from '../../../personas/persona/graphql/personaSearchPage';
 
 @Injectable({
   providedIn: 'root'
@@ -37,6 +38,14 @@ export class InmuebleService {
   private ciudadSearchGQL = inject(CiudadesSearchGQL);
   private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
+  private injector = inject(Injector);
+  private _inmuebleDialogService: InmuebleDialogService;
+  private get inmuebleDialogService(): InmuebleDialogService {
+    if (!this._inmuebleDialogService) {
+      this._inmuebleDialogService = this.injector.get(InmuebleDialogService);
+    }
+    return this._inmuebleDialogService;
+  }
 
   private inmueblesSubject = new BehaviorSubject<Inmueble[]>([]);
   public inmuebles$ = this.inmueblesSubject.asObservable();
@@ -94,18 +103,7 @@ export class InmuebleService {
   }
 
   abrirFormulario(inmueble?: Inmueble): Observable<boolean | undefined> {
-    const dialogRef = this.dialog.open(InmuebleFormComponent, {
-      width: '800px',
-      data: inmueble,
-      disableClose: true,
-      autoFocus: false,
-    });
-
-    return dialogRef.afterClosed().pipe(
-      tap((res) => {
-        if (res) this.refrescar();
-      })
-    );
+    return this.inmuebleDialogService.abrirFormulario(inmueble);
   }
 
   onGuardar(input: InmuebleInput): Observable<Inmueble> {
@@ -136,15 +134,18 @@ export class InmuebleService {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' }
+      { id: 'documento', nombre: 'Documento' },
+      { id: 'nickname', nombre: 'Usuario', nested: true, nestedId: 'usuario', nestedColumnId: 'nickname' }
     ];
 
     const data: SearchListtDialogData = {
       titulo: 'Buscar Persona',
-      query: this.personaSearchGQL,
+      query: inject(PersonaSearchPageGQL),
       tableData: tableData,
       inicialSearch: true,
-      isAdicionar: true
+      isAdicionar: true,
+      paginator: true,
+      isServidor: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
