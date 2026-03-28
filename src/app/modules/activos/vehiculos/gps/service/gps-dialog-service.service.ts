@@ -8,8 +8,7 @@ import { GpsInput } from '../models/gps-input.model';
 import { GpsComponent } from '../dialogs/gps-form/gps.component';
 import { GpsConfigDialogComponent } from '../dialogs/gps-config-dialog/gps-config-dialog.component';
 import { Vehiculo } from '../../vehiculo/models/vehiculo.model';
-import { VehiculoSearchPageGQL } from '../../vehiculo/graphql/vehiculoSearchPage';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { AssetCommonDialogService } from '../../../../../shared/services/asset-common-dialog.service';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +16,7 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../
 export class GpsDialogService {
   private gpsService = inject(GpsService);
   private dialog = inject(MatDialog);
-  private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
+  private assetCommonDialogService = inject(AssetCommonDialogService);
 
   abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
     const dialogRef = this.dialog.open(GpsComponent, {
@@ -46,33 +45,7 @@ export class GpsDialogService {
   }
 
   onBuscarVehiculo(callback: (vehiculo: Vehiculo) => void): void {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'Id' },
-      { id: 'chapa', nombre: 'Chapa' },
-      { id: 'modelo.marca.descripcion', nombre: 'Marca' },
-      { id: 'modelo.descripcion', nombre: 'Modelo' }
-    ];
-
-    const searchData: SearchListtDialogData = {
-      query: this.vehiculoSearchPageGQL,
-      tableData,
-      titulo: 'Buscar Vehículo',
-      search: true,
-      inicialSearch: true,
-      textHint: 'Buscar por chapa, marca o modelo...',
-      paginator: true,
-      queryData: { page: 0, size: 15 }
-    };
-
-    this.dialog.open(SearchListDialogComponent, {
-      data: searchData,
-      width: '70%',
-      height: '80%'
-    }).afterClosed().subscribe((res: Vehiculo) => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarVehiculo(callback);
   }
 
   onGuardar(form: any, dialogRef: any): void {

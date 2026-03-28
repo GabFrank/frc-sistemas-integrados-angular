@@ -10,6 +10,7 @@ import { Persona } from '../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../models/familia-mueble.model';
 import { TipoMueble } from '../models/tipo-mueble.model';
 import { MainService } from '../../../../main.service';
+import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,7 @@ export class MuebleDialogService {
   private muebleService = inject(MuebleService);
   private dialog = inject(MatDialog);
   private mainService = inject(MainService);
+  private assetCommonDialogService = inject(AssetCommonDialogService);
 
   abrirFormulario(mueble?: Mueble): Observable<boolean | undefined> {
     const dialogRef = this.dialog.open(MuebleFormComponent, {
@@ -35,19 +37,7 @@ export class MuebleDialogService {
   }
 
   onBuscarPropietario(callback: (persona: Persona) => void): void {
-    this.muebleService.abrirBuscadorPropietario().subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.muebleService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarFamilia(callback: (familia: FamiliaMueble) => void): void {
@@ -83,27 +73,11 @@ export class MuebleDialogService {
   }
 
   onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.muebleService.abrirBuscadorPropietario().subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.muebleService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarMoneda(callback: (moneda: any) => void): void {
-    this.muebleService.abrirBuscadorMoneda().subscribe(res => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarMoneda(callback);
   }
 
   onGuardar(form: any, mueble: Mueble, dialogRef: any): void {

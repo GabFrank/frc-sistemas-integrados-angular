@@ -10,6 +10,7 @@ import { Persona } from '../../../personas/persona/persona.model';
 import { Pais } from '../../../general/pais/pais.model';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
 import { MainService } from '../../../../main.service';
+import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,7 @@ export class InmuebleDialogService {
   private inmuebleService = inject(InmuebleService);
   private dialog = inject(MatDialog);
   private mainService = inject(MainService);
+  private assetCommonDialogService = inject(AssetCommonDialogService);
 
   abrirFormulario(inmueble?: Inmueble): Observable<boolean | undefined> {
     const dialogRef = this.dialog.open(InmuebleFormComponent, {
@@ -35,59 +37,23 @@ export class InmuebleDialogService {
   }
 
   onBuscarPropietario(callback: (persona: Persona) => void): void {
-    this.inmuebleService.abrirBuscadorPropietario().subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.inmuebleService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.inmuebleService.abrirBuscadorPropietario().subscribe((res: any) => {
-      if (res) {
-        if (res.adicionar) {
-          this.inmuebleService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarMoneda(callback: (moneda: any) => void): void {
-    this.inmuebleService.abrirBuscadorMoneda().subscribe(res => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarMoneda(callback);
   }
 
   onBuscarPais(callback: (pais: Pais) => void): void {
-    this.inmuebleService.abrirBuscadorPais().subscribe(res => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarPais(callback);
   }
 
   onBuscarCiudad(callback: (ciudad: Ciudad) => void): void {
-    this.inmuebleService.abrirBuscadorCiudad().subscribe(res => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarCiudad(callback);
   }
 
   onGuardar(form: any, inmueble: Inmueble, dialogRef: any): void {

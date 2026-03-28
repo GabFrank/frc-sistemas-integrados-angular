@@ -25,7 +25,6 @@ import { VehiculosSucursalBySucursalGQL } from '../graphql/vehiculosSucursalBySu
 import { VehiculosSucursalGQL } from '../graphql/vehiculosSucursal';
 import { SaveVehiculoSucursalGQL } from '../graphql/saveVehiculoSucursal';
 import { DeleteVehiculoSucursalGQL } from '../graphql/deleteVehiculoSucursal';
-import { MonedasSearchGQL } from '../../../../financiero/moneda/graphql/monedasSearch';
 import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
@@ -39,10 +38,6 @@ import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { PageInfo } from '../../../../../app.component';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
-import { PersonaSearchGQL } from '../../../../personas/persona/graphql/personaSearch';
-import { Persona } from '../../../../personas/persona/persona.model';
-import { AdicionarPersonaDialogComponent } from '../../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
-import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/personaSearchPage';
 import { VehiculoDialogService } from './vehiculo-dialog-service.service';
 
 export type SearchDialogResponse<T> = T & { adicionar?: boolean };
@@ -70,8 +65,6 @@ export class VehiculoService {
   private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
-  private personaSearchGQL = inject(PersonaSearchGQL);
-  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   private _vehiculoDialogService: VehiculoDialogService;
@@ -434,56 +427,6 @@ export class VehiculoService {
       data: data,
       width: '60%',
       height: '80%'
-    }).afterClosed();
-  }
-
-  abrirBuscadorPropietario(): Observable<SearchDialogResponse<Persona> | undefined> {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'ID', width: '10%' },
-      { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' },
-      { id: 'nickname', nombre: 'Usuario', nested: true, nestedId: 'usuario', nestedColumnId: 'nickname' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Propietario',
-      query: inject(PersonaSearchPageGQL),
-      tableData: tableData,
-      inicialSearch: true,
-      isAdicionar: true,
-      paginator: true,
-      isServidor: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '60%',
-      height: '80%',
-      data: data
-    }).afterClosed();
-  }
-
-  abrirAdicionarPersona(): Observable<Persona | undefined> {
-    return this.dialog.open(AdicionarPersonaDialogComponent, {
-      width: '700px'
-    }).afterClosed();
-  }
-
-  abrirBuscadorMoneda(): Observable<any | undefined> {
-    const tableData: TableData[] = [
-      { id: 'denominacion', nombre: 'Denominación' },
-      { id: 'simbolo', nombre: 'Símbolo' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Moneda',
-      query: this.monedasSearchGQL,
-      tableData: tableData,
-      inicialSearch: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '400px',
-      data: data
     }).afterClosed();
   }
 }

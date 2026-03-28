@@ -11,17 +11,10 @@ import { InmuebleSearchPageGQL } from '../graphql/inmuebleSearchPage';
 import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
 import { InmuebleDialogService } from './inmueble-dialog-service.service';
-import { PaisSearchGQL } from '../../../general/pais/graphql/paisSearch';
-import { MonedasSearchGQL } from '../../../financiero/moneda/graphql/monedasSearch';
-import { AdicionarPersonaDialogComponent } from '../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
-import { CiudadesSearchGQL } from '../../../general/ciudad/graphql/ciudadesSearchGQL';
 import { InmuebleSearchGQL } from '../graphql/inmuebleSearch';
-import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
 import { Persona } from '../../../personas/persona/persona.model';
 import { Pais } from '../../../general/pais/pais.model';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { PersonaSearchPageGQL } from '../../../personas/persona/graphql/personaSearchPage';
 
 @Injectable({
   providedIn: 'root'
@@ -33,10 +26,6 @@ export class InmuebleService {
   private deleteInmuebleGQL = inject(DeleteInmuebleGQL);
   private inmuebleSearchGQL = inject(InmuebleSearchGQL);
   private inmuebleSearchPageGQL = inject(InmuebleSearchPageGQL);
-  private personaSearchGQL = inject(PersonaSearchGQL);
-  private paisSearchGQL = inject(PaisSearchGQL);
-  private ciudadSearchGQL = inject(CiudadesSearchGQL);
-  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   private _inmuebleDialogService: InmuebleDialogService;
@@ -128,94 +117,5 @@ export class InmuebleService {
         if (res) this.refrescar();
       })
     );
-  }
-
-  abrirBuscadorPropietario(): Observable<Persona | undefined> {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'ID', width: '10%' },
-      { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' },
-      { id: 'nickname', nombre: 'Usuario', nested: true, nestedId: 'usuario', nestedColumnId: 'nickname' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Persona',
-      query: inject(PersonaSearchPageGQL),
-      tableData: tableData,
-      inicialSearch: true,
-      isAdicionar: true,
-      paginator: true,
-      isServidor: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '60%',
-      height: '80%',
-      data: data
-    }).afterClosed();
-  }
-
-  abrirAdicionarPersona(): Observable<Persona | undefined> {
-    return this.dialog.open(AdicionarPersonaDialogComponent, {
-      width: '700px'
-    }).afterClosed();
-  }
-
-  abrirBuscadorMoneda(): Observable<any | undefined> {
-    const tableData: TableData[] = [
-      { id: 'denominacion', nombre: 'Denominación' },
-      { id: 'simbolo', nombre: 'Símbolo' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Moneda',
-      query: this.monedasSearchGQL,
-      tableData: tableData,
-      inicialSearch: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '400px',
-      data: data
-    }).afterClosed();
-  }
-
-  abrirBuscadorPais(): Observable<Pais | undefined> {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'ID', width: '10%' },
-      { id: 'descripcion', nombre: 'Descripción' },
-      { id: 'codigo', nombre: 'Código' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar País',
-      query: this.paisSearchGQL,
-      tableData: tableData,
-      inicialSearch: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '600px',
-      data: data
-    }).afterClosed();
-  }
-
-  abrirBuscadorCiudad(): Observable<Ciudad | undefined> {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'ID', width: '10%' },
-      { id: 'descripcion', nombre: 'Descripción' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Ciudad',
-      query: this.ciudadSearchGQL,
-      tableData: tableData,
-      inicialSearch: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '600px',
-      data: data
-    }).afterClosed();
   }
 }

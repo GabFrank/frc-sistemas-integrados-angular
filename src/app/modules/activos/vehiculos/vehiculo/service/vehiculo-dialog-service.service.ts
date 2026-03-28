@@ -12,6 +12,7 @@ import { Persona } from '../../../../personas/persona/persona.model';
 import { MainService } from '../../../../../main.service';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
+import { AssetCommonDialogService } from '../../../../../shared/services/asset-common-dialog.service';
 
 @Injectable({
   providedIn: 'root'
@@ -21,6 +22,7 @@ export class VehiculoDialogService {
   private dialog = inject(MatDialog);
   private mainService = inject(MainService);
   private tabService = inject(TabService);
+  private assetCommonDialogService = inject(AssetCommonDialogService);
 
   abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
     const dialogRef = this.dialog.open(VehiculoComponent, {
@@ -70,43 +72,15 @@ export class VehiculoDialogService {
   }
 
   onBuscarPropietario(callback: (persona: Persona) => void): void {
-    this.vehiculoService.abrirBuscadorPropietario().subscribe(res => {
-      if (res) {
-        if (res.adicionar) {
-          this.vehiculoService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.vehiculoService.abrirBuscadorPropietario().subscribe(res => {
-      if (res) {
-        if (res.adicionar) {
-          this.vehiculoService.abrirAdicionarPersona().subscribe(nuevaPersona => {
-            if (nuevaPersona) {
-              callback(nuevaPersona);
-            }
-          });
-        } else {
-          callback(res);
-        }
-      }
-    });
+    this.assetCommonDialogService.buscarPersona(callback);
   }
 
   onBuscarMoneda(callback: (moneda: any) => void): void {
-    this.vehiculoService.abrirBuscadorMoneda().subscribe(res => {
-      if (res) {
-        callback(res);
-      }
-    });
+    this.assetCommonDialogService.buscarMoneda(callback);
   }
 
   onGuardar(form: any, vehiculo: Vehiculo, dialogRef: any): void {

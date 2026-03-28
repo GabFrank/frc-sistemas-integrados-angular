@@ -14,13 +14,10 @@ import { tap } from 'rxjs/operators';
 import { MuebleDialogService } from './mueble-dialog-service.service';
 import { AdicionarFamiliaMuebleDialogComponent } from '../dialogs/adicionar-familia-mueble-dialog/adicionar-familia-mueble-dialog.component';
 import { AdicionarTipoMuebleDialogComponent } from '../dialogs/adicionar-tipo-mueble-dialog/adicionar-tipo-mueble-dialog.component';
-import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
-import { AdicionarPersonaDialogComponent } from '../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { FamiliaMuebleSearchGQL } from '../graphql/familiaMuebleSearch';
 import { TipoMuebleSearchGQL } from '../graphql/tipoMuebleSearch';
 import { SaveFamiliaMuebleGQL } from '../graphql/saveFamiliaMueble';
 import { SaveTipoMuebleGQL } from '../graphql/saveTipoMueble';
-import { MonedasSearchGQL } from '../../../financiero/moneda/graphql/monedasSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Persona } from '../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../models/familia-mueble.model';
@@ -38,12 +35,10 @@ export class MuebleService {
   private familiaByIdGQL = inject(FamiliaMuebleByIdGQL);
   private muebleSearchGQL = inject(MuebleSearchGQL);
   private muebleSearchPageGQL = inject(MuebleSearchPageGQL);
-  private personaSearchGQL = inject(PersonaSearchGQL);
   private familiaSearchGQL = inject(FamiliaMuebleSearchGQL);
   private tipoMuebleSearchGQL = inject(TipoMuebleSearchGQL);
   private saveFamiliaGQL = inject(SaveFamiliaMuebleGQL);
   private saveTipoGQL = inject(SaveTipoMuebleGQL);
-  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   private _muebleDialogService: MuebleDialogService;
@@ -137,28 +132,6 @@ export class MuebleService {
     );
   }
 
-  abrirBuscadorPropietario(): Observable<any> {
-    const tableData: TableData[] = [
-      { id: 'id', nombre: 'ID', width: '10%' },
-      { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Propietario',
-      query: this.personaSearchGQL,
-      tableData: tableData,
-      inicialSearch: true,
-      isAdicionar: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '60%',
-      height: '80%',
-      data: data
-    }).afterClosed();
-  }
-
   abrirBuscadorFamilia(): Observable<any> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
@@ -205,12 +178,6 @@ export class MuebleService {
     }).afterClosed();
   }
 
-  abrirAdicionarPersona(): Observable<Persona | undefined> {
-    return this.dialog.open(AdicionarPersonaDialogComponent, {
-      width: '700px'
-    }).afterClosed();
-  }
-
   onGuardarFamilia(input: any): Observable<FamiliaMueble> {
     return this.genericService.onSave(this.saveFamiliaGQL, input);
   }
@@ -235,25 +202,6 @@ export class MuebleService {
     return this.dialog.open(AdicionarTipoMuebleDialogComponent, {
       width: '600px',
       data: { familiaId }
-    }).afterClosed();
-  }
-
-  abrirBuscadorMoneda(): Observable<any | undefined> {
-    const tableData: TableData[] = [
-      { id: 'denominacion', nombre: 'Denominación' },
-      { id: 'simbolo', nombre: 'Símbolo' }
-    ];
-
-    const data: SearchListtDialogData = {
-      titulo: 'Buscar Moneda',
-      query: this.monedasSearchGQL,
-      tableData: tableData,
-      inicialSearch: true
-    };
-
-    return this.dialog.open(SearchListDialogComponent, {
-      width: '400px',
-      data: data
     }).afterClosed();
   }
 }
