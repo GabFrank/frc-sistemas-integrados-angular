@@ -28,8 +28,10 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="70">
                             <mat-label>Propietario</mat-label>
-                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()" style="cursor: pointer;" placeholder="Buscar propietario (Persona)">
-                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPropietario()">search</mat-icon>
+                            <input matInput [value]="propietarioDescripcion" readonly (click)="onBuscarPropietario()"
+                                style="cursor: pointer;" placeholder="Buscar propietario (Persona)">
+                            <mat-icon matSuffix style="cursor: pointer;"
+                                (click)="onBuscarPropietario()">search</mat-icon>
                         </mat-form-field>
 
                         <mat-form-field fxFlex="30">
@@ -41,13 +43,15 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="50">
                             <mat-label>País</mat-label>
-                            <input matInput [value]="paisDescripcion" readonly (click)="onBuscarPais()" style="cursor: pointer;">
+                            <input matInput [value]="paisDescripcion" readonly (click)="onBuscarPais()"
+                                style="cursor: pointer;">
                             <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPais()">search</mat-icon>
                         </mat-form-field>
 
                         <mat-form-field fxFlex="50">
                             <mat-label>Ciudad</mat-label>
-                            <input matInput [value]="ciudadDescripcion" readonly (click)="onBuscarCiudad()" style="cursor: pointer;">
+                            <input matInput [value]="ciudadDescripcion" readonly (click)="onBuscarCiudad()"
+                                style="cursor: pointer;">
                             <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarCiudad()">search</mat-icon>
                         </mat-form-field>
                     </div>
@@ -77,8 +81,6 @@
                     </mat-form-field>
                 </div>
             </mat-tab>
-
-            <!-- PESTAÑA 2: SITUACIÓN FINANCIERA (Requisito 3.5 & 3.6 & 5.1-9) -->
             <mat-tab label="Finanzas">
                 <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
                     <mat-form-field>
@@ -95,15 +97,18 @@
                         <div fxLayout="row" fxLayoutGap="20px">
                             <mat-form-field fxFlex="70">
                                 <mat-label>Proveedor (Vendedor)</mat-label>
-                                <input matInput formControlName="proveedor">
-                                <mat-icon matSuffix>search</mat-icon>
+                                <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()"
+                                    style="cursor: pointer;">
+                                <mat-icon matSuffix style="cursor: pointer;"
+                                    (click)="onBuscarProveedor()">search</mat-icon>
                             </mat-form-field>
 
                             <mat-form-field fxFlex="30">
                                 <mat-label>Moneda</mat-label>
-                                <mat-select formControlName="moneda">
-                                    <mat-option *ngFor="let m of monedas" [value]="m">{{m}}</mat-option>
-                                </mat-select>
+                                <input matInput [value]="monedaDescripcion" readonly (click)="onBuscarMoneda()"
+                                    style="cursor: pointer;">
+                                <mat-icon matSuffix style="cursor: pointer;"
+                                    (click)="onBuscarMoneda()">search</mat-icon>
                             </mat-form-field>
                         </div>
 

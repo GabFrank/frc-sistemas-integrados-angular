@@ -1,6 +1,8 @@
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { Modelo } from './modelo.model';
 import { TipoVehiculo } from './tipo-vehiculo.model';
+import { Persona } from '../../../../personas/persona/persona.model';
+import { Moneda } from '../../../../financiero/moneda/moneda.model';
 
 export interface Vehiculo {
     id?: number;
@@ -18,6 +20,13 @@ export interface Vehiculo {
     capacidadPasajeros?: number;
     imagenesVehiculo?: string;
     imagenesDocumentos?: string;
+    situacionPago?: string;
+    proveedor?: Persona;
+    moneda?: Moneda;
+    montoTotal?: number;
+    montoYaPagado?: number;
+    cantidadCuotas?: number;
+    diaVencimiento?: number;
     usuario?: Usuario;
     creadoEn?: Date;
 }

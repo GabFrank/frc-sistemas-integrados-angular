@@ -12,6 +12,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
 import { InmuebleFormComponent } from '../dialogs/inmueble-form/inmueble-form.component';
 import { PaisSearchGQL } from '../../../general/pais/graphql/paisSearch';
+import { MonedasSearchGQL } from '../../../financiero/moneda/graphql/monedasSearch';
+import { AdicionarPersonaDialogComponent } from '../../../personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { CiudadesSearchGQL } from '../../../general/ciudad/graphql/ciudadesSearchGQL';
 import { InmuebleSearchGQL } from '../graphql/inmuebleSearch';
 import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
@@ -33,6 +35,7 @@ export class InmuebleService {
   private personaSearchGQL = inject(PersonaSearchGQL);
   private paisSearchGQL = inject(PaisSearchGQL);
   private ciudadSearchGQL = inject(CiudadesSearchGQL);
+  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
 
   private inmueblesSubject = new BehaviorSubject<Inmueble[]>([]);
@@ -137,15 +140,41 @@ export class InmuebleService {
     ];
 
     const data: SearchListtDialogData = {
-      titulo: 'Buscar Propietario',
+      titulo: 'Buscar Persona',
       query: this.personaSearchGQL,
       tableData: tableData,
-      inicialSearch: true
+      inicialSearch: true,
+      isAdicionar: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
       width: '60%',
       height: '80%',
+      data: data
+    }).afterClosed();
+  }
+
+  abrirAdicionarPersona(): Observable<Persona | undefined> {
+    return this.dialog.open(AdicionarPersonaDialogComponent, {
+      width: '700px'
+    }).afterClosed();
+  }
+
+  abrirBuscadorMoneda(): Observable<any | undefined> {
+    const tableData: TableData[] = [
+      { id: 'denominacion', nombre: 'Denominación' },
+      { id: 'simbolo', nombre: 'Símbolo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Moneda',
+      query: this.monedasSearchGQL,
+      tableData: tableData,
+      inicialSearch: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '400px',
       data: data
     }).afterClosed();
   }

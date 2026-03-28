@@ -8,5 +8,12 @@ export interface InmuebleInput {
     googleMapsUrl?: string;
     codigoCatastral?: string;
     valorTasacion?: number;
+    situacionPago?: string;
+    proveedorId?: number;
+    monedaId?: number;
+    montoTotal?: number;
+    montoYaPagado?: number;
+    cantidadCuotas?: number;
+    diaVencimiento?: number;
     usuarioId?: number;
 }

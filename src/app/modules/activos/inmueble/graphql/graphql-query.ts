@@ -9,10 +9,23 @@ export const inmuebleByIdQuery = gql`
       googleMapsUrl
       codigoCatastral
       valorTasacion
-      creadoEn
+      situacionPago
+      montoTotal
+      montoYaPagado
+      cantidadCuotas
+      diaVencimiento
       propietario {
         id
         nombre
+      }
+      proveedor {
+        id
+        nombre
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
       }
       pais {
         id
@@ -68,6 +81,8 @@ export const inmuebleSearchPageQuery = gql`
           id
           nombre
         }
+        situacionPago
+        valorTasacion
       }
     }
   }

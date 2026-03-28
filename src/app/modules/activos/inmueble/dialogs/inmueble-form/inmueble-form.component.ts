@@ -32,10 +32,14 @@ export class InmuebleFormComponent implements OnInit {
   paisSelected: Pais;
   ciudadSelected: Ciudad;
   propietarioSelected: Persona;
+  proveedorSelected: Persona;
+  monedaSelected: any;
 
   paisDescripcion: string = 'SELECCIONE UN PAÍS';
   ciudadDescripcion: string = 'SELECCIONE UNA CIUDAD';
   propietarioDescripcion: string = 'SELECCIONE UN PROPIETARIO';
+  proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
+  monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
 
   constructor(
     public dialogRef: MatDialogRef<InmuebleFormComponent>,
@@ -70,11 +74,11 @@ export class InmuebleFormComponent implements OnInit {
       codigoCatastral: [''],
       valorTasacion: [0],
       situacionPago: ['PAGADO'],
-      proveedor: [null],
-      moneda: ['PYG'],
+      proveedorId: [null],
+      monedaId: [null],
       montoTotal: [0],
       montoYaPagado: [0],
-      cantidadCuotas: [0],
+      cantidadCuotas: [1],
       diaVencimiento: [1]
     });
   }
@@ -91,7 +95,13 @@ export class InmuebleFormComponent implements OnInit {
         googleMapsUrl: this.inmueble.googleMapsUrl,
         codigoCatastral: this.inmueble.codigoCatastral,
         valorTasacion: this.inmueble.valorTasacion,
-        // ... otros campos
+        situacionPago: this.inmueble.situacionPago || 'PAGADO',
+        proveedorId: this.inmueble.proveedor?.id,
+        monedaId: this.inmueble.moneda?.id,
+        montoTotal: this.inmueble.montoTotal || 0,
+        montoYaPagado: this.inmueble.montoYaPagado || 0,
+        cantidadCuotas: this.inmueble.cantidadCuotas || 1,
+        diaVencimiento: this.inmueble.diaVencimiento || 1
       });
 
       if (this.inmueble.pais) {
@@ -106,16 +116,76 @@ export class InmuebleFormComponent implements OnInit {
         this.propietarioSelected = this.inmueble.propietario;
         this.propietarioDescripcion = this.inmueble.propietario.nombre?.toUpperCase() || '';
       }
+      if (this.inmueble.proveedor) {
+        this.proveedorSelected = this.inmueble.proveedor;
+        this.proveedorDescripcion = this.inmueble.proveedor.nombre?.toUpperCase() || '';
+      }
+      if (this.inmueble.moneda) {
+        this.monedaSelected = this.inmueble.moneda;
+        this.monedaDescripcion = (this.inmueble.moneda.denominacion || this.inmueble.moneda.simbolo)?.toUpperCase() || '';
+      }
     }
     this.cdr.markForCheck();
   }
 
   onBuscarPropietario(): void {
-    this.inmuebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+    this.inmuebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarPropietario();
+        } else {
+          this.propietarioSelected = res;
+          this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
+          this.form.get('propietarioId')?.setValue(res.id);
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarPropietario(): void {
+    this.inmuebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
         this.propietarioSelected = res;
         this.propietarioDescripcion = res.nombre?.toUpperCase() || '';
-        this.form.get('propietarioId')?.setValue(res.id);
+        this.form.get('propietarioId')?.setValue(Number(res.id));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onBuscarProveedor(): void {
+    this.inmuebleService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe((res: any) => {
+      if (res) {
+        if (res.adicionar) {
+          this.onAdicionarProveedor();
+        } else {
+          this.proveedorSelected = res;
+          this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
+          this.form.get('proveedorId')?.setValue(res.id);
+          this.cdr.markForCheck();
+        }
+      }
+    });
+  }
+
+  onAdicionarProveedor(): void {
+    this.inmuebleService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.proveedorSelected = res;
+        this.proveedorDescripcion = res.nombre?.toUpperCase() || '';
+        this.form.get('proveedorId')?.setValue(Number(res.id));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onBuscarMoneda(): void {
+    this.inmuebleService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.monedaSelected = res;
+        this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase() || '';
+        this.form.get('monedaId')?.setValue(res.id);
         this.cdr.markForCheck();
       }
     });
@@ -156,6 +226,8 @@ export class InmuebleFormComponent implements OnInit {
         propietarioId: Number(values.propietarioId),
         paisId: Number(values.paisId),
         ciudadId: Number(values.ciudadId),
+        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
         usuarioId: this.mainService.usuarioActual?.id || this.inmueble?.usuario?.id
       };
       this.inmuebleService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {

@@ -25,6 +25,7 @@ import { VehiculosSucursalBySucursalGQL } from '../graphql/vehiculosSucursalBySu
 import { VehiculosSucursalGQL } from '../graphql/vehiculosSucursal';
 import { SaveVehiculoSucursalGQL } from '../graphql/saveVehiculoSucursal';
 import { DeleteVehiculoSucursalGQL } from '../graphql/deleteVehiculoSucursal';
+import { MonedasSearchGQL } from '../../../../financiero/moneda/graphql/monedasSearch';
 import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
@@ -68,6 +69,7 @@ export class VehiculoService {
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
   private personaSearchGQL = inject(PersonaSearchGQL);
+  private monedasSearchGQL = inject(MonedasSearchGQL);
   private dialog = inject(MatDialog);
   private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
   public vehiculos$ = this.vehiculosSubject.asObservable();
@@ -461,6 +463,25 @@ export class VehiculoService {
   abrirAdicionarPersona(): Observable<Persona | undefined> {
     return this.dialog.open(AdicionarPersonaDialogComponent, {
       width: '700px'
+    }).afterClosed();
+  }
+
+  abrirBuscadorMoneda(): Observable<any | undefined> {
+    const tableData: TableData[] = [
+      { id: 'denominacion', nombre: 'Denominación' },
+      { id: 'simbolo', nombre: 'Símbolo' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Moneda',
+      query: this.monedasSearchGQL,
+      tableData: tableData,
+      inicialSearch: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      width: '400px',
+      data: data
     }).afterClosed();
   }
 }

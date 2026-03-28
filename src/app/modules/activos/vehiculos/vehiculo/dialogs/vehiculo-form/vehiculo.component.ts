@@ -45,6 +45,10 @@ export class VehiculoComponent implements OnInit {
     modeloDescripcion: string = 'SELECCIONE UN MODELO';
     tipoVehiculoDescripcion: string = 'SELECCIONE UN TIPO';
     propietarioDescripcion: string = 'SELECCIONE UN PROPIETARIO';
+    proveedorSelected: Persona;
+    proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
+    monedaSelected: any;
+    monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
 
     private actualizarDescripciones(): void {
         if (this.modeloSelected) {
@@ -105,10 +109,11 @@ export class VehiculoComponent implements OnInit {
             mantenimientoMotorIntervalo: [null],
             mantenimientoCajaIntervalo: [null],
             situacionPago: ['PAGADO'],
-            proveedor: [null],
-            moneda: ['PYG'],
+            proveedorId: [null],
+            monedaId: [null],
             montoTotal: [0],
             montoYaPagado: [0],
+            cantidadCuotas: [1],
             diaVencimiento: [1]
         });
     }
@@ -149,13 +154,25 @@ export class VehiculoComponent implements OnInit {
             mantenimientoMotorIntervalo: (this.vehiculo as any)?.mantenimientoMotorIntervalo,
             mantenimientoCajaIntervalo: (this.vehiculo as any)?.mantenimientoCajaIntervalo,
             situacionPago: (this.vehiculo as any)?.situacionPago || 'PAGADO',
-            moneda: (this.vehiculo as any)?.moneda || 'PYG',
+            proveedorId: (this.vehiculo as any)?.proveedor?.id,
+            monedaId: (this.vehiculo as any)?.moneda?.id,
+            montoTotal: (this.vehiculo as any)?.montoTotal || 0,
+            montoYaPagado: (this.vehiculo as any)?.montoYaPagado || 0,
+            cantidadCuotas: (this.vehiculo as any)?.cantidadCuotas || 1,
             diaVencimiento: (this.vehiculo as any)?.diaVencimiento || 1
         });
 
         if ((this.vehiculo as any)?.propietario) {
             this.propietarioSelected = (this.vehiculo as any).propietario;
             this.propietarioDescripcion = `${this.propietarioSelected.nombre}`.toUpperCase();
+        }
+        if ((this.vehiculo as any)?.proveedor) {
+            this.proveedorSelected = (this.vehiculo as any).proveedor;
+            this.proveedorDescripcion = `${this.proveedorSelected.nombre}`.toUpperCase();
+        }
+        if ((this.vehiculo as any)?.moneda) {
+            this.monedaSelected = (this.vehiculo as any).moneda;
+            this.monedaDescripcion = (this.monedaSelected.denominacion || this.monedaSelected.simbolo)?.toUpperCase();
         }
 
         if (this.vehiculo?.modelo) {
@@ -186,6 +203,8 @@ export class VehiculoComponent implements OnInit {
                 capacidadPasajeros: values.capacidadPasajeros || null,
                 modeloId: Number.isFinite(modeloId) ? modeloId : null,
                 tipoVehiculoId: Number.isFinite(tipoVehiculoId) ? tipoVehiculoId : null,
+                proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+                monedaId: values.monedaId ? Number(values.monedaId) : undefined,
                 usuarioId: this.mainService.usuarioActual?.id || this.vehiculo?.usuario?.id
             };
             this.vehiculoService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
@@ -264,6 +283,39 @@ export class VehiculoComponent implements OnInit {
                     this.form.get('propietarioId')?.setValue(Number(res.id));
                     this.cdr.markForCheck();
                 }
+            }
+        });
+    }
+
+    onBuscarProveedor(): void {
+        this.vehiculoService.abrirBuscadorPropietario().pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                if (res.adicionar) {
+                    this.vehiculoService.abrirAdicionarPersona().pipe(untilDestroyed(this)).subscribe(nuevaPersona => {
+                        if (nuevaPersona) {
+                            this.proveedorSelected = nuevaPersona;
+                            this.proveedorDescripcion = `${nuevaPersona.nombre}`.toUpperCase();
+                            this.form.get('proveedorId')?.setValue(Number(nuevaPersona.id));
+                            this.cdr.markForCheck();
+                        }
+                    });
+                } else {
+                    this.proveedorSelected = res;
+                    this.proveedorDescripcion = `${res.nombre}`.toUpperCase();
+                    this.form.get('proveedorId')?.setValue(Number(res.id));
+                    this.cdr.markForCheck();
+                }
+            }
+        });
+    }
+
+    onBuscarMoneda(): void {
+        this.vehiculoService.abrirBuscadorMoneda().pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                this.monedaSelected = res;
+                this.monedaDescripcion = (res.denominacion || res.simbolo)?.toUpperCase();
+                this.form.get('monedaId')?.setValue(Number(res.id));
+                this.cdr.markForCheck();
             }
         });
     }
