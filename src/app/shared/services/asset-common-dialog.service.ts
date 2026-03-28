@@ -28,8 +28,7 @@ export class AssetCommonDialogService {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'nombre', nombre: 'Nombre' },
-      { id: 'documento', nombre: 'Documento' },
-      { id: 'nickname', nombre: 'Usuario', nested: true, nestedId: 'usuario', nestedColumnId: 'nickname' }
+      { id: 'documento', nombre: 'Documento' }
     ];
 
     const data: SearchListtDialogData = {

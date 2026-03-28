@@ -106,6 +106,7 @@ export class VehiculoComponent implements OnInit {
             montoTotal: [0],
             montoYaPagado: [0],
             cantidadCuotas: [1],
+            cantidadCuotasPagadas: [0],
             diaVencimiento: [1]
         });
     }
@@ -150,6 +151,7 @@ export class VehiculoComponent implements OnInit {
             montoTotal: (this.vehiculo as any)?.montoTotal || 0,
             montoYaPagado: (this.vehiculo as any)?.montoYaPagado || 0,
             cantidadCuotas: (this.vehiculo as any)?.cantidadCuotas || 1,
+            cantidadCuotasPagadas: (this.vehiculo as any)?.cantidadCuotasPagadas || 0,
             diaVencimiento: (this.vehiculo as any)?.diaVencimiento || 1
         });
 

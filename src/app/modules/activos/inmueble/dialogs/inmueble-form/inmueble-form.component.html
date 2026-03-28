@@ -22,7 +22,6 @@
     <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
 
         <mat-tab-group animationDuration="0ms">
-            <!-- PESTAÑA 1: DATOS GENERALES -->
             <mat-tab label="General">
                 <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
                     <div fxLayout="row" fxLayoutGap="20px">
@@ -130,21 +129,20 @@
                             </mat-form-field>
 
                             <mat-form-field fxFlex="45">
+                                <mat-label>Cuotas Ya Pagadas</mat-label>
+                                <input matInput type="number" formControlName="cantidadCuotasPagadas">
+                            </mat-form-field>
+
+                            <mat-form-field fxFlex="45">
                                 <mat-label>Día Vencimiento (1-31)</mat-label>
                                 <input matInput type="number" formControlName="diaVencimiento">
                             </mat-form-field>
 
-                            <div fxFlex="100" style="padding: 10px;">
-                                <button mat-stroked-button color="accent">
-                                    <mat-icon>add</mat-icon> Cargar Cuotas Pendientes
-                                </button>
-                            </div>
+
                         </div>
                     </div>
                 </div>
             </mat-tab>
-
-            <!-- PESTAÑA 3: ARCHIVOS (5.1-10) -->
             <mat-tab label="Archivos">
                 <div fxLayout="column" fxLayoutGap="20px" style="padding-top: 15px;">
                     <button mat-raised-button color="primary">

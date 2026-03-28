@@ -35,6 +35,7 @@ export const muebleByIdQuery = gql`
       montoTotal
       montoYaPagado
       cantidadCuotas
+      cantidadCuotasPagadas
       diaVencimiento
       usuario {
         id
@@ -112,6 +113,42 @@ export const tipoMuebleSearchQuery = gql`
     data: tipoMuebleSearch(texto: $texto) {
       id
       descripcion
+    }
+  }
+`;
+
+export const familiaMuebleSearchPageQuery = gql`
+  query familiaMuebleSearchPage($texto: String, $page: Int!, $size: Int!) {
+    data: familiaMuebleSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+      }
+    }
+  }
+`;
+
+export const tipoMuebleSearchPageQuery = gql`
+  query tipoMuebleSearchPage($texto: String, $page: Int!, $size: Int!) {
+    data: tipoMuebleSearchPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+      }
     }
   }
 `;

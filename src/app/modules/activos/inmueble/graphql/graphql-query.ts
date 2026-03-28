@@ -13,6 +13,7 @@ export const inmuebleByIdQuery = gql`
       montoTotal
       montoYaPagado
       cantidadCuotas
+      cantidadCuotasPagadas
       diaVencimiento
       propietario {
         id

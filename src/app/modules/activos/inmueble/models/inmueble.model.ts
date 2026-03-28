@@ -21,6 +21,7 @@ export interface Inmueble {
     montoTotal?: number;
     montoYaPagado?: number;
     cantidadCuotas?: number;
+    cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
     usuario?: Usuario;
     creadoEn?: Date;

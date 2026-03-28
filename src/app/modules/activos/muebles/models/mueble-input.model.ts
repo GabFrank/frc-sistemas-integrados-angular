@@ -14,6 +14,7 @@ export interface MuebleInput {
     montoTotal?: number;
     montoYaPagado?: number;
     cantidadCuotas?: number;
+    cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
     usuarioId?: number;
 }

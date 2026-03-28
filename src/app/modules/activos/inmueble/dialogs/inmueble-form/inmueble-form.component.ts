@@ -78,6 +78,7 @@ export class InmuebleFormComponent implements OnInit {
       montoTotal: [0],
       montoYaPagado: [0],
       cantidadCuotas: [1],
+      cantidadCuotasPagadas: [0],
       diaVencimiento: [1]
     });
   }
@@ -100,6 +101,7 @@ export class InmuebleFormComponent implements OnInit {
         montoTotal: this.inmueble.montoTotal || 0,
         montoYaPagado: this.inmueble.montoYaPagado || 0,
         cantidadCuotas: this.inmueble.cantidadCuotas || 1,
+        cantidadCuotasPagadas: this.inmueble.cantidadCuotasPagadas || 0,
         diaVencimiento: this.inmueble.diaVencimiento || 1
       });
 

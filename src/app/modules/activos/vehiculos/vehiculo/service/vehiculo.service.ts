@@ -29,7 +29,6 @@ import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
 import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
 import { MatDialog } from '@angular/material/dialog';
-import { VehiculoComponent } from '../dialogs/vehiculo-form/vehiculo.component';
 import { VehiculoSucursalDialogComponent } from '../dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';

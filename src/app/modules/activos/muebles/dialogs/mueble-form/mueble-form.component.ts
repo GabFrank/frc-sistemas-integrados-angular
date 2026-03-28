@@ -80,6 +80,7 @@ export class MuebleFormComponent implements OnInit {
       montoTotal: [0],
       montoYaPagado: [0],
       cantidadCuotas: [1],
+      cantidadCuotasPagadas: [0],
       diaVencimiento: [1]
     });
   }
@@ -102,6 +103,7 @@ export class MuebleFormComponent implements OnInit {
         montoTotal: this.mueble.montoTotal || 0,
         montoYaPagado: this.mueble.montoYaPagado || 0,
         cantidadCuotas: this.mueble.cantidadCuotas || 1,
+        cantidadCuotasPagadas: this.mueble.cantidadCuotasPagadas || 0,
         diaVencimiento: this.mueble.diaVencimiento || 1
       });
 

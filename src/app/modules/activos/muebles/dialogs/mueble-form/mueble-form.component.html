@@ -123,11 +123,15 @@
                         </div>
 
                         <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
-                            <mat-form-field fxFlex="50">
+                            <mat-form-field fxFlex="33">
                                 <mat-label>Cuotas pendientes</mat-label>
                                 <input matInput type="number" formControlName="cantidadCuotas">
                             </mat-form-field>
-                            <mat-form-field fxFlex="50">
+                            <mat-form-field fxFlex="33">
+                                <mat-label>Cuotas ya pagadas</mat-label>
+                                <input matInput type="number" formControlName="cantidadCuotasPagadas">
+                            </mat-form-field>
+                            <mat-form-field fxFlex="33">
                                 <mat-label>Día Vencimiento</mat-label>
                                 <input matInput type="number" formControlName="diaVencimiento" min="1" max="31">
                             </mat-form-field>

@@ -16,6 +16,8 @@ import { AdicionarFamiliaMuebleDialogComponent } from '../dialogs/adicionar-fami
 import { AdicionarTipoMuebleDialogComponent } from '../dialogs/adicionar-tipo-mueble-dialog/adicionar-tipo-mueble-dialog.component';
 import { FamiliaMuebleSearchGQL } from '../graphql/familiaMuebleSearch';
 import { TipoMuebleSearchGQL } from '../graphql/tipoMuebleSearch';
+import { FamiliaMuebleSearchPageGQL } from '../graphql/familiaMuebleSearchPage';
+import { TipoMuebleSearchPageGQL } from '../graphql/tipoMuebleSearchPage';
 import { SaveFamiliaMuebleGQL } from '../graphql/saveFamiliaMueble';
 import { SaveTipoMuebleGQL } from '../graphql/saveTipoMueble';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
@@ -37,6 +39,8 @@ export class MuebleService {
   private muebleSearchPageGQL = inject(MuebleSearchPageGQL);
   private familiaSearchGQL = inject(FamiliaMuebleSearchGQL);
   private tipoMuebleSearchGQL = inject(TipoMuebleSearchGQL);
+  private familiaSearchPageGQL = inject(FamiliaMuebleSearchPageGQL);
+  private tipoMuebleSearchPageGQL = inject(TipoMuebleSearchPageGQL);
   private saveFamiliaGQL = inject(SaveFamiliaMuebleGQL);
   private saveTipoGQL = inject(SaveTipoMuebleGQL);
   private dialog = inject(MatDialog);
@@ -140,10 +144,12 @@ export class MuebleService {
 
     const data: SearchListtDialogData = {
       titulo: 'Buscar Familia de Mueble',
-      query: this.familiaSearchGQL,
+      query: this.familiaSearchPageGQL,
       tableData: tableData,
       inicialSearch: true,
-      isAdicionar: true
+      isAdicionar: true,
+      isServidor: true,
+      paginator: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
@@ -160,10 +166,12 @@ export class MuebleService {
 
     const data: SearchListtDialogData = {
       titulo: 'Buscar Tipo de Mueble',
-      query: this.tipoMuebleSearchGQL,
+      query: this.tipoMuebleSearchPageGQL,
       tableData: tableData,
       inicialSearch: true,
-      isAdicionar: true
+      isAdicionar: true,
+      isServidor: true,
+      paginator: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {
