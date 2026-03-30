@@ -2,7 +2,7 @@
   "publish": {
     "provider": "github",
     "owner": "GabFrank",
-    "repo": "franco-system-frontend-general"
+    "repo": "frc-sistemas-integrados-angular"
   },
   "asar": true,
   "directories": {
