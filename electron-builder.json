@@ -1,4 +1,9 @@
 {
+  "publish": {
+    "provider": "github",
+    "owner": "GabFrank",
+    "repo": "franco-system-frontend-general"
+  },
   "asar": true,
   "directories": {
     "output": "release/"

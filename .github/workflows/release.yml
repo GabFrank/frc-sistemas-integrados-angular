@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    branches: [develop, release/*, main, master]
+
+jobs:
+  # Job 1: semantic-release creates the GitHub Release (no artifacts yet)
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install semantic-release plugins
+        run: npm install -g semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/exec @semantic-release/github
+
+      - name: Run semantic-release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect released version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+          if [[ "$VERSION" == v* ]]; then
+            echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+            echo "Released version: ${VERSION#v}"
+          else
+            echo "No new release created"
+          fi
+
+  # Job 2: build platform artifacts and upload to the release
+  build:
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            args: --linux
+          - os: windows-latest
+            platform: win
+            args: --win
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+
+      - name: Update package.json versions
+        shell: bash
+        run: |
+          VERSION="${{ needs.release.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            ['package.json', 'app/package.json'].forEach(f => {
+              const pkg = JSON.parse(fs.readFileSync(f, 'utf8'));
+              pkg.version = '${VERSION}';
+              fs.writeFileSync(f, JSON.stringify(pkg, null, 2) + '\n');
+            });
+          "
+          echo "Updated package.json versions to ${VERSION}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular (production)
+        run: npm run build:prod
+
+      - name: Build Electron (${{ matrix.platform }})
+        run: npx electron-builder ${{ matrix.args }} --publish never
+
+      - name: Upload artifacts to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          echo "Uploading ${{ matrix.platform }} artifacts to release v${VERSION}..."
+          gh release upload "v${VERSION}" release/FRC*.* release/latest*.yml --clobber
