@@ -14,6 +14,7 @@ const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver
 autoUpdater.logger = log;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.allowPrerelease = true;
 
 interface PrinterConfig {
   id: number;
