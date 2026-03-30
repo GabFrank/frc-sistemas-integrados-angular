@@ -5,9 +5,15 @@ import * as url from "url";
 import { exec } from "child_process";
 import { PosPrinter } from 'electron-pos-printer';
 
+import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
+
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
+
+autoUpdater.logger = log;
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 interface PrinterConfig {
   id: number;
@@ -866,6 +872,40 @@ try {
 
     createWindow().then(() => {
       registerPrinterIpcHandlers();
+    });
+
+    if (!isDev) {
+      autoUpdater.checkForUpdatesAndNotify();
+      setInterval(() => {
+        log.info('Buscando actualizacion...');
+        autoUpdater.checkForUpdatesAndNotify();
+      }, 5 * 60 * 1000); // cada 5 minutos
+    }
+
+    autoUpdater.on('update-available', () => {
+      log.info('Actualizacion disponible, descargando...');
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      log.info('No existen actualizaciones disponibles.');
+    });
+
+    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      const dialogOpts: MessageBoxOptions = {
+        type: 'info',
+        buttons: ['Reiniciar', 'Mas tarde'],
+        title: 'Actualizacion disponible',
+        message: `${event.releaseName || 'Nueva version'} - ${event.version}`,
+        detail: 'Una actualizacion fue descargada. Reinicie para instalarla.',
+      };
+
+      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        if (returnValue.response === 0) autoUpdater.quitAndInstall();
+      });
+    });
+
+    autoUpdater.on('error', (err) => {
+      log.error('Error en auto-update:', err);
     });
   });
 
