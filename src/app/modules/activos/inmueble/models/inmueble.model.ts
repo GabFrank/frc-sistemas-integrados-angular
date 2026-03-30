@@ -15,6 +15,8 @@ export interface Inmueble {
     googleMapsUrl?: string;
     codigoCatastral?: string;
     valorTasacion?: number;
+    valorTasacionPyg?: number;
+    valorTasacionBrl?: number;
     situacionPago?: string;
     proveedor?: Persona;
     moneda?: any;

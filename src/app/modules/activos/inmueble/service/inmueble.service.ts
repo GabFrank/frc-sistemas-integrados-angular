@@ -12,9 +12,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
 import { InmuebleDialogService } from './inmueble-dialog-service.service';
 import { InmuebleSearchGQL } from '../graphql/inmuebleSearch';
-import { Persona } from '../../../personas/persona/persona.model';
-import { Pais } from '../../../general/pais/pais.model';
-import { Ciudad } from '../../../general/ciudad/ciudad.model';
 
 @Injectable({
   providedIn: 'root'

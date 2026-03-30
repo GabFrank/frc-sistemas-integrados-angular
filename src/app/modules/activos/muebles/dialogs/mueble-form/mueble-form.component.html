@@ -66,10 +66,25 @@
                     </div>
 
                     <mat-form-field>
-                        <mat-label>Valor Tasación (Estimado)</mat-label>
-                        <input matInput type="number" formControlName="valorTasacion">
+                        <mat-label>Valor Tasación (Estimado USD)</mat-label>
+                        <input matInput formControlName="valorTasacion"
+                            currencyMask [options]="currencyMask.currencyOptionsGuarani">
                         <span matPrefix>$&nbsp;</span>
                     </mat-form-field>
+                    <div fxLayout="row" fxLayoutGap="20px">
+                        <mat-form-field fxFlex="50">
+                            <mat-label>Estimado en Guaraní (PYG)</mat-label>
+                            <input matInput formControlName="valorTasacionPyg"
+                                currencyMask [options]="currencyMask.currencyOptionsGuarani">
+                            <span matPrefix>₲&nbsp;</span>
+                        </mat-form-field>
+                        <mat-form-field fxFlex="50">
+                            <mat-label>Estimado en Real (BRL)</mat-label>
+                            <input matInput formControlName="valorTasacionBrl"
+                                currencyMask [options]="currencyMask.currencyOptionsNoGuarani">
+                            <span matPrefix>R$&nbsp;</span>
+                        </mat-form-field>
+                    </div>
                 </div>
             </mat-tab>
 
@@ -114,11 +129,13 @@
                         <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
                             <mat-form-field fxFlex="50">
                                 <mat-label>Monto Total</mat-label>
-                                <input matInput type="number" formControlName="montoTotal">
+                                <input matInput formControlName="montoTotal"
+                                    currencyMask [options]="currencyMask.currencyOptionsGuarani">
                             </mat-form-field>
                             <mat-form-field fxFlex="50">
                                 <mat-label>Monto ya Pagado</mat-label>
-                                <input matInput type="number" formControlName="montoYaPagado">
+                                <input matInput formControlName="montoYaPagado"
+                                    currencyMask [options]="currencyMask.currencyOptionsGuarani">
                             </mat-form-field>
                         </div>
 
@@ -140,7 +157,8 @@
                         <div *ngIf="form.get('situacionPago')?.value === 'PAGADO'">
                             <mat-form-field fxFlex="100">
                                 <mat-label>Monto Pagado</mat-label>
-                                <input matInput type="number" formControlName="montoTotal">
+                                <input matInput formControlName="montoTotal"
+                                    currencyMask [options]="currencyMask.currencyOptionsGuarani">
                             </mat-form-field>
                         </div>
                     </div>

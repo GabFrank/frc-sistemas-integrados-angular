@@ -15,6 +15,9 @@ export interface VehiculoInput {
     imagenesVehiculo?: string;
     imagenesDocumentos?: string;
     usuarioId?: number;
+    valorEstimado?: number;
+    valorEstimadoPyg?: number;
+    valorEstimadoBrl?: number;
     situacionPago?: string;
     proveedorId?: number;
     monedaId?: number;

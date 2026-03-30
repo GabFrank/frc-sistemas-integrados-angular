@@ -20,6 +20,9 @@ export interface Vehiculo {
     capacidadPasajeros?: number;
     imagenesVehiculo?: string;
     imagenesDocumentos?: string;
+    valorEstimado?: number;
+    valorEstimadoPyg?: number;
+    valorEstimadoBrl?: number;
     situacionPago?: string;
     proveedor?: Persona;
     moneda?: Moneda;

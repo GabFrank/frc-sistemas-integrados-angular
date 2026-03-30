@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core';
+import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
@@ -35,6 +36,7 @@ export class MuebleFormComponent implements OnInit {
 
   situacionesPago = ['PAGADO', 'PAGANDO', 'DADO', 'GANADO', 'COMODATO'];
   monedas = ['PYG', 'USD', 'BRL'];
+  currencyMask = new CurrencyMask();
 
   proveedorSelected: Persona;
   proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
@@ -74,6 +76,8 @@ export class MuebleFormComponent implements OnInit {
       consumeEnergia: [false],
       consumoValor: [''],
       valorTasacion: [0],
+      valorTasacionPyg: [0],
+      valorTasacionBrl: [0],
       situacionPago: ['PAGADO'],
       proveedorId: [null],
       monedaId: [null],
@@ -97,6 +101,8 @@ export class MuebleFormComponent implements OnInit {
         consumeEnergia: this.mueble.consumeEnergia,
         consumoValor: this.mueble.consumoValor,
         valorTasacion: this.mueble.valorTasacion,
+        valorTasacionPyg: this.mueble.valorTasacionPyg || 0,
+        valorTasacionBrl: this.mueble.valorTasacionBrl || 0,
         situacionPago: this.mueble.situacionPago || 'PAGADO',
         proveedorId: this.mueble.proveedor?.id,
         monedaId: this.mueble.moneda?.id,

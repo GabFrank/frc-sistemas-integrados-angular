@@ -9,6 +9,8 @@ export const inmuebleByIdQuery = gql`
       googleMapsUrl
       codigoCatastral
       valorTasacion
+      valorTasacionPyg
+      valorTasacionBrl
       situacionPago
       montoTotal
       montoYaPagado
@@ -70,6 +72,8 @@ export const inmuebleSearchPageQuery = gql`
         direccion
         codigoCatastral
         valorTasacion
+        valorTasacionPyg
+        valorTasacionBrl
         pais {
           id
           descripcion
@@ -83,7 +87,6 @@ export const inmuebleSearchPageQuery = gql`
           nombre
         }
         situacionPago
-        valorTasacion
       }
     }
   }

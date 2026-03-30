@@ -8,6 +8,8 @@ export interface InmuebleInput {
     googleMapsUrl?: string;
     codigoCatastral?: string;
     valorTasacion?: number;
+    valorTasacionPyg?: number;
+    valorTasacionBrl?: number;
     situacionPago?: string;
     proveedorId?: number;
     monedaId?: number;

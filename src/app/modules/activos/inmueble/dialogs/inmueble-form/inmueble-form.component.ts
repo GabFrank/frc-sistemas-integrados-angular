@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core';
+import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { InmuebleService } from '../../service/inmueble.service';
@@ -27,6 +28,7 @@ export class InmuebleFormComponent implements OnInit {
   
   situacionesPago = ['PAGADO', 'PAGANDO', 'DADO', 'GANADO'];
   monedas = ['PYG', 'USD', 'BRL'];
+  currencyMask = new CurrencyMask();
 
   paisSelected: Pais;
   ciudadSelected: Ciudad;
@@ -72,6 +74,8 @@ export class InmuebleFormComponent implements OnInit {
       googleMapsUrl: [''],
       codigoCatastral: [''],
       valorTasacion: [0],
+      valorTasacionPyg: [0],
+      valorTasacionBrl: [0],
       situacionPago: ['PAGADO'],
       proveedorId: [null],
       monedaId: [null],
@@ -95,6 +99,8 @@ export class InmuebleFormComponent implements OnInit {
         googleMapsUrl: this.inmueble.googleMapsUrl,
         codigoCatastral: this.inmueble.codigoCatastral,
         valorTasacion: this.inmueble.valorTasacion,
+        valorTasacionPyg: this.inmueble.valorTasacionPyg || 0,
+        valorTasacionBrl: this.inmueble.valorTasacionBrl || 0,
         situacionPago: this.inmueble.situacionPago || 'PAGADO',
         proveedorId: this.inmueble.proveedor?.id,
         monedaId: this.inmueble.moneda?.id,

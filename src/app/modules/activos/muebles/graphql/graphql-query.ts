@@ -9,6 +9,8 @@ export const muebleByIdQuery = gql`
       consumeEnergia
       consumoValor
       valorTasacion
+      valorTasacionPyg
+      valorTasacionBrl
       creadoEn
       propietario {
         id
@@ -72,6 +74,8 @@ export const muebleSearchPageQuery = gql`
         consumeEnergia
         consumoValor
         valorTasacion
+        valorTasacionPyg
+        valorTasacionBrl
         propietario {
             id
             nombre

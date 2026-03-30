@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VehiculoService } from '../../service/vehiculo.service';
 import { VehiculoDialogService } from '../../service/vehiculo-dialog-service.service';
@@ -46,6 +47,7 @@ export class VehiculoComponent implements OnInit {
     proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
     monedaSelected: any;
     monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
+  currencyMask = new CurrencyMask();
 
     private actualizarDescripciones(): void {
         if (this.modeloSelected) {
@@ -98,6 +100,8 @@ export class VehiculoComponent implements OnInit {
             chasis: [''],
             aireAcondicionado: [false],
             valorEstimado: [0],
+            valorEstimadoPyg: [0],
+            valorEstimadoBrl: [0],
             mantenimientoMotorIntervalo: [null],
             mantenimientoCajaIntervalo: [null],
             situacionPago: ['PAGADO'],
@@ -143,6 +147,8 @@ export class VehiculoComponent implements OnInit {
             chasis: (this.vehiculo as any)?.chasis || '',
             aireAcondicionado: (this.vehiculo as any)?.aireAcondicionado || false,
             valorEstimado: (this.vehiculo as any)?.valorEstimado || 0,
+            valorEstimadoPyg: (this.vehiculo as any)?.valorEstimadoPyg || 0,
+            valorEstimadoBrl: (this.vehiculo as any)?.valorEstimadoBrl || 0,
             mantenimientoMotorIntervalo: (this.vehiculo as any)?.mantenimientoMotorIntervalo,
             mantenimientoCajaIntervalo: (this.vehiculo as any)?.mantenimientoCajaIntervalo,
             situacionPago: (this.vehiculo as any)?.situacionPago || 'PAGADO',

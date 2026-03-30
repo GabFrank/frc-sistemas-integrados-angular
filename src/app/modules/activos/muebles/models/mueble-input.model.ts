@@ -8,6 +8,8 @@ export interface MuebleInput {
     consumeEnergia?: boolean;
     consumoValor?: string;
     valorTasacion?: number;
+    valorTasacionPyg?: number;
+    valorTasacionBrl?: number;
     situacionPago?: string;
     proveedorId?: number;
     monedaId?: number;

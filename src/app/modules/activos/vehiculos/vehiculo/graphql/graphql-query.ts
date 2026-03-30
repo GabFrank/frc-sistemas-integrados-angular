@@ -29,6 +29,37 @@ export const vehiculoByIdQuery = gql`
         id
         descripcion
       }
+      identificadorInterno
+      tipoCombustible {
+        id
+        descripcion
+      }
+      chasis
+      aireAcondicionado
+      valorEstimado
+      valorEstimadoPyg
+      valorEstimadoBrl
+      mantenimientoMotorIntervalo
+      mantenimientoCajaIntervalo
+      situacionPago
+      proveedor {
+        id
+        nombre
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      montoTotal
+      montoYaPagado
+      cantidadCuotas
+      cantidadCuotasPagadas
+      diaVencimiento
+      propietario {
+        id
+        nombre
+      }
       usuario {
         id
         nickname
