@@ -1484,4 +1484,4 @@ async function printWithElectronPosPrinter(printer: PrinterConfig, content: stri
     console.error('Error in printWithElectronPosPrinter:', error);
     return false;
   }
-}
+}// auto-update test
