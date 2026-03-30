@@ -340,18 +340,18 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         nombre: "Id",
       },
       {
-        id: "familia.nombre",
-        nombre: "Familia",
-      },
-      {
         id: "nombre",
         nombre: "Nombre",
+      },
+      {
+        id: "familia.nombre",
+        nombre: "Familia",
       },
     ];
     let data: SearchListtDialogData = {
       query: this.searchSubfamilia,
       tableData: tableData,
-      titulo: "Buscar subfamilia",
+      titulo: "Buscar Subfamilia",
       search: true,
       queryData: { texto: this.subfamiliaControl.value },
       inicialSearch: true,
