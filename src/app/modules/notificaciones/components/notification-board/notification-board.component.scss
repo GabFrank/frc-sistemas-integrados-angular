@@ -101,16 +101,19 @@
   &.POR_VERIFICAR {
     background-color: #f44336;
     color: #fff;
+    margin-left: 5px;
   }
 
   &.EN_PROCESO {
     background-color: #ff9800;
     color: #fff;
+    margin-left: 5px;
   }
 
   &.VERIFICADO {
     background-color: #4caf50;
     color: #fff;
+    margin-left: 5px;
   }
 }
 
@@ -260,6 +263,8 @@
   line-height: 1.5;
   margin: 0;
   word-wrap: break-word;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .notification-footer {
