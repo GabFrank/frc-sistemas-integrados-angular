@@ -143,7 +143,10 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item>Ver Detalles</button>
+            <button mat-menu-item (click)="onEditar(row)">
+               <mat-icon color="primary">edit</mat-icon>
+               <span>Editar</span>
+            </button>
             <button mat-menu-item (click)="onRetirarDeSucursal(row)" *ngIf="sucursalControl.value">
               <mat-icon color="warn">remove_circle</mat-icon>
               <span>Retirar de Sucursal</span>

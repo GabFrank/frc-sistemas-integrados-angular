@@ -65,6 +65,7 @@ export const entesSucursalesByEnteIdQuery = gql`
       id
       ente {
         id
+        tipoEnte
       }
       sucursal {
         id

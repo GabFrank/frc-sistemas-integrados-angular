@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { EnteSucursalDialogComponent } from '../../dialogs/ente-sucursal-dialog/ente-sucursal-dialog.component';
 import { filter } from 'rxjs/operators';
 import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
+import { EnteSucursal } from '../../models/ente-sucursal.model';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
 import { forkJoin, Observable, of } from 'rxjs';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
@@ -165,6 +166,42 @@ export class ListBienesSucursalComponent implements OnInit {
       filter(res => !!res)
     ).subscribe(() => {
       this.enteService.refrescar();
+    });
+  }
+
+  onEditar(row: BienFinancieroRow): void {
+    if (!row.id) return;
+    const sucursalId = this.sucursalControl.value;
+
+    const obs = sucursalId
+      ? this.enteService.getEnteSucursalByEnteAndSucursal(row.id, sucursalId)
+      : this.enteService.getEnteSucursalByEnteId(row.id).pipe(map(res => (res as EnteSucursal[])[0] || null));
+
+    obs.pipe(untilDestroyed(this)).subscribe(enteSucursal => {
+      if (enteSucursal) {
+        this.matDialog.open(EnteSucursalDialogComponent, {
+          data: {
+            enteSucursal
+          },
+          width: '600px'
+        }).afterClosed().pipe(filter(res => !!res)).subscribe(() => {
+          this.enteService.refrescar();
+        });
+      } else {
+        this.enteService.onBuscarPorId(row.id!).subscribe(ente => {
+          if (ente) {
+             this.matDialog.open(EnteSucursalDialogComponent, {
+              data: {
+                ente,
+                sucursalId
+              },
+              width: '600px'
+            }).afterClosed().pipe(filter(res => !!res)).subscribe(() => {
+              this.enteService.refrescar();
+            });
+          }
+        });
+      }
     });
   }
 

@@ -5,7 +5,7 @@
 <mat-dialog-content>
     <div fxLayout="column" fxLayoutGap="15px" style="padding: 20px; min-width: 500px;">
         
-        <div fxLayout="row" fxLayoutGap="10px">
+        <div fxLayout="row" fxLayoutGap="10px" *ngIf="mostrarEnte">
             <mat-form-field appearance="outline" fxFlex="30%">
                 <mat-label>Tipo *</mat-label>
                 <mat-select [formControl]="form.get('tipoEnteControl')!" (selectionChange)="selectedEnte = null; enteControlDisplay.setValue('')">
@@ -14,8 +14,8 @@
                     </mat-option>
                 </mat-select>
             </mat-form-field>
-
-            <mat-form-field appearance="outline" fxFlex="70%" *ngIf="mostrarEnte">
+ 
+            <mat-form-field appearance="outline" fxFlex="70%">
                 <mat-label>Bien *</mat-label>
                 <input
                     matInput

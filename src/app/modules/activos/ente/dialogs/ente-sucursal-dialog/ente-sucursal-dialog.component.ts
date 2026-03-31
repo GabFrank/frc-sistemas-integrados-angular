@@ -76,6 +76,7 @@ export class EnteSucursalDialogComponent implements OnInit {
 
         if (this.data?.enteSucursal) {
             this.setEnte(this.data.enteSucursal.ente!);
+            this.mostrarEnte = false;
             this.selectedResponsable = this.data.enteSucursal.responsable || null;
             this.responsableControlDisplay.setValue(this.selectedResponsable?.persona?.nombre || '');
 
