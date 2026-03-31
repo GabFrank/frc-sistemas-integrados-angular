@@ -132,30 +132,32 @@
                                 currencyMask [options]="currencyMask.currencyOptionsGuarani">
                         </mat-form-field>
 
-                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row wrap"
-                            fxLayoutGap="15px">
-                            <mat-form-field fxFlex="45">
-                                <mat-label>Monto ya Pagado / Entrega</mat-label>
+                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                            <mat-form-field fxFlex="50">
+                                <mat-label>Monto Total</mat-label>
+                                <input matInput formControlName="montoTotal"
+                                    currencyMask [options]="currencyMask.currencyOptionsGuarani">
+                            </mat-form-field>
+                            <mat-form-field fxFlex="50">
+                                <mat-label>Monto ya Pagado</mat-label>
                                 <input matInput formControlName="montoYaPagado"
                                     currencyMask [options]="currencyMask.currencyOptionsGuarani">
                             </mat-form-field>
+                        </div>
 
-                            <mat-form-field fxFlex="45">
+                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                            <mat-form-field fxFlex="33">
                                 <mat-label>Cantidad de Cuotas</mat-label>
                                 <input matInput type="number" formControlName="cantidadCuotas">
                             </mat-form-field>
-
-                            <mat-form-field fxFlex="45">
+                            <mat-form-field fxFlex="33">
                                 <mat-label>Cuotas Ya Pagadas</mat-label>
                                 <input matInput type="number" formControlName="cantidadCuotasPagadas">
                             </mat-form-field>
-
-                            <mat-form-field fxFlex="45">
+                            <mat-form-field fxFlex="33">
                                 <mat-label>Día Vencimiento (1-31)</mat-label>
-                                <input matInput type="number" formControlName="diaVencimiento">
+                                <input matInput type="number" formControlName="diaVencimiento" min="1" max="31">
                             </mat-form-field>
-
-
                         </div>
                     </div>
                 </div>

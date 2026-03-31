@@ -39,8 +39,8 @@ export const enteByReferenciaIdQuery = gql`
 `;
 
 export const enteSearchPageQuery = gql`
-  query enteSearchPage($texto: String, $page: Int, $size: Int) {
-    data: enteSearchPage(texto: $texto, page: $page, size: $size) {
+  query enteSearchPage($texto: String, $sucursalId: ID, $page: Int, $size: Int) {
+    data: enteSearchPage(texto: $texto, sucursalId: $sucursalId, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -56,6 +56,48 @@ export const enteSearchPageQuery = gql`
         creadoEn
       }
     }
+  }
+`;
+
+export const entesSucursalesByEnteIdQuery = gql`
+  query entesSucursalesByEnteId($enteId: ID!) {
+    data: entesSucursalesByEnteId(enteId: $enteId) {
+      id
+      ente {
+        id
+      }
+      sucursal {
+        id
+        nombre
+      }
+      responsable {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+    }
+  }
+`;
+
+export const saveEnteSucursalMutation = gql`
+  mutation saveEnteSucursal($entity: EnteSucursalInput!) {
+    data: saveEnteSucursal(enteSucursal: $entity) {
+      id
+      ente {
+        id
+      }
+      sucursal {
+        id
+      }
+    }
+  }
+`;
+
+export const deleteEnteSucursalMutation = gql`
+  mutation deleteEnteSucursal($id: ID!) {
+    data: deleteEnteSucursal(id: $id)
   }
 `;
 

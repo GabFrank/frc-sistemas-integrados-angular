@@ -95,8 +95,8 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
     onEliminar(vehiculoSucursal: VehiculoSucursal): void {
-        if (vehiculoSucursal.id) {
-            this.vehiculoService.onEliminarVehiculoSucursal(vehiculoSucursal.id).subscribe();
+        if (vehiculoSucursal?.id) {
+            this.vehiculoService.onEliminarVehiculoSucursal(vehiculoSucursal).subscribe();
         }
     }
 }

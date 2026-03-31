@@ -1,12 +1,64 @@
 <app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros>
+    <div class="dashboard-grid header-kpis">
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Total de bienes (filtro actual)</div>
+        <div class="metric-value">{{ resumen.totalBienes }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Pagados</div>
+        <div class="metric-value success">{{ resumen.pagados }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">En pago</div>
+        <div class="metric-value warning">{{ resumen.enPago }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Gasto ya ejecutado</div>
+        <div class="metric-value">{{ monedaPrincipal }} {{ resumen.totalGastado | number:'1.0-0' }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Pendiente por pagar</div>
+        <div class="metric-value danger">{{ monedaPrincipal }} {{ resumen.totalPendiente | number:'1.0-0' }}</div>
+      </mat-card>
+    </div>
+
     <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="40%">
-        <mat-form-field appearance="outline" style="width: 100%" floatLabel="always">
-          <mat-label>Filtro por texto</mat-label>
-          <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" />
-          <mat-icon matSuffix>search</mat-icon>
+      <div fxFlex="22%">
+        <mat-form-field appearance="outline" style="width: 100%" class="compact-field" floatLabel="always">
+          <mat-label>Filtrar por Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option [value]="null">Todas las sucursales</mat-option>
+            <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="19%">
+        <mat-form-field appearance="outline" style="width: 100%" class="compact-field" floatLabel="always">
+          <mat-label>Tipo de bien</mat-label>
+          <mat-select [formControl]="tipoControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of tiposDisponibles" [value]="t">{{ t }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="19%">
+        <mat-form-field appearance="outline" style="width: 100%" class="compact-field" floatLabel="always">
+          <mat-label>Estado de pago</mat-label>
+          <mat-select [formControl]="estadoPagoControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let e of estadosPagoDisponibles" [value]="e">{{ e }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field appearance="outline" style="width: 100%" class="compact-field" floatLabel="always">
+          <mat-label>Estado de cuota</mat-label>
+          <mat-select [formControl]="estadoCuotaControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let e of estadosCuotaDisponibles" [value]="e">{{ e }}</mat-option>
+          </mat-select>
         </mat-form-field>
       </div>
     </div>
@@ -14,8 +66,7 @@
 
   <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
     fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
-      
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8 bienes-table" style="width: 100%">
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>
         <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">{{ row.id }}</td>
@@ -24,13 +75,56 @@
       <ng-container matColumnDef="tipoEnte">
         <th mat-header-cell *matHeaderCellDef>Tipo de Bien</th>
         <td mat-cell *matCellDef="let row">
-            <span class="badge">{{ row.tipoEnte }}</span>
+          <span class="badge">{{ row.tipoEnte }}</span>
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="referenciaId">
-        <th mat-header-cell *matHeaderCellDef>Ref. ID</th>
-        <td mat-cell *matCellDef="let row">{{ row.referenciaId }}</td>
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="descripcion-bien">{{ row.descripcion }}</div>
+          <div class="subtext">Ref. #{{ row.referenciaId }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef>Sucursal(es)</th>
+        <td mat-cell *matCellDef="let row">{{ row.sucursal }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="situacionPago">
+        <th mat-header-cell *matHeaderCellDef>Situación de pago</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class.badge-success]="row.situacionPago === 'PAGADO'"
+            [class.badge-warning]="row.situacionPago !== 'PAGADO'">
+            {{ row.situacionPago }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cuotas">
+        <th mat-header-cell *matHeaderCellDef>Cuotas</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.cuotasPagadas }} / {{ row.cuotasTotales }}
+          <div class="subtext">
+            Faltan: {{ row.cuotasFaltantes }} - Vence en: {{ row.diasParaVencer }} día(s)
+          </div>
+          <span class="badge cuota-badge" [ngClass]="getEstadoCuotaClass(row)">{{ row.estadoCuota }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoYaPagado">
+        <th mat-header-cell *matHeaderCellDef>Pagado</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.moneda }} {{ row.montoYaPagado | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoPendiente">
+        <th mat-header-cell *matHeaderCellDef>Pendiente</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.moneda }} {{ row.montoPendiente | number:'1.0-0' }}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="activo">
@@ -45,18 +139,50 @@
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
         <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">
-          <button mat-icon-button [matMenuTriggerFor]="menu">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item>Ver Detalles</button>
+            <button mat-menu-item (click)="onRetirarDeSucursal(row)" *ngIf="sucursalControl.value">
+              <mat-icon color="warn">remove_circle</mat-icon>
+              <span>Retirar de Sucursal</span>
+            </button>
             <button mat-menu-item>Historial de Movimientos</button>
           </mat-menu>
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="displayedColumns.length" class="expanded-detail-cell">
+          <div class="expanded-content" [@detailExpand]="expandedRow?.id === row.id ? 'expanded' : 'collapsed'">
+            <div class="detail-grid">
+              <mat-card class="detail-card">
+                <h4>Detalle del bien</h4>
+                <p><strong>Descripción:</strong> {{ row.descripcion }}</p>
+                <p><strong>Sucursal(es):</strong> {{ row.sucursal }}</p>
+                <p><strong>Proveedor:</strong> {{ row.proveedor }}</p>
+                <p><strong>Día vencimiento:</strong> {{ row.diaVencimiento || '-' }}</p>
+              </mat-card>
+              <mat-card class="detail-card">
+                <h4>Detalle de gastos</h4>
+                <table class="gastos-table">
+                  <tr *ngFor="let gasto of row.detalleGastos">
+                    <td>{{ gasto.concepto }}</td>
+                    <td class="align-right">{{ gasto.moneda }} {{ gasto.monto | number:'1.0-0' }}</td>
+                  </tr>
+                </table>
+              </mat-card>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+        [ngClass]="[getEstadoCuotaClass(row), expandedRow?.id === row.id ? 'selected-row' : '']"
+        (click)="toggleExpand(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     
     <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"

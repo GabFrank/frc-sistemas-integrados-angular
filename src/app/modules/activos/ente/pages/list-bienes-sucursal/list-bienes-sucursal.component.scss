@@ -1,1 +1,200 @@
-/* empty */
+.dashboard-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.header-kpis {
+  margin-bottom: 8px;
+}
+
+.metric-card {
+  background: #2f2f2f;
+  color: #fff;
+  padding: 8px 10px;
+}
+
+.metric-card.wide {
+  grid-column: span 2;
+}
+
+.compact-card .metric-value {
+  font-size: 20px;
+}
+
+.metric-label {
+  color: #cfcfcf;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.success {
+  color: #4caf50;
+}
+
+.warning {
+  color: #ffc107;
+}
+
+.danger {
+  color: #f44336;
+}
+
+.descripcion-bien {
+  font-weight: 600;
+}
+
+.subtext {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.compact-field {
+  font-size: 12px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #616161;
+  color: #fff;
+  font-size: 11px;
+}
+
+.badge-success {
+  background: #2e7d32;
+}
+
+.badge-warning {
+  background: #ef6c00;
+}
+
+.cuota-badge {
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.resumen-global {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  background: #262626;
+  color: #fff;
+}
+
+.resumen-global h3 {
+  margin: 0 0 10px;
+}
+
+.global-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.global-item {
+  background: #333;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.global-item span {
+  font-size: 12px;
+  color: #c7c7c7;
+}
+
+.bienes-table tr.example-detail-row {
+  height: 0;
+}
+
+.expanded-detail-cell {
+  padding: 0 !important;
+  background: #2c2c2c;
+}
+
+.expanded-content {
+  overflow: hidden;
+}
+
+.detail-grid {
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.detail-card {
+  background: #202020;
+  color: #f3f3f3;
+}
+
+.detail-card h4 {
+  margin: 0 0 8px;
+}
+
+.detail-card p {
+  margin: 4px 0;
+}
+
+.gastos-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.gastos-table td {
+  padding: 4px 0;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.selected-row {
+  background-color: #3a3a3a;
+}
+
+.estado-pagado .mat-column-cuotas {
+  color: #4caf50;
+}
+
+.estado-al-dia .mat-column-cuotas {
+  color: #2196f3;
+}
+
+.estado-por-vencer .mat-column-cuotas {
+  color: #ff9800;
+}
+
+.estado-vencido .mat-column-cuotas {
+  color: #f44336;
+}
+
+.estado-sin-plan .mat-column-cuotas {
+  color: #9e9e9e;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-grid,
+  .global-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-card.wide {
+    grid-column: span 1;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,81 @@
+<h2 mat-dialog-title>
+    {{ data.enteSucursal ? 'Editar' : 'Nueva' }} Asignación de Bien a Sucursal
+</h2>
+
+<mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="15px" style="padding: 20px; min-width: 500px;">
+        
+        <div fxLayout="row" fxLayoutGap="10px">
+            <mat-form-field appearance="outline" fxFlex="30%">
+                <mat-label>Tipo *</mat-label>
+                <mat-select [formControl]="form.get('tipoEnteControl')!" (selectionChange)="selectedEnte = null; enteControlDisplay.setValue('')">
+                    <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">
+                        {{ tipo }}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" fxFlex="70%" *ngIf="mostrarEnte">
+                <mat-label>Bien *</mat-label>
+                <input
+                    matInput
+                    [formControl]="enteControlDisplay"
+                    readonly
+                    (click)="onBuscarEnte()"
+                    placeholder="Click para buscar"
+                    [disabled]="!form.get('tipoEnteControl')?.value"
+                />
+                <mat-icon matSuffix (click)="onBuscarEnte()" style="cursor: pointer;">search</mat-icon>
+                <button
+                    mat-icon-button
+                    matSuffix
+                    *ngIf="selectedEnte"
+                    (click)="selectedEnte = null; enteControlDisplay.setValue(''); form.patchValue({enteIdControl: null}); $event.stopPropagation()"
+                    style="margin-right: -8px;"
+                >
+                    <mat-icon>clear</mat-icon>
+                </button>
+            </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Sucursal *</mat-label>
+            <mat-select [formControl]="form.get('sucursalControl')!">
+                <mat-option [value]="null">Seleccionar Sucursal</mat-option>
+                <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+                    {{ sucursal.nombre }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Responsable</mat-label>
+            <input
+                matInput
+                [formControl]="responsableControlDisplay"
+                readonly
+                (click)="onBuscarResponsable()"
+                placeholder="Click para buscar"
+            />
+            <mat-icon matSuffix (click)="onBuscarResponsable()" style="cursor: pointer;">search</mat-icon>
+            <button
+                mat-icon-button
+                matSuffix
+                *ngIf="selectedResponsable"
+                (click)="selectedResponsable = null; responsableControlDisplay.setValue(''); form.patchValue({responsableIdControl: null}); $event.stopPropagation()"
+                style="margin-right: -8px;"
+            >
+                <mat-icon>clear</mat-icon>
+            </button>
+        </mat-form-field>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
+    <button mat-button (click)="onCancelar()" [disabled]="isLoading">
+        CANCELAR
+    </button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="form.invalid || isLoading">
+        {{ isLoading ? 'GUARDANDO...' : 'GUARDAR' }}
+    </button>
+</mat-dialog-actions>
