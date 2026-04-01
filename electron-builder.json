@@ -29,14 +29,12 @@
     ]
   },
   "nsis": {
-    "oneClick": false,
-    "perMachine": true,
-    "allowElevation": true,
-    "allowToChangeInstallationDirectory": false,
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
     "installerIcon": "./app/icons/logo.ico",
     "uninstallerIcon": "./app/icons/logo_uninstall.ico",
     "guid": "9978E2AA-8509-4830-A1C2-88A34BB1D7BF",
-    "include": "app/installer.nsh",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "FRC",

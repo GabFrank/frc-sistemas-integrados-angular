@@ -954,11 +954,12 @@ try {
     });
 
     autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      const version = event.version || 'desconocida';
       const dialogOpts: MessageBoxOptions = {
         type: 'info',
         buttons: ['Reiniciar', 'Mas tarde'],
         title: 'Actualizacion disponible',
-        message: `${event.releaseName || 'Nueva version'} - ${event.version}`,
+        message: `Version ${version}`,
         detail: 'Una actualizacion fue descargada. Reinicie para instalarla.',
       };
 
@@ -1549,3 +1550,4 @@ async function printWithElectronPosPrinter(printer: PrinterConfig, content: stri
   }
 }// auto-update test
 // auto-update channel test
+// channel auto-update test 1775060791
