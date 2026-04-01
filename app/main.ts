@@ -265,6 +265,25 @@ ipcMain.on('set-update-channel', (event: any, channel: string) => {
   }
 })
 
+ipcMain.on('check-for-update-manual', () => {
+  if (!updateEnabled) {
+    if (win) win.webContents.send('update-status', 'Auto-update desactivado. Configure un canal primero.');
+    return;
+  }
+  autoUpdater.checkForUpdates().then(result => {
+    if (!result || !result.updateInfo) {
+      if (win) win.webContents.send('update-status', 'Ya tiene la ultima version.');
+    }
+  }).catch(err => {
+    log.error('Error checking for updates:', err);
+    if (win) win.webContents.send('update-status', `Error: ${err.message}`);
+  });
+})
+
+ipcMain.on('open-update-dialog', () => {
+  if (win) win.webContents.send('open-update-dialog');
+})
+
 ipcMain.on('reiniciar', (event: any, arg: any) => {
   relaunchElectron()
 })
@@ -923,11 +942,18 @@ try {
           ],
         },
         {
-          role: 'about',
-          label: "Sobre",
+          label: "Actualizacion",
           submenu: [
             {
-              label: app.getVersion(),
+              label: `Version: ${app.getVersion()}`,
+              enabled: false,
+            },
+            { type: 'separator' },
+            {
+              label: 'Gestionar actualizaciones...',
+              click() {
+                if (win) win.webContents.send('open-update-dialog');
+              }
             },
           ],
         }
@@ -950,12 +976,14 @@ try {
       }
     }
 
-    autoUpdater.on('update-available', () => {
+    autoUpdater.on('update-available', (info) => {
       log.info('Actualizacion disponible, descargando...');
+      if (win) win.webContents.send('update-status', `Descargando version ${info.version}...`);
     });
 
     autoUpdater.on('update-not-available', () => {
       log.info('No existen actualizaciones disponibles.');
+      if (win) win.webContents.send('update-status', 'Ya tiene la ultima version.');
     });
 
     autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
