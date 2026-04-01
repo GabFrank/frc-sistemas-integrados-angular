@@ -5,7 +5,7 @@ import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
 
-export type UpdateChannel = 'stable' | 'beta' | 'alpha';
+export type UpdateChannel = 'stable' | 'beta' | 'alpha' | 'dev';
 
 export interface ConfiguracionSistema {
   serverIp: string;
@@ -47,7 +47,7 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   pdvId: null,
   isConfigured: false,
   isLocal: true,
-  updateChannel: 'stable' as UpdateChannel
+  updateChannel: null
 };
 
 const LEGACY_KEYS = {

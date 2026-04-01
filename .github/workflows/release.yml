@@ -96,6 +96,31 @@ jobs:
       - name: Build Electron (${{ matrix.platform }})
         run: npx electron-builder ${{ matrix.args }} --publish never
 
+      - name: Generate channel manifests
+        shell: bash
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          # Determine channel from version tag
+          if [[ "${VERSION}" == *"-alpha"* ]]; then
+            CHANNEL="alpha"
+          elif [[ "${VERSION}" == *"-beta"* ]]; then
+            CHANNEL="beta"
+          else
+            CHANNEL="latest"
+          fi
+          echo "Channel: ${CHANNEL}"
+
+          # Copy manifests with channel name
+          # electron-updater looks for {channel}.yml and {channel}-linux.yml
+          for f in release/latest*.yml; do
+            if [ -f "$f" ]; then
+              NEWNAME=$(echo "$f" | sed "s/latest/${CHANNEL}/")
+              cp "$f" "$NEWNAME"
+              echo "Created $NEWNAME"
+            fi
+          done
+
       - name: Upload artifacts to GitHub Release
         shell: bash
         env:
@@ -103,4 +128,4 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
         run: |
           echo "Uploading ${{ matrix.platform }} artifacts to release v${VERSION}..."
-          gh release upload "v${VERSION}" release/FRC*.* release/latest*.yml --clobber
+          gh release upload "v${VERSION}" release/FRC*.* release/latest*.yml release/alpha*.yml release/beta*.yml --clobber 2>/dev/null || true
