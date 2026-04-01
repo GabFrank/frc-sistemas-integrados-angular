@@ -256,7 +256,7 @@ ipcMain.on('get-config-file', (event: any, arg: any) => {
 ipcMain.on('set-update-channel', (event: any, channel: string) => {
   log.info(`Update channel changed to: ${channel}`);
   if (applyUpdateChannel(channel)) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdates();
   }
 })
 
@@ -935,11 +935,11 @@ try {
 
     if (!isDev) {
       if (configureUpdateChannel()) {
-        autoUpdater.checkForUpdatesAndNotify();
+        autoUpdater.checkForUpdates();
         setInterval(() => {
           if (updateEnabled) {
             log.info('Buscando actualizacion...');
-            autoUpdater.checkForUpdatesAndNotify();
+            autoUpdater.checkForUpdates();
           }
         }, 5 * 60 * 1000); // cada 5 minutos
       }
