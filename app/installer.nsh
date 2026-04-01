@@ -1,5 +1,8 @@
 !macro customInit
-  ; Close the app if running before installing
-  ExecWait 'taskkill /F /IM "FRC.exe" /T'
-  Sleep 2000
+  ; In silent mode (auto-update), Electron already coordinates shutdown.
+  ; For manual installer runs, force-close any running instance.
+  ${IfNot} ${Silent}
+    ExecWait 'taskkill /F /IM "FRC.exe" /T'
+    Sleep 2000
+  ${EndIf}
 !macroend
