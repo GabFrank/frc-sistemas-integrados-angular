@@ -5,6 +5,8 @@ import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
 
+export type UpdateChannel = 'stable' | 'beta' | 'alpha';
+
 export interface ConfiguracionSistema {
   serverIp: string;
   serverPort: string;
@@ -20,6 +22,7 @@ export interface ConfiguracionSistema {
   pdvId: number;
   isConfigured: boolean;
   isLocal: boolean;
+  updateChannel: UpdateChannel;
 }
 
 import { environment } from '../../../environments/environment';
@@ -43,7 +46,8 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   modo: 'NOT',
   pdvId: null,
   isConfigured: false,
-  isLocal: true
+  isLocal: true,
+  updateChannel: 'stable' as UpdateChannel
 };
 
 const LEGACY_KEYS = {
@@ -305,6 +309,7 @@ export class ConfiguracionService {
       pdvId: config.pdvId ?? DEFAULT_CONFIG.pdvId,
       isConfigured: config.isConfigured ?? DEFAULT_CONFIG.isConfigured,
       isLocal: config.isLocal ?? DEFAULT_CONFIG.isLocal,
+      updateChannel: config.updateChannel || DEFAULT_CONFIG.updateChannel,
       printers: {
         ticket: config.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
         factura: config.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -535,6 +540,17 @@ export class ConfiguracionService {
       // Update the BehaviorSubject
       this.config = validConfig;
       this.configChanged.next(validConfig);
+
+      // Notify Electron main process of channel change
+      try {
+        const isElectron = window && typeof window['require'] === 'function';
+        if (isElectron) {
+          const { ipcRenderer } = window['require']('electron');
+          ipcRenderer.send('set-update-channel', validConfig.updateChannel || 'stable');
+        }
+      } catch (e) {
+        console.warn('Could not notify main process of update channel change:', e);
+      }
     } catch (e) {
       console.error('Error saving configuration:', e);
     }
@@ -565,7 +581,8 @@ export class ConfiguracionService {
           modo: localStorage.getItem(LEGACY_KEYS.modo) || 'NOT',
           pdvId: parseInt(localStorage.getItem(LEGACY_KEYS.pdvId) || '1', 10),
           isConfigured: false,
-          isLocal: true
+          isLocal: true,
+          updateChannel: DEFAULT_CONFIG.updateChannel
         };
 
         // Save the migrated config
@@ -613,6 +630,7 @@ export class ConfiguracionService {
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false, // Always mark as not configured since it's from a file
             isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: response.updateChannel || DEFAULT_CONFIG.updateChannel,
             printers: {
               ticket: response.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
               factura: response.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -637,7 +655,8 @@ export class ConfiguracionService {
             modo: response.modo || DEFAULT_CONFIG.modo,
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false,
-            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal
+            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: DEFAULT_CONFIG.updateChannel
           };
         }
 

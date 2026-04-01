@@ -14,7 +14,42 @@ const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver
 autoUpdater.logger = log;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
-autoUpdater.allowPrerelease = true;
+
+function configureUpdateChannel(): void {
+  try {
+    const configPath = path.join(app.getPath('userData'), 'config', 'config-backup.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const channel = config.updateChannel || 'stable';
+      log.info(`Update channel from config: ${channel}`);
+      applyUpdateChannel(channel);
+    } else {
+      log.info('No config file found, defaulting to stable channel');
+      applyUpdateChannel('stable');
+    }
+  } catch (e) {
+    log.error('Error reading update channel config:', e);
+    applyUpdateChannel('stable');
+  }
+}
+
+function applyUpdateChannel(channel: string): void {
+  switch (channel) {
+    case 'alpha':
+      autoUpdater.allowPrerelease = true;
+      autoUpdater.channel = 'alpha';
+      break;
+    case 'beta':
+      autoUpdater.allowPrerelease = true;
+      autoUpdater.channel = 'beta';
+      break;
+    default:
+      autoUpdater.allowPrerelease = false;
+      autoUpdater.channel = 'latest';
+      break;
+  }
+  log.info(`Auto-updater configured: channel=${autoUpdater.channel}, allowPrerelease=${autoUpdater.allowPrerelease}`);
+}
 
 interface PrinterConfig {
   id: number;
@@ -200,6 +235,11 @@ export async function createWindow(): Promise<BrowserWindow> {
 
 ipcMain.on('get-config-file', (event: any, arg: any) => {
   console.log(arg)
+})
+
+ipcMain.on('set-update-channel', (event: any, channel: string) => {
+  log.info(`Update channel changed to: ${channel}`);
+  applyUpdateChannel(channel);
 })
 
 ipcMain.on('reiniciar', (event: any, arg: any) => {
@@ -876,6 +916,7 @@ try {
     });
 
     if (!isDev) {
+      configureUpdateChannel();
       autoUpdater.checkForUpdatesAndNotify();
       setInterval(() => {
         log.info('Buscando actualizacion...');
