@@ -128,4 +128,14 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
         run: |
           echo "Uploading ${{ matrix.platform }} artifacts to release v${VERSION}..."
-          gh release upload "v${VERSION}" release/FRC*.* release/latest*.yml release/alpha*.yml release/beta*.yml --clobber 2>/dev/null || true
+          # Collect all files to upload (avoid glob expansion failures)
+          FILES=""
+          for f in release/FRC*.* release/latest*.yml release/alpha*.yml release/beta*.yml; do
+            [ -f "$f" ] && FILES="$FILES $f"
+          done
+          if [ -n "$FILES" ]; then
+            gh release upload "v${VERSION}" $FILES --clobber
+          else
+            echo "WARNING: No artifacts found to upload!"
+            exit 1
+          fi
