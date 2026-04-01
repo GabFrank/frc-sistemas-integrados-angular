@@ -581,7 +581,8 @@ export class ConfiguracionService {
           modo: localStorage.getItem(LEGACY_KEYS.modo) || 'NOT',
           pdvId: parseInt(localStorage.getItem(LEGACY_KEYS.pdvId) || '1', 10),
           isConfigured: false,
-          isLocal: true
+          isLocal: true,
+          updateChannel: DEFAULT_CONFIG.updateChannel
         };
 
         // Save the migrated config
@@ -629,6 +630,7 @@ export class ConfiguracionService {
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false, // Always mark as not configured since it's from a file
             isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: response.updateChannel || DEFAULT_CONFIG.updateChannel,
             printers: {
               ticket: response.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
               factura: response.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -653,7 +655,8 @@ export class ConfiguracionService {
             modo: response.modo || DEFAULT_CONFIG.modo,
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false,
-            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal
+            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: DEFAULT_CONFIG.updateChannel
           };
         }
 
