@@ -121,6 +121,11 @@ export async function createWindow(): Promise<BrowserWindow> {
   ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
 
     try {
+      if (!Notification.isSupported()) {
+        log.warn('Native notifications not supported on this system, skipping');
+        return;
+      }
+
       const title = notification?.notification?.title ||
         notification?.data?.title ||
         'FRC Sistemas Integrados';
@@ -154,7 +159,7 @@ export async function createWindow(): Promise<BrowserWindow> {
       nativeNotification.show();
 
     } catch (error) {
-      // Silent notification error
+      log.warn('Error showing native notification:', error);
     }
   });
 
