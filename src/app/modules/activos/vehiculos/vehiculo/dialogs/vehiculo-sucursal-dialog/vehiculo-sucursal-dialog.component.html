@@ -22,25 +22,25 @@
                 mat-icon-button
                 matSuffix
                 *ngIf="selectedVehiculo"
-                (click)="selectedVehiculo = null; vehiculoControlDisplay.setValue(''); form.patchValue({vehiculoControl: null}); $event.stopPropagation()"
+                (click)="selectedVehiculo = null; vehiculoControlDisplay.setValue(''); vehiculoControl.setValue(null); $event.stopPropagation()"
                 style="margin-right: -8px;"
             >
                 <mat-icon>clear</mat-icon>
             </button>
-            <mat-error *ngIf="form.get('vehiculoControl')?.hasError('required')">
+            <mat-error *ngIf="vehiculoControl.hasError('required')">
                 El vehículo es requerido
             </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="width: 100%;">
             <mat-label>Sucursal *</mat-label>
-            <mat-select [formControl]="form.get('sucursalControl')!">
+            <mat-select [formControl]="sucursalControl">
                 <mat-option [value]="null">Seleccionar Sucursal</mat-option>
                 <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
                     {{ sucursal.nombre }}
                 </mat-option>
             </mat-select>
-            <mat-error *ngIf="form.get('sucursalControl')?.hasError('required')">
+            <mat-error *ngIf="sucursalControl.hasError('required')">
                 La sucursal es requerida
             </mat-error>
         </mat-form-field>
@@ -59,7 +59,7 @@
                 mat-icon-button
                 matSuffix
                 *ngIf="selectedResponsable"
-                (click)="selectedResponsable = null; responsableControlDisplay.setValue(''); form.patchValue({responsableControl: null}); $event.stopPropagation()"
+                (click)="selectedResponsable = null; responsableControlDisplay.setValue(''); responsableControl.setValue(null); $event.stopPropagation()"
                 style="margin-right: -8px;"
             >
                 <mat-icon>clear</mat-icon>

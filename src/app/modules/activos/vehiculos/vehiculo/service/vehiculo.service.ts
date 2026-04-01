@@ -72,12 +72,8 @@ export class VehiculoService {
   private enteService = inject(EnteService);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
-  private _vehiculoDialogService: VehiculoDialogService;
-  private get vehiculoDialogService(): VehiculoDialogService {
-    if (!this._vehiculoDialogService) {
-      this._vehiculoDialogService = this.injector.get(VehiculoDialogService);
-    }
-    return this._vehiculoDialogService;
+  abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
+    return this.injector.get(VehiculoDialogService).abrirFormulario(vehiculo);
   }
   private vehiculosSubject = new BehaviorSubject<Vehiculo[]>([]);
   public vehiculos$ = this.vehiculosSubject.asObservable();
@@ -178,9 +174,7 @@ export class VehiculoService {
     }
   }
 
-  abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
-    return this.vehiculoDialogService.abrirFormulario(vehiculo);
-  }
+
 
   updatePagination(pageIndex: number, pageSize: number): void {
     this._paginationState$.next({ pageIndex, pageSize });

@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Gps } from '../../models/gps.model';
 import { GpsService } from '../../service/gps.service';
-import { take, timeout } from 'rxjs/operators';
+import { take, timeout, startWith, map } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Observable } from 'rxjs';
 
 interface LoadingState {
   motor: boolean;
@@ -34,6 +35,30 @@ export class GpsConfigDialogComponent implements OnInit {
   configForm: FormGroup;
   gps: Gps = this.data;
   
+  // Controles
+  motorEstadoControl = new FormControl(!this.data.motorBloqueado);
+  sleepModeControl = new FormControl(this.data.modoSueno || false);
+  reportIntervalControl = new FormControl(this.data.intervaloReporte || 30);
+  velocidadLimiteControl = new FormControl(this.data.velocidadLimite ?? 100);
+  alertaVelocidadControl = new FormControl(this.data.alertaVelocidad ?? true);
+  alertaVibracionControl = new FormControl(this.data.alertaVibracion ?? false);
+  alertaBateriaBajaControl = new FormControl(this.data.alertaBateriaBaja ?? true);
+  alertaAccControl = new FormControl(this.data.alertaAcc ?? true);
+  apnNameControl = new FormControl('internet');
+
+  // Observables para el template
+  motorLabel$: Observable<string>;
+  motorStatusDesc$: Observable<string>;
+  motorEnabled$: Observable<boolean>;
+  sleepModeEnabled$: Observable<boolean>;
+  reportInterval$: Observable<number>;
+  alertaVelocidadEnabled$: Observable<boolean>;
+  velocidadLimite$: Observable<number>;
+  alertaVibracionEnabled$: Observable<boolean>;
+  alertaBateriaBajaEnabled$: Observable<boolean>;
+  alertaAccEnabled$: Observable<boolean>;
+  apnName$: Observable<string>;
+
   loading: LoadingState = {
     motor: false,
     sleep: false,
@@ -47,34 +72,47 @@ export class GpsConfigDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
+    this.initObservables();
   }
 
   initForm(): void {
     this.configForm = this.fb.group({
-      motorEstado: [!this.gps.motorBloqueado],
-      sleepMode: [this.gps.modoSueno || false],
-      reportInterval: [this.gps.intervaloReporte || 30],
-      velocidadLimite: [this.gps.velocidadLimite ?? 100],
-      alertaVelocidad: [this.gps.alertaVelocidad ?? true],
-      alertaVibracion: [this.gps.alertaVibracion ?? false],
-      alertaBateriaBaja: [this.gps.alertaBateriaBaja ?? true],
-      alertaAcc: [this.gps.alertaAcc ?? true],
-      apnName: ['internet']
+      motorEstado: this.motorEstadoControl,
+      sleepMode: this.sleepModeControl,
+      reportInterval: this.reportIntervalControl,
+      velocidadLimite: this.velocidadLimiteControl,
+      alertaVelocidad: this.alertaVelocidadControl,
+      alertaVibracion: this.alertaVibracionControl,
+      alertaBateriaBaja: this.alertaBateriaBajaControl,
+      alertaAcc: this.alertaAccControl,
+      apnName: this.apnNameControl
     });
   }
 
-  getControlValue(controlName: string): any {
-    return this.configForm.get(controlName)?.value;
-  }
+  initObservables(): void {
+    this.motorEnabled$ = this.motorEstadoControl.valueChanges.pipe(startWith(this.motorEstadoControl.value));
+    this.sleepModeEnabled$ = this.sleepModeControl.valueChanges.pipe(startWith(this.sleepModeControl.value));
+    this.reportInterval$ = this.reportIntervalControl.valueChanges.pipe(startWith(this.reportIntervalControl.value));
+    this.alertaVelocidadEnabled$ = this.alertaVelocidadControl.valueChanges.pipe(startWith(this.alertaVelocidadControl.value));
+    this.velocidadLimite$ = this.velocidadLimiteControl.valueChanges.pipe(startWith(this.velocidadLimiteControl.value));
+    this.alertaVibracionEnabled$ = this.alertaVibracionControl.valueChanges.pipe(startWith(this.alertaVibracionControl.value));
+    this.alertaBateriaBajaEnabled$ = this.alertaBateriaBajaControl.valueChanges.pipe(startWith(this.alertaBateriaBajaControl.value));
+    this.alertaAccEnabled$ = this.alertaAccControl.valueChanges.pipe(startWith(this.alertaAccControl.value));
+    this.apnName$ = this.apnNameControl.valueChanges.pipe(startWith(this.apnNameControl.value));
 
-  getMotorLabel(): string {
-    return this.getControlValue('motorEstado') ? 'MOTOR ENCENDIDO' : 'MOTOR BLOQUEADO';
+    this.motorLabel$ = this.motorEnabled$.pipe(
+      map(enabled => enabled ? 'MOTOR ENCENDIDO' : 'MOTOR BLOQUEADO')
+    );
+
+    this.motorStatusDesc$ = this.motorEnabled$.pipe(
+      map(enabled => enabled ? 'El motor está habilitado' : 'El motor se encuentra bloqueado')
+    );
   }
 
   onUpdateMotor(): void {
     this.loading.motor = true;
     this.cdr.markForCheck();
-    const motorTipo = this.getControlValue('motorEstado') ? 'MOTOR_ON' : 'MOTOR_OFF';
+    const motorTipo = this.motorEstadoControl.value ? 'MOTOR_ON' : 'MOTOR_OFF';
     
     this.gpsService.onEnviarComando(this.gps.id, motorTipo)
       .pipe(
@@ -85,7 +123,7 @@ export class GpsConfigDialogComponent implements OnInit {
       .subscribe({
         next: () => { 
           this.loading.motor = false; 
-          this.gps.motorBloqueado = !this.getControlValue('motorEstado');
+          this.gps.motorBloqueado = !this.motorEstadoControl.value;
           this.cdr.markForCheck(); 
         },
         error: () => { 
@@ -98,7 +136,7 @@ export class GpsConfigDialogComponent implements OnInit {
   onUpdateSleep(): void {
     this.loading.sleep = true;
     this.cdr.markForCheck();
-    const sleepTipo = this.getControlValue('sleepMode') ? 'SLEEP_ON' : 'SLEEP_OFF';
+    const sleepTipo = this.sleepModeControl.value ? 'SLEEP_ON' : 'SLEEP_OFF';
     
     this.gpsService.onEnviarComando(this.gps.id, sleepTipo)
       .pipe(
@@ -109,7 +147,7 @@ export class GpsConfigDialogComponent implements OnInit {
       .subscribe({
         next: () => { 
           this.loading.sleep = false; 
-          this.gps.modoSueno = this.getControlValue('sleepMode');
+          this.gps.modoSueno = !!this.sleepModeControl.value;
           this.cdr.markForCheck(); 
         },
         error: () => { 
@@ -122,7 +160,7 @@ export class GpsConfigDialogComponent implements OnInit {
   onUpdateInterval(): void {
     this.loading.interval = true;
     this.cdr.markForCheck();
-    const intervalValue = this.getControlValue('reportInterval');
+    const intervalValue = this.reportIntervalControl.value || 30;
     
     this.gpsService.onEnviarComando(this.gps.id, 'INTERVALO', intervalValue.toString())
       .pipe(
@@ -146,7 +184,7 @@ export class GpsConfigDialogComponent implements OnInit {
   onUpdateApn(): void {
     this.loading.apn = true;
     this.cdr.markForCheck();
-    const apn = this.getControlValue('apnName');
+    const apn = this.apnNameControl.value;
     const valor = [apn, '', ''].join(',');
     
     this.gpsService.onEnviarComando(this.gps.id, 'APN', valor)
@@ -173,11 +211,11 @@ export class GpsConfigDialogComponent implements OnInit {
     
     this.gpsService.onGuardarConfigAlertas(
       this.gps.id,
-      this.getControlValue('alertaVelocidad'),
-      this.getControlValue('velocidadLimite'),
-      this.getControlValue('alertaVibracion'),
-      this.getControlValue('alertaBateriaBaja'),
-      this.getControlValue('alertaAcc')
+      !!this.alertaVelocidadControl.value,
+      this.velocidadLimiteControl.value || 100,
+      !!this.alertaVibracionControl.value,
+      !!this.alertaBateriaBajaControl.value,
+      !!this.alertaAccControl.value
     )
       .pipe(
         take(1),
@@ -203,4 +241,3 @@ export class GpsConfigDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 }
-

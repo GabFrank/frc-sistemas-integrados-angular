@@ -5,7 +5,7 @@ import { take, tap } from 'rxjs/operators';
 import { GpsService } from './gps.service';
 import { Gps } from '../models/gps.model';
 import { GpsInput } from '../models/gps-input.model';
-import { GpsComponent } from '../dialogs/gps-form/gps.component';
+import { GPSComponent } from '../dialogs/gps-form/gps.component';
 import { GpsConfigDialogComponent } from '../dialogs/gps-config-dialog/gps-config-dialog.component';
 import { Vehiculo } from '../../vehiculo/models/vehiculo.model';
 import { AssetCommonDialogService } from '../../../../../shared/services/asset-common-dialog.service';
@@ -19,7 +19,7 @@ export class GpsDialogService {
   private assetCommonDialogService = inject(AssetCommonDialogService);
 
   abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
-    const dialogRef = this.dialog.open(GpsComponent, {
+    const dialogRef = this.dialog.open(GPSComponent, {
       width: '800px',
       data: gps,
       disableClose: true,

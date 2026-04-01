@@ -45,13 +45,6 @@ export class MuebleService {
   private saveTipoGQL = inject(SaveTipoMuebleGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
-  private _muebleDialogService: MuebleDialogService;
-  private get muebleDialogService(): MuebleDialogService {
-    if (!this._muebleDialogService) {
-      this._muebleDialogService = this.injector.get(MuebleDialogService);
-    }
-    return this._muebleDialogService;
-  }
 
   private mueblesSubject = new BehaviorSubject<Mueble[]>([]);
   public muebles$ = this.mueblesSubject.asObservable();
@@ -109,7 +102,7 @@ export class MuebleService {
   }
 
   abrirFormulario(mueble?: Mueble): Observable<boolean | undefined> {
-    return this.muebleDialogService.abrirFormulario(mueble);
+    return this.injector.get(MuebleDialogService).abrirFormulario(mueble);
   }
 
   onGuardar(input: MuebleInput): Observable<Mueble> {

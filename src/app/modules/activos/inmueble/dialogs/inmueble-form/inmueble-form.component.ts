@@ -5,6 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { InmuebleService } from '../../service/inmueble.service';
 import { InmuebleDialogService } from '../../service/inmueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { startWith } from 'rxjs/operators';
 import { Inmueble } from '../../models/inmueble.model';
 import { Pais } from '../../../../general/pais/pais.model';
 import { Ciudad } from '../../../../general/ciudad/ciudad.model';
@@ -26,6 +27,11 @@ export class InmuebleFormComponent implements OnInit {
   form: FormGroup;
   inmueble: Inmueble;
   
+  situacionPagoControl = this.fb.control('PAGADO');
+  situacionPago$ = this.situacionPagoControl.valueChanges.pipe(
+    startWith(this.situacionPagoControl.value)
+  );
+
   situacionesPago = ['PAGADO', 'PAGANDO', 'DADO', 'GANADO'];
   monedas = ['PYG', 'USD', 'BRL'];
   currencyMask = new CurrencyMask();
@@ -77,7 +83,7 @@ export class InmuebleFormComponent implements OnInit {
       valorTasacion: [0],
       valorTasacionPyg: [0],
       valorTasacionBrl: [0],
-      situacionPago: ['PAGADO'],
+      situacionPago: this.situacionPagoControl,
       proveedorId: [null],
       monedaId: [null],
       montoTotal: [0],
@@ -140,7 +146,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarPropietario((persona: Persona) => {
       this.propietarioSelected = persona;
       this.propietarioDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.get('propietarioId')?.setValue(persona.id);
+      this.form.controls['propietarioId'].setValue(persona.id);
       this.cdr.markForCheck();
     });
   }
@@ -149,7 +155,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarProveedor((persona: Persona) => {
       this.proveedorSelected = persona;
       this.proveedorDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.get('proveedorId')?.setValue(persona.id);
+      this.form.controls['proveedorId'].setValue(persona.id);
       this.cdr.markForCheck();
     });
   }
@@ -158,7 +164,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarMoneda((moneda: any) => {
       this.monedaSelected = moneda;
       this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase() || '';
-      this.form.get('monedaId')?.setValue(moneda.id);
+      this.form.controls['monedaId'].setValue(moneda.id);
       this.cdr.markForCheck();
     });
   }
@@ -167,7 +173,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarPais((pais: Pais) => {
       this.paisSelected = pais;
       this.paisDescripcion = pais.descripcion?.toUpperCase() || '';
-      this.form.get('paisId')?.setValue(pais.id);
+      this.form.controls['paisId'].setValue(pais.id);
       this.cdr.markForCheck();
     });
   }
@@ -176,7 +182,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarCiudad((ciudad: Ciudad) => {
       this.ciudadSelected = ciudad;
       this.ciudadDescripcion = ciudad.descripcion?.toUpperCase() || '';
-      this.form.get('ciudadId')?.setValue(ciudad.id);
+      this.form.controls['ciudadId'].setValue(ciudad.id);
       this.cdr.markForCheck();
     });
   }

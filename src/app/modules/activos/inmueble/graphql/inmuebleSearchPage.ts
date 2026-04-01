@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { PageInfo } from '../../../../app.component';
 import { Inmueble } from '../models/inmueble.model';
 import { inmuebleSearchPageQuery } from './graphql-query';
+import { PageInfo } from '../../../../app.component';
 
 export interface Response {
     data: PageInfo<Inmueble>;

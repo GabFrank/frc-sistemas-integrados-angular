@@ -11,11 +11,9 @@ import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { MatDialog } from '@angular/material/dialog';
 import { EnteSucursalDialogComponent } from '../../dialogs/ente-sucursal-dialog/ente-sucursal-dialog.component';
-import { filter } from 'rxjs/operators';
-import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
-import { EnteSucursal } from '../../models/ente-sucursal.model';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
-import { forkJoin, Observable, of } from 'rxjs';
+import { combineLatest, forkJoin, Observable, of } from 'rxjs';
+import { catchError, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
 import { MuebleService } from '../../../muebles/service/mueble.service';
 import { InmuebleService } from '../../../inmueble/service/inmueble.service';
@@ -23,7 +21,8 @@ import { VehiculoService } from '../../../vehiculos/vehiculo/service/vehiculo.se
 import { Mueble } from '../../../muebles/models/mueble.model';
 import { Inmueble } from '../../../inmueble/models/inmueble.model';
 import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
-import { catchError, map } from 'rxjs/operators';
+import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
+import { EnteSucursal } from '../../models/ente-sucursal.model';
 
 interface BienFinancieroRow {
   id?: number;
@@ -43,6 +42,7 @@ interface BienFinancieroRow {
   diaVencimiento: number;
   diasParaVencer: number;
   estadoCuota: 'PAGADO' | 'AL DIA' | 'POR VENCER' | 'VENCIDO' | 'SIN PLAN';
+  estadoCuotaClass: string;
   proveedor: string;
   detalleGastos: { concepto: string; monto: number; moneda: string }[];
   sucursalIds: number[];
@@ -79,13 +79,53 @@ export class ListBienesSucursalComponent implements OnInit {
   public sucursalService = inject(SucursalService);
   private matDialog = inject(MatDialog);
   private notificationService = inject(NotificacionSnackbarService);
-  private muebleService = inject(MuebleService);
+  private muebleService = inject(MuebleService); // Inyectamos el servicio de muebles
   private inmuebleService = inject(InmuebleService);
   private vehiculoService = inject(VehiculoService);
 
-  dataSource = new MatTableDataSource<BienFinancieroRow>();
-  private entesActuales: Ente[] = [];
-  private allRowsCurrentPage: BienFinancieroRow[] = [];
+  sucursalControl = new FormControl<number | null>(null);
+  tipoControl = new FormControl<TipoEnte | null>(null);
+  estadoPagoControl = new FormControl<string | null>(null);
+  estadoCuotaControl = new FormControl<string | null>(null);
+
+  public allRows$ = this.enteService.entes$.pipe(
+    switchMap(entes => {
+      if (!entes?.length) return of([]);
+      return forkJoin(entes.map(ente => this.armarFila(ente)));
+    }),
+    tap(rows => {
+      this.tiposDisponibles = Array.from(new Set(rows.map(r => r.tipoEnte).filter((v): v is TipoEnte => !!v)));
+      this.estadosPagoDisponibles = Array.from(new Set(rows.map(r => r.situacionPago).filter(Boolean)));
+      this.monedaPrincipal = this.detectarMonedaPrincipal(rows);
+    }),
+    shareReplay(1)
+  );
+
+  public filteredRows$ = combineLatest([
+    this.allRows$,
+    this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value)),
+    this.tipoControl.valueChanges.pipe(startWith(this.tipoControl.value)),
+    this.estadoPagoControl.valueChanges.pipe(startWith(this.estadoPagoControl.value)),
+    this.estadoCuotaControl.valueChanges.pipe(startWith(this.estadoCuotaControl.value))
+  ]).pipe(
+    map(([rows, sucursalId, tipo, estadoPago, estadoCuota]) => {
+      return (rows || []).filter(row =>
+        (!sucursalId || row.sucursalIds.includes(sucursalId) || row.sucursalIds.length === 0) &&
+        (!tipo || row.tipoEnte === tipo) &&
+        (!estadoPago || row.situacionPago === estadoPago) &&
+        (!estadoCuota || row.estadoCuota === estadoCuota)
+      );
+    }),
+    tap(() => {
+      this.expandedRow = null;
+    }),
+    shareReplay(1)
+  );
+
+  public resumen$ = this.filteredRows$.pipe(
+    map(rows => this.crearResumen(rows || []))
+  );
+
   expandedRow: BienFinancieroRow | null = null;
 
   displayedColumns: string[] = [
@@ -101,24 +141,11 @@ export class ListBienesSucursalComponent implements OnInit {
     'acciones'
   ];
 
-  sucursalControl = new FormControl<number | null>(null);
-  tipoControl = new FormControl<TipoEnte | null>(null);
-  estadoPagoControl = new FormControl<string | null>(null);
-  estadoCuotaControl = new FormControl<string | null>(null);
   sucursales: Sucursal[] = [];
   tiposDisponibles: TipoEnte[] = [];
   estadosPagoDisponibles: string[] = [];
   estadosCuotaDisponibles: string[] = ['PAGADO', 'AL DIA', 'POR VENCER', 'VENCIDO', 'SIN PLAN'];
   monedaPrincipal = 'Gs.';
-  resumen: DashboardResumen = {
-    totalBienes: 0,
-    pagados: 0,
-    enPago: 0,
-    cuotasFaltantes: 0,
-    totalGastado: 0,
-    totalComprometido: 0,
-    totalPendiente: 0
-  };
 
   ngOnInit(): void {
     this.sucursalControl.setValue(null);
@@ -131,27 +158,6 @@ export class ListBienesSucursalComponent implements OnInit {
     });
 
     this.enteService.refrescar();
-    this.initDataStream();
-
-    this.sucursalControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe(val => {
-        this.aplicarFiltrosLocales();
-      });
-
-    this.tipoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltrosLocales());
-    this.estadoPagoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltrosLocales());
-    this.estadoCuotaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltrosLocales());
-  }
-
-  private initDataStream(): void {
-    this.enteService.entes$
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.entesActuales = res || [];
-        this.cargarDatosFinancieros(this.entesActuales, false);
-        this.cdr.markForCheck();
-      });
   }
 
   onAdicionar(): void {
@@ -205,25 +211,6 @@ export class ListBienesSucursalComponent implements OnInit {
     });
   }
 
-  private asignarBienASucursal(enteId: number, sucursalId: number): void {
-    const input: EnteSucursalInput = {
-      enteId,
-      sucursalId,
-      usuarioId: this.mainService.usuarioActual?.id
-    };
-
-    this.enteService.onGuardarEnteSucursal(input).subscribe(res => {
-      if (res) {
-        this.notificationService.notification$.next({
-          texto: 'Bien asignado correctamente',
-          color: NotificacionColor.success,
-          duracion: 2
-        });
-        this.enteService.refrescar();
-      }
-    });
-  }
-
   onRetirarDeSucursal(ente: BienFinancieroRow): void {
     const sucursalId = this.sucursalControl.value;
     if (!sucursalId || !ente?.id) return;
@@ -244,6 +231,14 @@ export class ListBienesSucursalComponent implements OnInit {
     });
   }
 
+  onSolicitarPago(row: BienFinancieroRow): void {
+    this.notificationService.notification$.next({
+      texto: `Solicitud de pago iniciada para: ${row.descripcion}`,
+      color: NotificacionColor.info,
+      duracion: 2
+    });
+  }
+
   onFiltrar(): void {
     this.enteService.refrescar();
   }
@@ -258,31 +253,6 @@ export class ListBienesSucursalComponent implements OnInit {
     this.estadoPagoControl.setValue(null);
     this.estadoCuotaControl.setValue(null);
     this.enteService.refrescar();
-  }
-
-  private cargarDatosFinancieros(entes: Ente[], isGlobal: boolean): void {
-    if (!entes.length) {
-      const vacio = this.crearResumen([]);
-      if (!isGlobal) {
-        this.dataSource.data = [];
-        this.resumen = vacio;
-      }
-      this.cdr.markForCheck();
-      return;
-    }
-
-    forkJoin(entes.map(ente => this.armarFila(ente)))
-      .pipe(untilDestroyed(this))
-      .subscribe((rows) => {
-        if (!isGlobal) {
-          this.allRowsCurrentPage = rows;
-          this.tiposDisponibles = Array.from(new Set(rows.map(r => r.tipoEnte).filter((v): v is TipoEnte => !!v)));
-          this.estadosPagoDisponibles = Array.from(new Set(rows.map(r => r.situacionPago).filter(Boolean)));
-          this.aplicarFiltrosLocales();
-          this.monedaPrincipal = this.detectarMonedaPrincipal(rows);
-        }
-        this.cdr.markForCheck();
-      });
   }
 
   private armarFila(ente: Ente): Observable<BienFinancieroRow> {
@@ -326,6 +296,7 @@ export class ListBienesSucursalComponent implements OnInit {
           diaVencimiento,
           diasParaVencer,
           estadoCuota,
+          estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
           proveedor: detalle?.proveedor?.nombre || 'No definido',
           detalleGastos,
           sucursalIds: sucursalesData.ids
@@ -349,6 +320,7 @@ export class ListBienesSucursalComponent implements OnInit {
         diaVencimiento: 0,
         diasParaVencer: 0,
         estadoCuota: 'SIN PLAN' as const,
+        estadoCuotaClass: 'estado-sin-plan',
         proveedor: 'No definido',
         detalleGastos: [],
         sucursalIds: []
@@ -493,40 +465,17 @@ export class ListBienesSucursalComponent implements OnInit {
     } as DashboardResumen);
   }
 
-  private aplicarFiltrosLocales(): void {
-    const sucursalId = this.sucursalControl.value;
-    const tipo = this.tipoControl.value;
-    const estadoPago = this.estadoPagoControl.value;
-    const estadoCuota = this.estadoCuotaControl.value;
-    this.expandedRow = null;
-    const filtrados = (this.allRowsCurrentPage || []).filter(row =>
-      (!sucursalId || row.sucursalIds.includes(sucursalId) || row.sucursalIds.length === 0) &&
-      (!tipo || row.tipoEnte === tipo) &&
-      (!estadoPago || row.situacionPago === estadoPago) &&
-      (!estadoCuota || row.estadoCuota === estadoCuota)
-    );
-    this.dataSource.data = filtrados;
-    this.resumen = this.crearResumen(filtrados);
-    this.cdr.markForCheck();
-  }
-
   toggleExpand(row: BienFinancieroRow): void {
     this.expandedRow = this.expandedRow?.id === row.id ? null : row;
   }
 
-  getEstadoCuotaClass(row: BienFinancieroRow): string {
-    switch (row.estadoCuota) {
-      case 'PAGADO':
-        return 'estado-pagado';
-      case 'VENCIDO':
-        return 'estado-vencido';
-      case 'POR VENCER':
-        return 'estado-por-vencer';
-      case 'AL DIA':
-        return 'estado-al-dia';
-      default:
-        return 'estado-sin-plan';
+  private resolveEstadoCuotaClass(estado: string): string {
+    switch (estado) {
+      case 'PAGADO': return 'estado-pagado';
+      case 'VENCIDO': return 'estado-vencido';
+      case 'POR VENCER': return 'estado-por-vencer';
+      case 'AL DIA': return 'estado-al-dia';
+      default: return 'estado-sin-plan';
     }
   }
-
 }

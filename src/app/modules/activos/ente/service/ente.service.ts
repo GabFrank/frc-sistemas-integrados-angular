@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, tap, map } from 'rxjs/operators';
+import { MatDialog } from '@angular/material/dialog';
 import { EnteByIdGQL } from '../graphql/enteById';
 import { SaveEnteGQL } from '../graphql/saveEnte';
 import { DeleteEnteGQL } from '../graphql/deleteEnte';
@@ -16,7 +17,13 @@ import { EnteInput } from '../models/ente-input.model';
 import { EnteSucursalInput } from '../models/ente-sucursal-input.model';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
-import { map } from 'rxjs/operators';
+import { MainService } from '../../../../main.service';
+import { VehiculoSearchPageGQL } from '../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
+import { MuebleSearchPageGQL } from '../../muebles/graphql/muebleSearchPage';
+import { InmuebleSearchPageGQL } from '../../inmueble/graphql/inmuebleSearchPage';
+import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +38,12 @@ export class EnteService {
   private deleteEnteSucursalGQL = inject(DeleteEnteSucursalGQL);
   private entesSucursalesByEnteIdGQL = inject(EntesSucursalesByEnteIdGQL);
   private enteByReferenciaIdGQL = inject(EnteByReferenciaIdGQL);
+  private dialog = inject(MatDialog);
+  private mainService = inject(MainService);
+  private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
+  private muebleSearchPageGQL = inject(MuebleSearchPageGQL);
+  private inmuebleSearchPageGQL = inject(InmuebleSearchPageGQL);
+  private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
 
   private entesSubject = new BehaviorSubject<Ente[]>([]);
   private totalElementsSubject = new BehaviorSubject<number>(0);
@@ -119,5 +132,105 @@ export class EnteService {
 
   onEliminarEnteSucursal(id: number): Observable<boolean> {
     return this.genericService.onDelete(this.deleteEnteSucursalGQL, id, '¿Desvincular de la sucursal?', null, true, true, '¿Está seguro que desea retirar este bien de la sucursal?');
+  }
+
+  abrirBuscadorEnte(tipo: TipoEnte): Observable<Ente | undefined> {
+    let query: any;
+    let tableData: TableData[] = [];
+    let titulo = '';
+
+    switch (tipo) {
+      case TipoEnte.VEHICULO:
+        query = this.vehiculoSearchPageGQL;
+        titulo = 'Buscar Vehículo';
+        tableData = [
+          { id: 'id', nombre: 'Id', width: '10%' },
+          { id: 'chapa', nombre: 'Chapa', width: '30%' },
+          { id: 'modelo.marca.descripcion', nombre: 'Marca', width: '30%' },
+          { id: 'modelo.descripcion', nombre: 'Modelo', width: '30%' }
+        ];
+        break;
+      case TipoEnte.MUEBLE:
+        query = this.muebleSearchPageGQL;
+        titulo = 'Buscar Mueble';
+        tableData = [
+          { id: 'id', nombre: 'Id', width: '10%' },
+          { id: 'descripcion', nombre: 'Descripción', width: '90%' }
+        ];
+        break;
+      case TipoEnte.INMUEBLE:
+        query = this.inmuebleSearchPageGQL;
+        titulo = 'Buscar Inmueble';
+        tableData = [
+          { id: 'id', nombre: 'Id', width: '10%' },
+          { id: 'nombreAsignado', nombre: 'Descripción', width: '90%' }
+        ];
+        break;
+    }
+
+    if (!query) return of(undefined);
+
+    const data: SearchListtDialogData = {
+      query,
+      tableData,
+      titulo,
+      search: true,
+      inicialSearch: true,
+      paginator: true,
+      isServidor: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      data,
+      width: '70vw',
+      height: '80vh',
+      disableClose: false,
+      autoFocus: false
+    }).afterClosed().pipe(
+      switchMap((res: any) => {
+        if (res) {
+          return this.onGetByReferenciaId(tipo, res.id).pipe(
+            switchMap(ente => {
+              if (ente) {
+                return of(ente);
+              } else {
+                const input: EnteInput = {
+                  tipoEnte: tipo,
+                  referenciaId: res.id,
+                  activo: true,
+                  usuarioId: this.mainService.usuarioActual?.id
+                };
+                return this.onGuardar(input);
+              }
+            })
+          );
+        }
+        return of(undefined);
+      })
+    );
+  }
+
+  abrirBuscadorResponsable(): Observable<Funcionario | undefined> {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'Id' },
+      { id: 'persona.nombre', nombre: 'Nombre' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.funcionarioSearchGQL,
+      tableData,
+      titulo: 'Buscar Responsable',
+      search: true,
+      inicialSearch: true,
+      isServidor: true
+    };
+
+    return this.dialog.open(SearchListDialogComponent, {
+      data,
+      width: '60vw',
+      height: '80vh',
+      disableClose: false,
+      autoFocus: false
+    }).afterClosed();
   }
 }

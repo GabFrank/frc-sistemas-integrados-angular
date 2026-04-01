@@ -16,9 +16,7 @@ import { MuebleService } from '../../service/mueble.service';
 })
 export class ListMueblesComponent implements OnInit {
   public muebleService = inject(MuebleService);
-  private cdr = inject(ChangeDetectorRef);
-
-  dataSource = new MatTableDataSource<Mueble>();
+  muebles$ = this.muebleService.muebles$;
 
   displayedColumns: string[] = ['id', 'identificador', 'descripcion', 'familiaTipo', 'propietario', 'tasacion', 'acciones'];
 
@@ -27,7 +25,6 @@ export class ListMueblesComponent implements OnInit {
   ngOnInit(): void {
     this.muebleService.refrescar();
     this.initFiltros();
-    this.initDataStream();
   }
 
   private initFiltros(): void {
@@ -42,14 +39,7 @@ export class ListMueblesComponent implements OnInit {
       });
   }
 
-  private initDataStream(): void {
-    this.muebleService.muebles$
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.dataSource.data = res || [];
-        this.cdr.markForCheck();
-      });
-  }
+
 
   onAdicionar(): void {
     this.muebleService.abrirFormulario().subscribe();

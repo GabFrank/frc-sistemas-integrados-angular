@@ -16,9 +16,7 @@ import { InmuebleService } from '../../service/inmueble.service';
 })
 export class ListInmueblesComponent implements OnInit {
   public inmuebleService = inject(InmuebleService);
-  private cdr = inject(ChangeDetectorRef);
-
-  dataSource = new MatTableDataSource<Inmueble>();
+  inmuebles$ = this.inmuebleService.inmuebles$;
 
   displayedColumns: string[] = ['id', 'nombreAsignado', 'direccion', 'paisCity', 'propietario', 'tasacion', 'acciones'];
 
@@ -27,7 +25,6 @@ export class ListInmueblesComponent implements OnInit {
   ngOnInit(): void {
     this.inmuebleService.refrescar();
     this.initFiltros();
-    this.initDataStream();
   }
 
   private initFiltros(): void {
@@ -42,14 +39,7 @@ export class ListInmueblesComponent implements OnInit {
       });
   }
 
-  private initDataStream(): void {
-    this.inmuebleService.inmuebles$
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.dataSource.data = res || [];
-        this.cdr.markForCheck();
-      });
-  }
+
 
   onAdicionar(): void {
     this.inmuebleService.abrirFormulario().subscribe();

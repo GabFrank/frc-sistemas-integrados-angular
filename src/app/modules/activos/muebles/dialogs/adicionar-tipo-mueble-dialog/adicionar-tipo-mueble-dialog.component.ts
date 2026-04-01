@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -22,13 +22,18 @@ export class AdicionarTipoMuebleDialogComponent implements OnInit {
   tipoForm: FormGroup;
   currentFamilia: FamiliaMueble | null = null;
 
+  // Controles
+  familiaMuebleIdControl = new FormControl<number | null>(null, [Validators.required]);
+  descripcionControl = new FormControl('', [Validators.required]);
+
   constructor(
     public dialogRef: MatDialogRef<AdicionarTipoMuebleDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { familiaId?: number }
   ) {
+    this.familiaMuebleIdControl.setValue(data?.familiaId || null);
     this.tipoForm = this.fb.group({
-      familiaMuebleId: [data?.familiaId || null, [Validators.required]],
-      descripcion: ['', [Validators.required]]
+      familiaMuebleId: this.familiaMuebleIdControl,
+      descripcion: this.descripcionControl
     });
   }
 
@@ -62,14 +67,14 @@ export class AdicionarTipoMuebleDialogComponent implements OnInit {
 
   onSelectFamilia(familia: FamiliaMueble): void {
     this.currentFamilia = familia;
-    this.tipoForm.get('familiaMuebleId')?.setValue(familia?.id ? Number(familia.id) : null);
+    this.familiaMuebleIdControl.setValue(familia?.id ? Number(familia.id) : null);
   }
 
   onGuardarTipo(): void {
     if (this.tipoForm.valid) {
       this.muebleService.onGuardarTipo({
-        familiaMuebleId: Number(this.tipoForm.value.familiaMuebleId),
-        descripcion: this.tipoForm.value.descripcion.toUpperCase(),
+        familiaMuebleId: Number(this.familiaMuebleIdControl.value),
+        descripcion: this.descripcionControl.value?.toUpperCase() || '',
         usuarioId: this.mainService.usuarioActual?.id
       }).pipe(untilDestroyed(this)).subscribe((res: TipoMueble) => {
         if (res) {

@@ -10,7 +10,7 @@ import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/dialogs/adicion
 import { AdicionarModeloDialogComponent } from './vehiculo/dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { ListVehiculoSucursalComponent } from './vehiculo/pages/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
 import { ListGpsComponent } from './gps/pages/list-gps/list-gps.component';
-import { GpsComponent } from './gps/dialogs/gps-form/gps.component';
+import { GPSComponent } from './gps/dialogs/gps-form/gps.component';
 import { GpsConfigDialogComponent } from './gps/dialogs/gps-config-dialog/gps-config-dialog.component';
 import { ListMapasComponent } from './gps/pages/list-mapas/list-mapas.component';
 import { MaterialModule } from '../../../commons/core/material.module';
@@ -27,7 +27,7 @@ import { VehiculosDashboardComponent } from '../dashboard/vehiculos-dashboard/ve
     AdicionarTipoVehiculoDialogComponent,
     AdicionarModeloDialogComponent,
     ListGpsComponent,
-    GpsComponent,
+    GPSComponent,
     ListMapasComponent,
     GpsConfigDialogComponent
   ],

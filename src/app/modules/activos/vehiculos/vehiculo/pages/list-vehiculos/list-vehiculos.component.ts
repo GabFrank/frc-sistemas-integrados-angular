@@ -1,12 +1,10 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../service/vehiculo.service';
 import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
 @UntilDestroy()
 @Component({
     selector: 'app-list-vehiculos',
@@ -17,10 +15,8 @@ import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
 export class ListVehiculosComponent implements OnInit {
     public vehiculoService = inject(VehiculoService);
     private cdr = inject(ChangeDetectorRef);
-
+    vehiculos$ = this.vehiculoService.filteredVehiculos$;
     tipoVehiculoDescripcion: string = 'TODOS LOS TIPOS';
-
-    dataSource = new MatTableDataSource<Vehiculo>();
     displayedColumns = ['id', 'chapa', 'marca', 'modelo', 'tipo', 'anho', 'color', 'acciones'];
 
     filtroControl = new FormControl('');
@@ -30,7 +26,6 @@ export class ListVehiculosComponent implements OnInit {
         this.vehiculoService.cargarTiposCache();
         this.vehiculoService.refrescar();
         this.initFiltros();
-        this.initDataStream();
     }
 
     private initFiltros(): void {
@@ -46,15 +41,6 @@ export class ListVehiculosComponent implements OnInit {
             untilDestroyed(this)
         ).subscribe(tipoId => {
             this.vehiculoService.updateTipoFilter(tipoId);
-        });
-    }
-
-    private initDataStream(): void {
-        this.vehiculoService.filteredVehiculos$.pipe(
-            untilDestroyed(this)
-        ).subscribe(res => {
-            this.dataSource.data = res;
-            this.cdr.markForCheck();
         });
     }
 
@@ -81,7 +67,7 @@ export class ListVehiculosComponent implements OnInit {
     }
 
     onBuscarTipoVehiculo(): void {
-        this.vehiculoService.abrirBuscadorTipoVehiculo(false).pipe(untilDestroyed(this)).subscribe((res: TipoVehiculo) => {
+        this.vehiculoService.abrirBuscadorTipoVehiculo(false).pipe(untilDestroyed(this)).subscribe((res: any) => {
             if (res) {
                 this.tipoControl.setValue(Number(res.id));
                 this.tipoVehiculoDescripcion = res.descripcion.toUpperCase();
@@ -105,4 +91,3 @@ export class ListVehiculosComponent implements OnInit {
         this.vehiculoService.refrescar();
     }
 }
-

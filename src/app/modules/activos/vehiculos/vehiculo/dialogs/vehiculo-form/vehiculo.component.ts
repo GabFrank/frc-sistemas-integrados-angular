@@ -12,6 +12,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Inject, Optional } from '@angular/core';
 import { TabService } from '../../../../../../layouts/tab/tab.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { startWith } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
@@ -35,6 +36,11 @@ export class VehiculoComponent implements OnInit {
     form: FormGroup;
     vehiculo: Vehiculo;
 
+    situacionPagoControl = this.fb.control('PAGADO');
+    situacionPago$ = this.situacionPagoControl.valueChanges.pipe(
+        startWith(this.situacionPagoControl.value)
+    );
+
     modelos$ = new BehaviorSubject<Modelo[]>([]);
     tiposVehiculo$ = new BehaviorSubject<TipoVehiculo[]>([]);
     modeloSelected: Modelo;
@@ -47,7 +53,7 @@ export class VehiculoComponent implements OnInit {
     proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
     monedaSelected: any;
     monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
-  currencyMask = new CurrencyMask();
+    currencyMask = new CurrencyMask();
 
     private actualizarDescripciones(): void {
         if (this.modeloSelected) {
@@ -105,7 +111,7 @@ export class VehiculoComponent implements OnInit {
             valorEstimadoBrl: [0],
             mantenimientoMotorIntervalo: [null],
             mantenimientoCajaIntervalo: [null],
-            situacionPago: ['PAGADO'],
+            situacionPago: this.situacionPagoControl,
             proveedorId: [null],
             monedaId: [null],
             montoTotal: [0],
@@ -194,7 +200,7 @@ export class VehiculoComponent implements OnInit {
     onBuscarModelo(): void {
         this.vehiculoDialogService.onBuscarModelo((modelo: Modelo) => {
             this.modeloSelected = modelo;
-            this.form.get('modeloId')?.setValue(Number(modelo.id));
+            this.form.controls['modeloId'].setValue(Number(modelo.id));
             this.actualizarDescripciones();
             this.cdr.markForCheck();
         });
@@ -203,7 +209,7 @@ export class VehiculoComponent implements OnInit {
     onBuscarTipoVehiculo(): void {
         this.vehiculoDialogService.onBuscarTipoVehiculo((tipo: TipoVehiculo) => {
             this.tipoVehiculoSelected = tipo;
-            this.form.get('tipoVehiculoId')?.setValue(Number(tipo.id));
+            this.form.controls['tipoVehiculoId'].setValue(Number(tipo.id));
             this.actualizarDescripciones();
             this.cdr.markForCheck();
         });
@@ -213,7 +219,7 @@ export class VehiculoComponent implements OnInit {
         this.vehiculoDialogService.onBuscarPropietario((persona: Persona) => {
             this.propietarioSelected = persona;
             this.propietarioDescripcion = `${persona.nombre}`.toUpperCase();
-            this.form.get('propietarioId')?.setValue(Number(persona.id));
+            this.form.controls['propietarioId'].setValue(Number(persona.id));
             this.cdr.markForCheck();
         });
     }
@@ -222,7 +228,7 @@ export class VehiculoComponent implements OnInit {
         this.vehiculoDialogService.onBuscarProveedor((persona: Persona) => {
             this.proveedorSelected = persona;
             this.proveedorDescripcion = `${persona.nombre}`.toUpperCase();
-            this.form.get('proveedorId')?.setValue(Number(persona.id));
+            this.form.controls['proveedorId'].setValue(Number(persona.id));
             this.cdr.markForCheck();
         });
     }
@@ -231,13 +237,13 @@ export class VehiculoComponent implements OnInit {
         this.vehiculoDialogService.onBuscarMoneda((moneda: any) => {
             this.monedaSelected = moneda;
             this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase();
-            this.form.get('monedaId')?.setValue(Number(moneda.id));
+            this.form.controls['monedaId'].setValue(Number(moneda.id));
             this.cdr.markForCheck();
         });
     }
 
     onSelectModelo(modelo: Modelo): void {
-        this.form.get('modeloId')?.setValue(modelo?.id ? Number(modelo.id) : null);
+        this.form.controls['modeloId'].setValue(modelo?.id ? Number(modelo.id) : null);
     }
 
     onCancelar(): void {

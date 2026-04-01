@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -25,16 +25,21 @@ export class AdicionarModeloDialogComponent implements OnInit {
     marcas$ = new BehaviorSubject<Marca[]>([]);
     currentMarca: Marca | null = null;
 
+    // Controles
+    descripcionMarcaControl = new FormControl('', [Validators.required]);
+    marcaIdControl = new FormControl<number | null>(null, [Validators.required]);
+    descripcionModeloControl = new FormControl('', [Validators.required]);
+
     constructor(
         public dialogRef: MatDialogRef<AdicionarModeloDialogComponent>
     ) {
         this.marcaForm = this.fb.group({
-            descripcion: ['', [Validators.required]]
+            descripcion: this.descripcionMarcaControl
         });
 
         this.modeloForm = this.fb.group({
-            marcaId: [null, [Validators.required]],
-            descripcion: ['', [Validators.required]]
+            marcaId: this.marcaIdControl,
+            descripcion: this.descripcionModeloControl
         });
     }
 
@@ -56,20 +61,20 @@ export class AdicionarModeloDialogComponent implements OnInit {
 
     onSelectMarca(marca: Marca): void {
         this.currentMarca = marca;
-        this.modeloForm.get('marcaId')?.setValue(marca?.id ? Number(marca.id) : null);
+        this.marcaIdControl.setValue(marca?.id ? Number(marca.id) : null);
     }
 
     onGuardarMarca(): void {
         if (this.marcaForm.valid) {
             this.vehiculoService.onGuardarMarca({
-                descripcion: this.marcaForm.value.descripcion.toUpperCase(),
+                descripcion: this.descripcionMarcaControl.value?.toUpperCase() || '',
                 usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
                     this.marcaForm.reset();
                     this.cargarMarcas();
                     this.currentMarca = res;
-                    this.modeloForm.get('marcaId')?.setValue(Number(res.id));
+                    this.marcaIdControl.setValue(Number(res.id));
                 }
             });
         }
@@ -78,8 +83,8 @@ export class AdicionarModeloDialogComponent implements OnInit {
     onGuardarModelo(): void {
         if (this.modeloForm.valid) {
             this.vehiculoService.onGuardarModelo({
-                marcaId: Number(this.modeloForm.value.marcaId),
-                descripcion: this.modeloForm.value.descripcion.toUpperCase(),
+                marcaId: Number(this.marcaIdControl.value),
+                descripcion: this.descripcionModeloControl.value?.toUpperCase() || '',
                 usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe((res: Modelo) => {
                 if (res) {

@@ -1,32 +1,42 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, Inject, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GpsService } from '../../service/gps.service';
-import { GpsDialogService } from '../../service/gps-dialog-service.service';
+import { UntilDestroy } from '@ngneat/until-destroy';
 import { Gps } from '../../models/gps.model';
+import { GpsService } from '../../service/gps.service';
 import { Vehiculo } from '../../../vehiculo/models/vehiculo.model';
+import { GpsDialogService } from '../../service/gps-dialog-service.service';
 
 @UntilDestroy()
 @Component({
-    selector: 'app-gps',
+    selector: 'app-gps-form',
     templateUrl: './gps.component.html',
-    styleUrls: ['./gps.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush
+    styleUrls: ['./gps.component.scss']
 })
-export class GpsComponent implements OnInit {
-    private readonly fb = inject(FormBuilder);
-    private readonly gpsDialogService = inject(GpsDialogService);
-    private readonly cdr = inject(ChangeDetectorRef);
-    public readonly dialogRef = inject(MatDialogRef<GpsComponent>);
-    public readonly data = inject<Gps>(MAT_DIALOG_DATA);
+export class GPSComponent implements OnInit {
+    private fb = inject(FormBuilder);
+    private gpsService = inject(GpsService);
+    private gpsDialogService = inject(GpsDialogService);
+    private cdr = inject(ChangeDetectorRef);
 
     form: FormGroup;
-    gps: Gps = this.data;
+    gps: Gps;
     vehiculoSelected: Vehiculo | null = null;
     vehiculoDescripcion: string = 'SELECCIONE UN VEHICULO';
 
+    imeiControl = new FormControl('', [Validators.required, Validators.pattern('^[0-9]+$')]);
+    modeloTrackerControl = new FormControl('', [Validators.required]);
+    simNumeroControl = new FormControl('');
+    activoControl = new FormControl(true);
+    vehiculoIdControl = new FormControl<number | null>(null);
+
+    constructor(
+        public dialogRef: MatDialogRef<GPSComponent>,
+        @Inject(MAT_DIALOG_DATA) public data: Gps
+    ) { }
+
     ngOnInit(): void {
+        this.gps = this.data;
         this.inicializarFormulario();
 
         if (this.gps?.id) {
@@ -36,26 +46,31 @@ export class GpsComponent implements OnInit {
 
     private inicializarFormulario(): void {
         this.form = this.fb.group({
-            id: [this.gps?.id || null],
-            imei: [this.gps?.imei || null, [Validators.required]],
-            modeloTracker: [this.gps?.modeloTracker || null, [Validators.required]],
-            simNumero: [this.gps?.simNumero || null],
-            vehiculoId: [this.gps?.vehiculo?.id || null],
-            activo: [this.gps?.id ? this.gps.activo : true]
+            id: [null],
+            imei: this.imeiControl,
+            modeloTracker: this.modeloTrackerControl,
+            simNumero: this.simNumeroControl,
+            activo: this.activoControl,
+            vehiculoId: this.vehiculoIdControl
         });
-
-        if (this.gps?.vehiculo) {
-            this.vehiculoSelected = this.gps.vehiculo;
-            this.actualizarVehiculoDescripcion();
-        }
     }
 
     private cargarDatos(): void {
-        if (this.gps.vehiculo) {
-            this.vehiculoSelected = this.gps.vehiculo;
-            this.actualizarVehiculoDescripcion();
+        if (this.gps) {
+            this.form.patchValue({
+                id: this.gps.id,
+                imei: this.gps.imei,
+                modeloTracker: this.gps.modeloTracker,
+                simNumero: this.gps.simNumero,
+                activo: this.gps.activo,
+                vehiculoId: this.gps.vehiculo?.id || null
+            });
+
+            if (this.gps.vehiculo) {
+                this.vehiculoSelected = this.gps.vehiculo;
+                this.actualizarVehiculoDescripcion();
+            }
         }
-        this.cdr.markForCheck();
     }
 
     private actualizarVehiculoDescripcion(): void {
@@ -66,35 +81,34 @@ export class GpsComponent implements OnInit {
         }
     }
 
-    getControlValue(controlName: string): any {
-        return this.form.get(controlName)?.value;
-    }
-
-    hasError(controlName: string, errorName: string): boolean {
-        return this.form.get(controlName)?.hasError(errorName) || false;
-    }
-
     onBuscarVehiculo(): void {
         this.gpsDialogService.onBuscarVehiculo((vehiculo: Vehiculo) => {
-            this.vehiculoSelected = vehiculo;
-            this.form.get('vehiculoId')?.setValue(vehiculo.id);
-            this.actualizarVehiculoDescripcion();
-            this.cdr.markForCheck();
+            if (vehiculo) {
+                this.vehiculoSelected = vehiculo;
+                this.actualizarVehiculoDescripcion();
+                this.vehiculoIdControl.setValue(Number(vehiculo.id));
+                this.cdr.markForCheck();
+            }
         });
     }
 
     onLimpiarVehiculo(event: Event): void {
         event.stopPropagation();
         this.vehiculoSelected = null;
-        this.form.get('vehiculoId')?.setValue(null);
-        this.actualizarVehiculoDescripcion();
+        this.vehiculoDescripcion = 'SELECCIONE UN VEHICULO';
+        this.vehiculoIdControl.setValue(null);
+        this.cdr.markForCheck();
     }
 
     onGuardar(): void {
-        this.gpsDialogService.onGuardar(this.form, this.dialogRef);
+        if (this.form.valid) {
+            this.gpsService.onSave(this.form.getRawValue()).subscribe(res => {
+                if (res) this.dialogRef.close(true);
+            });
+        }
     }
 
     onCancelar(): void {
-        this.gpsDialogService.onCancelar(this.dialogRef);
+        this.dialogRef.close();
     }
 }

@@ -104,7 +104,7 @@
                         </mat-select>
                     </mat-form-field>
 
-                    <div *ngIf="form.get('situacionPago')?.value === 'PAGADO' || form.get('situacionPago')?.value === 'PAGANDO'"
+                    <div *ngIf="(situacionPago$ | async) === 'PAGADO' || (situacionPago$ | async) === 'PAGANDO'"
                         fxLayout="column" fxLayoutGap="15px"
                         style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
 
@@ -126,13 +126,13 @@
                             </mat-form-field>
                         </div>
 
-                        <mat-form-field *ngIf="form.get('situacionPago')?.value === 'PAGADO'">
+                        <mat-form-field *ngIf="(situacionPago$ | async) === 'PAGADO'">
                             <mat-label>Monto Total Pagado</mat-label>
                             <input matInput formControlName="montoTotal"
                                 currencyMask [options]="currencyMask.currencyOptionsGuarani">
                         </mat-form-field>
 
-                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                        <div *ngIf="(situacionPago$ | async) === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
                             <mat-form-field fxFlex="50">
                                 <mat-label>Monto Total</mat-label>
                                 <input matInput formControlName="montoTotal"
@@ -145,7 +145,7 @@
                             </mat-form-field>
                         </div>
 
-                        <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                        <div *ngIf="(situacionPago$ | async) === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
                             <mat-form-field fxFlex="33">
                                 <mat-label>Cantidad de Cuotas</mat-label>
                                 <input matInput type="number" formControlName="cantidadCuotas">

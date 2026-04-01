@@ -23,15 +23,15 @@
         </ng-template>
 
         <div class="tab-body" fxLayout="column" fxLayoutGap="20px">
-          <div class="card-section motor-control" [class.motor-cut]="!getControlValue('motorEstado')">
+          <div class="card-section motor-control" [class.motor-cut]="!(motorEnabled$ | async)">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="column">
                 <span class="label">CORTE DE MOTOR</span>
-                <span class="status-desc">{{ getControlValue('motorEstado') ? 'El motor está habilitado' : 'El motor se encuentra bloqueado' }}</span>
+                <span class="status-desc">{{ motorStatusDesc$ | async }}</span>
               </div>
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
                 <mat-slide-toggle formControlName="motorEstado" color="warn">
-                  {{ getMotorLabel() }}
+                  {{ motorLabel$ | async }}
                 </mat-slide-toggle>
                 <button mat-stroked-button color="warn" class="update-card-btn" (click)="onUpdateMotor()"
                   [disabled]="loading.motor">
@@ -47,7 +47,7 @@
             <div class="config-card" fxFlex="50">
               <div fxLayout="row" fxLayoutAlign="space-between center">
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-                  <mat-icon class="card-icon" [color]="getControlValue('sleepMode') ? 'accent' : ''">bedtime</mat-icon>
+                  <mat-icon class="card-icon" [color]="(sleepModeEnabled$ | async) ? 'accent' : ''">bedtime</mat-icon>
                   <span class="card-label">MODO SUEÑO (AHORRO)</span>
                 </div>
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px">
@@ -64,7 +64,7 @@
               <div fxLayout="row" fxLayoutAlign="space-between center">
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
                   <mat-icon class="card-icon">timer</mat-icon>
-                  <span class="card-label">INTERVALO: {{ getControlValue('reportInterval') }}s</span>
+                  <span class="card-label">INTERVALO: {{ reportInterval$ | async }}s</span>
                 </div>
                 <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="5px" fxFlex="60">
                   <mat-slider min="10" max="180" step="10" thumbLabel fxFlex>
@@ -96,11 +96,11 @@
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon [color]="getControlValue('alertaVelocidad') ? 'warn' : ''">speed</mat-icon>
+                <mat-icon [color]="(alertaVelocidadEnabled$ | async) ? 'warn' : ''">speed</mat-icon>
                 <div fxLayout="column">
                   <span class="alert-name">EXCESO DE VELOCIDAD</span>
                   <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-                    <span class="alert-desc">Límite: {{ getControlValue('velocidadLimite') }} km/h</span>
+                    <span class="alert-desc">Límite: {{ velocidadLimite$ | async }} km/h</span>
                     <mat-slider min="10" max="180" step="5" thumbLabel style="width: 100px;">
                       <input matSliderThumb formControlName="velocidadLimite">
                     </mat-slider>
@@ -120,7 +120,7 @@
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon [color]="getControlValue('alertaVibracion') ? 'warn' : ''">vibration</mat-icon>
+                <mat-icon [color]="(alertaVibracionEnabled$ | async) ? 'warn' : ''">vibration</mat-icon>
                 <div fxLayout="column">
                   <span class="alert-name">SENSOR DE CHOQUE / VIBRACIÓN</span>
                   <span class="alert-desc">Notificar si se detecta movimiento brusco</span>
@@ -139,7 +139,7 @@
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon [color]="getControlValue('alertaBateriaBaja') ? 'warn' : ''">battery_alert</mat-icon>
+                <mat-icon [color]="(alertaBateriaBajaEnabled$ | async) ? 'warn' : ''">battery_alert</mat-icon>
                 <div fxLayout="column">
                   <span class="alert-name">BATERÍA BAJA</span>
                   <span class="alert-desc">Notificar si la batería del GPS es crítica</span>
@@ -158,7 +158,7 @@
           <div class="config-card alert-card">
             <div fxLayout="row" fxLayoutAlign="space-between center">
               <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                <mat-icon [color]="getControlValue('alertaAcc') ? 'warn' : ''">vpn_key</mat-icon>
+                <mat-icon [color]="(alertaAccEnabled$ | async) ? 'warn' : ''">vpn_key</mat-icon>
                 <div fxLayout="column">
                   <span class="alert-name">IGNICIÓN (ACC)</span>
                   <span class="alert-desc">Notificar cuando el vehículo se enciende/apaga</span>
@@ -205,7 +205,7 @@
               </button>
             </div>
 
-            <div *ngIf="getControlValue('apnName') === 'otro'" fxLayout="row" fxLayoutAlign="start center"
+            <div *ngIf="(apnName$ | async) === 'otro'" fxLayout="row" fxLayoutAlign="start center"
               fxLayoutGap="15px">
               <mat-form-field appearance="outline" fxFlex>
                 <mat-label>APN personalizado</mat-label>

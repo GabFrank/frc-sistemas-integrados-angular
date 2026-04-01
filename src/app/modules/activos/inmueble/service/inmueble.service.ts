@@ -25,12 +25,8 @@ export class InmuebleService {
   private inmuebleSearchPageGQL = inject(InmuebleSearchPageGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
-  private _inmuebleDialogService: InmuebleDialogService;
-  private get inmuebleDialogService(): InmuebleDialogService {
-    if (!this._inmuebleDialogService) {
-      this._inmuebleDialogService = this.injector.get(InmuebleDialogService);
-    }
-    return this._inmuebleDialogService;
+  abrirFormulario(inmueble?: Inmueble): Observable<boolean | undefined> {
+    return this.injector.get(InmuebleDialogService).abrirFormulario(inmueble);
   }
 
   private inmueblesSubject = new BehaviorSubject<Inmueble[]>([]);
@@ -88,9 +84,7 @@ export class InmuebleService {
     this.refrescar();
   }
 
-  abrirFormulario(inmueble?: Inmueble): Observable<boolean | undefined> {
-    return this.inmuebleDialogService.abrirFormulario(inmueble);
-  }
+
 
   onGuardar(input: InmuebleInput): Observable<Inmueble> {
     return this.genericService.onSave(this.saveInmuebleGQL, input).pipe(

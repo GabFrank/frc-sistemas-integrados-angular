@@ -179,7 +179,7 @@
                         </mat-form-field>
                     </div>
 
-                    <div *ngIf="form.get('situacionPago')?.value === 'PAGANDO'" fxLayout="row wrap" fxLayoutGap="15px">
+                    <div *ngIf="(situacionPago$ | async) === 'PAGANDO'" fxLayout="row wrap" fxLayoutGap="15px">
                         <mat-form-field fxFlex="30">
                             <mat-label>Cantidad Cuotas</mat-label>
                             <input matInput type="number" formControlName="cantidadCuotas">

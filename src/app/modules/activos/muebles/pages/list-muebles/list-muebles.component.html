@@ -1,4 +1,4 @@
-<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+<app-generic-list [data]="(muebles$ | async) || []" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros fxLayout="row" fxLayoutGap="15px" style="width: 100%">
     <mat-form-field appearance="outline" fxFlex="40" floatLabel="always">
@@ -10,7 +10,7 @@
 
   <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
     fxLayoutAlign="space-between start">
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+    <table mat-table [dataSource]="(muebles$ | async) || []" class="mat-elevation-z8" style="width: 100%">
       
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>

@@ -1,17 +1,16 @@
 import { Component, Inject, OnInit, inject } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { VehiculoSucursal } from '../../models/vehiculo-sucursal.model';
 import { VehiculoSucursalInput } from '../../models/vehiculo-sucursal-input.model';
 import { VehiculoService } from '../../service/vehiculo.service';
 import { Vehiculo } from '../../models/vehiculo.model';
-import { VehiculoSearchPageGQL } from '../../graphql/vehiculoSearchPage';
 import { SucursalService } from '../../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { Funcionario } from '../../../../../personas/funcionarios/funcionario.model';
-import { FuncionarioSearchGQL } from '../../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { MainService } from '../../../../../../main.service';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { EnteService } from '../../../../ente/service/ente.service';
+import { TipoEnte } from '../../../../ente/enums/tipo-ente.enum';
 
 export interface VehiculoSucursalDialogData {
     vehiculoSucursal?: VehiculoSucursal;
@@ -27,9 +26,7 @@ export class VehiculoSucursalDialogComponent implements OnInit {
     private vehiculoService = inject(VehiculoService);
     private sucursalService = inject(SucursalService);
     private mainService = inject(MainService);
-    private dialog = inject(MatDialog);
-    private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
-    private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
+    private enteService = inject(EnteService);
 
     form: FormGroup;
     sucursales: Sucursal[] = [];
@@ -40,15 +37,24 @@ export class VehiculoSucursalDialogComponent implements OnInit {
     selectedVehiculo: Vehiculo | null = null;
     vehiculoControlDisplay = new FormControl('');
 
+    // Controles
+    vehiculoControl = new FormControl<number | null>(null);
+    sucursalControl = new FormControl<number | null>(null, [Validators.required]);
+    responsableControl = new FormControl<number | null>(null);
+
     constructor(
         public dialogRef: MatDialogRef<VehiculoSucursalDialogComponent>,
         @Inject(MAT_DIALOG_DATA) public data: VehiculoSucursalDialogData
     ) {
         this.mostrarVehiculo = !this.data?.vehiculo;
+        if (this.mostrarVehiculo) {
+            this.vehiculoControl.setValidators([Validators.required]);
+        }
+
         this.form = new FormGroup({
-            vehiculoControl: new FormControl(null, this.mostrarVehiculo ? Validators.required : null),
-            sucursalControl: new FormControl(null, Validators.required),
-            responsableControl: new FormControl(null)
+            vehiculoControl: this.vehiculoControl,
+            sucursalControl: this.sucursalControl,
+            responsableControl: this.responsableControl
         });
     }
 
@@ -58,9 +64,7 @@ export class VehiculoSucursalDialogComponent implements OnInit {
         if (this.data?.vehiculo) {
             this.selectedVehiculo = this.data.vehiculo;
             this.vehiculoControlDisplay.setValue(this.getVehiculoDisplay(this.data.vehiculo));
-            this.form.patchValue({
-                vehiculoControl: this.data.vehiculo.id
-            });
+            this.vehiculoControl.setValue(this.data.vehiculo.id);
         }
 
         if (this.data?.vehiculoSucursal) {
@@ -85,73 +89,28 @@ export class VehiculoSucursalDialogComponent implements OnInit {
     }
 
     onBuscarVehiculo(): void {
-        const tableData: TableData[] = [
-            { id: 'id', nombre: 'Id' },
-            { id: 'chapa', nombre: 'Chapa' },
-            { id: 'modelo.marca.descripcion', nombre: 'Marca' },
-            { id: 'modelo.descripcion', nombre: 'Modelo' }
-        ];
-
-        const data: SearchListtDialogData = {
-            query: this.vehiculoSearchPageGQL,
-            tableData,
-            titulo: 'Buscar Vehículo',
-            search: true,
-            inicialSearch: true,
-            textHint: 'Buscar por chapa, marca o modelo...',
-            paginator: true,
-            queryData: { page: 0, size: 15 }
-        };
-
-        this.dialog.open(SearchListDialogComponent, {
-            data,
-            width: '70%',
-            height: '80%'
-        }).afterClosed().subscribe((res: Vehiculo) => {
-            if (res) {
-                this.selectedVehiculo = res;
-                this.vehiculoControlDisplay.setValue(this.getVehiculoDisplay(res));
-                this.form.patchValue({
-                    vehiculoControl: res.id
+        this.enteService.abrirBuscadorEnte(TipoEnte.VEHICULO).subscribe((ente: any) => {
+            if (ente) {
+                // Aquí necesitamos el objeto vehículo real o al menos sus datos de visualización.
+                // El buscador de ente devuelve un Ente, que tiene referenciaId.
+                // En este caso, el Ente para un Vehículo tiene el mismo ID que el Vehículo.
+                this.vehiculoService.onBuscarPorId(ente.referenciaId).subscribe(v => {
+                    if (v) {
+                        this.selectedVehiculo = v;
+                        this.vehiculoControlDisplay.setValue(this.getVehiculoDisplay(v));
+                        this.vehiculoControl.setValue(v.id);
+                    }
                 });
             }
         });
     }
 
     onBuscarResponsable(): void {
-        const tableData: TableData[] = [
-            {
-                id: 'id',
-                nombre: 'Id'
-            },
-            {
-                id: 'nombre',
-                nombre: 'Nombre',
-                nested: true,
-                nestedId: 'persona',
-                nestedColumnId: 'nombre'
-            }
-        ];
-
-        const data: SearchListtDialogData = {
-            query: this.funcionarioSearchGQL,
-            tableData: tableData,
-            titulo: 'Buscar Responsable',
-            search: true,
-            inicialSearch: true
-        };
-
-        this.dialog.open(SearchListDialogComponent, {
-            data: data,
-            width: '60%',
-            height: '80%'
-        }).afterClosed().subscribe((res: Funcionario) => {
+        this.enteService.abrirBuscadorResponsable().subscribe(res => {
             if (res) {
                 this.selectedResponsable = res;
                 this.responsableControlDisplay.setValue(res.persona?.nombre || '');
-                this.form.patchValue({
-                    responsableControl: res.id
-                });
+                this.responsableControl.setValue(res.id);
             }
         });
     }
@@ -170,7 +129,7 @@ export class VehiculoSucursalDialogComponent implements OnInit {
         }
 
         const vehiculoId = this.mostrarVehiculo
-            ? this.form.get('vehiculoControl')?.value
+            ? this.vehiculoControl.value
             : this.data?.vehiculo?.id;
 
         if (!vehiculoId) {
@@ -181,8 +140,8 @@ export class VehiculoSucursalDialogComponent implements OnInit {
         const input: VehiculoSucursalInput = {
             id: this.data?.vehiculoSucursal?.id,
             vehiculoId: vehiculoId,
-            sucursalId: this.form.get('sucursalControl')?.value,
-            responsableId: this.form.get('responsableControl')?.value || null,
+            sucursalId: this.sucursalControl.value,
+            responsableId: this.responsableControl.value || null,
             usuarioId: this.mainService.usuarioActual?.id
         };
 
@@ -201,4 +160,3 @@ export class VehiculoSucursalDialogComponent implements OnInit {
         this.dialogRef.close();
     }
 }
-

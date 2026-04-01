@@ -5,6 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
 import { MuebleDialogService } from '../../service/mueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { startWith } from 'rxjs/operators';
 import { Mueble } from '../../models/mueble.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
@@ -25,6 +26,16 @@ export class MuebleFormComponent implements OnInit {
 
   form: FormGroup;
   mueble: Mueble;
+
+  situacionPagoControl = this.fb.control('PAGADO');
+  situacionPago$ = this.situacionPagoControl.valueChanges.pipe(
+    startWith(this.situacionPagoControl.value)
+  );
+
+  consumeEnergiaControl = this.fb.control(false);
+  consumeEnergia$ = this.consumeEnergiaControl.valueChanges.pipe(
+    startWith(this.consumeEnergiaControl.value)
+  );
 
   propietarioSelected: Persona;
   familiaSelected: FamiliaMueble;
@@ -74,12 +85,12 @@ export class MuebleFormComponent implements OnInit {
       descripcion: ['', Validators.required],
       familiaId: [null, Validators.required],
       tipoMuebleId: [null, Validators.required],
-      consumeEnergia: [false],
+      consumeEnergia: this.consumeEnergiaControl,
       consumoValor: [''],
       valorTasacion: [0],
       valorTasacionPyg: [0],
       valorTasacionBrl: [0],
-      situacionPago: ['PAGADO'],
+      situacionPago: this.situacionPagoControl,
       proveedorId: [null],
       monedaId: [null],
       montoTotal: [0],
@@ -142,7 +153,7 @@ export class MuebleFormComponent implements OnInit {
     this.muebleDialogService.onBuscarPropietario((persona: Persona) => {
       this.propietarioSelected = persona;
       this.propietarioDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.get('propietarioId')?.setValue(Number(persona.id));
+      this.form.controls['propietarioId'].setValue(Number(persona.id));
       this.cdr.markForCheck();
     });
   }
@@ -151,7 +162,7 @@ export class MuebleFormComponent implements OnInit {
     this.muebleDialogService.onBuscarFamilia((familia: FamiliaMueble) => {
       this.familiaSelected = familia;
       this.familiaDescripcion = familia.descripcion?.toUpperCase() || '';
-      this.form.get('familiaId')?.setValue(familia.id);
+      this.form.controls['familiaId'].setValue(familia.id);
       this.cdr.markForCheck();
     });
   }
@@ -160,7 +171,7 @@ export class MuebleFormComponent implements OnInit {
     this.muebleDialogService.onBuscarTipo(this.familiaSelected?.id, (tipo: TipoMueble) => {
       this.tipoMuebleSelected = tipo;
       this.tipoMuebleDescripcion = tipo.descripcion?.toUpperCase() || '';
-      this.form.get('tipoMuebleId')?.setValue(tipo.id);
+      this.form.controls['tipoMuebleId'].setValue(tipo.id);
       this.cdr.markForCheck();
     });
   }
@@ -169,7 +180,7 @@ export class MuebleFormComponent implements OnInit {
     this.muebleDialogService.onBuscarProveedor((persona: Persona) => {
       this.proveedorSelected = persona;
       this.proveedorDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.get('proveedorId')?.setValue(Number(persona.id));
+      this.form.controls['proveedorId'].setValue(Number(persona.id));
       this.cdr.markForCheck();
     });
   }
@@ -178,7 +189,7 @@ export class MuebleFormComponent implements OnInit {
     this.muebleDialogService.onBuscarMoneda((moneda: any) => {
       this.monedaSelected = moneda;
       this.monedaDescripcion = (moneda.denominacion || moneda.simbolo)?.toUpperCase() || '';
-      this.form.get('monedaId')?.setValue(moneda.id);
+      this.form.controls['monedaId'].setValue(moneda.id);
       this.cdr.markForCheck();
     });
   }

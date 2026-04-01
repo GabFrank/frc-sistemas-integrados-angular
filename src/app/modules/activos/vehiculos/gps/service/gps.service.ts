@@ -32,13 +32,6 @@ export class GpsService {
     private guardarConfigAlertasGpsGQL = inject(GuardarConfigAlertasGpsGQL);
     private dialog = inject(MatDialog);
     private injector = inject(Injector);
-    private _gpsDialogService: GpsDialogService;
-    private get gpsDialogService(): GpsDialogService {
-        if (!this._gpsDialogService) {
-            this._gpsDialogService = this.injector.get(GpsDialogService);
-        }
-        return this._gpsDialogService;
-    }
     private gpsSubject = new BehaviorSubject<Gps[]>([]);
     public gps$ = this.gpsSubject.asObservable();
 
@@ -121,11 +114,11 @@ export class GpsService {
     }
 
     abrirFormulario(gps?: Gps): Observable<boolean | undefined> {
-        return this.gpsDialogService.abrirFormulario(gps);
+        return this.injector.get(GpsDialogService).abrirFormulario(gps);
     }
 
     abrirConfiguracion(gps: Gps): void {
-        this.gpsDialogService.abrirConfiguracion(gps);
+        this.injector.get(GpsDialogService).abrirConfiguracion(gps);
     }
 
     updatePagination(pageIndex: number, pageSize: number): void {

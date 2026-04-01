@@ -5,13 +5,12 @@ import { vehiculosSearchPageQuery } from './graphql-query';
 import { PageInfo } from '../../../../../app.component';
 
 export interface Response {
-  data: PageInfo<Vehiculo>;
+    data: PageInfo<Vehiculo>;
 }
 
 @Injectable({
-  providedIn: 'root',
+    providedIn: 'root',
 })
 export class VehiculoSearchPageGQL extends Query<Response> {
-  override document = vehiculosSearchPageQuery;
+    override document = vehiculosSearchPageQuery;
 }
-

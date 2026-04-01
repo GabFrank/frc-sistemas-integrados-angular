@@ -1,10 +1,10 @@
 import { Component, Inject, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { startWith } from 'rxjs/operators';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
 import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
 import { EnteService } from '../../service/ente.service';
-import { EnteInput } from '../../models/ente-input.model';
 import { Ente } from '../../models/ente.model';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
 import { VehiculoSearchPageGQL } from '../../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
@@ -12,7 +12,6 @@ import { MuebleSearchPageGQL } from '../../../muebles/graphql/muebleSearchPage';
 import { InmuebleSearchPageGQL } from '../../../inmueble/graphql/inmuebleSearchPage';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { MainService } from '../../../../../main.service';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
@@ -54,15 +53,26 @@ export class EnteSucursalDialogComponent implements OnInit {
     selectedResponsable: Funcionario | null = null;
     responsableControlDisplay = new FormControl('');
 
+    // Form Controls
+    tipoEnteControl = new FormControl<TipoEnte | null>(null, Validators.required);
+    enteIdControl = new FormControl<number | null>(null, Validators.required);
+    sucursalControl = new FormControl<number | null>(null, Validators.required);
+    responsableIdControl = new FormControl<number | null>(null);
+
+    tipoEnte$ = this.tipoEnteControl.valueChanges.pipe(
+        startWith(this.tipoEnteControl.value)
+    );
+
     constructor(
         public dialogRef: MatDialogRef<EnteSucursalDialogComponent>,
         @Inject(MAT_DIALOG_DATA) public data: EnteSucursalDialogData
     ) {
+        this.sucursalControl.setValue(this.data?.sucursalId || null);
         this.form = new FormGroup({
-            tipoEnteControl: new FormControl(null, Validators.required),
-            enteIdControl: new FormControl(null, Validators.required),
-            sucursalControl: new FormControl(this.data?.sucursalId || null, Validators.required),
-            responsableIdControl: new FormControl(null)
+            tipoEnteControl: this.tipoEnteControl,
+            enteIdControl: this.enteIdControl,
+            sucursalControl: this.sucursalControl,
+            responsableIdControl: this.responsableIdControl
         });
     }
 
@@ -80,19 +90,17 @@ export class EnteSucursalDialogComponent implements OnInit {
             this.selectedResponsable = this.data.enteSucursal.responsable || null;
             this.responsableControlDisplay.setValue(this.selectedResponsable?.persona?.nombre || '');
 
-            this.form.patchValue({
-                tipoEnteControl: this.data.enteSucursal.ente?.tipoEnte,
-                enteIdControl: this.data.enteSucursal.ente?.id,
-                sucursalControl: this.data.enteSucursal.sucursal?.id,
-                responsableIdControl: this.data.enteSucursal.responsable?.id
-            });
+            this.tipoEnteControl.setValue(this.data.enteSucursal.ente?.tipoEnte || null);
+            this.enteIdControl.setValue(this.data.enteSucursal.ente?.id || null);
+            this.sucursalControl.setValue(this.data.enteSucursal.sucursal?.id || null);
+            this.responsableIdControl.setValue(this.data.enteSucursal.responsable?.id || null);
         }
     }
 
     private setEnte(ente: Ente): void {
         this.selectedEnte = ente;
-        this.form.get('tipoEnteControl')?.setValue(ente.tipoEnte);
-        this.form.get('enteIdControl')?.setValue(ente.id);
+        this.tipoEnteControl.setValue(ente.tipoEnte);
+        this.enteIdControl.setValue(ente.id || null);
         this.enteControlDisplay.setValue(`[${ente.tipoEnte}] ID: ${ente.id} - Ref: ${ente.referenciaId}`);
     }
 
@@ -104,82 +112,15 @@ export class EnteSucursalDialogComponent implements OnInit {
     }
 
     onBuscarEnte(): void {
-        const tipo = this.form.get('tipoEnteControl')?.value;
+        const tipo = this.tipoEnteControl.value;
         if (!tipo) return;
 
-        let query: any;
-        let tableData: TableData[] = [];
-        let titulo = '';
-
-        switch (tipo) {
-            case TipoEnte.VEHICULO:
-                query = this.vehiculoSearchGQL;
-                titulo = 'Buscar Vehículo';
-                tableData = [
-                    { id: 'id', nombre: 'Id', width: '10%' },
-                    { id: 'chapa', nombre: 'Chapa', width: '30%' },
-                    { id: 'modelo.marca.descripcion', nombre: 'Marca', width: '30%' },
-                    { id: 'modelo.descripcion', nombre: 'Modelo', width: '30%' }
-                ];
-                break;
-            case TipoEnte.MUEBLE:
-                query = this.muebleSearchGQL;
-                titulo = 'Buscar Mueble';
-                tableData = [
-                    { id: 'id', nombre: 'Id', width: '10%' },
-                    { id: 'descripcion', nombre: 'Descripción', width: '90%' }
-                ];
-                break;
-            case TipoEnte.INMUEBLE:
-                query = this.inmuebleSearchGQL;
-                titulo = 'Buscar Inmueble';
-                tableData = [
-                    { id: 'id', nombre: 'Id', width: '10%' },
-                    { id: 'nombreAsignado', nombre: 'Descripción', width: '90%' }
-                ];
-                break;
-        }
-
-        if (query) {
-            const data: SearchListtDialogData = {
-                query,
-                tableData,
-                titulo,
-                search: true,
-                inicialSearch: true,
-                paginator: true,
-                isServidor: true
-            };
-
-            this.dialog.open(SearchListDialogComponent, {
-                data,
-                width: '70vw',
-                height: '80vh'
-            }).afterClosed().subscribe((res: any) => {
-                if (res) {
-                    this.enteService.onGetByReferenciaId(tipo, res.id).subscribe(ente => {
-                        if (ente) {
-                            this.setEnte(ente);
-                            this.updateEnteDisplayValue(tipo, res);
-                        } else {
-                            // If Ente doesn't exist, create it on the fly
-                            const input: EnteInput = {
-                                tipoEnte: tipo,
-                                referenciaId: res.id,
-                                activo: true,
-                                usuarioId: this.mainService.usuarioActual?.id
-                            };
-                            this.enteService.onGuardar(input).subscribe(newEnte => {
-                                if (newEnte) {
-                                    this.setEnte(newEnte);
-                                    this.updateEnteDisplayValue(tipo, res);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
+        this.enteService.abrirBuscadorEnte(tipo).subscribe(ente => {
+            if (ente) {
+                this.setEnte(ente);
+                this.cdr.markForCheck();
+            }
+        });
     }
 
     private updateEnteDisplayValue(tipo: TipoEnte, res: any): void {
@@ -193,31 +134,12 @@ export class EnteSucursalDialogComponent implements OnInit {
     }
 
     onBuscarResponsable(): void {
-        const tableData: TableData[] = [
-            { id: 'id', nombre: 'Id' },
-            { id: 'persona.nombre', nombre: 'Nombre' }
-        ];
-
-        const data: SearchListtDialogData = {
-            query: this.funcionarioSearchGQL,
-            tableData,
-            titulo: 'Buscar Responsable',
-            search: true,
-            inicialSearch: true,
-            isServidor: true
-        };
-
-        this.dialog.open(SearchListDialogComponent, {
-            data,
-            width: '60vw',
-            height: '80vh'
-        }).afterClosed().subscribe((res: Funcionario) => {
+        this.enteService.abrirBuscadorResponsable().subscribe(res => {
             if (res) {
                 this.selectedResponsable = res;
                 this.responsableControlDisplay.setValue(res.persona?.nombre || '');
-                this.form.patchValue({
-                    responsableIdControl: res.id
-                });
+                this.responsableIdControl.setValue(res.id);
+                this.cdr.markForCheck();
             }
         });
     }
