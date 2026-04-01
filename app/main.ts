@@ -121,6 +121,11 @@ export async function createWindow(): Promise<BrowserWindow> {
   ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
 
     try {
+      if (!Notification.isSupported()) {
+        log.warn('Native notifications not supported on this system, skipping');
+        return;
+      }
+
       const title = notification?.notification?.title ||
         notification?.data?.title ||
         'FRC Sistemas Integrados';
@@ -154,7 +159,7 @@ export async function createWindow(): Promise<BrowserWindow> {
       nativeNotification.show();
 
     } catch (error) {
-      // Silent notification error
+      log.warn('Error showing native notification:', error);
     }
   });
 
@@ -957,14 +962,19 @@ try {
       const version = event.version || 'desconocida';
       const dialogOpts: MessageBoxOptions = {
         type: 'info',
-        buttons: ['Reiniciar', 'Mas tarde'],
+        buttons: ['Cerrar y actualizar', 'Mas tarde'],
         title: 'Actualizacion disponible',
         message: `Version ${version}`,
-        detail: 'Una actualizacion fue descargada. Reinicie para instalarla.',
+        detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',
       };
 
       dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall();
+        if (returnValue.response === 0) {
+          // Don't use quitAndInstall() - it causes NSIS to uninstall before reinstalling,
+          // which can leave orphaned shortcuts. Instead, quit normally and let
+          // autoInstallOnAppQuit handle the installation on next launch.
+          app.quit();
+        }
       });
     });
 
