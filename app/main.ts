@@ -1549,3 +1549,4 @@ async function printWithElectronPosPrinter(printer: PrinterConfig, content: stri
   }
 }// auto-update test
 // auto-update channel test
+// channel auto-update test 1775060791
