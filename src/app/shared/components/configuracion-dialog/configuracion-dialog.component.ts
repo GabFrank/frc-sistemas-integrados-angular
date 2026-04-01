@@ -31,7 +31,7 @@ export class ConfiguracionDialogComponent implements OnInit {
       facturaPrinter: [this.data.printers?.factura || ''],
       modo: [this.data.modo],
       isLocal: [this.data.isLocal !== undefined ? this.data.isLocal : true],
-      updateChannel: [this.data.updateChannel || 'stable']
+      updateChannel: [this.data.updateChannel || null, Validators.required]
     });
   }
 

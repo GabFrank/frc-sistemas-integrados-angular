@@ -15,40 +15,56 @@ autoUpdater.logger = log;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
-function configureUpdateChannel(): void {
+let updateEnabled = false;
+
+function configureUpdateChannel(): boolean {
   try {
     const configPath = path.join(app.getPath('userData'), 'config', 'config-backup.json');
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      const channel = config.updateChannel || 'stable';
+      const channel = config.updateChannel;
+      if (!channel || channel === 'dev') {
+        log.info('Update channel not configured or set to dev, auto-update disabled');
+        updateEnabled = false;
+        return false;
+      }
       log.info(`Update channel from config: ${channel}`);
-      applyUpdateChannel(channel);
+      return applyUpdateChannel(channel);
     } else {
-      log.info('No config file found, defaulting to stable channel');
-      applyUpdateChannel('stable');
+      log.info('No config file found, auto-update disabled until configured');
+      updateEnabled = false;
+      return false;
     }
   } catch (e) {
     log.error('Error reading update channel config:', e);
-    applyUpdateChannel('stable');
+    updateEnabled = false;
+    return false;
   }
 }
 
-function applyUpdateChannel(channel: string): void {
+function applyUpdateChannel(channel: string): boolean {
   switch (channel) {
     case 'alpha':
       autoUpdater.allowPrerelease = true;
       autoUpdater.channel = 'alpha';
+      updateEnabled = true;
       break;
     case 'beta':
       autoUpdater.allowPrerelease = true;
       autoUpdater.channel = 'beta';
+      updateEnabled = true;
       break;
-    default:
+    case 'stable':
       autoUpdater.allowPrerelease = false;
       autoUpdater.channel = 'latest';
+      updateEnabled = true;
+      break;
+    default:
+      updateEnabled = false;
       break;
   }
-  log.info(`Auto-updater configured: channel=${autoUpdater.channel}, allowPrerelease=${autoUpdater.allowPrerelease}`);
+  log.info(`Auto-updater configured: channel=${channel}, enabled=${updateEnabled}, allowPrerelease=${autoUpdater.allowPrerelease}`);
+  return updateEnabled;
 }
 
 interface PrinterConfig {
@@ -239,7 +255,9 @@ ipcMain.on('get-config-file', (event: any, arg: any) => {
 
 ipcMain.on('set-update-channel', (event: any, channel: string) => {
   log.info(`Update channel changed to: ${channel}`);
-  applyUpdateChannel(channel);
+  if (applyUpdateChannel(channel)) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 })
 
 ipcMain.on('reiniciar', (event: any, arg: any) => {
@@ -916,12 +934,15 @@ try {
     });
 
     if (!isDev) {
-      configureUpdateChannel();
-      autoUpdater.checkForUpdatesAndNotify();
-      setInterval(() => {
-        log.info('Buscando actualizacion...');
+      if (configureUpdateChannel()) {
         autoUpdater.checkForUpdatesAndNotify();
-      }, 5 * 60 * 1000); // cada 5 minutos
+        setInterval(() => {
+          if (updateEnabled) {
+            log.info('Buscando actualizacion...');
+            autoUpdater.checkForUpdatesAndNotify();
+          }
+        }, 5 * 60 * 1000); // cada 5 minutos
+      }
     }
 
     autoUpdater.on('update-available', () => {
