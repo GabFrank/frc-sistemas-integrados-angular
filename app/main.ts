@@ -12,8 +12,8 @@ const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
 
 autoUpdater.logger = log;
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
 
 let updateEnabled = false;
 
@@ -977,8 +977,9 @@ try {
     }
 
     autoUpdater.on('update-available', (info) => {
-      log.info('Actualizacion disponible, descargando...');
-      if (win) win.webContents.send('update-status', `Descargando version ${info.version}...`);
+      log.info(`Actualizacion disponible: version ${info.version}`);
+      if (win) win.webContents.send('update-status', `Version ${info.version} disponible. Descargando...`);
+      autoUpdater.downloadUpdate();
     });
 
     autoUpdater.on('update-not-available', () => {
@@ -998,10 +999,7 @@ try {
 
       dialog.showMessageBox(dialogOpts).then((returnValue) => {
         if (returnValue.response === 0) {
-          // Don't use quitAndInstall() - it causes NSIS to uninstall before reinstalling,
-          // which can leave orphaned shortcuts. Instead, quit normally and let
-          // autoInstallOnAppQuit handle the installation on next launch.
-          app.quit();
+          autoUpdater.quitAndInstall(false, true);
         }
       });
     });

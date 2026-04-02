@@ -76,9 +76,9 @@ SELECT subname, pid, received_lsn - replay_lsn AS replication_lag
 FROM pg_stat_subscription;
 
 -- script para crear subscription para el servidor
-CREATE SUBSCRIPTION filial24_sub
-CONNECTION 'dbname=general host=localhost user=franco password=franco port=5552'
-PUBLICATION filial24_pub WITH (copy_data = false, origin = 'none');
+CREATE SUBSCRIPTION filial_farmacia_5_sub
+CONNECTION 'dbname=general host=172.25.3.5 user=franco password=franco port=5551'
+PUBLICATION filial_farmacia_5_pub WITH (copy_data = false, origin = 'none');
 
 -- script para crear subscription para la filial
 CREATE SUBSCRIPTION central_filial25_sub
