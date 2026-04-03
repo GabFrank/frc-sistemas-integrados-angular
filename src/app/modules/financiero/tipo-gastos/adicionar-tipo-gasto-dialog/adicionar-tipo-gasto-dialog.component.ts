@@ -5,13 +5,13 @@ import { CargandoDialogService } from '../../../../shared/components/cargando-di
 import { Cargo } from '../../../empresarial/cargo/cargo.model';
 import { TipoGasto, TipoGastoInput } from '../list-tipo-gastos/tipo-gasto.model';
 import { TipoGastoService } from '../tipo-gasto.service';
+import { CargoService } from '../../../empresarial/cargo/cargo.service';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 export class AdicionarTipoGastoData {
   tipoGasto?: TipoGasto;
   parent: TipoGasto;
 }
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -26,10 +26,10 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   autorizacionControl = new FormControl(null, Validators.required);
   cargoControl = new FormControl();
   activoControl = new FormControl(true);
+  naturezaControl = new FormControl('VARIABLE');
   creadoEnControl = new FormControl();
   usuarioControl = new FormControl();
   selectedTipoGasto: TipoGasto;
-  selectedCargo: Cargo;
   listCargo: Cargo[];
   selectedParent: TipoGasto;
 
@@ -37,11 +37,11 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: AdicionarTipoGastoData,
     private matDialogRef: MatDialogRef<AdicionarTipoGastoDialogComponent>,
     private tipoGastoService: TipoGastoService,
+    private cargoService: CargoService,
     private cargandoService: CargandoDialogService
   ) {
     if (data.tipoGasto != null) {
       this.selectedTipoGasto = data.tipoGasto;
-      this.cargarDatos()
     }
     if(data.parent != null){
       this.selectedParent = data.parent;
@@ -49,11 +49,20 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    //ini arr
     this.listCargo = [];
     this.idControl.disable()
     this.creadoEnControl.disable()
     this.usuarioControl.disable()
+
+    this.cargoService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
+      if(res != null) {
+        this.listCargo = res;
+        // After loading cargos, populate data if editing
+        if (this.selectedTipoGasto != null) {
+          this.cargarDatos();
+        }
+      }
+    });
   }
 
   cargarDatos(){
@@ -61,7 +70,8 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     this.descripcionControl.setValue(this.selectedTipoGasto?.descripcion)
     this.activoControl.setValue(this.selectedTipoGasto?.activo)
     this.autorizacionControl.setValue(this.selectedTipoGasto?.autorizacion)
-    this.cargoControl.setValue(this.selectedCargo?.nombre)
+    this.cargoControl.setValue(this.selectedTipoGasto?.cargo?.id)
+    this.naturezaControl.setValue(this.selectedTipoGasto?.tipoNaturaleza || 'VARIABLE');
     this.creadoEnControl.setValue(this.selectedTipoGasto?.creadoEn)
     this.usuarioControl.setValue(this.selectedTipoGasto?.usuario?.persona?.nombre)
   }
@@ -79,8 +89,9 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     }
     input.descripcion = this.descripcionControl.value;
     input.autorizacion = this.autorizacionControl.value;
-    input.cargoId = this.selectedCargo?.id;
+    input.cargoId = this.cargoControl.value;
     input.activo = this.activoControl.value;
+    input.tipoNaturaleza = this.naturezaControl.value;
     this.tipoGastoService.onSave(input).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.cargandoService.closeDialog()

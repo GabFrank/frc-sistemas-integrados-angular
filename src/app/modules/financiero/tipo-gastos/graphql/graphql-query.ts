@@ -10,6 +10,7 @@ export const tipoGastosQuery = gql`
         descripcion
       }
       descripcion
+      tipoNaturaleza
       autorizacion
       cargo {
         id
@@ -98,6 +99,7 @@ export const tipoGastosSearch = gql`
         descripcion
       }
       descripcion
+      tipoNaturaleza
       autorizacion
       cargo {
         id
@@ -130,6 +132,7 @@ export const tipoGastoQuery = gql`
         descripcion
       }
       descripcion
+      tipoNaturaleza
       autorizacion
       cargo {
         id
@@ -161,6 +164,7 @@ export const saveTipoGasto = gql`
         descripcion
       }
       descripcion
+      tipoNaturaleza
       autorizacion
       cargo {
         id

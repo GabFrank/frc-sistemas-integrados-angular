@@ -84,7 +84,7 @@
                 <div *ngIf="cargo.subcargoList != null">
                   <mat-option
                     *ngFor="let subcargo of cargo.subcargoList"
-                    [value]="subcargo.nombre"
+                    [value]="subcargo.id"
                   >
                     {{ subcargo.nombre }}
                   </mat-option>
@@ -92,6 +92,15 @@
               </mat-optgroup>
             </mat-select>
           </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center" style="margin-top: 10px; margin-bottom: 10px;">
+        <div fxFlex="100%" fxLayout="column" style="text-align: center;">
+            <p style="font-weight: bold; font-size: 0.9em; margin-bottom: 5px; color: grey;">NATURALEZA DEL GASTO</p>
+            <mat-button-toggle-group [formControl]="naturezaControl" name="naturezaGasto" aria-label="Naturaleza del Gasto" style="width: 100%;">
+                <mat-button-toggle value="VARIABLE" style="flex: 1;">Variable / Ocasional (agua, luz, viático)</mat-button-toggle>
+                <mat-button-toggle value="CONTINUO" style="flex: 1;">Continuo / Recurrente (alquiler, seguro, inmueble)</mat-button-toggle>
+            </mat-button-toggle-group>
         </div>
       </div>
       <div fxFlex fxLayout="row" fxLayoutAlign="start center">

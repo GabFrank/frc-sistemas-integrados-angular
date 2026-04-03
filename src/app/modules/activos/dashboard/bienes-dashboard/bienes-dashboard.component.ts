@@ -6,6 +6,7 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListMueblesComponent } from '../../muebles/pages/list-muebles/list-muebles.component';
 import { ListInmueblesComponent } from '../../inmueble/pages/list-inmuebles/list-inmuebles.component';
 import { ListBienesSucursalComponent } from '../../ente/pages/list-bienes-sucursal/list-bienes-sucursal.component';
+import { ListTipoGastosComponent } from '../../../financiero/tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
 
 @Component({
   selector: 'bienes-dashboard',
@@ -48,6 +49,13 @@ export class BienesDashboardComponent implements OnInit {
         icon: 'location_on',
         iconSize: 4,
         expression: false
+      },
+      {
+        nombre: 'Tipos de Gastos',
+        clickEvent: 'list-tipo-gastos',
+        icon: 'payments',
+        iconSize: 4,
+        expression: false
       }
     )
   }
@@ -62,6 +70,9 @@ export class BienesDashboardComponent implements OnInit {
         break;
       case 'list-bienes-sucursal':
         this.onListBienesSucursal()
+        break;
+      case 'list-tipo-gastos':
+        this.onListTipoGastos()
         break;
     }
   }
@@ -78,4 +89,7 @@ export class BienesDashboardComponent implements OnInit {
     this.tabService.addTab(new Tab(ListBienesSucursalComponent, "Bienes por sucursal", null, BienesDashboardComponent))
   }
 
+  onListTipoGastos() {
+    this.tabService.addTab(new Tab(ListTipoGastosComponent, "Tipos de Gastos", null, BienesDashboardComponent))
+  }
 }

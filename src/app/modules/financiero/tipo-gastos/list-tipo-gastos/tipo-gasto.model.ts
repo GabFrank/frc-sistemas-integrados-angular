@@ -6,6 +6,7 @@ export class TipoGasto {
     isClasificacion: boolean
     clasificacionGasto: TipoGasto
     descripcion: string
+    tipoNaturaleza: string
     autorizacion: boolean
     cargo: Cargo
     activo: boolean
@@ -19,6 +20,7 @@ export class TipoGastoInput {
     isClasificacion: boolean
     clasificacionGastoId: number
     descripcion: string
+    tipoNaturaleza: string
     autorizacion: boolean
     cargoId: number
     activo: boolean
