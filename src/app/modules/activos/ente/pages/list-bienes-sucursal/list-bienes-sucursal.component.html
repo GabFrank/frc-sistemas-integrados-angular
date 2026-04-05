@@ -151,10 +151,6 @@
               <mat-icon color="warn">remove_circle</mat-icon>
               <span>Retirar de Sucursal</span>
             </button>
-            <button mat-menu-item (click)="onSolicitarPago(row)" *ngIf="row.situacionPago !== 'PAGADO'">
-              <mat-icon color="accent">payment</mat-icon>
-              <span>Solicitar Pago</span>
-            </button>
             <button mat-menu-item>Historial de Movimientos</button>
           </mat-menu>
         </td>

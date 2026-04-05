@@ -490,6 +490,41 @@
   flex-shrink: 0;
 }
 
+// === Bien seleccionado chip ===
+.bien-seleccionado-chip {
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 152, 0, 0.12);
+  }
+}
+
+.bien-chip-icono {
+  color: #ff9800;
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.bien-chip-tipo {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: #ff9800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.bien-chip-desc {
+  font-size: 0.92em;
+  font-weight: 500;
+  color: #e0e0e0;
+  margin-top: 1px;
+}
+
 // === Acciones ===
 .dialogo-acciones {
   padding-top: 10px;

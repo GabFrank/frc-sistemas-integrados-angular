@@ -9,6 +9,7 @@ import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
+import { AdicionarPreGastoDialogComponent } from '../../dialogs/adicionar-pre-gasto-dialog/adicionar-pre-gasto-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -139,6 +140,22 @@ export class ListTipoGastosComponent implements OnInit {
           this.refetchSubject.next();
         }
       });
+  }
+
+  solicitarGasto(tipoGasto: TipoGasto): void {
+    this.matDialog.open(AdicionarPreGastoDialogComponent, {
+      data: {
+        tipoGastoId: tipoGasto.id,
+        descripcion: `Pago de ${tipoGasto.descripcion}`,
+      },
+      width: '850px',
+      maxHeight: '90vh'
+    }).afterClosed().subscribe(res => {
+      if (res != null) {
+        // En este listado no necesitamos refrescar ya que son Tipos de Gasto, 
+        // pero la solicitud fue creada exitosamente.
+      }
+    });
   }
 
   eliminarItem(tipoGasto: TipoGasto): void {

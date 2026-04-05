@@ -22,6 +22,7 @@ import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inic
 import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
 import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
 import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
+import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -44,7 +45,8 @@ export class UsuarioService {
     private saveInicioSesion: SaveInicioSesionGQL,
     private getUsuarioImages: GetUsuarioImagesGQL,
     private saveUsuarioImage: SaveUsuarioImageGQL,
-    private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL
+    private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL,
+    private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL
 
   ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
@@ -96,5 +98,9 @@ export class UsuarioService {
 
   onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
     return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding, excludeIds }, servidor, null, true);
+  }
+
+  onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.usuariosSearchPaginatedGQL, { texto, page, size }, servidor);
   }
 }
