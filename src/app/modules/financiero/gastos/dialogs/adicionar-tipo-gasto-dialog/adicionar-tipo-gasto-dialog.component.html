@@ -6,9 +6,6 @@
       <h3 class="dialogo-titulo" *ngIf="selectedTipoGasto?.id != null">Editar Tipo de Gasto</h3>
       <h3 class="dialogo-titulo" *ngIf="selectedTipoGasto?.id == null">Nuevo Tipo de Gasto</h3>
     </div>
-    <button mat-icon-button *ngIf="selectedTipoGasto?.id != null" matTooltip="Eliminar" (click)="onDelete()" color="warn">
-      <mat-icon>delete_outline</mat-icon>
-    </button>
   </div>
 
   <!-- Clasificación padre -->
@@ -18,10 +15,11 @@
   </div>
 
   <!-- Formulario -->
-  <div fxLayout="column" fxLayoutGap="12px" class="dialogo-formulario">
-    <!-- Fila: ID + Descripción + Estado -->
-    <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
-      <mat-form-field fxFlex="12%" appearance="outline">
+  <div fxLayout="column" fxLayoutGap="16px" class="dialogo-formulario">
+
+    <!-- Fila 1: ID e Info básica -->
+    <div fxLayout="row" fxLayoutGap="12px">
+      <mat-form-field fxFlex="15%" appearance="outline">
         <mat-label>ID</mat-label>
         <input type="text" matInput [formControl]="idControl" autocomplete="off" />
       </mat-form-field>
@@ -38,23 +36,22 @@
         />
         <mat-icon matSuffix>description</mat-icon>
       </mat-form-field>
-
-      <div fxFlex="20%" style="text-align: center;">
-        <mat-slide-toggle
-          color="primary"
-          [checked]="activoControl.value"
-          [formControl]="activoControl"
-        >
-          {{ activoControl.value ? "Activo" : "Inactivo" }}
-        </mat-slide-toggle>
-      </div>
     </div>
 
-    <!-- Sección: Autorización -->
-    <div class="dialogo-seccion">
-      <span class="dialogo-seccion-titulo">Autorización</span>
-      <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="start center">
-        <div fxFlex="40%">
+    <!-- Sección: Configuración (Estado y Autorización) -->
+    <div class="dialogo-seccion" fxLayout="column" fxLayoutGap="16px">
+      <div fxLayout="row" fxLayoutGap="32px" fxLayoutAlign="start center">
+        <div class="toggle-container">
+          <mat-slide-toggle
+            color="primary"
+            [checked]="activoControl.value"
+            [formControl]="activoControl"
+          >
+            {{ activoControl.value ? "Activo" : "Inactivo" }}
+          </mat-slide-toggle>
+        </div>
+
+        <div class="toggle-container">
           <mat-slide-toggle
             color="primary"
             [checked]="autorizacionControl.value"
@@ -63,26 +60,27 @@
             {{ autorizacionControl.value ? "Requiere Autorización" : "Sin Autorización" }}
           </mat-slide-toggle>
         </div>
-        <mat-form-field fxFlex appearance="outline">
-          <mat-label>Cargo Autorizador</mat-label>
-          <mat-select [formControl]="cargoControl">
-            <mat-optgroup
-              *ngFor="let cargo of listCargo"
-              [label]="cargo.nombre"
-            >
-              <div *ngIf="cargo.subcargoList != null">
-                <mat-option
-                  *ngFor="let subcargo of cargo.subcargoList"
-                  [value]="subcargo.id"
-                >
-                  {{ subcargo.nombre }}
-                </mat-option>
-              </div>
-            </mat-optgroup>
-          </mat-select>
-          <mat-icon matSuffix>badge</mat-icon>
-        </mat-form-field>
       </div>
+
+      <mat-form-field style="max-width: 50%;" appearance="outline">
+        <mat-label>Cargo Autorizador</mat-label>
+        <mat-select [formControl]="cargoControl">
+          <mat-optgroup
+            *ngFor="let cargo of listCargo"
+            [label]="cargo.nombre"
+          >
+            <div *ngIf="cargo.subcargoList != null">
+              <mat-option
+                *ngFor="let subcargo of cargo.subcargoList"
+                [value]="subcargo.id"
+              >
+                {{ subcargo.nombre }}
+              </mat-option>
+            </div>
+          </mat-optgroup>
+        </mat-select>
+        <mat-icon matSuffix>badge</mat-icon>
+      </mat-form-field>
     </div>
 
     <!-- Sección: Naturaleza del Gasto -->
@@ -103,20 +101,18 @@
     </div>
 
     <!-- Sección: Auditoría (solo en edición) -->
-    <div *ngIf="selectedTipoGasto?.id != null" class="dialogo-seccion dialogo-auditoria">
+    <div *ngIf="selectedTipoGasto?.id != null" class="dialogo-seccion" fxLayout="column" fxLayoutGap="12px">
       <span class="dialogo-seccion-titulo">Auditoría</span>
-      <div fxLayout="row" fxLayoutGap="12px">
-        <mat-form-field fxFlex appearance="outline">
-          <mat-label>Creado En</mat-label>
-          <input type="text" matInput [formControl]="creadoEnControl" autocomplete="off" />
-          <mat-icon matSuffix>calendar_today</mat-icon>
-        </mat-form-field>
-        <mat-form-field fxFlex appearance="outline">
-          <mat-label>Creado Por</mat-label>
-          <input type="text" matInput [formControl]="usuarioControl" autocomplete="off" />
-          <mat-icon matSuffix>person</mat-icon>
-        </mat-form-field>
-      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Creado En</mat-label>
+        <input type="text" matInput [formControl]="creadoEnControl" autocomplete="off" />
+        <mat-icon matSuffix>calendar_today</mat-icon>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Creado Por</mat-label>
+        <input type="text" matInput [formControl]="usuarioControl" autocomplete="off" />
+        <mat-icon matSuffix>person</mat-icon>
+      </mat-form-field>
     </div>
   </div>
 

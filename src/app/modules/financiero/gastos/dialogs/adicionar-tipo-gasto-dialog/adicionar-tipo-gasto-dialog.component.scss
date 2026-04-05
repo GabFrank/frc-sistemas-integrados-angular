@@ -63,6 +63,12 @@
   opacity: 0.7;
 }
 
+.toggle-container {
+  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+}
+
 // === Toggle Group Naturaleza ===
 .naturaleza-toggle-group {
   width: 100%;
@@ -101,4 +107,8 @@
 
 input {
   text-transform: uppercase;
+}
+
+mat-form-field {
+  width: 100%;
 }

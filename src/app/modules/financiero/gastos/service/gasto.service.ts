@@ -26,6 +26,8 @@ import { RootTipoGastosGQL } from '../graphql/rootTipoGasto';
 import { SaveTipoGastoGQL } from '../graphql/saveTipoGasto';
 import { TipoGastoPorIdGQL } from '../graphql/tipoGastoPorId';
 import { TipoGastoSearchGQL } from '../graphql/tipoGastosSearch';
+import { FilterTipoGastosGQL } from '../graphql/filterTipoGastos';
+import { TipoGasto } from '../models/tipo-gasto.model';
 
 @Injectable({
   providedIn: 'root'
@@ -58,7 +60,8 @@ export class GastoService {
     private onSaveTipoGasto: SaveTipoGastoGQL,
     private tipoGastoPorId: TipoGastoPorIdGQL,
     private deleteTipoGasto: DeleteTipoGastoGQL,
-    private tipoGastoSearch: TipoGastoSearchGQL
+    private tipoGastoSearch: TipoGastoSearchGQL,
+    private filterTipoGastosGQL: FilterTipoGastosGQL
   ) { }
 
   // ======================
@@ -165,6 +168,15 @@ export class GastoService {
 
   tipoGastoOnSearch(texto: string, servidor = true): Observable<any> {
     return this.genericService.onGetByTexto(this.tipoGastoSearch, texto, servidor);
+  }
+
+  tipoGastoFilter(naturaleza?: string, texto?: string, page?: number, size?: number): Observable<PageInfo<TipoGasto>> {
+    return this.genericService.onCustomQuery(this.filterTipoGastosGQL, {
+      naturaleza,
+      texto,
+      page,
+      size
+    });
   }
 
 }

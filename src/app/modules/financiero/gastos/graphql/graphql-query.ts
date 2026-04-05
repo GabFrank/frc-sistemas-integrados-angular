@@ -706,3 +706,49 @@ export const filterPreGastosQuery = gql`
     }
   }
 `;
+
+export const filterTipoGastosQuery = gql`
+  query (
+    $naturaleza: String
+    $texto: String
+    $page: Int
+    $size: Int
+  ) {
+    data: filterTipoGastos(
+      naturaleza: $naturaleza
+      texto: $texto
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+        autorizacion
+        activo
+        isClasificacion
+        tipoNaturaleza
+        cargo {
+          id
+        }
+        clasificacionGasto {
+          id
+          descripcion
+        }
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
+    }
+  }
+`;
