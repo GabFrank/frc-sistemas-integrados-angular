@@ -1,0 +1,235 @@
+<div fxLayout="column" style="width: 100%" [style.height.px]="alturaContenedor">
+  <!-- Header -->
+  <div fxFlex="auto" class="seccion-header">
+    <div fxLayout="row" fxLayoutAlign="space-between center">
+      <h3 class="titulo-seccion">
+        <mat-icon class="titulo-icono">request_quote</mat-icon>
+        Solicitudes de Gasto
+      </h3>
+      <button mat-raised-button color="accent" (click)="nuevaSolicitud()" class="boton-nuevo">
+        <mat-icon>add</mat-icon>
+        Nueva Solicitud
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs de estado -->
+  <div fxFlex="auto" class="tabs-contenedor">
+    <div fxLayout="row" fxLayoutGap="4px">
+      <button
+        *ngFor="let etiqueta of tabEtiquetas; let i = index"
+        mat-button
+        class="tab-boton"
+        [class.tab-activa]="(tabActiva$ | async) === i"
+        (click)="cambiarTab(i)"
+      >
+        {{ etiqueta }}
+        <span class="tab-contador" *ngIf="(tabActiva$ | async) === i && ((listaFiltrada$ | async)?.length || 0) > 0">
+          {{ (listaFiltrada$ | async)?.length }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido -->
+  <div fxFlex fxLayout="row" fxLayoutGap="16px" class="contenido-principal">
+    <!-- Tabla -->
+    <div fxFlex="65%">
+      <mat-card class="panel-tabla" [style.height.px]="alturaTabla">
+        <div class="tabla-contenedor" [style.height.px]="alturaTabla - 16">
+          <table mat-table [dataSource]="(listaFiltrada$ | async) || []" class="tabla-gastos">
+            <!-- ID -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>ID</th>
+              <td mat-cell *matCellDef="let item">{{ item.id }}</td>
+            </ng-container>
+
+            <!-- Funcionario -->
+            <ng-container matColumnDef="funcionario">
+              <th mat-header-cell *matHeaderCellDef>Solicitante</th>
+              <td mat-cell *matCellDef="let item">{{ item.funcionario?.nombre }}</td>
+            </ng-container>
+
+            <!-- Tipo Gasto -->
+            <ng-container matColumnDef="tipoGasto">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let item">{{ item.tipoGasto?.descripcion }}</td>
+            </ng-container>
+
+            <!-- Descripción -->
+            <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef>Concepto</th>
+              <td mat-cell *matCellDef="let item" class="celda-descripcion">{{ item.descripcion }}</td>
+            </ng-container>
+
+            <!-- Monto -->
+            <ng-container matColumnDef="monto">
+              <th mat-header-cell *matHeaderCellDef>Monto</th>
+              <td mat-cell *matCellDef="let item" class="celda-monto">
+                {{ item.montoSolicitado | number:'1.0-0' }}
+              </td>
+            </ng-container>
+
+            <!-- Moneda -->
+            <ng-container matColumnDef="moneda">
+              <th mat-header-cell *matHeaderCellDef>Mon.</th>
+              <td mat-cell *matCellDef="let item">{{ item.moneda?.simbolo }}</td>
+            </ng-container>
+
+            <!-- Sucursal -->
+            <ng-container matColumnDef="sucursal">
+              <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+              <td mat-cell *matCellDef="let item">{{ item.sucursalCaja?.nombre }}</td>
+            </ng-container>
+
+            <!-- Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let item">
+                <span class="estado-badge" [style.background-color]="colorEstado(item.estado) + '22'" [style.color]="colorEstado(item.estado)">
+                  <mat-icon class="estado-icono">{{ iconoEstado(item.estado) }}</mat-icon>
+                  {{ etiquetaEstado(item.estado) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Fecha -->
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let item">{{ item.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
+            </ng-container>
+
+            <!-- Acciones -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let item">
+                <button
+                  mat-icon-button
+                  *ngIf="item.estado === 'PENDIENTE' || item.estado === 'TRAMITE'"
+                  matTooltip="Autorizar / Gestionar"
+                  (click)="autorizarGasto(item); $event.stopPropagation()"
+                  color="accent"
+                >
+                  <mat-icon>gavel</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasVisibles; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasVisibles;"
+              class="fila-tabla"
+              [class.fila-seleccionada]="(preGastoSeleccionado$ | async)?.id === row.id"
+              (click)="seleccionarPreGasto(row)"
+            ></tr>
+          </table>
+
+          <!-- Estado vacío -->
+          <div *ngIf="((listaFiltrada$ | async)?.length === 0) && !(cargando$ | async)" class="estado-vacio">
+            <mat-icon>inbox</mat-icon>
+            <p>No hay solicitudes en este estado</p>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Panel Detalle -->
+    <div fxFlex="35%" *ngIf="{ selected: preGastoSeleccionado$ | async } as info">
+      <mat-card class="panel-detalle" [style.height.px]="alturaTabla">
+        <!-- Sin selección -->
+        <div *ngIf="info.selected == null" class="detalle-vacio" fxLayout="column" fxLayoutAlign="center center">
+          <mat-icon class="detalle-vacio-icono">summarize</mat-icon>
+          <p class="detalle-vacio-texto">Seleccione una solicitud para ver el detalle</p>
+        </div>
+
+        <!-- Con selección -->
+        <div *ngIf="info.selected != null" fxLayout="column" class="detalle-contenido" fxLayoutGap="10px">
+          <!-- Header -->
+          <div class="detalle-header">
+            <h3 class="detalle-titulo">Solicitud #{{ info.selected.id }}</h3>
+            <span class="estado-badge detalle-estado"
+              [style.background-color]="colorEstado(info.selected.estado) + '22'"
+              [style.color]="colorEstado(info.selected.estado)"
+            >
+              <mat-icon class="estado-icono">{{ iconoEstado(info.selected.estado) }}</mat-icon>
+              {{ etiquetaEstado(info.selected.estado) }}
+            </span>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Datos del solicitante -->
+          <div class="detalle-info-grupo" fxLayout="column" fxLayoutGap="6px">
+            <div class="detalle-info-fila">
+              <span class="detalle-label">Solicitante</span>
+              <span class="detalle-valor">{{ info.selected.funcionario?.nombre }}</span>
+            </div>
+            <div class="detalle-info-fila">
+              <span class="detalle-label">Tipo de Gasto</span>
+              <span class="detalle-valor">{{ info.selected.tipoGasto?.descripcion }}</span>
+            </div>
+            <div class="detalle-info-fila">
+              <span class="detalle-label">Concepto</span>
+              <span class="detalle-valor">{{ info.selected.descripcion }}</span>
+            </div>
+          </div>
+
+          <!-- Datos financieros -->
+          <div class="detalle-financiero">
+            <div class="monto-principal">
+              <span class="monto-label">Monto Solicitado</span>
+              <span class="monto-valor">
+                {{ info.selected.moneda?.simbolo }}
+                {{ info.selected.montoSolicitado | number:'1.0-0' }}
+              </span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.montoRetirado != null">
+              <span class="detalle-label">Monto Retirado</span>
+              <span class="detalle-valor">{{ info.selected.montoRetirado | number:'1.0-0' }}</span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.montoGastado != null">
+              <span class="detalle-label">Monto Gastado</span>
+              <span class="detalle-valor">{{ info.selected.montoGastado | number:'1.0-0' }}</span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.saldoDevolver != null">
+              <span class="detalle-label">Saldo a Devolver</span>
+              <span class="detalle-valor">{{ info.selected.saldoDevolver | number:'1.0-0' }}</span>
+            </div>
+          </div>
+
+          <!-- Otros datos -->
+          <div class="detalle-info-grupo" fxLayout="column" fxLayoutGap="6px">
+            <div class="detalle-info-fila">
+              <span class="detalle-label">Sucursal Retiro</span>
+              <span class="detalle-valor">{{ info.selected.sucursalCaja?.nombre }}</span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.autorizadoPor != null">
+              <span class="detalle-label">Autorizado Por</span>
+              <span class="detalle-valor">{{ info.selected.autorizadoPor?.nombre }}</span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.qrToken != null">
+              <span class="detalle-label">Token QR</span>
+              <span class="detalle-valor detalle-qr">{{ info.selected.qrToken }}</span>
+            </div>
+            <div class="detalle-info-fila" *ngIf="info.selected.motivoRechazo != null">
+              <span class="detalle-label">Motivo Rechazo</span>
+              <span class="detalle-valor detalle-rechazo">{{ info.selected.motivoRechazo }}</span>
+            </div>
+            <div class="detalle-info-fila">
+              <span class="detalle-label">Fecha</span>
+              <span class="detalle-valor">{{ info.selected.creadoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="detalle-acciones" fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="center center"
+            *ngIf="info.selected.estado === 'PENDIENTE' || info.selected.estado === 'TRAMITE'">
+            <button mat-raised-button color="accent" (click)="autorizarGasto(info.selected)">
+              <mat-icon>gavel</mat-icon>
+              Gestionar
+            </button>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

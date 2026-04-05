@@ -14,15 +14,11 @@ import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
 import { ListMaletinComponent } from './maletin/list-maletin/list-maletin.component';
 import { AdicionarMaletinDialogComponent } from './maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component';
-import { ListGastosComponent } from './gastos/list-gastos/list-gastos.component';
-import { ListTipoGastosComponent } from './tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
-import { AdicionarTipoGastoDialogComponent } from './tipo-gastos/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
 import { AdicionarCajaDialogComponent } from './pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
 import { SinMaletinDialogComponent } from './pdv/sin-maletin-dialog/sin-maletin-dialog.component';
 import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component';
 import { AdicionarRetiroDialogComponent } from './retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
 import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component';
-import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component';
 import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-cambio-dialog.component';
 import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog/mostrar-balance-dialog.component';
 import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/list-factura-legal.component';
@@ -62,15 +58,11 @@ import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog
     ListCajaComponent,
     ListMaletinComponent,
     AdicionarMaletinDialogComponent,
-    ListGastosComponent,
-    ListTipoGastosComponent,
-    AdicionarTipoGastoDialogComponent,
     AdicionarCajaDialogComponent,
     SinMaletinDialogComponent,
     AdicionarConteoDialogComponent,
     AdicionarRetiroDialogComponent,
     ListRetiroComponent,
-    AdicionarGastoDialogComponent,
     CrearCambioDialogComponent,
     MostrarBalanceDialogComponent,
     ListFacturaLegalComponent,
@@ -108,6 +100,6 @@ import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog
     SharedModule,
     FinancieroRoutingModule,
     BootstrapModule
-],
+  ],
 })
-export class FinancieroModule {}
+export class FinancieroModule { }

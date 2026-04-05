@@ -1,0 +1,202 @@
+<div fxLayout="column" style="width: 100%" [style.height.px]="alturaContenedor">
+  <!-- Header -->
+  <div fxFlex="auto" class="seccion-header">
+    <div fxLayout="row" fxLayoutAlign="space-between center">
+      <h3 class="titulo-seccion">
+        <mat-icon class="titulo-icono">receipt_long</mat-icon>
+        Tipos de Gasto
+      </h3>
+      <button mat-raised-button color="accent" (click)="agregarNuevo()" class="boton-nuevo">
+        <mat-icon>add</mat-icon>
+        Nuevo Tipo
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div fxFlex fxLayout="row" fxLayoutGap="16px" class="contenido-principal">
+    <!-- Panel izquierdo: Árbol -->
+    <div fxFlex="55%">
+      <mat-card class="panel-arbol" [style.height.px]="alturaArbol">
+        <div class="panel-arbol-header">
+          <mat-icon class="panel-icono">account_tree</mat-icon>
+          <span>Clasificaciones</span>
+        </div>
+        <div class="arbol-contenedor" [style.height.px]="alturaArbol - 60">
+          <mat-tree
+            [dataSource]="fuenteDatos"
+            [treeControl]="controlArbol"
+            class="arbol-gastos"
+          >
+            <!-- Nodo hoja -->
+            <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+              <button mat-icon-button disabled class="nodo-espaciador"></button>
+              <div
+                class="nodo-contenido nodo-hoja"
+                [class.nodo-seleccionado]="(nodoSeleccionado$ | async) === node"
+                (click)="seleccionarNodo(node)"
+              >
+                <mat-icon class="nodo-icono-hoja">label</mat-icon>
+                <span class="nodo-id">{{ node.id }}</span>
+                <span class="nodo-nombre">{{ node.nombre }}</span>
+              </div>
+            </mat-tree-node>
+
+            <!-- Nodo expandible -->
+            <mat-tree-node
+              *matTreeNodeDef="let node; when: tieneHijos"
+              matTreeNodePadding
+            >
+              <button
+                mat-icon-button
+                matTreeNodeToggle
+                [attr.aria-label]="'Expandir ' + node.nombre"
+                (click)="seleccionarNodo(node)"
+                class="nodo-toggle"
+              >
+                <mat-icon class="mat-icon-rtl-mirror nodo-icono-expandir">
+                  {{
+                    controlArbol.isExpanded(node) ? "expand_more" : "chevron_right"
+                  }}
+                </mat-icon>
+              </button>
+              <div
+                class="nodo-contenido nodo-rama"
+                matTreeNodeToggle
+                [attr.aria-label]="'Expandir ' + node.nombre"
+                (click)="seleccionarNodo(node)"
+                [class.nodo-seleccionado]="(nodoSeleccionado$ | async) === node"
+              >
+                <mat-icon class="nodo-icono-carpeta">
+                  {{ controlArbol.isExpanded(node) ? "folder_open" : "folder" }}
+                </mat-icon>
+                <span class="nodo-id">{{ node.id }}</span>
+                <span class="nodo-nombre">{{ node.nombre }}</span>
+              </div>
+            </mat-tree-node>
+          </mat-tree>
+
+          <!-- Estado vacío -->
+          <div *ngIf="fuenteDatos.data.length === 0 && !(cargando$ | async)" class="estado-vacio">
+            <mat-icon>inbox</mat-icon>
+            <p>No hay tipos de gasto registrados</p>
+            <button mat-stroked-button color="accent" (click)="agregarNuevo()">
+              Crear primer tipo
+            </button>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Panel derecho: Detalle -->
+    <div fxFlex="45%" *ngIf="{ selected: tipoGastoSeleccionado$ | async } as info">
+      <mat-card class="panel-detalle" [style.height.px]="alturaArbol">
+        <!-- Sin selección -->
+        <div
+          *ngIf="info.selected == null"
+          class="detalle-vacio"
+          fxLayout="column"
+          fxLayoutAlign="center center"
+        >
+          <mat-icon class="detalle-vacio-icono">touch_app</mat-icon>
+          <p class="detalle-vacio-texto">Seleccione un tipo de gasto para ver su detalle</p>
+        </div>
+
+        <!-- Con selección -->
+        <div
+          *ngIf="info.selected != null"
+          fxLayout="column"
+          class="detalle-contenido"
+          fxLayoutGap="12px"
+        >
+          <!-- Título -->
+          <div class="detalle-header">
+            <div class="detalle-titulo-grupo">
+              <mat-icon class="detalle-titulo-icono">receipt_long</mat-icon>
+              <h3 class="detalle-titulo">{{ info.selected.descripcion }}</h3>
+            </div>
+            <span class="detalle-id">ID: {{ info.selected.id }}</span>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Badges de estado -->
+          <div fxLayout="row wrap" fxLayoutGap="8px" class="detalle-badges">
+            <span class="badge"
+              [class.badge-activo]="info.selected.activo"
+              [class.badge-inactivo]="!info.selected.activo"
+            >
+              <mat-icon class="badge-icono">{{ info.selected.activo ? 'check_circle' : 'cancel' }}</mat-icon>
+              {{ info.selected.activo ? "Activo" : "Inactivo" }}
+            </span>
+
+            <span class="badge"
+              [class.badge-autorizacion]="info.selected.autorizacion"
+              [class.badge-sin-autorizacion]="!info.selected.autorizacion"
+            >
+              <mat-icon class="badge-icono">{{ info.selected.autorizacion ? 'verified' : 'remove_circle_outline' }}</mat-icon>
+              {{ info.selected.autorizacion ? "Con Autorización" : "Sin Autorización" }}
+            </span>
+
+            <span class="badge badge-naturaleza" *ngIf="info.selected.tipoNaturaleza">
+              <mat-icon class="badge-icono">{{ info.selected.tipoNaturaleza === 'VARIABLE' ? 'trending_up' : 'autorenew' }}</mat-icon>
+              {{ info.selected.tipoNaturaleza === 'VARIABLE' ? 'Variable' : 'Continuo' }}
+            </span>
+          </div>
+
+          <!-- Información detallada -->
+          <div class="detalle-info-grupo" fxLayout="column" fxLayoutGap="8px">
+            <div class="detalle-info-fila" *ngIf="info.selected.clasificacionGasto != null">
+              <span class="detalle-label">Clasificación</span>
+              <span class="detalle-valor">{{ info.selected.clasificacionGasto.descripcion }}</span>
+            </div>
+
+            <div class="detalle-info-fila" *ngIf="info.selected.cargo != null">
+              <span class="detalle-label">Cargo requerido</span>
+              <span class="detalle-valor">{{ info.selected.cargo.nombre }}</span>
+            </div>
+
+            <div class="detalle-info-fila" *ngIf="info.selected.tipoNaturaleza">
+              <span class="detalle-label">Naturaleza</span>
+              <span class="detalle-valor">
+                {{ info.selected.tipoNaturaleza === 'VARIABLE' ? 'Variable / Ocasional' : 'Continuo / Recurrente' }}
+              </span>
+            </div>
+
+            <div class="detalle-info-fila" *ngIf="info.selected.creadoEn">
+              <span class="detalle-label">Fecha de creación</span>
+              <span class="detalle-valor">{{ info.selected.creadoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+
+            <div class="detalle-info-fila" *ngIf="info.selected.usuario">
+              <span class="detalle-label">Creado por</span>
+              <span class="detalle-valor">{{ info.selected.usuario.persona?.nombre }}</span>
+            </div>
+          </div>
+
+          <!-- Subtipos existentes -->
+          <div class="detalle-subtipos" *ngIf="info.selected.subtipoList?.length > 0">
+            <span class="detalle-label">Subtipos ({{ info.selected.subtipoList.length }})</span>
+            <div class="subtipo-lista">
+              <span class="subtipo-chip" *ngFor="let sub of info.selected.subtipoList">
+                {{ sub.descripcion }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="detalle-acciones" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="center center">
+            <button mat-raised-button color="accent" (click)="agregarNuevo()" class="boton-accion">
+              <mat-icon>add</mat-icon>
+              Subtipo
+            </button>
+            <button mat-raised-button color="primary" (click)="editarItem()" class="boton-accion">
+              <mat-icon>edit</mat-icon>
+              Editar
+            </button>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,414 @@
+<div class="dialogo-contenedor">
+  <!-- Header -->
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">request_quote</mat-icon>
+    <div fxLayout="column">
+      <h3 class="dialogo-titulo">Nueva Solicitud de Gasto</h3>
+      <span class="dialogo-subtitulo" *ngIf="tieneDatosBien">
+        Solicitud vinculada a {{ data.tipoBien | uppercase }} - {{ data.bienDescripcion }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Indicador de pasos -->
+  <div class="pasos-indicador" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="0">
+    <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0" (click)="irAPaso(0)">
+      <div class="paso-circulo">
+        <mat-icon *ngIf="pasoActual > 0">check</mat-icon>
+        <span *ngIf="pasoActual <= 0">1</span>
+      </div>
+      <span class="paso-etiqueta">Bien / Activo</span>
+    </div>
+    <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
+    <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1" (click)="irAPaso(1)">
+      <div class="paso-circulo">
+        <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
+        <span *ngIf="pasoActual <= 1">2</span>
+      </div>
+      <span class="paso-etiqueta">Datos del Gasto</span>
+    </div>
+    <div class="paso-linea" [class.linea-activa]="pasoActual > 1"></div>
+    <div class="paso-item" [class.paso-activo]="pasoActual === 2">
+      <div class="paso-circulo">
+        <span>3</span>
+      </div>
+      <span class="paso-etiqueta">Confirmación</span>
+    </div>
+  </div>
+
+  <!-- ===================== PASO 0: INFORMACIÓN DEL BIEN ===================== -->
+  <div class="paso-contenido" *ngIf="pasoActual === 0">
+    <!-- Resumen del bien vinculado -->
+    <div class="bien-resumen-card" *ngIf="tieneDatosBien">
+      <div class="bien-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+        <div class="bien-icono-contenedor">
+          <mat-icon class="bien-icono">{{ iconoTipoBien() }}</mat-icon>
+        </div>
+        <div fxLayout="column" fxFlex>
+          <span class="bien-tipo-badge">{{ data.tipoBien | uppercase }}</span>
+          <span class="bien-nombre">{{ data.bienDescripcion }}</span>
+          <span class="bien-ref">Ref. #{{ data.referenciaId }} — Ente #{{ data.enteId }}</span>
+        </div>
+        <div class="estado-cuota-badge" [style.background-color]="colorEstadoCuota() + '22'" [style.color]="colorEstadoCuota()" *ngIf="data.estadoCuota">
+          {{ data.estadoCuota }}
+        </div>
+      </div>
+
+      <!-- Información financiera del bien -->
+      <div class="bien-financiero-grid">
+        <div class="financiero-item">
+          <span class="financiero-label">Monto Total</span>
+          <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:'1.0-0' }}</span>
+        </div>
+        <div class="financiero-item">
+          <span class="financiero-label">Ya Pagado</span>
+          <span class="financiero-valor success">{{ data.moneda }} {{ data.montoYaPagado | number:'1.0-0' }}</span>
+        </div>
+        <div class="financiero-item">
+          <span class="financiero-label">Pendiente</span>
+          <span class="financiero-valor peligro">{{ data.moneda }} {{ data.montoPendiente | number:'1.0-0' }}</span>
+        </div>
+        <div class="financiero-item" *ngIf="data.diaVencimiento">
+          <span class="financiero-label">Vence en</span>
+          <span class="financiero-valor">{{ data.diasParaVencer }} día(s)</span>
+        </div>
+      </div>
+
+      <!-- Barra de progreso de pago -->
+      <div class="progreso-pago">
+        <div fxLayout="row" fxLayoutAlign="space-between center" class="progreso-header">
+          <span class="progreso-label">Progreso de pago</span>
+          <span class="progreso-porcentaje">{{ porcentajePagado() }}%</span>
+        </div>
+        <div class="progreso-barra">
+          <div class="progreso-relleno" [style.width.%]="porcentajePagado()"></div>
+        </div>
+      </div>
+
+      <!-- Plan de cuotas -->
+      <div class="cuotas-seccion" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+        <span class="seccion-mini-titulo">
+          <mat-icon class="seccion-mini-icono">event_note</mat-icon>
+          Plan de Cuotas
+        </span>
+        <div class="cuotas-grid">
+          <div class="cuota-info">
+            <span class="cuota-etiqueta">Cuotas Totales</span>
+            <span class="cuota-valor">{{ data.cuotasTotales }}</span>
+          </div>
+          <div class="cuota-info">
+            <span class="cuota-etiqueta">Cuotas Pagadas</span>
+            <span class="cuota-valor success">{{ data.cuotasPagadas }}</span>
+          </div>
+          <div class="cuota-info">
+            <span class="cuota-etiqueta">Cuotas Faltantes</span>
+            <span class="cuota-valor peligro">{{ data.cuotasFaltantes }}</span>
+          </div>
+          <div class="cuota-info">
+            <span class="cuota-etiqueta">Monto por Cuota</span>
+            <span class="cuota-valor">{{ data.moneda }} {{ montoPorCuota() | number:'1.0-0' }}</span>
+          </div>
+          <div class="cuota-info" *ngIf="data.diaVencimiento">
+            <span class="cuota-etiqueta">Día de Vencimiento</span>
+            <span class="cuota-valor">Día {{ data.diaVencimiento }} de cada mes</span>
+          </div>
+          <div class="cuota-info">
+            <span class="cuota-etiqueta">Cuota a Pagar Ahora</span>
+            <span class="cuota-valor resaltado">Cuota {{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proveedor -->
+      <div class="proveedor-seccion" *ngIf="data.proveedor">
+        <span class="seccion-mini-titulo">
+          <mat-icon class="seccion-mini-icono">store</mat-icon>
+          Proveedor / Vendedor
+        </span>
+        <span class="proveedor-nombre">{{ data.proveedor }}</span>
+      </div>
+
+      <!-- Situación de Pago -->
+      <div class="situacion-seccion" *ngIf="data.situacionPago">
+        <span class="seccion-mini-titulo">
+          <mat-icon class="seccion-mini-icono">info</mat-icon>
+          Situación de Pago
+        </span>
+        <span class="situacion-valor"
+          [class.situacion-pagando]="data.situacionPago === 'PAGANDO'"
+          [class.situacion-pagado]="data.situacionPago === 'PAGADO'"
+        >{{ data.situacionPago }}</span>
+      </div>
+
+      <!-- Sucursal -->
+      <div class="sucursal-info-seccion" *ngIf="data.sucursalNombre">
+        <span class="seccion-mini-titulo">
+          <mat-icon class="seccion-mini-icono">location_on</mat-icon>
+          Sucursal Asignada
+        </span>
+        <span class="sucursal-nombre-info">{{ data.sucursalNombre }}</span>
+      </div>
+    </div>
+
+    <!-- Sin bien vinculado -->
+    <div class="sin-bien-info" *ngIf="!tieneDatosBien">
+      <mat-icon class="sin-bien-icono">info</mat-icon>
+      <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
+      <p class="sin-bien-subtexto">Puede acceder desde el listado de bienes para vincular automáticamente.</p>
+    </div>
+  </div>
+
+  <!-- ===================== PASO 1: DATOS DEL GASTO ===================== -->
+  <div class="paso-contenido" *ngIf="pasoActual === 1">
+    <div fxLayout="column" fxLayoutGap="14px" class="dialogo-formulario">
+      <!-- Tipo de Gasto -->
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">receipt_long</mat-icon>
+          Tipo de Gasto
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Seleccionar tipo de gasto</mat-label>
+          <mat-select [formControl]="tipoGastoControl">
+            <mat-option>
+              <input matInput [formControl]="busquedaTipoGastoControl" placeholder="Buscar..."
+                style="width: 100%; padding: 8px; border: none; outline: none; background: transparent; color: #e0e0e0;">
+            </mat-option>
+            <mat-option *ngFor="let tipo of tipoGastosFiltrados" [value]="tipo.id">
+              {{ tipo.descripcion }}
+              <span *ngIf="tipo.clasificacionGasto" style="color: #9e9e9e; font-size: 0.8em;">
+                ({{ tipo.clasificacionGasto.descripcion }})
+              </span>
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix>receipt_long</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Descripción / Concepto -->
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">description</mat-icon>
+          Descripción del Gasto
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Descripción / Concepto del gasto</mat-label>
+          <textarea
+            matInput
+            [formControl]="descripcionControl"
+            placeholder="Ej: Pago cuota 3/12 de Inmueble Oficina Central"
+            rows="3"
+            maxlength="500"
+          ></textarea>
+          <mat-icon matSuffix>description</mat-icon>
+          <mat-hint align="end">{{ descripcionControl.value?.length || 0 }} / 500</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Información Financiera -->
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">payments</mat-icon>
+          Información Financiera
+        </span>
+        <div fxLayout="row" fxLayoutGap="12px">
+          <mat-form-field appearance="outline" fxFlex="35%">
+            <mat-label>Moneda</mat-label>
+            <mat-select [formControl]="monedaControl">
+              <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+                {{ moneda.denominacion }} ({{ moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex>
+            <mat-label>Monto Solicitado</mat-label>
+            <input
+              matInput
+              type="number"
+              [formControl]="montoControl"
+              placeholder="0"
+              min="1"
+            />
+            <mat-icon matSuffix>payments</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <!-- Número de cuota si aplica -->
+        <mat-form-field appearance="outline" style="width: 100%;" *ngIf="tieneDatosBien && data.cuotasTotales > 0">
+          <mat-label>Número de Cuota que se paga</mat-label>
+          <input matInput type="number" [formControl]="numeroCuotaControl" />
+          <mat-hint>Cuota {{ numeroCuotaControl.value || '-' }} de {{ data.cuotasTotales }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Sucursal de retiro -->
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">store</mat-icon>
+          Sucursal de Retiro
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Sucursal de Retiro</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option *ngFor="let sucursal of listaSucursales" [value]="sucursal.id">
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix>store</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Forma de pago y urgencia -->
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">tune</mat-icon>
+          Opciones Adicionales
+        </span>
+        <div fxLayout="row" fxLayoutGap="12px">
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Forma de Pago Sugerida</mat-label>
+            <mat-select [formControl]="formaPagoControl">
+              <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
+                <mat-icon>{{ fp.icono }}</mat-icon>
+                {{ fp.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Nivel de Urgencia</mat-label>
+            <mat-select [formControl]="urgenciaControl">
+              <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
+                <span [style.color]="nivel.color">●</span>
+                {{ nivel.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Beneficiario del Pago (si aplica)</mat-label>
+          <input matInput [formControl]="beneficiarioControl" placeholder="Nombre del proveedor o beneficiario" />
+          <mat-icon matSuffix>person</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Observaciones Internas</mat-label>
+          <textarea
+            matInput
+            [formControl]="observacionesControl"
+            placeholder="Notas adicionales para la aprobación..."
+            rows="2"
+            maxlength="300"
+          ></textarea>
+          <mat-hint align="end">{{ observacionesControl.value?.length || 0 }} / 300</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PASO 2: CONFIRMACIÓN ===================== -->
+  <div class="paso-contenido" *ngIf="pasoActual === 2">
+    <div class="confirmacion-contenedor">
+      <div class="confirmacion-header">
+        <mat-icon class="confirmacion-icono">fact_check</mat-icon>
+        <h4 class="confirmacion-titulo">Resumen de la Solicitud</h4>
+      </div>
+
+      <!-- Datos del bien si aplica -->
+      <div class="confirmacion-seccion" *ngIf="tieneDatosBien">
+        <span class="confirmacion-seccion-titulo">Bien Vinculado</span>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Tipo</span>
+          <span class="confirmacion-valor">{{ data.tipoBien | uppercase }}</span>
+        </div>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Descripción</span>
+          <span class="confirmacion-valor">{{ data.bienDescripcion }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="data.proveedor">
+          <span class="confirmacion-label">Proveedor</span>
+          <span class="confirmacion-valor">{{ data.proveedor }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+          <span class="confirmacion-label">Cuota</span>
+          <span class="confirmacion-valor">{{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+        </div>
+      </div>
+
+      <!-- Datos del gasto -->
+      <div class="confirmacion-seccion">
+        <span class="confirmacion-seccion-titulo">Datos del Gasto</span>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Concepto</span>
+          <span class="confirmacion-valor">{{ descripcionControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila resaltado">
+          <span class="confirmacion-label">Monto Solicitado</span>
+          <span class="confirmacion-valor monto-grande">{{ montoControl.value | number:'1.0-0' }}</span>
+        </div>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Forma de Pago</span>
+          <span class="confirmacion-valor">{{ formaPagoControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="urgenciaControl.value !== 'NORMAL'">
+          <span class="confirmacion-label">Urgencia</span>
+          <span class="confirmacion-valor"
+            [style.color]="urgenciaControl.value === 'URGENTE' ? '#ef5350' : urgenciaControl.value === 'ALTA' ? '#ffa726' : '#42a5f5'"
+          >{{ urgenciaControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="beneficiarioControl.value">
+          <span class="confirmacion-label">Beneficiario</span>
+          <span class="confirmacion-valor">{{ beneficiarioControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="observacionesControl.value">
+          <span class="confirmacion-label">Observaciones</span>
+          <span class="confirmacion-valor obs-texto">{{ observacionesControl.value }}</span>
+        </div>
+      </div>
+
+      <!-- Alerta de monto vs pendiente -->
+      <div class="confirmacion-alerta" *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+        <mat-icon class="alerta-icono">warning</mat-icon>
+        <span>El monto solicitado ({{ montoControl.value | number:'1.0-0' }}) supera el monto pendiente del bien ({{ data.montoPendiente | number:'1.0-0' }}).</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="space-between center">
+    <div>
+      <button mat-stroked-button (click)="cancelar()" type="button">
+        Cancelar
+      </button>
+    </div>
+    <div fxLayout="row" fxLayoutGap="8px">
+      <button mat-stroked-button (click)="pasoAnterior()" *ngIf="pasoActual > 0" type="button">
+        <mat-icon>arrow_back</mat-icon>
+        Anterior
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="pasoSiguiente()"
+        *ngIf="pasoActual < 2"
+        type="button"
+      >
+        Siguiente
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+      <button
+        mat-raised-button
+        color="accent"
+        [disabled]="!formularioValido()"
+        (click)="guardar()"
+        *ngIf="pasoActual === 2"
+        type="button"
+      >
+        <mat-icon>send</mat-icon>
+        Enviar Solicitud
+      </button>
+    </div>
+  </div>
+</div>

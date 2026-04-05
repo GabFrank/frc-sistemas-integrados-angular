@@ -1,0 +1,90 @@
+.dialogo-contenedor { padding: 4px; }
+.dialogo-header { margin-bottom: 16px; }
+.dialogo-header-icono { color: #ff9800; font-size: 28px; width: 28px; height: 28px; }
+.dialogo-titulo { margin: 0; font-size: 1.15em; font-weight: 500; color: #e0e0e0; }
+
+.resumen-solicitud {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.resumen-campo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+
+  & + & {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+}
+
+.resumen-label {
+  font-size: 0.8em;
+  color: #9e9e9e;
+}
+
+.resumen-valor {
+  font-size: 0.85em;
+  color: #e0e0e0;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.resumen-descripcion {
+  text-transform: none !important;
+  max-width: 250px;
+  text-align: right;
+}
+
+.monto-destacado {
+  text-align: center;
+  background: rgba(255, 152, 0, 0.08);
+  border: 1px solid rgba(255, 152, 0, 0.2);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.monto-etiqueta {
+  display: block;
+  font-size: 0.7em;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.monto-cantidad {
+  font-size: 2em;
+  font-weight: 700;
+  color: #ff9800;
+}
+
+.rechazo-seccion {
+  margin-bottom: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dialogo-acciones {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.boton-autorizar {
+  background-color: #43a047 !important;
+  color: white !important;
+}
+
+.boton-tramite {
+  background-color: #1e88e5 !important;
+  color: white !important;
+}

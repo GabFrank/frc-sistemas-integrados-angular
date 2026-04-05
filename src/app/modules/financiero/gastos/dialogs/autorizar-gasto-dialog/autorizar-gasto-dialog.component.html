@@ -1,0 +1,88 @@
+<div class="dialogo-contenedor">
+  <!-- Header -->
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">gavel</mat-icon>
+    <h3 class="dialogo-titulo">Gestionar Solicitud #{{ preGasto.id }}</h3>
+  </div>
+
+  <!-- Resumen de la solicitud -->
+  <div class="resumen-solicitud">
+    <div class="resumen-campo">
+      <span class="resumen-label">Solicitante</span>
+      <span class="resumen-valor">{{ preGasto.funcionario?.nombre }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Tipo de Gasto</span>
+      <span class="resumen-valor">{{ preGasto.tipoGasto?.descripcion }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Concepto</span>
+      <span class="resumen-valor resumen-descripcion">{{ preGasto.descripcion }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Sucursal Retiro</span>
+      <span class="resumen-valor">{{ preGasto.sucursalCaja?.nombre }}</span>
+    </div>
+  </div>
+
+  <!-- Monto destacado -->
+  <div class="monto-destacado">
+    <span class="monto-etiqueta">MONTO SOLICITADO</span>
+    <span class="monto-cantidad">
+      {{ preGasto.moneda?.simbolo }} {{ preGasto.montoSolicitado | number:'1.0-0' }}
+    </span>
+  </div>
+
+  <!-- Motivo de rechazo (aparece al hacer click en Rechazar) -->
+  <div *ngIf="mostrarMotivoRechazo" class="rechazo-seccion">
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Motivo del Rechazo</mat-label>
+      <textarea
+        matInput
+        [formControl]="motivoRechazoControl"
+        placeholder="Indique el motivo por el cual se rechaza esta solicitud"
+        rows="3"
+      ></textarea>
+      <mat-icon matSuffix color="warn">warning</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <!-- Acciones -->
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
+    <button mat-stroked-button (click)="cancelar()" type="button">
+      Volver
+    </button>
+
+    <button
+      mat-raised-button
+      class="boton-tramite"
+      (click)="enviarATramite()"
+      *ngIf="preGasto.estado === 'PENDIENTE'"
+      type="button"
+    >
+      <mat-icon>swap_horiz</mat-icon>
+      En Trámite
+    </button>
+
+    <button
+      mat-raised-button
+      color="warn"
+      (click)="rechazar()"
+      type="button"
+    >
+      <mat-icon>cancel</mat-icon>
+      {{ mostrarMotivoRechazo ? 'Confirmar Rechazo' : 'Rechazar' }}
+    </button>
+
+    <button
+      mat-raised-button
+      class="boton-autorizar"
+      (click)="autorizar()"
+      *ngIf="!mostrarMotivoRechazo"
+      type="button"
+    >
+      <mat-icon>check_circle</mat-icon>
+      Autorizar
+    </button>
+  </div>
+</div>

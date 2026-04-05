@@ -1,0 +1,282 @@
+// === Header ===
+.seccion-header {
+  padding: 8px 0;
+}
+
+.titulo-seccion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2em;
+  font-weight: 500;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+.titulo-icono {
+  color: #ff9800;
+}
+
+.boton-nuevo {
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.5px;
+}
+
+// === Tabs ===
+.tabs-contenedor {
+  padding: 4px 0 8px;
+}
+
+.tab-boton {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #9e9e9e;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #e0e0e0;
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.tab-activa {
+  color: #ff9800 !important;
+  border-bottom-color: #ff9800 !important;
+}
+
+.tab-contador {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  margin-left: 6px;
+}
+
+// === Panel Tabla ===
+.panel-tabla {
+  background-color: rgb(28, 28, 30) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.tabla-contenedor {
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+  }
+}
+
+.tabla-gastos {
+  width: 100%;
+  background: transparent !important;
+}
+
+.fila-tabla {
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+}
+
+.fila-seleccionada {
+  background: rgba(255, 152, 0, 0.1) !important;
+}
+
+.celda-descripcion {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.celda-monto {
+  font-weight: 600;
+  text-align: right;
+  color: #e0e0e0;
+}
+
+// === Estado Badge ===
+.estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 500;
+}
+
+.estado-icono {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+// === Estado vacío ===
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #616161;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 0.9em;
+  }
+}
+
+// === Panel Detalle ===
+.panel-detalle {
+  background-color: rgb(28, 28, 30) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow-y: auto;
+}
+
+.detalle-vacio {
+  height: 100%;
+  color: #616161;
+}
+
+.detalle-vacio-icono {
+  font-size: 56px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: #424242;
+}
+
+.detalle-vacio-texto {
+  font-size: 0.9em;
+  text-align: center;
+  max-width: 200px;
+}
+
+.detalle-contenido {
+  padding: 20px;
+}
+
+.detalle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detalle-titulo {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #fff;
+}
+
+.detalle-estado {
+  font-size: 0.7em;
+}
+
+// === Info Grupo ===
+.detalle-info-grupo {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.detalle-info-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+  }
+}
+
+.detalle-label {
+  font-size: 0.78em;
+  color: #9e9e9e;
+}
+
+.detalle-valor {
+  font-size: 0.82em;
+  color: #e0e0e0;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+// === Financiero ===
+.detalle-financiero {
+  background: rgba(255, 152, 0, 0.06);
+  border: 1px solid rgba(255, 152, 0, 0.15);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.monto-principal {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.monto-label {
+  display: block;
+  font-size: 0.7em;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.monto-valor {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: #ff9800;
+}
+
+.detalle-qr {
+  font-family: monospace;
+  letter-spacing: 2px;
+  color: #66bb6a !important;
+}
+
+.detalle-rechazo {
+  color: #ef5350 !important;
+  text-transform: none !important;
+}
+
+// === Acciones ===
+.detalle-acciones {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+// === Table header/cell styles ===
+::ng-deep .mat-mdc-header-cell {
+  font-size: 0.75em;
+  color: #9e9e9e;
+  text-transform: uppercase;
+}
+
+::ng-deep .mat-mdc-cell {
+  font-size: 0.82em;
+}

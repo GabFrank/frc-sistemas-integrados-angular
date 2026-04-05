@@ -12,7 +12,7 @@ import { ListProductoComponent } from '../../modules/productos/producto/list-pro
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
 import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
+import { ListGastosComponent } from '../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/list-delivery/list-delivery.component';
@@ -86,7 +86,7 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
     this.tabSub.next(this.tabs);
   }
-  
+
   ngOnInit(): void {
     // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
   }
@@ -193,7 +193,7 @@ export class TabService implements OnInit {
     this.removeTab(this.currentIndex)
   }
 
-  changeCurrentTabName(name:string){
+  changeCurrentTabName(name: string) {
     this.tabs[this.currentIndex].title = name;
   }
 }

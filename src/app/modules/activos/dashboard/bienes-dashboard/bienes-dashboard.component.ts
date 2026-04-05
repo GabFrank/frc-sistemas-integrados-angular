@@ -6,7 +6,8 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListMueblesComponent } from '../../muebles/pages/list-muebles/list-muebles.component';
 import { ListInmueblesComponent } from '../../inmueble/pages/list-inmuebles/list-inmuebles.component';
 import { ListBienesSucursalComponent } from '../../ente/pages/list-bienes-sucursal/list-bienes-sucursal.component';
-import { ListTipoGastosComponent } from '../../../financiero/tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
+import { ListTipoGastosComponent } from '../../../financiero/gastos/pages/list-tipo-gastos/list-tipo-gastos.component';
+import { ListPreGastosComponent } from '../../../financiero/gastos/pages/list-pre-gastos/list-pre-gastos.component';
 
 @Component({
   selector: 'bienes-dashboard',
@@ -56,6 +57,13 @@ export class BienesDashboardComponent implements OnInit {
         icon: 'payments',
         iconSize: 4,
         expression: false
+      },
+      {
+        nombre: 'Solicitudes de Gasto',
+        clickEvent: 'list-pre-gastos',
+        icon: 'request_quote',
+        iconSize: 4,
+        expression: false
       }
     )
   }
@@ -74,6 +82,9 @@ export class BienesDashboardComponent implements OnInit {
       case 'list-tipo-gastos':
         this.onListTipoGastos()
         break;
+      case 'list-pre-gastos':
+        this.onListPreGastos()
+        break;
     }
   }
 
@@ -91,5 +102,9 @@ export class BienesDashboardComponent implements OnInit {
 
   onListTipoGastos() {
     this.tabService.addTab(new Tab(ListTipoGastosComponent, "Tipos de Gastos", null, BienesDashboardComponent))
+  }
+
+  onListPreGastos() {
+    this.tabService.addTab(new Tab(ListPreGastosComponent, "Solicitudes de Gasto", null, BienesDashboardComponent))
   }
 }

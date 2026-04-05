@@ -4,7 +4,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
-import { AdicionarGastoDialogComponent } from "../../../../financiero/gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component";
+import { AdicionarGastoDialogComponent } from "../../../../financiero/gastos/dialogs/adicionar-gasto-dialog/adicionar-gasto-dialog.component";
 import { AdicionarCajaDialogComponent } from "../../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
 import { PdvCaja } from "../../../../financiero/pdv/caja/caja.model";
 import {
@@ -61,7 +61,7 @@ export class UtilitariosDialogComponent implements OnInit {
     ]
   }
 
-  abrir(index){
+  abrir(index) {
     this.opcionesList[index].funcion()
   }
 

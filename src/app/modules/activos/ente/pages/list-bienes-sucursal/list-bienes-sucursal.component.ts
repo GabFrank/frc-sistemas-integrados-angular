@@ -23,6 +23,7 @@ import { Inmueble } from '../../../inmueble/models/inmueble.model';
 import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
 import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
+import { AdicionarPreGastoDialogComponent } from '../../../../financiero/gastos/dialogs/adicionar-pre-gasto-dialog/adicionar-pre-gasto-dialog.component';
 
 interface BienFinancieroRow {
   id?: number;
@@ -196,7 +197,7 @@ export class ListBienesSucursalComponent implements OnInit {
       } else {
         this.enteService.onBuscarPorId(row.id!).subscribe(ente => {
           if (ente) {
-             this.matDialog.open(EnteSucursalDialogComponent, {
+            this.matDialog.open(EnteSucursalDialogComponent, {
               data: {
                 ente,
                 sucursalId
@@ -232,10 +233,50 @@ export class ListBienesSucursalComponent implements OnInit {
   }
 
   onSolicitarPago(row: BienFinancieroRow): void {
-    this.notificationService.notification$.next({
-      texto: `Solicitud de pago iniciada para: ${row.descripcion}`,
-      color: NotificacionColor.info,
-      duracion: 2
+    const cuotaMonto = row.cuotasTotales > 0 && row.montoPendiente >= (row.montoTotal / row.cuotasTotales)
+      ? Math.round(row.montoTotal / row.cuotasTotales)
+      : row.montoPendiente;
+    const cuotaNumero = row.cuotasPagadas + 1;
+    let descripcion = `Pago de ${row.tipoEnte} - ${row.descripcion}`;
+    if (row.cuotasTotales > 0) {
+      descripcion = `Pago cuota ${cuotaNumero}/${row.cuotasTotales} de ${row.tipoEnte} - ${row.descripcion}`;
+    }
+
+    const sucursalSeleccionada = this.sucursales.find(s => s.id === (row.sucursalIds?.length ? row.sucursalIds[0] : this.sucursalControl.value));
+
+    this.matDialog.open(AdicionarPreGastoDialogComponent, {
+      data: {
+        enteId: row.id,
+        descripcion: descripcion,
+        monto: cuotaMonto > 0 ? cuotaMonto : null,
+        sucursalId: row.sucursalIds?.length ? row.sucursalIds[0] : this.sucursalControl.value,
+        monedaSimbolo: row.moneda,
+        tipoBien: row.tipoEnte,
+        bienDescripcion: row.descripcion,
+        proveedor: row.proveedor,
+        cuotasTotales: row.cuotasTotales,
+        cuotasPagadas: row.cuotasPagadas,
+        cuotasFaltantes: row.cuotasFaltantes,
+        montoTotal: row.montoTotal,
+        montoYaPagado: row.montoYaPagado,
+        montoPendiente: row.montoPendiente,
+        moneda: row.moneda,
+        diaVencimiento: row.diaVencimiento,
+        diasParaVencer: row.diasParaVencer,
+        estadoCuota: row.estadoCuota,
+        situacionPago: row.situacionPago,
+        sucursalNombre: sucursalSeleccionada?.nombre || row.sucursal,
+        referenciaId: row.referenciaId
+      },
+      width: '850px',
+      maxHeight: '90vh'
+    }).afterClosed().pipe(filter(res => !!res)).subscribe(() => {
+      this.enteService.refrescar();
+      this.notificationService.notification$.next({
+        texto: `Solicitud de pago creada exitosamente para: ${row.descripcion}`,
+        color: NotificacionColor.success,
+        duracion: 3
+      });
     });
   }
 
@@ -394,10 +435,10 @@ export class ListBienesSucursalComponent implements OnInit {
     if (raw === 'PAGANDO') {
       const hasMonto = (montoTotal || 0) > 0;
       const hasCuotas = (cuotasTotales || 0) > 0;
-      
+
       const isMontoPagado = hasMonto ? (montoPendiente || 0) <= 0 : null;
       const isCuotasPagadas = hasCuotas ? (cuotasFaltantes || 0) <= 0 : null;
-      
+
       if (hasMonto && hasCuotas) {
         if (isMontoPagado === true && isCuotasPagadas === true) return 'PAGADO';
       } else if (hasMonto) {

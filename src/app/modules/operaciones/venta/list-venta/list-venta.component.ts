@@ -33,7 +33,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { AdicionarCajaDialogComponent } from "../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
-import { ListGastosComponent } from "../../../financiero/gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../../../financiero/gastos/pages/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
@@ -127,7 +127,7 @@ export class ListVentaComponent implements OnInit {
     private mainService: MainService,
     private ventaObservacionService: VentaObservacionService,
     private cd: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
@@ -138,7 +138,7 @@ export class ListVentaComponent implements OnInit {
       // Verificar si data es un objeto con caja y ventaId, o solo la caja (compatibilidad hacia atrás)
       const tabData = this.data.tabData.data;
       let ventaId: number = null;
-      
+
       if (tabData.caja) {
         this.selectedCaja = tabData.caja;
         ventaId = tabData.ventaId;
@@ -453,9 +453,9 @@ export class ListVentaComponent implements OnInit {
       new Tab(
         AdicionarCajaDialogComponent,
         "Conteo de caja " +
-          this.selectedCaja.id +
-          " de " +
-          this.selectedCaja.sucursal.nombre,
+        this.selectedCaja.id +
+        " de " +
+        this.selectedCaja.sucursal.nombre,
         new TabData(this.selectedCaja.id, this.selectedCaja)
       )
     );
@@ -505,7 +505,7 @@ export class ListVentaComponent implements OnInit {
 
     return ventas;
   }
- 
+
   onListObservaciones(venta: Venta) {
     const dialogRef = this.matDialog
       .open(VentaObservacionDashboardComponent, {

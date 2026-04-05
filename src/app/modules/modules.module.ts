@@ -16,6 +16,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { AdministrativoModule } from './administrativo/administrativo.module';
 import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
 import { DashboardActivosModule } from './activos/dashboard/dashboard-activos.module';
+import { GastosModule } from './financiero/gastos/gastos.module';
 
 
 @NgModule({
@@ -38,6 +39,7 @@ import { DashboardActivosModule } from './activos/dashboard/dashboard-activos.mo
     VehiculosModule,
     DashboardActivosModule,
     AdministrativoModule,
+    GastosModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

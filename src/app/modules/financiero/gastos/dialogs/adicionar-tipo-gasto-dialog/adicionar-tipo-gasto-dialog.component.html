@@ -1,0 +1,139 @@
+<div class="dialogo-contenedor">
+  <!-- Header -->
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="space-between center">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-icon class="dialogo-header-icono">{{ selectedTipoGasto?.id != null ? 'edit' : 'add_circle' }}</mat-icon>
+      <h3 class="dialogo-titulo" *ngIf="selectedTipoGasto?.id != null">Editar Tipo de Gasto</h3>
+      <h3 class="dialogo-titulo" *ngIf="selectedTipoGasto?.id == null">Nuevo Tipo de Gasto</h3>
+    </div>
+    <button mat-icon-button *ngIf="selectedTipoGasto?.id != null" matTooltip="Eliminar" (click)="onDelete()" color="warn">
+      <mat-icon>delete_outline</mat-icon>
+    </button>
+  </div>
+
+  <!-- Clasificación padre -->
+  <div *ngIf="selectedParent != null" class="dialogo-clasificacion">
+    <mat-icon>subdirectory_arrow_right</mat-icon>
+    <span>Subtipo de: <strong>{{ selectedParent.descripcion | uppercase }}</strong></span>
+  </div>
+
+  <!-- Formulario -->
+  <div fxLayout="column" fxLayoutGap="12px" class="dialogo-formulario">
+    <!-- Fila: ID + Descripción + Estado -->
+    <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex="12%" appearance="outline">
+        <mat-label>ID</mat-label>
+        <input type="text" matInput [formControl]="idControl" autocomplete="off" />
+      </mat-form-field>
+
+      <mat-form-field fxFlex appearance="outline">
+        <mat-label>Descripción</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="descripcionControl"
+          placeholder="Ej: COMBUSTIBLE, VIÁTICO"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
+        <mat-icon matSuffix>description</mat-icon>
+      </mat-form-field>
+
+      <div fxFlex="20%" style="text-align: center;">
+        <mat-slide-toggle
+          color="primary"
+          [checked]="activoControl.value"
+          [formControl]="activoControl"
+        >
+          {{ activoControl.value ? "Activo" : "Inactivo" }}
+        </mat-slide-toggle>
+      </div>
+    </div>
+
+    <!-- Sección: Autorización -->
+    <div class="dialogo-seccion">
+      <span class="dialogo-seccion-titulo">Autorización</span>
+      <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="start center">
+        <div fxFlex="40%">
+          <mat-slide-toggle
+            color="primary"
+            [checked]="autorizacionControl.value"
+            [formControl]="autorizacionControl"
+          >
+            {{ autorizacionControl.value ? "Requiere Autorización" : "Sin Autorización" }}
+          </mat-slide-toggle>
+        </div>
+        <mat-form-field fxFlex appearance="outline">
+          <mat-label>Cargo Autorizador</mat-label>
+          <mat-select [formControl]="cargoControl">
+            <mat-optgroup
+              *ngFor="let cargo of listCargo"
+              [label]="cargo.nombre"
+            >
+              <div *ngIf="cargo.subcargoList != null">
+                <mat-option
+                  *ngFor="let subcargo of cargo.subcargoList"
+                  [value]="subcargo.id"
+                >
+                  {{ subcargo.nombre }}
+                </mat-option>
+              </div>
+            </mat-optgroup>
+          </mat-select>
+          <mat-icon matSuffix>badge</mat-icon>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Sección: Naturaleza del Gasto -->
+    <div class="dialogo-seccion">
+      <span class="dialogo-seccion-titulo">Naturaleza del Gasto</span>
+      <mat-button-toggle-group [formControl]="naturezaControl" name="naturezaGasto" aria-label="Naturaleza del Gasto" class="naturaleza-toggle-group">
+        <mat-button-toggle value="VARIABLE" class="naturaleza-toggle">
+          <mat-icon>trending_up</mat-icon>
+          <span>Variable / Ocasional</span>
+          <small>Agua, luz, viático</small>
+        </mat-button-toggle>
+        <mat-button-toggle value="CONTINUO" class="naturaleza-toggle">
+          <mat-icon>autorenew</mat-icon>
+          <span>Continuo / Recurrente</span>
+          <small>Alquiler, seguro, inmueble</small>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Sección: Auditoría (solo en edición) -->
+    <div *ngIf="selectedTipoGasto?.id != null" class="dialogo-seccion dialogo-auditoria">
+      <span class="dialogo-seccion-titulo">Auditoría</span>
+      <div fxLayout="row" fxLayoutGap="12px">
+        <mat-form-field fxFlex appearance="outline">
+          <mat-label>Creado En</mat-label>
+          <input type="text" matInput [formControl]="creadoEnControl" autocomplete="off" />
+          <mat-icon matSuffix>calendar_today</mat-icon>
+        </mat-form-field>
+        <mat-form-field fxFlex appearance="outline">
+          <mat-label>Creado Por</mat-label>
+          <input type="text" matInput [formControl]="usuarioControl" autocomplete="off" />
+          <mat-icon matSuffix>person</mat-icon>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="end center">
+    <button mat-stroked-button (click)="onCancel()" type="button">
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      color="accent"
+      [disabled]="!descripcionControl.valid"
+      (click)="onSave()"
+      type="button"
+    >
+      <mat-icon>save</mat-icon>
+      Guardar
+    </button>
+  </div>
+</div>
