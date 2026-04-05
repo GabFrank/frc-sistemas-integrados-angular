@@ -21,6 +21,7 @@ import { SavePreGastoGQL } from '../graphql/savePreGasto';
 import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
 import { AllTipoGastosGQL } from '../graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from '../graphql/deleleTipoGasto';
+import { FilterPreGastosGQL } from '../graphql/filterPreGastos';
 import { RootTipoGastosGQL } from '../graphql/rootTipoGasto';
 import { SaveTipoGastoGQL } from '../graphql/saveTipoGasto';
 import { TipoGastoPorIdGQL } from '../graphql/tipoGastoPorId';
@@ -50,6 +51,7 @@ export class GastoService {
     private autorizarGQL: AutorizarPreGastoGQL,
     private rechazarGQL: RechazarPreGastoGQL,
     private tramitarGQL: TramitarPreGastoGQL,
+    private filterPreGastosGQL: FilterPreGastosGQL,
     // TipoGasto
     private getAllTipoGastos: AllTipoGastosGQL,
     private getRootTipoGasto: RootTipoGastosGQL,
@@ -109,6 +111,16 @@ export class GastoService {
   }
   preGastoListarPorEstado(estado?: string, sucId?: number): Observable<PreGasto[]> {
     return this.genericService.onCustomQuery(this.getPreGastos, { estado, sucId });
+  }
+
+  preGastoFilter(estado?: string, inicio?: string, fin?: string, page?: number, size?: number): Observable<PageInfo<PreGasto>> {
+    return this.genericService.onCustomQuery(this.filterPreGastosGQL, {
+      estado,
+      inicio,
+      fin,
+      page,
+      size
+    });
   }
 
   preGastoObtenerPorId(id: number, sucId?: number): Observable<PreGasto> {

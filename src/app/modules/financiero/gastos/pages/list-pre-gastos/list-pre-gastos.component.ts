@@ -3,12 +3,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
 import { GastoService } from '../../service/gasto.service';
 import { PreGasto } from '../../models/pre-gasto.model';
-import { AdicionarPreGastoDialogComponent } from '../../dialogs/adicionar-pre-gasto-dialog/adicionar-pre-gasto-dialog.component';
 import { AutorizarGastoDialogComponent } from '../../dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
 import { UntilDestroy } from '@ngneat/until-destroy';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { switchMap, tap, map, shareReplay, startWith, catchError } from 'rxjs/operators';
+import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { PageEvent } from '@angular/material/paginator';
+import { FormControl, FormGroup } from '@angular/forms';
 
 @UntilDestroy()
 @Component({
@@ -23,7 +24,7 @@ export class ListPreGastosComponent implements OnInit {
   private matDialog = inject(MatDialog);
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
-  alturaTabla = this.windowInfoService.innerTabHeight * 0.7;
+  alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
 
   tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'RECHAZADO', null];
   tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Rechazados', 'Todos'];
@@ -33,10 +34,17 @@ export class ListPreGastosComponent implements OnInit {
     'monto', 'moneda', 'sucursal', 'estado', 'fecha', 'acciones'
   ];
 
-  private tabActivaSubject = new BehaviorSubject<number>(0);
+  // Tab activa
+  private tabActivaSubject = new BehaviorSubject<number>(4); // Todos por defecto
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
+  // Paginación
+  private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
+  public pagination$ = this.paginationSubject.asObservable();
+
   private refetchSubject = new BehaviorSubject<void>(void 0);
+
+  public totalElements$ = new BehaviorSubject<number>(0);
 
   public cargandoSubject = new BehaviorSubject<boolean>(false);
   public cargando$ = this.cargandoSubject.asObservable();
@@ -44,19 +52,51 @@ export class ListPreGastosComponent implements OnInit {
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
 
+  // Filtro de fechas con FormGroup para mat-date-range-picker
+  fechaFormGroup = new FormGroup({
+    inicio: new FormControl<Date | null>(new Date()),
+    fin: new FormControl<Date | null>(new Date())
+  });
+
   public listaFiltrada$: Observable<PreGasto[]> = combineLatest([
     this.tabActiva$,
-    this.refetchSubject
+    this.refetchSubject,
+    this.pagination$
   ]).pipe(
     tap(() => this.cargandoSubject.next(true)),
-    switchMap(([tabIndex]) => this.gastoService.preGastoListarPorEstado(this.tabEstados[tabIndex]).pipe(
-      catchError(err => {
-        console.error('Error fetching pre_gastos:', err);
-        return of([]);
-      })
-    )),
-    tap(() => this.cargandoSubject.next(false)),
-    map(res => res || []),
+    switchMap(([tabIndex, _, pag]) => {
+      const estado = this.tabEstados[tabIndex];
+      let inicioStr = null;
+      let finStr = null;
+      if (this.fechaFormGroup.controls.inicio.value) {
+        let date = this.fechaFormGroup.controls.inicio.value;
+        inicioStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T00:00:00`;
+      }
+      if (this.fechaFormGroup.controls.fin.value) {
+        let date = this.fechaFormGroup.controls.fin.value;
+        finStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T23:59:59`;
+      }
+
+      return this.gastoService.preGastoFilter(
+        estado,
+        inicioStr,
+        finStr,
+        pag.pageIndex,
+        pag.pageSize
+      ).pipe(
+        catchError(err => {
+          console.error('Error fetching pre_gastos:', err);
+          return of(null);
+        })
+      );
+    }),
+    tap(res => {
+      this.cargandoSubject.next(false);
+      if (res) {
+        this.totalElements$.next(res.getTotalElements || 0);
+      }
+    }),
+    map(res => res?.getContent || []),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -67,26 +107,11 @@ export class ListPreGastosComponent implements OnInit {
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
     this.preGastoSeleccionadoSubject.next(null);
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
   seleccionarPreGasto(preGasto: PreGasto): void {
     this.preGastoSeleccionadoSubject.next(preGasto);
-  }
-
-  nuevaSolicitud(): void {
-    this.matDialog
-      .open(AdicionarPreGastoDialogComponent, {
-        width: '55%',
-        disableClose: true,
-        restoreFocus: true,
-        autoFocus: true,
-      })
-      .afterClosed()
-      .subscribe(res => {
-        if (res != null) {
-          this.refetchSubject.next();
-        }
-      });
   }
 
   autorizarGasto(preGasto: PreGasto): void {
@@ -102,13 +127,25 @@ export class ListPreGastosComponent implements OnInit {
       .subscribe(res => {
         if (res != null) {
           this.refetchSubject.next();
-          // Update selected item if modified
           const actual = this.preGastoSeleccionadoSubject.value;
           if (actual?.id === preGasto.id) {
             this.preGastoSeleccionadoSubject.next(res);
           }
         }
       });
+  }
+
+  onRefrescar(): void {
+    this.refetchSubject.next();
+  }
+
+  onFiltrarFechas(): void {
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.refetchSubject.next();
+  }
+
+  handlePageEvent(e: PageEvent): void {
+    this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 
   colorEstado(estado: string): string {
@@ -142,5 +179,22 @@ export class ListPreGastosComponent implements OnInit {
       'COMPLETADO': 'Completado'
     };
     return etiquetas[estado] || estado;
+  }
+
+  private getFechaHoyInicio(): string {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return this.formatDate(hoy);
+  }
+
+  private getFechaHoyFin(): string {
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+    return this.formatDate(hoy);
+  }
+
+  private formatDate(d: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 }

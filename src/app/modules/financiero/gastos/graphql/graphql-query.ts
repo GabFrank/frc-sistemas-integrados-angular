@@ -646,3 +646,63 @@ export const preGastosSearchQuery = gql`
     }
   }
 `;
+
+export const filterPreGastosQuery = gql`
+  query (
+    $estado: String
+    $inicio: String
+    $fin: String
+    $page: Int
+    $size: Int
+  ) {
+    data: filterPreGastos(
+      estado: $estado
+      inicio: $inicio
+      fin: $fin
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        funcionario {
+          id
+          nombre
+        }
+        tipoGasto {
+          id
+          descripcion
+        }
+        descripcion
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        montoSolicitado
+        sucursalCaja {
+          id
+          nombre
+        }
+        estado
+        qrToken
+        autorizadoPor {
+          id
+          nombre
+        }
+        motivoRechazo
+        montoRetirado
+        montoGastado
+        saldoDevolver
+        creadoEn
+      }
+    }
+  }
+`;
