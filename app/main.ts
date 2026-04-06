@@ -244,10 +244,14 @@ export async function createWindow(): Promise<BrowserWindow> {
             win.webContents.setZoomLevel(-1.5);
           }
         }
+        // Forzar repaint para que el zoom se aplique visualmente de inmediato
+        // (sin esto, despues de un auto-update el zoom no se refleja hasta cambiar de ventana)
+        win.webContents.invalidate();
       })
       .catch((error) => {
         // En caso de error crítico al leer localStorage, forzamos zoom -1.5 para asegurar que inicie
         win.webContents.setZoomLevel(-1.5);
+        win.webContents.invalidate();
       });
   });
 
