@@ -1020,6 +1020,8 @@ try {
       ])
     );
 
+    log.info(`=== FRC v${app.getVersion()} started ===`);
+
     createWindow().then(() => {
       registerPrinterIpcHandlers();
     });
