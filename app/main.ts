@@ -94,7 +94,39 @@ function applyUpdateChannel(channel: string): boolean {
   return updateEnabled;
 }
 
-const defaultZoomLevel = -1.5;
+function calculateDefaultZoom(): number {
+  try {
+    const display = screen.getPrimaryDisplay();
+    const { width } = display.workAreaSize;
+    const scaleFactor = display.scaleFactor;
+    // workAreaSize ya es la resolución lógica (descontando scaleFactor y taskbar)
+    // A menor resolución lógica disponible, más necesitamos reducir el zoom
+    // Referencia: 1920px lógicos con scale 1.0 → -1.5
+    let zoom: number;
+    if (width <= 1280) {
+      zoom = -2.5;
+    } else if (width <= 1366) {
+      zoom = -2.0;
+    } else if (width <= 1600) {
+      zoom = -1.75;
+    } else if (width <= 1920) {
+      zoom = -1.5;
+    } else if (width <= 2560) {
+      zoom = -1.0;
+    } else {
+      zoom = -0.5;
+    }
+    // Si el SO tiene escala > 100%, reducir un poco más porque el SO ya agranda todo
+    if (scaleFactor > 1.0) {
+      zoom -= (scaleFactor - 1.0);
+    }
+    log.info(`Default zoom calculated: ${zoom} (resolution: ${width}x${display.workAreaSize.height}, scaleFactor: ${scaleFactor})`);
+    return zoom;
+  } catch (e) {
+    log.warn('Could not calculate default zoom, using -1.5:', e);
+    return -1.5;
+  }
+}
 
 function getZoomFilePath(): string {
   return path.join(app.getPath('userData'), 'config', 'zoom-level.json');
@@ -126,7 +158,7 @@ function loadZoomLevel(): number {
   } catch (e) {
     log.warn('Could not read zoom level from file:', e);
   }
-  return defaultZoomLevel;
+  return calculateDefaultZoom();
 }
 
 interface PrinterConfig {
@@ -952,9 +984,10 @@ try {
             {
               label: "Restablecer Zoom",
               click() {
-                win.webContents.setZoomLevel(defaultZoomLevel);
-                saveZoomLevel(defaultZoomLevel);
-                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoomLevel});`, true);
+                const defaultZoom = calculateDefaultZoom();
+                win.webContents.setZoomLevel(defaultZoom);
+                saveZoomLevel(defaultZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
               },
             },
             {
