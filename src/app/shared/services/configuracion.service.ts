@@ -95,6 +95,8 @@ export class ConfiguracionService {
         this.config = parsedConfig;
         this.syncToLegacyKeys(parsedConfig);
         console.log('Configuration loaded from localStorage');
+        // Sync to main process so it can find the config file on next startup
+        this.syncConfigToMainProcess(parsedConfig);
       } catch (e) {
         console.error('Error parsing saved configuration', e);
         this.loadConfigFromBackupSources();
@@ -433,6 +435,22 @@ export class ConfiguracionService {
   /**
    * Synchronizes the consolidated config object to legacy localStorage keys
    */
+  private syncConfigToMainProcess(config: ConfiguracionSistema): void {
+    try {
+      const isElectron = window && typeof window['require'] === 'function';
+      if (isElectron) {
+        const { ipcRenderer } = window['require']('electron');
+        ipcRenderer.send('save-config-backup', JSON.stringify(config, null, 2));
+        if (config.updateChannel && config.updateChannel !== 'dev') {
+          ipcRenderer.send('set-update-channel', config.updateChannel);
+        }
+        console.log('Configuration synced to main process via IPC');
+      }
+    } catch (e) {
+      console.warn('Could not sync config to main process:', e);
+    }
+  }
+
   private syncToLegacyKeys(config: ConfiguracionSistema): void {
     if (!config) {
       console.warn('Attempted to sync undefined/null configuration to legacy keys');
@@ -541,15 +559,17 @@ export class ConfiguracionService {
       this.config = validConfig;
       this.configChanged.next(validConfig);
 
-      // Notify Electron main process of channel change
+      // Notify Electron main process of channel change and save config via IPC
       try {
         const isElectron = window && typeof window['require'] === 'function';
         if (isElectron) {
           const { ipcRenderer } = window['require']('electron');
+          // Send config to main process for reliable file saving (avoids @electron/remote path issues)
+          ipcRenderer.send('save-config-backup', JSON.stringify(validConfig, null, 2));
           ipcRenderer.send('set-update-channel', validConfig.updateChannel || 'stable');
         }
       } catch (e) {
-        console.warn('Could not notify main process of update channel change:', e);
+        console.warn('Could not notify main process of config/channel change:', e);
       }
     } catch (e) {
       console.error('Error saving configuration:', e);

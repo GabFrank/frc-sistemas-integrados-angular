@@ -303,6 +303,20 @@ ipcMain.on('get-config-file', (event: any, arg: any) => {
   console.log(arg)
 })
 
+ipcMain.on('save-config-backup', (event: any, configData: string) => {
+  try {
+    const configDir = path.join(app.getPath('userData'), 'config');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    const configPath = path.join(configDir, 'config-backup.json');
+    fs.writeFileSync(configPath, configData, 'utf8');
+    log.info(`Config backup saved by main process to: ${configPath}`);
+  } catch (e) {
+    log.error('Error saving config backup from renderer:', e);
+  }
+});
+
 ipcMain.on('set-update-channel', (event: any, channel: string) => {
   log.info(`Update channel changed to: ${channel}`);
   if (applyUpdateChannel(channel)) {
