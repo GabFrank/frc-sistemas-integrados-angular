@@ -20,6 +20,7 @@ let updateEnabled = false;
 function configureUpdateChannel(): boolean {
   try {
     const configPath = path.join(app.getPath('userData'), 'config', 'config-backup.json');
+    log.info(`Looking for config at: ${configPath}`);
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       const channel = config.updateChannel;
@@ -31,7 +32,33 @@ function configureUpdateChannel(): boolean {
       log.info(`Update channel from config: ${channel}`);
       return applyUpdateChannel(channel);
     } else {
-      log.info('No config file found, auto-update disabled until configured');
+      log.info(`Config file NOT found at: ${configPath}`);
+      // Try fallback: check parent userData directory for misplaced config
+      const fallbackPaths = [
+        path.join(app.getPath('userData'), 'config-backup.json'),
+        path.join(app.getPath('appData'), 'frc-sistemas', 'config-backup.json'),
+      ];
+      for (const fallback of fallbackPaths) {
+        log.info(`Trying fallback: ${fallback}`);
+        if (fs.existsSync(fallback)) {
+          log.info(`Found config at fallback: ${fallback}`);
+          const config = JSON.parse(fs.readFileSync(fallback, 'utf8'));
+          const channel = config.updateChannel;
+          if (!channel || channel === 'dev') {
+            updateEnabled = false;
+            return false;
+          }
+          // Copy to expected location for next time
+          const configDir = path.join(app.getPath('userData'), 'config');
+          if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+          }
+          fs.copyFileSync(fallback, configPath);
+          log.info(`Copied config to expected location: ${configPath}`);
+          return applyUpdateChannel(channel);
+        }
+      }
+      log.info('No config file found in any location, auto-update disabled until configured');
       updateEnabled = false;
       return false;
     }
@@ -65,6 +92,41 @@ function applyUpdateChannel(channel: string): boolean {
   }
   log.info(`Auto-updater configured: channel=${channel}, enabled=${updateEnabled}, allowPrerelease=${autoUpdater.allowPrerelease}`);
   return updateEnabled;
+}
+
+const defaultZoomLevel = -1.5;
+
+function getZoomFilePath(): string {
+  return path.join(app.getPath('userData'), 'config', 'zoom-level.json');
+}
+
+function saveZoomLevel(level: number): void {
+  try {
+    const filePath = getZoomFilePath();
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify({ zoomLevel: level }), 'utf8');
+  } catch (e) {
+    log.warn('Could not save zoom level to file:', e);
+  }
+}
+
+function loadZoomLevel(): number {
+  try {
+    const filePath = getZoomFilePath();
+    if (fs.existsSync(filePath)) {
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (typeof data.zoomLevel === 'number') {
+        log.info(`Zoom level loaded from file: ${data.zoomLevel}`);
+        return data.zoomLevel;
+      }
+    }
+  } catch (e) {
+    log.warn('Could not read zoom level from file:', e);
+  }
+  return defaultZoomLevel;
 }
 
 interface PrinterConfig {
@@ -226,33 +288,12 @@ export async function createWindow(): Promise<BrowserWindow> {
   });
 
   win.webContents.on('did-finish-load', () => {
-    win.webContents
-      .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-      .then((zoomLevel) => {
-        if (zoomLevel !== null && zoomLevel !== undefined && zoomLevel !== '') {
-          const parsedZoom = parseFloat(zoomLevel);
-          win.webContents.setZoomLevel(parsedZoom);
-        } else {
-          // Si no hay preferencia guardada, iniciamos con zoom -1.5 como base
-          // Esto soluciona el problema de que se vea muy grande tanto en alta como baja resolución
-          try {
-            const defaultZoom = -1.5;
-            win.webContents.setZoomLevel(defaultZoom);
-            // Guardamos el zoom inicial para evitar que se pierda o cause errores
-            win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
-          } catch (e) {
-            win.webContents.setZoomLevel(-1.5);
-          }
-        }
-        // Forzar repaint para que el zoom se aplique visualmente de inmediato
-        // (sin esto, despues de un auto-update el zoom no se refleja hasta cambiar de ventana)
-        win.webContents.invalidate();
-      })
-      .catch((error) => {
-        // En caso de error crítico al leer localStorage, forzamos zoom -1.5 para asegurar que inicie
-        win.webContents.setZoomLevel(-1.5);
-        win.webContents.invalidate();
-      });
+    // Leer zoom desde archivo (no depende de localStorage ni del renderer)
+    const zoom = loadZoomLevel();
+    win.webContents.setZoomLevel(zoom);
+    // Sincronizar con localStorage del renderer para mantener compatibilidad
+    win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${zoom});`, true);
+    log.info(`Zoom level applied on load: ${zoom}`);
   });
 
   return win;
@@ -878,27 +919,28 @@ try {
               label: "Zoom in",
               click() {
                 const currentZoom = win.webContents.getZoomLevel();
-                win.webContents.setZoomLevel(currentZoom + 0.5);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+                const newZoom = currentZoom + 0.5;
+                win.webContents.setZoomLevel(newZoom);
+                saveZoomLevel(newZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${newZoom});`, true);
               },
             },
             {
               label: "Zoom out",
               click() {
                 const currentZoom = win.webContents.getZoomLevel();
-                win.webContents.setZoomLevel(currentZoom - 0.5);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+                const newZoom = currentZoom - 0.5;
+                win.webContents.setZoomLevel(newZoom);
+                saveZoomLevel(newZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${newZoom});`, true);
               },
             },
             {
               label: "Restablecer Zoom",
               click() {
-                const defaultZoom = -1.5;
-                win.webContents.setZoomLevel(defaultZoom);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
+                win.webContents.setZoomLevel(defaultZoomLevel);
+                saveZoomLevel(defaultZoomLevel);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoomLevel});`, true);
               },
             },
             {
