@@ -38,7 +38,7 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "FRC",
-    "artifactName": "FRC Setup.${ext}"
+    "artifactName": "FRC-Setup.${ext}"
   },
   "portable": {
     "splashImage": "dist/assets/icons/electron.bmp"
