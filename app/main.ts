@@ -987,8 +987,14 @@ try {
       if (win) win.webContents.send('update-status', 'Ya tiene la ultima version.');
     });
 
+    autoUpdater.on('download-progress', (progress) => {
+      log.info(`Descarga en progreso: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`);
+      if (win) win.webContents.send('update-status', `Descargando: ${progress.percent.toFixed(0)}%`);
+    });
+
     autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
       const version = event.version || 'desconocida';
+      log.info(`Actualizacion descargada: version ${version}`);
       const dialogOpts: MessageBoxOptions = {
         type: 'info',
         buttons: ['Cerrar y actualizar', 'Mas tarde'],
@@ -1006,6 +1012,7 @@ try {
 
     autoUpdater.on('error', (err) => {
       log.error('Error en auto-update:', err);
+      if (win) win.webContents.send('update-status', `Error en actualizacion: ${err.message}`);
     });
   });
 
