@@ -24,6 +24,9 @@ import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { BienesDashboardComponent } from '../../../../activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { Tab } from '../../../../../layouts/tab/tab.model';
+import { ReporteService } from '../../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
+import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 
 export interface SolicitudGastoData {
   enteId?: number;
@@ -70,6 +73,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   private enteSearchPageGQL = inject(EnteSearchPageGQL);
   private cdr = inject(ChangeDetectorRef);
   private tabService = inject(TabService);
+  private reporteService = inject(ReporteService);
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
@@ -100,6 +104,8 @@ export class AdicionarPreGastoComponent implements OnInit {
   tieneDatosBien = false;
   pasoActual = 0;
   data: SolicitudGastoData = {};
+  idPreGastoGuardado: number | null = null;
+  sucursalIdPreGastoGuardado: number | null = null;
 
   formasPago = [
     { valor: 'EFECTIVO', etiqueta: 'Efectivo', icono: 'payments' },
@@ -237,9 +243,22 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.guardado = true;
+        this.idPreGastoGuardado = Number(res.id);
+        this.sucursalIdPreGastoGuardado = Number(res.sucursalId);
         this.cdr.markForCheck();
       }
     });
+  }
+
+  onImprimir(): void {
+    if (this.idPreGastoGuardado) {
+      this.gastoService.preGastoImprimir(this.idPreGastoGuardado, this.sucursalIdPreGastoGuardado).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.reporteService.onAdd('Solicitud de Gasto ' + this.idPreGastoGuardado, res);
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
+        }
+      });
+    }
   }
 
   cancelar(): void {

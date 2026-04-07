@@ -752,3 +752,9 @@ export const filterTipoGastosQuery = gql`
     }
   }
 `;
+
+export const imprimirPreGastoQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: imprimirPreGasto(id: $id, sucId: $sucId)
+  }
+`;

@@ -421,7 +421,7 @@
           *ngIf="pasoActual === 2 && !guardado" class="btn-save">
           <mat-icon>check</mat-icon> CONFIRMAR
         </button>
-        <button mat-raised-button color="primary" *ngIf="guardado" class="btn-print">
+        <button mat-raised-button color="primary" *ngIf="guardado" class="btn-print" (click)="onImprimir()">
           <mat-icon>print</mat-icon> IMPRIMIR
         </button>
       </div>

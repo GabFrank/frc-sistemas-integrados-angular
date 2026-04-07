@@ -19,6 +19,7 @@ import { PreGastosGQL } from '../graphql/preGastos';
 import { RechazarPreGastoGQL } from '../graphql/rechazarPreGasto';
 import { SavePreGastoGQL } from '../graphql/savePreGasto';
 import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
+import { ImprimirPreGastoGQL } from '../graphql/imprimirPreGasto';
 import { AllTipoGastosGQL } from '../graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from '../graphql/deleleTipoGasto';
 import { FilterPreGastosGQL } from '../graphql/filterPreGastos';
@@ -37,7 +38,6 @@ export class GastoService {
   constructor(
     private genericService: GenericCrudService,
     private configService: ConfiguracionService,
-    // Gasto
     private gastosPorFecha: GastosPorFechaGQL,
     private saveGasto: SaveGastoGQL,
     private gastoPorId: GastoPorIdGQL,
@@ -46,7 +46,6 @@ export class GastoService {
     private reimprimirGasto: ReimprimirGastoGQL,
     private saveVuelto: SaveVueltoGastoGQL,
     private filterGasto: FilterGastosGQL,
-    // PreGasto
     private getPreGastos: PreGastosGQL,
     private preGastoPorId: PreGastoPorIdGQL,
     private onSavePreGasto: SavePreGastoGQL,
@@ -54,7 +53,7 @@ export class GastoService {
     private rechazarGQL: RechazarPreGastoGQL,
     private tramitarGQL: TramitarPreGastoGQL,
     private filterPreGastosGQL: FilterPreGastosGQL,
-    // TipoGasto
+    private imprimirPreGastoGQL: ImprimirPreGastoGQL,
     private getAllTipoGastos: AllTipoGastosGQL,
     private getRootTipoGasto: RootTipoGastosGQL,
     private onSaveTipoGasto: SaveTipoGastoGQL,
@@ -63,10 +62,6 @@ export class GastoService {
     private tipoGastoSearch: TipoGastoSearchGQL,
     private filterTipoGastosGQL: FilterTipoGastosGQL
   ) { }
-
-  // ======================
-  // GASTO
-  // ======================
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
     let gastoAux = gasto;
     if (!(gasto instanceof Gasto)) {
@@ -144,6 +139,10 @@ export class GastoService {
 
   preGastoTramitar(id: number, sucId?: number): Observable<PreGasto> {
     return this.genericService.onCustomMutation(this.tramitarGQL, { id, sucId });
+  }
+
+  preGastoImprimir(id: number, sucId?: number): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId });
   }
 
   tipoGastoOnGetAll(servidor = true): Observable<any> {
