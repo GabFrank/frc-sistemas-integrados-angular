@@ -1,0 +1,430 @@
+<div class="page-container" fxLayout="row" fxLayoutAlign="center start">
+  <mat-card class="form-card" fxFlex="90%" fxFlex.gt-md="70%">
+    <!-- Header -->
+    <div class="header-section" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+      <div class="icon-circle">
+        <mat-icon>request_quote</mat-icon>
+      </div>
+      <div fxLayout="column">
+        <h2 class="form-title">Nueva Solicitud de Gasto</h2>
+        <span class="form-subtitle" *ngIf="tieneDatosBien">
+          Solicitud vinculada a {{ data.tipoBien | uppercase }} - {{ data.bienDescripcion }}
+        </span>
+        <span class="form-subtitle" *ngIf="!tieneDatosBien">
+          Complete la información para generar un nuevo pre-gasto
+        </span>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Indicador de pasos -->
+    <div class="pasos-indicador" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="0">
+      <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0"
+        (click)="irAPaso(0)">
+        <div class="paso-circulo">
+          <mat-icon *ngIf="pasoActual > 0">check</mat-icon>
+          <span *ngIf="pasoActual <= 0">1</span>
+        </div>
+        <span class="paso-etiqueta">Bien / Activo</span>
+      </div>
+      <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1"
+        (click)="irAPaso(1)">
+        <div class="paso-circulo">
+          <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
+          <span *ngIf="pasoActual <= 1">2</span>
+        </div>
+        <span class="paso-etiqueta">Datos del Gasto</span>
+      </div>
+      <div class="paso-linea" [class.linea-activa]="pasoActual > 1"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 2">
+        <div class="paso-circulo">
+          <span>3</span>
+        </div>
+        <span class="paso-etiqueta">Confirmación</span>
+      </div>
+    </div>
+
+    <!-- ===================== PASO 0: INFORMACIÓN DEL BIEN ===================== -->
+    <div class="paso-contenido" *ngIf="pasoActual === 0">
+      <!-- Resumen del bien vinculado -->
+      <div class="bien-resumen-card" *ngIf="tieneDatosBien">
+        <div class="bien-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+          <div class="bien-icono-contenedor">
+            <mat-icon class="bien-icono">{{ iconoTipoBien() }}</mat-icon>
+          </div>
+          <div fxLayout="column" fxFlex>
+            <span class="bien-tipo-badge">{{ data.tipoBien | uppercase }}</span>
+            <span class="bien-nombre">{{ data.bienDescripcion }}</span>
+            <span class="bien-ref">Ref. #{{ data.referenciaId }} — Ente #{{ data.enteId }}</span>
+          </div>
+          <div class="estado-cuota-badge" [style.background-color]="colorEstadoCuota() + '22'"
+            [style.color]="colorEstadoCuota()" *ngIf="data.estadoCuota">
+            {{ data.estadoCuota }}
+          </div>
+        </div>
+
+        <div class="bien-financiero-grid">
+          <div class="financiero-item">
+            <span class="financiero-label">Monto Total</span>
+            <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:'1.0-0' }}</span>
+          </div>
+          <div class="financiero-item">
+            <span class="financiero-label">Ya Pagado</span>
+            <span class="financiero-valor success">{{ data.moneda }} {{ data.montoYaPagado | number:'1.0-0' }}</span>
+          </div>
+          <div class="financiero-item">
+            <span class="financiero-label">Pendiente</span>
+            <span class="financiero-valor peligro">{{ data.moneda }} {{ data.montoPendiente | number:'1.0-0' }}</span>
+          </div>
+          <div class="financiero-item" *ngIf="data.diaVencimiento">
+            <span class="financiero-label">Vence en</span>
+            <span class="financiero-valor">{{ data.diasParaVencer }} día(s)</span>
+          </div>
+        </div>
+
+        <div class="progreso-pago">
+          <div fxLayout="row" fxLayoutAlign="space-between center" class="progreso-header">
+            <span class="progreso-label">Progreso de pago</span>
+            <span class="progreso-porcentaje">{{ porcentajePagado() }}%</span>
+          </div>
+          <div class="progreso-barra">
+            <div class="progreso-relleno" [style.width.%]="porcentajePagado()"></div>
+          </div>
+        </div>
+
+        <div class="cuotas-seccion" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+          <span class="seccion-mini-titulo">
+            <mat-icon class="seccion-mini-icono">event_note</mat-icon>
+            Plan de Cuotas
+          </span>
+          <div class="cuotas-grid">
+            <div class="cuota-info">
+              <span class="cuota-etiqueta">Cuotas Totales</span>
+              <span class="cuota-valor">{{ data.cuotasTotales }}</span>
+            </div>
+            <div class="cuota-info">
+              <span class="cuota-etiqueta">Cuotas Pagadas</span>
+              <span class="cuota-valor success">{{ data.cuotasPagadas }}</span>
+            </div>
+            <div class="cuota-info">
+              <span class="cuota-etiqueta">Cuotas Faltantes</span>
+              <span class="cuota-valor peligro">{{ data.cuotasFaltantes }}</span>
+            </div>
+            <div class="cuota-info">
+              <span class="cuota-etiqueta">Monto por Cuota</span>
+              <span class="cuota-valor">{{ data.moneda }} {{ montoPorCuota() | number:'1.0-0' }}</span>
+            </div>
+            <div class="cuota-info">
+              <span class="cuota-etiqueta">Cuota a Pagar Ahora</span>
+              <span class="cuota-valor resaltado">Cuota {{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div fxLayout="row" fxLayoutGap="15px" style="margin-top: 15px;">
+          <div class="proveedor-seccion" fxFlex *ngIf="data.proveedor">
+            <span class="seccion-mini-titulo">
+              <mat-icon class="seccion-mini-icono">store</mat-icon>
+              Proveedor
+            </span>
+            <span class="proveedor-nombre">{{ data.proveedor }}</span>
+          </div>
+          <div class="situacion-seccion" fxFlex *ngIf="data.situacionPago">
+            <span class="seccion-mini-titulo">
+              <mat-icon class="seccion-mini-icono">info</mat-icon>
+              Situación
+            </span>
+            <span class="situacion-valor" [class.situacion-pagando]="data.situacionPago === 'PAGANDO'"
+              [class.situacion-pagado]="data.situacionPago === 'PAGADO'">{{ data.situacionPago }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sin bien vinculado -->
+      <div class="sin-bien-info" *ngIf="!tieneDatosBien">
+        <mat-icon class="sin-bien-icono">info</mat-icon>
+        <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
+        <p class="sin-bien-subtexto">Puede vincular un bien ahora o continuar sin uno:</p>
+        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="15px" style="margin-top: 25px; width: 100%;">
+          <button mat-flat-button color="primary" (click)="abrirBuscadorBienGenerico()" type="button" style="padding: 10px 30px;">
+            <mat-icon>search</mat-icon>
+            BUSCAR BIEN / ACTIVO
+          </button>
+          <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="15px">
+            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('INMUEBLE')" type="button">
+              <mat-icon>domain</mat-icon>
+              Inmueble
+            </button>
+            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('VEHICULO')" type="button">
+              <mat-icon>directions_car</mat-icon>
+              Vehículo
+            </button>
+            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('MUEBLE')" type="button">
+              <mat-icon>chair</mat-icon>
+              Mueble
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PASO 1: FORMULARIO ===================== -->
+    <div class="paso-contenido" *ngIf="pasoActual === 1">
+      <div fxLayout="column" fxLayoutGap="20px" class="formulario-seccions">
+        <div fxLayout="row" fxLayoutGap="20px">
+          <!-- Tipo de Gasto -->
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">receipt_long</mat-icon>
+              Tipo de Gasto
+            </span>
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Seleccionar tipo de gasto *</mat-label>
+              <mat-select [formControl]="tipoGastoControl">
+                <mat-option>
+                  <input matInput [formControl]="busquedaTipoGastoControl" placeholder="Buscar..."
+                    style="width: 100%; padding: 8px; border: none; outline: none; background: transparent; color: #e0e0e0;">
+                </mat-option>
+                <mat-option *ngFor="let tipo of tipoGastosFiltrados" [value]="tipo.id">
+                  {{ tipo.descripcion }}
+                  <span *ngIf="tipo.clasificacionGasto" style="color: #9e9e9e; font-size: 0.8em;">
+                    ({{ tipo.clasificacionGasto.descripcion }})
+                  </span>
+                </mat-option>
+              </mat-select>
+              <mat-icon matSuffix>receipt_long</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <!-- Solicitante -->
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">person</mat-icon>
+              Solicitante
+            </span>
+            <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;" (click)="abrirBuscadorSolicitante()">
+              <mat-label>Seleccionar Solicitante</mat-label>
+              <input matInput [value]="solicitanteControl.value?.persona?.nombre" readonly
+                placeholder="Buscar solicitante..." />
+              <button mat-icon-button matSuffix type="button"
+                (click)="$event.stopPropagation(); abrirBuscadorSolicitante()">
+                <mat-icon>search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Descripción / Concepto -->
+        <div class="dialogo-seccion">
+          <span class="dialogo-seccion-titulo">
+            <mat-icon class="seccion-mini-icono">description</mat-icon>
+            Descripción del Gasto
+          </span>
+          <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Descripción / Concepto del gasto *</mat-label>
+            <textarea matInput [formControl]="descripcionControl"
+              placeholder="Ej: Pago cuota 3/12 de Inmueble Oficina Central" rows="3" maxlength="500"></textarea>
+            <mat-icon matSuffix>description</mat-icon>
+            <mat-hint align="end">{{ descripcionControl.value?.length || 0 }} / 500</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div fxLayout="row" fxLayoutGap="20px">
+          <!-- Información Financiera -->
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">payments</mat-icon>
+              Información Financiera
+            </span>
+            <div fxLayout="row" fxLayoutGap="12px">
+              <mat-form-field appearance="outline" fxFlex="35%">
+                <mat-label>Moneda *</mat-label>
+                <mat-select [formControl]="monedaControl">
+                  <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+                    {{ moneda.denominacion }} ({{ moneda.simbolo }})
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Monto Solicitado *</mat-label>
+                <input matInput type="text" currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl" placeholder="0" />
+                <mat-icon matSuffix>payments</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Sucursal de retiro -->
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">store</mat-icon>
+              Sucursal de Retiro
+            </span>
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Sucursal de Retiro *</mat-label>
+              <mat-select [formControl]="sucursalControl">
+                <mat-option *ngFor="let sucursal of listaSucursales" [value]="sucursal.id">
+                  {{ sucursal.nombre }}
+                </mat-option>
+              </mat-select>
+              <mat-icon matSuffix>store</mat-icon>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Forma de pago y urgencia -->
+        <div class="dialogo-seccion">
+          <span class="dialogo-seccion-titulo">
+            <mat-icon class="seccion-mini-icono">tune</mat-icon>
+            Opciones Adicionales
+          </span>
+          <div fxLayout="row wrap" fxLayoutGap="20px">
+            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+              <mat-label>Forma de Pago Sugerida</mat-label>
+              <mat-select [formControl]="formaPagoControl">
+                <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
+                  <mat-icon>{{ fp.icono }}</mat-icon>
+                  {{ fp.etiqueta }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+              <mat-label>Nivel de Urgencia</mat-label>
+              <mat-select [formControl]="urgenciaControl">
+                <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
+                  <span [style.color]="nivel.color">●</span>
+                  {{ nivel.etiqueta }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+              <mat-label>Beneficiario (si aplica)</mat-label>
+              <input matInput [formControl]="beneficiarioControl" placeholder="Se auto-completa al seleccionar un bien" />
+              <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
+              <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <!-- Buscador genérico de Bienes si no se seleccionó antes -->
+          <div *ngIf="!tieneDatosBien" style="margin-top: 10px;">
+            <span class="sub-label">Vincular un activo (opcional):</span>
+            <div fxLayout="row" fxLayoutGap="15px" style="margin-top: 8px;">
+               <mat-form-field appearance="outline" fxFlex="30%">
+                  <mat-label>Tipo de Activo</mat-label>
+                  <mat-select [formControl]="tipoBienControl">
+                    <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">{{ tipo }}</mat-option>
+                  </mat-select>
+               </mat-form-field>
+               <mat-form-field appearance="outline" fxFlex (click)="abrirBuscadorBienGenerico()" [class.field-disabled]="!tipoBienControl.value">
+                  <mat-label>Buscar Activo</mat-label>
+                  <input matInput readonly placeholder="Seleccione tipo primero..." [disabled]="!tipoBienControl.value" />
+                  <mat-icon matSuffix>search</mat-icon>
+               </mat-form-field>
+            </div>
+          </div>
+
+          <div *ngIf="enteSeleccionado" class="bien-vinculado-banner" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+             <mat-icon class="banner-icon">{{ iconoTipoBien() }}</mat-icon>
+             <div fxLayout="column" fxFlex>
+                <span class="banner-tipo">{{ enteSeleccionado.tipoEnte | uppercase }} VINCULADO</span>
+                <span class="banner-desc">{{ bienSeleccionadoDescripcion }}</span>
+             </div>
+             <button mat-icon-button (click)="limpiarBienSeleccionado()"><mat-icon>close</mat-icon></button>
+          </div>
+
+          <mat-form-field appearance="outline" style="width: 100%; margin-top: 15px;">
+            <mat-label>Observaciones Internas</mat-label>
+            <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..."
+              rows="2" maxlength="300"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PASO 2: CONFIRMACIÓN ===================== -->
+    <div class="paso-contenido" *ngIf="pasoActual === 2">
+      <div class="confirmacion-card shadow">
+        <div class="confirmacion-header">
+          <mat-icon class="confirmacion-icono">fact_check</mat-icon>
+          <h3 class="confirmacion-titulo">Resumen Final</h3>
+        </div>
+
+        <div fxLayout="row wrap" fxLayoutGap="20px">
+          <!-- Izquierda: Datos del Activo -->
+          <div fxFlex="calc(50% - 20px)" *ngIf="tieneDatosBien" class="confirm-column">
+            <span class="column-title">Activo / Bien</span>
+            <div class="confirm-row">
+              <span class="label">Tipo:</span>
+              <span class="value">{{ data.tipoBien | uppercase }}</span>
+            </div>
+            <div class="confirm-row">
+              <span class="label">Descripción:</span>
+              <span class="value">{{ data.bienDescripcion }}</span>
+            </div>
+            <div class="confirm-row" *ngIf="data.proveedor">
+              <span class="label">Proveedor:</span>
+              <span class="value">{{ data.proveedor }}</span>
+            </div>
+            <div class="confirm-row" *ngIf="data.cuotasTotales > 0">
+              <span class="label">Cuota:</span>
+              <span class="value success">{{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+            </div>
+          </div>
+
+          <!-- Derecha: Datos del Gasto -->
+          <div fxFlex class="confirm-column">
+            <span class="column-title">Detalle del Gasto</span>
+            <div class="confirm-row">
+              <span class="label">Concepto:</span>
+              <span class="value">{{ descripcionControl.value }}</span>
+            </div>
+            <div class="confirm-row highlight">
+              <span class="label">Monto a Solicitar:</span>
+              <span class="value monto">{{ montoControl.value | number:precisionDisplay }}</span>
+            </div>
+            <div class="confirm-row">
+              <span class="label">Forma de Pago:</span>
+              <span class="value">{{ formaPagoControl.value }}</span>
+            </div>
+            <div class="confirm-row">
+              <span class="label">Urgencia:</span>
+              <span class="value" [style.color]="urgenciaControl.value === 'URGENTE' ? '#ef5350' : '#42a5f5'">{{ urgenciaControl.value }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="warning-banner" *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+          <mat-icon>warning</mat-icon>
+          <span>Atención: El monto solicitado supera el saldo pendiente del bien ({{ data.montoPendiente | number:precisionDisplay }}).</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Acciones -->
+    <mat-divider></mat-divider>
+    <div class="footer-actions" fxLayout="row" fxLayoutAlign="space-between center">
+      <button mat-button (click)="cancelar()" class="btn-cancelar">
+        {{ guardado ? 'CERRAR' : 'SALIR SIN GUARDAR' }}
+      </button>
+      <div fxLayout="row" fxLayoutGap="15px">
+        <button mat-stroked-button (click)="pasoAnterior()" *ngIf="pasoActual > 0 && !guardado">
+          <mat-icon>arrow_back</mat-icon> ANTERIOR
+        </button>
+        <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 2" class="btn-next">
+          SIGUIENTE <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button mat-raised-button color="accent" [disabled]="!formularioValido() || guardado" (click)="guardar()"
+          *ngIf="pasoActual === 2 && !guardado" class="btn-save">
+          <mat-icon>check</mat-icon> CONFIRMAR
+        </button>
+        <button mat-raised-button color="primary" *ngIf="guardado" class="btn-print">
+          <mat-icon>print</mat-icon> IMPRIMIR
+        </button>
+      </div>
+    </div>
+  </mat-card>
+</div>

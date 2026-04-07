@@ -1,6 +1,5 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
 import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -21,7 +20,6 @@ import { VehiculoService } from '../../../vehiculos/vehiculo/service/vehiculo.se
 import { Mueble } from '../../../muebles/models/mueble.model';
 import { Inmueble } from '../../../inmueble/models/inmueble.model';
 import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
-import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
 
 interface BienFinancieroRow {

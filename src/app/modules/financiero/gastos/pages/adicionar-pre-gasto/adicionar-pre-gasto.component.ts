@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef } from '@angular/material/dialog';
 import { GastoService } from '../../service/gasto.service';
 import { PreGastoInput } from '../../models/pre-gasto.model';
 import { TipoGasto } from '../../models/tipo-gasto.model';
@@ -9,8 +8,6 @@ import { Moneda } from '../../../moneda/moneda.model';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { Inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { UsuariosSearchPaginatedGQL } from '../../../../personas/usuarios/graphql/usuarioSearchPaginated';
@@ -24,6 +21,9 @@ import { InmuebleService } from '../../../../activos/inmueble/service/inmueble.s
 import { VehiculoService } from '../../../../activos/vehiculos/vehiculo/service/vehiculo.service';
 import { EnteSearchPageGQL } from '../../../../activos/ente/graphql/enteSearchPage';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
+import { TabService } from '../../../../../layouts/tab/tab.service';
+import { BienesDashboardComponent } from '../../../../activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { Tab } from '../../../../../layouts/tab/tab.model';
 
 export interface SolicitudGastoData {
   enteId?: number;
@@ -52,12 +52,25 @@ export interface SolicitudGastoData {
 
 @UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'app-adicionar-pre-gasto-dialog',
-  templateUrl: './adicionar-pre-gasto-dialog.component.html',
-  styleUrls: ['./adicionar-pre-gasto-dialog.component.scss'],
+  selector: 'app-adicionar-pre-gasto',
+  templateUrl: './adicionar-pre-gasto.component.html',
+  styleUrls: ['./adicionar-pre-gasto.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AdicionarPreGastoDialogComponent implements OnInit {
+export class AdicionarPreGastoComponent implements OnInit {
+  private gastoService = inject(GastoService);
+  private monedaService = inject(MonedaService);
+  private sucursalService = inject(SucursalService);
+  private matDialog = inject(MatDialog);
+  private usuariosSearchPaginatedGQL = inject(UsuariosSearchPaginatedGQL);
+  private enteService = inject(EnteService);
+  private muebleService = inject(MuebleService);
+  private inmuebleService = inject(InmuebleService);
+  private vehiculoService = inject(VehiculoService);
+  private enteSearchPageGQL = inject(EnteSearchPageGQL);
+  private cdr = inject(ChangeDetectorRef);
+  private tabService = inject(TabService);
+
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
   precisionDisplay = '1.0-0';
@@ -86,6 +99,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
 
   tieneDatosBien = false;
   pasoActual = 0;
+  data: SolicitudGastoData = {};
 
   formasPago = [
     { valor: 'EFECTIVO', etiqueta: 'Efectivo', icono: 'payments' },
@@ -101,26 +115,15 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     { valor: 'URGENTE', etiqueta: 'Urgente', color: '#ef5350' },
   ];
 
-  constructor(
-    private matDialogRef: MatDialogRef<AdicionarPreGastoDialogComponent>,
-    private gastoService: GastoService,
-    private monedaService: MonedaService,
-    private sucursalService: SucursalService,
-    private matDialog: MatDialog,
-    private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL,
-    private enteService: EnteService,
-    private muebleService: MuebleService,
-    private inmuebleService: InmuebleService,
-    private vehiculoService: VehiculoService,
-    private enteSearchPageGQL: EnteSearchPageGQL,
-    private cdr: ChangeDetectorRef,
-    @Inject(MAT_DIALOG_DATA) public data: SolicitudGastoData
-  ) {
-    this.tieneDatosBien = !!(this.data && this.data.enteId);
-    if (!this.tieneDatosBien) {
-      this.pasoActual = 1;
-    }
-    if (this.data) {
+  ngOnInit(): void {
+    // Intentar recuperar data del tab actual si existe
+    const tabData = this.tabService.currentTab()?.tabData?.data;
+    if (tabData) {
+      this.data = tabData;
+      this.tieneDatosBien = !!(this.data && this.data.enteId);
+      if (!this.tieneDatosBien) {
+        this.pasoActual = 1;
+      }
       if (this.data.descripcion) {
         this.descripcionControl.setValue(this.data.descripcion);
       }
@@ -136,10 +139,10 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
       if (this.data.proveedor) {
         this.beneficiarioControl.setValue(this.data.proveedor);
       }
+    } else {
+        this.pasoActual = 1;
     }
-  }
 
-  ngOnInit(): void {
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
@@ -203,6 +206,8 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     });
   }
 
+  guardado = false;
+
   formularioValido(): boolean {
     return this.tipoGastoControl.valid
       && this.descripcionControl.valid
@@ -231,13 +236,14 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
 
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.matDialogRef.close(res);
+        this.guardado = true;
+        this.cdr.markForCheck();
       }
     });
   }
 
   cancelar(): void {
-    this.matDialogRef.close();
+    this.tabService.removeTab(this.tabService.currentIndex);
   }
 
   irAPaso(paso: number): void {
@@ -358,7 +364,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     });
   }
 
-  /** Buscador genérico de bienes (todos los tipos) - replica lógica de bienes por sucursal */
   abrirBuscadorBienGenerico(): void {
     if (this.tipoBienControl.value) {
       this.abrirBuscadorBien(this.tipoBienControl.value);
@@ -378,7 +383,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  /** Carga el detalle del bien (mueble/inmueble/vehículo) y auto-completa el beneficiario con el proveedor */
   private cargarDetalleBienYBeneficiario(ente: Ente): void {
     if (!ente?.referenciaId || !ente?.tipoEnte) return;
     this.cargandoBien = true;
@@ -387,20 +391,17 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     this.obtenerDetalleBien(ente).pipe(untilDestroyed(this)).subscribe(detalle => {
       this.cargandoBien = false;
       if (detalle) {
-        // Actualizar descripción del bien
         const descripcionBien = this.resolverDescripcionBien(ente, detalle);
         this.bienSeleccionadoDescripcion = descripcionBien;
         if (!this.data) this.data = {};
         this.data.bienDescripcion = descripcionBien;
 
-        // Auto-completar beneficiario con proveedor
         const proveedor = detalle?.proveedor?.nombre || '';
         if (proveedor) {
           this.beneficiarioControl.setValue(proveedor);
           this.data.proveedor = proveedor;
         }
 
-        // Completar datos financieros si existen
         if (detalle.montoTotal != null) this.data.montoTotal = Number(detalle.montoTotal) || 0;
         if (detalle.montoYaPagado != null) this.data.montoYaPagado = Number(detalle.montoYaPagado) || 0;
         if (detalle.montoTotal != null && detalle.montoYaPagado != null) {
@@ -415,13 +416,11 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
         if (detalle.moneda?.simbolo) {
           this.data.moneda = detalle.moneda.simbolo;
           this.data.monedaSimbolo = detalle.moneda.simbolo;
-          // Auto-seleccionar moneda
           const monedaMatch = this.listaMonedas.find(m => m.simbolo === detalle.moneda.simbolo);
           if (monedaMatch) this.monedaControl.setValue(monedaMatch.id);
         }
         if (detalle.situacionPago) this.data.situacionPago = detalle.situacionPago;
 
-        // Auto-rellenar monto con cuota si aplica
         const cuotasTotales = Number(detalle.cantidadCuotas) || 0;
         const montoTotal = Number(detalle.montoTotal) || 0;
         if (cuotasTotales > 0 && montoTotal > 0) {
@@ -431,7 +430,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
           }
         }
 
-        // Auto-rellenar descripción
         const tipoLabel = (ente.tipoEnte || '').charAt(0) + (ente.tipoEnte || '').slice(1).toLowerCase();
         if (!this.descripcionControl.value) {
           this.descripcionControl.setValue(`Pago de ${tipoLabel} - ${descripcionBien}`);
@@ -441,7 +439,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     });
   }
 
-  /** Obtiene el detalle del bien (mueble/inmueble/vehículo) - misma lógica que bienes por sucursal */
   private obtenerDetalleBien(ente: Ente): Observable<any> {
     if (!ente?.referenciaId || !ente?.tipoEnte) return of({});
     switch (ente.tipoEnte) {
@@ -456,7 +453,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     }
   }
 
-  /** Resuelve la descripción del bien basado en su tipo - misma lógica que bienes por sucursal */
   private resolverDescripcionBien(ente: Ente, detalle: any): string {
     if (ente?.tipoEnte === TipoEnte.MUEBLE) {
       return detalle?.descripcion || detalle?.identificador || `Mueble #${ente?.referenciaId || ''}`;
@@ -475,11 +471,10 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     this.data.enteId = ente.id;
     this.data.tipoBien = tipoStr;
 
-    // Construir una descripción básica basada en el tipo de bien
     const label = tipoStr.charAt(0) + tipoStr.slice(1).toLowerCase();
     this.data.bienDescripcion = `${label} #${ente.id}`;
     this.data.referenciaId = ente.referenciaId;
-    this.pasoActual = 0; // Regresar al paso 0 para mostrar el resumen del bien vinculado
+    this.pasoActual = 0;
   }
 
   actualizarCurrencyOptions(): void {

@@ -1,4 +1,4 @@
-<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()">
+<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="space-between start" style="width: 100%">
       <!-- Date Range -->

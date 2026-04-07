@@ -256,7 +256,7 @@
 
           <mat-form-field appearance="outline" fxFlex>
             <mat-label>Monto Solicitado</mat-label>
-            <input matInput type="number" [formControl]="montoControl" placeholder="0" min="1" />
+            <input matInput type="text" currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl" placeholder="0" />
             <mat-icon matSuffix>payments</mat-icon>
           </mat-form-field>
         </div>
@@ -410,7 +410,7 @@
         </div>
         <div class="confirmacion-fila resaltado">
           <span class="confirmacion-label">Monto Solicitado</span>
-          <span class="confirmacion-valor monto-grande">{{ montoControl.value | number:'1.0-0' }}</span>
+          <span class="confirmacion-valor monto-grande">{{ montoControl.value | number:precisionDisplay }}</span>
         </div>
         <div class="confirmacion-fila">
           <span class="confirmacion-label">Forma de Pago</span>
@@ -436,8 +436,8 @@
       <div class="confirmacion-alerta"
         *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
         <mat-icon class="alerta-icono">warning</mat-icon>
-        <span>El monto solicitado ({{ montoControl.value | number:'1.0-0' }}) supera el monto pendiente del bien ({{
-          data.montoPendiente | number:'1.0-0' }}).</span>
+        <span>El monto solicitado ({{ montoControl.value | number:precisionDisplay }}) supera el monto pendiente del bien ({{
+          data.montoPendiente | number:precisionDisplay }}).</span>
       </div>
     </div>
   </div>

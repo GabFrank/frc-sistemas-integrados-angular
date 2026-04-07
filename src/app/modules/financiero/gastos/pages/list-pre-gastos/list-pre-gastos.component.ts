@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { TabService } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
+import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
 import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
 import { GastoService } from '../../service/gasto.service';
@@ -22,6 +25,7 @@ export class ListPreGastosComponent implements OnInit {
   private gastoService = inject(GastoService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
+  private tabService = inject(TabService);
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
@@ -133,6 +137,10 @@ export class ListPreGastosComponent implements OnInit {
           }
         }
       });
+  }
+
+  irAAgregarPreGasto(): void {
+    this.tabService.addTab(new Tab(AdicionarPreGastoComponent, "Nuevo Pre-Gasto", null, ListPreGastosComponent));
   }
 
   onRefrescar(): void {
