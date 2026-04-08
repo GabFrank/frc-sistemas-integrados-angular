@@ -65,22 +65,31 @@
           </div>
         </div>
 
+        <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento"
+          [style.background-color]="colorEstadoCuota() + '15'" [style.border-left-color]="colorEstadoCuota()">
+          <mat-icon [style.color]="colorEstadoCuota()">info</mat-icon>
+          <span [style.color]="colorEstadoCuota()">{{ notificacionVencimiento }}</span>
+        </div>
+
         <div class="bien-financiero-grid">
           <div class="financiero-item">
             <span class="financiero-label">Monto Total</span>
-            <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:'1.0-0' }}</span>
+            <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:precisionDisplay
+              }}</span>
           </div>
           <div class="financiero-item">
             <span class="financiero-label">Ya Pagado</span>
-            <span class="financiero-valor success">{{ data.moneda }} {{ data.montoYaPagado | number:'1.0-0' }}</span>
+            <span class="financiero-valor success">{{ data.moneda }} {{ data.montoYaPagado | number:precisionDisplay
+              }}</span>
           </div>
           <div class="financiero-item">
             <span class="financiero-label">Pendiente</span>
-            <span class="financiero-valor peligro">{{ data.moneda }} {{ data.montoPendiente | number:'1.0-0' }}</span>
+            <span class="financiero-valor peligro">{{ data.moneda }} {{ data.montoPendiente | number:precisionDisplay
+              }}</span>
           </div>
           <div class="financiero-item" *ngIf="data.diaVencimiento">
-            <span class="financiero-label">Vence en</span>
-            <span class="financiero-valor">{{ data.diasParaVencer }} día(s)</span>
+            <span class="financiero-label">Siguiente Vencimiento</span>
+            <span class="financiero-valor">Día {{ data.diaVencimiento }} (en {{ diasParaVencer }} días)</span>
           </div>
         </div>
 
@@ -118,7 +127,8 @@
             </div>
             <div class="cuota-info">
               <span class="cuota-etiqueta">Cuota a Pagar Ahora</span>
-              <span class="cuota-valor resaltado">Cuota {{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+              <span class="cuota-valor resaltado">Cuota {{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales
+                }}</span>
             </div>
           </div>
         </div>
@@ -148,7 +158,8 @@
         <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
         <p class="sin-bien-subtexto">Puede vincular un bien ahora o continuar sin uno:</p>
         <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="15px" style="margin-top: 25px; width: 100%;">
-          <button mat-flat-button color="primary" (click)="abrirBuscadorBienGenerico()" type="button" style="padding: 10px 30px;">
+          <button mat-flat-button color="primary" (click)="abrirBuscadorBienGenerico()" type="button"
+            style="padding: 10px 30px;">
             <mat-icon>search</mat-icon>
             BUSCAR BIEN / ACTIVO
           </button>
@@ -169,12 +180,9 @@
         </div>
       </div>
     </div>
-
-    <!-- ===================== PASO 1: FORMULARIO ===================== -->
     <div class="paso-contenido" *ngIf="pasoActual === 1">
       <div fxLayout="column" fxLayoutGap="20px" class="formulario-seccions">
         <div fxLayout="row" fxLayoutGap="20px">
-          <!-- Tipo de Gasto -->
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
               <mat-icon class="seccion-mini-icono">receipt_long</mat-icon>
@@ -204,7 +212,8 @@
               <mat-icon class="seccion-mini-icono">person</mat-icon>
               Solicitante
             </span>
-            <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;" (click)="abrirBuscadorSolicitante()">
+            <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;"
+              (click)="abrirBuscadorSolicitante()">
               <mat-label>Seleccionar Solicitante</mat-label>
               <input matInput [value]="solicitanteControl.value?.persona?.nombre" readonly
                 placeholder="Buscar solicitante..." />
@@ -250,13 +259,16 @@
 
               <mat-form-field appearance="outline" fxFlex>
                 <mat-label>Monto Solicitado *</mat-label>
-                <input matInput type="text" currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl" placeholder="0" />
+                <input matInput type="text" currencyMask [options]="selectedCurrencyOptions"
+                  [formControl]="montoControl" placeholder="0" />
                 <mat-icon matSuffix>payments</mat-icon>
+                <mat-error *ngIf="data?.montoPendiente && montoControl.value > data.montoPendiente">
+                  Excede el saldo pendiente ({{ data.montoPendiente | number:precisionDisplay }})
+                </mat-error>
               </mat-form-field>
             </div>
           </div>
 
-          <!-- Sucursal de retiro -->
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
               <mat-icon class="seccion-mini-icono">store</mat-icon>
@@ -273,8 +285,6 @@
             </mat-form-field>
           </div>
         </div>
-
-        <!-- Forma de pago y urgencia -->
         <div class="dialogo-seccion">
           <span class="dialogo-seccion-titulo">
             <mat-icon class="seccion-mini-icono">tune</mat-icon>
@@ -303,49 +313,49 @@
 
             <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
               <mat-label>Beneficiario (si aplica)</mat-label>
-              <input matInput [formControl]="beneficiarioControl" placeholder="Se auto-completa al seleccionar un bien" />
+              <input matInput [formControl]="beneficiarioControl"
+                placeholder="Se auto-completa al seleccionar un bien" />
               <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
               <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
             </mat-form-field>
           </div>
 
-          <!-- Buscador genérico de Bienes si no se seleccionó antes -->
           <div *ngIf="!tieneDatosBien" style="margin-top: 10px;">
             <span class="sub-label">Vincular un activo (opcional):</span>
             <div fxLayout="row" fxLayoutGap="15px" style="margin-top: 8px;">
-               <mat-form-field appearance="outline" fxFlex="30%">
-                  <mat-label>Tipo de Activo</mat-label>
-                  <mat-select [formControl]="tipoBienControl">
-                    <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">{{ tipo }}</mat-option>
-                  </mat-select>
-               </mat-form-field>
-               <mat-form-field appearance="outline" fxFlex (click)="abrirBuscadorBienGenerico()" [class.field-disabled]="!tipoBienControl.value">
-                  <mat-label>Buscar Activo</mat-label>
-                  <input matInput readonly placeholder="Seleccione tipo primero..." [disabled]="!tipoBienControl.value" />
-                  <mat-icon matSuffix>search</mat-icon>
-               </mat-form-field>
+              <mat-form-field appearance="outline" fxFlex="30%">
+                <mat-label>Tipo de Activo</mat-label>
+                <mat-select [formControl]="tipoBienControl">
+                  <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">{{ tipo }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" fxFlex (click)="abrirBuscadorBienGenerico()"
+                [class.field-disabled]="!tipoBienControl.value">
+                <mat-label>Buscar Activo</mat-label>
+                <input matInput readonly placeholder="Seleccione tipo primero..." [disabled]="!tipoBienControl.value" />
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
             </div>
           </div>
 
-          <div *ngIf="enteSeleccionado" class="bien-vinculado-banner" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-             <mat-icon class="banner-icon">{{ iconoTipoBien() }}</mat-icon>
-             <div fxLayout="column" fxFlex>
-                <span class="banner-tipo">{{ enteSeleccionado.tipoEnte | uppercase }} VINCULADO</span>
-                <span class="banner-desc">{{ bienSeleccionadoDescripcion }}</span>
-             </div>
-             <button mat-icon-button (click)="limpiarBienSeleccionado()"><mat-icon>close</mat-icon></button>
+          <div *ngIf="enteSeleccionado" class="bien-vinculado-banner" fxLayout="row" fxLayoutAlign="start center"
+            fxLayoutGap="15px">
+            <mat-icon class="banner-icon">{{ iconoTipoBien() }}</mat-icon>
+            <div fxLayout="column" fxFlex>
+              <span class="banner-tipo">{{ enteSeleccionado.tipoEnte | uppercase }} VINCULADO</span>
+              <span class="banner-desc">{{ bienSeleccionadoDescripcion }}</span>
+            </div>
+            <button mat-icon-button (click)="limpiarBienSeleccionado()"><mat-icon>close</mat-icon></button>
           </div>
 
           <mat-form-field appearance="outline" style="width: 100%; margin-top: 15px;">
             <mat-label>Observaciones Internas</mat-label>
-            <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..."
-              rows="2" maxlength="300"></textarea>
+            <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..." rows="2"
+              maxlength="300"></textarea>
           </mat-form-field>
         </div>
       </div>
     </div>
-
-    <!-- ===================== PASO 2: CONFIRMACIÓN ===================== -->
     <div class="paso-contenido" *ngIf="pasoActual === 2">
       <div class="confirmacion-card shadow">
         <div class="confirmacion-header">
@@ -354,7 +364,6 @@
         </div>
 
         <div fxLayout="row wrap" fxLayoutGap="20px">
-          <!-- Izquierda: Datos del Activo -->
           <div fxFlex="calc(50% - 20px)" *ngIf="tieneDatosBien" class="confirm-column">
             <span class="column-title">Activo / Bien</span>
             <div class="confirm-row">
@@ -375,7 +384,6 @@
             </div>
           </div>
 
-          <!-- Derecha: Datos del Gasto -->
           <div fxFlex class="confirm-column">
             <span class="column-title">Detalle del Gasto</span>
             <div class="confirm-row">
@@ -392,19 +400,21 @@
             </div>
             <div class="confirm-row">
               <span class="label">Urgencia:</span>
-              <span class="value" [style.color]="urgenciaControl.value === 'URGENTE' ? '#ef5350' : '#42a5f5'">{{ urgenciaControl.value }}</span>
+              <span class="value" [style.color]="urgenciaControl.value === 'URGENTE' ? '#ef5350' : '#42a5f5'">{{
+                urgenciaControl.value }}</span>
             </div>
           </div>
         </div>
 
-        <div class="warning-banner" *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+        <div class="warning-banner"
+          *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
           <mat-icon>warning</mat-icon>
-          <span>Atención: El monto solicitado supera el saldo pendiente del bien ({{ data.montoPendiente | number:precisionDisplay }}).</span>
+          <span>Atención: El monto solicitado supera el saldo pendiente del bien ({{ data.montoPendiente |
+            number:precisionDisplay }}).</span>
         </div>
       </div>
     </div>
 
-    <!-- Footer Acciones -->
     <mat-divider></mat-divider>
     <div class="footer-actions" fxLayout="row" fxLayoutAlign="space-between center">
       <button mat-button (click)="cancelar()" class="btn-cancelar">

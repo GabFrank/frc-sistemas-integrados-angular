@@ -562,6 +562,7 @@ export const preGastoQuery = gql`
         id
         nombre
       }
+      solicitudPagoId
       creadoEn
     }
   }
@@ -619,6 +620,17 @@ export const completarPreGastoMutation = gql`
 export const deletePreGastoMutation = gql`
   mutation deletePreGasto($id: ID!, $sucId: ID) {
     deletePreGasto(id: $id, sucId: $sucId)
+  }
+`;
+
+export const enviarPreGastoATesoreriaMutation = gql`
+  mutation ($id: ID!, $sucId: ID, $usuarioId: ID) {
+    data: enviarPreGastoATesoreria(id: $id, sucId: $sucId, usuarioId: $usuarioId) {
+      id
+      sucursalId
+      estado
+      solicitudPagoId
+    }
   }
 `;
 
@@ -703,6 +715,7 @@ export const filterPreGastosQuery = gql`
         montoRetirado
         montoGastado
         saldoDevolver
+        solicitudPagoId
         creadoEn
       }
     }
@@ -758,5 +771,11 @@ export const filterTipoGastosQuery = gql`
 export const imprimirPreGastoQuery = gql`
   query ($id: ID!, $sucId: ID) {
     data: imprimirPreGasto(id: $id, sucId: $sucId)
+  }
+`;
+
+export const imprimirSolicitudPagoMutation = gql`
+  mutation ($id: ID!) {
+    data: imprimirSolicitudPagoPDF(solicitudPagoId: $id)
   }
 `;

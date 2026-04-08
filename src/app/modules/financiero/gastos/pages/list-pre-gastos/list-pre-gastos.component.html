@@ -169,6 +169,24 @@
             GESTIONAR / AUTORIZAR
           </button>
         </div>
+
+        <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;">
+          <button mat-raised-button color="accent" style="width: 100%;" (click)="onEnviarATesoreria(seleccionado)">
+            <mat-icon style="margin-right: 8px;">send</mat-icon>
+            ENVIAR A TESORERÍA
+          </button>
+        </div>
+
+        <div *ngIf="seleccionado.estado === 'ENVIADO_A_TESORERIA'" style="margin-top: 16px;" fxLayout="column" fxLayoutGap="8px">
+          <div style="background-color: rgba(38, 166, 154, 0.1); color: #26a69a; padding: 12px; border-radius: 4px; border: 1px solid #26a69a;" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+            <mat-icon>info</mat-icon>
+            <span>Enviado a Tesorería para Pago</span>
+          </div>
+          <button *ngIf="seleccionado.solicitudPagoId" mat-raised-button color="primary" style="width: 100%;" (click)="onImprimirSolicitud(seleccionado.solicitudPagoId)">
+            <mat-icon style="margin-right: 8px;">print</mat-icon>
+            IMPRIMIR SOLICITUD DE PAGO
+          </button>
+        </div>
       </div>
 
       <ng-template #sinSeleccion>

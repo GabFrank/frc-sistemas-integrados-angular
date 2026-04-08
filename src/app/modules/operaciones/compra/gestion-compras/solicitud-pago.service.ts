@@ -53,7 +53,7 @@ export class SolicitudPagoService {
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
     private genericCrudService: GenericCrudService,
     private configService: ConfiguracionService
-  ) {}
+  ) { }
 
   /**
    * Obtiene todas las solicitudes de pago de un pedido específico
@@ -62,10 +62,10 @@ export class SolicitudPagoService {
    */
   onGetSolicitudesPorPedido(pedidoId: number): Observable<SolicitudPago[]> {
     return this.genericCrudService.onCustomQuery(
-      this.getSolicitudesPorPedidoGQL, 
-      { pedidoId }, 
-      true, 
-      null, 
+      this.getSolicitudesPorPedidoGQL,
+      { pedidoId },
+      true,
+      null,
       true
     ).pipe(
       map(result => this.processComputedProperties(result as SolicitudPago[]))
@@ -79,14 +79,14 @@ export class SolicitudPagoService {
    */
   onGetById(id: number): Observable<SolicitudPago> {
     return this.genericCrudService.onGetById<SolicitudPago>(
-      this.getSolicitudPagoGQL, 
-      id, 
-      null, 
-      null, 
-      true, 
-      null, 
-      null, 
-      null, 
+      this.getSolicitudPagoGQL,
+      id,
+      null,
+      null,
+      true,
+      null,
+      null,
+      null,
       true
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
@@ -141,10 +141,10 @@ export class SolicitudPagoService {
    */
   onGetNotasDisponiblesParaPago(pedidoId: number): Observable<NotaRecepcion[]> {
     return this.genericCrudService.onCustomQuery(
-      this.getNotasDisponiblesParaPagoGQL, 
-      { pedidoId }, 
-      true, 
-      null, 
+      this.getNotasDisponiblesParaPagoGQL,
+      { pedidoId },
+      true,
+      null,
       true
     );
   }
@@ -188,7 +188,7 @@ export class SolicitudPagoService {
   onSave(solicitud: SolicitudPago): Observable<SolicitudPago> {
     const input = solicitud.toInput();
     return this.genericCrudService.onSave<SolicitudPago>(
-      this.saveSolicitudPagoGQL, 
+      this.saveSolicitudPagoGQL,
       input
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
@@ -202,7 +202,7 @@ export class SolicitudPagoService {
    */
   onSaveInput(input: SolicitudPagoInput): Observable<SolicitudPago> {
     return this.genericCrudService.onSave<SolicitudPago>(
-      this.saveSolicitudPagoGQL, 
+      this.saveSolicitudPagoGQL,
       input
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
@@ -217,10 +217,10 @@ export class SolicitudPagoService {
    */
   onDelete(id: number): Observable<boolean> {
     return this.genericCrudService.onDelete(
-      this.deleteSolicitudPagoGQL, 
-      id, 
-      'solicitud de pago', 
-      null, 
+      this.deleteSolicitudPagoGQL,
+      id,
+      'solicitud de pago',
+      null,
       true
     );
   }
@@ -286,7 +286,7 @@ export class SolicitudPagoService {
 
   onActualizarEstado(id: number, estado: SolicitudPagoEstado): Observable<SolicitudPago> {
     return this.genericCrudService.onCustomMutation(
-      this.actualizarEstadoSolicitudPagoGQL, 
+      this.actualizarEstadoSolicitudPagoGQL,
       { id, estado }
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
@@ -300,7 +300,7 @@ export class SolicitudPagoService {
    */
   onImprimirSolicitudPagoPDF(solicitudPagoId: number): Observable<string> {
     return this.genericCrudService.onCustomMutation(
-      this.imprimirSolicitudPagoPDFGQL, 
+      this.imprimirSolicitudPagoPDFGQL,
       { solicitudPagoId }
     );
   }
@@ -335,18 +335,18 @@ export class SolicitudPagoService {
 
     // Estado display name
     solicitud.estadoDisplayNameComputed = this.getEstadoDisplayName(solicitud.estado);
-    
+
     // Estado chip color
     solicitud.estadoChipColorComputed = this.getEstadoChipColor(solicitud.estado);
-    
+
     // Fechas formateadas
     solicitud.fechaSolicitudFormattedComputed = dateToString(solicitud.fechaSolicitud);
-    
+
     solicitud.fechaPagoPropuestaFormattedComputed = dateToString(solicitud.fechaPagoPropuesta);
-    
+
     // Monto formateado
     solicitud.montoTotalFormattedComputed = solicitud.montoTotal;
-    
+
     // Cantidad de notas
     solicitud.cantidadNotasComputed = solicitud.notasRecepcion?.length || 0;
 

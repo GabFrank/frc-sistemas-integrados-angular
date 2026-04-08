@@ -20,6 +20,8 @@ import { RechazarPreGastoGQL } from '../graphql/rechazarPreGasto';
 import { SavePreGastoGQL } from '../graphql/savePreGasto';
 import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
 import { ImprimirPreGastoGQL } from '../graphql/imprimirPreGasto';
+import { EnviarPreGastoATesoreriaGQL } from '../graphql/enviarPreGastoATesoreria';
+import { ImprimirSolicitudPagoGQL } from '../graphql/imprimirSolicitudPago';
 import { AllTipoGastosGQL } from '../graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from '../graphql/deleleTipoGasto';
 import { FilterPreGastosGQL } from '../graphql/filterPreGastos';
@@ -60,7 +62,9 @@ export class GastoService {
     private tipoGastoPorId: TipoGastoPorIdGQL,
     private deleteTipoGasto: DeleteTipoGastoGQL,
     private tipoGastoSearch: TipoGastoSearchGQL,
-    private filterTipoGastosGQL: FilterTipoGastosGQL
+    private filterTipoGastosGQL: FilterTipoGastosGQL,
+    private enviarATesoreriaGQL: EnviarPreGastoATesoreriaGQL,
+    private imprimirSolicitudPagoGQL: ImprimirSolicitudPagoGQL
   ) { }
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
     let gastoAux = gasto;
@@ -144,6 +148,14 @@ export class GastoService {
 
   preGastoImprimir(id: number, sucId?: number): Observable<string> {
     return this.genericService.onCustomQuery(this.imprimirPreGastoGQL, { id, sucId });
+  }
+
+  preGastoEnviarATesoreria(id: number, sucId: number, usuarioId: number): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.enviarATesoreriaGQL, { id, sucId, usuarioId });
+  }
+
+  imprimirSolicitudPago(id: number): Observable<string> {
+    return this.genericService.onCustomMutation(this.imprimirSolicitudPagoGQL, { id });
   }
 
   tipoGastoOnGetAll(servidor = true): Observable<any> {

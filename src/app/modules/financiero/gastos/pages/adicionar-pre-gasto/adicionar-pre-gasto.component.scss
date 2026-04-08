@@ -222,6 +222,24 @@
   color: #fff;
 }
 
+.vencimiento-notificacion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 0.95em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
 .bien-financiero-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

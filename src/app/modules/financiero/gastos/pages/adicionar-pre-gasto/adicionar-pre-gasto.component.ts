@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { GastoService } from '../../service/gasto.service';
 import { PreGastoInput } from '../../models/pre-gasto.model';
 import { TipoGasto } from '../../models/tipo-gasto.model';
@@ -15,43 +15,21 @@ import { EnteService } from '../../../../activos/ente/service/ente.service';
 import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
 import { Ente } from '../../../../activos/ente/models/ente.model';
 import { of, Observable } from 'rxjs';
-import { switchMap, catchError } from 'rxjs/operators';
+import { switchMap, catchError, map } from 'rxjs/operators';
 import { MuebleService } from '../../../../activos/muebles/service/mueble.service';
 import { InmuebleService } from '../../../../activos/inmueble/service/inmueble.service';
 import { VehiculoService } from '../../../../activos/vehiculos/vehiculo/service/vehiculo.service';
 import { EnteSearchPageGQL } from '../../../../activos/ente/graphql/enteSearchPage';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { TabService } from '../../../../../layouts/tab/tab.service';
-import { BienesDashboardComponent } from '../../../../activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
+import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
+import { DetalleBienFinanciero } from '../../models/detalle-bien-financiero.model';
 
-export interface SolicitudGastoData {
-  enteId?: number;
-  descripcion?: string;
-  monto?: number;
-  sucursalId?: number;
-  monedaSimbolo?: string;
-  tipoBien?: string;
-  bienDescripcion?: string;
-  proveedor?: string;
-  cuotasTotales?: number;
-  cuotasPagadas?: number;
-  cuotasFaltantes?: number;
-  montoTotal?: number;
-  montoYaPagado?: number;
-  montoPendiente?: number;
-  moneda?: string;
-  diaVencimiento?: number;
-  diasParaVencer?: number;
-  estadoCuota?: string;
-  situacionPago?: string;
-  sucursalNombre?: string;
-  referenciaId?: number;
-  tipoGastoId?: number;
-}
+
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -106,6 +84,8 @@ export class AdicionarPreGastoComponent implements OnInit {
   data: SolicitudGastoData = {};
   idPreGastoGuardado: number | null = null;
   sucursalIdPreGastoGuardado: number | null = null;
+  diasParaVencer: number | null = null;
+  notificacionVencimiento: string | null = null;
 
   formasPago = [
     { valor: 'EFECTIVO', etiqueta: 'Efectivo', icono: 'payments' },
@@ -122,7 +102,6 @@ export class AdicionarPreGastoComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    // Intentar recuperar data del tab actual si existe
     const tabData = this.tabService.currentTab()?.tabData?.data;
     if (tabData) {
       this.data = tabData;
@@ -146,7 +125,7 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.beneficiarioControl.setValue(this.data.proveedor);
       }
     } else {
-        this.pasoActual = 1;
+      this.pasoActual = 1;
     }
 
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
@@ -215,11 +194,30 @@ export class AdicionarPreGastoComponent implements OnInit {
   guardado = false;
 
   formularioValido(): boolean {
-    return this.tipoGastoControl.valid
+    const isValid = this.tipoGastoControl.valid
       && this.descripcionControl.valid
       && this.monedaControl.valid
       && this.montoControl.valid
       && this.sucursalControl.valid;
+
+    if (!isValid) return false;
+
+    // Validación de Saldo Pendiente (Punto 2)
+    if (this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
+      if (typeof this.montoControl.value === 'number' && this.montoControl.value > this.data.montoPendiente) {
+        return false;
+      }
+    }
+
+    // Validación de Consistencia de Moneda (Punto 2)
+    if (this.data?.monedaSimbolo && this.monedaControl.value) {
+      const monedaSeleccionada = this.listaMonedas.find(m => m.id === this.monedaControl.value);
+      if (monedaSeleccionada && monedaSeleccionada.simbolo !== this.data.monedaSimbolo) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   guardar(): void {
@@ -431,7 +429,10 @@ export class AdicionarPreGastoComponent implements OnInit {
         if (this.data.cuotasTotales != null && this.data.cuotasPagadas != null) {
           this.data.cuotasFaltantes = Math.max(this.data.cuotasTotales - this.data.cuotasPagadas, 0);
         }
-        if (detalle.diaVencimiento != null) this.data.diaVencimiento = Number(detalle.diaVencimiento) || 0;
+        if (detalle.diaVencimiento != null) {
+          this.data.diaVencimiento = Number(detalle.diaVencimiento) || 0;
+          this.calcularVencimiento(this.data.diaVencimiento);
+        }
         if (detalle.moneda?.simbolo) {
           this.data.moneda = detalle.moneda.simbolo;
           this.data.monedaSimbolo = detalle.moneda.simbolo;
@@ -442,14 +443,12 @@ export class AdicionarPreGastoComponent implements OnInit {
 
         const cuotasTotales = Number(detalle.cantidadCuotas) || 0;
         const montoTotal = Number(detalle.montoTotal) || 0;
-        if (cuotasTotales > 0 && montoTotal > 0) {
+        if (cuotasTotales > 0 && montoTotal > 0 && !this.montoControl.value) {
           const montoCuota = Math.round(montoTotal / cuotasTotales);
-          if (!this.montoControl.value) {
-            this.montoControl.setValue(montoCuota);
-          }
+          this.montoControl.setValue(montoCuota);
         }
 
-        const tipoLabel = (ente.tipoEnte || '').charAt(0) + (ente.tipoEnte || '').slice(1).toLowerCase();
+        const tipoLabel = (ente.tipoEnte || '').charAt(0).toUpperCase() + (ente.tipoEnte || '').slice(1).toLowerCase();
         if (!this.descripcionControl.value) {
           this.descripcionControl.setValue(`Pago de ${tipoLabel} - ${descripcionBien}`);
         }
@@ -458,21 +457,50 @@ export class AdicionarPreGastoComponent implements OnInit {
     });
   }
 
-  private obtenerDetalleBien(ente: Ente): Observable<any> {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return of({});
+  private calcularVencimiento(diaVencimiento: number): void {
+    if (!diaVencimiento) return;
+    const hoy = new Date();
+    const diaActual = hoy.getDate();
+    let dias = diaVencimiento - diaActual;
+
+    this.diasParaVencer = dias;
+    if (dias < 0) {
+      this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
+      this.data.estadoCuota = 'VENCIDO';
+    } else if (dias <= 10) {
+      this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
+      this.data.estadoCuota = 'POR VENCER';
+    } else {
+      this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+      this.data.estadoCuota = 'AL DIA';
+    }
+    this.cdr.markForCheck();
+  }
+
+  private obtenerDetalleBien(ente: Ente): Observable<DetalleBienFinanciero> {
+    if (!ente?.referenciaId || !ente?.tipoEnte) return of({} as DetalleBienFinanciero);
     switch (ente.tipoEnte) {
       case TipoEnte.MUEBLE:
-        return this.muebleService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
+        return this.muebleService.onBuscarPorId(ente.referenciaId).pipe(
+          map((res: any) => res as DetalleBienFinanciero),
+          catchError(() => of({} as DetalleBienFinanciero))
+        );
       case TipoEnte.INMUEBLE:
-        return this.inmuebleService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
+        return this.inmuebleService.onBuscarPorId(ente.referenciaId).pipe(
+          map((res: any) => res as DetalleBienFinanciero),
+          catchError(() => of({} as DetalleBienFinanciero))
+        );
       case TipoEnte.VEHICULO:
-        return this.vehiculoService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
+        return this.vehiculoService.onBuscarPorId(ente.referenciaId).pipe(
+          map((res: any) => res as DetalleBienFinanciero),
+          catchError(() => of({} as DetalleBienFinanciero))
+        );
       default:
-        return of({});
+        return of({} as DetalleBienFinanciero);
     }
   }
 
-  private resolverDescripcionBien(ente: Ente, detalle: any): string {
+  private resolverDescripcionBien(ente: Ente, detalle: DetalleBienFinanciero): string {
     if (ente?.tipoEnte === TipoEnte.MUEBLE) {
       return detalle?.descripcion || detalle?.identificador || `Mueble #${ente?.referenciaId || ''}`;
     }

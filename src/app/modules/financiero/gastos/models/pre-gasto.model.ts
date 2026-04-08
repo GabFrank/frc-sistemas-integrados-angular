@@ -27,6 +27,7 @@ export class PreGasto {
   montoGastado: number;
   saldoDevolver: number;
   usuario: Usuario;
+  solicitudPagoId: number;
   creadoEn: Date;
 }
 

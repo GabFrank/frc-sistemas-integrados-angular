@@ -4,6 +4,7 @@ import { Tab } from '../../../../../layouts/tab/tab.model';
 import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
 import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
+import { MainService } from '../../../../../main.service';
 import { GastoService } from '../../service/gasto.service';
 import { PreGasto } from '../../models/pre-gasto.model';
 import { AutorizarGastoDialogComponent } from '../../dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
@@ -13,6 +14,8 @@ import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
+import { ReporteService } from '../../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 
 @UntilDestroy()
 @Component({
@@ -26,23 +29,23 @@ export class ListPreGastosComponent implements OnInit {
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
   private tabService = inject(TabService);
+  private mainService = inject(MainService);
+  private reporteService = inject(ReporteService);
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
 
-  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'RECHAZADO', null];
-  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Rechazados', 'Todos'];
+  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'RECHAZADO', null];
+  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Rechazados', 'Todos'];
 
   columnasVisibles = [
     'id', 'funcionario', 'tipoGasto', 'descripcion',
     'monto', 'moneda', 'sucursal', 'estado', 'fecha', 'acciones'
   ];
 
-  // Tab activa
   private tabActivaSubject = new BehaviorSubject<number>(4); // Todos por defecto
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
-  // Paginación
   private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
   public pagination$ = this.paginationSubject.asObservable();
 
@@ -55,8 +58,6 @@ export class ListPreGastosComponent implements OnInit {
 
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
-
-  // Filtro de fechas con FormGroup para mat-date-range-picker
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(new Date()),
     fin: new FormControl<Date | null>(new Date()),
@@ -107,7 +108,6 @@ export class ListPreGastosComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    // Initial fetch handled by subjects
   }
 
   cambiarTab(indice: number): void {
@@ -141,6 +141,62 @@ export class ListPreGastosComponent implements OnInit {
       });
   }
 
+  onEnviarATesoreria(preGasto: PreGasto): void {
+    if (!preGasto || !preGasto.id) return;
+
+    this.cargandoSubject.next(true);
+    this.gastoService.preGastoEnviarATesoreria(
+      Number(preGasto.id),
+      Number(preGasto.sucursalId),
+      Number(this.mainService.usuarioActual?.id)
+    ).subscribe({
+      next: (res) => {
+        this.cargandoSubject.next(false);
+        if (res) {
+          this.refetchSubject.next();
+          this.preGastoSeleccionadoSubject.next(res);
+        }
+      },
+      error: (err) => {
+        this.cargandoSubject.next(false);
+        console.error('Error al enviar a tesorería:', err);
+      }
+    });
+  }
+
+  onImprimirSolicitud(solicitudPagoId: number): void {
+    this.cargandoSubject.next(true);
+    this.gastoService.imprimirSolicitudPago(solicitudPagoId).subscribe({
+      next: (res) => {
+        this.cargandoSubject.next(false);
+        if (res) {
+          this.reporteService.onAdd(`Solicitud de Pago ${solicitudPagoId}`, res);
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+        }
+      },
+      error: (err) => {
+        this.cargandoSubject.next(false);
+        console.error('Error al imprimir solicitud:', err);
+      }
+    });
+  }
+
+  // Utilidad para convertir base64 a Blob
+  private b64toBlob(b64Data: string, contentType = '', sliceSize = 512): Blob {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: contentType });
+  }
+
   irAAgregarPreGasto(): void {
     this.tabService.addTab(new Tab(AdicionarPreGastoComponent, "Nuevo Pre-Gasto", null, ListPreGastosComponent));
   }
@@ -172,6 +228,7 @@ export class ListPreGastosComponent implements OnInit {
       'PENDIENTE': '#ffa726',
       'TRAMITE': '#42a5f5',
       'AUTORIZADO': '#66bb6a',
+      'ENVIADO_A_TESORERIA': '#26a69a',
       'RECHAZADO': '#ef5350',
       'COMPLETADO': '#78909c'
     };
@@ -183,6 +240,7 @@ export class ListPreGastosComponent implements OnInit {
       'PENDIENTE': 'hourglass_empty',
       'TRAMITE': 'swap_horiz',
       'AUTORIZADO': 'check_circle',
+      'ENVIADO_A_TESORERIA': 'send',
       'RECHAZADO': 'cancel',
       'COMPLETADO': 'task_alt'
     };
@@ -194,6 +252,7 @@ export class ListPreGastosComponent implements OnInit {
       'PENDIENTE': 'Pendiente',
       'TRAMITE': 'En Trámite',
       'AUTORIZADO': 'Autorizado',
+      'ENVIADO_A_TESORERIA': 'Enviado a Tesorería',
       'RECHAZADO': 'Rechazado',
       'COMPLETADO': 'Completado'
     };

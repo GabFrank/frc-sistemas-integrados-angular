@@ -1,0 +1,24 @@
+export interface SolicitudGastoData {
+  enteId?: number;
+  descripcion?: string;
+  monto?: number;
+  sucursalId?: number;
+  monedaSimbolo?: string;
+  tipoBien?: string;
+  bienDescripcion?: string;
+  proveedor?: string;
+  cuotasTotales?: number;
+  cuotasPagadas?: number;
+  cuotasFaltantes?: number;
+  montoTotal?: number;
+  montoYaPagado?: number;
+  montoPendiente?: number;
+  moneda?: string;
+  diaVencimiento?: number;
+  diasParaVencer?: number;
+  estadoCuota?: string;
+  situacionPago?: string;
+  sucursalNombre?: string;
+  referenciaId?: number;
+  tipoGastoId?: number;
+}
