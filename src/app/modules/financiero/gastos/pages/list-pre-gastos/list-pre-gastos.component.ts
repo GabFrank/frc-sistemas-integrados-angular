@@ -59,7 +59,8 @@ export class ListPreGastosComponent implements OnInit {
   // Filtro de fechas con FormGroup para mat-date-range-picker
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(new Date()),
-    fin: new FormControl<Date | null>(new Date())
+    fin: new FormControl<Date | null>(new Date()),
+    buscarId: new FormControl<number | null>(null)
   });
 
   public listaFiltrada$: Observable<PreGasto[]> = combineLatest([
@@ -82,6 +83,7 @@ export class ListPreGastosComponent implements OnInit {
       }
 
       return this.gastoService.preGastoFilter(
+        this.fechaFormGroup.controls.buscarId.value,
         estado,
         inicioStr,
         finStr,
@@ -145,6 +147,15 @@ export class ListPreGastosComponent implements OnInit {
 
   onRefrescar(): void {
     this.refetchSubject.next();
+  }
+
+  onLimpiarFiltro(): void {
+    this.fechaFormGroup.reset({
+      inicio: new Date(),
+      fin: new Date(),
+      buscarId: null
+    });
+    this.onRefrescar();
   }
 
   onFiltrarFechas(): void {

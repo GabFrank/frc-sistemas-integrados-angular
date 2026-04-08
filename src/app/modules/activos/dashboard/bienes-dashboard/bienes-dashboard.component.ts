@@ -6,9 +6,6 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListMueblesComponent } from '../../muebles/pages/list-muebles/list-muebles.component';
 import { ListInmueblesComponent } from '../../inmueble/pages/list-inmuebles/list-inmuebles.component';
 import { ListBienesSucursalComponent } from '../../ente/pages/list-bienes-sucursal/list-bienes-sucursal.component';
-import { ListTipoGastosComponent } from '../../../financiero/gastos/pages/list-tipo-gastos/list-tipo-gastos.component';
-import { ListPreGastosComponent } from '../../../financiero/gastos/pages/list-pre-gastos/list-pre-gastos.component';
-import { AdicionarPreGastoComponent } from '../../../financiero/gastos/pages/adicionar-pre-gasto/adicionar-pre-gasto.component';
 
 @Component({
   selector: 'bienes-dashboard',
@@ -51,27 +48,6 @@ export class BienesDashboardComponent implements OnInit {
         icon: 'location_on',
         iconSize: 4,
         expression: false
-      },
-      {
-        nombre: 'Tipos de Gastos',
-        clickEvent: 'list-tipo-gastos',
-        icon: 'payments',
-        iconSize: 4,
-        expression: false
-      },
-      {
-        nombre: 'Solicitudes de Gasto',
-        clickEvent: 'list-pre-gastos',
-        icon: 'request_quote',
-        iconSize: 4,
-        expression: false
-      },
-      {
-        nombre: 'Nuevo Pre-Gasto',
-        clickEvent: 'adicionar-pre-gasto',
-        icon: 'add_shopping_cart',
-        iconSize: 4,
-        expression: false
       }
     )
   }
@@ -87,15 +63,6 @@ export class BienesDashboardComponent implements OnInit {
       case 'list-bienes-sucursal':
         this.onListBienesSucursal()
         break;
-      case 'list-tipo-gastos':
-        this.onListTipoGastos()
-        break;
-      case 'list-pre-gastos':
-        this.onListPreGastos()
-        break;
-      case 'adicionar-pre-gasto':
-        this.onAdicionarPreGasto()
-        break;
     }
   }
 
@@ -109,17 +76,5 @@ export class BienesDashboardComponent implements OnInit {
 
   onListBienesSucursal() {
     this.tabService.addTab(new Tab(ListBienesSucursalComponent, "Bienes por sucursal", null, BienesDashboardComponent))
-  }
-
-  onListTipoGastos() {
-    this.tabService.addTab(new Tab(ListTipoGastosComponent, "Tipos de Gastos", null, BienesDashboardComponent))
-  }
-
-  onListPreGastos() {
-    this.tabService.addTab(new Tab(ListPreGastosComponent, "Solicitudes de Gasto", null, BienesDashboardComponent))
-  }
-
-  onAdicionarPreGasto() {
-    this.tabService.addTab(new Tab(AdicionarPreGastoComponent, "Nuevo Pre-Gasto", null, BienesDashboardComponent))
   }
 }

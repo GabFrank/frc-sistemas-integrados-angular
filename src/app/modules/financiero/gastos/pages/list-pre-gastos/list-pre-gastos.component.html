@@ -1,11 +1,18 @@
-<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
+<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" (resetFiltro)="onLimpiarFiltro()" [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
   <div filtros>
-    <div fxLayout="row" fxLayoutAlign="space-between start" style="width: 100%">
+    <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%" [formGroup]="fechaFormGroup">
+      <!-- ID Search -->
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%">
+          <mat-label>ID</mat-label>
+          <input matInput type="number" formControlName="buscarId" placeholder="ID" (keyup.enter)="onRefrescar()">
+        </mat-form-field>
+      </div>
       <!-- Date Range -->
       <div fxFlex="30%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
-          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+          <mat-date-range-input [rangePicker]="picker" style="width: 100%">
             <input matStartDate formControlName="inicio" placeholder="Inicio" />
             <input matEndDate formControlName="fin" placeholder="Fin" />
           </mat-date-range-input>

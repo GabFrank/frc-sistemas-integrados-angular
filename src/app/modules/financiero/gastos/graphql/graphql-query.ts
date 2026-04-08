@@ -649,6 +649,7 @@ export const preGastosSearchQuery = gql`
 
 export const filterPreGastosQuery = gql`
   query (
+    $id: ID
     $estado: String
     $inicio: String
     $fin: String
@@ -656,6 +657,7 @@ export const filterPreGastosQuery = gql`
     $size: Int
   ) {
     data: filterPreGastos(
+      id: $id
       estado: $estado
       inicio: $inicio
       fin: $fin

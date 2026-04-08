@@ -8,6 +8,7 @@ import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
 import { ListGastosComponent } from "../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component";
+import { GastosDashboardComponent } from "../../../modules/financiero/gastos/pages/gastos-dashboard/gastos-dashboard.component";
 import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
@@ -239,7 +240,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         {
           name: 'Gastos',
           icon: 'money_off',
-          action: 'list-gastos',
+          action: 'gastos-dashboard',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
         {
@@ -606,6 +607,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-gastos":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListGastosComponent, "Gastos");
+        break;
+      case "gastos-dashboard":
+        this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, GastosDashboardComponent, "Principal Gastos");
         break;
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
