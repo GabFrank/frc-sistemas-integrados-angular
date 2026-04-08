@@ -4,6 +4,10 @@ on:
   push:
     branches: [develop, release/*, main, master]
 
+concurrency:
+  group: release-${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   # Job 1: semantic-release creates the GitHub Release (no artifacts yet)
   release:
@@ -28,6 +32,9 @@ jobs:
 
       - name: Install semantic-release plugins
         run: npm install -g semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/exec @semantic-release/github
+
+      - name: Fetch semantic-release git notes
+        run: git fetch origin 'refs/notes/*:refs/notes/*' || true
 
       - name: Run semantic-release
         run: npx semantic-release
