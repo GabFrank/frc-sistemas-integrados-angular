@@ -181,7 +181,6 @@ export class ListPreGastosComponent implements OnInit {
     });
   }
 
-  // Utilidad para convertir base64 a Blob
   private b64toBlob(b64Data: string, contentType = '', sliceSize = 512): Blob {
     const byteCharacters = atob(b64Data);
     const byteArrays = [];
@@ -257,18 +256,6 @@ export class ListPreGastosComponent implements OnInit {
       'COMPLETADO': 'Completado'
     };
     return etiquetas[estado] || estado;
-  }
-
-  private getFechaHoyInicio(): string {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    return this.formatDate(hoy);
-  }
-
-  private getFechaHoyFin(): string {
-    const hoy = new Date();
-    hoy.setHours(23, 59, 59, 999);
-    return this.formatDate(hoy);
   }
 
   private formatDate(d: Date): string {

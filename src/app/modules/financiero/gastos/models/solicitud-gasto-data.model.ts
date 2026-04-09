@@ -21,4 +21,9 @@ export interface SolicitudGastoData {
   sucursalNombre?: string;
   referenciaId?: number;
   tipoGastoId?: number;
+  tipoGastoSugeridoId?: string;
+  porcentajePagado?: number;
+  montoSugerido?: number;
+  proveedorNombre?: string;
+  monedaId?: number;
 }

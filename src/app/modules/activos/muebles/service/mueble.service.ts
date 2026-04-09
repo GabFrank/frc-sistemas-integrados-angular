@@ -21,7 +21,6 @@ import { TipoMuebleSearchPageGQL } from '../graphql/tipoMuebleSearchPage';
 import { SaveFamiliaMuebleGQL } from '../graphql/saveFamiliaMueble';
 import { SaveTipoMuebleGQL } from '../graphql/saveTipoMueble';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { Persona } from '../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../models/familia-mueble.model';
 import { TipoMueble } from '../models/tipo-mueble.model';
 import { MuebleSearchGQL } from '../graphql/muebleSearch';

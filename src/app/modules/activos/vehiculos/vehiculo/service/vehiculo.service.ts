@@ -38,11 +38,6 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../
 import { PageInfo } from '../../../../../app.component';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { VehiculoDialogService } from './vehiculo-dialog-service.service';
-import { EnteService } from '../../../ente/service/ente.service';
-import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
-import { Ente } from '../../../ente/models/ente.model';
-import { EnteInput } from '../../../ente/models/ente-input.model';
-import { EnteSucursalInput } from '../../../ente/models/ente-sucursal-input.model';
 
 export type SearchDialogResponse<T> = T & { adicionar?: boolean };
 
@@ -69,7 +64,6 @@ export class VehiculoService {
   private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
   private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
-  private enteService = inject(EnteService);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
@@ -260,50 +254,9 @@ export class VehiculoService {
   }
 
   onGuardarVehiculoSucursal(input: VehiculoSucursalInput): Observable<VehiculoSucursal> {
-    return this.genericService.onSave(this.saveVehiculoSucursalGQL, input).pipe(
-      switchMap((vehiculoSucursal) =>
-        this.syncEnteSucursalForVehiculo(input).pipe(
-          map(() => vehiculoSucursal)
-        )
-      )
-    );
+    return this.genericService.onSave(this.saveVehiculoSucursalGQL, input);
   }
 
-  private syncEnteSucursalForVehiculo(input: VehiculoSucursalInput): Observable<any> {
-    if (!input?.vehiculoId || !input?.sucursalId) return of(null);
-
-    return this.ensureEnteVehiculo(input.vehiculoId, input.usuarioId).pipe(
-      switchMap((ente) => {
-        if (!ente?.id) return of(null);
-        return this.enteService.getEnteSucursalByEnteAndSucursal(ente.id, input.sucursalId).pipe(
-          switchMap((exists) => {
-            if (exists?.id) return of(exists);
-            const enteSucursalInput: EnteSucursalInput = {
-              enteId: ente.id,
-              sucursalId: input.sucursalId,
-              responsableId: input.responsableId || null,
-              usuarioId: input.usuarioId
-            };
-            return this.enteService.onGuardarEnteSucursal(enteSucursalInput);
-          })
-        );
-      })
-    );
-  }
-
-  private ensureEnteVehiculo(vehiculoId: number, usuarioId?: number): Observable<Ente> {
-    return this.enteService.onGetByReferenciaId(TipoEnte.VEHICULO, vehiculoId).pipe(
-      catchError(() => {
-        const enteInput: EnteInput = {
-          tipoEnte: TipoEnte.VEHICULO,
-          referenciaId: vehiculoId,
-          activo: true,
-          usuarioId
-        };
-        return this.enteService.onGuardar(enteInput);
-      })
-    );
-  }
 
 
   onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<VehiculoSucursal[]> {
@@ -383,37 +336,12 @@ export class VehiculoService {
       true,
       '¿Está seguro que desea eliminar esta asignación?'
     ).pipe(
-      switchMap(res => {
-        if (!res) return of(false);
-        return this.unlinkEnteSucursalForVehiculo(vehiculoSucursal).pipe(
-          map(() => true),
-          catchError(() => of(true))
-        );
-      }),
       tap(res => {
         if (res) this.refrescarSucursal();
       })
     );
   }
 
-  private unlinkEnteSucursalForVehiculo(vehiculoSucursal: VehiculoSucursal): Observable<any> {
-    const vehiculoId = vehiculoSucursal?.vehiculo?.id;
-    const sucursalId = vehiculoSucursal?.sucursal?.id;
-    if (!vehiculoId || !sucursalId) return of(null);
-
-    return this.enteService.onGetByReferenciaId(TipoEnte.VEHICULO, vehiculoId).pipe(
-      switchMap((ente) => {
-        if (!ente?.id) return of(null);
-        return this.enteService.getEnteSucursalByEnteAndSucursal(ente.id, sucursalId).pipe(
-          switchMap((enteSucursal) => {
-            if (!enteSucursal?.id) return of(null);
-            return this.enteService.onEliminarEnteSucursal(enteSucursal.id);
-          })
-        );
-      }),
-      catchError(() => of(null))
-    );
-  }
 
   abrirBuscadorTipoVehiculo(isAdicionar: boolean = false): Observable<SearchDialogResponse<TipoVehiculo> | undefined> {
     const tableData: TableData[] = [

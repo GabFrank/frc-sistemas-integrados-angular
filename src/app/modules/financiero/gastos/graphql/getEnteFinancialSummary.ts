@@ -25,6 +25,8 @@ export class EnteFinancialSummaryGQL extends Query<any> {
         proveedorNombre
         tipoGastoSugeridoId
         situacionPago
+        porcentajePagado
+        montoSugerido
       }
     }
   `;

@@ -54,6 +54,21 @@ export const enteSearchPageQuery = gql`
         referenciaId
         activo
         creadoEn
+        descripcion
+        sucursalesConcatenadas
+        sucursalIds
+        montoTotal
+        montoYaPagado
+        montoPendiente
+        cuotasTotales
+        cuotasPagadas
+        cuotasFaltantes
+        diaVencimiento
+        diasParaVencer
+        estadoCuota
+        situacionPago
+        monedaSimbolo
+        proveedorNombre
       }
     }
   }

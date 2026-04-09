@@ -48,6 +48,8 @@ export interface SolicitudGastoData {
   referenciaId?: number;
   tipoGastoId?: number;
   tipoGastoSugeridoId?: string;
+  porcentajePagado?: number;
+  montoSugerido?: number;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -248,7 +250,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     input.enteId = this.data?.enteId || this.enteSeleccionado?.id;
     input.funcionarioId = this.solicitanteControl.value?.persona?.id;
 
-    // Nuevos campos separados (el backend construirá la descripción completa)
     input.urgencia = this.urgenciaControl.value;
     input.formaPago = this.formaPagoControl.value;
     input.beneficiario = this.beneficiarioControl.value;
@@ -283,13 +284,11 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
   }
 
   porcentajePagado(): number {
-    if (!this.data?.montoTotal || this.data.montoTotal <= 0) return 0;
-    return Math.min(Math.round(((this.data.montoYaPagado || 0) / (this.data.montoTotal || 1)) * 100), 100);
+    return this.data?.porcentajePagado || 0;
   }
 
   montoPorCuota(): number {
-    if (!this.data?.montoTotal || !this.data?.cuotasTotales || this.data.cuotasTotales <= 0) return 0;
-    return Math.round((this.data.montoTotal || 0) / (this.data.cuotasTotales || 1));
+    return this.data?.montoSugerido || 0;
   }
 
   iconoTipoBien(): string {
@@ -371,12 +370,10 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     if (!this.data) this.data = {};
     this.data.enteId = ente.id;
     this.data.tipoBien = tipoStr;
-
-    // Construir una descripción básica basada en el tipo de bien
     const label = tipoStr.charAt(0) + tipoStr.slice(1).toLowerCase();
     this.data.bienDescripcion = `${label} #${ente.id}`;
     this.data.referenciaId = ente.referenciaId;
-    this.pasoActual = 0; // Regresar al paso 0 para mostrar el resumen del bien vinculado
+    this.pasoActual = 0;
   }
 
   actualizarCurrencyOptions(): void {

@@ -12,14 +12,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { EnteSucursalDialogComponent } from '../../dialogs/ente-sucursal-dialog/ente-sucursal-dialog.component';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
 import { combineLatest, forkJoin, Observable, of } from 'rxjs';
-import { catchError, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
+import { filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
-import { MuebleService } from '../../../muebles/service/mueble.service';
-import { InmuebleService } from '../../../inmueble/service/inmueble.service';
-import { VehiculoService } from '../../../vehiculos/vehiculo/service/vehiculo.service';
-import { Mueble } from '../../../muebles/models/mueble.model';
-import { Inmueble } from '../../../inmueble/models/inmueble.model';
-import { Vehiculo } from '../../../vehiculos/vehiculo/models/vehiculo.model';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
 
 interface BienFinancieroRow {
@@ -77,9 +71,6 @@ export class ListBienesSucursalComponent implements OnInit {
   public sucursalService = inject(SucursalService);
   private matDialog = inject(MatDialog);
   private notificationService = inject(NotificacionSnackbarService);
-  private muebleService = inject(MuebleService); // Inyectamos el servicio de muebles
-  private inmuebleService = inject(InmuebleService);
-  private vehiculoService = inject(VehiculoService);
 
   sucursalControl = new FormControl<number | null>(null);
   tipoControl = new FormControl<TipoEnte | null>(null);
@@ -247,192 +238,44 @@ export class ListBienesSucursalComponent implements OnInit {
   }
 
   private armarFila(ente: Ente): Observable<BienFinancieroRow> {
-    return forkJoin({
-      detalle: this.obtenerDetalleBien(ente),
-      sucursalesData: this.obtenerSucursalesData(ente)
-    }).pipe(
-      map(({ detalle, sucursalesData }) => {
-        const cuotasTotales = this.toNumber(detalle.cantidadCuotas);
-        const cuotasPagadas = this.toNumber(detalle.cantidadCuotasPagadas);
-        const cuotasFaltantes = Math.max(cuotasTotales - cuotasPagadas, 0);
-        const montoTotal = this.toNumber(detalle.montoTotal);
-        const montoYaPagado = this.toNumber(detalle.montoYaPagado);
-        const montoPendiente = Math.max(montoTotal - montoYaPagado, 0);
-        const situacionPago = this.normalizarSituacionPago(detalle.situacionPago, montoPendiente, montoTotal, cuotasFaltantes, cuotasTotales);
-        const diaVencimiento = this.toNumber(detalle.diaVencimiento);
-        const diasParaVencer = this.calcularDiasParaVencer(diaVencimiento);
-        const estadoCuota = this.calcularEstadoCuota(cuotasFaltantes, diaVencimiento, diasParaVencer);
-        const moneda = detalle.moneda?.simbolo || 'Gs.';
-        const detalleGastos = [
-          { concepto: 'Monto total comprometido', monto: montoTotal, moneda },
-          { concepto: 'Monto ya pagado', monto: montoYaPagado, moneda },
-          { concepto: 'Monto pendiente', monto: montoPendiente, moneda }
-        ];
+    const cuotasTotales = ente.cuotasTotales || 0;
+    const cuotasPagadas = ente.cuotasPagadas || 0;
+    const cuotasFaltantes = ente.cuotasFaltantes || 0;
+    const montoTotal = ente.montoTotal || 0;
+    const montoYaPagado = ente.montoYaPagado || 0;
+    const montoPendiente = ente.montoPendiente || 0;
+    const moneda = ente.monedaSimbolo || 'Gs.';
+    const estadoCuota = (ente.estadoCuota as any) || 'SIN PLAN';
 
-        return {
-          id: ente.id,
-          tipoEnte: ente.tipoEnte,
-          referenciaId: ente.referenciaId,
-          activo: ente.activo,
-          descripcion: this.resolverDescripcion(ente, detalle),
-          sucursal: sucursalesData.texto,
-          situacionPago,
-          cuotasPagadas,
-          cuotasTotales,
-          cuotasFaltantes,
-          montoTotal,
-          montoYaPagado,
-          montoPendiente,
-          moneda,
-          diaVencimiento,
-          diasParaVencer,
-          estadoCuota,
-          estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
-          proveedor: detalle?.proveedor?.nombre || 'No definido',
-          detalleGastos,
-          sucursalIds: sucursalesData.ids
-        };
-      }),
-      catchError(() => of({
-        id: ente.id,
-        tipoEnte: ente.tipoEnte,
-        referenciaId: ente.referenciaId,
-        activo: ente.activo,
-        descripcion: `Bien #${ente?.referenciaId || ''}`,
-        sucursal: 'Sin sucursal',
-        situacionPago: 'EN PAGO',
-        cuotasPagadas: 0,
-        cuotasTotales: 0,
-        cuotasFaltantes: 0,
-        montoTotal: 0,
-        montoYaPagado: 0,
-        montoPendiente: 0,
-        moneda: 'Gs.',
-        diaVencimiento: 0,
-        diasParaVencer: 0,
-        estadoCuota: 'SIN PLAN' as const,
-        estadoCuotaClass: 'estado-sin-plan',
-        proveedor: 'No definido',
-        detalleGastos: [],
-        sucursalIds: []
-      }))
-    );
+    return of({
+      id: ente.id,
+      tipoEnte: ente.tipoEnte,
+      referenciaId: ente.referenciaId,
+      activo: ente.activo,
+      descripcion: ente.descripcion || `Bien #${ente.referenciaId}`,
+      sucursal: ente.sucursalesConcatenadas || 'Sin sucursal',
+      situacionPago: ente.situacionPago || 'NO DEFINIDO',
+      cuotasPagadas,
+      cuotasTotales,
+      cuotasFaltantes,
+      montoTotal,
+      montoYaPagado,
+      montoPendiente,
+      moneda,
+      diaVencimiento: ente.diaVencimiento || 0,
+      diasParaVencer: ente.diasParaVencer || 0,
+      estadoCuota,
+      estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
+      proveedor: ente.proveedorNombre || 'No definido',
+      detalleGastos: [
+        { concepto: 'Monto total comprometido', monto: montoTotal, moneda },
+        { concepto: 'Monto ya pagado', monto: montoYaPagado, moneda },
+        { concepto: 'Monto pendiente', monto: montoPendiente, moneda }
+      ],
+      sucursalIds: (ente as any).sucursalIds || []
+    });
   }
 
-  private obtenerDetalleBien(ente: Ente): Observable<Mueble | Inmueble | Vehiculo | any> {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return of({});
-    switch (ente.tipoEnte) {
-      case TipoEnte.MUEBLE:
-        return this.muebleService.onBuscarPorId(ente.referenciaId);
-      case TipoEnte.INMUEBLE:
-        return this.inmuebleService.onBuscarPorId(ente.referenciaId);
-      case TipoEnte.VEHICULO:
-        return this.vehiculoService.onBuscarPorId(ente.referenciaId);
-      default:
-        return of({});
-    }
-  }
-
-  private obtenerSucursalesData(ente: Ente): Observable<{ texto: string; ids: number[] }> {
-    const enteId = ente?.id;
-    const referenciaId = ente?.referenciaId;
-    const obsEnteSucursal = enteId
-      ? this.enteService.getEnteSucursalByEnteId(enteId).pipe(catchError(() => of([])))
-      : of([]);
-    const obsVehiculoSucursal = (ente?.tipoEnte === TipoEnte.VEHICULO && referenciaId)
-      ? this.vehiculoService.onBuscarVehiculosSucursalPorVehiculo(referenciaId).pipe(catchError(() => of([])))
-      : of([]);
-
-    return forkJoin({
-      asignacionesEnte: obsEnteSucursal,
-      asignacionesVehiculo: obsVehiculoSucursal
-    }).pipe(
-      map(({ asignacionesEnte, asignacionesVehiculo }: { asignacionesEnte: any[]; asignacionesVehiculo: any[] }) => {
-        const merged = [...(asignacionesEnte || []), ...(asignacionesVehiculo || [])];
-        const uniqueById = new Map<number, string>();
-        merged.forEach((a: any) => {
-          const id = a?.sucursal?.id;
-          const nombre = a?.sucursal?.nombre;
-          if (id && nombre && !uniqueById.has(id)) uniqueById.set(id, nombre);
-        });
-        const ids = Array.from(uniqueById.keys());
-        const nombres = Array.from(uniqueById.values());
-        return {
-          texto: nombres.length ? nombres.join(', ') : 'Sin sucursal',
-          ids
-        };
-      })
-    );
-  }
-
-  private resolverDescripcion(ente: Ente, detalle: any): string {
-    if (ente?.tipoEnte === TipoEnte.MUEBLE) {
-      return detalle?.descripcion || detalle?.identificador || `Mueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.INMUEBLE) {
-      return detalle?.nombreAsignado || detalle?.direccion || `Inmueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.VEHICULO) {
-      return detalle?.chapa || detalle?.modelo?.descripcion || `Vehículo #${ente?.referenciaId || ''}`;
-    }
-    return `Bien #${ente?.referenciaId || ''}`;
-  }
-
-  private normalizarSituacionPago(valor?: string, montoPendiente?: number, montoTotal?: number, cuotasFaltantes?: number, cuotasTotales?: number): string {
-    const raw = (valor || '').trim().toUpperCase();
-    if (!raw) return 'NO DEFINIDO';
-
-    if (raw === 'PAGANDO') {
-      const hasMonto = (montoTotal || 0) > 0;
-      const hasCuotas = (cuotasTotales || 0) > 0;
-
-      const isMontoPagado = hasMonto ? (montoPendiente || 0) <= 0 : null;
-      const isCuotasPagadas = hasCuotas ? (cuotasFaltantes || 0) <= 0 : null;
-
-      if (hasMonto && hasCuotas) {
-        if (isMontoPagado === true && isCuotasPagadas === true) return 'PAGADO';
-      } else if (hasMonto) {
-        if (isMontoPagado === true) return 'PAGADO';
-      } else if (hasCuotas) {
-        if (isCuotasPagadas === true) return 'PAGADO';
-      }
-    }
-
-    return raw;
-  }
-
-  private calcularDiasParaVencer(diaVencimiento?: number): number {
-    if (!diaVencimiento || diaVencimiento < 1 || diaVencimiento > 31) return 0;
-    const hoy = new Date();
-    const y = hoy.getFullYear();
-    const m = hoy.getMonth();
-    const maxDiaMes = new Date(y, m + 1, 0).getDate();
-    const diaMesActual = Math.min(diaVencimiento, maxDiaMes);
-    let proximo = new Date(y, m, diaMesActual);
-    if (proximo < hoy) {
-      const maxDiaMesSiguiente = new Date(y, m + 2, 0).getDate();
-      proximo = new Date(y, m + 1, Math.min(diaVencimiento, maxDiaMesSiguiente));
-    }
-    return Math.ceil((proximo.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
-  }
-
-  private calcularEstadoCuota(cuotasFaltantes: number, diaVencimiento: number, diasParaVencer: number): BienFinancieroRow['estadoCuota'] {
-    if (cuotasFaltantes <= 0) return 'PAGADO';
-    if (!diaVencimiento) return 'SIN PLAN';
-    if (diasParaVencer < 0) return 'VENCIDO';
-    if (diasParaVencer <= 5) return 'POR VENCER';
-    return 'AL DIA';
-  }
-
-  private detectarMonedaPrincipal(rows: BienFinancieroRow[]): string {
-    const withSymbol = rows.find(r => !!r.moneda);
-    return withSymbol?.moneda || 'Gs.';
-  }
-
-  private toNumber(value: any): number {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-  }
 
   private crearResumen(rows: BienFinancieroRow[]): DashboardResumen {
     return rows.reduce((acc, row) => {
@@ -454,6 +297,16 @@ export class ListBienesSucursalComponent implements OnInit {
       totalComprometido: 0,
       totalPendiente: 0
     } as DashboardResumen);
+  }
+
+  private detectarMonedaPrincipal(rows: BienFinancieroRow[]): string {
+    if (!rows.length) return 'Gs.';
+    const counts = rows.reduce((acc, row) => {
+      const m = row.moneda || 'Gs.';
+      acc[m] = (acc[m] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
 
   toggleExpand(row: BienFinancieroRow): void {

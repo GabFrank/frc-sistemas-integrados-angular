@@ -5,7 +5,6 @@ import { MuebleService } from '../../service/mueble.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { TipoMueble } from '../../models/tipo-mueble.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
-import { BehaviorSubject } from 'rxjs';
 import { MainService } from '../../../../../main.service';
 
 @UntilDestroy()
@@ -22,7 +21,6 @@ export class AdicionarTipoMuebleDialogComponent implements OnInit {
   tipoForm: FormGroup;
   currentFamilia: FamiliaMueble | null = null;
 
-  // Controles
   familiaMuebleIdControl = new FormControl<number | null>(null, [Validators.required]);
   descripcionControl = new FormControl('', [Validators.required]);
 

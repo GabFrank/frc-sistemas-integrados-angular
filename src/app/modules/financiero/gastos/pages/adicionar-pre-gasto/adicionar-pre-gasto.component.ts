@@ -124,14 +124,7 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
         this.tipoGastosFiltrados = [...this.listaTipoGasto];
 
-        if (this.tieneDatosBien && this.data.tipoBien) {
-          const tipoGastoAutoSeleccion = this.listaTipoGasto.find(
-            tg => tg.tipoNaturaleza === this.mapearTipoNaturaleza(this.data.tipoBien)
-          );
-          if (tipoGastoAutoSeleccion) {
-            this.tipoGastoControl.setValue(tipoGastoAutoSeleccion.id);
-          }
-        } else if (this.data && this.data.tipoGastoId) {
+        if (this.data && this.data.tipoGastoId) {
           const matchedTipo = this.listaTipoGasto.find(tg => tg.id === this.data.tipoGastoId);
           if (matchedTipo) {
             this.tipoGastoControl.setValue(matchedTipo.id);
@@ -193,14 +186,11 @@ export class AdicionarPreGastoComponent implements OnInit {
 
     if (!isValid) return false;
 
-    // Validación de Saldo Pendiente (Punto 2)
     if (this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
       if (typeof this.montoControl.value === 'number' && this.montoControl.value > this.data.montoPendiente) {
         return false;
       }
     }
-
-    // Validación de Consistencia de Moneda (Punto 2)
     if (this.data?.monedaSimbolo && this.monedaControl.value) {
       const monedaSeleccionada = this.listaMonedas.find(m => m.id === this.monedaControl.value);
       if (monedaSeleccionada && monedaSeleccionada.simbolo !== this.data.monedaSimbolo) {
@@ -216,7 +206,7 @@ export class AdicionarPreGastoComponent implements OnInit {
 
     const input = new PreGastoInput();
     input.tipoGastoId = this.tipoGastoControl.value;
-    input.descripcion = this.construirDescripcionCompleta();
+    input.descripcion = this.descripcionControl.value;
     input.monedaId = this.monedaControl.value;
     input.montoSolicitado = this.montoControl.value;
     input.sucursalCajaId = this.sucursalControl.value;
@@ -228,6 +218,11 @@ export class AdicionarPreGastoComponent implements OnInit {
     if (this.solicitanteControl.value) {
       input.funcionarioId = this.solicitanteControl.value.persona?.id;
     }
+
+    input.urgencia = this.urgenciaControl.value;
+    input.formaPago = this.formaPagoControl.value;
+    input.beneficiario = this.beneficiarioControl.value;
+    input.observaciones = this.observacionesControl.value;
 
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
@@ -261,7 +256,6 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.bienSeleccionadoDescripcion = null;
     this.notificacionVencimiento = null;
 
-    // Reset de controles del formulario
     this.tipoGastoControl.reset();
     this.descripcionControl.reset();
     this.monedaControl.reset();
@@ -274,10 +268,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.solicitanteControl.reset();
     this.tipoBienControl.reset();
 
-    // Volver al paso inicial
     this.pasoActual = this.tieneDatosBien ? 0 : 1;
-    
-    // Si reseteamos todo, tieneDatosBien es false, así que pasoActual = 1
     this.pasoActual = 1;
 
     this.cdr.markForCheck();
@@ -307,13 +298,11 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   porcentajePagado(): number {
-    if (!this.data?.montoTotal || this.data.montoTotal <= 0) return 0;
-    return Math.min(Math.round(((this.data.montoYaPagado || 0) / this.data.montoTotal) * 100), 100);
+    return this.data?.porcentajePagado || 0;
   }
 
   montoPorCuota(): number {
-    if (!this.data?.montoTotal || !this.data?.cuotasTotales || this.data.cuotasTotales <= 0) return 0;
-    return Math.round(this.data.montoTotal / this.data.cuotasTotales);
+    return this.data?.montoSugerido || 0;
   }
 
   iconoTipoBien(): string {
@@ -356,40 +345,6 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
-  }
-
-  private construirDescripcionCompleta(): string {
-    let desc = this.descripcionControl.value || '';
-    const urgencia = this.urgenciaControl.value;
-    const formaPago = this.formaPagoControl.value;
-    const observaciones = this.observacionesControl.value;
-    const beneficiario = this.beneficiarioControl.value;
-
-    const extras: string[] = [];
-    if (urgencia && urgencia !== 'NORMAL') {
-      extras.push(`[URGENCIA: ${urgencia}]`);
-    }
-    if (formaPago && formaPago !== 'EFECTIVO') {
-      extras.push(`[FORMA PAGO: ${formaPago}]`);
-    }
-    if (beneficiario) {
-      extras.push(`[BENEFICIARIO: ${beneficiario}]`);
-    }
-    if (observaciones) {
-      extras.push(`[OBS: ${observaciones}]`);
-    }
-    if (extras.length > 0) {
-      desc = desc + ' | ' + extras.join(' ');
-    }
-    return desc;
-  }
-
-  private mapearTipoNaturaleza(tipoBien: string): string {
-    const tipo = (tipoBien || '').toUpperCase();
-    if (tipo === 'MUEBLE') return 'VARIABLE';
-    if (tipo === 'INMUEBLE') return 'CONTINUO';
-    if (tipo === 'VEHICULO') return 'VARIABLE';
-    return '';
   }
 
   abrirBuscadorBien(tipoStr: string): void {
