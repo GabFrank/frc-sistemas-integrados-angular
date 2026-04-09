@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { InmuebleService } from './inmueble.service';
@@ -11,6 +11,8 @@ import { Pais } from '../../../general/pais/pais.model';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
 import { MainService } from '../../../../main.service';
 import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { FormGroup } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'
@@ -44,7 +46,7 @@ export class InmuebleDialogService {
     this.assetCommonDialogService.buscarPersona(callback);
   }
 
-  onBuscarMoneda(callback: (moneda: any) => void): void {
+  onBuscarMoneda(callback: (moneda: Moneda) => void): void {
     this.assetCommonDialogService.buscarMoneda(callback);
   }
 
@@ -56,7 +58,7 @@ export class InmuebleDialogService {
     this.assetCommonDialogService.buscarCiudad(callback);
   }
 
-  onGuardar(form: any, inmueble: Inmueble, dialogRef: any): void {
+  onGuardar(form: FormGroup, inmueble: Inmueble, dialogRef: MatDialogRef<InmuebleFormComponent>): void {
     if (form.valid) {
       const values = form.getRawValue();
       const input: InmuebleInput = {
@@ -75,7 +77,7 @@ export class InmuebleDialogService {
     }
   }
 
-  onCancelar(dialogRef: any): void {
+  onCancelar(dialogRef: MatDialogRef<any>): void {
     dialogRef.close();
   }
 }

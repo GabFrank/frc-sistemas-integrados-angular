@@ -22,7 +22,6 @@
     <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
 
         <mat-tab-group animationDuration="0ms">
-            <!-- PESTAÑA 1: DATOS GENERALES -->
             <mat-tab label="General">
                 <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
                     <div fxLayout="row" fxLayoutGap="20px">
@@ -101,76 +100,78 @@
                         </mat-select>
                     </mat-form-field>
 
-                    <div *ngIf="(situacionPago$ | async) === 'COMODATO'">
-                        <mat-form-field>
-                            <mat-label>Empresa/Persona Arrendadora (Comodato)</mat-label>
-                            <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()"
-                                style="cursor: pointer;">
-                            <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarProveedor()">search</mat-icon>
-                        </mat-form-field>
-                        <button mat-stroked-button color="accent">
-                            <mat-icon>attachment</mat-icon> SUBIR CONTRATO DE COMODATO
-                        </button>
-                    </div>
-
-                    <div *ngIf="(situacionPago$ | async) === 'PAGADO' || (situacionPago$ | async) === 'PAGANDO'"
-                        fxLayout="column" fxLayoutGap="15px"
-                        style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-
-                        <div fxLayout="row" fxLayoutGap="20px">
-                            <mat-form-field fxFlex="70">
-                                <mat-label>Proveedor (Vendedor)</mat-label>
+                    <ng-container *ngIf="situacionPago$ | async as situacion">
+                        <div *ngIf="situacion === 'COMODATO'">
+                            <mat-form-field>
+                                <mat-label>Empresa/Persona Arrendadora (Comodato)</mat-label>
                                 <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()"
                                     style="cursor: pointer;">
-                                <mat-icon matSuffix style="cursor: pointer;"
-                                    (click)="onBuscarProveedor()">search</mat-icon>
+                                <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarProveedor()">search</mat-icon>
                             </mat-form-field>
-
-                            <mat-form-field fxFlex="30">
-                                <mat-label>Moneda</mat-label>
-                                <input matInput [value]="monedaDescripcion" readonly (click)="onBuscarMoneda()"
-                                    style="cursor: pointer;">
-                                <mat-icon matSuffix style="cursor: pointer;"
-                                    (click)="onBuscarMoneda()">search</mat-icon>
-                            </mat-form-field>
+                            <button mat-stroked-button color="accent">
+                                <mat-icon>attachment</mat-icon> SUBIR CONTRATO DE COMODATO
+                            </button>
                         </div>
 
-                        <div *ngIf="(situacionPago$ | async) === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
-                            <mat-form-field fxFlex="50">
-                                <mat-label>Monto Total</mat-label>
-                                <input matInput formControlName="montoTotal" currencyMask
-                                    [options]="currencyMask.currencyOptionsGuarani">
-                            </mat-form-field>
-                            <mat-form-field fxFlex="50">
-                                <mat-label>Monto ya Pagado</mat-label>
-                                <input matInput formControlName="montoYaPagado" currencyMask
-                                    [options]="currencyMask.currencyOptionsGuarani">
-                            </mat-form-field>
-                        </div>
+                        <div *ngIf="situacion === 'PAGADO' || situacion === 'PAGANDO'"
+                            fxLayout="column" fxLayoutGap="15px"
+                            style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
 
-                        <div *ngIf="(situacionPago$ | async) === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
-                            <mat-form-field fxFlex="33">
-                                <mat-label>Cuotas pendientes</mat-label>
-                                <input matInput type="number" formControlName="cantidadCuotas">
-                            </mat-form-field>
-                            <mat-form-field fxFlex="33">
-                                <mat-label>Cuotas ya pagadas</mat-label>
-                                <input matInput type="number" formControlName="cantidadCuotasPagadas">
-                            </mat-form-field>
-                            <mat-form-field fxFlex="33">
-                                <mat-label>Día Vencimiento</mat-label>
-                                <input matInput type="number" formControlName="diaVencimiento" min="1" max="31">
-                            </mat-form-field>
-                        </div>
+                            <div fxLayout="row" fxLayoutGap="20px">
+                                <mat-form-field fxFlex="70">
+                                    <mat-label>Proveedor (Vendedor)</mat-label>
+                                    <input matInput [value]="proveedorDescripcion" readonly (click)="onBuscarProveedor()"
+                                        style="cursor: pointer;">
+                                    <mat-icon matSuffix style="cursor: pointer;"
+                                        (click)="onBuscarProveedor()">search</mat-icon>
+                                </mat-form-field>
 
-                        <div *ngIf="(situacionPago$ | async) === 'PAGADO'">
-                            <mat-form-field fxFlex="100">
-                                <mat-label>Monto Pagado</mat-label>
-                                <input matInput formControlName="montoTotal" currencyMask
-                                    [options]="currencyMask.currencyOptionsGuarani">
-                            </mat-form-field>
+                                <mat-form-field fxFlex="30">
+                                    <mat-label>Moneda</mat-label>
+                                    <input matInput [value]="monedaDescripcion" readonly (click)="onBuscarMoneda()"
+                                        style="cursor: pointer;">
+                                    <mat-icon matSuffix style="cursor: pointer;"
+                                        (click)="onBuscarMoneda()">search</mat-icon>
+                                </mat-form-field>
+                            </div>
+
+                            <div *ngIf="situacion === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                                <mat-form-field fxFlex="50">
+                                    <mat-label>Monto Total</mat-label>
+                                    <input matInput formControlName="montoTotal" currencyMask
+                                        [options]="currencyMask.currencyOptionsGuarani">
+                                </mat-form-field>
+                                <mat-form-field fxFlex="50">
+                                    <mat-label>Monto ya Pagado</mat-label>
+                                    <input matInput formControlName="montoYaPagado" currencyMask
+                                        [options]="currencyMask.currencyOptionsGuarani">
+                                </mat-form-field>
+                            </div>
+
+                            <div *ngIf="situacion === 'PAGANDO'" fxLayout="row" fxLayoutGap="20px">
+                                <mat-form-field fxFlex="33">
+                                    <mat-label>Cuotas totales</mat-label>
+                                    <input matInput type="number" formControlName="cantidadCuotas">
+                                </mat-form-field>
+                                <mat-form-field fxFlex="33">
+                                    <mat-label>Cuotas ya pagadas</mat-label>
+                                    <input matInput type="number" formControlName="cantidadCuotasPagadas">
+                                </mat-form-field>
+                                <mat-form-field fxFlex="33">
+                                    <mat-label>Día Vencimiento</mat-label>
+                                    <input matInput type="number" formControlName="diaVencimiento" min="1" max="31">
+                                </mat-form-field>
+                            </div>
+
+                            <div *ngIf="situacion === 'PAGADO'">
+                                <mat-form-field fxFlex="100">
+                                    <mat-label>Monto Pagado</mat-label>
+                                    <input matInput formControlName="montoTotal" currencyMask
+                                        [options]="currencyMask.currencyOptionsGuarani">
+                                </mat-form-field>
+                            </div>
                         </div>
-                    </div>
+                    </ng-container>
                 </div>
             </mat-tab>
 

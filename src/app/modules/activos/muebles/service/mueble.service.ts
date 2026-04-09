@@ -23,7 +23,8 @@ import { SaveTipoMuebleGQL } from '../graphql/saveTipoMueble';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { FamiliaMueble } from '../models/familia-mueble.model';
 import { TipoMueble } from '../models/tipo-mueble.model';
-import { MuebleSearchGQL } from '../graphql/muebleSearch';
+import { FamiliaMuebleInput } from '../models/familia-mueble-input.model';
+import { TipoMuebleInput } from '../models/tipo-mueble-input.model';
 
 @Injectable({
   providedIn: 'root'
@@ -34,7 +35,6 @@ export class MuebleService {
   private saveMuebleGQL = inject(SaveMuebleGQL);
   private deleteMuebleGQL = inject(DeleteMuebleGQL);
   private familiaByIdGQL = inject(FamiliaMuebleByIdGQL);
-  private muebleSearchGQL = inject(MuebleSearchGQL);
   private muebleSearchPageGQL = inject(MuebleSearchPageGQL);
   private familiaSearchGQL = inject(FamiliaMuebleSearchGQL);
   private tipoMuebleSearchGQL = inject(TipoMuebleSearchGQL);
@@ -128,7 +128,7 @@ export class MuebleService {
     );
   }
 
-  abrirBuscadorFamilia(): Observable<any> {
+  abrirBuscadorFamilia(): Observable<FamiliaMueble | { adicionar: boolean } | undefined> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'descripcion', nombre: 'Descripción' }
@@ -150,7 +150,7 @@ export class MuebleService {
     }).afterClosed();
   }
 
-  abrirBuscadorTipo(): Observable<any> {
+  abrirBuscadorTipo(): Observable<TipoMueble | { adicionar: boolean } | undefined> {
     const tableData: TableData[] = [
       { id: 'id', nombre: 'ID', width: '10%' },
       { id: 'descripcion', nombre: 'Descripción' }
@@ -178,11 +178,11 @@ export class MuebleService {
     }).afterClosed();
   }
 
-  onGuardarFamilia(input: any): Observable<FamiliaMueble> {
+  onGuardarFamilia(input: FamiliaMuebleInput): Observable<FamiliaMueble> {
     return this.genericService.onSave(this.saveFamiliaGQL, input);
   }
 
-  onGuardarTipo(input: any): Observable<TipoMueble> {
+  onGuardarTipo(input: TipoMuebleInput): Observable<TipoMueble> {
     return this.genericService.onSave(this.saveTipoGQL, input);
   }
 

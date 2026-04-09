@@ -7,12 +7,8 @@ import { EnteSucursalInput } from '../../models/ente-sucursal-input.model';
 import { EnteService } from '../../service/ente.service';
 import { Ente } from '../../models/ente.model';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
-import { VehiculoSearchPageGQL } from '../../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
-import { MuebleSearchPageGQL } from '../../../muebles/graphql/muebleSearchPage';
-import { InmuebleSearchPageGQL } from '../../../inmueble/graphql/inmuebleSearchPage';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { MainService } from '../../../../../main.service';
-import { FuncionarioSearchGQL } from '../../../../personas/funcionarios/graphql/funcionarioSearch';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 
@@ -33,12 +29,6 @@ export class EnteSucursalDialogComponent implements OnInit {
     private mainService = inject(MainService);
     private dialog = inject(MatDialog);
     private cdr = inject(ChangeDetectorRef);
-
-    // GQLs for specialized searches
-    private vehiculoSearchGQL = inject(VehiculoSearchPageGQL);
-    private muebleSearchGQL = inject(MuebleSearchPageGQL);
-    private inmuebleSearchGQL = inject(InmuebleSearchPageGQL);
-    private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
 
     form: FormGroup;
     sucursales: Sucursal[] = [];

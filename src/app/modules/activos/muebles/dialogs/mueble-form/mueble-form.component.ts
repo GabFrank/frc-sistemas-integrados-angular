@@ -5,7 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MuebleService } from '../../service/mueble.service';
 import { MuebleDialogService } from '../../service/mueble-dialog-service.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { startWith } from 'rxjs/operators';
+import { shareReplay, startWith } from 'rxjs/operators';
 import { Mueble } from '../../models/mueble.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
@@ -29,7 +29,8 @@ export class MuebleFormComponent implements OnInit {
 
   situacionPagoControl = this.fb.control('PAGADO');
   situacionPago$ = this.situacionPagoControl.valueChanges.pipe(
-    startWith(this.situacionPagoControl.value)
+    startWith(this.situacionPagoControl.value),
+    shareReplay(1)
   );
 
   consumeEnergiaControl = this.fb.control(false);

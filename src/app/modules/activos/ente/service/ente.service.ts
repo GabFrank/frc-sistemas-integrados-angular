@@ -24,6 +24,9 @@ import { InmuebleSearchPageGQL } from '../../inmueble/graphql/inmuebleSearchPage
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
+import { Mueble } from '../../muebles/models/mueble.model';
+import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
+import { Inmueble } from '../../inmueble/models/inmueble.model';
 
 @Injectable({
   providedIn: 'root'
@@ -135,7 +138,7 @@ export class EnteService {
   }
 
   abrirBuscadorEnte(tipo: TipoEnte): Observable<Ente | undefined> {
-    let query: any;
+    let query: VehiculoSearchPageGQL | MuebleSearchPageGQL | InmuebleSearchPageGQL | undefined;
     let tableData: TableData[] = [];
     let titulo = '';
 
@@ -187,9 +190,9 @@ export class EnteService {
       disableClose: false,
       autoFocus: false
     }).afterClosed().pipe(
-      switchMap((res: any) => {
+      switchMap((res: Vehiculo | Mueble | Inmueble | undefined) => {
         if (res) {
-          return this.onGetByReferenciaId(tipo, res.id).pipe(
+          return this.onGetByReferenciaId(tipo, res.id!).pipe(
             switchMap(ente => {
               if (ente) {
                 return of(ente);

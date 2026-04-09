@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { MuebleService } from './mueble.service';
@@ -11,6 +11,8 @@ import { FamiliaMueble } from '../models/familia-mueble.model';
 import { TipoMueble } from '../models/tipo-mueble.model';
 import { MainService } from '../../../../main.service';
 import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { FormGroup } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'
@@ -41,15 +43,15 @@ export class MuebleDialogService {
   }
 
   onBuscarFamilia(callback: (familia: FamiliaMueble) => void): void {
-    this.muebleService.abrirBuscadorFamilia().subscribe((res: any) => {
+    this.muebleService.abrirBuscadorFamilia().subscribe((res) => {
       if (res) {
-        if (res.adicionar) {
+        if ('adicionar' in res && res.adicionar) {
           this.muebleService.abrirAdicionarFamilia().subscribe(nuevaFamilia => {
             if (nuevaFamilia) {
               callback(nuevaFamilia);
             }
           });
-        } else {
+        } else if (!('adicionar' in res)) {
           callback(res);
         }
       }
@@ -57,15 +59,15 @@ export class MuebleDialogService {
   }
 
   onBuscarTipo(familiaId: number | undefined, callback: (tipo: TipoMueble) => void): void {
-    this.muebleService.abrirBuscadorTipo().subscribe((res: any) => {
+    this.muebleService.abrirBuscadorTipo().subscribe((res) => {
       if (res) {
-        if (res.adicionar) {
+        if ('adicionar' in res && res.adicionar) {
           this.muebleService.abrirAdicionarTipo(familiaId).subscribe(nuevoTipo => {
             if (nuevoTipo) {
               callback(nuevoTipo);
             }
           });
-        } else {
+        } else if (!('adicionar' in res)) {
           callback(res);
         }
       }
@@ -76,11 +78,11 @@ export class MuebleDialogService {
     this.assetCommonDialogService.buscarPersona(callback);
   }
 
-  onBuscarMoneda(callback: (moneda: any) => void): void {
+  onBuscarMoneda(callback: (moneda: Moneda) => void): void {
     this.assetCommonDialogService.buscarMoneda(callback);
   }
 
-  onGuardar(form: any, mueble: Mueble, dialogRef: any): void {
+  onGuardar(form: FormGroup, mueble: Mueble, dialogRef: MatDialogRef<MuebleFormComponent>): void {
     if (form.valid) {
       const values = form.getRawValue();
       const input: MuebleInput = {
@@ -99,7 +101,7 @@ export class MuebleDialogService {
     }
   }
 
-  onCancelar(dialogRef: any): void {
+  onCancelar(dialogRef: MatDialogRef<any>): void {
     dialogRef.close();
   }
 }
