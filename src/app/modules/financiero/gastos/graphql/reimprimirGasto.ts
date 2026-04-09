@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { Gasto } from '../models/gastos.model';
-import { gastoQuery, reimprimirQuery } from './graphql-query';
+import { reimprimirQuery } from './graphql-query';
 
 export interface Response {
   data: boolean;

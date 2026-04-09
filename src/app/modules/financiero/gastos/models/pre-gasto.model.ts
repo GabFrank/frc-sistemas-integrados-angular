@@ -46,4 +46,8 @@ export class PreGastoInput {
   motivoRechazo: string;
   montoRetirado: number;
   usuarioId: number;
+  urgencia: string;
+  formaPago: string;
+  beneficiario: string;
+  observaciones: string;
 }

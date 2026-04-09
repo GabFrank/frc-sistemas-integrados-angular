@@ -5,17 +5,12 @@ import { ConfiguracionService } from '../../../../shared/services/configuracion.
 import { PageInfo } from '../../../../app.component';
 import { Gasto } from '../models/gastos.model';
 import { PreGasto } from '../models/pre-gasto.model';
-import { DeleteGastoGQL } from '../graphql/deleleGasto';
 import { FilterGastosGQL } from '../graphql/filterGastos';
 import { GastoPorCajaIdGQL } from '../graphql/gastoPorCajaId';
-import { GastoPorIdGQL } from '../graphql/gastoPorId';
-import { GastosPorFechaGQL } from '../graphql/gastosPorFecha';
 import { ReimprimirGastoGQL } from '../graphql/reimprimirGasto';
 import { SaveGastoGQL } from '../graphql/saveGasto';
 import { SaveVueltoGastoGQL } from '../graphql/saveVuelto';
 import { AutorizarPreGastoGQL } from '../graphql/autorizarPreGasto';
-import { PreGastoPorIdGQL } from '../graphql/preGastoPorId';
-import { PreGastosGQL } from '../graphql/preGastos';
 import { RechazarPreGastoGQL } from '../graphql/rechazarPreGasto';
 import { SavePreGastoGQL } from '../graphql/savePreGasto';
 import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
@@ -25,9 +20,7 @@ import { ImprimirSolicitudPagoGQL } from '../graphql/imprimirSolicitudPago';
 import { AllTipoGastosGQL } from '../graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from '../graphql/deleleTipoGasto';
 import { FilterPreGastosGQL } from '../graphql/filterPreGastos';
-import { RootTipoGastosGQL } from '../graphql/rootTipoGasto';
 import { SaveTipoGastoGQL } from '../graphql/saveTipoGasto';
-import { TipoGastoPorIdGQL } from '../graphql/tipoGastoPorId';
 import { TipoGastoSearchGQL } from '../graphql/tipoGastosSearch';
 import { FilterTipoGastosGQL } from '../graphql/filterTipoGastos';
 import { TipoGasto } from '../models/tipo-gasto.model';
@@ -40,16 +33,11 @@ export class GastoService {
   constructor(
     private genericService: GenericCrudService,
     private configService: ConfiguracionService,
-    private gastosPorFecha: GastosPorFechaGQL,
     private saveGasto: SaveGastoGQL,
-    private gastoPorId: GastoPorIdGQL,
-    private deleteGasto: DeleteGastoGQL,
     private gastoPorCajaId: GastoPorCajaIdGQL,
     private reimprimirGasto: ReimprimirGastoGQL,
     private saveVuelto: SaveVueltoGastoGQL,
     private filterGasto: FilterGastosGQL,
-    private getPreGastos: PreGastosGQL,
-    private preGastoPorId: PreGastoPorIdGQL,
     private onSavePreGasto: SavePreGastoGQL,
     private autorizarGQL: AutorizarPreGastoGQL,
     private rechazarGQL: RechazarPreGastoGQL,
@@ -57,15 +45,14 @@ export class GastoService {
     private filterPreGastosGQL: FilterPreGastosGQL,
     private imprimirPreGastoGQL: ImprimirPreGastoGQL,
     private getAllTipoGastos: AllTipoGastosGQL,
-    private getRootTipoGasto: RootTipoGastosGQL,
     private onSaveTipoGasto: SaveTipoGastoGQL,
-    private tipoGastoPorId: TipoGastoPorIdGQL,
     private deleteTipoGasto: DeleteTipoGastoGQL,
     private tipoGastoSearch: TipoGastoSearchGQL,
     private filterTipoGastosGQL: FilterTipoGastosGQL,
     private enviarATesoreriaGQL: EnviarPreGastoATesoreriaGQL,
     private imprimirSolicitudPagoGQL: ImprimirSolicitudPagoGQL
   ) { }
+
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
     let gastoAux = gasto;
     if (!(gasto instanceof Gasto)) {
@@ -73,18 +60,6 @@ export class GastoService {
       Object.assign(gastoAux, gasto);
     }
     return this.genericService.onSave(this.saveGasto, gastoAux.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
-  }
-
-  onGetByDate(inicio?: Date, fin?: Date, servidor = true): Observable<Gasto[]> {
-    return this.genericService.onGetByFecha(this.gastosPorFecha, inicio, fin, servidor);
-  }
-
-  onGetById(id: number, servidor = true): Observable<Gasto> {
-    return this.genericService.onGetById(this.gastoPorId, id, null, null, servidor);
-  }
-
-  onDelete(id: number, servidor = true): Observable<Gasto> {
-    return this.genericService.onDelete(this.deleteGasto, id, null, null, null, servidor);
   }
 
   onGetByCajaId(id: number, servidor = true): Observable<Gasto[]> {
@@ -111,9 +86,6 @@ export class GastoService {
       size
     }, servidor)
   }
-  preGastoListarPorEstado(estado?: string, sucId?: number): Observable<PreGasto[]> {
-    return this.genericService.onCustomQuery(this.getPreGastos, { estado, sucId });
-  }
 
   preGastoFilter(id?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number): Observable<PageInfo<PreGasto>> {
     return this.genericService.onCustomQuery(this.filterPreGastosGQL, {
@@ -124,10 +96,6 @@ export class GastoService {
       page,
       size
     });
-  }
-
-  preGastoObtenerPorId(id: number, sucId?: number): Observable<PreGasto> {
-    return this.genericService.onGetById(this.preGastoPorId, id, null, null, true, { id, sucId });
   }
 
   preGastoGuardar(input: unknown): Observable<PreGasto> {
@@ -162,16 +130,8 @@ export class GastoService {
     return this.genericService.onGetAll(this.getAllTipoGastos, null, null, servidor);
   }
 
-  tipoGastoOnGetRoot(servidor = true): Observable<any> {
-    return this.genericService.onGetAll(this.getRootTipoGasto, null, null, servidor);
-  }
-
   tipoGastoOnSave(input: any, servidor = true): Observable<any> {
     return this.genericService.onSave(this.onSaveTipoGasto, input, null, null, servidor);
-  }
-
-  tipoGastoOnGetById(id: number, servidor = true): Observable<any> {
-    return this.genericService.onGetById(this.tipoGastoPorId, id, null, null, servidor);
   }
 
   tipoGastoOnDelete(id: number, servidor = true): Observable<any> {

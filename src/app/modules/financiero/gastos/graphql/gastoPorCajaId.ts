@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Gasto } from '../models/gastos.model';
-import { gastoQuery, gastosPorCajaIdQuery } from './graphql-query';
+import { gastosPorCajaIdQuery } from './graphql-query';
 
 export interface Response {
   data: Gasto;

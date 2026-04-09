@@ -16,14 +16,11 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../..
 import { UsuariosSearchPaginatedGQL } from '../../../../personas/usuarios/graphql/usuarioSearchPaginated';
 import { EnteService } from '../../../../activos/ente/service/ente.service';
 import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
-import { Ente } from '../../../../activos/ente/models/ente.model';
-import { of, Observable } from 'rxjs';
-import { switchMap, catchError } from 'rxjs/operators';
-import { MuebleService } from '../../../../activos/muebles/service/mueble.service';
-import { InmuebleService } from '../../../../activos/inmueble/service/inmueble.service';
-import { VehiculoService } from '../../../../activos/vehiculos/vehiculo/service/vehiculo.service';
 import { EnteSearchPageGQL } from '../../../../activos/ente/graphql/enteSearchPage';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
+import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
+import { take } from 'rxjs/operators';
+import { Ente } from '../../../../activos/ente/models/ente.model';
 
 export interface SolicitudGastoData {
   enteId?: number;
@@ -31,9 +28,11 @@ export interface SolicitudGastoData {
   monto?: number;
   sucursalId?: number;
   monedaSimbolo?: string;
+  monedaId?: number;
   tipoBien?: string;
   bienDescripcion?: string;
   proveedor?: string;
+  proveedorNombre?: string;
   cuotasTotales?: number;
   cuotasPagadas?: number;
   cuotasFaltantes?: number;
@@ -48,6 +47,7 @@ export interface SolicitudGastoData {
   sucursalNombre?: string;
   referenciaId?: number;
   tipoGastoId?: number;
+  tipoGastoSugeridoId?: string;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -109,10 +109,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL,
     private enteService: EnteService,
-    private muebleService: MuebleService,
-    private inmuebleService: InmuebleService,
-    private vehiculoService: VehiculoService,
-    private enteSearchPageGQL: EnteSearchPageGQL,
+    private enteFinancialSummaryGQL: EnteFinancialSummaryGQL,
     private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: SolicitudGastoData
   ) {
@@ -144,21 +141,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
       if (res != null) {
         this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
         this.tipoGastosFiltrados = [...this.listaTipoGasto];
-
-        if (this.tieneDatosBien && this.data.tipoBien) {
-          const tipoGastoAutoSeleccion = this.listaTipoGasto.find(
-            tg => tg.tipoNaturaleza === this.mapearTipoNaturaleza(this.data.tipoBien)
-          );
-          if (tipoGastoAutoSeleccion) {
-            this.tipoGastoControl.setValue(tipoGastoAutoSeleccion.id);
-          }
-        } else if (this.data && this.data.tipoGastoId) {
-          const matchedTipo = this.listaTipoGasto.find(tg => tg.id === this.data.tipoGastoId);
-          if (matchedTipo) {
-            this.tipoGastoControl.setValue(matchedTipo.id);
-          }
-        }
-
+        this.autoSeleccionarTipoGasto();
         this.cdr.markForCheck();
       }
     });
@@ -201,6 +184,48 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
       }
       this.cdr.markForCheck();
     });
+
+    if (this.data?.enteId) {
+      this.cargarSummaryBackend(this.data.enteId);
+    }
+  }
+
+  private autoSeleccionarTipoGasto(): void {
+    if (this.data?.tipoGastoSugeridoId && this.listaTipoGasto.length > 0) {
+      const match = this.listaTipoGasto.find(tg => tg.tipoNaturaleza === this.data.tipoGastoSugeridoId);
+      if (match) this.tipoGastoControl.setValue(match.id);
+    }
+  }
+
+  private cargarSummaryBackend(enteId: number): void {
+    this.cargandoBien = true;
+    this.cdr.markForCheck();
+    this.enteFinancialSummaryGQL.fetch({ enteId }, { fetchPolicy: 'no-cache' }).pipe(take(1)).subscribe(res => {
+      this.cargandoBien = false;
+      const summary = res.data?.data;
+      if (summary) {
+        if (!this.data) this.data = {};
+        Object.assign(this.data, summary);
+        this.bienSeleccionadoDescripcion = summary.descripcion;
+        this.beneficiarioControl.setValue(summary.proveedorNombre || '');
+        if (summary.monedaId) this.monedaControl.setValue(summary.monedaId);
+        if (summary.cuotasPagadas != null) this.numeroCuotaControl.setValue(summary.cuotasPagadas + 1);
+
+        // Auto-rellenar monto con cuota
+        if (summary.cuotasTotales > 0 && summary.montoTotal > 0) {
+          const montoCuota = Math.round(summary.montoTotal / summary.cuotasTotales);
+          if (!this.montoControl.value) this.montoControl.setValue(montoCuota);
+        }
+
+        // Auto-rellenar descripción
+        if (!this.descripcionControl.value) {
+          this.descripcionControl.setValue(`Pago de Activo - ${summary.descripcion}`);
+        }
+
+        this.autoSeleccionarTipoGasto();
+      }
+      this.cdr.markForCheck();
+    });
   }
 
   formularioValido(): boolean {
@@ -216,23 +241,21 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
 
     const input = new PreGastoInput();
     input.tipoGastoId = this.tipoGastoControl.value;
-    input.descripcion = this.construirDescripcionCompleta();
+    input.descripcion = this.descripcionControl.value;
     input.monedaId = this.monedaControl.value;
     input.montoSolicitado = this.montoControl.value;
     input.sucursalCajaId = this.sucursalControl.value;
-    if (this.data && this.data.enteId) {
-      input.enteId = this.data.enteId;
-    } else if (this.enteSeleccionado) {
-      input.enteId = this.enteSeleccionado.id;
-    }
-    if (this.solicitanteControl.value) {
-      input.funcionarioId = this.solicitanteControl.value.persona?.id;
-    }
+    input.enteId = this.data?.enteId || this.enteSeleccionado?.id;
+    input.funcionarioId = this.solicitanteControl.value?.persona?.id;
+
+    // Nuevos campos separados (el backend construirá la descripción completa)
+    input.urgencia = this.urgenciaControl.value;
+    input.formaPago = this.formaPagoControl.value;
+    input.beneficiario = this.beneficiarioControl.value;
+    input.observaciones = this.observacionesControl.value;
 
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.matDialogRef.close(res);
-      }
+      if (res != null) this.matDialogRef.close(res);
     });
   }
 
@@ -261,12 +284,12 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
 
   porcentajePagado(): number {
     if (!this.data?.montoTotal || this.data.montoTotal <= 0) return 0;
-    return Math.min(Math.round(((this.data.montoYaPagado || 0) / this.data.montoTotal) * 100), 100);
+    return Math.min(Math.round(((this.data.montoYaPagado || 0) / (this.data.montoTotal || 1)) * 100), 100);
   }
 
   montoPorCuota(): number {
     if (!this.data?.montoTotal || !this.data?.cuotasTotales || this.data.cuotasTotales <= 0) return 0;
-    return Math.round(this.data.montoTotal / this.data.cuotasTotales);
+    return Math.round((this.data.montoTotal || 0) / (this.data.cuotasTotales || 1));
   }
 
   iconoTipoBien(): string {
@@ -311,48 +334,13 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     });
   }
 
-  private construirDescripcionCompleta(): string {
-    let desc = this.descripcionControl.value || '';
-    const urgencia = this.urgenciaControl.value;
-    const formaPago = this.formaPagoControl.value;
-    const observaciones = this.observacionesControl.value;
-    const beneficiario = this.beneficiarioControl.value;
-
-    const extras: string[] = [];
-    if (urgencia && urgencia !== 'NORMAL') {
-      extras.push(`[URGENCIA: ${urgencia}]`);
-    }
-    if (formaPago && formaPago !== 'EFECTIVO') {
-      extras.push(`[FORMA PAGO: ${formaPago}]`);
-    }
-    if (beneficiario) {
-      extras.push(`[BENEFICIARIO: ${beneficiario}]`);
-    }
-    if (observaciones) {
-      extras.push(`[OBS: ${observaciones}]`);
-    }
-    if (extras.length > 0) {
-      desc = desc + ' | ' + extras.join(' ');
-    }
-    return desc;
-  }
-
-  private mapearTipoNaturaleza(tipoBien: string): string {
-    const tipo = (tipoBien || '').toUpperCase();
-    if (tipo === 'MUEBLE') return 'VARIABLE';
-    if (tipo === 'INMUEBLE') return 'CONTINUO';
-    if (tipo === 'VEHICULO') return 'VARIABLE';
-    return '';
-  }
-
   abrirBuscadorBien(tipoStr: string): void {
-    const tipo = (tipoStr as TipoEnte);
-    this.enteService.abrirBuscadorEnte(tipo).pipe(untilDestroyed(this)).subscribe(ente => {
+    this.enteService.abrirBuscadorEnte(tipoStr as TipoEnte).pipe(untilDestroyed(this)).subscribe(ente => {
       if (ente) {
         this.enteSeleccionado = ente;
         this.tieneDatosBien = true;
-        this.mapearEnteASolicitudData(ente, tipoStr);
-        this.cargarDetalleBienYBeneficiario(ente);
+        this.cargarSummaryBackend(ente.id);
+        this.pasoActual = 0;
         this.cdr.markForCheck();
       }
     });
@@ -378,97 +366,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  /** Carga el detalle del bien (mueble/inmueble/vehículo) y auto-completa el beneficiario con el proveedor */
-  private cargarDetalleBienYBeneficiario(ente: Ente): void {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return;
-    this.cargandoBien = true;
-    this.cdr.markForCheck();
-
-    this.obtenerDetalleBien(ente).pipe(untilDestroyed(this)).subscribe(detalle => {
-      this.cargandoBien = false;
-      if (detalle) {
-        // Actualizar descripción del bien
-        const descripcionBien = this.resolverDescripcionBien(ente, detalle);
-        this.bienSeleccionadoDescripcion = descripcionBien;
-        if (!this.data) this.data = {};
-        this.data.bienDescripcion = descripcionBien;
-
-        // Auto-completar beneficiario con proveedor
-        const proveedor = detalle?.proveedor?.nombre || '';
-        if (proveedor) {
-          this.beneficiarioControl.setValue(proveedor);
-          this.data.proveedor = proveedor;
-        }
-
-        // Completar datos financieros si existen
-        if (detalle.montoTotal != null) this.data.montoTotal = Number(detalle.montoTotal) || 0;
-        if (detalle.montoYaPagado != null) this.data.montoYaPagado = Number(detalle.montoYaPagado) || 0;
-        if (detalle.montoTotal != null && detalle.montoYaPagado != null) {
-          this.data.montoPendiente = Math.max((Number(detalle.montoTotal) || 0) - (Number(detalle.montoYaPagado) || 0), 0);
-        }
-        if (detalle.cantidadCuotas != null) this.data.cuotasTotales = Number(detalle.cantidadCuotas) || 0;
-        if (detalle.cantidadCuotasPagadas != null) this.data.cuotasPagadas = Number(detalle.cantidadCuotasPagadas) || 0;
-        if (this.data.cuotasTotales != null && this.data.cuotasPagadas != null) {
-          this.data.cuotasFaltantes = Math.max(this.data.cuotasTotales - this.data.cuotasPagadas, 0);
-        }
-        if (detalle.diaVencimiento != null) this.data.diaVencimiento = Number(detalle.diaVencimiento) || 0;
-        if (detalle.moneda?.simbolo) {
-          this.data.moneda = detalle.moneda.simbolo;
-          this.data.monedaSimbolo = detalle.moneda.simbolo;
-          // Auto-seleccionar moneda
-          const monedaMatch = this.listaMonedas.find(m => m.simbolo === detalle.moneda.simbolo);
-          if (monedaMatch) this.monedaControl.setValue(monedaMatch.id);
-        }
-        if (detalle.situacionPago) this.data.situacionPago = detalle.situacionPago;
-
-        // Auto-rellenar monto con cuota si aplica
-        const cuotasTotales = Number(detalle.cantidadCuotas) || 0;
-        const montoTotal = Number(detalle.montoTotal) || 0;
-        if (cuotasTotales > 0 && montoTotal > 0) {
-          const montoCuota = Math.round(montoTotal / cuotasTotales);
-          if (!this.montoControl.value) {
-            this.montoControl.setValue(montoCuota);
-          }
-        }
-
-        // Auto-rellenar descripción
-        const tipoLabel = (ente.tipoEnte || '').charAt(0) + (ente.tipoEnte || '').slice(1).toLowerCase();
-        if (!this.descripcionControl.value) {
-          this.descripcionControl.setValue(`Pago de ${tipoLabel} - ${descripcionBien}`);
-        }
-      }
-      this.cdr.markForCheck();
-    });
-  }
-
-  /** Obtiene el detalle del bien (mueble/inmueble/vehículo) - misma lógica que bienes por sucursal */
-  private obtenerDetalleBien(ente: Ente): Observable<any> {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return of({});
-    switch (ente.tipoEnte) {
-      case TipoEnte.MUEBLE:
-        return this.muebleService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
-      case TipoEnte.INMUEBLE:
-        return this.inmuebleService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
-      case TipoEnte.VEHICULO:
-        return this.vehiculoService.onBuscarPorId(ente.referenciaId).pipe(catchError(() => of({})));
-      default:
-        return of({});
-    }
-  }
-
-  /** Resuelve la descripción del bien basado en su tipo - misma lógica que bienes por sucursal */
-  private resolverDescripcionBien(ente: Ente, detalle: any): string {
-    if (ente?.tipoEnte === TipoEnte.MUEBLE) {
-      return detalle?.descripcion || detalle?.identificador || `Mueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.INMUEBLE) {
-      return detalle?.nombreAsignado || detalle?.direccion || `Inmueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.VEHICULO) {
-      return detalle?.chapa || detalle?.modelo?.descripcion || `Vehículo #${ente?.referenciaId || ''}`;
-    }
-    return `Bien #${ente?.referenciaId || ''}`;
-  }
 
   private mapearEnteASolicitudData(ente: Ente, tipoStr: string): void {
     if (!this.data) this.data = {};

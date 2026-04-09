@@ -14,12 +14,7 @@ import { UsuariosSearchPaginatedGQL } from '../../../../personas/usuarios/graphq
 import { EnteService } from '../../../../activos/ente/service/ente.service';
 import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
 import { Ente } from '../../../../activos/ente/models/ente.model';
-import { of, Observable } from 'rxjs';
-import { switchMap, catchError, map } from 'rxjs/operators';
-import { MuebleService } from '../../../../activos/muebles/service/mueble.service';
-import { InmuebleService } from '../../../../activos/inmueble/service/inmueble.service';
-import { VehiculoService } from '../../../../activos/vehiculos/vehiculo/service/vehiculo.service';
-import { EnteSearchPageGQL } from '../../../../activos/ente/graphql/enteSearchPage';
+import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
@@ -27,7 +22,6 @@ import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
-import { DetalleBienFinanciero } from '../../models/detalle-bien-financiero.model';
 
 
 
@@ -45,13 +39,10 @@ export class AdicionarPreGastoComponent implements OnInit {
   private matDialog = inject(MatDialog);
   private usuariosSearchPaginatedGQL = inject(UsuariosSearchPaginatedGQL);
   private enteService = inject(EnteService);
-  private muebleService = inject(MuebleService);
-  private inmuebleService = inject(InmuebleService);
-  private vehiculoService = inject(VehiculoService);
-  private enteSearchPageGQL = inject(EnteSearchPageGQL);
   private cdr = inject(ChangeDetectorRef);
   private tabService = inject(TabService);
   private reporteService = inject(ReporteService);
+  private enteFinancialSummaryGQL = inject(EnteFinancialSummaryGQL);
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
@@ -259,6 +250,39 @@ export class AdicionarPreGastoComponent implements OnInit {
     }
   }
 
+  nuevaSolicitud(): void {
+    this.guardado = false;
+    this.idPreGastoGuardado = null;
+    this.sucursalIdPreGastoGuardado = null;
+    this.pasoActual = 0;
+    this.data = {};
+    this.tieneDatosBien = false;
+    this.enteSeleccionado = null;
+    this.bienSeleccionadoDescripcion = null;
+    this.notificacionVencimiento = null;
+
+    // Reset de controles del formulario
+    this.tipoGastoControl.reset();
+    this.descripcionControl.reset();
+    this.monedaControl.reset();
+    this.montoControl.reset();
+    this.sucursalControl.reset();
+    this.formaPagoControl.setValue('EFECTIVO');
+    this.urgenciaControl.setValue('NORMAL');
+    this.observacionesControl.reset();
+    this.beneficiarioControl.reset();
+    this.solicitanteControl.reset();
+    this.tipoBienControl.reset();
+
+    // Volver al paso inicial
+    this.pasoActual = this.tieneDatosBien ? 0 : 1;
+    
+    // Si reseteamos todo, tieneDatosBien es false, así que pasoActual = 1
+    this.pasoActual = 1;
+
+    this.cdr.markForCheck();
+  }
+
   cancelar(): void {
     this.tabService.removeTab(this.tabService.currentIndex);
   }
@@ -401,126 +425,81 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   private cargarDetalleBienYBeneficiario(ente: Ente): void {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return;
+    if (!ente?.id) return;
     this.cargandoBien = true;
     this.cdr.markForCheck();
 
-    this.obtenerDetalleBien(ente).pipe(untilDestroyed(this)).subscribe(detalle => {
-      this.cargandoBien = false;
-      if (detalle) {
-        const descripcionBien = this.resolverDescripcionBien(ente, detalle);
-        this.bienSeleccionadoDescripcion = descripcionBien;
-        if (!this.data) this.data = {};
-        this.data.bienDescripcion = descripcionBien;
+    this.enteFinancialSummaryGQL.fetch({ enteId: ente.id }, { fetchPolicy: 'no-cache' })
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        this.cargandoBien = false;
+        const resumen = res.data.data;
+        if (resumen) {
+          this.bienSeleccionadoDescripcion = resumen.descripcion;
+          if (!this.data) this.data = {};
 
-        const proveedor = detalle?.proveedor?.nombre || '';
-        if (proveedor) {
-          this.beneficiarioControl.setValue(proveedor);
-          this.data.proveedor = proveedor;
+          this.data.enteId = resumen.enteId;
+          this.data.bienDescripcion = resumen.descripcion;
+          this.data.proveedor = resumen.proveedorNombre;
+          this.data.montoTotal = resumen.montoTotal;
+          this.data.montoYaPagado = resumen.montoYaPagado;
+          this.data.montoPendiente = resumen.montoPendiente;
+          this.data.cuotasTotales = resumen.cuotasTotales;
+          this.data.cuotasPagadas = resumen.cuotasPagadas;
+          this.data.cuotasFaltantes = resumen.cuotasFaltantes;
+          this.data.diaVencimiento = resumen.diaVencimiento;
+          this.data.diasParaVencer = resumen.diasParaVencer;
+          this.data.estadoCuota = resumen.estadoCuota;
+          this.data.monedaSimbolo = resumen.monedaSimbolo;
+          this.data.situacionPago = resumen.situacionPago;
+
+          if (resumen.monedaId) {
+            this.monedaControl.setValue(resumen.monedaId);
+          }
+
+          if (resumen.proveedorNombre) {
+            this.beneficiarioControl.setValue(resumen.proveedorNombre);
+          }
+
+          if (resumen.cuotasTotales > 0 && resumen.montoTotal > 0 && !this.montoControl.value) {
+            this.montoControl.setValue(Math.round(resumen.montoTotal / resumen.cuotasTotales));
+          }
+
+          if (resumen.tipoGastoSugeridoId) {
+            const tipoGastoAutoSeleccion = this.listaTipoGasto.find(
+              tg => tg.tipoNaturaleza === resumen.tipoGastoSugeridoId
+            );
+            if (tipoGastoAutoSeleccion) {
+              this.tipoGastoControl.setValue(tipoGastoAutoSeleccion.id);
+            }
+          }
+
+          if (!this.descripcionControl.value) {
+            this.descripcionControl.setValue(`Pago - ${resumen.descripcion}`);
+          }
+
+          if (resumen.diasParaVencer != null) {
+            const dias = resumen.diasParaVencer;
+            if (dias < 0) {
+              this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
+            } else if (dias <= 10) {
+              this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
+            } else {
+              this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+            }
+          }
         }
-
-        if (detalle.montoTotal != null) this.data.montoTotal = Number(detalle.montoTotal) || 0;
-        if (detalle.montoYaPagado != null) this.data.montoYaPagado = Number(detalle.montoYaPagado) || 0;
-        if (detalle.montoTotal != null && detalle.montoYaPagado != null) {
-          this.data.montoPendiente = Math.max((Number(detalle.montoTotal) || 0) - (Number(detalle.montoYaPagado) || 0), 0);
-        }
-        if (detalle.cantidadCuotas != null) this.data.cuotasTotales = Number(detalle.cantidadCuotas) || 0;
-        if (detalle.cantidadCuotasPagadas != null) this.data.cuotasPagadas = Number(detalle.cantidadCuotasPagadas) || 0;
-        if (this.data.cuotasTotales != null && this.data.cuotasPagadas != null) {
-          this.data.cuotasFaltantes = Math.max(this.data.cuotasTotales - this.data.cuotasPagadas, 0);
-        }
-        if (detalle.diaVencimiento != null) {
-          this.data.diaVencimiento = Number(detalle.diaVencimiento) || 0;
-          this.calcularVencimiento(this.data.diaVencimiento);
-        }
-        if (detalle.moneda?.simbolo) {
-          this.data.moneda = detalle.moneda.simbolo;
-          this.data.monedaSimbolo = detalle.moneda.simbolo;
-          const monedaMatch = this.listaMonedas.find(m => m.simbolo === detalle.moneda.simbolo);
-          if (monedaMatch) this.monedaControl.setValue(monedaMatch.id);
-        }
-        if (detalle.situacionPago) this.data.situacionPago = detalle.situacionPago;
-
-        const cuotasTotales = Number(detalle.cantidadCuotas) || 0;
-        const montoTotal = Number(detalle.montoTotal) || 0;
-        if (cuotasTotales > 0 && montoTotal > 0 && !this.montoControl.value) {
-          const montoCuota = Math.round(montoTotal / cuotasTotales);
-          this.montoControl.setValue(montoCuota);
-        }
-
-        const tipoLabel = (ente.tipoEnte || '').charAt(0).toUpperCase() + (ente.tipoEnte || '').slice(1).toLowerCase();
-        if (!this.descripcionControl.value) {
-          this.descripcionControl.setValue(`Pago de ${tipoLabel} - ${descripcionBien}`);
-        }
-      }
-      this.cdr.markForCheck();
-    });
-  }
-
-  private calcularVencimiento(diaVencimiento: number): void {
-    if (!diaVencimiento) return;
-    const hoy = new Date();
-    const diaActual = hoy.getDate();
-    let dias = diaVencimiento - diaActual;
-
-    this.diasParaVencer = dias;
-    if (dias < 0) {
-      this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
-      this.data.estadoCuota = 'VENCIDO';
-    } else if (dias <= 10) {
-      this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
-      this.data.estadoCuota = 'POR VENCER';
-    } else {
-      this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
-      this.data.estadoCuota = 'AL DIA';
-    }
-    this.cdr.markForCheck();
-  }
-
-  private obtenerDetalleBien(ente: Ente): Observable<DetalleBienFinanciero> {
-    if (!ente?.referenciaId || !ente?.tipoEnte) return of({} as DetalleBienFinanciero);
-    switch (ente.tipoEnte) {
-      case TipoEnte.MUEBLE:
-        return this.muebleService.onBuscarPorId(ente.referenciaId).pipe(
-          map((res: any) => res as DetalleBienFinanciero),
-          catchError(() => of({} as DetalleBienFinanciero))
-        );
-      case TipoEnte.INMUEBLE:
-        return this.inmuebleService.onBuscarPorId(ente.referenciaId).pipe(
-          map((res: any) => res as DetalleBienFinanciero),
-          catchError(() => of({} as DetalleBienFinanciero))
-        );
-      case TipoEnte.VEHICULO:
-        return this.vehiculoService.onBuscarPorId(ente.referenciaId).pipe(
-          map((res: any) => res as DetalleBienFinanciero),
-          catchError(() => of({} as DetalleBienFinanciero))
-        );
-      default:
-        return of({} as DetalleBienFinanciero);
-    }
-  }
-
-  private resolverDescripcionBien(ente: Ente, detalle: DetalleBienFinanciero): string {
-    if (ente?.tipoEnte === TipoEnte.MUEBLE) {
-      return detalle?.descripcion || detalle?.identificador || `Mueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.INMUEBLE) {
-      return detalle?.nombreAsignado || detalle?.direccion || `Inmueble #${ente?.referenciaId || ''}`;
-    }
-    if (ente?.tipoEnte === TipoEnte.VEHICULO) {
-      return detalle?.chapa || detalle?.modelo?.descripcion || `Vehículo #${ente?.referenciaId || ''}`;
-    }
-    return `Bien #${ente?.referenciaId || ''}`;
+        this.cdr.markForCheck();
+      }, () => {
+        this.cargandoBien = false;
+        this.cdr.markForCheck();
+      });
   }
 
   private mapearEnteASolicitudData(ente: Ente, tipoStr: string): void {
     if (!this.data) this.data = {};
     this.data.enteId = ente.id;
     this.data.tipoBien = tipoStr;
-
-    const label = tipoStr.charAt(0) + tipoStr.slice(1).toLowerCase();
-    this.data.bienDescripcion = `${label} #${ente.id}`;
-    this.data.referenciaId = ente.referenciaId;
     this.pasoActual = 0;
   }
 

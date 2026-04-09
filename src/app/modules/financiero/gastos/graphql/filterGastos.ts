@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Gasto } from '../models/gastos.model';
-import { filterGastosQuery, gastoQuery, gastosPorFecha, gastosQuery } from './graphql-query';
+import { filterGastosQuery } from './graphql-query';
 
 export interface Response {
   data: Gasto[];
