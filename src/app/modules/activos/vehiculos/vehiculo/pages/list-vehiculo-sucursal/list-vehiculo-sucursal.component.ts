@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject }
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
-import { VehiculoSucursal } from '../../models/vehiculo-sucursal.model';
-import { VehiculoService } from '../../service/vehiculo.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SucursalService } from '../../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { Funcionario } from '../../../../../personas/funcionarios/funcionario.model';
+import { VehiculoService } from '../../service/vehiculo.service';
+import { EnteService } from '../../../../ente/service/ente.service';
+import { EnteSucursal } from '../../../../ente/models/ente-sucursal.model';
 
 @UntilDestroy()
 @Component({
@@ -18,10 +19,11 @@ import { Funcionario } from '../../../../../personas/funcionarios/funcionario.mo
 })
 export class ListVehiculoSucursalComponent implements OnInit {
     public vehiculoService = inject(VehiculoService);
+    private enteService = inject(EnteService);
     private cdr = inject(ChangeDetectorRef);
     private sucursalService = inject(SucursalService);
 
-    dataSource = new MatTableDataSource<VehiculoSucursal>();
+    dataSource = new MatTableDataSource<EnteSucursal>();
     displayedColumns = ['id', 'vehiculo', 'sucursal', 'responsable', 'usuario', 'creadoEn', 'acciones'];
     isLoading = false;
 
@@ -70,7 +72,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
     }
 
     onBuscarResponsable(): void {
-        this.vehiculoService.abrirBuscadorResponsable().pipe(untilDestroyed(this)).subscribe((res: Funcionario) => {
+        this.enteService.abrirBuscadorResponsable().pipe(untilDestroyed(this)).subscribe((res: Funcionario | undefined) => {
             if (res) {
                 this.responsableControl.setValue(res.persona?.nombre || '');
                 this.vehiculoService.setResponsableFilter(res.id);
@@ -90,13 +92,13 @@ export class ListVehiculoSucursalComponent implements OnInit {
         this.vehiculoService.abrirFormularioSucursal().subscribe();
     }
 
-    onEditar(vehiculoSucursal: VehiculoSucursal): void {
-        this.vehiculoService.abrirFormularioSucursal(vehiculoSucursal).subscribe();
+    onEditar(enteSucursal: EnteSucursal): void {
+        this.vehiculoService.abrirFormularioSucursal(enteSucursal).subscribe();
     }
 
-    onEliminar(vehiculoSucursal: VehiculoSucursal): void {
-        if (vehiculoSucursal?.id) {
-            this.vehiculoService.onEliminarVehiculoSucursal(vehiculoSucursal).subscribe();
+    onEliminar(enteSucursal: EnteSucursal): void {
+        if (enteSucursal?.id) {
+            this.vehiculoService.onEliminarVehiculoSucursal(enteSucursal).subscribe();
         }
     }
 }

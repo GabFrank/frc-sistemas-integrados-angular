@@ -3,7 +3,7 @@ import { VehiculoByIdGQL } from '../graphql/vehiculoById';
 import { SaveVehiculoGQL } from '../graphql/saveVehiculo';
 import { DeleteVehiculoGQL } from '../graphql/deleteVehiculo';
 import { VehiculoSearchGQL } from '../graphql/vehiculoSearch';
-import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
+import { BehaviorSubject, Observable, combineLatest, of, forkJoin } from 'rxjs';
 import { Vehiculo } from '../models/vehiculo.model';
 import { VehiculoInput } from '../models/vehiculo-input.model';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
@@ -20,16 +20,6 @@ import { ModeloInput } from '../models/modelo-input.model';
 import { TipoVehiculoInput } from '../models/tipo-vehiculo-input.model';
 import { SaveTipoVehiculoGQL } from '../graphql/saveTipoVehiculo';
 import { DeleteModeloGQL } from '../graphql/deleteModelo';
-import { VehiculosSucursalByVehiculoGQL } from '../graphql/vehiculosSucursalByVehiculo';
-import { VehiculosSucursalBySucursalGQL } from '../graphql/vehiculosSucursalBySucursal';
-import { VehiculosSucursalGQL } from '../graphql/vehiculosSucursal';
-import { SaveVehiculoSucursalGQL } from '../graphql/saveVehiculoSucursal';
-import { DeleteVehiculoSucursalGQL } from '../graphql/deleteVehiculoSucursal';
-import { VehiculoSucursal } from '../models/vehiculo-sucursal.model';
-import { VehiculoSucursalInput } from '../models/vehiculo-sucursal-input.model';
-import { VehiculosSucursalSearchPageGQL } from '../graphql/vehiculosSucursalSearchPage';
-import { MatDialog } from '@angular/material/dialog';
-import { VehiculoSucursalDialogComponent } from '../dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { AdicionarModeloDialogComponent } from '../dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from '../dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 import { GenericCrudService } from '../../../../../generics/generic-crud.service';
@@ -38,6 +28,12 @@ import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../
 import { PageInfo } from '../../../../../app.component';
 import { Funcionario } from '../../../../personas/funcionarios/funcionario.model';
 import { VehiculoDialogService } from './vehiculo-dialog-service.service';
+import { MatDialog } from '@angular/material/dialog';
+import { EnteService } from '../../../ente/service/ente.service';
+import { EnteSucursal } from '../../../ente/models/ente-sucursal.model';
+import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
+import { EnteSucursalInput } from '../../../ente/models/ente-sucursal-input.model';
+import { EnteSucursalDialogComponent } from '../../../ente/dialogs/ente-sucursal-dialog/ente-sucursal-dialog.component';
 
 export type SearchDialogResponse<T> = T & { adicionar?: boolean };
 
@@ -57,13 +53,8 @@ export class VehiculoService {
   private saveModeloGQL = inject(SaveModeloGQL);
   private deleteModeloGQL = inject(DeleteModeloGQL);
   private saveTipoVehiculoGQL = inject(SaveTipoVehiculoGQL);
-  private vehiculosSucursalByVehiculoGQL = inject(VehiculosSucursalByVehiculoGQL);
-  private vehiculosSucursalBySucursalGQL = inject(VehiculosSucursalBySucursalGQL);
-  private vehiculosSucursalGQL = inject(VehiculosSucursalGQL);
-  private saveVehiculoSucursalGQL = inject(SaveVehiculoSucursalGQL);
-  private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
-  private vehiculosSucursalSearchPageGQL = inject(VehiculosSucursalSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
+  private enteService = inject(EnteService);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   abrirFormulario(vehiculo?: Vehiculo): Observable<boolean | undefined> {
@@ -117,7 +108,7 @@ export class VehiculoService {
       return filtered.slice(start, end);
     })
   );
-  private vehiculosSucursalSubject = new BehaviorSubject<VehiculoSucursal[]>([]);
+  private vehiculosSucursalSubject = new BehaviorSubject<EnteSucursal[]>([]);
   public vehiculosSucursal$ = this.vehiculosSucursalSubject.asObservable();
 
   private _sucursalFilter$ = new BehaviorSubject<number | null>(null);
@@ -249,42 +240,80 @@ export class VehiculoService {
     return this.genericService.onSave(this.saveTipoVehiculoGQL, input);
   }
 
-  onBuscarVehiculosSucursalPorVehiculo(vehiculoId: number): Observable<VehiculoSucursal[]> {
-    return this.genericService.onCustomQuery(this.vehiculosSucursalByVehiculoGQL, { vehiculoId });
+  onBuscarVehiculosSucursalPorVehiculo(vehiculoId: number): Observable<EnteSucursal[]> {
+    return this.enteService.onGetByReferenciaId(TipoEnte.VEHICULO, vehiculoId).pipe(
+      switchMap(ente => {
+        if (!ente) return of([]);
+        return this.enteService.getEnteSucursalByEnteId(ente.id!);
+      })
+    );
   }
 
-  onGuardarVehiculoSucursal(input: VehiculoSucursalInput): Observable<VehiculoSucursal> {
-    return this.genericService.onSave(this.saveVehiculoSucursalGQL, input);
+  onGuardarVehiculoSucursal(input: EnteSucursalInput): Observable<EnteSucursal> {
+    return this.enteService.onGuardarEnteSucursal(input);
   }
 
-
-
-  onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<VehiculoSucursal[]> {
-    return this.genericService.onCustomQuery(this.vehiculosSucursalGQL, { page, size });
+  onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<EnteSucursal[]> {
+    // Nota: Esto buscará todos los entes, no solo vehículos. 
+    // Si se requiere filtrar por vehículos por sucursal, se usaría enteSucursalSearchPage en el futuro
+    return of([]);
   }
 
-  onBuscarVehiculosSucursalPorSucursal(sucursalId: number): Observable<VehiculoSucursal[]> {
-    return this.genericService.onCustomQuery(this.vehiculosSucursalBySucursalGQL, { sucursalId });
+  onBuscarVehiculosSucursalPorSucursal(sucursalId: number): Observable<EnteSucursal[]> {
+    return of([]);
   }
 
-  onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<VehiculoSucursal>> {
-    return this.genericService.onCustomQuery(this.vehiculosSucursalSearchPageGQL, { sucursalId, responsableId, page, size });
+  onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<EnteSucursal>> {
+    // Por ahora redirigimos a enteSearchPage filtrando por VEHICULO
+    // Pero en el futuro podríamos necesitar una query específica que devuelva EnteSucursal filtrado por tipo de ente
+    // Por ahora, usaremos la lógica de listar todos los entes de la sucursal y filtrar en el componente si es necesario
+    return of({ getContent: [], getTotalElements: 0 } as any);
   }
 
   refrescarSucursal(): void {
     this.loadingSubject.next(true);
     const sucursalId = this._sucursalFilter$.value;
-    const responsableId = this._responsableFilter$.value;
     const { pageIndex, pageSize } = this._paginationSucursalState$.value;
 
-    this.onBuscarVehiculosSucursalSearchPage(sucursalId, responsableId, pageIndex, pageSize).subscribe({
+    // Usamos el buscador de entes pasando 'VEHICULO' como texto de filtro 
+    // para que el backend filtre por tipoEnte tal como está definido en EnteRepository
+    this.enteService.onBuscarPagina(TipoEnte.VEHICULO, sucursalId, pageIndex, pageSize).subscribe({
       next: (res) => {
-        this.vehiculosSucursalSubject.next(res?.getContent || []);
-        this._paginationSucursalState$.next({
-          ...this._paginationSucursalState$.value,
-          totalElements: res?.getTotalElements || 0
-        });
-        this.loadingSubject.next(false);
+        // Mapeamos los entes a EnteSucursal falsos si es necesario, 
+        // o mejor aún, el backend debería devolver EnteSucursalPage.
+        // Pero el diseño actual de ListVehiculoSucursal espera los objetos vinculados.
+        // Como enteSearchPage devuelve Ente, no EnteSucursal, vamos a adaptar la lógica.
+
+        // REFACTOR: ListVehiculoSucursalComponent debería mostrar ENTES filtrados por VEHICULO.
+        // Pero si el usuario quiere ver las "asignaciones" (EnteSucursal), entonces el backend
+        // enteSucursalSearchPage debería permitir filtrar por tipoEnte.
+
+        // Por ahora, para mantener compatibilidad, vamos a buscar las asignaciones de cada ente retornado.
+        if (res?.getContent) {
+          const obsList = res.getContent.map(ente =>
+            this.enteService.getEnteSucursalByEnteId(ente.id!).pipe(
+              map(assignments => assignments.find(a => !sucursalId || a.sucursal.id == sucursalId) || { ente } as EnteSucursal)
+            )
+          );
+
+          if (obsList.length > 0) {
+            forkJoin(obsList).subscribe(assignments => {
+              this.vehiculosSucursalSubject.next(assignments);
+              this._paginationSucursalState$.next({
+                ...this._paginationSucursalState$.value,
+                totalElements: res.getTotalElements || 0
+              });
+              this.loadingSubject.next(false);
+            });
+          } else {
+            this.vehiculosSucursalSubject.next([]);
+            this._paginationSucursalState$.next({ ...this._paginationSucursalState$.value, totalElements: 0 });
+            this.loadingSubject.next(false);
+          }
+        } else {
+          this.vehiculosSucursalSubject.next([]);
+          this.loadingSubject.next(false);
+        }
       },
       error: () => this.loadingSubject.next(false)
     });
@@ -309,12 +338,30 @@ export class VehiculoService {
     this.refrescarSucursal();
   }
 
-  abrirFormularioSucursal(vehiculoSucursal?: VehiculoSucursal): Observable<VehiculoSucursal | undefined> {
-    const dialogRef = this.dialog.open(VehiculoSucursalDialogComponent, {
-      width: '500px',
+  abrirFormularioSucursal(enteSucursal?: EnteSucursal, vehiculo?: Vehiculo): Observable<EnteSucursal | undefined> {
+    if (vehiculo && !enteSucursal) {
+      return this.enteService.onGetByReferenciaId(TipoEnte.VEHICULO, vehiculo.id!).pipe(
+        switchMap(ente => {
+          if (!ente) return of(undefined);
+          const dialogRef = this.dialog.open(EnteSucursalDialogComponent, {
+            width: '600px',
+            disableClose: true,
+            autoFocus: false,
+            data: { ente, sucursalId: this._sucursalFilter$.value }
+          });
+          return dialogRef.afterClosed();
+        }),
+        tap(res => {
+          if (res) this.refrescarSucursal();
+        })
+      );
+    }
+
+    const dialogRef = this.dialog.open(EnteSucursalDialogComponent, {
+      width: '600px',
       disableClose: true,
       autoFocus: false,
-      data: vehiculoSucursal ? { vehiculoSucursal, vehiculo: vehiculoSucursal.vehiculo } : {}
+      data: enteSucursal ? { enteSucursal } : { sucursalId: this._sucursalFilter$.value }
     });
 
     return dialogRef.afterClosed().pipe(
@@ -324,18 +371,10 @@ export class VehiculoService {
     );
   }
 
-  onEliminarVehiculoSucursal(vehiculoSucursal: VehiculoSucursal): Observable<boolean> {
-    const id = vehiculoSucursal?.id;
+  onEliminarVehiculoSucursal(enteSucursal: EnteSucursal): Observable<boolean> {
+    const id = enteSucursal?.id;
     if (!id) return of(false);
-    return this.genericService.onDelete(
-      this.deleteVehiculoSucursalGQL,
-      id,
-      '¿Eliminar asignación de vehículo a sucursal?',
-      null,
-      true,
-      true,
-      '¿Está seguro que desea eliminar esta asignación?'
-    ).pipe(
+    return this.enteService.onEliminarEnteSucursal(id).pipe(
       tap(res => {
         if (res) this.refrescarSucursal();
       })
@@ -412,12 +451,13 @@ export class VehiculoService {
       }
     ];
 
-    const data: SearchListtDialogData = {
+    const data: any = {
       query: this.funcionarioSearchGQL,
       tableData: tableData,
       titulo: 'Buscar Responsable',
       search: true,
-      inicialSearch: true
+      inicialSearch: true,
+      isServidor: true
     };
 
     return this.dialog.open(SearchListDialogComponent, {

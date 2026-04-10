@@ -42,8 +42,7 @@
           Vehículo
         </th>
         <td mat-cell *matCellDef="let vs" style="text-align: center">
-          {{ vs?.vehiculo?.chapa | uppercase }} - {{ vs?.vehiculo?.modelo?.marca?.descripcion }} {{
-          vs?.vehiculo?.modelo?.descripcion }}
+          {{ vs?.ente?.descripcion || 'Sin datos' }}
         </td>
       </ng-container>
 

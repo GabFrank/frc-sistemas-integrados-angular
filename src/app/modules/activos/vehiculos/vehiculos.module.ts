@@ -5,7 +5,6 @@ import { ListVehiculosComponent } from './vehiculo/pages/list-vehiculos/list-veh
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { PreRegistroVehiculoComponent } from './vehiculo/dialogs/pre-registro/pre-registro-vehiculo.component';
-import { VehiculoSucursalDialogComponent } from './vehiculo/dialogs/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/dialogs/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 import { AdicionarModeloDialogComponent } from './vehiculo/dialogs/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { ListVehiculoSucursalComponent } from './vehiculo/pages/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
@@ -21,7 +20,6 @@ import { VehiculosDashboardComponent } from '../dashboard/vehiculos-dashboard/ve
     VehiculoComponent,
     ListVehiculosComponent,
     PreRegistroVehiculoComponent,
-    VehiculoSucursalDialogComponent,
     VehiculosDashboardComponent,
     ListVehiculoSucursalComponent,
     AdicionarTipoVehiculoDialogComponent,
