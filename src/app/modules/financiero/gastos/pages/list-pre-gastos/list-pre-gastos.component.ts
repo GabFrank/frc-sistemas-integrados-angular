@@ -16,6 +16,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
+import { PreGastoStatusMetadataListGQL } from '../../graphql/getPreGastoStatusMetadataList';
 
 @UntilDestroy()
 @Component({
@@ -31,6 +32,9 @@ export class ListPreGastosComponent implements OnInit {
   private tabService = inject(TabService);
   private mainService = inject(MainService);
   private reporteService = inject(ReporteService);
+  private statusMetadataGQL = inject(PreGastoStatusMetadataListGQL);
+
+  statusMetadata: any[] = [];
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
@@ -108,6 +112,9 @@ export class ListPreGastosComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.statusMetadataGQL.fetch({}, { fetchPolicy: 'cache-first' }).subscribe(res => {
+      this.statusMetadata = res.data.data || [];
+    });
   }
 
   cambiarTab(indice: number): void {
@@ -223,39 +230,18 @@ export class ListPreGastosComponent implements OnInit {
   }
 
   colorEstado(estado: string): string {
-    const colores: Record<string, string> = {
-      'PENDIENTE': '#ffa726',
-      'TRAMITE': '#42a5f5',
-      'AUTORIZADO': '#66bb6a',
-      'ENVIADO_A_TESORERIA': '#26a69a',
-      'RECHAZADO': '#ef5350',
-      'COMPLETADO': '#78909c'
-    };
-    return colores[estado] || '#9e9e9e';
+    const meta = this.statusMetadata.find(m => m.estado === estado);
+    return meta?.color || '#9e9e9e';
   }
 
   iconoEstado(estado: string): string {
-    const iconos: Record<string, string> = {
-      'PENDIENTE': 'hourglass_empty',
-      'TRAMITE': 'swap_horiz',
-      'AUTORIZADO': 'check_circle',
-      'ENVIADO_A_TESORERIA': 'send',
-      'RECHAZADO': 'cancel',
-      'COMPLETADO': 'task_alt'
-    };
-    return iconos[estado] || 'help_outline';
+    const meta = this.statusMetadata.find(m => m.estado === estado);
+    return meta?.icono || 'help_outline';
   }
 
   etiquetaEstado(estado: string): string {
-    const etiquetas: Record<string, string> = {
-      'PENDIENTE': 'Pendiente',
-      'TRAMITE': 'En Trámite',
-      'AUTORIZADO': 'Autorizado',
-      'ENVIADO_A_TESORERIA': 'Enviado a Tesorería',
-      'RECHAZADO': 'Rechazado',
-      'COMPLETADO': 'Completado'
-    };
-    return etiquetas[estado] || estado;
+    const meta = this.statusMetadata.find(m => m.estado === estado);
+    return meta?.etiqueta || estado;
   }
 
   private formatDate(d: Date): string {

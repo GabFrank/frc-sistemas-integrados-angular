@@ -1,14 +1,13 @@
-<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" (resetFiltro)="onLimpiarFiltro()" [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
+<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" (resetFiltro)="onLimpiarFiltro()"
+  [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%" [formGroup]="fechaFormGroup">
-      <!-- ID Search -->
       <div fxFlex="10%">
         <mat-form-field style="width: 100%">
           <mat-label>ID</mat-label>
           <input matInput type="number" formControlName="buscarId" placeholder="ID" (keyup.enter)="onRefrescar()">
         </mat-form-field>
       </div>
-      <!-- Date Range -->
       <div fxFlex="30%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
@@ -22,7 +21,6 @@
       </div>
     </div>
 
-    <!-- Tab states right above table -->
     <div fxLayout="row" fxLayoutAlign="start end" style="width: 100%; margin-top: 10px;">
       <button *ngFor="let etiqueta of tabEtiquetas; let i = index" mat-button
         [class.tab-activa]="(tabActiva$ | async) === i" (click)="cambiarTab(i)"
@@ -34,55 +32,39 @@
 
   <div table style="height: 100%; background-color: rgb(40, 40, 40)" fxLayout="row" fxLayoutAlign="start start"
     fxLayoutGap="10px">
-
-    <!-- Lado izquierdo: Tabla y Paginador -->
     <div fxFlex="65%" fxLayout="column" fxLayoutAlign="space-between start" style="height: 100%;">
       <table mat-table [dataSource]="(listaFiltrada$ | async) || []" class="mat-elevation-z8" style="width: 100%;">
-        <!-- ID -->
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef style="width: 5%">ID</th>
           <td mat-cell *matCellDef="let item" style="width: 5%">{{ item.id }}</td>
         </ng-container>
 
-        <!-- Funcionario -->
         <ng-container matColumnDef="funcionario">
           <th mat-header-cell *matHeaderCellDef>Solicitante</th>
           <td mat-cell *matCellDef="let item">{{ item.funcionario?.nombre | titlecase }}</td>
         </ng-container>
-
-        <!-- Tipo Gasto -->
         <ng-container matColumnDef="tipoGasto">
           <th mat-header-cell *matHeaderCellDef>Tipo</th>
           <td mat-cell *matCellDef="let item">{{ item.tipoGasto?.descripcion | uppercase }}</td>
         </ng-container>
-
-        <!-- Descripción -->
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef>Concepto</th>
           <td mat-cell *matCellDef="let item">{{ item.descripcion }}</td>
         </ng-container>
-
-        <!-- Monto -->
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>
           <td mat-cell *matCellDef="let item" style="font-weight: 500;">
             {{ item.montoSolicitado | number:'1.0-0' }}
           </td>
         </ng-container>
-
-        <!-- Moneda -->
         <ng-container matColumnDef="moneda">
           <th mat-header-cell *matHeaderCellDef>Mon.</th>
           <td mat-cell *matCellDef="let item">{{ item.moneda?.simbolo || item.moneda?.denominacion }}</td>
         </ng-container>
-
-        <!-- Sucursal -->
         <ng-container matColumnDef="sucursal">
           <th mat-header-cell *matHeaderCellDef>Sucursal</th>
           <td mat-cell *matCellDef="let item">{{ item.sucursalCaja?.nombre | titlecase }}</td>
         </ng-container>
-
-        <!-- Estado -->
         <ng-container matColumnDef="estado">
           <th mat-header-cell *matHeaderCellDef>Estado</th>
           <td mat-cell *matCellDef="let item">
@@ -95,20 +77,15 @@
             </span>
           </td>
         </ng-container>
-
-        <!-- Fecha -->
         <ng-container matColumnDef="fecha">
           <th mat-header-cell *matHeaderCellDef>Fecha</th>
           <td mat-cell *matCellDef="let item" style="color: #bbb;">{{ item.creadoEn | date:'short' }}</td>
         </ng-container>
-
-        <!-- Acciones -->
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
-            <button 
-              *ngIf="item.estado === 'PENDIENTE' || item.estado === 'TRAMITE'"
-              mat-icon-button (click)="seleccionarPreGasto(item); autorizarGasto(item)">
+            <button *ngIf="item.estado === 'PENDIENTE' || item.estado === 'TRAMITE'" mat-icon-button
+              (click)="seleccionarPreGasto(item); autorizarGasto(item)">
               <mat-icon>remove_red_eye</mat-icon>
             </button>
           </td>
@@ -177,15 +154,14 @@
           </button>
         </div>
 
-        <div *ngIf="seleccionado.estado === 'ENVIADO_A_TESORERIA'" style="margin-top: 16px;" fxLayout="column" fxLayoutGap="8px">
-          <div style="background-color: rgba(38, 166, 154, 0.1); color: #26a69a; padding: 12px; border-radius: 4px; border: 1px solid #26a69a;" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+        <div *ngIf="seleccionado.estado === 'ENVIADO_A_TESORERIA'" style="margin-top: 16px;" fxLayout="column"
+          fxLayoutGap="8px">
+          <div
+            style="background-color: rgba(38, 166, 154, 0.1); color: #26a69a; padding: 12px; border-radius: 4px; border: 1px solid #26a69a;"
+            fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
             <mat-icon>info</mat-icon>
             <span>Enviado a Tesorería para Pago</span>
           </div>
-          <button *ngIf="seleccionado.solicitudPagoId" mat-raised-button color="primary" style="width: 100%;" (click)="onImprimirSolicitud(seleccionado.solicitudPagoId)">
-            <mat-icon style="margin-right: 8px;">print</mat-icon>
-            IMPRIMIR SOLICITUD DE PAGO
-          </button>
         </div>
       </div>
 

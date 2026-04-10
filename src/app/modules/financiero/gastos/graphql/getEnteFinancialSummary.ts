@@ -27,6 +27,7 @@ export class EnteFinancialSummaryGQL extends Query<any> {
         situacionPago
         porcentajePagado
         montoSugerido
+        descripcionSugerida
       }
     }
   `;

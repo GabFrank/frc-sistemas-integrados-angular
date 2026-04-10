@@ -416,8 +416,8 @@ export class AdicionarPreGastoComponent implements OnInit {
             this.beneficiarioControl.setValue(resumen.proveedorNombre);
           }
 
-          if (resumen.cuotasTotales > 0 && resumen.montoTotal > 0 && !this.montoControl.value) {
-            this.montoControl.setValue(Math.round(resumen.montoTotal / resumen.cuotasTotales));
+          if (resumen.montoSugerido && !this.montoControl.value) {
+            this.montoControl.setValue(resumen.montoSugerido);
           }
 
           if (resumen.tipoGastoSugeridoId) {
@@ -429,8 +429,8 @@ export class AdicionarPreGastoComponent implements OnInit {
             }
           }
 
-          if (!this.descripcionControl.value) {
-            this.descripcionControl.setValue(`Pago - ${resumen.descripcion}`);
+          if (resumen.descripcionSugerida && !this.descripcionControl.value) {
+            this.descripcionControl.setValue(resumen.descripcionSugerida);
           }
 
           if (resumen.diasParaVencer != null) {
