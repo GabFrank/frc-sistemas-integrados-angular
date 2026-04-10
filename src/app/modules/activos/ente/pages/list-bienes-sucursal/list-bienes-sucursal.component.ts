@@ -83,36 +83,33 @@ export class ListBienesSucursalComponent implements OnInit {
       return forkJoin(entes.map(ente => this.armarFila(ente)));
     }),
     tap(rows => {
-      this.tiposDisponibles = Array.from(new Set(rows.map(r => r.tipoEnte).filter((v): v is TipoEnte => !!v)));
-      this.estadosPagoDisponibles = Array.from(new Set(rows.map(r => r.situacionPago).filter(Boolean)));
-      this.monedaPrincipal = this.detectarMonedaPrincipal(rows);
+      if (rows.length > 0) {
+        this.tiposDisponibles = Array.from(new Set(rows.map(r => r.tipoEnte).filter((v): v is TipoEnte => !!v)));
+        this.estadosPagoDisponibles = Array.from(new Set(rows.map(r => r.situacionPago).filter(Boolean)));
+      }
     }),
     shareReplay(1)
   );
 
-  public filteredRows$ = combineLatest([
-    this.allRows$,
-    this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value)),
-    this.tipoControl.valueChanges.pipe(startWith(this.tipoControl.value)),
-    this.estadoPagoControl.valueChanges.pipe(startWith(this.estadoPagoControl.value)),
-    this.estadoCuotaControl.valueChanges.pipe(startWith(this.estadoCuotaControl.value))
-  ]).pipe(
-    map(([rows, sucursalId, tipo, estadoPago, estadoCuota]) => {
-      return (rows || []).filter(row =>
-        (!sucursalId || row.sucursalIds.includes(sucursalId) || row.sucursalIds.length === 0) &&
-        (!tipo || row.tipoEnte === tipo) &&
-        (!estadoPago || row.situacionPago === estadoPago) &&
-        (!estadoCuota || row.estadoCuota === estadoCuota)
-      );
-    }),
+  public filteredRows$ = this.allRows$.pipe(
     tap(() => {
       this.expandedRow = null;
-    }),
-    shareReplay(1)
+    })
   );
 
-  public resumen$ = this.filteredRows$.pipe(
-    map(rows => this.crearResumen(rows || []))
+  public resumen$ = this.enteService.summary$.pipe(
+    map(summary => summary || {
+      totalBienes: 0,
+      pagados: 0,
+      enPago: 0,
+      cuotasFaltantes: 0,
+      totalGastado: 0,
+      totalComprometido: 0,
+      totalPendiente: 0
+    }),
+    tap(summary => {
+      if (summary.monedaPrincipal) this.monedaPrincipal = summary.monedaPrincipal;
+    })
   );
 
   expandedRow: BienFinancieroRow | null = null;
@@ -139,7 +136,16 @@ export class ListBienesSucursalComponent implements OnInit {
   ngOnInit(): void {
     this.sucursalControl.setValue(null);
     this.enteService.setSucursalId(null);
+    this.enteService.setFilters(null, null, null);
     this.enteService.setSearchText('');
+
+    combineLatest([
+      this.tipoControl.valueChanges.pipe(startWith(this.tipoControl.value)),
+      this.estadoPagoControl.valueChanges.pipe(startWith(this.estadoPagoControl.value)),
+      this.estadoCuotaControl.valueChanges.pipe(startWith(this.estadoCuotaControl.value))
+    ]).subscribe(([tipo, situacion, estado]) => {
+      this.enteService.setFilters(tipo, situacion, estado);
+    });
 
     this.sucursalService.onGetAllSucursales().subscribe(res => {
       this.sucursales = res || [];
@@ -222,7 +228,12 @@ export class ListBienesSucursalComponent implements OnInit {
 
 
   onFiltrar(): void {
+    this.enteService.setSucursalId(this.sucursalControl.value);
     this.enteService.refrescar();
+  }
+
+  onSearchKeyUp(texto: string): void {
+    this.enteService.setSearchText(texto);
   }
 
   handlePageEvent(event: PageEvent): void {
@@ -231,6 +242,8 @@ export class ListBienesSucursalComponent implements OnInit {
 
   resetFiltro(): void {
     this.enteService.setSearchText('');
+    this.sucursalControl.setValue(null);
+    this.enteService.setSucursalId(null);
     this.tipoControl.setValue(null);
     this.estadoPagoControl.setValue(null);
     this.estadoCuotaControl.setValue(null);
@@ -274,39 +287,6 @@ export class ListBienesSucursalComponent implements OnInit {
       ],
       sucursalIds: (ente as any).sucursalIds || []
     });
-  }
-
-
-  private crearResumen(rows: BienFinancieroRow[]): DashboardResumen {
-    return rows.reduce((acc, row) => {
-      const pagado = row.situacionPago === 'PAGADO' || row.montoPendiente <= 0;
-      acc.totalBienes += 1;
-      acc.pagados += pagado ? 1 : 0;
-      acc.enPago += pagado ? 0 : 1;
-      acc.cuotasFaltantes += row.cuotasFaltantes;
-      acc.totalGastado += row.montoYaPagado;
-      acc.totalComprometido += row.montoTotal;
-      acc.totalPendiente += row.montoPendiente;
-      return acc;
-    }, {
-      totalBienes: 0,
-      pagados: 0,
-      enPago: 0,
-      cuotasFaltantes: 0,
-      totalGastado: 0,
-      totalComprometido: 0,
-      totalPendiente: 0
-    } as DashboardResumen);
-  }
-
-  private detectarMonedaPrincipal(rows: BienFinancieroRow[]): string {
-    if (!rows.length) return 'Gs.';
-    const counts = rows.reduce((acc, row) => {
-      const m = row.moneda || 'Gs.';
-      acc[m] = (acc[m] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
 
   toggleExpand(row: BienFinancieroRow): void {

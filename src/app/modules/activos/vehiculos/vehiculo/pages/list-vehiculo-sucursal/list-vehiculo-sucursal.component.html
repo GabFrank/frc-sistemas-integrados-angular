@@ -1,24 +1,38 @@
 <app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros>
-    <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="30%">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px" style="width: 100%; margin-bottom: 5px;">
+      <div fxFlex="45">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vehículo</mat-label>
+          <input matInput [formControl]="vehiculoControl" readonly (click)="onBuscarVehiculo()"
+            placeholder="Buscar vehículo..." />
+          <mat-icon matSuffix (click)="onBuscarVehiculo()" style="cursor: pointer;">search</mat-icon>
+          <button mat-icon-button matSuffix *ngIf="vehiculoControl.value"
+            (click)="resetVehiculo(); $event.stopPropagation()" style="margin-right: -8px;">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="25">
         <frc-searchable-select [list]="sucursales" titulo="Sucursal" [isFilter]="true" [compareFields]="[{id:'nombre'}]"
-          (selectionChanged)="sucursalControl.setValue($event ? $event.id : null)" [currentData]="sucursalControl.value"
+          (selectionChanged)="sucursalControl.setValue($event ? $event.id : null); onFiltrar()" [currentData]="sucursalControl.value"
           [initialValue]="false" [showSearch]="false" nullOption="TODAS">
           <ng-template let-item>
             {{ item.nombre }}
           </ng-template>
         </frc-searchable-select>
       </div>
-      <div fxFlex="30%">
+
+      <div fxFlex="25">
         <mat-form-field style="width: 100%">
           <mat-label>Responsable</mat-label>
           <input matInput [formControl]="responsableControl" readonly (click)="onBuscarResponsable()"
-            placeholder="Click para buscar" />
+            placeholder="Buscar responsable..." />
           <mat-icon matSuffix (click)="onBuscarResponsable()" style="cursor: pointer;">search</mat-icon>
           <button mat-icon-button matSuffix *ngIf="responsableControl.value"
-            (click)="resetFiltro(); $event.stopPropagation()" style="margin-right: -8px;">
+            (click)="resetResponsable(); $event.stopPropagation()" style="margin-right: -8px;">
             <mat-icon>clear</mat-icon>
           </button>
         </mat-form-field>

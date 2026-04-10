@@ -113,16 +113,6 @@ export class EnteSucursalDialogComponent implements OnInit {
         });
     }
 
-    private updateEnteDisplayValue(tipo: TipoEnte, res: any): void {
-        if (tipo === TipoEnte.VEHICULO) {
-            this.enteControlDisplay.setValue(`${res.chapa || ''} - ${res.modelo?.marca?.descripcion || ''} ${res.modelo?.descripcion || ''}`);
-        } else if (tipo === TipoEnte.INMUEBLE) {
-            this.enteControlDisplay.setValue(`${res.nombreAsignado || res.nombre_asignado || 'Sin nombre'}`);
-        } else {
-            this.enteControlDisplay.setValue(`${res.descripcion || 'Sin descripción'}`);
-        }
-    }
-
     onBuscarResponsable(): void {
         this.enteService.abrirBuscadorResponsable().subscribe(res => {
             if (res) {

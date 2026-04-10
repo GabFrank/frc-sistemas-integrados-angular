@@ -6,6 +6,7 @@ export const enteByIdQuery = gql`
       id
       tipoEnte
       referenciaId
+      descripcion
       activo
       creadoEn
       usuario {
@@ -22,6 +23,7 @@ export const entesByTipoEnteQuery = gql`
       id
       tipoEnte
       referenciaId
+      descripcion
       activo
     }
   }
@@ -33,42 +35,59 @@ export const enteByReferenciaIdQuery = gql`
       id
       tipoEnte
       referenciaId
+      descripcion
       activo
     }
   }
 `;
 
-export const enteSearchPageQuery = gql`
-  query enteSearchPage($texto: String, $sucursalId: ID, $page: Int, $size: Int) {
-    data: enteSearchPage(texto: $texto, sucursalId: $sucursalId, page: $page, size: $size) {
-      getTotalPages
-      getTotalElements
-      getNumberOfElements
-      isFirst
-      isLast
-      hasNext
-      hasPrevious
-      getContent {
-        id
-        tipoEnte
-        referenciaId
-        activo
-        creadoEn
-        descripcion
-        sucursalesConcatenadas
-        sucursalIds
-        montoTotal
-        montoYaPagado
-        montoPendiente
-        cuotasTotales
-        cuotasPagadas
+export const enteSearchWithSummaryQuery = gql`
+  query enteSearchWithSummary($texto: String, $sucursalId: ID, $tipoEnte: TipoEnte, $situacionPago: String, $estadoCuota: String, $page: Int, $size: Int) {
+    data: enteSearchWithSummary(texto: $texto, sucursalId: $sucursalId, tipoEnte: $tipoEnte, situacionPago: $situacionPago, estadoCuota: $estadoCuota, page: $page, size: $size) {
+      page {
+        getTotalPages
+        getTotalElements
+        getNumberOfElements
+        isFirst
+        isLast
+        hasNext
+        hasPrevious
+        getContent {
+          id
+          tipoEnte
+          referenciaId
+          activo
+          creadoEn
+          descripcion
+          sucursalesConcatenadas
+          sucursalIds
+          montoTotal
+          montoYaPagado
+          montoPendiente
+          cuotasTotales
+          cuotasPagadas
+          cuotasFaltantes
+          diaVencimiento
+          diasParaVencer
+          estadoCuota
+          situacionPago
+          monedaSimbolo
+          proveedorNombre
+          usuario {
+            id
+            nickname
+          }
+        }
+      }
+      summary {
+        totalBienes
+        pagados
+        enPago
         cuotasFaltantes
-        diaVencimiento
-        diasParaVencer
-        estadoCuota
-        situacionPago
-        monedaSimbolo
-        proveedorNombre
+        totalGastado
+        totalComprometido
+        totalPendiente
+        monedaPrincipal
       }
     }
   }
@@ -81,6 +100,7 @@ export const entesSucursalesByEnteIdQuery = gql`
       ente {
         id
         tipoEnte
+        descripcion
       }
       sucursal {
         id
@@ -91,6 +111,10 @@ export const entesSucursalesByEnteIdQuery = gql`
         persona {
           nombre
         }
+      }
+      usuario {
+        id
+        nickname
       }
       creadoEn
     }
@@ -106,6 +130,10 @@ export const saveEnteSucursalMutation = gql`
       }
       sucursal {
         id
+      }
+      usuario {
+        id
+        nickname
       }
     }
   }
@@ -162,5 +190,56 @@ export const saveEnteArchivoMutation = gql`
 export const deleteEnteArchivoMutation = gql`
   mutation deleteEnteArchivo($id: ID!) {
     data: deleteEnteArchivo(id: $id)
+  }
+`;
+
+export const enteSucursalSearchPageQuery = gql`
+  query enteSucursalSearchPage($texto: String, $sucursalId: ID, $tipoEnte: TipoEnte, $responsableId: ID, $page: Int, $size: Int) {
+    data: enteSucursalSearchPage(texto: $texto, sucursalId: $sucursalId, tipoEnte: $tipoEnte, responsableId: $responsableId, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        ente {
+          id
+          tipoEnte
+          descripcion
+          sucursalIds
+          sucursalesConcatenadas
+          montoTotal
+          montoYaPagado
+          montoPendiente
+          cuotasTotales
+          cuotasPagadas
+          cuotasFaltantes
+          diaVencimiento
+          diasParaVencer
+          estadoCuota
+          situacionPago
+          monedaSimbolo
+          proveedorNombre
+        }
+        sucursal {
+          id
+          nombre
+        }
+        responsable {
+          id
+          persona {
+            nombre
+          }
+        }
+        usuario {
+          id
+          nickname
+        }
+        creadoEn
+      }
+    }
   }
 `;

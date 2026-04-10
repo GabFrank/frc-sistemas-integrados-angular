@@ -16,7 +16,7 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../..
 import { UsuariosSearchPaginatedGQL } from '../../../../personas/usuarios/graphql/usuarioSearchPaginated';
 import { EnteService } from '../../../../activos/ente/service/ente.service';
 import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
-import { EnteSearchPageGQL } from '../../../../activos/ente/graphql/enteSearchPage';
+
 import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
 import { take } from 'rxjs/operators';

@@ -2,8 +2,8 @@
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros>
     <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="40%">
-        <mat-form-field appearance="outline" style="width: 100%" floatLabel="always">
+      <div fxFlex="45">
+        <mat-form-field style="width: 100%">
           <mat-label>Filtro rápido (Nombre o dirección)</mat-label>
           <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: Local Centro" />
           <mat-icon matSuffix>search</mat-icon>

@@ -5,11 +5,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { EnteByIdGQL } from '../graphql/enteById';
 import { SaveEnteGQL } from '../graphql/saveEnte';
 import { DeleteEnteGQL } from '../graphql/deleteEnte';
-import { EnteSearchPageGQL } from '../graphql/enteSearchPage';
+
+import { EnteSearchWithSummaryGQL } from '../graphql/enteSearchWithSummary';
 import { SaveEnteSucursalGQL } from '../graphql/saveEnteSucursal';
 import { DeleteEnteSucursalGQL } from '../graphql/deleteEnteSucursal';
 import { EntesSucursalesByEnteIdGQL } from '../graphql/entesSucursalesByEnteId';
 import { EnteByReferenciaIdGQL } from '../graphql/enteByReferenciaId';
+import { EnteSucursalSearchPageGQL } from '../graphql/enteSucursalSearchPage';
 import { Ente } from '../models/ente.model';
 import { TipoEnte } from '../enums/tipo-ente.enum';
 import { EnteSucursal } from '../models/ente-sucursal.model';
@@ -36,11 +38,13 @@ export class EnteService {
   private enteByIdGQL = inject(EnteByIdGQL);
   private saveEnteGQL = inject(SaveEnteGQL);
   private deleteEnteGQL = inject(DeleteEnteGQL);
-  private enteSearchPageGQL = inject(EnteSearchPageGQL);
+
+  private enteSearchWithSummaryGQL = inject(EnteSearchWithSummaryGQL);
   private saveEnteSucursalGQL = inject(SaveEnteSucursalGQL);
   private deleteEnteSucursalGQL = inject(DeleteEnteSucursalGQL);
   private entesSucursalesByEnteIdGQL = inject(EntesSucursalesByEnteIdGQL);
   private enteByReferenciaIdGQL = inject(EnteByReferenciaIdGQL);
+  private enteSucursalSearchPageGQL = inject(EnteSucursalSearchPageGQL);
   private dialog = inject(MatDialog);
   private mainService = inject(MainService);
   private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
@@ -53,27 +57,41 @@ export class EnteService {
   private loadingSubject = new BehaviorSubject<boolean>(false);
   private searchTextSubject = new BehaviorSubject<string>('');
   private sucursalIdSubject = new BehaviorSubject<number | null>(null);
+  private tipoEnteSubject = new BehaviorSubject<TipoEnte | null>(null);
+  private situacionPagoSubject = new BehaviorSubject<string | null>(null);
+  private estadoCuotaSubject = new BehaviorSubject<string | null>(null);
   private paginationSubject = new BehaviorSubject({ pageIndex: 0, pageSize: 15 });
+  private summarySubject = new BehaviorSubject<any>(null);
 
   public entes$ = this.entesSubject.asObservable();
   public totalElements$ = this.totalElementsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
   public paginationState$ = this.paginationSubject.asObservable();
   public sucursalId$ = this.sucursalIdSubject.asObservable();
+  public summary$ = this.summarySubject.asObservable();
 
   constructor() {
     combineLatest([
       this.searchTextSubject.pipe(debounceTime(300), distinctUntilChanged()),
       this.sucursalIdSubject,
+      this.tipoEnteSubject,
+      this.situacionPagoSubject,
+      this.estadoCuotaSubject,
       this.paginationSubject
     ]).pipe(
       tap(() => this.loadingSubject.next(true)),
-      switchMap(([texto, sucursalId, pag]) =>
-        this.genericService.onCustomQuery(this.enteSearchPageGQL, { texto, sucursalId, page: pag.pageIndex, size: pag.pageSize })
+      switchMap(([texto, sucursalId, tipoEnte, situacionPago, estadoCuota, pag]) =>
+        this.genericService.onCustomQuery(this.enteSearchWithSummaryGQL, { 
+          texto, sucursalId, tipoEnte, situacionPago, estadoCuota,
+          page: pag.pageIndex, size: pag.pageSize 
+        })
       )
-    ).subscribe((res: PageInfo<Ente>) => {
-      this.entesSubject.next(res.getContent);
-      this.totalElementsSubject.next(res.getTotalElements);
+    ).subscribe((res: any) => {
+      if (res) {
+        this.entesSubject.next(res.page.getContent);
+        this.totalElementsSubject.next(res.page.getTotalElements);
+        this.summarySubject.next(res.summary);
+      }
       this.loadingSubject.next(false);
     });
   }
@@ -89,6 +107,13 @@ export class EnteService {
 
   setSucursalId(id: number | null): void {
     this.sucursalIdSubject.next(id);
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+  }
+
+  setFilters(tipo: TipoEnte | null, situacion: string | null, estado: string | null): void {
+    this.tipoEnteSubject.next(tipo);
+    this.situacionPagoSubject.next(situacion);
+    this.estadoCuotaSubject.next(estado);
     this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
@@ -112,8 +137,16 @@ export class EnteService {
     return this.genericService.onCustomQuery(this.enteByReferenciaIdGQL, { tipoEnte, referenciaId });
   }
 
-  onBuscarPagina(texto: string, sucursalId: number | null, page: number, size: number): Observable<PageInfo<Ente>> {
-    return this.genericService.onCustomQuery(this.enteSearchPageGQL, { texto, sucursalId, page, size });
+
+
+  onBuscarPagina(texto: string | null, sucursalId: number | null, page: number, size: number, tipoEnte: TipoEnte | null = null): Observable<PageInfo<Ente>> {
+    return this.genericService.onCustomQuery(this.enteSearchWithSummaryGQL, { texto, sucursalId, tipoEnte, page, size }).pipe(
+      map((res: any) => res?.page)
+    );
+  }
+
+  onBuscarAsignacionesPagina(texto: string | null, sucursalId: number | null, tipoEnte: TipoEnte | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<EnteSucursal>> {
+    return this.genericService.onCustomQuery(this.enteSucursalSearchPageGQL, { texto, sucursalId, tipoEnte, responsableId, page, size });
   }
 
   getEnteSucursalByEnteId(enteId: number): Observable<EnteSucursal[]> {

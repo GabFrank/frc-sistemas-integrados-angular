@@ -124,6 +124,9 @@ export class VehiculoService {
   });
   public paginationSucursalState$ = this._paginationSucursalState$.asObservable();
 
+  private _searchTextSucursal$ = new BehaviorSubject<string | null>(null);
+  public searchTextSucursal$ = this._searchTextSucursal$.asObservable();
+
   onBuscarPorId(id: number): Observable<Vehiculo> {
     return this.genericService.onGetById(this.vehiculoByIdGQL, id);
   }
@@ -254,8 +257,6 @@ export class VehiculoService {
   }
 
   onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<EnteSucursal[]> {
-    // Nota: Esto buscará todos los entes, no solo vehículos. 
-    // Si se requiere filtrar por vehículos por sucursal, se usaría enteSucursalSearchPage en el futuro
     return of([]);
   }
 
@@ -264,56 +265,24 @@ export class VehiculoService {
   }
 
   onBuscarVehiculosSucursalSearchPage(sucursalId: number | null, responsableId: number | null, page: number, size: number): Observable<PageInfo<EnteSucursal>> {
-    // Por ahora redirigimos a enteSearchPage filtrando por VEHICULO
-    // Pero en el futuro podríamos necesitar una query específica que devuelva EnteSucursal filtrado por tipo de ente
-    // Por ahora, usaremos la lógica de listar todos los entes de la sucursal y filtrar en el componente si es necesario
     return of({ getContent: [], getTotalElements: 0 } as any);
   }
 
   refrescarSucursal(): void {
     this.loadingSubject.next(true);
     const sucursalId = this._sucursalFilter$.value;
+    const responsableId = this._responsableFilter$.value;
+    const texto = this._searchTextSucursal$.value;
     const { pageIndex, pageSize } = this._paginationSucursalState$.value;
 
-    // Usamos el buscador de entes pasando 'VEHICULO' como texto de filtro 
-    // para que el backend filtre por tipoEnte tal como está definido en EnteRepository
-    this.enteService.onBuscarPagina(TipoEnte.VEHICULO, sucursalId, pageIndex, pageSize).subscribe({
+    this.enteService.onBuscarAsignacionesPagina(texto, sucursalId, TipoEnte.VEHICULO, responsableId, pageIndex, pageSize).subscribe({
       next: (res) => {
-        // Mapeamos los entes a EnteSucursal falsos si es necesario, 
-        // o mejor aún, el backend debería devolver EnteSucursalPage.
-        // Pero el diseño actual de ListVehiculoSucursal espera los objetos vinculados.
-        // Como enteSearchPage devuelve Ente, no EnteSucursal, vamos a adaptar la lógica.
-
-        // REFACTOR: ListVehiculoSucursalComponent debería mostrar ENTES filtrados por VEHICULO.
-        // Pero si el usuario quiere ver las "asignaciones" (EnteSucursal), entonces el backend
-        // enteSucursalSearchPage debería permitir filtrar por tipoEnte.
-
-        // Por ahora, para mantener compatibilidad, vamos a buscar las asignaciones de cada ente retornado.
-        if (res?.getContent) {
-          const obsList = res.getContent.map(ente =>
-            this.enteService.getEnteSucursalByEnteId(ente.id!).pipe(
-              map(assignments => assignments.find(a => !sucursalId || a.sucursal.id == sucursalId) || { ente } as EnteSucursal)
-            )
-          );
-
-          if (obsList.length > 0) {
-            forkJoin(obsList).subscribe(assignments => {
-              this.vehiculosSucursalSubject.next(assignments);
-              this._paginationSucursalState$.next({
-                ...this._paginationSucursalState$.value,
-                totalElements: res.getTotalElements || 0
-              });
-              this.loadingSubject.next(false);
-            });
-          } else {
-            this.vehiculosSucursalSubject.next([]);
-            this._paginationSucursalState$.next({ ...this._paginationSucursalState$.value, totalElements: 0 });
-            this.loadingSubject.next(false);
-          }
-        } else {
-          this.vehiculosSucursalSubject.next([]);
-          this.loadingSubject.next(false);
-        }
+        this.vehiculosSucursalSubject.next(res?.getContent || []);
+        this._paginationSucursalState$.next({
+          ...this._paginationSucursalState$.value,
+          totalElements: res.getTotalElements || 0
+        });
+        this.loadingSubject.next(false);
       },
       error: () => this.loadingSubject.next(false)
     });
@@ -336,6 +305,11 @@ export class VehiculoService {
       pageSize
     });
     this.refrescarSucursal();
+  }
+
+  setSearchTextSucursal(texto: string | null): void {
+    this._searchTextSucursal$.next(texto);
+    this.updatePaginationSucursal(0, this._paginationSucursalState$.value.pageSize);
   }
 
   abrirFormularioSucursal(enteSucursal?: EnteSucursal, vehiculo?: Vehiculo): Observable<EnteSucursal | undefined> {

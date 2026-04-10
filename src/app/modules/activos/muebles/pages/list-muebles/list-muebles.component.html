@@ -1,11 +1,13 @@
 <app-generic-list [data]="(muebles$ | async) || []" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros fxLayout="row" fxLayoutGap="15px" style="width: 100%">
-    <mat-form-field appearance="outline" fxFlex="40" floatLabel="always">
-      <mat-label>Código o descripción</mat-label>
-      <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: M-OFF-01" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
+    <div fxFlex="45">
+      <mat-form-field style="width: 100%">
+        <mat-label>Código o descripción</mat-label>
+        <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: M-OFF-01" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
   </div>
 
   <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"

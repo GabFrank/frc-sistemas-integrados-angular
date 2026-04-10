@@ -9,6 +9,7 @@ import { Funcionario } from '../../../../../personas/funcionarios/funcionario.mo
 import { VehiculoService } from '../../service/vehiculo.service';
 import { EnteService } from '../../../../ente/service/ente.service';
 import { EnteSucursal } from '../../../../ente/models/ente-sucursal.model';
+import { TipoEnte } from '../../../../ente/enums/tipo-ente.enum';
 
 @UntilDestroy()
 @Component({
@@ -29,6 +30,7 @@ export class ListVehiculoSucursalComponent implements OnInit {
 
     sucursalControl = new FormControl(null);
     responsableControl = new FormControl('');
+    vehiculoControl = new FormControl('');
     sucursales: Sucursal[] = [];
 
     ngOnInit(): void {
@@ -66,6 +68,10 @@ export class ListVehiculoSucursalComponent implements OnInit {
         this.vehiculoService.refrescarSucursal();
     }
 
+    onSearchKeyUp(texto: string): void {
+        this.vehiculoService.setSearchTextSucursal(texto);
+    }
+
 
     handlePageEvent(event: PageEvent): void {
         this.vehiculoService.updatePaginationSucursal(event.pageIndex, event.pageSize);
@@ -81,9 +87,31 @@ export class ListVehiculoSucursalComponent implements OnInit {
         });
     }
 
+    onBuscarVehiculo(): void {
+        this.enteService.abrirBuscadorEnte(TipoEnte.VEHICULO).pipe(untilDestroyed(this)).subscribe(res => {
+            if (res) {
+                this.vehiculoControl.setValue(res.descripcion || '');
+                this.vehiculoService.setSearchTextSucursal(res.descripcion || '');
+                this.cdr.markForCheck();
+            }
+        });
+    }
+
+    resetResponsable(): void {
+        this.responsableControl.setValue('');
+        this.vehiculoService.setResponsableFilter(null);
+    }
+
+    resetVehiculo(): void {
+        this.vehiculoControl.setValue('');
+        this.vehiculoService.setSearchTextSucursal('');
+    }
+
     resetFiltro(): void {
         this.sucursalControl.setValue(null);
         this.responsableControl.setValue('');
+        this.vehiculoControl.setValue('');
+        this.vehiculoService.setSearchTextSucursal('');
         this.vehiculoService.setSucursalFilter(null);
         this.vehiculoService.setResponsableFilter(null);
     }
