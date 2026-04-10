@@ -32,7 +32,7 @@ export class EnteSucursalDialogComponent implements OnInit {
 
     form: FormGroup;
     sucursales: Sucursal[] = [];
-    tiposEnte = Object.values(TipoEnte).filter(v => v !== TipoEnte.INSTITUCION); // Filter out unused if any
+    tiposEnte = Object.values(TipoEnte).filter(v => v !== TipoEnte.INSTITUCION);
 
     isLoading = false;
     mostrarEnte = true;
@@ -43,7 +43,6 @@ export class EnteSucursalDialogComponent implements OnInit {
     selectedResponsable: Funcionario | null = null;
     responsableControlDisplay = new FormControl('');
 
-    // Form Controls
     tipoEnteControl = new FormControl<TipoEnte | null>(null, Validators.required);
     enteIdControl = new FormControl<number | null>(null, Validators.required);
     sucursalControl = new FormControl<number | null>(null, Validators.required);

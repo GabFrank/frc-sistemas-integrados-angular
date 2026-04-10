@@ -5,9 +5,6 @@
         </div>
         <div>
             <h2 class="titulo" style="margin: 0;">{{ vehiculo?.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h2>
-            <p class="sub-descripcion" style="margin: 0; opacity: 0.7; font-size: 0.9em;">
-                {{ vehiculo?.id ? 'ID: ' + vehiculo.id : 'Registro de activo según etapa 1' }}
-            </p>
         </div>
         <span fxFlex></span>
         <button mat-icon-button (click)="onCancelar()">
@@ -22,7 +19,6 @@
     <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
 
         <mat-tab-group>
-            <!-- DATOS PRINCIPALES (Ya existían + algunos nuevos) -->
             <mat-tab label="General">
                 <div fxLayout="column" fxLayoutGap="15px" style="padding-top: 15px;">
                     <div fxLayout="row" fxLayoutGap="20px">
@@ -108,14 +104,14 @@
                     <div fxLayout="row" fxLayoutGap="20px">
                         <mat-form-field fxFlex="50">
                             <mat-label>Estimado en Guaraní (PYG)</mat-label>
-                            <input matInput formControlName="valorEstimadoPyg"
-                                currencyMask [options]="currencyMask.currencyOptionsGuarani">
+                            <input matInput formControlName="valorEstimadoPyg" currencyMask
+                                [options]="currencyMask.currencyOptionsGuarani">
                             <span matPrefix>₲&nbsp;</span>
                         </mat-form-field>
                         <mat-form-field fxFlex="50">
                             <mat-label>Estimado en Real (BRL)</mat-label>
-                            <input matInput formControlName="valorEstimadoBrl"
-                                currencyMask [options]="currencyMask.currencyOptionsNoGuarani">
+                            <input matInput formControlName="valorEstimadoBrl" currencyMask
+                                [options]="currencyMask.currencyOptionsNoGuarani">
                             <span matPrefix>R$&nbsp;</span>
                         </mat-form-field>
                     </div>
