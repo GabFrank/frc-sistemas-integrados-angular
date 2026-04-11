@@ -1,18 +1,21 @@
 <div class="page-container" fxLayout="row" fxLayoutAlign="center start">
   <mat-card class="form-card" fxFlex="90%" fxFlex.gt-md="70%">
-    <!-- Header -->
-    <div class="header-section" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-      <div class="icon-circle">
+    <div class="header-section" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="24px">
+      <div class="icon-circle shadow-lg">
         <mat-icon>request_quote</mat-icon>
       </div>
       <div fxLayout="column">
         <h2 class="form-title">Nueva Solicitud de Gasto</h2>
-        <span class="form-subtitle" *ngIf="tieneDatosBien">
-          Solicitud vinculada a {{ data.tipoBien | uppercase }} - {{ data.bienDescripcion }}
-        </span>
-        <span class="form-subtitle" *ngIf="!tieneDatosBien">
-          Complete la información para generar un nuevo pre-gasto
-        </span>
+        <div class="form-subtitle-container" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #ff9800;"
+            *ngIf="tieneDatosBien">link</mat-icon>
+          <span class="form-subtitle" *ngIf="tieneDatosBien">
+            Vinculada a {{ data.tipoBien | uppercase }} — {{ data.bienDescripcion }}
+          </span>
+          <span class="form-subtitle" *ngIf="!tieneDatosBien">
+            Información general para nuevo gasto
+          </span>
+        </div>
       </div>
     </div>
 
@@ -46,9 +49,7 @@
       </div>
     </div>
 
-    <!-- ===================== PASO 0: INFORMACIÓN DEL BIEN ===================== -->
     <div class="paso-contenido" *ngIf="pasoActual === 0">
-      <!-- Resumen del bien vinculado -->
       <div class="bien-resumen-card" *ngIf="tieneDatosBien">
         <div class="bien-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
           <div class="bien-icono-contenedor">
@@ -60,18 +61,18 @@
             <span class="bien-ref">Ref. #{{ data.referenciaId }} — Ente #{{ data.enteId }}</span>
           </div>
           <div class="estado-cuota-badge" [style.background-color]="colorEstadoCuota() + '22'"
-            [style.color]="colorEstadoCuota()" *ngIf="data.estadoCuota">
+            [style.color]="colorEstadoCuota()" *ngIf="motivoGastoControl.value === 'CUOTA' && data.estadoCuota">
             {{ data.estadoCuota }}
           </div>
         </div>
 
-        <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento"
+        <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento && motivoGastoControl.value === 'CUOTA'"
           [style.background-color]="colorEstadoCuota() + '15'" [style.border-left-color]="colorEstadoCuota()">
           <mat-icon [style.color]="colorEstadoCuota()">info</mat-icon>
           <span [style.color]="colorEstadoCuota()">{{ notificacionVencimiento }}</span>
         </div>
 
-        <div class="bien-financiero-grid">
+        <div class="bien-financiero-grid" *ngIf="motivoGastoControl.value === 'CUOTA'">
           <div class="financiero-item">
             <span class="financiero-label">Monto Total</span>
             <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:precisionDisplay
@@ -93,7 +94,7 @@
           </div>
         </div>
 
-        <div class="progreso-pago">
+        <div class="progreso-pago" *ngIf="motivoGastoControl.value === 'CUOTA'">
           <div fxLayout="row" fxLayoutAlign="space-between center" class="progreso-header">
             <span class="progreso-label">Progreso de pago</span>
             <span class="progreso-porcentaje">{{ porcentajePagado() }}%</span>
@@ -103,7 +104,8 @@
           </div>
         </div>
 
-        <div class="cuotas-seccion" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+        <div class="cuotas-seccion"
+          *ngIf="motivoGastoControl.value === 'CUOTA' && data.cuotasTotales && data.cuotasTotales > 0">
           <span class="seccion-mini-titulo">
             <mat-icon class="seccion-mini-icono">event_note</mat-icon>
             Plan de Cuotas
@@ -141,7 +143,7 @@
             </span>
             <span class="proveedor-nombre">{{ data.proveedor }}</span>
           </div>
-          <div class="situacion-seccion" fxFlex *ngIf="data.situacionPago">
+          <div class="situacion-seccion" fxFlex *ngIf="motivoGastoControl.value === 'CUOTA' && data.situacionPago">
             <span class="seccion-mini-titulo">
               <mat-icon class="seccion-mini-icono">info</mat-icon>
               Situación
@@ -150,9 +152,27 @@
               [class.situacion-pagado]="data.situacionPago === 'PAGADO'">{{ data.situacionPago }}</span>
           </div>
         </div>
+
+        <!-- Selección de Motivo del Gasto -->
+        <div class="motivo-seleccion-container">
+          <span class="seccion-mini-titulo">
+            <mat-icon class="seccion-mini-icono">auto_fix_high</mat-icon>
+            ¿Qué desea registrar para este activo?
+          </span>
+          <div class="motivo-grid" fxLayout="row wrap" fxLayoutGap="12px">
+            <div *ngFor="let motivo of listaMotivos" class="motivo-card"
+              [class.active]="motivoGastoControl.value === motivo.valor"
+              (click)="motivoGastoControl.setValue(motivo.valor)" fxFlex="calc(20% - 12px)"
+              fxFlex.lt-lg="calc(33.33% - 12px)" fxFlex.lt-md="calc(50% - 12px)">
+              <div class="motivo-icon-wrapper">
+                <mat-icon>{{ motivo.icono }}</mat-icon>
+              </div>
+              <span class="motivo-label">{{ motivo.etiqueta }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Sin bien vinculado -->
       <div class="sin-bien-info" *ngIf="!tieneDatosBien">
         <mat-icon class="sin-bien-icono">info</mat-icon>
         <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
@@ -180,6 +200,7 @@
         </div>
       </div>
     </div>
+
     <div class="paso-contenido" *ngIf="pasoActual === 1">
       <div fxLayout="column" fxLayoutGap="20px" class="formulario-seccions">
         <div fxLayout="row" fxLayoutGap="20px">
@@ -206,7 +227,6 @@
             </mat-form-field>
           </div>
 
-          <!-- Solicitante -->
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
               <mat-icon class="seccion-mini-icono">person</mat-icon>
@@ -225,7 +245,6 @@
           </div>
         </div>
 
-        <!-- Descripción / Concepto -->
         <div class="dialogo-seccion">
           <span class="dialogo-seccion-titulo">
             <mat-icon class="seccion-mini-icono">description</mat-icon>
@@ -241,7 +260,6 @@
         </div>
 
         <div fxLayout="row" fxLayoutGap="20px">
-          <!-- Información Financiera -->
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
               <mat-icon class="seccion-mini-icono">payments</mat-icon>
@@ -262,7 +280,8 @@
                 <input matInput type="text" currencyMask [options]="selectedCurrencyOptions"
                   [formControl]="montoControl" placeholder="0" />
                 <mat-icon matSuffix>payments</mat-icon>
-                <mat-error *ngIf="data?.montoPendiente && montoControl.value > data.montoPendiente">
+                <mat-error
+                  *ngIf="motivoGastoControl.value === 'CUOTA' && data?.montoPendiente && montoControl.value > data.montoPendiente">
                   Excede el saldo pendiente ({{ data.montoPendiente | number:precisionDisplay }})
                 </mat-error>
               </mat-form-field>
@@ -271,17 +290,18 @@
 
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
-              <mat-icon class="seccion-mini-icono">store</mat-icon>
-              Sucursal de Retiro
+              <mat-icon>store</mat-icon>
+              Punto de Retiro
             </span>
             <mat-form-field appearance="outline" style="width: 100%;">
-              <mat-label>Sucursal de Retiro *</mat-label>
+              <mat-label>Sucursal de Caja / Retiro *</mat-label>
               <mat-select [formControl]="sucursalControl">
                 <mat-option *ngFor="let sucursal of listaSucursales" [value]="sucursal.id">
                   {{ sucursal.nombre }}
                 </mat-option>
               </mat-select>
-              <mat-icon matSuffix>store</mat-icon>
+              <mat-icon matSuffix>location_on</mat-icon>
+              <mat-hint>Indique dónde se retirará el monto</mat-hint>
             </mat-form-field>
           </div>
         </div>
@@ -378,7 +398,7 @@
               <span class="label">Proveedor:</span>
               <span class="value">{{ data.proveedor }}</span>
             </div>
-            <div class="confirm-row" *ngIf="data.cuotasTotales > 0">
+            <div class="confirm-row" *ngIf="motivoGastoControl.value === 'CUOTA' && data.cuotasTotales > 0">
               <span class="label">Cuota:</span>
               <span class="value success">{{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
             </div>
@@ -407,7 +427,7 @@
         </div>
 
         <div class="warning-banner"
-          *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+          *ngIf="tieneDatosBien && motivoGastoControl.value === 'CUOTA' && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
           <mat-icon>warning</mat-icon>
           <span>Atención: El monto solicitado supera el saldo pendiente del bien ({{ data.montoPendiente |
             number:precisionDisplay }}).</span>

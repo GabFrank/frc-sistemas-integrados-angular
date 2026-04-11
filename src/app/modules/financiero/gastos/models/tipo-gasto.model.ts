@@ -13,6 +13,8 @@ export class TipoGasto {
     creadoEn: Date
     subtipoList: TipoGasto[] = []
     usuario: Usuario
+    afectaFinanzasActivo?: boolean;
+    esPagoCuotaActivo?: boolean;
 }
 
 export class TipoGastoInput {
@@ -24,6 +26,8 @@ export class TipoGastoInput {
     autorizacion: boolean
     cargoId: number
     activo: boolean
+    afectaFinanzasActivo?: boolean;
+    esPagoCuotaActivo?: boolean;
     creadoEn: Date
     usuarioId: number
 }

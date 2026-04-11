@@ -60,7 +60,17 @@ export class AdicionarPreGastoComponent implements OnInit {
   solicitanteControl = new FormControl(null);
   numeroCuotaControl = new FormControl({ value: null, disabled: true });
   tipoBienControl = new FormControl(null);
+  motivoGastoControl = new FormControl('CUOTA');
+  lastResumen: any = null;
   tiposEnte = [TipoEnte.VEHICULO, TipoEnte.INMUEBLE, TipoEnte.MUEBLE];
+
+  listaMotivos = [
+    { valor: 'CUOTA', etiqueta: 'Pago de Cuota / Deuda', icono: 'event_note' },
+    { valor: 'MANTENIMIENTO', etiqueta: 'Mantenimiento / Reparación', icono: 'build' },
+    { valor: 'REPUESTO', etiqueta: 'Compra de Repuesto', icono: 'settings' },
+    { valor: 'IMPUESTO', etiqueta: 'Impuesto / Tasa', icono: 'account_balance' },
+    { valor: 'OTRO', etiqueta: 'Otro Gasto del Activo', icono: 'more_horiz' },
+  ];
 
   listaTipoGasto: TipoGasto[] = [];
   listaMonedas: Moneda[] = [];
@@ -173,6 +183,10 @@ export class AdicionarPreGastoComponent implements OnInit {
       }
       this.cdr.markForCheck();
     });
+
+    this.motivoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(motivo => {
+      this.actualizarCamposPorMotivo(motivo);
+    });
   }
 
   guardado = false;
@@ -186,7 +200,7 @@ export class AdicionarPreGastoComponent implements OnInit {
 
     if (!isValid) return false;
 
-    if (this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
+    if (this.motivoGastoControl.value === 'CUOTA' && this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
       if (typeof this.montoControl.value === 'number' && this.montoControl.value > this.data.montoPendiente) {
         return false;
       }
@@ -389,61 +403,47 @@ export class AdicionarPreGastoComponent implements OnInit {
       .subscribe(res => {
         this.cargandoBien = false;
         const resumen = res.data.data;
-        if (resumen) {
-          this.bienSeleccionadoDescripcion = resumen.descripcion;
-          if (!this.data) this.data = {};
+          if (resumen) {
+            this.lastResumen = resumen;
+            this.bienSeleccionadoDescripcion = resumen.descripcion;
+            if (!this.data) this.data = {};
 
-          this.data.enteId = resumen.enteId;
-          this.data.bienDescripcion = resumen.descripcion;
-          this.data.proveedor = resumen.proveedorNombre;
-          this.data.montoTotal = resumen.montoTotal;
-          this.data.montoYaPagado = resumen.montoYaPagado;
-          this.data.montoPendiente = resumen.montoPendiente;
-          this.data.cuotasTotales = resumen.cuotasTotales;
-          this.data.cuotasPagadas = resumen.cuotasPagadas;
-          this.data.cuotasFaltantes = resumen.cuotasFaltantes;
-          this.data.diaVencimiento = resumen.diaVencimiento;
-          this.data.diasParaVencer = resumen.diasParaVencer;
-          this.data.estadoCuota = resumen.estadoCuota;
-          this.data.monedaSimbolo = resumen.monedaSimbolo;
-          this.data.situacionPago = resumen.situacionPago;
+            this.data.enteId = resumen.enteId;
+            this.data.bienDescripcion = resumen.descripcion;
+            this.data.proveedor = resumen.proveedorNombre;
+            this.data.montoTotal = resumen.montoTotal;
+            this.data.montoYaPagado = resumen.montoYaPagado;
+            this.data.montoPendiente = resumen.montoPendiente;
+            this.data.cuotasTotales = resumen.cuotasTotales;
+            this.data.cuotasPagadas = resumen.cuotasPagadas;
+            this.data.cuotasFaltantes = resumen.cuotasFaltantes;
+            this.data.diaVencimiento = resumen.diaVencimiento;
+            this.data.diasParaVencer = resumen.diasParaVencer;
+            this.data.estadoCuota = resumen.estadoCuota;
+            this.data.monedaSimbolo = resumen.monedaSimbolo;
+            this.data.situacionPago = resumen.situacionPago;
 
-          if (resumen.monedaId) {
-            this.monedaControl.setValue(resumen.monedaId);
-          }
-
-          if (resumen.proveedorNombre) {
-            this.beneficiarioControl.setValue(resumen.proveedorNombre);
-          }
-
-          if (resumen.montoSugerido && !this.montoControl.value) {
-            this.montoControl.setValue(resumen.montoSugerido);
-          }
-
-          if (resumen.tipoGastoSugeridoId) {
-            const tipoGastoAutoSeleccion = this.listaTipoGasto.find(
-              tg => tg.tipoNaturaleza === resumen.tipoGastoSugeridoId
-            );
-            if (tipoGastoAutoSeleccion) {
-              this.tipoGastoControl.setValue(tipoGastoAutoSeleccion.id);
+            if (resumen.monedaId) {
+              this.monedaControl.setValue(resumen.monedaId);
             }
-          }
 
-          if (resumen.descripcionSugerida && !this.descripcionControl.value) {
-            this.descripcionControl.setValue(resumen.descripcionSugerida);
-          }
-
-          if (resumen.diasParaVencer != null) {
-            const dias = resumen.diasParaVencer;
-            if (dias < 0) {
-              this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
-            } else if (dias <= 10) {
-              this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
-            } else {
-              this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+            if (resumen.proveedorNombre) {
+              this.beneficiarioControl.setValue(resumen.proveedorNombre);
             }
+
+            if (resumen.diasParaVencer != null) {
+              const dias = resumen.diasParaVencer;
+              if (dias < 0) {
+                this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
+              } else if (dias <= 10) {
+                this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
+              } else {
+                this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+              }
+            }
+
+            this.actualizarCamposPorMotivo(this.motivoGastoControl.value);
           }
-        }
         this.cdr.markForCheck();
       }, () => {
         this.cargandoBien = false;
@@ -468,5 +468,43 @@ export class AdicionarPreGastoComponent implements OnInit {
       this.selectedCurrencyOptions = this.currencyMask.currencyOptionsNoGuarani;
       this.precisionDisplay = '1.0-2';
     }
+  }
+
+  actualizarCamposPorMotivo(motivo: string): void {
+    if (!this.lastResumen) return;
+    const resumen = this.lastResumen;
+
+    if (motivo === 'CUOTA') {
+      this.montoControl.setValue(resumen.montoSugerido);
+      this.descripcionControl.setValue(resumen.descripcionSugerida);
+      if (resumen.tipoGastoSugeridoId) {
+        const tipoGasto = this.listaTipoGasto.find(tg => tg.tipoNaturaleza === resumen.tipoGastoSugeridoId);
+        if (tipoGasto) this.tipoGastoControl.setValue(tipoGasto.id);
+      }
+    } else {
+      this.montoControl.reset();
+      let prefijo = '';
+      let tipoBusqueda = '';
+
+      switch (motivo) {
+        case 'MANTENIMIENTO':
+          prefijo = 'Mantenimiento - ';
+          tipoBusqueda = 'MANTENIMIENTO';
+          break;
+        case 'REPUESTO':
+          prefijo = 'Repuestos - ';
+          tipoBusqueda = 'REPUESTO';
+          break;
+        case 'IMPUESTO':
+          prefijo = 'Impuestos - ';
+          tipoBusqueda = 'IMPUESTO';
+          break;
+      }
+
+      this.descripcionControl.setValue(`${prefijo}${resumen.descripcion}`);
+      const tipoGasto = this.listaTipoGasto.find(tg => tg.descripcion.toUpperCase().includes(tipoBusqueda));
+      if (tipoGasto) this.tipoGastoControl.setValue(tipoGasto.id);
+    }
+    this.cdr.markForCheck();
   }
 }
