@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { PageEvent } from '@angular/material/paginator';
 import { FormControl, Validators } from '@angular/forms';
 import { GastoService } from '../../service/gasto.service';
 import { PreGasto, PreGastoInput } from '../../models/pre-gasto.model';
@@ -66,6 +67,10 @@ export class AdicionarPreGastoComponent implements OnInit {
 
   displayedColumns: string[] = ['ref', 'descripcion', 'acciones'];
   ultimasSolicitudes: PreGasto[] = [];
+  
+  totalElementos = 0;
+  paginaActual = 0;
+  tamanoPagina = 15;
 
   listaMotivos = [
     { valor: 'CUOTA', etiqueta: 'Pago de Cuota / Deuda', icono: 'event_note' },
@@ -275,14 +280,21 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   cargarUltimasSolicitudes(): void {
-    this.gastoService.preGastoFilter(undefined, undefined, undefined, undefined, 0, 5)
+    this.gastoService.preGastoFilter(undefined, undefined, undefined, undefined, this.paginaActual, this.tamanoPagina)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        if (res && res.getContent) {
-          this.ultimasSolicitudes = res.getContent;
+        if (res) {
+          this.ultimasSolicitudes = res.getContent || [];
+          this.totalElementos = res.getTotalElements || 0;
           this.cdr.markForCheck();
         }
       });
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.paginaActual = event.pageIndex;
+    this.tamanoPagina = event.pageSize;
+    this.cargarUltimasSolicitudes();
   }
 
   nuevaSolicitud(): void {
