@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { GastoService } from '../../service/gasto.service';
-import { PreGastoInput } from '../../models/pre-gasto.model';
+import { PreGasto, PreGastoInput } from '../../models/pre-gasto.model';
 import { TipoGasto } from '../../models/tipo-gasto.model';
 import { MonedaService } from '../../../moneda/moneda.service';
 import { Moneda } from '../../../moneda/moneda.model';
@@ -64,6 +64,9 @@ export class AdicionarPreGastoComponent implements OnInit {
   lastResumen: any = null;
   tiposEnte = [TipoEnte.VEHICULO, TipoEnte.INMUEBLE, TipoEnte.MUEBLE];
 
+  displayedColumns: string[] = ['ref', 'descripcion', 'acciones'];
+  ultimasSolicitudes: PreGasto[] = [];
+
   listaMotivos = [
     { valor: 'CUOTA', etiqueta: 'Pago de Cuota / Deuda', icono: 'event_note' },
     { valor: 'MANTENIMIENTO', etiqueta: 'Mantenimiento / Reparación', icono: 'build' },
@@ -107,9 +110,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     if (tabData) {
       this.data = tabData;
       this.tieneDatosBien = !!(this.data && this.data.enteId);
-      if (!this.tieneDatosBien) {
-        this.pasoActual = 1;
-      }
+      this.pasoActual = 0;
       if (this.data.descripcion) {
         this.descripcionControl.setValue(this.data.descripcion);
       }
@@ -126,8 +127,10 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.beneficiarioControl.setValue(this.data.proveedor);
       }
     } else {
-      this.pasoActual = 1;
+      this.pasoActual = 0;
     }
+
+    this.cargarUltimasSolicitudes();
 
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
@@ -243,6 +246,7 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.guardado = true;
         this.idPreGastoGuardado = Number(res.id);
         this.sucursalIdPreGastoGuardado = Number(res.sucursalId);
+        this.cargarUltimasSolicitudes();
         this.cdr.markForCheck();
       }
     });
@@ -257,6 +261,28 @@ export class AdicionarPreGastoComponent implements OnInit {
         }
       });
     }
+  }
+
+  reimprimir(id: number, sucursalId: number): void {
+    if (id) {
+      this.gastoService.preGastoImprimir(id, sucursalId || 0).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.reporteService.onAdd('Solicitud de Gasto ' + id, res);
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListPreGastosComponent));
+        }
+      });
+    }
+  }
+
+  cargarUltimasSolicitudes(): void {
+    this.gastoService.preGastoFilter(undefined, undefined, undefined, undefined, 0, 5)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res && res.getContent) {
+          this.ultimasSolicitudes = res.getContent;
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   nuevaSolicitud(): void {
@@ -282,8 +308,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.solicitanteControl.reset();
     this.tipoBienControl.reset();
 
-    this.pasoActual = this.tieneDatosBien ? 0 : 1;
-    this.pasoActual = 1;
+    this.pasoActual = 0;
 
     this.cdr.markForCheck();
   }
@@ -293,20 +318,41 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   irAPaso(paso: number): void {
-    this.pasoActual = paso;
-    this.cdr.markForCheck();
+    if (this.isStepVisible(paso)) {
+      this.pasoActual = paso;
+      this.cdr.markForCheck();
+    }
+  }
+
+  isStepVisible(step: number): boolean {
+    if (step === 1) {
+      return this.tieneDatosBien && this.motivoGastoControl.value === 'CUOTA';
+    }
+    return true;
+  }
+
+  getStepNumber(step: number): number {
+    let num = 0;
+    for (let i = 0; i <= step; i++) {
+       if (this.isStepVisible(i)) num++;
+    }
+    return num;
   }
 
   pasoSiguiente(): void {
-    if (this.pasoActual < 2) {
-      this.pasoActual++;
+    if (this.pasoActual < 5) {
+      let next = this.pasoActual + 1;
+      while (!this.isStepVisible(next) && next <= 5) next++;
+      this.pasoActual = next;
       this.cdr.markForCheck();
     }
   }
 
   pasoAnterior(): void {
     if (this.pasoActual > 0) {
-      this.pasoActual--;
+      let prev = this.pasoActual - 1;
+      while (!this.isStepVisible(prev) && prev >= 0) prev--;
+      this.pasoActual = prev;
       this.cdr.markForCheck();
     }
   }
@@ -481,8 +527,12 @@ export class AdicionarPreGastoComponent implements OnInit {
         const tipoGasto = this.listaTipoGasto.find(tg => tg.tipoNaturaleza === resumen.tipoGastoSugeridoId);
         if (tipoGasto) this.tipoGastoControl.setValue(tipoGasto.id);
       }
+      if (resumen.proveedorNombre) {
+        this.beneficiarioControl.setValue(resumen.proveedorNombre);
+      }
     } else {
       this.montoControl.reset();
+      this.beneficiarioControl.reset();
       let prefijo = '';
       let tipoBusqueda = '';
 

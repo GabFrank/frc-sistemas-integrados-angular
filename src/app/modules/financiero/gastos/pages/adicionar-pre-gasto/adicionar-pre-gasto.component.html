@@ -1,5 +1,5 @@
-<div class="page-container" fxLayout="row" fxLayoutAlign="center start">
-  <mat-card class="form-card" fxFlex="90%" fxFlex.gt-md="70%">
+<div class="page-container" fxLayout="row" fxLayoutAlign="start stretch" fxLayoutGap="24px">
+  <div class="form-container" fxFlex="65%" fxFlex.lt-lg="60%" fxFlex.lt-md="100%" fxLayout="column">
     <div class="header-section" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="24px">
       <div class="icon-circle shadow-lg">
         <mat-icon>request_quote</mat-icon>
@@ -7,8 +7,7 @@
       <div fxLayout="column">
         <h2 class="form-title">Nueva Solicitud de Gasto</h2>
         <div class="form-subtitle-container" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
-          <mat-icon style="font-size: 16px; width: 16px; height: 16px;"
-            *ngIf="tieneDatosBien">link</mat-icon>
+          <mat-icon style="font-size: 16px; width: 16px; height: 16px;" *ngIf="tieneDatosBien">link</mat-icon>
           <span class="form-subtitle" *ngIf="tieneDatosBien">
             Vinculada a {{ data.tipoBien | uppercase }} — {{ data.bienDescripcion }}
           </span>
@@ -20,32 +19,59 @@
     </div>
 
     <mat-divider></mat-divider>
-
-    <!-- Indicador de pasos -->
     <div class="pasos-indicador" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="0">
-      <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0"
-        (click)="irAPaso(0)">
+      <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0" (click)="irAPaso(0)">
         <div class="paso-circulo">
           <mat-icon *ngIf="pasoActual > 0">check</mat-icon>
           <span *ngIf="pasoActual <= 0">1</span>
         </div>
-        <span class="paso-etiqueta">Bien / Activo</span>
+        <span class="paso-etiqueta">Activo</span>
       </div>
-      <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
-      <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1"
-        (click)="irAPaso(1)">
-        <div class="paso-circulo">
-          <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
-          <span *ngIf="pasoActual <= 1">2</span>
+      
+      <ng-container *ngIf="isStepVisible(1)">
+        <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
+        <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1" (click)="irAPaso(1)">
+          <div class="paso-circulo">
+            <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
+            <span *ngIf="pasoActual <= 1">{{ getStepNumber(1) }}</span>
+          </div>
+          <span class="paso-etiqueta">Estado</span>
         </div>
-        <span class="paso-etiqueta">Datos del Gasto</span>
+      </ng-container>
+
+      <div class="paso-linea" [class.linea-activa]="pasoActual > (isStepVisible(1) ? 1 : 0)"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 2" [class.paso-completado]="pasoActual > 2" (click)="irAPaso(2)">
+        <div class="paso-circulo">
+          <mat-icon *ngIf="pasoActual > 2">check</mat-icon>
+          <span *ngIf="pasoActual <= 2">{{ getStepNumber(2) }}</span>
+        </div>
+        <span class="paso-etiqueta">General</span>
       </div>
-      <div class="paso-linea" [class.linea-activa]="pasoActual > 1"></div>
-      <div class="paso-item" [class.paso-activo]="pasoActual === 2">
+      
+      <div class="paso-linea" [class.linea-activa]="pasoActual > 2"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 3" [class.paso-completado]="pasoActual > 3" (click)="irAPaso(3)">
         <div class="paso-circulo">
-          <span>3</span>
+          <mat-icon *ngIf="pasoActual > 3">check</mat-icon>
+          <span *ngIf="pasoActual <= 3">{{ getStepNumber(3) }}</span>
         </div>
-        <span class="paso-etiqueta">Confirmación</span>
+        <span class="paso-etiqueta">Finanzas</span>
+      </div>
+
+      <div class="paso-linea" [class.linea-activa]="pasoActual > 3"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 4" [class.paso-completado]="pasoActual > 4" (click)="irAPaso(4)">
+        <div class="paso-circulo">
+          <mat-icon *ngIf="pasoActual > 4">check</mat-icon>
+          <span *ngIf="pasoActual <= 4">{{ getStepNumber(4) }}</span>
+        </div>
+        <span class="paso-etiqueta">Opciones</span>
+      </div>
+
+      <div class="paso-linea" [class.linea-activa]="pasoActual > 4"></div>
+      <div class="paso-item" [class.paso-activo]="pasoActual === 5">
+        <div class="paso-circulo">
+          <span>{{ getStepNumber(5) }}</span>
+        </div>
+        <span class="paso-etiqueta">Confirmar</span>
       </div>
     </div>
 
@@ -64,15 +90,66 @@
             [style.color]="colorEstadoCuota()" *ngIf="motivoGastoControl.value === 'CUOTA' && data.estadoCuota">
             {{ data.estadoCuota }}
           </div>
+          <button mat-icon-button (click)="limpiarBienSeleccionado()" matTooltip="Desvincular Activo" style="color: rgba(255,255,255,0.5);">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
 
-        <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento && motivoGastoControl.value === 'CUOTA'"
+        <div class="motivo-seleccion-container" style="margin-top: 15px;">
+          <span class="seccion-mini-titulo">
+            <mat-icon class="seccion-mini-icono">auto_fix_high</mat-icon>
+            ¿Qué desea registrar para este activo?
+          </span>
+          <div class="motivo-grid" fxLayout="row wrap" fxLayoutGap="12px">
+            <div *ngFor="let motivo of listaMotivos" class="motivo-card"
+              [class.active]="motivoGastoControl.value === motivo.valor"
+              (click)="motivoGastoControl.setValue(motivo.valor)" fxFlex="calc(20% - 12px)"
+              fxFlex.lt-lg="calc(33.33% - 12px)" fxFlex.lt-md="calc(50% - 12px)">
+              <div class="motivo-icon-wrapper">
+                <mat-icon>{{ motivo.icono }}</mat-icon>
+              </div>
+              <span class="motivo-label">{{ motivo.etiqueta }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sin-bien-info" *ngIf="!tieneDatosBien">
+        <mat-icon class="sin-bien-icono">info</mat-icon>
+        <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
+        <p class="sin-bien-subtexto">Puede vincular un bien ahora o continuar sin uno:</p>
+
+        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="15px" style="margin-top: 24px;">
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('INMUEBLE')" type="button">
+            <mat-icon>domain</mat-icon>
+            Inmueble
+          </button>
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('VEHICULO')" type="button">
+            <mat-icon>directions_car</mat-icon>
+            Vehículo
+          </button>
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('MUEBLE')" type="button">
+            <mat-icon>chair</mat-icon>
+            Mueble
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso-contenido" *ngIf="pasoActual === 1">
+      <div class="bien-resumen-card">
+        <div class="bien-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px" style="margin-bottom: 20px;">
+          <mat-icon class="bien-icono" style="font-size: 20px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); padding: 5px;">{{ iconoTipoBien() }}</mat-icon>
+          <span class="bien-nombre" style="font-size: 16px; margin-left: 8px;">{{ data.bienDescripcion }}</span>
+        </div>
+
+        <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento"
           [style.background-color]="colorEstadoCuota() + '15'" [style.border-left-color]="colorEstadoCuota()">
           <mat-icon [style.color]="colorEstadoCuota()">info</mat-icon>
           <span [style.color]="colorEstadoCuota()">{{ notificacionVencimiento }}</span>
         </div>
 
-        <div class="bien-financiero-grid" *ngIf="motivoGastoControl.value === 'CUOTA'">
+        <div class="bien-financiero-grid">
           <div class="financiero-item">
             <span class="financiero-label">Monto Total</span>
             <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:precisionDisplay
@@ -90,11 +167,11 @@
           </div>
           <div class="financiero-item" *ngIf="data.diaVencimiento">
             <span class="financiero-label">Siguiente Vencimiento</span>
-            <span class="financiero-valor">Día {{ data.diaVencimiento }} (en {{ diasParaVencer }} días)</span>
+            <span class="financiero-valor">Día {{ data.diaVencimiento }} (en {{ data.diasParaVencer }} días)</span>
           </div>
         </div>
 
-        <div class="progreso-pago" *ngIf="motivoGastoControl.value === 'CUOTA'">
+        <div class="progreso-pago">
           <div fxLayout="row" fxLayoutAlign="space-between center" class="progreso-header">
             <span class="progreso-label">Progreso de pago</span>
             <span class="progreso-porcentaje">{{ porcentajePagado() }}%</span>
@@ -104,8 +181,7 @@
           </div>
         </div>
 
-        <div class="cuotas-seccion"
-          *ngIf="motivoGastoControl.value === 'CUOTA' && data.cuotasTotales && data.cuotasTotales > 0">
+        <div class="cuotas-seccion" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
           <span class="seccion-mini-titulo">
             <mat-icon class="seccion-mini-icono">event_note</mat-icon>
             Plan de Cuotas
@@ -143,7 +219,7 @@
             </span>
             <span class="proveedor-nombre">{{ data.proveedor }}</span>
           </div>
-          <div class="situacion-seccion" fxFlex *ngIf="motivoGastoControl.value === 'CUOTA' && data.situacionPago">
+          <div class="situacion-seccion" fxFlex *ngIf="data.situacionPago">
             <span class="seccion-mini-titulo">
               <mat-icon class="seccion-mini-icono">info</mat-icon>
               Situación
@@ -152,56 +228,10 @@
               [class.situacion-pagado]="data.situacionPago === 'PAGADO'">{{ data.situacionPago }}</span>
           </div>
         </div>
-
-        <!-- Selección de Motivo del Gasto -->
-        <div class="motivo-seleccion-container">
-          <span class="seccion-mini-titulo">
-            <mat-icon class="seccion-mini-icono">auto_fix_high</mat-icon>
-            ¿Qué desea registrar para este activo?
-          </span>
-          <div class="motivo-grid" fxLayout="row wrap" fxLayoutGap="12px">
-            <div *ngFor="let motivo of listaMotivos" class="motivo-card"
-              [class.active]="motivoGastoControl.value === motivo.valor"
-              (click)="motivoGastoControl.setValue(motivo.valor)" fxFlex="calc(20% - 12px)"
-              fxFlex.lt-lg="calc(33.33% - 12px)" fxFlex.lt-md="calc(50% - 12px)">
-              <div class="motivo-icon-wrapper">
-                <mat-icon>{{ motivo.icono }}</mat-icon>
-              </div>
-              <span class="motivo-label">{{ motivo.etiqueta }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="sin-bien-info" *ngIf="!tieneDatosBien">
-        <mat-icon class="sin-bien-icono">info</mat-icon>
-        <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
-        <p class="sin-bien-subtexto">Puede vincular un bien ahora o continuar sin uno:</p>
-        <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="15px" style="margin-top: 25px; width: 100%;">
-          <button mat-flat-button color="primary" (click)="abrirBuscadorBienGenerico()" type="button"
-            style="padding: 10px 30px;">
-            <mat-icon>search</mat-icon>
-            BUSCAR BIEN / ACTIVO
-          </button>
-          <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="15px">
-            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('INMUEBLE')" type="button">
-              <mat-icon>domain</mat-icon>
-              Inmueble
-            </button>
-            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('VEHICULO')" type="button">
-              <mat-icon>directions_car</mat-icon>
-              Vehículo
-            </button>
-            <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('MUEBLE')" type="button">
-              <mat-icon>chair</mat-icon>
-              Mueble
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div class="paso-contenido" *ngIf="pasoActual === 1">
+    <div class="paso-contenido" *ngIf="pasoActual === 2">
       <div fxLayout="column" fxLayoutGap="20px" class="formulario-seccions">
         <div fxLayout="row" fxLayoutGap="20px">
           <div class="dialogo-seccion" fxFlex="50%">
@@ -258,7 +288,11 @@
             <mat-hint align="end">{{ descripcionControl.value?.length || 0 }} / 500</mat-hint>
           </mat-form-field>
         </div>
+      </div>
+    </div>
 
+    <div class="paso-contenido" *ngIf="pasoActual === 3">
+      <div fxLayout="column" fxLayoutGap="20px" class="formulario-seccions">
         <div fxLayout="row" fxLayoutGap="20px">
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
@@ -305,78 +339,54 @@
             </mat-form-field>
           </div>
         </div>
-        <div class="dialogo-seccion">
-          <span class="dialogo-seccion-titulo">
-            <mat-icon class="seccion-mini-icono">tune</mat-icon>
-            Opciones Adicionales
-          </span>
-          <div fxLayout="row wrap" fxLayoutGap="20px">
-            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-              <mat-label>Forma de Pago Sugerida</mat-label>
-              <mat-select [formControl]="formaPagoControl">
-                <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
-                  <mat-icon>{{ fp.icono }}</mat-icon>
-                  {{ fp.etiqueta }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-              <mat-label>Nivel de Urgencia</mat-label>
-              <mat-select [formControl]="urgenciaControl">
-                <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
-                  <span [style.color]="nivel.color">●</span>
-                  {{ nivel.etiqueta }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-              <mat-label>Beneficiario (si aplica)</mat-label>
-              <input matInput [formControl]="beneficiarioControl"
-                placeholder="Se auto-completa al seleccionar un bien" />
-              <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
-              <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
-            </mat-form-field>
-          </div>
-
-          <div *ngIf="!tieneDatosBien" style="margin-top: 10px;">
-            <span class="sub-label">Vincular un activo (opcional):</span>
-            <div fxLayout="row" fxLayoutGap="15px" style="margin-top: 8px;">
-              <mat-form-field appearance="outline" fxFlex="30%">
-                <mat-label>Tipo de Activo</mat-label>
-                <mat-select [formControl]="tipoBienControl">
-                  <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">{{ tipo }}</mat-option>
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" fxFlex (click)="abrirBuscadorBienGenerico()"
-                [class.field-disabled]="!tipoBienControl.value">
-                <mat-label>Buscar Activo</mat-label>
-                <input matInput readonly placeholder="Seleccione tipo primero..." [disabled]="!tipoBienControl.value" />
-                <mat-icon matSuffix>search</mat-icon>
-              </mat-form-field>
-            </div>
-          </div>
-
-          <div *ngIf="enteSeleccionado" class="bien-vinculado-banner" fxLayout="row" fxLayoutAlign="start center"
-            fxLayoutGap="15px">
-            <mat-icon class="banner-icon">{{ iconoTipoBien() }}</mat-icon>
-            <div fxLayout="column" fxFlex>
-              <span class="banner-tipo">{{ enteSeleccionado.tipoEnte | uppercase }} VINCULADO</span>
-              <span class="banner-desc">{{ bienSeleccionadoDescripcion }}</span>
-            </div>
-            <button mat-icon-button (click)="limpiarBienSeleccionado()"><mat-icon>close</mat-icon></button>
-          </div>
-
-          <mat-form-field appearance="outline" style="width: 100%; margin-top: 15px;">
-            <mat-label>Observaciones Internas</mat-label>
-            <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..." rows="2"
-              maxlength="300"></textarea>
-          </mat-form-field>
-        </div>
       </div>
     </div>
-    <div class="paso-contenido" *ngIf="pasoActual === 2">
+
+    <div class="paso-contenido" *ngIf="pasoActual === 4">
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">tune</mat-icon>
+          Opciones Adicionales de la Solicitud
+        </span>
+        <div fxLayout="row wrap" fxLayoutGap="20px">
+          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+            <mat-label>Forma de Pago Sugerida</mat-label>
+            <mat-select [formControl]="formaPagoControl">
+              <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
+                <mat-icon>{{ fp.icono }}</mat-icon>
+                {{ fp.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+            <mat-label>Nivel de Urgencia</mat-label>
+            <mat-select [formControl]="urgenciaControl">
+              <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
+                <span [style.color]="nivel.color">●</span>
+                {{ nivel.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
+            <mat-label>Beneficiario (si aplica)</mat-label>
+            <input matInput [formControl]="beneficiarioControl"
+              placeholder="Se auto-completa al seleccionar un bien" />
+            <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
+            <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px;">
+          <mat-label>Observaciones Internas</mat-label>
+          <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..." rows="4"
+            maxlength="300"></textarea>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="paso-contenido" *ngIf="pasoActual === 5">
       <div class="confirmacion-card shadow">
         <div class="confirmacion-header">
           <mat-icon class="confirmacion-icono">fact_check</mat-icon>
@@ -444,11 +454,11 @@
         <button mat-stroked-button (click)="pasoAnterior()" *ngIf="pasoActual > 0 && !guardado">
           <mat-icon>arrow_back</mat-icon> ANTERIOR
         </button>
-        <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 2" class="btn-next">
+        <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 5 && !guardado" class="btn-next">
           SIGUIENTE <mat-icon>arrow_forward</mat-icon>
         </button>
         <button mat-raised-button color="accent" [disabled]="!formularioValido() || guardado" (click)="guardar()"
-          *ngIf="pasoActual === 2 && !guardado" class="btn-save">
+          *ngIf="pasoActual === 5 && !guardado" class="btn-save">
           <mat-icon>check</mat-icon> CONFIRMAR
         </button>
         <button mat-raised-button color="accent" *ngIf="guardado" (click)="nuevaSolicitud()" class="btn-new">
@@ -459,5 +469,46 @@
         </button>
       </div>
     </div>
-  </mat-card>
+  </div>
+
+  <div class="history-container" fxFlex="35%" fxFlex.lt-lg="40%" fxFlex.lt-md="100%" fxLayout="column">
+    <div class="history-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <mat-icon>history</mat-icon>
+      <h3>Últimas Solicitudes</h3>
+    </div>
+
+    <div class="history-content">
+      <div class="empty-state" *ngIf="false">
+        <mat-icon>receipt_long</mat-icon>
+        <p>No hay solicitudes recientes</p>
+      </div>
+
+      <table mat-table [dataSource]="ultimasSolicitudes" class="table-premium w-100"
+        *ngIf="ultimasSolicitudes.length > 0">
+        <ng-container matColumnDef="ref">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+          <td mat-cell *matCellDef="let element" class="table-id-cell"> Ref. #{{element.id}} </td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef> Descripción </th>
+          <td mat-cell *matCellDef="let element">
+            <span class="table-desc-text">{{element.descripcion}}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="text-align: right;"> Reimprimir </th>
+          <td mat-cell *matCellDef="let element" style="text-align: right;">
+            <button mat-icon-button color="primary" matTooltip="Reimprimir" (click)="reimprimir(element.id, element.sucursalId)">
+              <mat-icon>print</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="history-table-row"></tr>
+      </table>
+
+    </div>
+  </div>
+
 </div>
