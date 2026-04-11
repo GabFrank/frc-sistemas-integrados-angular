@@ -1,7 +1,7 @@
 .page-container {
-  padding: 20px 20px 80px 20px;
-  background-color: #2c2c2e; // Fondo un poco más claro y moderno
-  height: calc(100vh - 130px);
+  padding: 24px;
+  background-color: #121212;
+  height: calc(100vh - 100px);
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -10,163 +10,155 @@
 }
 
 .form-card {
-  background-color: #38383a; // Tarjeta ligeramente más clara para contraste
-  border-radius: 20px; // Bordes más redondeados y modernos
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 
+              0px 6px 10px 0px rgba(0, 0, 0, 0.14), 
+              0px 1px 18px 0px rgba(0, 0, 0, 0.12); /* Material elevation 8 */
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .header-section {
-  padding: 32px 40px;
-  // Gradiente más sutil y sofisticado, menos "brilloso"
-  background: linear-gradient(135deg, #424242 0%, #212121 100%);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.05);
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 40px;
-    right: 40px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #ff9800, transparent);
-    opacity: 0.5;
-  }
+  padding: 24px 32px;
+  background-color: #2c2c2c; /* Slightly lighter for the header */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .icon-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px; // Cuadrado redondeado para look moderno
-  background: rgba(255, 152, 0, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-
-  mat-icon {
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
-    color: #ff9800;
-  }
-}
-
-.form-title {
-  margin: 0;
-  font-size: 1.8em;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-}
-
-.form-subtitle {
-  font-size: 1em;
-  color: #b0b0b0;
-  margin-top: 6px;
-}
-
-// === Stepper Indicator ===
-.pasos-indicador {
-  padding: 30px 40px;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.paso-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 160px;
-}
-
-.paso-circulo {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  background: #444;
-  color: #999;
-  border: 2px solid transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); /* More subdued, formal */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 1.2em;
-  transition: all 0.4s ease;
 
   mat-icon {
     font-size: 28px;
     width: 28px;
     height: 28px;
+    color: rgba(255, 255, 255, 0.87);
   }
 }
 
+.form-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
+  letter-spacing: 0.15px;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.form-subtitle-container mat-icon {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+// === Stepper Indicator ===
+.pasos-indicador {
+  padding: 24px 32px;
+  background: #1e1e1e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.paso-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  min-width: 140px;
+  opacity: 0.6;
+}
+
 .paso-activo {
+  opacity: 1;
+
   .paso-circulo {
-    background: #ff9800;
-    color: #000;
-    box-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
-    transform: translateY(-5px);
+    background: #3f51b5; /* Formal indigo instead of bright orange */
+    color: #ffffff;
   }
 
   .paso-etiqueta {
-    color: #ff9800;
-    font-weight: 800;
+    color: rgba(255, 255, 255, 0.87);
+    font-weight: 500;
   }
 }
 
 .paso-completado {
+  opacity: 1;
+
   .paso-circulo {
-    background: #66bb6a;
-    color: #fff;
+    background: transparent;
+    color: #4caf50; /* Success green, material design standard */
+    border: none;
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
   }
 
   .paso-etiqueta {
-    color: #66bb6a;
+    color: rgba(255, 255, 255, 0.87);
   }
 }
 
+.paso-circulo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.87);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
 .paso-etiqueta {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: #777;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.87);
+  letter-spacing: 0.25px;
 }
 
 .paso-linea {
-  height: 3px;
-  background: #444;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
   flex: 1;
   max-width: 100px;
-  margin-top: -36px;
-  border-radius: 4px;
-  transition: all 0.4s ease;
+  margin: 0 16px;
+  transition: all 0.3s ease;
 }
 
 .linea-activa {
-  background: #66bb6a;
+  background: #3f51b5;
 }
 
 // === Content Area ===
 .paso-contenido {
-  padding: 40px;
-  min-height: 500px;
-  animation: slideUp 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+  padding: 32px 40px;
+  min-height: 450px;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes slideUp {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -174,102 +166,85 @@
 }
 
 .dialogo-seccion {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 28px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    border-color: rgba(255, 152, 0, 0.3);
-    background: rgba(255, 255, 255, 0.04);
-  }
+  background: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .dialogo-seccion-titulo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.9em;
-  font-weight: 800;
-  color: #ff9800; // Accento naranja consistente
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
   text-transform: uppercase;
-  margin-bottom: 24px;
-  letter-spacing: 1.5px;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
 
   mat-icon {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.6);
   }
 }
 
-// Personalización de campos para look Material Premium
+// Campos material premium - quitar el customizador excesivo
 ::ng-deep {
-  .mat-form-field-appearance-outline {
-    .mat-form-field-outline {
-      color: rgba(255, 255, 255, 0.2);
-    }
-
-    .mat-form-field-label {
-      color: #999;
-    }
-
-    &.mat-focused {
-      .mat-form-field-outline-thick {
-        color: #ff9800;
-      }
-
-      .mat-form-field-label {
-        color: #ff9800;
-      }
-    }
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    color: rgba(255, 255, 255, 0.12);
+  }
+  
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+    color: #3f51b5; /* focus formal */
   }
 
-  .mat-select-value-text,
-  .mat-input-element {
-    font-weight: 500;
-    color: #fff !important;
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-label {
+    color: #3f51b5;
   }
 }
 
 .bien-resumen-card {
-  background: linear-gradient(145deg, #444446, #3a3a3c);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 30px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background: #262626;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .bien-icono-contenedor {
-  width: 72px;
-  height: 72px;
-  background: rgba(255, 152, 0, 0.15);
-  border-radius: 16px;
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 
   mat-icon {
-    color: #ff9800;
-    font-size: 40px;
-    width: 40px;
-    height: 40px;
+    color: rgba(255, 255, 255, 0.87);
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
   }
 }
 
 .bien-tipo-badge {
-  font-size: 0.8em;
-  font-weight: 800;
-  color: #ff9800;
-  letter-spacing: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9e9e9e;
+  letter-spacing: 0.5px;
 }
 
 .bien-nombre {
-  font-size: 1.6em;
-  font-weight: 800;
-  color: #fff;
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
   margin: 4px 0;
 }
 
@@ -277,258 +252,255 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px 24px;
-  border-radius: 12px;
-  border-left: 5px solid;
-  margin-bottom: 24px;
-  font-weight: 600;
-  font-size: 1em;
-  backdrop-filter: blur(5px);
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  margin-bottom: 20px;
+  font-weight: 400;
+  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .bien-financiero-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
-  background: rgba(0, 0, 0, 0.15);
-  padding: 24px;
-  border-radius: 16px;
-  margin: 24px 0;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .financiero-label {
-  color: #999;
-  font-size: 0.85em;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .financiero-valor {
-  font-size: 1.4em;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 500;
   display: block;
 
   &.principal {
-    color: #64b5f6;
+    color: #64b5f6; /* Soft blue */
   }
 
   &.success {
-    color: #81c784;
+    color: #81c784; /* Soft green */
   }
 
   &.peligro {
-    color: #e57373;
+    color: #e57373; /* Soft red */
   }
 }
 
 .progreso-pago {
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
 .progreso-header {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 
   .progreso-label {
-    color: #aaa;
-    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+    font-size: 14px;
   }
 
   .progreso-porcentaje {
-    color: #fff;
-    font-weight: 800;
-    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.87);
+    font-weight: 500;
+    font-size: 14px;
   }
 }
 
 .progreso-barra {
-  height: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .progreso-relleno {
   height: 100%;
-  background: linear-gradient(90deg, #66bb6a, #43a047);
-  box-shadow: 0 0 15px rgba(102, 187, 106, 0.4);
+  background: #4caf50;
+  border-radius: 4px;
 }
 
 // === Confirmation Card ===
 .confirmacion-card {
-  background: #3e3e40;
-  border-radius: 20px;
-  padding: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  background: #262626;
+  border-radius: 8px;
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .confirmacion-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 30px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
 
   .confirmacion-icono {
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
-    color: #ff9800;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #3f51b5;
   }
 
   .confirmacion-titulo {
     margin: 0;
-    font-size: 1.5em;
-    font-weight: 800;
-    color: #fff;
+    font-size: 20px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.87);
   }
 }
 
 .confirm-column {
-  background: rgba(0, 0, 0, 0.2);
-  padding: 30px;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   height: 100%;
 }
 
 .column-title {
   display: block;
-  font-size: 0.95em;
-  font-weight: 800;
-  color: #ff9800;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  margin-bottom: 25px;
-  border-bottom: 1px solid rgba(255, 152, 0, 0.2);
-  padding-bottom: 12px;
-  letter-spacing: 1.5px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .confirm-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
-  font-size: 1em;
+  margin-bottom: 16px;
+  font-size: 14px;
 
   &.highlight {
-    background: rgba(255, 152, 0, 0.1);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 152, 0, 0.3);
-    margin-top: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 8px;
 
     .label {
-      font-size: 1.1em;
-      color: #fff;
-      font-weight: 700;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
     }
 
     .monto {
-      font-size: 2.2em;
-      color: #ff9800;
-      font-weight: 900;
+      font-size: 28px;
+      color: rgba(255, 255, 255, 0.87);
+      font-weight: 500;
     }
   }
 
   .label {
-    color: #999;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .value {
-    font-weight: 600;
-    color: #eee;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.87);
     text-align: right;
   }
 }
 
 // === Action Footer ===
 .footer-actions {
-  padding: 32px 40px;
-  background: #333335;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 24px 32px;
+  background: #1e1e1e;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .btn-cancelar {
-  color: #e57373;
-  font-weight: 700;
-  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
 }
 
 .btn-next,
 .btn-save,
 .btn-new,
 .btn-print {
-  padding: 0 30px;
-  height: 50px;
-  font-weight: 800;
-  border-radius: 12px;
-  font-size: 1em;
+  padding: 0 24px;
+  height: 36px;
+  font-weight: 500;
+  border-radius: 4px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-  &:hover {
-    transform: translateY(-3px);
-  }
 
   mat-icon {
     margin-right: 8px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 }
 
 .btn-next {
-  background: #ff9800 !important;
-  color: #000 !important;
-  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+  background: #3f51b5 !important;
+  color: #fff !important;
 }
 
 .btn-save {
-  background: #66bb6a !important;
+  background: #4caf50 !important;
   color: #fff !important;
-  box-shadow: 0 6px 20px rgba(102, 187, 106, 0.3);
 
   &:disabled {
-    opacity: 0.4;
-    background: #555 !important;
-    transform: none;
+    opacity: 0.5;
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.3) !important;
   }
 }
 
 .btn-print {
-  background: #42a5f5 !important;
+  background: #2196f3 !important;
+  color: #fff !important;
 }
 
 .sin-bien-info {
   text-align: center;
-  padding: 80px 40px;
+  padding: 60px 40px;
   background: rgba(255, 255, 255, 0.02);
-  border: 2px dashed #555;
-  border-radius: 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
   margin-top: 20px;
 
   .sin-bien-icono {
-    font-size: 80px;
-    width: 80px;
-    height: 80px;
-    color: #666;
-    margin-bottom: 30px;
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 24px;
   }
 
   .sin-bien-texto {
-    font-size: 1.5em;
-    font-weight: 700;
-    color: #eee;
-    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.87);
+    margin-bottom: 8px;
   }
 
   .sin-bien-subtexto {
-    color: #888;
-    margin-bottom: 40px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 32px;
+    font-size: 14px;
   }
 }
 
@@ -538,81 +510,199 @@ textarea {
 }
 
 .motivo-seleccion-container {
-  margin-top: 35px;
-  padding: 25px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 152, 0, 0.1);
+  margin-top: 32px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .motivo-grid {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .motivo-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px 15px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.2s ease;
   text-align: center;
-  min-height: 110px;
+  min-height: 100px;
+  box-sizing: border-box;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    transform: translateY(-5px);
-    border-color: rgba(255, 152, 0, 0.4);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   &.active {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.05));
-    border: 2px solid #ff9800;
-    box-shadow: 0 0 25px rgba(255, 152, 0, 0.25);
-    transform: translateY(-5px) scale(1.02);
+    background: rgba(63, 81, 181, 0.12); /* Indigo tint */
+    border: 2px solid #3f51b5;
 
     .motivo-icon-wrapper {
-      background: #ff9800;
-
+      background: transparent;
       mat-icon {
-        color: #000;
+        color: #3f51b5;
       }
     }
 
     .motivo-label {
-      color: #ff9800;
-      font-weight: 800;
+      color: rgba(255, 255, 255, 0.87);
+      font-weight: 500;
     }
   }
 }
 
 .motivo-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
 
   mat-icon {
     font-size: 24px;
     width: 24px;
     height: 24px;
-    color: #999;
+    color: rgba(255, 255, 255, 0.6);
   }
 }
 
 .motivo-label {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: #aaa;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.2;
+}
+
+.seccion-mini-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
+  margin-bottom: 16px;
+
+  .seccion-mini-icono {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+// Cuotas grid and info
+.cuotas-seccion {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cuotas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.cuota-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cuota-etiqueta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.cuota-valor {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
+
+  &.success {
+    color: #81c784;
+  }
+  &.peligro {
+    color: #e57373;
+  }
+  &.resaltado {
+    color: #3f51b5;
+    font-weight: 500;
+  }
+}
+
+.proveedor-seccion, .situacion-seccion {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.proveedor-nombre, .situacion-valor {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.situacion-pagando {
+  color: #ffb74d; // Warning
+}
+.situacion-pagado {
+  color: #81c784; // Success
+}
+
+.estado-cuota-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid currentColor;
+}
+
+.bien-vinculado-banner {
+  background: rgba(63, 81, 181, 0.1);
+  border: 1px solid rgba(63, 81, 181, 0.3);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+
+  .banner-icon {
+    color: #3f51b5;
+  }
+  
+  .banner-tipo {
+    font-size: 12px;
+    font-weight: 500;
+    color: #3f51b5;
+  }
+
+  .banner-desc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.87);
+  }
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(229, 115, 115, 0.1);
+  border: 1px solid rgba(229, 115, 115, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 24px;
+  color: #e57373;
+  font-size: 14px;
+  font-weight: 500;
 }
