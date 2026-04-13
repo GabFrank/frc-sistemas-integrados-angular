@@ -76,7 +76,7 @@
     </div>
   </div>
 
-  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+  <div table style="height: 100%; background-color: transparent" fxLayout="column"
     fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="(filteredRows$ | async) || []" multiTemplateDataRows class="mat-elevation-z8 bienes-table" style="width: 100%">
       <ng-container matColumnDef="id">
