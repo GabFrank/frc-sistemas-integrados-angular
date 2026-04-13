@@ -64,6 +64,9 @@ export class InmuebleDialogService {
       const input: InmuebleInput = {
         ...values,
         id: values.id ? Number(values.id) : undefined,
+        nombreAsignado: values.nombreAsignado?.toUpperCase() || '',
+        direccion: values.direccion?.toUpperCase() || '',
+        codigoCatastral: values.codigoCatastral?.toUpperCase() || '',
         propietarioId: Number(values.propietarioId),
         paisId: Number(values.paisId),
         ciudadId: Number(values.ciudadId),

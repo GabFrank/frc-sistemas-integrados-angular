@@ -88,6 +88,9 @@ export class MuebleDialogService {
       const input: MuebleInput = {
         ...values,
         id: values.id ? Number(values.id) : undefined,
+        identificador: values.identificador?.toUpperCase() || '',
+        descripcion: values.descripcion?.toUpperCase() || '',
+        consumoValor: values.consumoValor?.toUpperCase() || '',
         propietarioId: Number(values.propietarioId),
         familiaId: Number(values.familiaId),
         tipoMuebleId: Number(values.tipoMuebleId),
