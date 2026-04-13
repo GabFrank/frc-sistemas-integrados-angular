@@ -15,6 +15,9 @@ import { AdicionarPreGastoDialogComponent } from './dialogs/adicionar-pre-gasto-
 import { AutorizarGastoDialogComponent } from './dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
 import { AdicionarPreGastoComponent } from './pages/adicionar-pre-gasto/adicionar-pre-gasto.component';
 import { GastosDashboardComponent } from './pages/gastos-dashboard/gastos-dashboard.component';
+import { BienFinancieroCardComponent } from './components/bien-financiero-card/bien-financiero-card.component';
+import { HistorialSolicitudesComponent } from './components/historial-solicitudes/historial-solicitudes.component';
+import { PreGastoStepperComponent } from './components/pre-gasto-stepper/pre-gasto-stepper.component';
 
 @NgModule({
   declarations: [
@@ -26,7 +29,10 @@ import { GastosDashboardComponent } from './pages/gastos-dashboard/gastos-dashbo
     AdicionarPreGastoDialogComponent,
     AutorizarGastoDialogComponent,
     AdicionarPreGastoComponent,
-    GastosDashboardComponent
+    GastosDashboardComponent,
+    BienFinancieroCardComponent,
+    HistorialSolicitudesComponent,
+    PreGastoStepperComponent
   ],
   imports: [
     CommonModule,

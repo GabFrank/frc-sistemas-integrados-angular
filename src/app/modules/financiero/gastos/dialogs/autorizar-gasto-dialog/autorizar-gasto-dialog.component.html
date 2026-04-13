@@ -37,19 +37,9 @@
       <mat-icon matSuffix color="warn">warning</mat-icon>
     </mat-form-field>
   </div>
-
-  <!-- Acciones -->
   <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
     <button mat-stroked-button (click)="cancelar()" type="button">
       Volver
-    </button>
-
-    <button mat-raised-button class="boton-tramite" (click)="enviarATramite()"
-      *ngIf="preGasto.estado === 'PENDIENTE' || preGasto.estado === 'AUTORIZADO' || preGasto.estado === 'RECHAZADO' || preGasto.estado === 'TRAMITE'"
-      [disabled]="preGasto.estado === 'PENDIENTE' || preGasto.estado === 'AUTORIZADO' || preGasto.estado === 'RECHAZADO'"
-      type="button">
-      <mat-icon>swap_horiz</mat-icon>
-      En Trámite
     </button>
 
     <button mat-raised-button color="warn" (click)="rechazar()" type="button">

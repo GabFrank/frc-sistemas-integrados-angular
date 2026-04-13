@@ -49,15 +49,6 @@ export class AutorizarGastoDialogComponent implements OnInit {
       });
   }
 
-  enviarATramite(): void {
-    this.gastoService.preGastoTramitar(this.preGasto.id, this.preGasto.sucursalId)
-      .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res != null) {
-          this.matDialogRef.close(res);
-        }
-      });
-  }
-
   rechazar(): void {
     if (!this.mostrarMotivoRechazo) {
       this.mostrarMotivoRechazo = true;

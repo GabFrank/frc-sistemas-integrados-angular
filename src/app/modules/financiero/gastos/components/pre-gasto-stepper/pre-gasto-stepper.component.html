@@ -1,0 +1,60 @@
+<div class="pasos-indicador" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="0">
+  <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0"
+    (click)="irAPaso(0)">
+    <div class="paso-circulo">
+      <mat-icon *ngIf="pasoActual > 0">check</mat-icon>
+      <span *ngIf="pasoActual <= 0">1</span>
+    </div>
+    <span class="paso-etiqueta">Activo</span>
+  </div>
+
+  <ng-container *ngIf="isStepVisible(1)">
+    <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
+    <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1"
+      (click)="irAPaso(1)">
+      <div class="paso-circulo">
+        <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
+        <span *ngIf="pasoActual <= 1">{{ getStepNumber(1) }}</span>
+      </div>
+      <span class="paso-etiqueta">Estado</span>
+    </div>
+  </ng-container>
+
+  <div class="paso-linea" [class.linea-activa]="pasoActual > (isStepVisible(1) ? 1 : 0)"></div>
+  <div class="paso-item" [class.paso-activo]="pasoActual === 2" [class.paso-completado]="pasoActual > 2"
+    (click)="irAPaso(2)">
+    <div class="paso-circulo">
+      <mat-icon *ngIf="pasoActual > 2">check</mat-icon>
+      <span *ngIf="pasoActual <= 2">{{ getStepNumber(2) }}</span>
+    </div>
+    <span class="paso-etiqueta">General</span>
+  </div>
+
+  <div class="paso-linea" [class.linea-activa]="pasoActual > 2"></div>
+  <div class="paso-item" [class.paso-activo]="pasoActual === 3" [class.paso-completado]="pasoActual > 3"
+    (click)="irAPaso(3)">
+    <div class="paso-circulo">
+      <mat-icon *ngIf="pasoActual > 3">check</mat-icon>
+      <span *ngIf="pasoActual <= 3">{{ getStepNumber(3) }}</span>
+    </div>
+    <span class="paso-etiqueta">Finanzas</span>
+  </div>
+
+  <div class="paso-linea" [class.linea-activa]="pasoActual > 3"></div>
+  <div class="paso-item" [class.paso-activo]="pasoActual === 4" [class.paso-completado]="pasoActual > 4"
+    (click)="irAPaso(4)">
+    <div class="paso-circulo">
+      <mat-icon *ngIf="pasoActual > 4">check</mat-icon>
+      <span *ngIf="pasoActual <= 4">{{ getStepNumber(4) }}</span>
+    </div>
+    <span class="paso-etiqueta">Opciones</span>
+  </div>
+
+  <div class="paso-linea" [class.linea-activa]="pasoActual > 4"></div>
+  <div class="paso-item" [class.paso-activo]="pasoActual === 5">
+    <div class="paso-circulo">
+      <span>{{ getStepNumber(5) }}</span>
+    </div>
+    <span class="paso-etiqueta">Confirmar</span>
+  </div>
+</div>
