@@ -250,10 +250,22 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     input.enteId = this.data?.enteId || this.enteSeleccionado?.id;
     input.funcionarioId = this.solicitanteControl.value?.persona?.id;
 
-    input.urgencia = this.urgenciaControl.value;
-    input.formaPago = this.formaPagoControl.value;
-    input.beneficiario = this.beneficiarioControl.value;
-    input.observaciones = this.observacionesControl.value;
+    input.nivelUrgencia = this.urgenciaControl.value;
+    if (this.montoControl.value > 0) {
+      input.finanzas = [{
+        formaPago: this.formaPagoControl.value,
+        monto: this.montoControl.value,
+        monedaId: this.monedaControl.value
+      }];
+    } else {
+      input.finanzas = [];
+    }
+
+    if (this.beneficiarioControl.value) {
+      input.observaciones = (this.observacionesControl.value || '') + '\nBeneficiario: ' + this.beneficiarioControl.value;
+    } else {
+      input.observaciones = this.observacionesControl.value;
+    }
 
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.matDialogRef.close(res);

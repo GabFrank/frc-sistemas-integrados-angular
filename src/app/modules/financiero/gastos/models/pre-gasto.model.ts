@@ -9,6 +9,19 @@ export class Persona {
   nombre: string;
 }
 
+export class Proveedor {
+  id: number;
+  persona: Persona;
+}
+
+export class PreGastoDetalleFinanzas {
+  id: number;
+  moneda: Moneda;
+  formaPago: string;
+  monto: number;
+  creadoEn: Date;
+}
+
 export class PreGasto {
   id: number;
   sucursalId: number;
@@ -28,7 +41,22 @@ export class PreGasto {
   saldoDevolver: number;
   usuario: Usuario;
   solicitudPagoId: number;
+  beneficiarioProveedor: Proveedor;
+  beneficiarioPersona: Persona;
+  fechaVencimiento: Date;
+  nivelUrgencia: string;
+  observaciones: string;
+  finanzas: PreGastoDetalleFinanzas[];
   creadoEn: Date;
+}
+
+export class PreGastoDetalleFinanzasInput {
+  id?: number;
+  preGastoId?: number;
+  sucursalId?: number;
+  monedaId?: number;
+  formaPago?: string;
+  monto?: number;
 }
 
 export class PreGastoInput {
@@ -46,8 +74,10 @@ export class PreGastoInput {
   motivoRechazo: string;
   montoRetirado: number;
   usuarioId: number;
-  urgencia: string;
-  formaPago: string;
-  beneficiario: string;
+  nivelUrgencia: string;
   observaciones: string;
+  beneficiarioProveedorId: number;
+  beneficiarioPersonaId: number;
+  fechaVencimiento: string;
+  finanzas: PreGastoDetalleFinanzasInput[];
 }

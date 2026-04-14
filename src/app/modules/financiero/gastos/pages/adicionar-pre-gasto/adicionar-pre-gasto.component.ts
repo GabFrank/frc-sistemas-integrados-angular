@@ -23,7 +23,9 @@ import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
-
+import { PreGastoDetalleFinanzasInput } from '../../models/pre-gasto.model';
+import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/personaSearchPage';
+import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -44,6 +46,8 @@ export class AdicionarPreGastoComponent implements OnInit {
   private tabService = inject(TabService);
   private reporteService = inject(ReporteService);
   private enteFinancialSummaryGQL = inject(EnteFinancialSummaryGQL);
+  private personaSearchPageGQL = inject(PersonaSearchPageGQL);
+  private proveedorSearchByPersonaPageGQL = inject(ProveedoresSearchByPersonaPageGQL);
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
@@ -57,7 +61,14 @@ export class AdicionarPreGastoComponent implements OnInit {
   formaPagoControl = new FormControl('EFECTIVO');
   urgenciaControl = new FormControl('NORMAL');
   observacionesControl = new FormControl('');
-  beneficiarioControl = new FormControl('');
+  beneficiarioPersonaControl = new FormControl(null);
+  beneficiarioProveedorControl = new FormControl(null);
+  fechaVencimientoControl = new FormControl(null);
+  listaFinanzas: PreGastoDetalleFinanzasInput[] = [];
+  finanzaDuplicadaMsg: string | null = null;
+  finanzaMonedaControl = new FormControl(null);
+  finanzaFormaPagoControl = new FormControl('EFECTIVO');
+  finanzaMontoControl = new FormControl(null);
   solicitanteControl = new FormControl(null);
   numeroCuotaControl = new FormControl({ value: null, disabled: true });
   tipoBienControl = new FormControl(null);
@@ -67,7 +78,7 @@ export class AdicionarPreGastoComponent implements OnInit {
 
   displayedColumns: string[] = ['ref', 'descripcion', 'acciones'];
   ultimasSolicitudes: PreGasto[] = [];
-  
+
   totalElementos = 0;
   paginaActual = 0;
   tamanoPagina = 15;
@@ -129,7 +140,6 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.numeroCuotaControl.setValue(this.data.cuotasPagadas + 1);
       }
       if (this.data.proveedor) {
-        this.beneficiarioControl.setValue(this.data.proveedor);
       }
     } else {
       this.pasoActual = 0;
@@ -202,20 +212,14 @@ export class AdicionarPreGastoComponent implements OnInit {
   formularioValido(): boolean {
     const isValid = this.tipoGastoControl.valid
       && this.descripcionControl.valid
-      && this.monedaControl.valid
-      && this.montoControl.valid
-      && this.sucursalControl.valid;
+      && this.sucursalControl.valid
+      && this.listaFinanzas.length > 0;
 
     if (!isValid) return false;
 
     if (this.motivoGastoControl.value === 'CUOTA' && this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
-      if (typeof this.montoControl.value === 'number' && this.montoControl.value > this.data.montoPendiente) {
-        return false;
-      }
-    }
-    if (this.data?.monedaSimbolo && this.monedaControl.value) {
-      const monedaSeleccionada = this.listaMonedas.find(m => m.id === this.monedaControl.value);
-      if (monedaSeleccionada && monedaSeleccionada.simbolo !== this.data.monedaSimbolo) {
+      const montoTotal = this.listaFinanzas.reduce((sum, f) => sum + (f.monto || 0), 0);
+      if (montoTotal > this.data.montoPendiente) {
         return false;
       }
     }
@@ -229,8 +233,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     const input = new PreGastoInput();
     input.tipoGastoId = this.tipoGastoControl.value;
     input.descripcion = this.descripcionControl.value;
-    input.monedaId = this.monedaControl.value;
-    input.montoSolicitado = this.montoControl.value;
+    // monedaId y montoSolicitado se calculan en el backend desde finanzas
     input.sucursalCajaId = this.sucursalControl.value;
     if (this.data && this.data.enteId) {
       input.enteId = this.data.enteId;
@@ -241,10 +244,22 @@ export class AdicionarPreGastoComponent implements OnInit {
       input.funcionarioId = this.solicitanteControl.value.persona?.id;
     }
 
-    input.urgencia = this.urgenciaControl.value;
-    input.formaPago = this.formaPagoControl.value;
-    input.beneficiario = this.beneficiarioControl.value;
+    input.nivelUrgencia = this.urgenciaControl.value;
     input.observaciones = this.observacionesControl.value;
+
+    if (this.beneficiarioPersonaControl.value) {
+      input.beneficiarioPersonaId = this.beneficiarioPersonaControl.value.id;
+    }
+    if (this.beneficiarioProveedorControl.value) {
+      input.beneficiarioProveedorId = this.beneficiarioProveedorControl.value.id;
+    }
+    if (this.fechaVencimientoControl.value) {
+      const d = new Date(this.fechaVencimientoControl.value);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      input.fechaVencimiento = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    input.finanzas = [...this.listaFinanzas];
 
     this.gastoService.preGastoGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
@@ -316,9 +331,16 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.formaPagoControl.setValue('EFECTIVO');
     this.urgenciaControl.setValue('NORMAL');
     this.observacionesControl.reset();
-    this.beneficiarioControl.reset();
+    this.beneficiarioPersonaControl.reset();
+    this.beneficiarioProveedorControl.reset();
+    this.fechaVencimientoControl.reset();
     this.solicitanteControl.reset();
     this.tipoBienControl.reset();
+    this.listaFinanzas = [];
+    this.finanzaDuplicadaMsg = null;
+    this.finanzaMonedaControl.reset();
+    this.finanzaFormaPagoControl.setValue('EFECTIVO');
+    this.finanzaMontoControl.reset();
 
     this.pasoActual = 0;
 
@@ -346,15 +368,15 @@ export class AdicionarPreGastoComponent implements OnInit {
   getStepNumber(step: number): number {
     let num = 0;
     for (let i = 0; i <= step; i++) {
-       if (this.isStepVisible(i)) num++;
+      if (this.isStepVisible(i)) num++;
     }
     return num;
   }
 
   pasoSiguiente(): void {
-    if (this.pasoActual < 5) {
+    if (this.pasoActual < 4) {
       let next = this.pasoActual + 1;
-      while (!this.isStepVisible(next) && next <= 5) next++;
+      while (!this.isStepVisible(next) && next <= 4) next++;
       this.pasoActual = next;
       this.cdr.markForCheck();
     }
@@ -442,13 +464,113 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.enteSeleccionado = null;
     this.bienSeleccionadoDescripcion = null;
     this.tieneDatosBien = false;
-    this.beneficiarioControl.setValue('');
+    // ...
     if (!this.data) this.data = {};
     this.data.enteId = undefined;
     this.data.tipoBien = undefined;
     this.data.bienDescripcion = undefined;
     this.data.proveedor = undefined;
     this.cdr.markForCheck();
+  }
+
+  abrirBuscadorPersona(): void {
+    const data = new SearchListtDialogData();
+    data.titulo = 'Seleccionar Beneficiario (Persona)';
+    data.query = this.personaSearchPageGQL;
+    data.paginator = true;
+    data.searchFieldName = 'texto';
+    data.tableData = [
+      { id: 'id', nombre: 'ID', width: '50px' },
+      { id: 'nombre', nombre: 'Nombre', width: 'auto' },
+      { id: 'documento', nombre: 'Documento', width: '150px' },
+    ];
+    this.matDialog.open(SearchListDialogComponent, {
+      data: data,
+      width: '80%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.beneficiarioPersonaControl.setValue(res);
+        this.beneficiarioProveedorControl.reset(); // Solo uno
+        this.cdr.markForCheck();
+      }
+    });
+
+  }
+
+  abrirBuscadorProveedor(): void {
+    const data = new SearchListtDialogData();
+    data.titulo = 'Seleccionar Beneficiario (Proveedor)';
+    data.query = this.proveedorSearchByPersonaPageGQL;
+    data.paginator = true;
+    data.searchFieldName = 'texto';
+    data.tableData = [
+      { id: 'id', nombre: 'ID', width: '50px' },
+      { id: 'persona.nombre', nombre: 'Nombre', width: 'auto' },
+      { id: 'persona.documento', nombre: 'RUC/CI', width: '150px' },
+    ];
+    this.matDialog.open(SearchListDialogComponent, {
+      data: data,
+      width: '80%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.beneficiarioProveedorControl.setValue(res);
+        this.beneficiarioPersonaControl.reset(); // Solo uno
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  agregarFinanza(): void {
+    if (this.finanzaMonedaControl.valid && this.finanzaMontoControl.value > 0) {
+      const monedaId = this.finanzaMonedaControl.value;
+      const formaPago = this.finanzaFormaPagoControl.value;
+      const duplicado = this.listaFinanzas.find(
+        f => f.monedaId === monedaId && f.formaPago === formaPago
+      );
+      if (duplicado) {
+        const simbolo = this.getSimboloMoneda(monedaId);
+        const etiqueta = this.getEtiquetaFormaPago(formaPago);
+        this.finanzaDuplicadaMsg = `Ya existe un registro con ${simbolo} y ${etiqueta}. Elimine el existente primero.`;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.finanzaDuplicadaMsg = null;
+      this.listaFinanzas.push({
+        monedaId: monedaId,
+        formaPago: formaPago,
+        monto: this.finanzaMontoControl.value
+      });
+      this.finanzaMontoControl.reset();
+      this.cdr.markForCheck();
+    }
+  }
+
+  removerFinanza(index: number): void {
+    this.listaFinanzas.splice(index, 1);
+    this.finanzaDuplicadaMsg = null;
+    this.cdr.markForCheck();
+  }
+
+  getSimboloMoneda(id: number): string {
+    const found = this.listaMonedas.find(m => m.id === id);
+    return found ? found.simbolo : '';
+  }
+
+  getIconoFormaPago(formaPago: string): string {
+    const found = this.formasPago.find(fp => fp.valor === formaPago);
+    return found ? found.icono : 'payments';
+  }
+
+  getEtiquetaFormaPago(formaPago: string): string {
+    const found = this.formasPago.find(fp => fp.valor === formaPago);
+    return found ? found.etiqueta : formaPago;
+  }
+
+  calcularMontoTotal(): number {
+    return this.listaFinanzas.reduce((sum, f) => sum + (f.monto || 0), 0);
   }
 
   private cargarDetalleBienYBeneficiario(ente: Ente): void {
@@ -461,47 +583,46 @@ export class AdicionarPreGastoComponent implements OnInit {
       .subscribe(res => {
         this.cargandoBien = false;
         const resumen = res.data.data;
-          if (resumen) {
-            this.lastResumen = resumen;
-            this.bienSeleccionadoDescripcion = resumen.descripcion;
-            if (!this.data) this.data = {};
+        if (resumen) {
+          this.lastResumen = resumen;
+          this.bienSeleccionadoDescripcion = resumen.descripcion;
+          if (!this.data) this.data = {};
 
-            this.data.enteId = resumen.enteId;
-            this.data.bienDescripcion = resumen.descripcion;
-            this.data.proveedor = resumen.proveedorNombre;
-            this.data.montoTotal = resumen.montoTotal;
-            this.data.montoYaPagado = resumen.montoYaPagado;
-            this.data.montoPendiente = resumen.montoPendiente;
-            this.data.cuotasTotales = resumen.cuotasTotales;
-            this.data.cuotasPagadas = resumen.cuotasPagadas;
-            this.data.cuotasFaltantes = resumen.cuotasFaltantes;
-            this.data.diaVencimiento = resumen.diaVencimiento;
-            this.data.diasParaVencer = resumen.diasParaVencer;
-            this.data.estadoCuota = resumen.estadoCuota;
-            this.data.monedaSimbolo = resumen.monedaSimbolo;
-            this.data.situacionPago = resumen.situacionPago;
+          this.data.enteId = resumen.enteId;
+          this.data.bienDescripcion = resumen.descripcion;
+          this.data.proveedor = resumen.proveedorNombre;
+          this.data.montoTotal = resumen.montoTotal;
+          this.data.montoYaPagado = resumen.montoYaPagado;
+          this.data.montoPendiente = resumen.montoPendiente;
+          this.data.cuotasTotales = resumen.cuotasTotales;
+          this.data.cuotasPagadas = resumen.cuotasPagadas;
+          this.data.cuotasFaltantes = resumen.cuotasFaltantes;
+          this.data.diaVencimiento = resumen.diaVencimiento;
+          this.data.diasParaVencer = resumen.diasParaVencer;
+          this.data.estadoCuota = resumen.estadoCuota;
+          this.data.monedaSimbolo = resumen.monedaSimbolo;
+          this.data.situacionPago = resumen.situacionPago;
 
-            if (resumen.monedaId) {
-              this.monedaControl.setValue(resumen.monedaId);
-            }
-
-            if (resumen.proveedorNombre) {
-              this.beneficiarioControl.setValue(resumen.proveedorNombre);
-            }
-
-            if (resumen.diasParaVencer != null) {
-              const dias = resumen.diasParaVencer;
-              if (dias < 0) {
-                this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
-              } else if (dias <= 10) {
-                this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
-              } else {
-                this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
-              }
-            }
-
-            this.actualizarCamposPorMotivo(this.motivoGastoControl.value);
+          if (resumen.monedaId) {
+            this.monedaControl.setValue(resumen.monedaId);
           }
+
+          if (resumen.proveedorNombre) {
+          }
+
+          if (resumen.diasParaVencer != null) {
+            const dias = resumen.diasParaVencer;
+            if (dias < 0) {
+              this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
+            } else if (dias <= 10) {
+              this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
+            } else {
+              this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+            }
+          }
+
+          this.actualizarCamposPorMotivo(this.motivoGastoControl.value);
+        }
         this.cdr.markForCheck();
       }, () => {
         this.cargandoBien = false;
@@ -539,12 +660,8 @@ export class AdicionarPreGastoComponent implements OnInit {
         const tipoGasto = this.listaTipoGasto.find(tg => tg.tipoNaturaleza === resumen.tipoGastoSugeridoId);
         if (tipoGasto) this.tipoGastoControl.setValue(tipoGasto.id);
       }
-      if (resumen.proveedorNombre) {
-        this.beneficiarioControl.setValue(resumen.proveedorNombre);
-      }
     } else {
       this.montoControl.reset();
-      this.beneficiarioControl.reset();
       let prefijo = '';
       let tipoBusqueda = '';
 

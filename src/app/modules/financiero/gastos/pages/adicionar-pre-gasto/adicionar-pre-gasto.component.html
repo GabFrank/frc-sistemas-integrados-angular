@@ -134,6 +134,42 @@
             </mat-form-field>
           </div>
         </div>
+        
+        <div fxLayout="row" fxLayoutGap="20px">
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">storefront</mat-icon>
+              Beneficiario (Proveedor)
+            </span>
+            <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;"
+              (click)="abrirBuscadorProveedor()">
+              <mat-label>Seleccionar Proveedor</mat-label>
+              <input matInput [value]="beneficiarioProveedorControl.value?.persona?.nombre" readonly
+                placeholder="Buscar proveedor..." />
+              <button mat-icon-button matSuffix type="button"
+                (click)="$event.stopPropagation(); abrirBuscadorProveedor()">
+                <mat-icon>search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+          
+          <div class="dialogo-seccion" fxFlex="50%">
+            <span class="dialogo-seccion-titulo">
+              <mat-icon class="seccion-mini-icono">person_outline</mat-icon>
+              Beneficiario (Persona)
+            </span>
+            <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;"
+              (click)="abrirBuscadorPersona()">
+              <mat-label>Seleccionar Persona</mat-label>
+              <input matInput [value]="beneficiarioPersonaControl.value?.nombre" readonly
+                placeholder="Buscar persona..." />
+              <button mat-icon-button matSuffix type="button"
+                (click)="$event.stopPropagation(); abrirBuscadorPersona()">
+                <mat-icon>search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+        </div>
 
         <div class="dialogo-seccion">
           <span class="dialogo-seccion-titulo">
@@ -156,28 +192,23 @@
         <div fxLayout="row" fxLayoutGap="20px">
           <div class="dialogo-seccion" fxFlex="50%">
             <span class="dialogo-seccion-titulo">
-              <mat-icon class="seccion-mini-icono">payments</mat-icon>
-              Información Financiera
+              <mat-icon class="seccion-mini-icono">tune</mat-icon>
+              Nivel de Urgencia y Vencimiento
             </span>
             <div fxLayout="row" fxLayoutGap="12px">
-              <mat-form-field appearance="outline" fxFlex="35%">
-                <mat-label>Moneda *</mat-label>
-                <mat-select [formControl]="monedaControl">
-                  <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
-                    {{ moneda.denominacion }} ({{ moneda.simbolo }})
+              <mat-form-field appearance="outline" fxFlex="50%">
+                <mat-label>Nivel de Urgencia</mat-label>
+                <mat-select [formControl]="urgenciaControl">
+                  <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
+                    <span [style.color]="nivel.color">●</span>
+                    {{ nivel.etiqueta }}
                   </mat-option>
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" fxFlex>
-                <mat-label>Monto Solicitado *</mat-label>
-                <input matInput type="text" currencyMask [options]="selectedCurrencyOptions"
-                  [formControl]="montoControl" placeholder="0" />
-                <mat-icon matSuffix>payments</mat-icon>
-                <mat-error
-                  *ngIf="motivoGastoControl.value === 'CUOTA' && data?.montoPendiente && montoControl.value > data.montoPendiente">
-                  Excede el saldo pendiente ({{ data.montoPendiente | number:precisionDisplay }})
-                </mat-error>
+              <mat-form-field appearance="outline" fxFlex="50%">
+                <mat-label>Fecha de Vencimiento (opcional)</mat-label>
+                <input matInput type="date" [formControl]="fechaVencimientoControl" />
               </mat-form-field>
             </div>
           </div>
@@ -199,53 +230,92 @@
             </mat-form-field>
           </div>
         </div>
+
+        <div class="dialogo-seccion">
+
+          <div fxLayout="column" style="margin-top: 15px;">
+            <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px" style="margin-bottom: 16px;">
+              <span class="dialogo-seccion-titulo" style="font-size: 0.9em; margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                <mat-icon class="seccion-mini-icono" style="font-size: 1.1em;">account_balance</mat-icon>
+                Formas de Pago / Detalles de Finanzas
+              </span>
+              <span class="finanzas-count-badge" *ngIf="listaFinanzas.length > 0">
+                {{ listaFinanzas.length }}
+              </span>
+            </div>
+            
+            <div class="finanzas-input-row" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
+               <mat-form-field appearance="outline" fxFlex="30%">
+                  <mat-label>Moneda</mat-label>
+                  <mat-select [formControl]="finanzaMonedaControl">
+                    <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+                      {{ moneda.denominacion }} ({{ moneda.simbolo }})
+                    </mat-option>
+                  </mat-select>
+               </mat-form-field>
+               <mat-form-field appearance="outline" fxFlex="28%">
+                  <mat-label>Forma de Pago</mat-label>
+                  <mat-select [formControl]="finanzaFormaPagoControl">
+                    <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
+                      <mat-icon>{{ fp.icono }}</mat-icon>
+                      {{ fp.etiqueta }}
+                    </mat-option>
+                  </mat-select>
+               </mat-form-field>
+               <mat-form-field appearance="outline" fxFlex="28%">
+                  <mat-label>Monto</mat-label>
+                  <input matInput type="number" [formControl]="finanzaMontoControl" placeholder="Monto" />
+               </mat-form-field>
+               <div fxFlex="14%" fxLayoutAlign="center center" style="padding-bottom: 20px;">
+                  <button mat-mini-fab class="btn-agregar-finanza"
+                    (click)="agregarFinanza()"
+                    [disabled]="!finanzaMonedaControl.value || !finanzaMontoControl.value"
+                    matTooltip="Agregar moneda / forma de pago">
+                     <mat-icon>add</mat-icon>
+                  </button>
+               </div>
+            </div>
+
+            <div class="finanzas-duplicado-warn" *ngIf="finanzaDuplicadaMsg">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ finanzaDuplicadaMsg }}</span>
+            </div>
+
+            <!-- Lista scrollable de finanzas agregadas -->
+            <div class="finanzas-scroll-container" *ngIf="listaFinanzas.length > 0">
+               <div class="finanza-item" *ngFor="let finanza of listaFinanzas; let i = index"
+                 fxLayout="row" fxLayoutAlign="space-between center">
+                  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+                    <div class="finanza-icono-container">
+                      <mat-icon>{{ getIconoFormaPago(finanza.formaPago) }}</mat-icon>
+                    </div>
+                    <div fxLayout="column">
+                      <span class="finanza-monto-label">{{ getSimboloMoneda(finanza.monedaId) }} {{ finanza.monto | number }}</span>
+                      <span class="finanza-forma-label">{{ getEtiquetaFormaPago(finanza.formaPago) }}</span>
+                    </div>
+                  </div>
+                  <button mat-icon-button class="finanza-delete-btn" (click)="removerFinanza(i)" matTooltip="Eliminar">
+                     <mat-icon>close</mat-icon>
+                  </button>
+               </div>
+            </div>
+
+            <div class="finanzas-empty-hint" *ngIf="listaFinanzas.length === 0">
+              <mat-icon>info_outline</mat-icon>
+              <span>Si no agrega detalles aquí, se usará la forma de pago principal.</span>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px;">
+            <mat-label>Observaciones Internas</mat-label>
+            <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..." rows="4"
+              maxlength="300"></textarea>
+          </mat-form-field>
+        </div>
       </div>
     </div>
 
     <div class="paso-contenido" *ngIf="pasoActual === 4">
-      <div class="dialogo-seccion">
-        <span class="dialogo-seccion-titulo">
-          <mat-icon class="seccion-mini-icono">tune</mat-icon>
-          Opciones Adicionales de la Solicitud
-        </span>
-        <div fxLayout="row wrap" fxLayoutGap="20px">
-          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-            <mat-label>Forma de Pago Sugerida</mat-label>
-            <mat-select [formControl]="formaPagoControl">
-              <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
-                <mat-icon>{{ fp.icono }}</mat-icon>
-                {{ fp.etiqueta }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-            <mat-label>Nivel de Urgencia</mat-label>
-            <mat-select [formControl]="urgenciaControl">
-              <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
-                <span [style.color]="nivel.color">●</span>
-                {{ nivel.etiqueta }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" fxFlex="calc(33.33% - 20px)">
-            <mat-label>Beneficiario (si aplica)</mat-label>
-            <input matInput [formControl]="beneficiarioControl" placeholder="Se auto-completa al seleccionar un bien" />
-            <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
-            <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
-          </mat-form-field>
-        </div>
-
-        <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px;">
-          <mat-label>Observaciones Internas</mat-label>
-          <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales..." rows="4"
-            maxlength="300"></textarea>
-        </mat-form-field>
-      </div>
-    </div>
-
-    <div class="paso-contenido" *ngIf="pasoActual === 5">
       <div class="confirmacion-card shadow">
         <div class="confirmacion-header">
           <mat-icon class="confirmacion-icono">fact_check</mat-icon>
@@ -263,9 +333,13 @@
               <span class="label">Descripción:</span>
               <span class="value">{{ data.bienDescripcion }}</span>
             </div>
-            <div class="confirm-row" *ngIf="data.proveedor">
+            <div class="confirm-row" *ngIf="beneficiarioProveedorControl.value?.persona?.nombre">
               <span class="label">Proveedor:</span>
-              <span class="value">{{ data.proveedor }}</span>
+              <span class="value">{{ beneficiarioProveedorControl.value.persona.nombre }}</span>
+            </div>
+            <div class="confirm-row" *ngIf="beneficiarioPersonaControl.value?.nombre">
+              <span class="label">Persona:</span>
+              <span class="value">{{ beneficiarioPersonaControl.value.nombre }}</span>
             </div>
             <div class="confirm-row" *ngIf="motivoGastoControl.value === 'CUOTA' && data.cuotasTotales > 0">
               <span class="label">Cuota:</span>
@@ -280,12 +354,16 @@
               <span class="value">{{ descripcionControl.value }}</span>
             </div>
             <div class="confirm-row highlight">
-              <span class="label">Monto a Solicitar:</span>
-              <span class="value monto">{{ montoControl.value | number:precisionDisplay }}</span>
+              <span class="label">Monto Total a Solicitar:</span>
+              <span class="value monto">{{ calcularMontoTotal() | number:precisionDisplay }}</span>
             </div>
-            <div class="confirm-row">
-              <span class="label">Forma de Pago:</span>
-              <span class="value">{{ formaPagoControl.value }}</span>
+            <div class="confirm-row" *ngFor="let finanza of listaFinanzas">
+              <span class="label">{{ getEtiquetaFormaPago(finanza.formaPago) }}:</span>
+              <span class="value">{{ getSimboloMoneda(finanza.monedaId) }} {{ finanza.monto | number }}</span>
+            </div>
+            <div class="confirm-row" *ngIf="fechaVencimientoControl.value">
+              <span class="label">Vencimiento:</span>
+              <span class="value">{{ fechaVencimientoControl.value | date:'dd/MM/yyyy' }}</span>
             </div>
             <div class="confirm-row">
               <span class="label">Urgencia:</span>
@@ -296,7 +374,7 @@
         </div>
 
         <div class="warning-banner"
-          *ngIf="tieneDatosBien && motivoGastoControl.value === 'CUOTA' && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+          *ngIf="tieneDatosBien && motivoGastoControl.value === 'CUOTA' && data.montoPendiente > 0 && calcularMontoTotal() > data.montoPendiente">
           <mat-icon>warning</mat-icon>
           <span>Atención: El monto solicitado supera el saldo pendiente del bien ({{ data.montoPendiente |
             number:precisionDisplay }}).</span>
@@ -313,12 +391,12 @@
         <button mat-stroked-button (click)="pasoAnterior()" *ngIf="pasoActual > 0 && !guardado">
           <mat-icon>arrow_back</mat-icon> ANTERIOR
         </button>
-        <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 5 && !guardado"
+        <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 4 && !guardado"
           class="btn-next">
           SIGUIENTE <mat-icon>arrow_forward</mat-icon>
         </button>
         <button mat-raised-button color="accent" [disabled]="!formularioValido() || guardado" (click)="guardar()"
-          *ngIf="pasoActual === 5 && !guardado" class="btn-save">
+          *ngIf="pasoActual === 4 && !guardado" class="btn-save">
           <mat-icon>check</mat-icon> CONFIRMAR
         </button>
         <button mat-raised-button color="accent" *ngIf="guardado" (click)="nuevaSolicitud()" class="btn-new">

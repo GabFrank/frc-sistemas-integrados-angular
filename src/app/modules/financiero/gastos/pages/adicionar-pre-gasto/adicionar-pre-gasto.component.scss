@@ -7,12 +7,13 @@
   box-sizing: border-box;
 }
 
-.form-container, .history-container {
+.form-container,
+.history-container {
   background-color: #1e1e1e;
   border-radius: 8px;
-  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2), 
-              0px 6px 10px 0px rgba(0, 0, 0, 0.14), 
-              0px 1px 18px 0px rgba(0, 0, 0, 0.12);
+  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0px 6px 10px 0px rgba(0, 0, 0, 0.14),
+    0px 1px 18px 0px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.05);
   overflow-y: auto;
   overflow-x: hidden;
@@ -89,7 +90,7 @@ mat-paginator {
     font-weight: 500;
     color: #3f51b5;
   }
-  
+
   mat-icon {
     font-size: 20px;
     width: 20px;
@@ -118,7 +119,7 @@ mat-paginator {
 
   .history-table-row {
     transition: background-color 0.2s ease;
-    
+
     &:hover {
       background-color: rgba(255, 255, 255, 0.04);
     }
@@ -160,7 +161,8 @@ mat-paginator {
 
 .header-section {
   padding: 24px 32px;
-  background-color: #2c2c2c; /* Slightly lighter for the header */
+  background-color: #2c2c2c;
+  /* Slightly lighter for the header */
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -168,7 +170,8 @@ mat-paginator {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08); /* More subdued, formal */
+  background: rgba(255, 255, 255, 0.08);
+  /* More subdued, formal */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,7 +225,8 @@ mat-paginator {
   opacity: 1;
 
   .paso-circulo {
-    background: #3f51b5; /* Formal indigo instead of bright orange */
+    background: #3f51b5;
+    /* Formal indigo instead of bright orange */
     color: #ffffff;
   }
 
@@ -237,8 +241,10 @@ mat-paginator {
 
   .paso-circulo {
     background: transparent;
-    color: #4caf50; /* Success green, material design standard */
+    color: #4caf50;
+    /* Success green, material design standard */
     border: none;
+
     mat-icon {
       font-size: 24px;
       width: 24px;
@@ -296,6 +302,7 @@ mat-paginator {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -336,9 +343,10 @@ mat-paginator {
   .mat-form-field-appearance-outline .mat-form-field-outline {
     color: rgba(255, 255, 255, 0.12);
   }
-  
+
   .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
-    color: #3f51b5; /* focus formal */
+    color: #3f51b5;
+    /* focus formal */
   }
 
   .mat-form-field-appearance-outline.mat-focused .mat-form-field-label {
@@ -424,15 +432,18 @@ mat-paginator {
   display: block;
 
   &.principal {
-    color: #64b5f6; /* Soft blue */
+    color: #64b5f6;
+    /* Soft blue */
   }
 
   &.success {
-    color: #81c784; /* Soft green */
+    color: #81c784;
+    /* Soft green */
   }
 
   &.peligro {
-    color: #e57373; /* Soft red */
+    color: #e57373;
+    /* Soft red */
   }
 }
 
@@ -679,11 +690,13 @@ textarea {
   }
 
   &.active {
-    background: rgba(63, 81, 181, 0.12); /* Indigo tint */
+    background: rgba(63, 81, 181, 0.12);
+    /* Indigo tint */
     border: 2px solid #3f51b5;
 
     .motivo-icon-wrapper {
       background: transparent;
+
       mat-icon {
         color: #3f51b5;
       }
@@ -771,23 +784,27 @@ textarea {
   &.success {
     color: #81c784;
   }
+
   &.peligro {
     color: #e57373;
   }
+
   &.resaltado {
     color: #3f51b5;
     font-weight: 500;
   }
 }
 
-.proveedor-seccion, .situacion-seccion {
+.proveedor-seccion,
+.situacion-seccion {
   background: rgba(255, 255, 255, 0.04);
   padding: 16px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.proveedor-nombre, .situacion-valor {
+.proveedor-nombre,
+.situacion-valor {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.87);
 }
@@ -795,6 +812,7 @@ textarea {
 .situacion-pagando {
   color: #ffb74d; // Warning
 }
+
 .situacion-pagado {
   color: #81c784; // Success
 }
@@ -817,7 +835,7 @@ textarea {
   .banner-icon {
     color: #3f51b5;
   }
-  
+
   .banner-tipo {
     font-size: 12px;
     font-weight: 500;
@@ -842,4 +860,170 @@ textarea {
   color: #e57373;
   font-size: 14px;
   font-weight: 500;
+}
+
+.btn-agregar-finanza {
+  background-color: #4caf50 !important;
+  color: #fff !important;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+
+  &:hover:not([disabled]) {
+    background-color: #66bb6a !important;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    transform: scale(1.05);
+  }
+
+  &[disabled] {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: none;
+  }
+}
+
+.finanzas-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  background: #4caf50;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.finanzas-scroll-container {
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  margin-top: 8px;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
+
+.finanza-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.finanza-icono-container {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(76, 175, 80, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #81c784;
+  }
+}
+
+.finanza-monto-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.finanza-forma-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+.finanza-delete-btn {
+  color: rgba(255, 255, 255, 0.4) !important;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #e57373 !important;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.finanzas-duplicado-warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 167, 38, 0.1);
+  border: 1px solid rgba(255, 167, 38, 0.3);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  animation: fadeIn 0.3s ease;
+
+  mat-icon {
+    color: #ffa726;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  span {
+    color: #ffa726;
+    font-size: 13px;
+    font-weight: 400;
+  }
+}
+
+.finanzas-empty-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  margin-top: 8px;
+
+  mat-icon {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  span {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+  }
 }
