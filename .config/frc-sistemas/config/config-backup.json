@@ -1,14 +1,15 @@
 {
   "serverIp": "localhost",
   "serverPort": "8082",
-  "serverCentralIp": "localhost",
-  "serverCentralPort": "8081",
+  "serverCentralIp": "159.203.86.103",
+  "serverCentralPort": "8083",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 12,
+  "pdvId": 24,
   "isConfigured": true,
-  "isLocal": true,
+  "isLocal": false,
+  "updateChannel": "dev",
   "printers": {
     "ticket": "ticket_soporte",
     "factura": ""
