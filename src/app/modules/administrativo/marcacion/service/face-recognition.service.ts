@@ -12,7 +12,7 @@ export interface DescriptorConScore {
 export class FaceRecognitionService {
     private human: Human | null = null;
     private config: Partial<Config> = {
-        backend: 'webgl',
+        backend: 'humangl',
         modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/',
         filter: { enabled: true, equalization: false },
         face: {
@@ -35,6 +35,7 @@ export class FaceRecognitionService {
     async init(): Promise<void> {
         if (!this.human) {
             this.human = new Human(this.config);
+            await this.human.tf.ready();
             await this.human.load();
             await this.human.warmup();
         }
