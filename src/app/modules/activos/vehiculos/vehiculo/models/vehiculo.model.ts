@@ -2,6 +2,7 @@ import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { Modelo } from './modelo.model';
 import { TipoVehiculo } from './tipo-vehiculo.model';
 import { Persona } from '../../../../personas/persona/persona.model';
+import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
 
 export interface Vehiculo {
@@ -24,7 +25,7 @@ export interface Vehiculo {
     valorEstimadoPyg?: number;
     valorEstimadoBrl?: number;
     situacionPago?: string;
-    proveedor?: Persona;
+    proveedor?: Proveedor;
     moneda?: Moneda;
     montoTotal?: number;
     montoYaPagado?: number;

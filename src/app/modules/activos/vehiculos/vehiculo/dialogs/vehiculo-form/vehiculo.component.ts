@@ -7,6 +7,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
 import { Modelo } from '../../models/modelo.model';
 import { TipoVehiculo } from '../../models/tipo-vehiculo.model';
 import { Persona } from '../../../../../personas/persona/persona.model';
+import { Proveedor } from '../../../../../personas/proveedor/proveedor.model';
 import { BehaviorSubject } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Inject, Optional } from '@angular/core';
@@ -49,7 +50,7 @@ export class VehiculoComponent implements OnInit {
     modeloDescripcion: string = 'SELECCIONE UN MODELO';
     tipoVehiculoDescripcion: string = 'SELECCIONE UN TIPO';
     propietarioDescripcion: string = 'SELECCIONE UN PROPIETARIO';
-    proveedorSelected: Persona;
+    proveedorSelected: Proveedor | Persona;
     proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
     monedaSelected: any;
     monedaDescripcion: string = 'SELECCIONE UNA MONEDA';
@@ -174,7 +175,7 @@ export class VehiculoComponent implements OnInit {
         }
         if ((this.vehiculo as any)?.proveedor) {
             this.proveedorSelected = (this.vehiculo as any).proveedor;
-            this.proveedorDescripcion = `${this.proveedorSelected.nombre}`.toUpperCase();
+            this.proveedorDescripcion = this.getProveedorNombre(this.proveedorSelected);
         }
         if ((this.vehiculo as any)?.moneda) {
             this.monedaSelected = (this.vehiculo as any).moneda;
@@ -225,10 +226,10 @@ export class VehiculoComponent implements OnInit {
     }
 
     onBuscarProveedor(): void {
-        this.vehiculoDialogService.onBuscarProveedor((persona: Persona) => {
-            this.proveedorSelected = persona;
-            this.proveedorDescripcion = `${persona.nombre}`.toUpperCase();
-            this.form.controls['proveedorId'].setValue(Number(persona.id));
+        this.vehiculoDialogService.onBuscarProveedor((proveedor: Proveedor) => {
+            this.proveedorSelected = proveedor;
+            this.proveedorDescripcion = this.getProveedorNombre(proveedor);
+            this.form.controls['proveedorId'].setValue(Number(proveedor.id));
             this.cdr.markForCheck();
         });
     }
@@ -248,5 +249,10 @@ export class VehiculoComponent implements OnInit {
 
     onCancelar(): void {
         this.vehiculoDialogService.onCancelar(this.dialogRef);
+    }
+
+    private getProveedorNombre(proveedor: Proveedor | Persona): string {
+        const nombre = (proveedor as Proveedor)?.persona?.nombre ?? (proveedor as Persona)?.nombre;
+        return nombre ? `${nombre}`.toUpperCase() : 'SELECCIONE UN PROVEEDOR';
     }
 }

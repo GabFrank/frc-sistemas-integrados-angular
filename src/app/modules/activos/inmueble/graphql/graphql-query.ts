@@ -23,7 +23,10 @@ export const inmuebleByIdQuery = gql`
       }
       proveedor {
         id
-        nombre
+        persona {
+          id
+          nombre
+        }
       }
       moneda {
         id

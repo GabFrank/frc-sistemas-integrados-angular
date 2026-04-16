@@ -76,8 +76,8 @@ export class PreGastoInput {
   usuarioId: number;
   nivelUrgencia: string;
   observaciones: string;
-  beneficiarioProveedorId: number;
-  beneficiarioPersonaId: number;
+  beneficiarioProveedorId: number | null;
+  beneficiarioPersonaId: number | null;
   fechaVencimiento: string;
   finanzas: PreGastoDetalleFinanzasInput[];
 }

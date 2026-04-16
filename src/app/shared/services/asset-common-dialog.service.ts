@@ -9,6 +9,8 @@ import { CiudadesSearchGQL } from '../../modules/general/ciudad/graphql/ciudades
 import { AdicionarPersonaDialogComponent } from '../../modules/personas/persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
 import { VehiculoSearchPageGQL } from '../../modules/activos/vehiculos/vehiculo/graphql/vehiculoSearchPage';
 import { Persona } from '../../modules/personas/persona/persona.model';
+import { Proveedor } from '../../modules/personas/proveedor/proveedor.model';
+import { ProveedoresSearchByPersonaPageGQL } from '../../modules/personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { Pais } from '../../modules/general/pais/pais.model';
 import { Ciudad } from '../../modules/general/ciudad/ciudad.model';
 import { Vehiculo } from '../../modules/activos/vehiculos/vehiculo/models/vehiculo.model';
@@ -23,6 +25,7 @@ export class AssetCommonDialogService {
   private paisSearchGQL = inject(PaisSearchGQL);
   private ciudadesSearchGQL = inject(CiudadesSearchGQL);
   private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
+  private proveedoresSearchByPersonaPageGQL = inject(ProveedoresSearchByPersonaPageGQL);
 
   buscarPersona(callback: (persona: Persona) => void): void {
     const tableData: TableData[] = [
@@ -83,6 +86,33 @@ export class AssetCommonDialogService {
       width: '400px',
       data: data
     }).afterClosed().subscribe(res => {
+      if (res) {
+        callback(res);
+      }
+    });
+  }
+
+  buscarProveedor(callback: (proveedor: Proveedor) => void): void {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID', width: '10%' },
+      { id: 'persona.nombre', nombre: 'Nombre' },
+      { id: 'persona.documento', nombre: 'Documento' }
+    ];
+
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Proveedor',
+      query: this.proveedoresSearchByPersonaPageGQL,
+      tableData,
+      inicialSearch: true,
+      paginator: true,
+      isServidor: true
+    };
+
+    this.dialog.open(SearchListDialogComponent, {
+      width: '60%',
+      height: '80%',
+      data
+    }).afterClosed().subscribe((res: Proveedor) => {
       if (res) {
         callback(res);
       }

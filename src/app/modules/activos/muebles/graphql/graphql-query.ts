@@ -27,7 +27,10 @@ export const muebleByIdQuery = gql`
       situacionPago
       proveedor {
         id
-        nombre
+        persona {
+          id
+          nombre
+        }
       }
       moneda {
         id
@@ -90,8 +93,11 @@ export const muebleSearchPageQuery = gql`
         }
         situacionPago
         proveedor {
+          id
+          persona {
             id
             nombre
+          }
         }
         moneda {
             id

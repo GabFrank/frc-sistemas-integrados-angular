@@ -1,5 +1,6 @@
 
 import { Persona } from '../../../personas/persona/persona.model';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { FamiliaMueble } from './familia-mueble.model';
 import { TipoMueble } from './tipo-mueble.model';
@@ -17,7 +18,7 @@ export interface Mueble {
     valorTasacionPyg?: number;
     valorTasacionBrl?: number;
     situacionPago?: string;
-    proveedor?: Persona;
+    proveedor?: Proveedor;
     moneda?: import('../../../financiero/moneda/moneda.model').Moneda;
     montoTotal?: number;
     montoYaPagado?: number;

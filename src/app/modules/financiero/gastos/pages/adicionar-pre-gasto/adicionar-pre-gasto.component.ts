@@ -270,11 +270,21 @@ export class AdicionarPreGastoComponent implements OnInit {
     input.nivelUrgencia = this.urgenciaControl.value;
     input.observaciones = this.observacionesControl.value;
 
-    if (this.beneficiarioPersonaControl.value) {
-      input.beneficiarioPersonaId = this.beneficiarioPersonaControl.value.id;
+    const beneficiarioPersona = this.beneficiarioPersonaControl.value;
+    const beneficiarioProveedor = this.beneficiarioProveedorControl.value;
+    if (beneficiarioPersona && beneficiarioProveedor) {
+      // Protección adicional en UI: backend también valida.
+      return;
     }
-    if (this.beneficiarioProveedorControl.value) {
-      input.beneficiarioProveedorId = this.beneficiarioProveedorControl.value.id;
+    if (beneficiarioPersona) {
+      input.beneficiarioPersonaId = beneficiarioPersona.id;
+      input.beneficiarioProveedorId = null;
+    } else if (beneficiarioProveedor) {
+      input.beneficiarioProveedorId = beneficiarioProveedor.id;
+      input.beneficiarioPersonaId = null;
+    } else {
+      input.beneficiarioPersonaId = null;
+      input.beneficiarioProveedorId = null;
     }
     if (this.fechaVencimientoControl.value) {
       const d = new Date(this.fechaVencimientoControl.value);

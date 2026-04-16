@@ -1,4 +1,5 @@
 import { Persona } from "../../../personas/persona/persona.model";
+import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Pais } from "../../../general/pais/pais.model";
 import { Ciudad } from "../../../general/ciudad/ciudad.model";
@@ -18,7 +19,7 @@ export interface Inmueble {
     valorTasacionPyg?: number;
     valorTasacionBrl?: number;
     situacionPago?: string;
-    proveedor?: Persona;
+    proveedor?: Proveedor;
     moneda?: any;
     montoTotal?: number;
     montoYaPagado?: number;

@@ -7,6 +7,7 @@ import { Mueble } from '../models/mueble.model';
 import { MuebleInput } from '../models/mueble-input.model';
 import { MuebleFormComponent } from '../dialogs/mueble-form/mueble-form.component';
 import { Persona } from '../../../personas/persona/persona.model';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { FamiliaMueble } from '../models/familia-mueble.model';
 import { TipoMueble } from '../models/tipo-mueble.model';
 import { MainService } from '../../../../main.service';
@@ -74,8 +75,8 @@ export class MuebleDialogService {
     });
   }
 
-  onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.assetCommonDialogService.buscarPersona(callback);
+  onBuscarProveedor(callback: (proveedor: Proveedor) => void): void {
+    this.assetCommonDialogService.buscarProveedor(callback);
   }
 
   onBuscarMoneda(callback: (moneda: Moneda) => void): void {

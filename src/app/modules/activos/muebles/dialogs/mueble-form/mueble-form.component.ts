@@ -10,6 +10,7 @@ import { Mueble } from '../../models/mueble.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
 import { TipoMueble } from '../../models/tipo-mueble.model';
+import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
 
 @UntilDestroy()
 @Component({
@@ -50,7 +51,7 @@ export class MuebleFormComponent implements OnInit {
   monedas = ['PYG', 'USD', 'BRL'];
   currencyMask = new CurrencyMask();
 
-  proveedorSelected: Persona;
+  proveedorSelected: Proveedor | Persona;
   proveedorDescripcion: string = 'SELECCIONE UN PROVEEDOR';
 
   monedaSelected: any;
@@ -140,7 +141,7 @@ export class MuebleFormComponent implements OnInit {
       }
       if (this.mueble.proveedor) {
         this.proveedorSelected = this.mueble.proveedor;
-        this.proveedorDescripcion = this.mueble.proveedor.nombre?.toUpperCase() || '';
+        this.proveedorDescripcion = this.getProveedorNombre(this.mueble.proveedor);
       }
       if (this.mueble.moneda) {
         this.monedaSelected = this.mueble.moneda;
@@ -178,10 +179,10 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onBuscarProveedor(): void {
-    this.muebleDialogService.onBuscarProveedor((persona: Persona) => {
-      this.proveedorSelected = persona;
-      this.proveedorDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.controls['proveedorId'].setValue(Number(persona.id));
+    this.muebleDialogService.onBuscarProveedor((proveedor: Proveedor) => {
+      this.proveedorSelected = proveedor;
+      this.proveedorDescripcion = this.getProveedorNombre(proveedor);
+      this.form.controls['proveedorId'].setValue(Number(proveedor.id));
       this.cdr.markForCheck();
     });
   }
@@ -201,5 +202,10 @@ export class MuebleFormComponent implements OnInit {
 
   onGuardar(): void {
     this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef);
+  }
+
+  private getProveedorNombre(proveedor: Proveedor | Persona): string {
+    const nombre = (proveedor as Proveedor)?.persona?.nombre ?? (proveedor as Persona)?.nombre;
+    return nombre?.toUpperCase() || 'SELECCIONE UN PROVEEDOR';
   }
 }

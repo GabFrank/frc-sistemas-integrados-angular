@@ -9,6 +9,7 @@ import { VehiculoComponent } from '../dialogs/vehiculo-form/vehiculo.component';
 import { Modelo } from '../models/modelo.model';
 import { TipoVehiculo } from '../models/tipo-vehiculo.model';
 import { Persona } from '../../../../personas/persona/persona.model';
+import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
 import { MainService } from '../../../../../main.service';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
@@ -75,8 +76,8 @@ export class VehiculoDialogService {
     this.assetCommonDialogService.buscarPersona(callback);
   }
 
-  onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.assetCommonDialogService.buscarPersona(callback);
+  onBuscarProveedor(callback: (proveedor: Proveedor) => void): void {
+    this.assetCommonDialogService.buscarProveedor(callback);
   }
 
   onBuscarMoneda(callback: (moneda: any) => void): void {

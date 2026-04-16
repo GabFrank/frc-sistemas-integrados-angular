@@ -7,6 +7,7 @@ import { Inmueble } from '../models/inmueble.model';
 import { InmuebleInput } from '../models/inmueble-input.model';
 import { InmuebleFormComponent } from '../dialogs/inmueble-form/inmueble-form.component';
 import { Persona } from '../../../personas/persona/persona.model';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Pais } from '../../../general/pais/pais.model';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
 import { MainService } from '../../../../main.service';
@@ -42,8 +43,8 @@ export class InmuebleDialogService {
     this.assetCommonDialogService.buscarPersona(callback);
   }
 
-  onBuscarProveedor(callback: (persona: Persona) => void): void {
-    this.assetCommonDialogService.buscarPersona(callback);
+  onBuscarProveedor(callback: (proveedor: Proveedor) => void): void {
+    this.assetCommonDialogService.buscarProveedor(callback);
   }
 
   onBuscarMoneda(callback: (moneda: Moneda) => void): void {

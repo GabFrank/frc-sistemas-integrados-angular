@@ -44,7 +44,10 @@ export const vehiculoByIdQuery = gql`
       situacionPago
       proveedor {
         id
-        nombre
+        persona {
+          id
+          nombre
+        }
       }
       moneda {
         id
