@@ -7,10 +7,6 @@
     </div>
   </div>
 
-  <div *ngIf="selectedParent != null" class="dialogo-clasificacion">
-    <mat-icon>subdirectory_arrow_right</mat-icon>
-    <span>Subtipo de: <strong>{{ selectedParent.descripcion | uppercase }}</strong></span>
-  </div>
   <div fxLayout="column" fxLayoutGap="16px" class="dialogo-formulario">
     <div fxLayout="row" fxLayoutGap="12px">
       <mat-form-field fxFlex="15%" appearance="outline">
@@ -25,6 +21,16 @@
         <mat-icon matSuffix>description</mat-icon>
       </mat-form-field>
     </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Módulo Padre</mat-label>
+      <mat-select [formControl]="moduloPadreControl">
+        <mat-option *ngFor="let modulo of moduloPadreList" [value]="modulo">
+          {{ modulo }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matSuffix>account_tree</mat-icon>
+    </mat-form-field>
 
     <div class="dialogo-seccion" fxLayout="column" fxLayoutGap="16px">
       <div fxLayout="row" fxLayoutGap="32px" fxLayoutAlign="start center">
@@ -92,7 +98,7 @@
     <button mat-stroked-button (click)="onCancel()" type="button">
       Cancelar
     </button>
-    <button mat-raised-button color="accent" [disabled]="!descripcionControl.valid" (click)="onSave()" type="button">
+    <button mat-raised-button color="accent" [disabled]="!descripcionControl.valid || !moduloPadreControl.valid" (click)="onSave()" type="button">
       <mat-icon>save</mat-icon>
       Guardar
     </button>

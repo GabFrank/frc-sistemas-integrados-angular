@@ -7,6 +7,7 @@ export class TipoGasto {
     clasificacionGasto: TipoGasto
     descripcion: string
     tipoNaturaleza: string
+    moduloPadre?: string
     autorizacion: boolean
     cargo: Cargo
     activo: boolean
@@ -23,6 +24,7 @@ export class TipoGastoInput {
     clasificacionGastoId: number
     descripcion: string
     tipoNaturaleza: string
+    moduloPadre?: string
     autorizacion: boolean
     cargoId: number
     activo: boolean

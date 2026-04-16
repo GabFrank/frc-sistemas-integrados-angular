@@ -105,10 +105,10 @@ export class ListTipoGastosComponent implements OnInit {
     this.refetchSubject.next();
   }
 
-  agregarNuevo(parent?: TipoGasto): void {
+  agregarNuevo(): void {
     this.matDialog
       .open(AdicionarTipoGastoDialogComponent, {
-        data: { parent },
+        data: {},
         width: '50%',
         disableClose: true,
         restoreFocus: true,
@@ -127,7 +127,6 @@ export class ListTipoGastosComponent implements OnInit {
       .open(AdicionarTipoGastoDialogComponent, {
         data: {
           tipoGasto: tipoGasto,
-          parent: tipoGasto.clasificacionGasto,
         },
         width: '50%',
         disableClose: true,

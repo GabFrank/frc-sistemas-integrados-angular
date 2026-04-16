@@ -55,7 +55,7 @@
         <ng-container matColumnDef="clasificacion">
           <th mat-header-cell *matHeaderCellDef>Pertenece a</th>
           <td mat-cell *matCellDef="let item" style="color: #aaa;">
-            {{ item.clasificacionGasto?.descripcion || 'RAIZ' }}
+            {{ item.moduloPadre || 'OTRO' }}
           </td>
         </ng-container>
 

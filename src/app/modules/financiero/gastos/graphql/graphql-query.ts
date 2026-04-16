@@ -210,6 +210,7 @@ export const tipoGastoQuery = gql`
       activo
       isClasificacion
       tipoNaturaleza
+      moduloPadre
       cargo {
         id
       }
@@ -247,6 +248,7 @@ export const saveTipoGasto = gql`
       activo
       isClasificacion
       tipoNaturaleza
+      moduloPadre
       cargo {
         id
       }
@@ -403,6 +405,7 @@ export const filterTipoGastosQuery = gql`
         activo
         isClasificacion
         tipoNaturaleza
+        moduloPadre
         cargo {
           id
         }

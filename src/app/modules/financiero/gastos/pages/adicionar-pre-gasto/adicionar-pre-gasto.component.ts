@@ -26,6 +26,7 @@ import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
 import { PreGastoDetalleFinanzasInput } from '../../models/pre-gasto.model';
 import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/personaSearchPage';
 import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
+import { CurrencyMaskInputMode } from 'ngx-currency';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -69,6 +70,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   finanzaMonedaControl = new FormControl(null);
   finanzaFormaPagoControl = new FormControl('EFECTIVO');
   finanzaMontoControl = new FormControl(null);
+  selectedFinanzaCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
   solicitanteControl = new FormControl(null);
   numeroCuotaControl = new FormControl({ value: null, disabled: true });
   tipoBienControl = new FormControl(null);
@@ -120,6 +122,21 @@ export class AdicionarPreGastoComponent implements OnInit {
     { valor: 'ALTA', etiqueta: 'Alta', color: '#ffa726' },
     { valor: 'URGENTE', etiqueta: 'Urgente', color: '#ef5350' },
   ];
+
+  private finanzaCurrencyOptionsNoGuarani = {
+    allowNegative: true,
+    precision: 2,
+    thousands: '.',
+    nullable: false,
+    inputMode: CurrencyMaskInputMode.FINANCIAL,
+    align: 'right',
+    allowZero: true,
+    decimal: ',',
+    prefix: '',
+    suffix: '',
+    max: null,
+    min: null,
+  };
 
   ngOnInit(): void {
     const tabData = this.tabService.currentTab()?.tabData?.data;
@@ -174,12 +191,18 @@ export class AdicionarPreGastoComponent implements OnInit {
           }
         }
         this.actualizarCurrencyOptions();
+        this.actualizarFinanzaCurrencyOptions();
         this.cdr.markForCheck();
       }
     });
 
     this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       this.actualizarCurrencyOptions();
+      this.cdr.markForCheck();
+    });
+
+    this.finanzaMonedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.actualizarFinanzaCurrencyOptions();
       this.cdr.markForCheck();
     });
 
@@ -341,6 +364,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.finanzaMonedaControl.reset();
     this.finanzaFormaPagoControl.setValue('EFECTIVO');
     this.finanzaMontoControl.reset();
+    this.selectedFinanzaCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
 
     this.pasoActual = 0;
 
@@ -646,6 +670,16 @@ export class AdicionarPreGastoComponent implements OnInit {
     } else {
       this.selectedCurrencyOptions = this.currencyMask.currencyOptionsNoGuarani;
       this.precisionDisplay = '1.0-2';
+    }
+  }
+
+  actualizarFinanzaCurrencyOptions(): void {
+    const monedaId = this.finanzaMonedaControl.value;
+    const moneda = this.listaMonedas.find(m => m.id === monedaId);
+    if (moneda?.simbolo === 'Gs' || moneda?.simbolo === 'Gs.') {
+      this.selectedFinanzaCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
+    } else {
+      this.selectedFinanzaCurrencyOptions = this.finanzaCurrencyOptionsNoGuarani;
     }
   }
 
