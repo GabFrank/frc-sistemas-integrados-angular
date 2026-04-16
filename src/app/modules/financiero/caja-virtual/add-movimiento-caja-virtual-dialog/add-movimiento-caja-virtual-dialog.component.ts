@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { forkJoin } from 'rxjs';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -23,13 +24,21 @@ export interface MovimientoDialogData {
 export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  cantidadControl = new FormControl(null, [Validators.required, Validators.min(0.01)]);
-  monedaControl = new FormControl(null, Validators.required);
+  cantidadGsControl = new FormControl(null, [Validators.min(0.01)]);
+  cantidadRsControl = new FormControl(null, [Validators.min(0.01)]);
+  cantidadDsControl = new FormControl(null, [Validators.min(0.01)]);
   descripcionControl = new FormControl('', Validators.required);
 
-  monedaList: Moneda[] = [];
+  monedaGs: Moneda;
+  monedaRs: Moneda;
+  monedaDs: Moneda;
+
+  currencyOptionsGs: any;
+  currencyOptionsRs: any;
+  currencyOptionsDs: any;
+
   isSaving = false;
-  currencyOptions: any;
+  titulo: string = 'Movimiento';
 
   tipoLabels = {
     [CajaVirtualTipoMovimiento.INGRESO]: 'Ingreso de Efectivo',
@@ -48,72 +57,80 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.formGroup = new FormGroup({
-      cantidadControl: this.cantidadControl,
-      monedaControl: this.monedaControl,
+      cantidadGsControl: this.cantidadGsControl,
+      cantidadRsControl: this.cantidadRsControl,
+      cantidadDsControl: this.cantidadDsControl,
       descripcionControl: this.descripcionControl,
     });
 
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.monedaList = res;
-        // Seleccionar Guaraní por defecto
-        const guarani = res.find(m => m.denominacion?.toUpperCase().includes('GUARANI'));
-        if (guarani) {
-          this.monedaControl.setValue(guarani);
-          this.currencyOptions = this.monedaService.currencyOptionsGuarani;
-        }
+        this.monedaGs = res.find(m => m.denominacion?.toUpperCase().includes('GUARANI'));
+        this.monedaRs = res.find(m => m.denominacion?.toUpperCase().includes('REAL'));
+        this.monedaDs = res.find(m => m.denominacion?.toUpperCase().includes('DOLAR'));
+
+        if (this.monedaGs) this.currencyOptionsGs = this.monedaService.currencyOptionsByMoneda(this.monedaGs);
+        if (this.monedaRs) this.currencyOptionsRs = this.monedaService.currencyOptionsByMoneda(this.monedaRs);
+        if (this.monedaDs) this.currencyOptionsDs = this.monedaService.currencyOptionsByMoneda(this.monedaDs);
       }
     });
 
-    this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((moneda: Moneda) => {
-      if (moneda) {
-        this.currencyOptions = this.monedaService.currencyOptionsByMoneda(moneda);
-        this.cantidadControl.setValue(null);
-      }
-    });
-  }
-
-  getTitulo(): string {
-    return this.tipoLabels[this.data?.tipoMovimiento] || 'Movimiento';
-  }
-
-  getSaldoActual(): number {
-    const moneda: Moneda = this.monedaControl.value;
-    if (!moneda || !this.data?.cajaVirtual) return 0;
-    if (moneda.denominacion?.toUpperCase().includes('GUARANI')) return this.data.cajaVirtual.saldoGs ?? 0;
-    if (moneda.denominacion?.toUpperCase().includes('REAL')) return this.data.cajaVirtual.saldoRs ?? 0;
-    if (moneda.denominacion?.toUpperCase().includes('DOLAR')) return this.data.cajaVirtual.saldoDs ?? 0;
-    return 0;
+    this.titulo = this.tipoLabels[this.data?.tipoMovimiento] || 'Movimiento';
   }
 
   onSave() {
     if (this.formGroup.invalid) return;
 
+    let obsList = [];
+
+    const amtGs = this.cantidadGsControl.value;
+    const amtRs = this.cantidadRsControl.value;
+    const amtDs = this.cantidadDsControl.value;
+
+    if (!amtGs && !amtRs && !amtDs) {
+      this.notificacion.openAlgoSalioMal('Debe ingresar al menos un monto en alguna moneda');
+      return;
+    }
+
+    if (amtGs > 0 && this.monedaGs) {
+      obsList.push(this.createSaveObs(amtGs, this.monedaGs));
+    }
+    if (amtRs > 0 && this.monedaRs) {
+      obsList.push(this.createSaveObs(amtRs, this.monedaRs));
+    }
+    if (amtDs > 0 && this.monedaDs) {
+      obsList.push(this.createSaveObs(amtDs, this.monedaDs));
+    }
+
+    if (obsList.length === 0) return;
+
+    this.isSaving = true;
+    forkJoin(obsList)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (resArray) => {
+          this.isSaving = false;
+          this.notificacion.openSucess('Movimientos registrados correctamente');
+          this.dialogRef.close(true);
+        },
+        error: err => {
+          this.isSaving = false;
+          this.notificacion.openAlgoSalioMal(err?.message || 'Error al guardar uno o más movimientos');
+        }
+      });
+  }
+
+  createSaveObs(cantidad: number, moneda: Moneda) {
     const movimiento = new MovimientoCajaVirtual();
     movimiento.cajaVirtual = this.data.cajaVirtual;
     movimiento.tipoMovimiento = this.data.tipoMovimiento;
-    movimiento.cantidad = this.cantidadControl.value;
-    movimiento.moneda = this.monedaControl.value;
+    movimiento.cantidad = cantidad;
+    movimiento.moneda = moneda;
     movimiento.descripcion = this.descripcionControl.value?.toUpperCase();
     movimiento.usuario = this.mainService.usuarioActual;
     movimiento.activo = true;
 
-    this.isSaving = true;
-    this.cajaVirtualService.onSaveMovimiento(movimiento)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: res => {
-          this.isSaving = false;
-          if (res != null) {
-            this.notificacion.openSucess('Movimiento registrado correctamente');
-            this.dialogRef.close(res);
-          }
-        },
-        error: err => {
-          this.isSaving = false;
-          this.notificacion.openAlgoSalioMal(err?.message);
-        }
-      });
+    return this.cajaVirtualService.onSaveMovimiento(movimiento);
   }
 
   onCancel() {

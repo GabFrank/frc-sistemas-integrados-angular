@@ -39,6 +39,11 @@ export class ListCajaVirtualComponent implements OnInit {
     { label: 'Caja Chica', value: CajaVirtualTipo.CAJA_CHICA }
   ];
 
+  tipoLabels: Record<string, string> = {
+    [CajaVirtualTipo.CAJA_MAYOR]: 'Caja Mayor',
+    [CajaVirtualTipo.CAJA_CHICA]: 'Caja Chica'
+  };
+
   displayedColumns = [
     'id',
     'nombre',
@@ -88,7 +93,7 @@ export class ListCajaVirtualComponent implements OnInit {
 
   onAdd() {
     this.dialog.open(AddCajaVirtualDialogComponent, {
-      width: '600px',
+      width: '500px',
       data: null
     }).afterClosed().subscribe(res => {
       if (res != null) this.onFiltrar();
@@ -97,7 +102,7 @@ export class ListCajaVirtualComponent implements OnInit {
 
   onEdit(item: CajaVirtual) {
     this.dialog.open(AddCajaVirtualDialogComponent, {
-      width: '600px',
+      width: '500px',
       data: item
     }).afterClosed().subscribe(res => {
       if (res != null) this.onFiltrar();
@@ -125,32 +130,22 @@ export class ListCajaVirtualComponent implements OnInit {
     });
   }
 
-  onIngreso(item: CajaVirtual) {
-    const data: MovimientoDialogData = { cajaVirtual: item, tipoMovimiento: CajaVirtualTipoMovimiento.INGRESO };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data })
-      .afterClosed().subscribe(res => { if (res != null) this.onFiltrar(); });
-  }
-
-  onEgreso(item: CajaVirtual) {
-    const data: MovimientoDialogData = { cajaVirtual: item, tipoMovimiento: CajaVirtualTipoMovimiento.EGRESO };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data })
-      .afterClosed().subscribe(res => { if (res != null) this.onFiltrar(); });
-  }
-
-  onTransferencia(item: CajaVirtual) {
-    this.dialog.open(TransferenciaCajaVirtualDialogComponent, { width: '560px', data: item })
-      .afterClosed().subscribe(res => { if (res) this.onFiltrar(); });
-  }
-
   onVerDashboard(item: CajaVirtual) {
     this.tabService.addTab(
-      new Tab(CajaVirtualDashboardComponent, `Caja: ${item.nombre}`, new TabData(item.id, item), ListCajaVirtualComponent)
+      new Tab(CajaVirtualDashboardComponent, 
+        `Caja: ${item.nombre}`, 
+        new TabData(item.id, item), 
+        ListCajaVirtualComponent
+      )
     );
   }
 
   onHistorial(item: CajaVirtual) {
     this.dialog.open(HistorialMovimientosCajaVirtualComponent, {
-      width: '95vw', maxWidth: '1200px', height: '85vh', data: item
+      width: '95vw', 
+      maxWidth: '1400px', 
+      height: '85vh', 
+      data: item
     });
   }
 
@@ -166,7 +161,4 @@ export class ListCajaVirtualComponent implements OnInit {
     this.onFiltrar();
   }
 
-  getTipoLabel(tipo: CajaVirtualTipo): string {
-    return tipo === CajaVirtualTipo.CAJA_MAYOR ? 'Caja Mayor' : 'Caja Chica';
-  }
 }

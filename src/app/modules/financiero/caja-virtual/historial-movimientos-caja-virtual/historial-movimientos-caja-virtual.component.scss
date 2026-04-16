@@ -2,3 +2,40 @@
   display: block;
   height: 100%;
 }
+
+h2 {
+  margin: 0px;
+}
+
+.icon-size {
+  margin: 0px;
+  transform: scale(1.8);
+}
+
+.currency-card {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+
+  &.gs {
+    background: linear-gradient(135deg, #6279e2 0%, #6d62c1 100%);
+  }
+
+  &.rs {
+    background: linear-gradient(135deg, #6d62c1 0%, #7749a0 100%);
+  }
+
+  &.ds {
+    background: linear-gradient(135deg, #7749a0 0%, #512e70 100%);
+  }
+}
+
+.label {
+  font-size: 0.95em;
+  color: #ffff;
+}
+
+.value {
+  font-size: 1.1em;
+  font-weight: 600;
+}

@@ -50,7 +50,7 @@
     <div class="balance-actions">
       <button class="bal-btn btn-ingreso" (click)="onIngreso()">
         <mat-icon>add</mat-icon>
-        Añadir ingreso
+        Añadir
       </button>
       <button class="bal-btn btn-transferir" (click)="onTransferencia()">
         <mat-icon>swap_horiz</mat-icon>
@@ -91,12 +91,6 @@
         </button>
       </div>
 
-      <mat-progress-bar 
-        *ngIf="isLoading" 
-        mode="indeterminate" 
-        class="progress-bar">
-      </mat-progress-bar>
-
       <!-- Lista movimientos -->
       <div class="movement-list">
         <div *ngIf="dataSource.data.length === 0 && !isLoading" class="empty-state">
@@ -104,37 +98,77 @@
           <span>Sin movimientos registrados</span>
         </div>
 
-        <div class="movement-item" *ngFor="let mov of dataSource.data">
+        <div 
+          class="movement-item-container" 
+          *ngFor="let mov of dataSource.data" 
+          style="margin-bottom: 8px;"
+          [class.expanded]="expandedId === mov.id"
+        >
           <div 
-            class="mov-icon-wrap" 
-            [style.background]="(tipoColores[mov.tipoMovimiento] || '#aaa') + '25'"
+            class="movement-item" 
+            (click)="toggleExpanded(mov.id)" 
+            style="cursor: pointer;"
           >
-            <mat-icon [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'">
-              {{ tipoIconos[mov.tipoMovimiento] || 'swap_horiz' }}
-            </mat-icon>
-          </div>
-          <div class="mov-info">
-            <span class="mov-tipo">
-              {{ tipoMovimientoLabels[mov.tipoMovimiento] || mov.tipoMovimiento }}
-            </span>
-            <span class="mov-desc">
-              {{ mov.descripcion || mov.usuario?.persona?.nombre || '-' }}
-            </span>
-          </div>
-          <div class="mov-right">
-            <span 
-              class="mov-amount" 
-              [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'"
+            <div 
+              class="mov-icon-wrap" 
+              [style.background]="(tipoColores[mov.tipoMovimiento] || '#aaa') + '25'"
             >
-              {{ 
-                (mov.tipoMovimiento === 'EGRESO' || 
-                mov.tipoMovimiento === 'TRANSFERENCIA_SALIDA' || 
-                mov.tipoMovimiento === 'PAGO_PROVEEDOR') ? '-' : '+' 
-              }}
-              {{ mov.cantidad | number:'1.0-2' }} 
-              {{ mov.moneda?.simbolo }}
-            </span>
-            <span class="mov-date">{{ mov.creadoEn | date:'dd/MM/yy HH:mm' }}</span>
+              <mat-icon [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'">
+                {{ tipoIconos[mov.tipoMovimiento] || 'swap_horiz' }}
+              </mat-icon>
+            </div>
+            <div class="mov-info">
+              <span class="mov-tipo">
+                {{ tipoMovimientoLabels[mov.tipoMovimiento] || mov.tipoMovimiento }}
+              </span>
+              <span class="mov-desc">
+                {{ mov.descripcion || '-' }}
+              </span>
+            </div>
+            <div class="mov-right">
+              <span 
+                class="mov-amount" 
+                [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'"
+              >
+                {{ 
+                  (mov.tipoMovimiento === 'EGRESO' || 
+                  mov.tipoMovimiento === 'TRANSFERENCIA_SALIDA' || 
+                  mov.tipoMovimiento === 'PAGO_PROVEEDOR') ? '-' : '+' 
+                }}
+                {{ mov.cantidad | number:'1.0-2' }} 
+                {{ mov.moneda?.simbolo }}
+              </span>
+              <span class="mov-date">{{ mov.creadoEn | date:'dd/MM/yy HH:mm' }}</span>
+            </div>
+          </div>
+          
+          <div class="mov-expanded-detail" *ngIf="expandedId === mov.id">
+             <div style="display: flex; justify-content: space-between;">
+               <span style="color: #aaa;">Operador</span>
+               <strong style="font-weight: 500;">
+                {{ mov.usuario?.persona?.nombre || '-' }}
+               </strong>
+             </div>
+             <div style="display: flex; justify-content: space-between;">
+               <span style="color: #aaa;">Saldo Anterior</span>
+               <strong style="color: #f57c00; font-size: 1.1em;">
+                  {{ 
+                    mov.saldoAnterior != null ? 
+                    (mov.saldoAnterior | number:'1.0-2') : '---' 
+                  }} 
+                  {{ mov.moneda?.simbolo }}
+               </strong>
+             </div>
+             <div class="mov-detail-item">
+               <span style="color: #aaa;">Saldo Tras Operación</span>
+               <strong style="color: #4caf50; font-size: 1.1em;">
+                  {{ 
+                    mov.saldoPosterior != null ? 
+                    (mov.saldoPosterior | number:'1.0-2') : '---' 
+                  }} 
+                  {{ mov.moneda?.simbolo }}
+               </strong>
+             </div>
           </div>
         </div>
       </div>

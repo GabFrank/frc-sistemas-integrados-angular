@@ -26,7 +26,7 @@ $ds-sym:      #fff;
 /* ─── Layout raíz ─── */
 .cv-dashboard {
   background: $bg;
-  min-height: 100%;
+  height: 100%;
   padding: 18px 22px;
   display: flex;
   flex-direction: column;
@@ -73,7 +73,9 @@ $ds-sym:      #fff;
 
   &.gs {
     background: $gs-bg;
-    .cc-symbol { color: $gs-sym; }
+    .cc-symbol { 
+      color: $gs-sym; 
+    }
     &:hover {
       box-shadow: 0 0 10px rgba(98, 121, 226, 0.5) !important;
       transform: translateY(-1px) !important;
@@ -82,7 +84,9 @@ $ds-sym:      #fff;
 
   &.rs {
     background: $rs-bg;
-    .cc-symbol { color: $rs-sym; }
+    .cc-symbol { 
+      color: $rs-sym; 
+    }
     &:hover {
       box-shadow: 0 0 10px rgba(109, 98, 193, 0.5) !important;
       transform: translateY(-1px) !important;
@@ -91,7 +95,9 @@ $ds-sym:      #fff;
 
   &.ds {
     background: $ds-bg;
-    .cc-symbol { color: $ds-sym; }
+    .cc-symbol { 
+      color: $ds-sym; 
+    }
     &:hover {
       box-shadow: 0 0 10px rgba(119, 73, 160, 0.5) !important;
       transform: translateY(-1px) !important;
@@ -148,19 +154,28 @@ $ds-sym:      #fff;
   &.btn-ingreso {
     background: #43a047;
     color: #fff;
-    &:hover { background: rgb(81, 177, 84); transform: translateY(-1px); }
+    &:hover { 
+      background: rgb(81, 177, 84); 
+      transform: translateY(-1px); 
+    }
   }
 
   &.btn-transferir {
     background: rgb(32, 95, 204);
     color: #fff;
-    &:hover { background: rgb(44, 120, 250); transform: translateY(-1px); }
+    &:hover { 
+      background: rgb(44, 120, 250); 
+      transform: translateY(-1px); 
+    }
   }
 
   &.btn-egreso {
     background: #f44336;
     color: #fff;
-    &:hover { background: rgb(236, 59, 46); transform: translateY(-1px); }
+    &:hover {
+      background: rgb(248, 86, 75);
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -172,6 +187,7 @@ $ds-sym:      #fff;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   flex: 1;
+  min-height: 0;
 
   @media (max-width: 820px) {
     grid-template-columns: 1fr;
@@ -186,6 +202,9 @@ $ds-sym:      #fff;
   flex-direction: column;
   gap: 12px;
   min-height: 280px;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .panel-label {
@@ -201,7 +220,12 @@ $ds-sym:      #fff;
   align-items: center;
   justify-content: space-between;
 
-  .btn-refresh { color: $muted; &:hover { color: $text; } }
+  .btn-refresh { 
+    color: $muted; 
+    &:hover { 
+      color: $text; 
+    } 
+  }
 }
 
 .panel-empty {
@@ -216,15 +240,23 @@ $ds-sym:      #fff;
 
 /* ─── Movement list ─── */
 .movement-list {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
 
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  &::-webkit-scrollbar { 
+    width: 4px; 
+  }
+  &::-webkit-scrollbar-track { 
+    background: transparent; 
+  }
+  &::-webkit-scrollbar-thumb { 
+    background: rgba(255,255,255,0.08); 
+    border-radius: 4px; 
+  }
 }
 
 .empty-state {
@@ -235,8 +267,15 @@ $ds-sym:      #fff;
   justify-content: center;
   gap: 8px;
   color: $muted;
-  mat-icon { font-size: 2.2rem; width: 2.2rem; height: 2.2rem; opacity: 0.35; }
-  span { font-size: 0.85em; }
+  mat-icon { 
+    font-size: 2.2rem; 
+    width: 2.2rem; 
+    height: 2.2rem; 
+    opacity: 0.35; 
+  }
+  span { 
+    font-size: 0.85em;
+   }
 }
 
 .movement-item {
@@ -248,12 +287,34 @@ $ds-sym:      #fff;
   transition: background 0.15s;
   cursor: default;
 
-  &:hover { background: rgba(255,255,255,0.04); }
+  &:hover { 
+    background: rgba(255,255,255,0.04); 
+    transform: translateY(-1px);
+  }
+}
+
+.movement-item-container {
+  border-radius: 10px;
+  transition: all 0.2s;
+  
+  &.expanded {
+    background: rgba(255,255,255,0.03);
+    
+    .movement-item {
+      background: transparent; 
+      transform: none;
+      
+      &:hover {
+        background: transparent; 
+        transform: none;
+      }
+    }
+  }
 }
 
 .mov-icon-wrap {
-  width: 36px;
-  height: 36px;
+  width: 56px;
+  height: 56px;
   border-radius: 9px;
   display: flex;
   align-items: center;
@@ -261,7 +322,17 @@ $ds-sym:      #fff;
   flex-shrink: 0;
   text-align: center;
 
-  mat-icon { font-size: 1.05em; width: 1.05em; height: 1.05em; }
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  mat-icon { 
+    width: 1.15em; 
+    height: 1.15em; 
+    display: flex;
+    justify-content: center;
+    place-items: center;
+  }
 }
 
 .mov-info {
@@ -271,13 +342,19 @@ $ds-sym:      #fff;
   gap: 2px;
   min-width: 0;
 
-  .mov-tipo { font-size: 0.83em; font-weight: 600; color: $text; }
+  .mov-tipo { 
+    font-size: 0.9em; 
+    font-weight: 600; 
+    color: $text; 
+  }
+
   .mov-desc {
-    font-size: 0.72em;
+    font-size: 0.8em;
     color: $muted;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 250px;
   }
 }
 
@@ -287,8 +364,15 @@ $ds-sym:      #fff;
   align-items: flex-end;
   gap: 2px;
 
-  .mov-amount { font-size: 0.88em; font-weight: 700; }
-  .mov-date { font-size: 0.68em; color: $muted; }
+  .mov-amount { 
+    font-size: 1em; 
+    font-weight: 700; 
+  }
+
+  .mov-date { 
+    font-size: 0.8em; 
+    color: $muted; 
+  }
 }
 
 .compact-paginator {
@@ -313,4 +397,22 @@ $ds-sym:      #fff;
   display: flex; 
   justify-content: center; 
   align-items: center;
+}
+
+.mov-expanded-detail {
+  background-color: transparent !important; 
+  padding: 5px 15px 15px 15px; 
+  font-size: 0.9em; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+  border: none !important;
+  margin-top: 0 !important;
+}
+
+.mov-detail-item {
+  display: flex; 
+  justify-content: space-between; 
+  padding-top: 6px; 
+  border-top: 1px solid rgba(255,255,255,0.1);
 }

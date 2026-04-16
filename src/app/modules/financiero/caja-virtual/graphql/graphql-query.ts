@@ -86,6 +86,8 @@ const movimientoFields = `
   }
   tipoMovimiento
   cantidad
+  saldoAnterior
+  saldoPosterior
   moneda {
     id
     denominacion

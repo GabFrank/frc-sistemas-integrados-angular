@@ -104,12 +104,5 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
     this.pageSize = e.pageSize;
     this.onFiltrar();
   }
-
-  getTipoLabel(tipo: string): string {
-    return this.tipoMovimientoLabels[tipo] ?? tipo;
-  }
-
-  getTipoColor(tipo: string): string {
-    return this.tipoColores[tipo] ?? '#ffffff';
-  }
+  
 }

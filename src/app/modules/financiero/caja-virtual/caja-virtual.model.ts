@@ -70,6 +70,8 @@ export class MovimientoCajaVirtual {
   cajaVirtual: CajaVirtual;
   tipoMovimiento: CajaVirtualTipoMovimiento;
   cantidad: number;
+  saldoAnterior: number;
+  saldoPosterior: number;
   moneda: Moneda;
   referenciaId: number;
   descripcion: string;
@@ -85,6 +87,8 @@ export class MovimientoCajaVirtual {
     input.cajaVirtualId = this?.cajaVirtual?.id;
     input.tipoMovimiento = this?.tipoMovimiento;
     input.cantidad = this?.cantidad;
+    input.saldoAnterior = this?.saldoAnterior;
+    input.saldoPosterior = this?.saldoPosterior;
     input.monedaId = this?.moneda?.id;
     input.referenciaId = this?.referenciaId;
     input.descripcion = this?.descripcion;
@@ -101,6 +105,8 @@ export class MovimientoCajaVirtualInput {
   cajaVirtualId?: number;
   tipoMovimiento?: CajaVirtualTipoMovimiento;
   cantidad?: number;
+  saldoAnterior?: number;
+  saldoPosterior?: number;
   monedaId?: number;
   referenciaId?: number;
   descripcion?: string;

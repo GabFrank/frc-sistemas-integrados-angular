@@ -12,7 +12,6 @@ import { MonedaService } from '../../moneda/moneda.service';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
-import { ListCajaVirtualComponent } from '../list-caja-virtual/list-caja-virtual.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -37,6 +36,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   pageIndex = 0;
   pageSize = 10;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual>;
+  expandedId: number | null = null;
 
   displayedColumns = ['creadoEn', 'tipoMovimiento', 'moneda', 'cantidad', 'descripcion'];
 
@@ -91,6 +91,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
     });
   }
 
+  toggleExpanded(id: number) {
+    this.expandedId = this.expandedId === id ? null : id;
+  }
+
   cargarMovimientos() {
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;
@@ -101,6 +105,18 @@ export class CajaVirtualDashboardComponent implements OnInit {
         if (res != null) {
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
+          
+          if (this.pageIndex === 0 && res.getContent?.length > 0) {
+            const latestMov = res.getContent[0];
+            const mon = latestMov.moneda?.denominacion?.toUpperCase() || '';
+            if (mon.includes('GUARANI') && latestMov.saldoPosterior != null) {
+               this.cajaVirtual.saldoGs = latestMov.saldoPosterior;
+            } else if (mon.includes('REAL') && latestMov.saldoPosterior != null) {
+               this.cajaVirtual.saldoRs = latestMov.saldoPosterior;
+            } else if (mon.includes('DOLAR') && latestMov.saldoPosterior != null) {
+               this.cajaVirtual.saldoDs = latestMov.saldoPosterior;
+            }
+          }
         }
       });
   }
