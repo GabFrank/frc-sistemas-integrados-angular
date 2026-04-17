@@ -27,6 +27,7 @@ import { PreGastoDetalleFinanzasInput } from '../../models/pre-gasto.model';
 import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/personaSearchPage';
 import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { CurrencyMaskInputMode } from 'ngx-currency';
+import { FilterTipoGastosGQL } from '../../graphql/filterTipoGastos';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -49,6 +50,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   private enteFinancialSummaryGQL = inject(EnteFinancialSummaryGQL);
   private personaSearchPageGQL = inject(PersonaSearchPageGQL);
   private proveedorSearchByPersonaPageGQL = inject(ProveedoresSearchByPersonaPageGQL);
+  private filterTipoGastosGQL = inject(FilterTipoGastosGQL);
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
@@ -58,7 +60,6 @@ export class AdicionarPreGastoComponent implements OnInit {
   monedaControl = new FormControl(null, Validators.required);
   montoControl = new FormControl(null, [Validators.required, Validators.min(1)]);
   sucursalControl = new FormControl(null, Validators.required);
-  busquedaTipoGastoControl = new FormControl('');
   formaPagoControl = new FormControl('EFECTIVO');
   urgenciaControl = new FormControl('NORMAL');
   observacionesControl = new FormControl('');
@@ -96,7 +97,6 @@ export class AdicionarPreGastoComponent implements OnInit {
   listaTipoGasto: TipoGasto[] = [];
   listaMonedas: Moneda[] = [];
   listaSucursales: Sucursal[] = [];
-  tipoGastosFiltrados: TipoGasto[] = [];
   enteSeleccionado: Ente | null = null;
   bienSeleccionadoDescripcion: string | null = null;
   cargandoBien = false;
@@ -167,7 +167,6 @@ export class AdicionarPreGastoComponent implements OnInit {
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
-        this.tipoGastosFiltrados = [...this.listaTipoGasto];
 
         if (this.data && this.data.tipoGastoId) {
           const matchedTipo = this.listaTipoGasto.find(tg => tg.id === this.data.tipoGastoId);
@@ -211,18 +210,6 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.listaSucursales = res;
         this.cdr.markForCheck();
       }
-    });
-
-    this.busquedaTipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(texto => {
-      if (texto && texto.length > 0) {
-        const busqueda = texto.toUpperCase();
-        this.tipoGastosFiltrados = this.listaTipoGasto.filter(
-          tg => tg.descripcion.toUpperCase().includes(busqueda)
-        );
-      } else {
-        this.tipoGastosFiltrados = [...this.listaTipoGasto];
-      }
-      this.cdr.markForCheck();
     });
 
     this.motivoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(motivo => {
@@ -500,6 +487,38 @@ export class AdicionarPreGastoComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  abrirBuscadorTipoGasto(): void {
+    const data = new SearchListtDialogData();
+    data.titulo = 'Seleccionar tipo de gasto';
+    data.query = this.filterTipoGastosGQL;
+    data.searchFieldName = 'texto';
+    data.inicialSearch = true;
+    data.paginator = true;
+    data.tableData = [
+      { id: 'id', nombre: 'ID', width: '70px' },
+      { id: 'descripcion', nombre: 'Descripción', width: 'auto' },
+      { id: 'autorizacion', nombre: 'Requiere autorización', width: '220px', pipe: 'booleanLock' },
+    ];
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '80%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.tipoGastoControl.setValue(res.id);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  getDescripcionTipoGastoSeleccionado(): string {
+    if (!this.tipoGastoControl.value) {
+      return '';
+    }
+    return this.listaTipoGasto.find(tg => tg.id === this.tipoGastoControl.value)?.descripcion || '';
   }
 
   abrirBuscadorBien(tipoStr: string): void {

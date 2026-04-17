@@ -73,21 +73,13 @@
           <mat-icon class="seccion-mini-icono">receipt_long</mat-icon>
           Tipo de Gasto
         </span>
-        <mat-form-field appearance="outline" style="width: 100%;">
+        <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;" (click)="abrirBuscadorTipoGasto()">
           <mat-label>Seleccionar tipo de gasto</mat-label>
-          <mat-select [formControl]="tipoGastoControl">
-            <mat-option>
-              <input matInput [formControl]="busquedaTipoGastoControl" placeholder="Buscar..."
-                style="width: 100%; padding: 8px; border: none; outline: none; background: transparent; color: #e0e0e0;">
-            </mat-option>
-            <mat-option *ngFor="let tipo of tipoGastosFiltrados" [value]="tipo.id">
-              {{ tipo.descripcion }}
-              <span *ngIf="tipo.clasificacionGasto" style="color: #9e9e9e; font-size: 0.8em;">
-                ({{ tipo.clasificacionGasto.descripcion }})
-              </span>
-            </mat-option>
-          </mat-select>
-          <mat-icon matSuffix>receipt_long</mat-icon>
+          <input matInput [value]="getDescripcionTipoGastoSeleccionado()" readonly placeholder="Buscar tipo de gasto..." />
+          <button mat-icon-button matSuffix type="button"
+            (click)="$event.stopPropagation(); abrirBuscadorTipoGasto()">
+            <mat-icon>search</mat-icon>
+          </button>
         </mat-form-field>
       </div>
 

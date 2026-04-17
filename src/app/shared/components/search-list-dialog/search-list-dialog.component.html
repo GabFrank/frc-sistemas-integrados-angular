@@ -81,7 +81,14 @@
                     *matCellDef="let element"
                     class="table-cell"
                   >
-                    {{ element | cellFormat: item }}
+                    <ng-container *ngIf="item.pipe === 'booleanLock'; else defaultCellValue">
+                      <mat-icon [style.color]="element[item.id] ? '#ff9800' : '#4CAF50'">
+                        {{ element[item.id] ? 'lock' : 'lock_open' }}
+                      </mat-icon>
+                    </ng-container>
+                    <ng-template #defaultCellValue>
+                      {{ element | cellFormat: item }}
+                    </ng-template>
                   </td>
                 </ng-container>
               </ng-container>
