@@ -272,11 +272,16 @@
                <div fxFlex="14%" fxLayoutAlign="center center" style="padding-bottom: 20px;">
                   <button mat-mini-fab class="btn-agregar-finanza"
                     (click)="agregarFinanza()"
-                    [disabled]="!finanzaMonedaControl.value || !finanzaMontoControl.value"
+                    [disabled]="!finanzaMonedaControl.value || !finanzaFormaPagoControl.value || !finanzaMontoControl.value"
                     matTooltip="Agregar moneda / forma de pago">
                      <mat-icon>add</mat-icon>
                   </button>
                </div>
+            </div>
+
+            <div class="finanzas-duplicado-warn" *ngIf="!finanzasCompletas() && pasoActual === 3">
+              <mat-icon>error_outline</mat-icon>
+              <span>Debe cargar al menos una línea de finanzas completa (moneda, método de pago y monto) para poder confirmar.</span>
             </div>
 
             <div class="finanzas-duplicado-warn" *ngIf="finanzaDuplicadaMsg">
@@ -305,7 +310,7 @@
 
             <div class="finanzas-empty-hint" *ngIf="listaFinanzas.length === 0">
               <mat-icon>info_outline</mat-icon>
-              <span>Si no agrega detalles aquí, se usará la forma de pago principal.</span>
+              <span>Debe agregar al menos una línea de finanzas para poder confirmar la solicitud.</span>
             </div>
           </div>
 

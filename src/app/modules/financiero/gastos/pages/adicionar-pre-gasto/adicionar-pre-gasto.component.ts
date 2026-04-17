@@ -68,8 +68,8 @@ export class AdicionarPreGastoComponent implements OnInit {
   listaFinanzas: PreGastoDetalleFinanzasInput[] = [];
   finanzaDuplicadaMsg: string | null = null;
   finanzaMonedaControl = new FormControl(null);
-  finanzaFormaPagoControl = new FormControl('EFECTIVO');
-  finanzaMontoControl = new FormControl(null);
+  finanzaFormaPagoControl = new FormControl('EFECTIVO', Validators.required);
+  finanzaMontoControl = new FormControl(null, [Validators.required, Validators.min(0.01)]);
   selectedFinanzaCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
   solicitanteControl = new FormControl(null);
   numeroCuotaControl = new FormControl({ value: null, disabled: true });
@@ -236,18 +236,37 @@ export class AdicionarPreGastoComponent implements OnInit {
     const isValid = this.tipoGastoControl.valid
       && this.descripcionControl.valid
       && this.sucursalControl.valid
-      && this.listaFinanzas.length > 0;
+      && this.finanzasCompletas();
 
     if (!isValid) return false;
 
     if (this.motivoGastoControl.value === 'CUOTA' && this.data?.montoPendiente !== undefined && this.data.montoPendiente !== null) {
-      const montoTotal = this.listaFinanzas.reduce((sum, f) => sum + (f.monto || 0), 0);
+      const montoTotal = this.listaFinanzas.reduce((sum, f) => sum + this.parseMonto(f.monto), 0);
       if (montoTotal > this.data.montoPendiente) {
         return false;
       }
     }
 
     return true;
+  }
+
+  finanzasCompletas(): boolean {
+    return this.listaFinanzas.length > 0
+      && this.listaFinanzas.every(f =>
+        !!f.monedaId
+        && !!f.formaPago
+        && this.parseMonto(f.monto) > 0
+      );
+  }
+
+  private parseMonto(value: number | string | null | undefined): number {
+    if (value == null) return 0;
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+    const normalized = value.toString().trim().replace(/\./g, '').replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   guardar(): void {
@@ -408,6 +427,14 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   pasoSiguiente(): void {
+    if (this.pasoActual === 3 && !this.finanzasCompletas()) {
+      this.finanzaMonedaControl.markAsTouched();
+      this.finanzaFormaPagoControl.markAsTouched();
+      this.finanzaMontoControl.markAsTouched();
+      this.cdr.markForCheck();
+      return;
+    }
+
     if (this.pasoActual < 4) {
       let next = this.pasoActual + 1;
       while (!this.isStepVisible(next) && next <= 4) next++;
@@ -557,7 +584,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   agregarFinanza(): void {
-    if (this.finanzaMonedaControl.valid && this.finanzaMontoControl.value > 0) {
+    if (this.finanzaMonedaControl.valid && this.finanzaFormaPagoControl.valid && this.finanzaMontoControl.valid && this.finanzaMontoControl.value > 0) {
       const monedaId = this.finanzaMonedaControl.value;
       const formaPago = this.finanzaFormaPagoControl.value;
       const duplicado = this.listaFinanzas.find(
@@ -604,7 +631,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   calcularMontoTotal(): number {
-    return this.listaFinanzas.reduce((sum, f) => sum + (f.monto || 0), 0);
+    return this.listaFinanzas.reduce((sum, f) => sum + this.parseMonto(f.monto), 0);
   }
 
   private cargarDetalleBienYBeneficiario(ente: Ente): void {
