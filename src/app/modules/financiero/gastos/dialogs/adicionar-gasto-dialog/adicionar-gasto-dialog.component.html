@@ -80,30 +80,16 @@
           </mat-form-field>
         </div>
         <div fxFlex>
-          <mat-form-field style="width: 100%">
+          <mat-form-field style="width: 100%" (click)="onSearchTipoGasto()">
             <mat-label>Tipo</mat-label>
             <input
               #tipoGastoInput
               type="text"
               matInput
+              readonly
               [formControl]="tipoGastoControl"
-              oninput="this.value == ' ' ? this.value = '': null"
-              [matAutocomplete]="autoTipoGasto"
-              (keyup.enter)="obs.select()"
             />
-            <mat-autocomplete
-              #autoTipoGasto="matAutocomplete"
-              (optionSelected)="onTipoGastoSelect($event.option.value)"
-              (closed)="onTipoGastoAutocompleteClose()"
-            >
-              <mat-option
-                *ngFor="let tipoGasto of tipoGastoList"
-                [value]="tipoGasto"
-              >
-                {{ tipoGasto.id }} -
-                {{ tipoGasto?.descripcion | uppercase }}
-              </mat-option>
-            </mat-autocomplete>
+            <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
         </div>
         <div fxFlex *ngIf="selectedTipoGasto?.autorizacion == true">

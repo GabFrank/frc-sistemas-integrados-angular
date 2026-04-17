@@ -18,6 +18,7 @@ import { GastosDashboardComponent } from './pages/gastos-dashboard/gastos-dashbo
 import { BienFinancieroCardComponent } from './components/bien-financiero-card/bien-financiero-card.component';
 import { HistorialSolicitudesComponent } from './components/historial-solicitudes/historial-solicitudes.component';
 import { PreGastoStepperComponent } from './components/pre-gasto-stepper/pre-gasto-stepper.component';
+import { SolicitudGastoSimpleDialogComponent } from './dialogs/solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component';
 
 @NgModule({
   declarations: [
@@ -32,7 +33,8 @@ import { PreGastoStepperComponent } from './components/pre-gasto-stepper/pre-gas
     GastosDashboardComponent,
     BienFinancieroCardComponent,
     HistorialSolicitudesComponent,
-    PreGastoStepperComponent
+    PreGastoStepperComponent,
+    SolicitudGastoSimpleDialogComponent
   ],
   imports: [
     CommonModule,

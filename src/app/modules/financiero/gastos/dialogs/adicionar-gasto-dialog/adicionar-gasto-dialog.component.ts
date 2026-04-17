@@ -7,7 +7,7 @@ import {
   ViewChild,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
-import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
@@ -41,6 +41,9 @@ import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familia
 import { CajaService } from "../../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
 import { TipoGasto } from "../../models/tipo-gasto.model";
+import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { FilterTipoGastosGQL } from "../../graphql/filterTipoGastos";
+import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -120,7 +123,9 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private cajaService: CajaService,
-    private notificationHttpService: NotificationHttpService
+    private notificationHttpService: NotificationHttpService,
+    private matDialog: MatDialog,
+    private filterTipoGastosGQL: FilterTipoGastosGQL
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -147,6 +152,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.responsableList = [];
     this.autorizadoPorList = [];
     this.tipoGastoList = [];
+
+    this.guaraniControl.disable();
+    this.realControl.disable();
+    this.dolarControl.disable();
 
     this.responsableSub = this.responsableControl.valueChanges
       .pipe(untilDestroyed(this))
@@ -188,33 +197,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           }, 500);
         } else {
           this.autorizadoPorList = [];
-        }
-      });
-
-    this.tipoGastoSub = this.tipoGastoControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res == "") this.selectedTipoGasto = null;
-        if (this.tipoGastoTimer != null) {
-          clearTimeout(this.tipoGastoTimer);
-        }
-        if (res != null && res.length != 0) {
-          this.tipoGastoTimer = setTimeout(() => {
-            this.gastoService
-              .tipoGastoOnSearch(res, false)
-              .pipe(untilDestroyed(this))
-              .subscribe((response) => {
-                if (response.length == 1) {
-                  this.onTipoGastoSelect(response[0]);
-                } else {
-                  this.tipoGastoList = response;
-                  this.onTipoGastoSelect(null);
-                  this.onTipoGastoAutocompleteClose();
-                }
-              });
-          }, 500);
-        } else {
-          this.tipoGastoList = [];
         }
       });
 
@@ -284,35 +266,76 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  onTipoGastoAutocompleteClose() {
-    setTimeout(() => {
-      this.tipoGastoInput.nativeElement.blur();
-      setTimeout(() => {
-        this.tipoGastoInput.nativeElement.select();
-      }, 50);
-    }, 100);
+  onSearchTipoGasto() {
+    const data = new SearchListtDialogData();
+    data.titulo = 'Seleccionar tipo de gasto';
+    data.query = this.filterTipoGastosGQL;
+    data.searchFieldName = 'texto';
+    data.inicialSearch = true;
+    data.paginator = true;
+    data.tableData = [
+      { id: 'id', nombre: 'ID', width: '70px' },
+      { id: 'descripcion', nombre: 'Descripción', width: 'auto' },
+      { id: 'autorizacion', nombre: 'Requiere autorización', width: '220px', pipe: 'booleanLock' },
+    ];
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '80%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.onTipoGastoSelect(res);
+      }
+    });
   }
 
   onTipoGastoSelect(e) {
-
     if (e?.id != null) {
       this.selectedTipoGasto = e;
-      if (this.selectedTipoGasto?.autorizacion == true) {
-        this.autorizado = false;
-      } else {
-        this.autorizado = true;
-      }
       this.tipoGastoControl.setValue(
         this.selectedTipoGasto?.id + " - " + this.selectedTipoGasto?.descripcion,
         { emitEvent: false }
       );
 
-      setTimeout(() => {
-        this.tipoGastoInput?.nativeElement?.blur();
-        setTimeout(() => {
-          this.tipoGastoInput?.nativeElement?.select();
-        }, 50);
-      }, 0);
+      if (this.selectedTipoGasto?.autorizacion == true) {
+        this.autorizado = false;
+        this.guaraniControl.disable();
+        this.realControl.disable();
+        this.dolarControl.disable();
+        this.guaraniVueltoControl.disable();
+        this.realVueltoControl.disable();
+        this.dolarVueltoControl.disable();
+        
+        // Abrir pre-gasto
+        this.matDialog.open(SolicitudGastoSimpleDialogComponent, {
+          data: {
+            tipoGastoId: this.selectedTipoGasto.id,
+            tipoGastoDescripcion: this.selectedTipoGasto.descripcion,
+            solicitanteId: this.selectedResponsable?.id,
+            solicitanteNombre: this.selectedResponsable?.persona?.nombre
+          } as SolicitudGastoSimpleData,
+          width: '600px',
+          height: 'auto',
+          disableClose: true
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+          if (res) {
+            // Lógica si se completó el pre-gasto (opcional)
+          } else {
+            // Si canceló, limpiar tipo de gasto
+            this.selectedTipoGasto = null;
+            this.tipoGastoControl.setValue(null);
+          }
+        });
+      } else {
+        this.autorizado = true;
+        this.guaraniControl.enable();
+        this.realControl.enable();
+        this.dolarControl.enable();
+        this.guaraniVueltoControl.enable();
+        this.realVueltoControl.enable();
+        this.dolarVueltoControl.enable();
+      }
     }
   }
 
@@ -595,7 +618,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     //Add 'implements OnDestroy' to the class.
     this.responsableSub.unsubscribe();
     this.autorizadoPorSub.unsubscribe();
-    this.tipoGastoSub.unsubscribe();
   }
 
   cargarDatos(gasto: Gasto) {

@@ -1,0 +1,101 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div mat-dialog-title fxLayout="row" fxLayoutAlign="space-between center">
+    <span>Solicitud de Gasto</span>
+    <button mat-icon-button (click)="onCancelar()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content fxFlex="1" style="padding: 20px;">
+    <div fxLayout="column" fxLayoutGap="15px">
+      
+      <!-- Fila 1: Tipo de Gasto y Solicitante (Solo lectura) -->
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field fxFlex="50%">
+          <mat-label>Tipo de Gasto</mat-label>
+          <input matInput [formControl]="tipoGastoDescripcionControl" readonly />
+        </mat-form-field>
+        
+        <mat-form-field fxFlex="50%">
+          <mat-label>Solicitante</mat-label>
+          <input matInput [formControl]="solicitanteNombreControl" readonly />
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 2: Descripción -->
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field fxFlex="100%">
+          <mat-label>Descripción del Gasto</mat-label>
+          <input matInput [formControl]="descripcionControl" placeholder="Ingrese una descripción" required />
+          <mat-error *ngIf="descripcionControl.hasError('required')">
+            La descripción es requerida
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 3: Vencimiento y Moneda -->
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field fxFlex="50%">
+          <mat-label>Vencimiento</mat-label>
+          <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="vencimientoControl.hasError('required')">
+            El vencimiento es requerido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field fxFlex="50%">
+          <mat-label>Moneda</mat-label>
+          <mat-select [formControl]="monedaControl" required>
+            <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+              {{ moneda.denominacion }} ({{ moneda.simbolo }})
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="monedaControl.hasError('required')">
+            La moneda es requerida
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 4: Monto y Sucursal de Retiro -->
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field fxFlex="50%">
+          <mat-label>Monto</mat-label>
+          <input matInput currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl" required />
+          <mat-error *ngIf="montoControl.hasError('required')">
+            El monto es requerido
+          </mat-error>
+          <mat-error *ngIf="montoControl.hasError('min')">
+            El monto debe ser mayor a 0
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field fxFlex="50%">
+          <mat-label>Sucursal de Retiro</mat-label>
+          <input matInput [formControl]="sucursalRetiroControl" readonly />
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 5: Beneficiario (Proveedor) -->
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field fxFlex="100%" (click)="abrirBuscadorProveedor()">
+          <mat-label>Beneficiario (Proveedor)</mat-label>
+          <input matInput [formControl]="beneficiarioControl" readonly placeholder="Seleccione un proveedor" required />
+          <mat-icon matSuffix>search</mat-icon>
+          <mat-error *ngIf="proveedorIdControl.hasError('required')">
+            El beneficiario es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" style="padding: 10px 20px;">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="!esFormularioValido()" (click)="onAceptar()">
+      Aceptar
+    </button>
+  </mat-dialog-actions>
+</div>
