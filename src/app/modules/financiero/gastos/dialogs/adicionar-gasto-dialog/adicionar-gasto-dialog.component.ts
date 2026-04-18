@@ -37,13 +37,16 @@ export class AdicionarGastoData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
-import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familiasSearch";
 import { CajaService } from "../../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
 import { TipoGasto } from "../../models/tipo-gasto.model";
 import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { FilterTipoGastosGQL } from "../../graphql/filterTipoGastos";
-import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
+import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData, SolicitudGastoSimpleResult } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
+import { TabService } from "../../../../../layouts/tab/tab.service";
+import { Tab } from "../../../../../layouts/tab/tab.model";
+import { ListPreGastosComponent } from "../../pages/list-pre-gastos/list-pre-gastos.component";
+import { PreGastoInput } from "../../models/pre-gasto.model";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -125,7 +128,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private notificationHttpService: NotificationHttpService,
     private matDialog: MatDialog,
-    private filterTipoGastosGQL: FilterTipoGastosGQL
+    private filterTipoGastosGQL: FilterTipoGastosGQL,
+    private tabService: TabService
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -317,12 +321,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           } as SolicitudGastoSimpleData,
           width: '600px',
           height: 'auto',
-          disableClose: true
+          disableClose: true,
+          panelClass: 'darkMode',
         }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
           if (res) {
-            // Lógica si se completó el pre-gasto (opcional)
+            this.guardarSolicitudPreGastoSimple(res as SolicitudGastoSimpleResult);
           } else {
-            // Si canceló, limpiar tipo de gasto
             this.selectedTipoGasto = null;
             this.tipoGastoControl.setValue(null);
           }
@@ -337,6 +341,85 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.dolarVueltoControl.enable();
       }
     }
+  }
+
+  /**
+   * Persiste la solicitud como pre-gasto (pendiente de autorización) y abre la lista de solicitudes.
+   */
+  private guardarSolicitudPreGastoSimple(res: SolicitudGastoSimpleResult): void {
+    const personaId = this.selectedResponsable?.persona?.id;
+    if (!personaId) {
+      this.notificacionService.openWarn("No se pudo determinar el solicitante.");
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      return;
+    }
+    const sucursalCajaId = res.sucursalRetiroId ?? this.mainService.sucursalActual?.id;
+    if (!sucursalCajaId) {
+      this.notificacionService.openWarn("No se pudo determinar la sucursal de retiro.");
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      return;
+    }
+    if (!res.proveedorId) {
+      this.notificacionService.openWarn("Debe indicar un beneficiario (proveedor).");
+      return;
+    }
+
+    const montos = res.montos?.filter(m => m.monedaId != null && m.monto != null) ?? [];
+    if (montos.length === 0) {
+      this.notificacionService.openWarn("Debe indicar al menos un monto.");
+      return;
+    }
+
+    const input = new PreGastoInput();
+    input.tipoGastoId = res.tipoGastoId;
+    input.descripcion = res.descripcion;
+    input.funcionarioId = personaId;
+    input.sucursalCajaId = sucursalCajaId;
+    input.beneficiarioProveedorId = res.proveedorId;
+    input.beneficiarioPersonaId = null;
+    input.nivelUrgencia = "NORMAL";
+    input.observaciones = "";
+
+    const v = new Date(res.vencimiento);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    input.fechaVencimiento = `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}T${pad(v.getHours())}:${pad(v.getMinutes())}:${pad(v.getSeconds())}`;
+
+    input.finanzas = montos.map(m => ({
+      formaPago: "EFECTIVO",
+      monto: m.monto,
+      monedaId: m.monedaId
+    }));
+    input.monedaId = montos[0].monedaId;
+    input.montoSolicitado = montos[0].monto;
+
+    this.cargandoDialog.openDialog();
+    this.gastoService
+      .preGastoGuardar(input)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (guardado) => {
+          this.cargandoDialog.closeDialog();
+          if (guardado != null) {
+            this.notificacionService.openSucess("Solicitud de gasto registrada");
+            this.tabService.addTab(new Tab(ListPreGastosComponent, "Solicitudes de Gasto", null, null));
+            this.autorizado = true;
+            this.guaraniControl.enable();
+            this.realControl.enable();
+            this.dolarControl.enable();
+            this.guaraniVueltoControl.enable();
+            this.realVueltoControl.enable();
+            this.dolarVueltoControl.enable();
+            this.selectedTipoGasto = null;
+            this.tipoGastoControl.setValue(null);
+          }
+        },
+        error: () => {
+          this.cargandoDialog.closeDialog();
+          this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
+        }
+      });
   }
 
   onResponsableAutocompleteClose() {

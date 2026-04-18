@@ -1,8 +1,34 @@
+:host {
+  display: block;
+}
+
+.solicitud-gasto-simple-root {
+  width: 100%;
+  min-width: 0;
+}
+
 mat-form-field {
   width: 100%;
 }
 
-.mat-dialog-content {
+.solicitud-gasto-simple-content {
+  padding: 20px;
   overflow-y: auto;
   max-height: 70vh;
+  min-width: 0;
+}
+
+.solicitud-gasto-simple-actions {
+  padding: 10px 20px;
+}
+
+.fila-monto-acciones {
+  padding-top: 8px;
+  min-height: 56px;
+}
+
+.btn-add-monto-linea {
+  background-color: #43a047 !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }

@@ -1,21 +1,20 @@
-<div fxLayout="column" style="width: 100%; height: 100%">
+<div fxLayout="column" class="solicitud-gasto-simple-root">
   <div mat-dialog-title fxLayout="row" fxLayoutAlign="space-between center">
     <span>Solicitud de Gasto</span>
-    <button mat-icon-button (click)="onCancelar()">
+    <button mat-icon-button type="button" (click)="onCancelar()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 
-  <mat-dialog-content fxFlex="1" style="padding: 20px;">
+  <mat-dialog-content class="solicitud-gasto-simple-content">
     <div fxLayout="column" fxLayoutGap="15px">
-      
       <!-- Fila 1: Tipo de Gasto y Solicitante (Solo lectura) -->
-      <div fxLayout="row" fxLayoutGap="15px">
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
         <mat-form-field fxFlex="50%">
           <mat-label>Tipo de Gasto</mat-label>
           <input matInput [formControl]="tipoGastoDescripcionControl" readonly />
         </mat-form-field>
-        
+
         <mat-form-field fxFlex="50%">
           <mat-label>Solicitante</mat-label>
           <input matInput [formControl]="solicitanteNombreControl" readonly />
@@ -23,7 +22,7 @@
       </div>
 
       <!-- Fila 2: Descripción -->
-      <div fxLayout="row" fxLayoutGap="15px">
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
         <mat-form-field fxFlex="100%">
           <mat-label>Descripción del Gasto</mat-label>
           <input matInput [formControl]="descripcionControl" placeholder="Ingrese una descripción" required />
@@ -33,52 +32,85 @@
         </mat-form-field>
       </div>
 
-      <!-- Fila 3: Vencimiento y Moneda -->
-      <div fxLayout="row" fxLayoutGap="15px">
-        <mat-form-field fxFlex="50%">
+      <!-- Fila 3: Vencimiento -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%">
           <mat-label>Vencimiento</mat-label>
-          <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" required>
+          <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" required />
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
           <mat-error *ngIf="vencimientoControl.hasError('required')">
             El vencimiento es requerido
           </mat-error>
         </mat-form-field>
-
-        <mat-form-field fxFlex="50%">
-          <mat-label>Moneda</mat-label>
-          <mat-select [formControl]="monedaControl" required>
-            <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
-              {{ moneda.denominacion }} ({{ moneda.simbolo }})
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="monedaControl.hasError('required')">
-            La moneda es requerida
-          </mat-error>
-        </mat-form-field>
       </div>
 
-      <!-- Fila 4: Monto y Sucursal de Retiro -->
-      <div fxLayout="row" fxLayoutGap="15px">
-        <mat-form-field fxFlex="50%">
-          <mat-label>Monto</mat-label>
-          <input matInput currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl" required />
-          <mat-error *ngIf="montoControl.hasError('required')">
-            El monto es requerido
-          </mat-error>
-          <mat-error *ngIf="montoControl.hasError('min')">
-            El monto debe ser mayor a 0
-          </mat-error>
-        </mat-form-field>
+      <!-- Filas Moneda / Monto (múltiples) -->
+      <ng-container *ngFor="let fila of filasMonto.controls; let i = index">
+        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start" [formGroup]="$any(fila)">
+          <mat-form-field fxFlex="38%">
+            <mat-label>Moneda</mat-label>
+            <mat-select formControlName="monedaId" required>
+              <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+                {{ moneda.denominacion }} ({{ moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="fila.get('monedaId')?.hasError('required')">
+              La moneda es requerida
+            </mat-error>
+          </mat-form-field>
 
-        <mat-form-field fxFlex="50%">
+          <mat-form-field fxFlex="38%">
+            <mat-label>Monto</mat-label>
+            <input
+              matInput
+              currencyMask
+              [options]="currencyMaskOptionsForMonedaId(fila.get('monedaId')?.value)"
+              formControlName="monto"
+              required
+            />
+            <mat-error *ngIf="fila.get('monto')?.hasError('required')">
+              El monto es requerido
+            </mat-error>
+            <mat-error *ngIf="fila.get('monto')?.hasError('min')">
+              El monto debe ser mayor a 0
+            </mat-error>
+          </mat-form-field>
+
+          <div fxFlex="24%" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="4px" class="fila-monto-acciones">
+            <button
+              *ngIf="i === filasMonto.length - 1"
+              type="button"
+              mat-mini-fab
+              class="btn-add-monto-linea"
+              (click)="agregarFilaMonto()"
+              aria-label="Agregar monto en otra moneda"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              *ngIf="filasMonto.length > 1"
+              type="button"
+              mat-icon-button
+              (click)="quitarFilaMonto(i)"
+              aria-label="Quitar esta moneda y monto"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Sucursal de Retiro -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%">
           <mat-label>Sucursal de Retiro</mat-label>
           <input matInput [formControl]="sucursalRetiroControl" readonly />
         </mat-form-field>
       </div>
 
-      <!-- Fila 5: Beneficiario (Proveedor) -->
-      <div fxLayout="row" fxLayoutGap="15px">
+      <!-- Beneficiario (Proveedor) -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
         <mat-form-field fxFlex="100%" (click)="abrirBuscadorProveedor()">
           <mat-label>Beneficiario (Proveedor)</mat-label>
           <input matInput [formControl]="beneficiarioControl" readonly placeholder="Seleccione un proveedor" required />
@@ -88,14 +120,13 @@
           </mat-error>
         </mat-form-field>
       </div>
-
     </div>
   </mat-dialog-content>
 
-  <mat-dialog-actions align="end" style="padding: 10px 20px;">
-    <button mat-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" [disabled]="!esFormularioValido()" (click)="onAceptar()">
-      Aceptar
+  <mat-dialog-actions align="end" class="solicitud-gasto-simple-actions">
+    <button mat-button type="button" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" type="button" [disabled]="!esFormularioValido()" (click)="onSolicitar()">
+      Solicitar
     </button>
   </mat-dialog-actions>
 </div>

@@ -115,6 +115,7 @@ export class UtilitariosDialogComponent implements OnInit {
         disableClose: true,
         autoFocus: true,
         restoreFocus: true,
+        panelClass: 'darkMode',
       })
       .afterClosed()
       .pipe(untilDestroyed(this))

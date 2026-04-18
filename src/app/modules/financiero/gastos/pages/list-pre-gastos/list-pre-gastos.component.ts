@@ -63,10 +63,18 @@ export class ListPreGastosComponent implements OnInit {
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
   fechaFormGroup = new FormGroup({
-    inicio: new FormControl<Date | null>(new Date()),
+    inicio: new FormControl<Date | null>(ListPreGastosComponent.fechaInicioRangoPorDefecto()),
     fin: new FormControl<Date | null>(new Date()),
     buscarId: new FormControl<number | null>(null)
   });
+
+  /** Rango por defecto: desde hace 3 días hasta hoy (inclusive). */
+  private static fechaInicioRangoPorDefecto(): Date {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    inicio.setDate(inicio.getDate() - 3);
+    return inicio;
+  }
 
   public listaFiltrada$: Observable<PreGasto[]> = combineLatest([
     this.tabActiva$,
@@ -213,7 +221,7 @@ export class ListPreGastosComponent implements OnInit {
 
   onLimpiarFiltro(): void {
     this.fechaFormGroup.reset({
-      inicio: new Date(),
+      inicio: ListPreGastosComponent.fechaInicioRangoPorDefecto(),
       fin: new Date(),
       buscarId: null
     });
