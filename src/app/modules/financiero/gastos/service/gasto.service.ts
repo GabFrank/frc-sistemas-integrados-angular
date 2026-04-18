@@ -14,6 +14,7 @@ import { AutorizarPreGastoGQL } from '../graphql/autorizarPreGasto';
 import { RechazarPreGastoGQL } from '../graphql/rechazarPreGasto';
 import { SavePreGastoGQL } from '../graphql/savePreGasto';
 import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
+import { CompletarPreGastoGQL } from '../graphql/completarPreGasto';
 import { ImprimirPreGastoGQL } from '../graphql/imprimirPreGasto';
 import { EnviarPreGastoATesoreriaGQL } from '../graphql/enviarPreGastoATesoreria';
 import { ImprimirSolicitudPagoGQL } from '../graphql/imprimirSolicitudPago';
@@ -42,6 +43,7 @@ export class GastoService {
     private autorizarGQL: AutorizarPreGastoGQL,
     private rechazarGQL: RechazarPreGastoGQL,
     private tramitarGQL: TramitarPreGastoGQL,
+    private completarPreGastoGQL: CompletarPreGastoGQL,
     private filterPreGastosGQL: FilterPreGastosGQL,
     private imprimirPreGastoGQL: ImprimirPreGastoGQL,
     private getAllTipoGastos: AllTipoGastosGQL,
@@ -112,6 +114,10 @@ export class GastoService {
 
   preGastoTramitar(id: number, sucId?: number): Observable<PreGasto> {
     return this.genericService.onCustomMutation(this.tramitarGQL, { id, sucId });
+  }
+
+  preGastoCompletar(id: number, sucId?: number): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.completarPreGastoGQL, { id, sucId });
   }
 
   preGastoImprimir(id: number, sucId?: number): Observable<string> {

@@ -128,6 +128,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   gastoList: Gasto[] = [];
 
+  /** Si se guardó un gasto desde una solicitud AUTORIZADA, se marca el pre-gasto como COMPLETADO. */
+  preGastoIdAlCompletarDespuesDeGasto: number | null = null;
+  preGastoSucursalIdAlCompletarDespuesDeGasto: number | null = null;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
     private matDialogRef: MatDialogRef<AdicionarGastoDialogComponent>,
@@ -534,6 +538,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 .pipe(untilDestroyed(this))
                 .subscribe((gastoResponse) => {
                   this.cargandoDialog.closeDialog();
+                  const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
+                  const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
                     if (gasto.responsable?.persona?.id) {
@@ -552,7 +558,25 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
                   }
-                  this.onCancelar();
+                  if (gastoResponse != null && preGastoId != null) {
+                    this.gastoService
+                      .preGastoCompletar(preGastoId, preGastoSucursalId ?? undefined)
+                      .pipe(untilDestroyed(this))
+                      .subscribe({
+                        next: () => {
+                          this.onCancelar();
+                          this.cargarSolicitudesProcesadas();
+                        },
+                        error: () => {
+                          this.notificacionService.openWarn(
+                            "El gasto se guardó, pero no se pudo cerrar la solicitud en el servidor."
+                          );
+                          this.onCancelar();
+                        },
+                      });
+                  } else {
+                    this.onCancelar();
+                  }
                 });
             }
           });
@@ -621,6 +645,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onCancelar() {
+    this.preGastoIdAlCompletarDespuesDeGasto = null;
+    this.preGastoSucursalIdAlCompletarDespuesDeGasto = null;
     this.selectedGasto = null;
     this.selectedTipoGasto = null;
     this.selectedAutorizadoPor = null;
@@ -785,6 +811,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.dolarVueltoControl.disable();
 
         this.stepper.selectedIndex = 0;
+
+        const sucursalPre = Number(
+          solicitud.sucursalId ?? solicitud.sucursalCaja?.id ?? this.mainService.sucursalActual?.id
+        );
+        this.preGastoIdAlCompletarDespuesDeGasto = solicitud.id;
+        this.preGastoSucursalIdAlCompletarDespuesDeGasto =
+          Number.isFinite(sucursalPre) && sucursalPre >= 0 ? sucursalPre : null;
       });
   }
 
