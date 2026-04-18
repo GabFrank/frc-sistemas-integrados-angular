@@ -12,6 +12,7 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
+import { forkJoin } from "rxjs";
 import {
   orderByIdDesc,
   replaceObject,
@@ -43,10 +44,7 @@ import { TipoGasto } from "../../models/tipo-gasto.model";
 import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { FilterTipoGastosGQL } from "../../graphql/filterTipoGastos";
 import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData, SolicitudGastoSimpleResult } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
-import { TabService } from "../../../../../layouts/tab/tab.service";
-import { Tab } from "../../../../../layouts/tab/tab.model";
-import { ListPreGastosComponent } from "../../pages/list-pre-gastos/list-pre-gastos.component";
-import { PreGastoInput } from "../../models/pre-gasto.model";
+import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -80,6 +78,20 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   ];
 
   dataSource = new MatTableDataSource<Gasto>(null);
+  solicitudesProcesadasDataSource = new MatTableDataSource<PreGasto>([]);
+  solicitudesProcesadasOriginal: PreGasto[] = [];
+  filtroSolicitudIdControl = new FormControl("");
+  filtroSolicitudTipoControl = new FormControl("");
+  displayedSolicitudesColumns = [
+    "id",
+    "tipo",
+    "concepto",
+    "monto",
+    "estado",
+    "motivoRechazo",
+    "fecha",
+  ];
+  cargandoSolicitudes = false;
 
   selectedCaja: PdvCaja;
   selectedResponsable: Funcionario;
@@ -128,8 +140,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private notificationHttpService: NotificationHttpService,
     private matDialog: MatDialog,
-    private filterTipoGastosGQL: FilterTipoGastosGQL,
-    private tabService: TabService
+    private filterTipoGastosGQL: FilterTipoGastosGQL
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -160,6 +171,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.guaraniControl.disable();
     this.realControl.disable();
     this.dolarControl.disable();
+    this.tipoGastoControl.disable();
 
     this.responsableSub = this.responsableControl.valueChanges
       .pipe(untilDestroyed(this))
@@ -207,6 +219,15 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.guaraniVueltoControl.disable();
     this.realVueltoControl.disable();
     this.dolarVueltoControl.disable();
+
+    this.filtroSolicitudIdControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.aplicarFiltrosSolicitudesProcesadas());
+
+    this.filtroSolicitudTipoControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.aplicarFiltrosSolicitudesProcesadas());
+
     setTimeout(() => {
       this.responsableInput.nativeElement.focus();
     }, 500);
@@ -215,6 +236,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   onResponsableSelect(e) {
     if (e?.id != null) {
       this.selectedResponsable = e;
+      this.tipoGastoControl.enable();
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
         " - " +
@@ -234,6 +256,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.responsableInput?.nativeElement?.select();
         }, 50);
       }, 0);
+    } else {
+      this.selectedResponsable = null;
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      this.tipoGastoControl.disable();
     }
   }
 
@@ -271,6 +298,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onSearchTipoGasto() {
+    if (!this.selectedResponsable) {
+      return;
+    }
+
     const data = new SearchListtDialogData();
     data.titulo = 'Seleccionar tipo de gasto';
     data.query = this.filterTipoGastosGQL;
@@ -403,7 +434,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.cargandoDialog.closeDialog();
           if (guardado != null) {
             this.notificacionService.openSucess("Solicitud de gasto registrada");
-            this.tabService.addTab(new Tab(ListPreGastosComponent, "Solicitudes de Gasto", null, null));
             this.autorizado = true;
             this.guaraniControl.enable();
             this.realControl.enable();
@@ -608,7 +638,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.dolarVueltoControl.disable();
     this.responsableControl.enable();
     this.autorizadoPorControl.enable();
-    this.tipoGastoControl.enable();
+    this.tipoGastoControl.disable();
     this.observacionControl.enable();
     this.guaraniControl.enable();
     this.realControl.enable();
@@ -688,6 +718,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       case "lista-gastos":
         this.stepper.selectedIndex = 1;
         break;
+      case "lista-solicitudes":
+        this.stepper.selectedIndex = 2;
+        this.cargarSolicitudesProcesadas();
+        break;
       case "salir":
         this.matDialogRef.close();
         break;
@@ -740,5 +774,69 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onReimprimir(gasto: Gasto) {
     this.gastoService.onReimprimir(gasto.id, false).subscribe().unsubscribe();
+  }
+
+  private cargarSolicitudesProcesadas(): void {
+    const sucursalesPermitidas = new Set<number>(
+      [
+        this.selectedCaja?.sucursalId,
+        this.selectedCaja?.sucursal?.id,
+        this.mainService.sucursalActual?.id,
+      ]
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    );
+    this.cargandoSolicitudes = true;
+
+    forkJoin([
+      this.gastoService.preGastoFilter(undefined, "AUTORIZADO", undefined, undefined, 0, 1000),
+      this.gastoService.preGastoFilter(undefined, "RECHAZADO", undefined, undefined, 0, 1000),
+    ])
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: ([autorizados, rechazados]) => {
+          const combinadas = [
+            ...(autorizados?.getContent ?? []),
+            ...(rechazados?.getContent ?? []),
+          ];
+
+          const filtradas = combinadas.filter((s) => {
+            const sucursalSolicitudId = Number(s?.sucursalCaja?.id ?? s?.sucursalId);
+            const coincideSucursal =
+              sucursalesPermitidas.size > 0
+                ? (Number.isFinite(sucursalSolicitudId) &&
+                    sucursalesPermitidas.has(sucursalSolicitudId))
+                : true;
+
+            return coincideSucursal;
+          });
+
+          this.solicitudesProcesadasOriginal = orderByIdDesc<PreGasto>(filtradas);
+          this.aplicarFiltrosSolicitudesProcesadas();
+          this.cargandoSolicitudes = false;
+        },
+        error: () => {
+          this.solicitudesProcesadasOriginal = [];
+          this.solicitudesProcesadasDataSource.data = [];
+          this.cargandoSolicitudes = false;
+        },
+      });
+  }
+
+  private aplicarFiltrosSolicitudesProcesadas(): void {
+    const filtroId = (this.filtroSolicitudIdControl.value ?? "").toString().trim();
+    const filtroTipo = (this.filtroSolicitudTipoControl.value ?? "")
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    const filtradas = this.solicitudesProcesadasOriginal.filter((s) => {
+      const coincideId = filtroId ? s?.id?.toString().includes(filtroId) : true;
+      const tipo = (s?.tipoGasto?.descripcion ?? "").toLowerCase();
+      const coincideTipo = filtroTipo ? tipo.includes(filtroTipo) : true;
+      return coincideId && coincideTipo;
+    });
+
+    this.solicitudesProcesadasDataSource.data = filtradas;
   }
 }

@@ -17,6 +17,8 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { PreGastoStatusMetadataListGQL } from '../../graphql/getPreGastoStatusMetadataList';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
 @UntilDestroy()
 @Component({
@@ -33,6 +35,8 @@ export class ListPreGastosComponent implements OnInit {
   private mainService = inject(MainService);
   private reporteService = inject(ReporteService);
   private statusMetadataGQL = inject(PreGastoStatusMetadataListGQL);
+  private dialogosService = inject(DialogosService);
+  private notificacionService = inject(NotificacionSnackbarService);
 
   statusMetadata: any[] = [];
 
@@ -176,6 +180,21 @@ export class ListPreGastosComponent implements OnInit {
         this.cargandoSubject.next(false);
         console.error('Error al enviar a tesorería:', err);
       }
+    });
+  }
+
+  onEnviarASucursalRetiro(preGasto: PreGasto): void {
+    if (!preGasto?.id) return;
+
+    this.dialogosService.confirm(
+      'Confirmar envío',
+      null,
+      null,
+      [`Solicitud #${preGasto.id}`, `Sucursal retiro: ${preGasto?.sucursalCaja?.nombre || 'Sin sucursal'}`]
+    ).subscribe(confirmado => {
+      if (!confirmado) return;
+      this.notificacionService.openSucess('Solicitud enviada a sucursal de retiro');
+      this.refetchSubject.next();
     });
   }
 

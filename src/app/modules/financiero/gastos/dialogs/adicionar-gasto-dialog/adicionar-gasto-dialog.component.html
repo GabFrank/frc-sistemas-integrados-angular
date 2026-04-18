@@ -30,6 +30,14 @@
       >
         Lista de Gastos
       </button>
+      <button
+        style="width: 100%"
+        [color]="stepper.selectedIndex == 2 ? 'accent' : ''"
+        mat-raised-button
+        (click)="goTo('lista-solicitudes')"
+      >
+        Lista de Solicitudes
+      </button>
       <br />
     </div>
     <button
@@ -44,7 +52,7 @@
   <mat-stepper
     fxFlex="80%"
     fxLayout="column"
-    linear
+    [linear]="false"
     #stepper
     style="width: 100%"
   >
@@ -80,13 +88,14 @@
           </mat-form-field>
         </div>
         <div fxFlex>
-          <mat-form-field style="width: 100%" (click)="onSearchTipoGasto()">
+          <mat-form-field style="width: 100%" (click)="selectedResponsable && onSearchTipoGasto()">
             <mat-label>Tipo</mat-label>
             <input
               #tipoGastoInput
               type="text"
               matInput
               readonly
+              [disabled]="!selectedResponsable"
               [formControl]="tipoGastoControl"
             />
             <mat-icon matSuffix>search</mat-icon>
@@ -434,6 +443,77 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
+    </mat-step>
+    <mat-step>
+      <ng-template matStepLabel>Lista de Solicitudes</ng-template>
+      <div fxLayout="column" fxLayoutGap="10px">
+        <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center" *ngIf="!cargandoSolicitudes">
+          <mat-form-field style="width: 140px">
+            <mat-label>Buscar por ID</mat-label>
+            <input matInput type="text" [formControl]="filtroSolicitudIdControl" placeholder="Ej: 68" />
+          </mat-form-field>
+          <mat-form-field style="width: 280px">
+            <mat-label>Buscar por tipo de gasto</mat-label>
+            <input matInput type="text" [formControl]="filtroSolicitudTipoControl" placeholder="Ej: viatico" />
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: #bdbdbd;">
+          Cargando solicitudes...
+        </div>
+        <table *ngIf="!cargandoSolicitudes" style="width: 100%" mat-table [dataSource]="solicitudesProcesadasDataSource">
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef style="width: 7%">#</th>
+            <td mat-cell *matCellDef="let solicitud">{{ solicitud.id }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef style="width: 16%">Tipo</th>
+            <td mat-cell *matCellDef="let solicitud">{{ solicitud.tipoGasto?.descripcion | uppercase }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="concepto">
+            <th mat-header-cell *matHeaderCellDef>Concepto</th>
+            <td mat-cell *matCellDef="let solicitud">{{ solicitud.descripcion }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="monto">
+            <th mat-header-cell *matHeaderCellDef style="width: 14%">Monto</th>
+            <td mat-cell *matCellDef="let solicitud">
+              {{ solicitud.montoSolicitado | number:'1.0-0' }} {{ solicitud.moneda?.simbolo }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef style="width: 12%">Estado</th>
+            <td mat-cell *matCellDef="let solicitud">
+              <span [style.color]="solicitud.estado === 'RECHAZADO' ? '#ef5350' : '#66bb6a'">
+                {{ solicitud.estado }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="motivoRechazo">
+            <th mat-header-cell *matHeaderCellDef style="width: 22%">Motivo rechazo</th>
+            <td mat-cell *matCellDef="let solicitud">
+              {{ solicitud.estado === 'RECHAZADO' ? (solicitud.motivoRechazo || '-') : '-' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef style="width: 14%">Creado en</th>
+            <td mat-cell *matCellDef="let solicitud">{{ solicitud.creadoEn | date:'short' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedSolicitudesColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedSolicitudesColumns;"></tr>
+        </table>
+
+        <div *ngIf="!cargandoSolicitudes && solicitudesProcesadasDataSource.data.length === 0"
+          style="padding: 16px; color: #9e9e9e;">
+          No hay solicitudes autorizadas o rechazadas para mostrar.
+        </div>
+      </div>
     </mat-step>
   </mat-stepper>
 </div>
