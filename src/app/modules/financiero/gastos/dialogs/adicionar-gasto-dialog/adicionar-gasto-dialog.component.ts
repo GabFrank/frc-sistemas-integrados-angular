@@ -12,7 +12,7 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
-import { forkJoin } from "rxjs";
+import { forkJoin, of } from "rxjs";
 import {
   orderByIdDesc,
   replaceObject,
@@ -90,6 +90,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     "estado",
     "motivoRechazo",
     "fecha",
+    "accionDetalle",
   ];
   cargandoSolicitudes = false;
 
@@ -708,6 +709,93 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Desde una fila AUTORIZADO: abre el panel Información para finalizar el gasto.
+   */
+  onFinalizarSolicitudAutorizada(solicitud: PreGasto, ev?: Event): void {
+    if (ev) {
+      ev.stopPropagation();
+    }
+    if (!solicitud || solicitud.estado !== "AUTORIZADO") {
+      return;
+    }
+    this.onCancelar();
+    this.isVuelto = false;
+
+    const personaSolicitanteId = Number(solicitud.funcionario?.id);
+    const personaAutorizadorId = Number(solicitud.autorizadoPor?.id);
+
+    const solicitante$ = Number.isFinite(personaSolicitanteId) && personaSolicitanteId > 0
+      ? this.funcionarioService.onGetFuncionarioPorPersona(personaSolicitanteId, false)
+      : null;
+    const autorizador$ = Number.isFinite(personaAutorizadorId) && personaAutorizadorId > 0
+      ? this.funcionarioService.onGetFuncionarioPorPersona(personaAutorizadorId, false)
+      : null;
+
+    forkJoin([
+      solicitante$ ?? of(null),
+      autorizador$ ?? of(null),
+    ])
+      .pipe(untilDestroyed(this))
+      .subscribe(([funcionarioSolicitante, funcionarioAutorizador]) => {
+        const solicitante = funcionarioSolicitante ?? this.mapPersonaToFuncionario(
+          personaSolicitanteId,
+          solicitud.funcionario?.nombre
+        );
+        const autorizador = funcionarioAutorizador ?? this.mapPersonaToFuncionario(
+          personaAutorizadorId,
+          solicitud.autorizadoPor?.nombre
+        );
+
+        this.selectedResponsable = solicitante;
+        this.selectedTipoGasto = solicitud.tipoGasto;
+        this.selectedAutorizadoPor = autorizador;
+
+        this.responsableControl.setValue(
+          `${solicitante?.id ?? "-"} - ${solicitante?.persona?.nombre ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.tipoGastoControl.setValue(
+          `${solicitud.tipoGasto?.id ?? "-"} - ${solicitud.tipoGasto?.descripcion ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.autorizadoPorControl.setValue(
+          `${autorizador?.id ?? "-"} - ${autorizador?.persona?.nombre ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.observacionControl.setValue(solicitud.descripcion ?? "");
+        this.guaraniControl.setValue(solicitud.moneda?.simbolo === "Gs." ? solicitud.montoSolicitado : 0);
+        this.realControl.setValue(solicitud.moneda?.simbolo === "R$" ? solicitud.montoSolicitado : 0);
+        this.dolarControl.setValue(solicitud.moneda?.simbolo === "USD" ? solicitud.montoSolicitado : 0);
+        this.guaraniVueltoControl.setValue(0);
+        this.realVueltoControl.setValue(0);
+        this.dolarVueltoControl.setValue(0);
+
+        this.responsableControl.disable();
+        this.tipoGastoControl.disable();
+        this.autorizadoPorControl.disable();
+        this.observacionControl.disable();
+        this.guaraniControl.disable();
+        this.realControl.disable();
+        this.dolarControl.disable();
+        this.guaraniVueltoControl.disable();
+        this.realVueltoControl.disable();
+        this.dolarVueltoControl.disable();
+
+        this.stepper.selectedIndex = 0;
+      });
+  }
+
+  private mapPersonaToFuncionario(personaId: number, nombre?: string): Funcionario {
+    const f = new Funcionario();
+    f.id = personaId;
+    f.persona = {
+      id: personaId,
+      nombre: nombre ?? "-",
+    } as any;
+    return f;
   }
 
   goTo(text) {
