@@ -209,38 +209,38 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
             guaraniDetalle, realDetalle, dolarDetalle
           ]
           retiro.retiroDetalleList = retiroDetalleList;
-          this.retiroService.onSave(retiro, false).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
-            this.cargandoDialog.closeDialog()
-            if (retiroResponse != null) {
-              retiro.id = retiroResponse.id;
+          this.retiroService.onSave(retiro, false).pipe(untilDestroyed(this)).subscribe({
+            next: (retiroResponse) => {
+              if (retiroResponse != null) {
+                this.notificacionService.openSucess('Retiro guardado con éxito');
+                retiro.id = retiroResponse.id;
+                retiro.creadoEn = retiroResponse.creadoEn;
 
-              // Enviar notificación inmediatamente después de guardar
-              if (retiro.responsable?.persona?.id) {
-                this.notificationHttpService.sendRetiroNotification(
-                  retiro.id,
-                  this.mainService.sucursalActual.id,
-                  retiro.responsable.persona.id,
-                  retiro.retiroGs
-                ).subscribe({
-                  next: () => { },
-                  error: (err) => console.log("Error sending notification", err)
-                });
-              }
-
-              this.retiroService.onSave(retiro, true).subscribe({
-                next: (res) => {
-                  this.cargandoDialog.closeDialog();
-                },
-                error: (err) => {
-                  this.cargandoDialog.closeDialog();
-                  console.log("Central offline", err);
+                // Enviar notificación push con el ID de persona del cajero logueado (no del responsable)
+                if (this.mainService.usuarioActual?.persona?.id) {
+                  this.notificationHttpService.sendRetiroNotification(
+                    retiro.id,
+                    this.mainService.sucursalActual.id,
+                    this.mainService.usuarioActual.persona.id,
+                    retiro.retiroGs,
+                    this.mainService.usuarioActual.persona.nombre,
+                    this.mainService.sucursalActual.nombre
+                  ).subscribe({
+                    next: () => { },
+                    error: (err) => console.log("Error sending notification", err)
+                  });
                 }
-              });
-              this.dialogRef.close(true)
-            } else {
 
+                this.dialogRef.close(true);
+              } else {
+                this.notificacionService.openAlgoSalioMal('No se recibió confirmación del servidor');
+              }
+            },
+            error: (err) => {
+              console.error("Error al guardar retiro:", err);
+              this.notificacionService.openAlgoSalioMal('Ocurrió un error al guardar el retiro');
             }
-          })
+          });
         }
       })
     }

@@ -46,7 +46,6 @@ export class Gasto {
         input.vueltoDs = this.vueltoDs
         input.activo = this.activo;
         input.finalizado = this.finalizado;
-        input.sucursalVueltoId = this.sucursalVuelto?.id;
         input.sucursalId = this.sucursalId;
         return input;
     }
@@ -78,5 +77,4 @@ export class GastoInput {
     vueltoDs: number;
     activo: boolean;
     finalizado: boolean;
-    sucursalVueltoId: number;
 }

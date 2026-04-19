@@ -36,7 +36,10 @@
     "e2e": "npm run build:prod && playwright test -c e2e/playwright.config.ts e2e/",
     "e2e:show-trace": "playwright show-trace e2e/tracing/trace.zip",
     "version": "conventional-changelog -i CHANGELOG.md -s -r 0 && git add CHANGELOG.md",
-    "lint": "ng lint"
+    "check": "ng build --configuration production --no-progress",
+    "lint": "ng lint",
+    "remind": "node -e \"console.log('\\n╔══════════════════════════════════════════╗\\n║  💡 RECORDATORIO                         ║\\n║  Antes de push ejecutá:                  ║\\n║  npm run check                           ║\\n║  para detectar errores AOT de Angular    ║\\n╚══════════════════════════════════════════╝\\n')\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "@angular/animations": "15.1.5",
@@ -118,6 +121,8 @@
     "@angular-eslint/template-parser": "15.2.1",
     "@angular/cli": "15.1.6",
     "@angular/compiler-cli": "15.1.5",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@ngx-translate/core": "14.0.0",
     "@ngx-translate/http-loader": "7.0.0",
     "@playwright/test": "1.30.0",
@@ -127,6 +132,7 @@
     "@types/leaflet": "^1.9.21",
     "@types/node": "18.14.0",
     "@typescript-eslint/eslint-plugin": "5.48.0",
+    "@typescript-eslint/eslint-plugin-tslint": "^7.0.2",
     "@typescript-eslint/parser": "5.48.0",
     "baseline-browser-mapping": "^2.9.17",
     "conventional-changelog-cli": "2.2.2",
@@ -135,9 +141,11 @@
     "electron-reload": "2.0.0-alpha.1",
     "electron-reloader": "1.2.3",
     "eslint": "8.34.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-jsdoc": "39.7.5",
     "eslint-plugin-prefer-arrow": "1.2.3",
+    "husky": "^9.1.7",
     "jasmine-core": "4.5.0",
     "jasmine-spec-reporter": "7.0.0",
     "karma": "6.4.1",
@@ -149,6 +157,7 @@
     "npm-run-all": "4.1.5",
     "playwright": "1.30.0",
     "ts-node": "10.9.1",
+    "tslint": "^5.20.1",
     "typescript": "~4.8.4",
     "wait-on": "7.0.1"
   },

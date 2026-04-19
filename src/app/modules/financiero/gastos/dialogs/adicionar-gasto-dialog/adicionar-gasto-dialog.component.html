@@ -404,7 +404,14 @@
             *matCellDef="let gasto"
             style="width: 5%; text-align: center"
           >
-            {{ gasto?.sucursalVuelto != null ? "Si" : "No" }}
+            {{
+              gasto?.sucursalVuelto != null ||
+              (gasto?.vueltoGs || 0) > 0 ||
+              (gasto?.vueltoRs || 0) > 0 ||
+              (gasto?.vueltoDs || 0) > 0
+                ? "Si"
+                : "No"
+            }}
           </td>
         </ng-container>
 

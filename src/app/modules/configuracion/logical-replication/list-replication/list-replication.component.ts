@@ -2,7 +2,6 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { LogicalReplication } from '../logical-replication.model';
 import { LogicalReplicationService } from '../logical-replication.service';
@@ -11,6 +10,10 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { EditRemotePublicationDialogComponent } from '../edit-remote-publication-dialog/edit-remote-publication-dialog.component';
 import { EditRemoteSubscriptionDialogComponent } from '../edit-remote-subscription-dialog/edit-remote-subscription-dialog.component';
+import { SetupReplicationDialogComponent } from '../setup-replication-dialog/setup-replication-dialog.component';
+import { RemoveReplicationDialogComponent, RemoveReplicationDialogData } from '../remove-replication-dialog/remove-replication-dialog.component';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy()
 @Component({
@@ -38,7 +41,8 @@ export class ListReplicationComponent implements OnInit {
   isLoadingPublications = false;
   pubPageSize = 10;
   pubPageIndex = 0;
-  
+  isSyncingPublications = false;
+
   // Common
   displayedColumns: string[] = ['name', 'sucursal', 'enabled', 'actions'];
   
@@ -49,7 +53,8 @@ export class ListReplicationComponent implements OnInit {
     private logicalReplicationService: LogicalReplicationService,
     private sucursalService: SucursalService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private dialogosService: DialogosService,
+    private notificacionSnackBar: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -106,10 +111,7 @@ export class ListReplicationComponent implements OnInit {
           error: (error) => {
             console.error('Error loading subscriptions:', error);
             this.isLoadingSubscriptions = false;
-            this.snackBar.open('Error al cargar suscripciones', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
+            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR SUSCRIPCIONES');
           }
         });
     } else {
@@ -129,10 +131,7 @@ export class ListReplicationComponent implements OnInit {
           error: (error) => {
             console.error('Error loading remote subscriptions:', error);
             this.isLoadingSubscriptions = false;
-            this.snackBar.open('Error al cargar suscripciones remotas', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
+            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR SUSCRIPCIONES REMOTAS');
           }
         });
     }
@@ -159,10 +158,7 @@ export class ListReplicationComponent implements OnInit {
           error: (error) => {
             console.error('Error loading publications:', error);
             this.isLoadingPublications = false;
-            this.snackBar.open('Error al cargar publicaciones', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
+            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR PUBLICACIONES');
           }
         });
     } else {
@@ -181,19 +177,24 @@ export class ListReplicationComponent implements OnInit {
           error: (error) => {
             console.error('Error loading remote publications:', error);
             this.isLoadingPublications = false;
-            this.snackBar.open('Error al cargar publicaciones remotas', 'Cerrar', {
-              duration: 3000,
-              panelClass: ['error-snackbar']
-            });
+            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR PUBLICACIONES REMOTAS');
           }
         });
     }
   }
-
+  
   setupReplication(): void {
-    // This would open a dialog to set up a new replication
-    // For now we'll just show a message
-    this.snackBar.open('Esta funcionalidad se implementará en el futuro', 'Cerrar', { duration: 3000 });
+    const dialogRef = this.dialog.open(SetupReplicationDialogComponent, {
+      width: '50vw',
+      height: '60vh'
+    });
+
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
+      if (result) {
+        this.loadSubscriptions();
+        this.loadPublications();
+      }
+    });
   }
 
   toggleReplication(item: LogicalReplication, isSubscription: boolean): void {
@@ -228,58 +229,34 @@ export class ListReplicationComponent implements OnInit {
             }
           });
       } else {
-        this.snackBar.open('No se puede alternar publicaciones remotas directamente', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openWarn('NO SE PUEDE ALTERNAR PUBLICACIONES REMOTAS DIRECTAMENTE');
       }
     }
   }
 
   removeReplication(item: LogicalReplication, isSubscription: boolean): void {
-    if (this.isLocalMode) {
-      // Remove local replication
-      if (confirm(`¿Está seguro que desea eliminar la replicación para la sucursal ${item.sucursal.nombre}?`)) {
-        this.logicalReplicationService.removeReplication(item.sucursal.id)
-          .pipe(untilDestroyed(this))
-          .subscribe({
-            next: (result) => {
-              if (result?.success) {
-                // Refresh the appropriate list
-                if (isSubscription) {
-                  this.loadSubscriptions();
-                } else {
-                  this.loadPublications();
-                }
-              }
-              // The service already shows success/error messages
-            }
-          });
-      }
-    } else {
-      // Remove remote publication or subscription
-      if (!isSubscription) {
-        // Drop remote publication
-        if (confirm(`¿Está seguro que desea eliminar la publicación remota ${item.name}?`)) {
-          const sucursalId = this.selectedSucursalControl.value;
-          this.logicalReplicationService.dropRemotePublication(sucursalId, item.name)
-            .pipe(untilDestroyed(this))
-            .subscribe({
-              next: (result) => {
-                if (result?.success) {
-                  this.loadPublications();
-                }
-                // The service already shows success/error messages
-              }
-            });
-        }
-      } else {
-        this.snackBar.open('No se puede eliminar suscripciones remotas directamente', 'Cerrar', { duration: 3000 });
-      }
+    const sucursalId = this.isLocalMode ? item.sucursal?.id : this.selectedSucursalControl.value;
+    const sucursalNombre = this.isLocalMode ? (item.sucursal?.nombre ?? '') : this.selectedBranchName;
+    if (sucursalId == null) {
+      return;
     }
+    const origin = isSubscription ? 'SUBSCRIPTION' : 'PUBLICATION';
+    const dialogRef = this.dialog.open(RemoveReplicationDialogComponent, {
+      width: '480px',
+      data: { sucursalId, sucursalNombre, origin } as RemoveReplicationDialogData
+    });
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
+      if (result) {
+        this.loadSubscriptions();
+        this.loadPublications();
+      }
+    });
   }
   
   // New methods for remote publication management
   openCreateRemotePublicationDialog(): void {
     if (!this.selectedSucursalControl.value) {
-      this.snackBar.open('Debe seleccionar una sucursal para crear una publicación remota', 'Cerrar', { duration: 3000 });
+      this.notificacionSnackBar.openWarn('DEBE SELECCIONAR UNA SUCURSAL PARA CREAR UNA PUBLICACIÓN REMOTA');
       return;
     }
     
@@ -318,7 +295,7 @@ export class ListReplicationComponent implements OnInit {
   // New methods for remote subscription management
   openCreateRemoteSubscriptionDialog(): void {
     if (!this.selectedSucursalControl.value) {
-      this.snackBar.open('Debe seleccionar una sucursal para crear una suscripción remota', 'Cerrar', { duration: 3000 });
+      this.notificacionSnackBar.openWarn('DEBE SELECCIONAR UNA SUCURSAL PARA CREAR UNA SUSCRIPCIÓN REMOTA');
       return;
     }
     
@@ -444,5 +421,29 @@ export class ListReplicationComponent implements OnInit {
           }
         });
     }
+  }
+
+  /**
+   * Sync publications with replication_table (add missing tables on central and all filiales).
+   * Only available in local mode (central server).
+   */
+  syncPublicationsWithReplicationTable(): void {
+    if (!this.isLocalMode) return;
+    this.isSyncingPublications = true;
+    this.logicalReplicationService.syncPublicationsWithReplicationTable()
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (result) => {
+          this.isSyncingPublications = false;
+          if (result?.success) {
+            this.loadPublications();
+            this.loadSubscriptions();
+          }
+          // Service already shows success/error snackbar; full log is in result.message if needed
+        },
+        error: () => {
+          this.isSyncingPublications = false;
+        }
+      });
   }
 } 

@@ -1,7 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -10,6 +9,7 @@ import { ReplicationTableService } from '../replication-table.service';
 import { EditReplicationTableDialogComponent } from '../edit-replication-table-dialog/edit-replication-table-dialog.component';
 import { PageInfo } from '../../../../app.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy()
 @Component({
@@ -49,10 +49,8 @@ export class ListReplicationTablesComponent implements OnInit {
   constructor(
     private replicationTableService: ReplicationTableService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private notificacionSnackBar: NotificacionSnackbarService
   ) { 
-    console.log("ListReplicationTablesComponent: constructor");
-    
     // Initialize the direction options
     this.directionOptions = this.initializeDirectionOptions();
     this.initializeDirectionNameMap();
@@ -73,8 +71,6 @@ export class ListReplicationTablesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    console.log('ListReplicationTablesComponent: initializing...');
-    
     try {
       // Load initial data
       this.loadTables();
@@ -122,18 +118,16 @@ export class ListReplicationTablesComponent implements OnInit {
       console.log('ListReplicationTablesComponent: initialized successfully');
     } catch (error) {
       console.error('Error during component initialization:', error);
-      this.snackBar.open('Error al inicializar componente', 'Cerrar', { duration: 3000 });
+      this.notificacionSnackBar.openAlgoSalioMal('ERROR AL INICIALIZAR COMPONENTE');
     }
   }
 
   loadTables(): void {
-    console.log('Loading replication tables...');
     this.isLoading = true;
     
     try {
       // Get search term and filters
       const search = this.searchControl.value;
-      console.log('Search term:', search);
       
       this.replicationTableService.getReplicationTablesWithPagination(
         this.pageIndex,
@@ -143,39 +137,8 @@ export class ListReplicationTablesComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (page) => {
-          console.log('Received replication tables:', page);
           try {
             this.tablesPage = page;
-            
-            // Apply client-side filtering for direction and enabled status
-            if (this.tablesPage && this.tablesPage.getContent) {
-              console.log('Applying client-side filters');
-              let filteredContent = [...this.tablesPage.getContent];
-              
-              // Filter by direction
-              const directionFilter = this.directionFilterControl.value;
-              console.log('Direction filter:', directionFilter);
-              if (directionFilter) {
-                filteredContent = filteredContent.filter(table => table.direction === directionFilter);
-              }
-              
-              // Filter by enabled status
-              const enabledFilter = this.enabledFilterControl.value;
-              console.log('Enabled filter:', enabledFilter);
-              if (enabledFilter !== null && enabledFilter !== '') {
-                const enabled = enabledFilter === 'true';
-                filteredContent = filteredContent.filter(table => table.enabled === enabled);
-              }
-              
-              // Create a new page with filtered content
-              this.tablesPage = {
-                ...this.tablesPage,
-                getContent: filteredContent
-              };
-              console.log('Filtered content:', filteredContent);
-            } else {
-              console.warn('No content received from page or getContent is undefined');
-            }
             
             // Update pageIndex if provided from the backend
             if (page?.getPageable?.getPageNumber !== undefined) {
@@ -183,23 +146,22 @@ export class ListReplicationTablesComponent implements OnInit {
             }
             
             this.isLoading = false;
-            console.log('Table loading completed successfully');
           } catch (error) {
             console.error('Error while processing replication tables data:', error);
             this.isLoading = false;
-            this.snackBar.open('Error al procesar datos de tablas de replicación', 'Cerrar', { duration: 3000 });
+            this.notificacionSnackBar.openAlgoSalioMal('ERROR AL PROCESAR DATOS DE TABLAS DE REPLICACIÓN');
           }
         },
         error: (error) => {
           console.error('Error loading replication tables:', error);
           this.isLoading = false;
-          this.snackBar.open('Error al cargar tablas de replicación', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CARGAR TABLAS DE REPLICACIÓN');
         }
       });
     } catch (error) {
       console.error('Exception in loadTables method:', error);
       this.isLoading = false;
-      this.snackBar.open('Error al intentar cargar tablas de replicación', 'Cerrar', { duration: 3000 });
+      this.notificacionSnackBar.openAlgoSalioMal('ERROR AL INTENTAR CARGAR TABLAS DE REPLICACIÓN');
     }
   }
 

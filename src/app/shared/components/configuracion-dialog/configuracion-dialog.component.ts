@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { ConfiguracionSistema, ConfiguracionService } from '../../services/configuracion.service';
+import { ConfiguracionSistema, ConfiguracionService, UpdateChannel } from '../../services/configuracion.service';
 
 @Component({
   selector: 'app-configuracion-dialog',
@@ -30,7 +30,8 @@ export class ConfiguracionDialogComponent implements OnInit {
       ticketPrinter: [this.data.printers?.ticket || ''],
       facturaPrinter: [this.data.printers?.factura || ''],
       modo: [this.data.modo],
-      isLocal: [this.data.isLocal !== undefined ? this.data.isLocal : true]
+      isLocal: [this.data.isLocal !== undefined ? this.data.isLocal : true],
+      updateChannel: [this.data.updateChannel || null, Validators.required]
     });
   }
 
@@ -49,6 +50,7 @@ export class ConfiguracionDialogComponent implements OnInit {
         precios: formValue.precios,
         modo: formValue.modo,
         isLocal: formValue.isLocal,
+        updateChannel: formValue.updateChannel,
         printers: {
           ticket: formValue.ticketPrinter,
           factura: formValue.facturaPrinter
@@ -81,6 +83,7 @@ export class ConfiguracionDialogComponent implements OnInit {
       precios: formValue.precios || this.data.precios,
       modo: formValue.modo || this.data.modo,
       isLocal: formValue.isLocal !== undefined ? formValue.isLocal : this.data.isLocal,
+      updateChannel: formValue.updateChannel || this.data.updateChannel || 'stable',
       printers: {
         ticket: formValue.ticketPrinter || this.data.printers?.ticket || '',
         factura: formValue.facturaPrinter || this.data.printers?.factura || ''

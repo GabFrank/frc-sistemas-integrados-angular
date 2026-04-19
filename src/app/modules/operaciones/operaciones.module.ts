@@ -39,6 +39,7 @@ import { AddVentaObservacionComponent } from './venta-observacion/add-venta-obse
 import { AddMotivoObsDialogComponent } from './motivo-observacion/add-motivo-obs-dialog/add-motivo-obs-dialog.component';
 import { MainVentaObservacionComponent } from './venta-observacion/main-venta-observacion/main-venta-observacion.component';
 import { ListPagoComponent } from './pago/list-pago/list-pago.component';
+import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
 import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante.component';
@@ -62,6 +63,7 @@ import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion
 import { VerificacionRapidaSucursalesDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 import { SolicitudPagoCompraComponent } from './compra/gestion-compras/solicitud-pago-compra/solicitud-pago-compra.component';
 import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-compras/solicitud-pago-compra/create-edit-solicitud-pago-compra-dialog/create-edit-solicitud-pago-compra-dialog.component';
+import { SolicitudPagoDashboardComponent } from './solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component';
 import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
 import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
 import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
@@ -101,6 +103,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
     AddMotivoObsDialogComponent,
     MainVentaObservacionComponent,
     ListPagoComponent,
+    EditPagoComponent,
     PagoDetalleDialogComponent,
     ModificarSucursalPagoDetalleComponent,
     AcompanhanteComponent,
@@ -121,6 +124,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
     VerificacionRapidaSucursalesDialogComponent,
     SolicitudPagoCompraComponent,
     CreateEditSolicitudPagoCompraDialogComponent,
+    SolicitudPagoDashboardComponent,
     ListSolicitudPagoComponent,
     CreateEditSolicitudPagoDialogComponent,
     AdicionarNotaDialogComponent,

@@ -59,3 +59,7 @@ electron-printer/
 .env.local
 .env.development
 .env.production
+
+# Agent artifacts
+.agents/
+skills/

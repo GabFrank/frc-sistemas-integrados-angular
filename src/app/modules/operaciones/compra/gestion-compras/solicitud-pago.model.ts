@@ -60,6 +60,8 @@ export class SolicitudPago {
     pago?: Pago;
     notasRecepcion?: SolicitudPagoNotaRecepcion[];
     detalles?: SolicitudPagoDetalle[];
+    tipo?: string;
+    referenciaId?: number;
 
     // Computed properties for UI
     estadoDisplayNameComputed?: string;

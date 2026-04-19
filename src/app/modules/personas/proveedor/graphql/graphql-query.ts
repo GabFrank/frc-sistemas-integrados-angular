@@ -147,6 +147,8 @@ export const proveedorQuery = gql`
         id
         nombre
         documento
+        apodo
+        telefono
       }
       vendedores {
         id
@@ -174,6 +176,9 @@ export const saveProveedor = gql`
       persona {
         id
         nombre
+        documento
+        apodo
+        telefono
       }
       tipoCredito
     }

@@ -9,6 +9,7 @@
   "pdvId": 24,
   "isConfigured": true,
   "isLocal": true,
+  "updateChannel": "dev",
   "printers": {
     "ticket": "ticket_soporte",
     "factura": ""

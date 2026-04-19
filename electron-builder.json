@@ -1,4 +1,9 @@
 {
+  "publish": {
+    "provider": "github",
+    "owner": "GabFrank",
+    "repo": "frc-sistemas-integrados-angular"
+  },
   "asar": true,
   "directories": {
     "output": "release/"
@@ -24,18 +29,16 @@
     ]
   },
   "nsis": {
-    "oneClick": false,
-    "perMachine": true,
-    "allowElevation": true,
-    "allowToChangeInstallationDirectory": false,
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
     "installerIcon": "./app/icons/logo.ico",
     "uninstallerIcon": "./app/icons/logo_uninstall.ico",
-    "guid": "FRC",
-    "include": "app/installer.nsh",
+    "guid": "9978E2AA-8509-4830-A1C2-88A34BB1D7BF",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "FRC",
-    "artifactName": "FRC.${ext}"
+    "artifactName": "FRC-Setup.${ext}"
   },
   "portable": {
     "splashImage": "dist/assets/icons/electron.bmp"

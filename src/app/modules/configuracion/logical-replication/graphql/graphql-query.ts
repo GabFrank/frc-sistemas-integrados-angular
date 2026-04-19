@@ -168,6 +168,19 @@ export const SEARCH_REMOTE_REPLICATION_SUBSCRIPTIONS_QUERY = gql`
   }
 `;
 
+export const GET_REPLICATION_SETUP_STATE_QUERY = gql`
+  query GetReplicationSetupState($sucursalId: ID!) {
+    data:getReplicationSetupState(sucursalId: $sucursalId) {
+      centralPublicationExists
+      centralSubscriptionExists
+      filialReachable
+      filialPublicationExists
+      filialSubscriptionBidiExists
+      filialSubscriptionCentralExists
+    }
+  }
+`;
+
 export const GENERATE_CONNECTION_STRING_QUERY = gql`
   query GenerateConnectionString($host: String!, $port: Int!, $dbName: String!, $username: String!, $password: String!) {
     data:generateConnectionString(host: $host, port: $port, dbName: $dbName, username: $username, password: $password)
@@ -213,6 +226,15 @@ export const SETUP_REPLICATION_MUTATION = gql`
   }
 `;
 
+export const SETUP_REPLICATION_ADVANCED_MUTATION = gql`
+  mutation SetupReplicationAdvanced($sucursalId: ID!, $target: RemoveTarget!, $scope: RemoveScope!) {
+    data:setupReplicationAdvanced(sucursalId: $sucursalId, target: $target, scope: $scope) {
+      success
+      message
+    }
+  }
+`;
+
 export const SETUP_BRANCH_REPLICATION_MUTATION = gql`
   mutation SetupBranchReplication($sucursalId: ID!) {
     data:setupBranchReplication(sucursalId: $sucursalId) {
@@ -234,6 +256,15 @@ export const REMOVE_REPLICATION_MUTATION = gql`
 export const REMOVE_BRANCH_REPLICATION_MUTATION = gql`
   mutation RemoveBranchReplication($sucursalId: ID!) {
     data:removeBranchReplication(sucursalId: $sucursalId) {
+      success
+      message
+    }
+  }
+`;
+
+export const REMOVE_REPLICATION_ADVANCED_MUTATION = gql`
+  mutation RemoveReplicationAdvanced($sucursalId: ID!, $target: RemoveTarget!, $scope: RemoveScope!) {
+    data:removeReplicationAdvanced(sucursalId: $sucursalId, target: $target, scope: $scope) {
       success
       message
     }
@@ -322,6 +353,8 @@ export const REPLICATION_TABLES_QUERY = gql`
       enabled
       description
       creadoEn
+      branchIds
+      replicateCentralToBranchWithFilter
       usuario {
         id
         nickname
@@ -339,6 +372,8 @@ export const REPLICATION_TABLE_QUERY = gql`
       enabled
       description
       creadoEn
+      branchIds
+      replicateCentralToBranchWithFilter
       usuario {
         id
         nickname
@@ -357,6 +392,8 @@ export const REPLICATION_TABLES_WITH_PAGINATION_QUERY = gql`
         enabled
         description
         creadoEn
+        branchIds
+        replicateCentralToBranchWithFilter
         usuario {
           id
           nickname
@@ -386,6 +423,8 @@ export const REPLICATION_TABLES_BY_DIRECTION_QUERY = gql`
       enabled
       description
       creadoEn
+      branchIds
+      replicateCentralToBranchWithFilter
       usuario {
         id
         nickname
@@ -403,6 +442,8 @@ export const ENABLED_REPLICATION_TABLES_QUERY = gql`
       enabled
       description
       creadoEn
+      branchIds
+      replicateCentralToBranchWithFilter
       usuario {
         id
         nickname
@@ -438,6 +479,8 @@ export const SAVE_REPLICATION_TABLE_MUTATION = gql`
       enabled
       description
       creadoEn
+      branchIds
+      replicateCentralToBranchWithFilter
       usuario {
         id
         nickname
@@ -494,6 +537,15 @@ export const REFRESH_REMOTE_SUBSCRIPTION_MUTATION = gql`
 export const REFRESH_ALL_REMOTE_SUBSCRIPTIONS_MUTATION = gql`
   mutation RefreshAllRemoteSubscriptions($branchSucursalId: ID!) {
     data:refreshAllRemoteSubscriptions(branchSucursalId: $branchSucursalId) {
+      success
+      message
+    }
+  }
+`;
+
+export const SYNC_PUBLICATIONS_WITH_REPLICATION_TABLE_MUTATION = gql`
+  mutation SyncPublicationsWithReplicationTable {
+    data:syncPublicationsWithReplicationTable {
       success
       message
     }

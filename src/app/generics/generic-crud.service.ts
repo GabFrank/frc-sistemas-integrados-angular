@@ -149,12 +149,20 @@ export class GenericCrudService {
     });
   }
 
-  onCustomMutation(gql: Mutation, data, servidor: boolean = true): Observable<any> {
+  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
-      false,
-      "Guardando..."
-    );
+    let requestId: number | null = null;
+    let signal: AbortSignal | undefined;
+    
+    if (silentLoad !== true) {
+      const result = this.cargandoService.openDialog(
+        false,
+        "Guardando..."
+      );
+      requestId = result.requestId;
+      signal = result.signal;
+    }
+    
     return new Observable((obs) => {
       gql
         .mutate(data, {
@@ -168,22 +176,28 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (res) => {
-            this.cargandoService.closeDialog(requestId);
+            if (silentLoad !== true) {
+              this.cargandoService.closeDialog(requestId);
+            }
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
+              if (silentLoad !== true) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
               obs.error(res.errors);
             }
           },
           error: (error) => {
-            this.cargandoService.closeDialog(requestId);
+            if (silentLoad !== true) {
+              this.cargandoService.closeDialog(requestId);
+            }
             this.isLoading = false;
             obs.error(error);
           }

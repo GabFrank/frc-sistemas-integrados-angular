@@ -5,6 +5,8 @@ import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
 
+export type UpdateChannel = 'stable' | 'beta' | 'alpha' | 'dev';
+
 export interface ConfiguracionSistema {
   serverIp: string;
   serverPort: string;
@@ -20,6 +22,7 @@ export interface ConfiguracionSistema {
   pdvId: number;
   isConfigured: boolean;
   isLocal: boolean;
+  updateChannel: UpdateChannel;
 }
 
 import { environment } from '../../../environments/environment';
@@ -43,7 +46,8 @@ const DEFAULT_CONFIG: ConfiguracionSistema = {
   modo: 'NOT',
   pdvId: null,
   isConfigured: false,
-  isLocal: true
+  isLocal: true,
+  updateChannel: null
 };
 
 const LEGACY_KEYS = {
@@ -91,6 +95,8 @@ export class ConfiguracionService {
         this.config = parsedConfig;
         this.syncToLegacyKeys(parsedConfig);
         console.log('Configuration loaded from localStorage');
+        // Sync to main process so it can find the config file on next startup
+        this.syncConfigToMainProcess(parsedConfig);
       } catch (e) {
         console.error('Error parsing saved configuration', e);
         this.loadConfigFromBackupSources();
@@ -305,6 +311,7 @@ export class ConfiguracionService {
       pdvId: config.pdvId ?? DEFAULT_CONFIG.pdvId,
       isConfigured: config.isConfigured ?? DEFAULT_CONFIG.isConfigured,
       isLocal: config.isLocal ?? DEFAULT_CONFIG.isLocal,
+      updateChannel: config.updateChannel || DEFAULT_CONFIG.updateChannel,
       printers: {
         ticket: config.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
         factura: config.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -428,6 +435,22 @@ export class ConfiguracionService {
   /**
    * Synchronizes the consolidated config object to legacy localStorage keys
    */
+  private syncConfigToMainProcess(config: ConfiguracionSistema): void {
+    try {
+      const isElectron = window && typeof window['require'] === 'function';
+      if (isElectron) {
+        const { ipcRenderer } = window['require']('electron');
+        ipcRenderer.send('save-config-backup', JSON.stringify(config, null, 2));
+        if (config.updateChannel && config.updateChannel !== 'dev') {
+          ipcRenderer.send('set-update-channel', config.updateChannel);
+        }
+        console.log('Configuration synced to main process via IPC');
+      }
+    } catch (e) {
+      console.warn('Could not sync config to main process:', e);
+    }
+  }
+
   private syncToLegacyKeys(config: ConfiguracionSistema): void {
     if (!config) {
       console.warn('Attempted to sync undefined/null configuration to legacy keys');
@@ -535,6 +558,19 @@ export class ConfiguracionService {
       // Update the BehaviorSubject
       this.config = validConfig;
       this.configChanged.next(validConfig);
+
+      // Notify Electron main process of channel change and save config via IPC
+      try {
+        const isElectron = window && typeof window['require'] === 'function';
+        if (isElectron) {
+          const { ipcRenderer } = window['require']('electron');
+          // Send config to main process for reliable file saving (avoids @electron/remote path issues)
+          ipcRenderer.send('save-config-backup', JSON.stringify(validConfig, null, 2));
+          ipcRenderer.send('set-update-channel', validConfig.updateChannel || 'stable');
+        }
+      } catch (e) {
+        console.warn('Could not notify main process of config/channel change:', e);
+      }
     } catch (e) {
       console.error('Error saving configuration:', e);
     }
@@ -565,7 +601,8 @@ export class ConfiguracionService {
           modo: localStorage.getItem(LEGACY_KEYS.modo) || 'NOT',
           pdvId: parseInt(localStorage.getItem(LEGACY_KEYS.pdvId) || '1', 10),
           isConfigured: false,
-          isLocal: true
+          isLocal: true,
+          updateChannel: DEFAULT_CONFIG.updateChannel
         };
 
         // Save the migrated config
@@ -613,6 +650,7 @@ export class ConfiguracionService {
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false, // Always mark as not configured since it's from a file
             isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: response.updateChannel || DEFAULT_CONFIG.updateChannel,
             printers: {
               ticket: response.printers?.ticket || DEFAULT_CONFIG.printers.ticket,
               factura: response.printers?.factura || DEFAULT_CONFIG.printers.factura
@@ -637,7 +675,8 @@ export class ConfiguracionService {
             modo: response.modo || DEFAULT_CONFIG.modo,
             pdvId: response.pdvId ?? DEFAULT_CONFIG.pdvId,
             isConfigured: false,
-            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal
+            isLocal: response.isLocal ?? DEFAULT_CONFIG.isLocal,
+            updateChannel: DEFAULT_CONFIG.updateChannel
           };
         }
 

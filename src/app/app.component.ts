@@ -27,6 +27,7 @@ import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nue
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
 import { NotificacionesTableroService } from "./modules/notificaciones/services/notificaciones-tablero.service";
+import { UpdateDialogComponent } from "./shared/components/update-dialog/update-dialog.component";
 
 export class Pageable {
   getPageNumber: number;
@@ -117,6 +118,19 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe(config => {
         this.graphqlService.reconnectWebSockets();
       });
+
+    // Listen for update dialog open request from Electron menu
+    try {
+      const isElectron = window && typeof window['require'] === 'function';
+      if (isElectron) {
+        const { ipcRenderer } = window['require']('electron');
+        ipcRenderer.on('open-update-dialog', () => {
+          this.matDialog.open(UpdateDialogComponent, {
+            width: '450px',
+          });
+        });
+      }
+    } catch (e) { }
     this.configService.isConfigured()
       .pipe(untilDestroyed(this))
       .subscribe((isSystemConfigured) => {

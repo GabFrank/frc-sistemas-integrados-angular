@@ -527,6 +527,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               gasto.vueltoGs = this.guaraniVueltoControl.value;
               gasto.vueltoRs = this.realVueltoControl.value;
               gasto.vueltoDs = this.dolarVueltoControl.value;
+              const tieneVuelto =
+                Number(gasto.vueltoGs || 0) > 0 ||
+                Number(gasto.vueltoRs || 0) > 0 ||
+                Number(gasto.vueltoDs || 0) > 0;
+              if (tieneVuelto) {
+                gasto.sucursalVuelto = this.mainService.sucursalActual;
+              }
               gasto.activo = true;
               if (this.isVuelto) {
                 gasto.finalizado = true;
@@ -542,12 +549,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                   const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
-                    if (gasto.responsable?.persona?.id) {
+                    if (this.mainService.usuarioActual?.persona?.id) {
                       this.notificationHttpService.sendGastoNotification(
                         gasto.id,
                         this.mainService.sucursalActual.id,
-                        gasto.responsable.persona.id,
-                        gasto.retiroGs
+                        this.mainService.usuarioActual.persona.id,
+                        gasto.retiroGs,
+                        this.mainService.usuarioActual.persona.nombre,
+                        this.mainService.sucursalActual.nombre
                       ).subscribe();
                     }
 
@@ -645,6 +654,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onCancelar() {
+    this.isVuelto = false;
     this.preGastoIdAlCompletarDespuesDeGasto = null;
     this.preGastoSucursalIdAlCompletarDespuesDeGasto = null;
     this.selectedGasto = null;
@@ -697,17 +707,18 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onVer(gasto: Gasto) {
+    this.isVuelto = false;
     this.cargarDatos(gasto);
     this.goTo("informacion");
   }
 
   onVuelto(gasto: Gasto) {
+    this.isVuelto = true;
     this.cargarDatos(gasto);
     this.goTo("informacion");
     this.guaraniVueltoControl.enable();
     this.realVueltoControl.enable();
     this.dolarVueltoControl.enable();
-    this.isVuelto = true;
   }
 
   onGastoClick(gasto: Gasto) { }
@@ -861,10 +872,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   cargarDatos(gasto: Gasto) {
     this.selectedGasto = gasto;
     this.onResponsableSelect(gasto?.responsable);
-    this.onTipoGastoSelect(gasto?.tipoGasto);
-    if (this.selectedTipoGasto.autorizacion == true) {
-      this.onAutorizadoPorSelect(gasto?.responsable);
-    }
+    this.selectedTipoGasto = gasto?.tipoGasto;
+    this.tipoGastoControl.setValue(
+      `${this.selectedTipoGasto?.id ?? "-"} - ${this.selectedTipoGasto?.descripcion ?? "-"}`,
+      { emitEvent: false }
+    );
+    this.selectedAutorizadoPor = gasto?.autorizadoPor;
+    this.autorizadoPorControl.setValue(
+      this.selectedAutorizadoPor?.id != null
+        ? `${this.selectedAutorizadoPor.id} - ${this.selectedAutorizadoPor?.persona?.nombre ?? "-"}`
+        : null,
+      { emitEvent: false }
+    );
+    this.autorizado = true;
     this.observacionControl.setValue(gasto?.observacion);
     this.guaraniControl.setValue(gasto?.retiroGs);
     this.realControl.setValue(gasto?.retiroRs);

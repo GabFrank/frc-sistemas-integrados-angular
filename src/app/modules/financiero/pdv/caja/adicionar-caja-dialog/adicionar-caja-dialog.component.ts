@@ -136,7 +136,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private deliveryService: DeliveryService,
     private tabService: TabService,
-    private mainService: MainService
+    public mainService: MainService
   ) {
 
   }

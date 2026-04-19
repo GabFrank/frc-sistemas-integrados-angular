@@ -360,10 +360,43 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     this.isSaving = true;
     this.updateComputedProperties();
     if (this.selectedPersona) {
-      this.createOrUpdateProveedor(this.selectedPersona);
+      this.updatePersonaThenProveedor(this.selectedPersona, formValue);
     } else {
       this.createPersonaThenProveedor(formValue);
     }
+  }
+
+  private updatePersonaThenProveedor(persona: Persona, formValue: any): void {
+    // Convert current raw persona object to Persona class instance and get its Input model
+    const personaModel = Object.assign(new Persona(), persona);
+    const personaInput = personaModel.toInput();
+
+    // Overwrite the specific fields modified in the Proveedor form
+    personaInput.nombre = formValue.nombre?.trim().toUpperCase();
+    personaInput.apodo = formValue.apodo?.trim().toUpperCase() || "";
+    personaInput.documento = formValue.documento?.trim();
+    personaInput.telefono = formValue.telefono?.trim() || "";
+
+    this.personaService
+      .onSavePersona(personaInput)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (updatedPersona) => {
+          if (updatedPersona?.id) {
+            this.selectedPersona = updatedPersona;
+            this.createOrUpdateProveedor(updatedPersona);
+          } else {
+            this.isSaving = false;
+            this.updateComputedProperties();
+            this.notificacionService.openWarn("Error al actualizar la persona");
+          }
+        },
+        error: () => {
+          this.isSaving = false;
+          this.updateComputedProperties();
+          this.notificacionService.openWarn("Error al actualizar la persona");
+        }
+      });
   }
 
   private createPersonaThenProveedor(formValue: any): void {

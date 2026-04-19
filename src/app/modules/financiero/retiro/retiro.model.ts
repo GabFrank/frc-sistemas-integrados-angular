@@ -24,6 +24,8 @@ export class Retiro {
     input.responsableId = this.responsable?.id;
     input.cajaEntradaId = this.cajaEntrada?.id;
     input.cajaSalidaId = this.cajaSalida?.id;
+    input.sucursalSalidaId = this.cajaSalida?.sucursalId;
+    input.cajaEntradaId = this.cajaEntrada?.id;
     input.usuarioId = this.usuario?.id;
     input.estado = this.estado;
     input.observacion = this.observacion;
@@ -51,6 +53,7 @@ export class RetiroInput {
   creadoEn: Date;
   usuarioId: number = null;
   cajaSalidaId: number;
+  sucursalSalidaId: number;
   cajaEntradaId: number;
   retiroGs: number;
   retiroRs: number;

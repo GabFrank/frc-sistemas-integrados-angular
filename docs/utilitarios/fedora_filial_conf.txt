@@ -121,7 +121,7 @@ sudo update-desktop-database
 sudo tee /etc/systemd/system/frc.service << "EOF" > /dev/null
 [Unit]
 Description=FRC Sistemas Integrados
-Requires=postgresql.service
+Requires=postgresql-16.service
 After=postgresql.service
 
 [Service]

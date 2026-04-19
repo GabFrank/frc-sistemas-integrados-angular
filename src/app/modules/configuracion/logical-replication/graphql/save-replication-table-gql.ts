@@ -15,6 +15,8 @@ export interface SaveReplicationTableVariables {
     enabled?: boolean;
     description?: string;
     usuarioId?: number;
+    branchIds?: number[];
+    replicateCentralToBranchWithFilter?: boolean;
   };
 }
 

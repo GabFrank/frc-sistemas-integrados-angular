@@ -5,6 +5,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ReplicationDirection, ReplicationTable } from '../replication-table.model';
 import { ReplicationTableService } from '../replication-table.service';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 
 export interface EditReplicationTableDialogData {
   isEdit: boolean;
@@ -24,13 +26,15 @@ export class EditReplicationTableDialogComponent implements OnInit {
   
   // Pre-calculated properties to avoid function calls in template
   directionOptions: { value: ReplicationDirection, label: string }[] = [];
+  sucursales: Sucursal[] = [];
   
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<EditReplicationTableDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EditReplicationTableDialogData,
     private replicationTableService: ReplicationTableService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private sucursalService: SucursalService
   ) { 
     // Initialize direction options
     this.directionOptions = this.replicationTableService.getDirectionOptions();
@@ -43,13 +47,26 @@ export class EditReplicationTableDialogComponent implements OnInit {
       tableName: [this.data.table?.tableName || '', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_]+$/)]],
       description: [this.data.table?.description || ''],
       direction: [this.data.table?.direction || ReplicationDirection.MAIN_TO_ALL, Validators.required],
-      enabled: [this.data.table?.enabled !== undefined ? this.data.table.enabled : true]
+      enabled: [this.data.table?.enabled !== undefined ? this.data.table.enabled : true],
+      branchIds: [this.data.table?.branchIds || []],
+      replicateCentralToBranchWithFilter: [this.data.table?.replicateCentralToBranchWithFilter ?? false]
     });
     
     // If editing, lock the table name
     if (this.data.isEdit) {
       this.tableForm.get('tableName').disable();
     }
+    this.loadSucursales();
+  }
+
+  private loadSucursales(): void {
+    this.sucursalService.onGetSucursalesActivas()
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (sucursales) => {
+          this.sucursales = sucursales || [];
+        }
+      });
   }
   
   onSave(): void {

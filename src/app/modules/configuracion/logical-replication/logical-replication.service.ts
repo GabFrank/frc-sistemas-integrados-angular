@@ -4,13 +4,15 @@ import { LogicalReplication, ReplicationStatus } from './logical-replication.mod
 import { ReplicationSubscriptionsGQL } from './graphql/replication-subscriptions-gql';
 import { ReplicationPublicationsGQL } from './graphql/replication-publications-gql';
 import { SetupReplicationGQL } from './graphql/setup-replication-gql';
+import { SetupReplicationAdvancedGQL } from './graphql/setup-replication-advanced-gql';
 import { SetupBranchReplicationGQL } from './graphql/setup-branch-replication-gql';
 import { RemoveReplicationGQL } from './graphql/remove-replication-gql';
+import { RemoveReplicationAdvancedGQL } from './graphql/remove-replication-advanced-gql';
 import { RemoveBranchReplicationGQL } from './graphql/remove-branch-replication-gql';
 import { ToggleReplicationGQL } from './graphql/toggle-replication-gql';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { SearchReplicationSubscriptionsGQL } from './graphql/search-replication-subscriptions-gql';
 import { RemoteReplicationSubscriptionsGQL } from './graphql/remote-replication-subscriptions-gql';
 import { RemoteReplicationPublicationsGQL } from './graphql/remote-replication-publications-gql';
@@ -33,6 +35,8 @@ import { RefreshSubscriptionGQL } from './graphql/refresh-subscription-gql';
 import { RefreshAllSubscriptionsGQL } from './graphql/refresh-all-subscriptions-gql';
 import { RefreshRemoteSubscriptionGQL } from './graphql/refresh-remote-subscription-gql';
 import { RefreshAllRemoteSubscriptionsGQL } from './graphql/refresh-all-remote-subscriptions-gql';
+import { SyncPublicationsWithReplicationTableGQL } from './graphql/sync-publications-with-replication-table-gql';
+import { GetReplicationSetupStateGQL, ReplicationSetupState } from './graphql/get-replication-setup-state-gql';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +55,7 @@ export class LogicalReplicationService {
     private searchRemoteReplicationSubscriptionsGQL: SearchRemoteReplicationSubscriptionsGQL,
     
     // Utility queries
+    private getReplicationSetupStateGQL: GetReplicationSetupStateGQL,
     private generateConnectionStringGQL: GenerateConnectionStringGQL,
     private generateCentralConnectionStringGQL: GenerateCentralConnectionStringGQL,
     private generateBranchPublicationNameGQL: GenerateBranchPublicationNameGQL,
@@ -60,8 +65,10 @@ export class LogicalReplicationService {
     
     // Local mutations
     private setupReplicationGQL: SetupReplicationGQL,
+    private setupReplicationAdvancedGQL: SetupReplicationAdvancedGQL,
     private setupBranchReplicationGQL: SetupBranchReplicationGQL,
     private removeReplicationGQL: RemoveReplicationGQL,
+    private removeReplicationAdvancedGQL: RemoveReplicationAdvancedGQL,
     private removeBranchReplicationGQL: RemoveBranchReplicationGQL,
     private toggleReplicationGQL: ToggleReplicationGQL,
     
@@ -78,12 +85,28 @@ export class LogicalReplicationService {
     private refreshAllSubscriptionsGQL: RefreshAllSubscriptionsGQL,
     private refreshRemoteSubscriptionGQL: RefreshRemoteSubscriptionGQL,
     private refreshAllRemoteSubscriptionsGQL: RefreshAllRemoteSubscriptionsGQL,
-    
-    private snackBar: MatSnackBar,
-    private genericService: GenericCrudService
+    private syncPublicationsWithReplicationTableGQL: SyncPublicationsWithReplicationTableGQL,
+
+    private genericService: GenericCrudService,
+    private notificacionSnackBar: NotificacionSnackbarService
   ) { }
 
   // LOCAL QUERIES
+
+  /**
+   * Get current replication setup state for a branch (what exists on central and filial).
+   */
+  getReplicationSetupState(sucursalId: number): Observable<ReplicationSetupState | null> {
+    return this.genericService.onCustomQuery(
+      this.getReplicationSetupStateGQL,
+      { sucursalId: String(sucursalId) },
+      true,
+      undefined,
+      true
+    ).pipe(
+      catchError(() => of(null))
+    );
+  }
 
   /**
    * Get replication subscriptions with pagination
@@ -235,13 +258,34 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open('Replicación configurada correctamente', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('REPLICACIÓN CONFIGURADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error setting up replication', error);
-        this.snackBar.open('Error al configurar replicación', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
         return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Setup replication with granular control (target: SUBSCRIPTION | PUBLICATION | BOTH, scope: CENTRAL | FILIAL | BOTH)
+   */
+  setupReplicationAdvanced(sucursalId: number, target: string, scope: string): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.setupReplicationAdvancedGQL,
+      { sucursalId: String(sucursalId), target, scope }
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.notificacionSnackBar.openSucess('REPLICACIÓN CONFIGURADA CORRECTAMENTE');
+        }
+      }),
+      catchError(error => {
+        console.error('Error in setupReplicationAdvanced', error);
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN');
+        return of({ success: false, message: error?.message || 'Error desconocido' });
       })
     );
   }
@@ -256,12 +300,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open('Replicación de sucursal configurada correctamente', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL CONFIGURADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error setting up branch replication', error);
-        this.snackBar.open('Error al configurar replicación de sucursal', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CONFIGURAR REPLICACIÓN DE SUCURSAL');
         return of({ success: false, message: error.message });
       })
     );
@@ -277,13 +321,34 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open('Replicación eliminada correctamente', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('REPLICACIÓN ELIMINADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error removing replication', error);
-        this.snackBar.open('Error al eliminar replicación', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN');
         return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Remove replication with granular control (target: SUBSCRIPTION | PUBLICATION | BOTH, scope: CENTRAL | FILIAL | BOTH)
+   */
+  removeReplicationAdvanced(sucursalId: number, target: string, scope: string): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.removeReplicationAdvancedGQL,
+      { sucursalId: String(sucursalId), target, scope }
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.notificacionSnackBar.openSucess('ELIMINACIÓN COMPLETADA');
+        }
+      }),
+      catchError(error => {
+        console.error('Error in removeReplicationAdvanced', error);
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN');
+        return of({ success: false, message: error?.message || 'Error desconocido' });
       })
     );
   }
@@ -298,12 +363,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open('Replicación de sucursal eliminada correctamente', 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('REPLICACIÓN DE SUCURSAL ELIMINADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error removing branch replication', error);
-        this.snackBar.open('Error al eliminar replicación de sucursal', 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR REPLICACIÓN DE SUCURSAL');
         return of({ success: false, message: error.message });
       })
     );
@@ -323,13 +388,13 @@ export class LogicalReplicationService {
       tap(status => {
         if (status && status.success) {
           const type = isSubscription ? 'suscripción' : 'publicación';
-          this.snackBar.open(`La ${type} ha sido ${enabled ? 'activada' : 'desactivada'} correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess(`LA ${type.toUpperCase()} HA SIDO ${enabled ? 'ACTIVADA' : 'DESACTIVADA'} CORRECTAMENTE`);
         }
       }),
       catchError(error => {
         console.error('Error toggling replication', error);
         const type = isSubscription ? 'suscripción' : 'publicación';
-        this.snackBar.open(`Error al ${enabled ? 'activar' : 'desactivar'} la ${type}`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal(`ERROR AL ${enabled ? 'ACTIVAR' : 'DESACTIVAR'} LA ${type.toUpperCase()}`);
         return of({ success: false, message: error.message });
       })
     );
@@ -350,12 +415,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`La suscripción remota ha sido ${enabled ? 'activada' : 'desactivada'} correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess(`LA SUSCRIPCIÓN REMOTA HA SIDO ${enabled ? 'ACTIVADA' : 'DESACTIVADA'} CORRECTAMENTE`);
         }
       }),
       catchError(error => {
         console.error('Error toggling remote subscription', error);
-        this.snackBar.open(`Error al ${enabled ? 'activar' : 'desactivar'} la suscripción remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal(`ERROR AL ${enabled ? 'ACTIVAR' : 'DESACTIVAR'} LA SUSCRIPCIÓN REMOTA`);
         return of({ success: false, message: error.message });
       })
     );
@@ -373,12 +438,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`La publicación remota ha sido eliminada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('LA PUBLICACIÓN REMOTA HA SIDO ELIMINADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error dropping remote publication', error);
-        this.snackBar.open(`Error al eliminar la publicación remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ELIMINAR LA PUBLICACIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -397,12 +462,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Publicación remota creada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('PUBLICACIÓN REMOTA CREADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error creating remote publication', error);
-        this.snackBar.open(`Error al crear publicación remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CREAR PUBLICACIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -422,12 +487,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Suscripción remota creada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA CREADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error creating remote subscription', error);
-        this.snackBar.open(`Error al crear suscripción remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL CREAR SUSCRIPCIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -446,12 +511,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Publicación remota actualizada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('PUBLICACIÓN REMOTA ACTUALIZADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error editing remote publication', error);
-        this.snackBar.open(`Error al actualizar publicación remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ACTUALIZAR PUBLICACIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -471,12 +536,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Suscripción remota actualizada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA ACTUALIZADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error editing remote subscription', error);
-        this.snackBar.open(`Error al actualizar suscripción remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL ACTUALIZAR SUSCRIPCIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -495,12 +560,34 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Suscripción refrescada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REFRESCADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error refreshing subscription', error);
-        this.snackBar.open(`Error al refrescar suscripción`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR SUSCRIPCIÓN');
+        return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Sync existing publications with replication_table (add missing tables on central and all filiales).
+   * Only meaningful when called from central server.
+   */
+  syncPublicationsWithReplicationTable(): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.syncPublicationsWithReplicationTableGQL,
+      {}
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.notificacionSnackBar.openSucess('PUBLICACIONES SINCRONIZADAS CON REPLICATION_TABLE');
+        }
+      }),
+      catchError(error => {
+        console.error('Error syncing publications', error);
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL SINCRONIZAR PUBLICACIONES');
         return of({ success: false, message: error.message });
       })
     );
@@ -516,12 +603,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Todas las suscripciones refrescadas correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('TODAS LAS SUSCRIPCIONES REFRESCADAS CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error refreshing all subscriptions', error);
-        this.snackBar.open(`Error al refrescar todas las suscripciones`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR TODAS LAS SUSCRIPCIONES');
         return of({ success: false, message: error.message });
       })
     );
@@ -539,12 +626,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Suscripción remota refrescada correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('SUSCRIPCIÓN REMOTA REFRESCADA CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error refreshing remote subscription', error);
-        this.snackBar.open(`Error al refrescar suscripción remota`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR SUSCRIPCIÓN REMOTA');
         return of({ success: false, message: error.message });
       })
     );
@@ -561,12 +648,12 @@ export class LogicalReplicationService {
     ).pipe(
       tap(status => {
         if (status && status.success) {
-          this.snackBar.open(`Todas las suscripciones remotas refrescadas correctamente`, 'Cerrar', { duration: 3000 });
+          this.notificacionSnackBar.openSucess('TODAS LAS SUSCRIPCIONES REMOTAS REFRESCADAS CORRECTAMENTE');
         }
       }),
       catchError(error => {
         console.error('Error refreshing all remote subscriptions', error);
-        this.snackBar.open(`Error al refrescar todas las suscripciones remotas`, 'Cerrar', { duration: 3000 });
+        this.notificacionSnackBar.openAlgoSalioMal('ERROR AL REFRESCAR TODAS LAS SUSCRIPCIONES REMOTAS');
         return of({ success: false, message: error.message });
       })
     );
