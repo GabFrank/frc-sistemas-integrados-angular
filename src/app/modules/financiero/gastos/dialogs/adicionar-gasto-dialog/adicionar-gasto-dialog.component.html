@@ -495,7 +495,13 @@
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef style="width: 12%">Estado</th>
             <td mat-cell *matCellDef="let solicitud">
-              <span [style.color]="solicitud.estado === 'RECHAZADO' ? '#ef5350' : '#66bb6a'">
+              <span [style.color]="
+                solicitud.estado === 'RECHAZADO'
+                  ? '#ef5350'
+                  : solicitud.estado === 'PENDIENTE'
+                    ? '#fbc02d'
+                    : '#66bb6a'
+              ">
                 {{ solicitud.estado }}
               </span>
             </td>
@@ -534,7 +540,7 @@
 
         <div *ngIf="!cargandoSolicitudes && solicitudesProcesadasDataSource.data.length === 0"
           style="padding: 16px; color: #9e9e9e;">
-          No hay solicitudes autorizadas o rechazadas para mostrar.
+          No hay solicitudes pendientes, autorizadas o rechazadas para mostrar.
         </div>
       </div>
     </mat-step>

@@ -935,7 +935,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       undefined,
       0,
       1000,
-      ["AUTORIZADO", "RECHAZADO"]
+      ["PENDIENTE", "AUTORIZADO", "RECHAZADO"]
     )
       .pipe(untilDestroyed(this))
       .subscribe({
