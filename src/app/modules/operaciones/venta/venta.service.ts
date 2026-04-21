@@ -38,6 +38,11 @@ import {
 import { DeliveryInput } from "../delivery/graphql/delivery-input.model";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 import { VentasGenericFilterGQL } from "./graphql/ventasGenericFilter";
+import { ReporteGenericVentasGQL } from "./graphql/reporteGenericVentas";
+import { ReporteService } from "../../reportes/reporte.service";
+import { TabService } from "../../../layouts/tab/tab.service";
+import { Tab } from "../../../layouts/tab/tab.model";
+import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -68,7 +73,10 @@ export class VentaService {
     private ventaItemPorId: VentaItemPorIdGQL,
     private saveVentaDelivery: SaveVentaDeliveryGQL,
     private configService: ConfiguracionService,
-    private ventasGenericFilter: VentasGenericFilterGQL
+    private ventasGenericFilter: VentasGenericFilterGQL,
+    private reporteGenericVentas: ReporteGenericVentasGQL,
+    private reporteService: ReporteService,
+    private tabService: TabService
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -262,6 +270,53 @@ export class VentaService {
       fechaInicio,
       fechaFin
     }, servidor);
+  }
+
+  onReporteGenericVentas(
+    idVenta?: number,
+    idCaja?: number,
+    sucId?: number,
+    formaPago?: number,
+    estado?: string,
+    isDelivery?: boolean,
+    monedaId?: number,
+    conDescuento?: boolean,
+    conAumento?: boolean,
+    conObservacion?: boolean,
+    clienteId?: number,
+    fechaInicio?: string,
+    fechaFin?: string,
+    servidor = true
+  ) {
+    this.genericService
+      .onCustomQuery(
+        this.reporteGenericVentas,
+        {
+          idVenta,
+          idCaja,
+          sucId,
+          formaPago,
+          estado,
+          isDelivery,
+          monedaId,
+          conDescuento,
+          conAumento,
+          conObservacion,
+          clienteId,
+          fechaInicio,
+          fechaFin,
+          usuarioId: this.mainService?.usuarioActual?.id
+        },
+        servidor
+      )
+      .subscribe((res: string) => {
+        if (res != null) {
+          this.reporteService.onAdd('Reporte de Ventas ' + Date.now(), res);
+          this.tabService.addTab(
+            new Tab(ReportesComponent, 'Reportes', null, null)
+          );
+        }
+      });
   }
 
   onGetPorId(id, sucId?, silentLoad?, servidor = true): Observable<Venta> {
