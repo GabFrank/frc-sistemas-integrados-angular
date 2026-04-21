@@ -11,7 +11,7 @@
   "isLocal": true,
   "updateChannel": "dev",
   "printers": {
-    "ticket": "ultron",
+    "ticket": "ultron22",
     "factura": ""
   }
 }

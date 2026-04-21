@@ -89,10 +89,11 @@ export class GastoService {
     }, servidor)
   }
 
-  preGastoFilter(id?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number): Observable<PageInfo<PreGasto>> {
+  preGastoFilter(id?: number, estado?: string, inicio?: string, fin?: string, page?: number, size?: number, estados?: string[]): Observable<PageInfo<PreGasto>> {
     return this.genericService.onCustomQuery(this.filterPreGastosGQL, {
       id,
       estado,
+      estados,
       inicio,
       fin,
       page,

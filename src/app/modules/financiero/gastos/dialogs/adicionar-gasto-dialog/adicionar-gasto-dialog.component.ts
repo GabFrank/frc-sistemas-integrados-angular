@@ -924,19 +924,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     );
     this.cargandoSolicitudes = true;
 
-    forkJoin([
-      this.gastoService.preGastoFilter(undefined, "AUTORIZADO", undefined, undefined, 0, 1000),
-      this.gastoService.preGastoFilter(undefined, "RECHAZADO", undefined, undefined, 0, 1000),
-    ])
+    this.gastoService.preGastoFilter(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      0,
+      1000,
+      ["AUTORIZADO", "RECHAZADO"]
+    )
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: ([autorizados, rechazados]) => {
-          const combinadas = [
-            ...(autorizados?.getContent ?? []),
-            ...(rechazados?.getContent ?? []),
-          ];
-
-          const filtradas = combinadas.filter((s) => {
+        next: (result) => {
+          const filtradas = (result?.getContent ?? []).filter((s) => {
             const sucursalSolicitudId = Number(s?.sucursalCaja?.id ?? s?.sucursalId);
             const coincideSucursal =
               sucursalesPermitidas.size > 0

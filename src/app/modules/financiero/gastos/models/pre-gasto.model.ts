@@ -39,6 +39,13 @@ export class PreGasto {
   montoRetirado: number;
   montoGastado: number;
   saldoDevolver: number;
+  montoPendienteRetiro: number;
+  montoNoRendido: number;
+  porcentajeRendicion: number;
+  desvioVsSolicitado: number;
+  estadoEtiqueta: string;
+  estadoIcono: string;
+  estadoColor: string;
   usuario: Usuario;
   solicitudPagoId: number;
   beneficiarioProveedor: Proveedor;

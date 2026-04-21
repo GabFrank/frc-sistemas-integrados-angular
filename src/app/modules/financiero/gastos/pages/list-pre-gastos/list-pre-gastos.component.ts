@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
@@ -16,7 +16,6 @@ import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
-import { PreGastoStatusMetadataListGQL } from '../../graphql/getPreGastoStatusMetadataList';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 
@@ -27,18 +26,15 @@ import { NotificacionSnackbarService } from '../../../../../notificacion-snackba
   styleUrls: ['./list-pre-gastos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ListPreGastosComponent implements OnInit {
+export class ListPreGastosComponent {
   private gastoService = inject(GastoService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
   private tabService = inject(TabService);
   private mainService = inject(MainService);
   private reporteService = inject(ReporteService);
-  private statusMetadataGQL = inject(PreGastoStatusMetadataListGQL);
   private dialogosService = inject(DialogosService);
   private notificacionService = inject(NotificacionSnackbarService);
-
-  statusMetadata: any[] = [];
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
@@ -88,16 +84,8 @@ export class ListPreGastosComponent implements OnInit {
     tap(() => this.cargandoSubject.next(true)),
     switchMap(([tabIndex, _, pag]) => {
       const estado = this.tabEstados[tabIndex];
-      let inicioStr = null;
-      let finStr = null;
-      if (this.fechaFormGroup.controls.inicio.value) {
-        let date = this.fechaFormGroup.controls.inicio.value;
-        inicioStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T00:00:00`;
-      }
-      if (this.fechaFormGroup.controls.fin.value) {
-        let date = this.fechaFormGroup.controls.fin.value;
-        finStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T23:59:59`;
-      }
+      const inicioStr = this.toDayBoundary(this.fechaFormGroup.controls.inicio.value, false);
+      const finStr = this.toDayBoundary(this.fechaFormGroup.controls.fin.value, true);
 
       return this.gastoService.preGastoFilter(
         this.fechaFormGroup.controls.buscarId.value,
@@ -122,12 +110,6 @@ export class ListPreGastosComponent implements OnInit {
     map(res => res?.getContent || []),
     shareReplay({ bufferSize: 1, refCount: true })
   );
-
-  ngOnInit(): void {
-    this.statusMetadataGQL.fetch({}, { fetchPolicy: 'cache-first' }).subscribe(res => {
-      this.statusMetadata = res.data.data || [];
-    });
-  }
 
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
@@ -215,21 +197,6 @@ export class ListPreGastosComponent implements OnInit {
     });
   }
 
-  private b64toBlob(b64Data: string, contentType = '', sliceSize = 512): Blob {
-    const byteCharacters = atob(b64Data);
-    const byteArrays = [];
-    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      const slice = byteCharacters.slice(offset, offset + sliceSize);
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    return new Blob(byteArrays, { type: contentType });
-  }
-
   irAAgregarPreGasto(): void {
     this.tabService.addTab(new Tab(AdicionarPreGastoComponent, "Nuevo Pre-Gasto", null, ListPreGastosComponent));
   }
@@ -256,23 +223,40 @@ export class ListPreGastosComponent implements OnInit {
     this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 
-  colorEstado(estado: string): string {
-    const meta = this.statusMetadata.find(m => m.estado === estado);
-    return meta?.color || '#9e9e9e';
+  colorEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return '#9e9e9e';
+    }
+    return preGastoOrEstado?.estadoColor || '#9e9e9e';
   }
 
-  iconoEstado(estado: string): string {
-    const meta = this.statusMetadata.find(m => m.estado === estado);
-    return meta?.icono || 'help_outline';
+  iconoEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return 'help_outline';
+    }
+    return preGastoOrEstado?.estadoIcono || 'help_outline';
   }
 
-  etiquetaEstado(estado: string): string {
-    const meta = this.statusMetadata.find(m => m.estado === estado);
-    return meta?.etiqueta || estado;
+  etiquetaEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return preGastoOrEstado;
+    }
+    return preGastoOrEstado?.estadoEtiqueta || preGastoOrEstado?.estado || '-';
   }
 
   private formatDate(d: Date): string {
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  private toDayBoundary(date: Date | null, endOfDay: boolean): string | null {
+    if (!date) return null;
+    const d = new Date(date);
+    if (endOfDay) {
+      d.setHours(23, 59, 59, 0);
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    return this.formatDate(d);
   }
 }

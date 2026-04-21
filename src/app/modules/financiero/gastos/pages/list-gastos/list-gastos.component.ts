@@ -11,7 +11,7 @@ import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/lis
 import { PdvCaja } from '../../../pdv/caja/caja.model';
 import { PageEvent } from '@angular/material/paginator';
 import { combineLatest, BehaviorSubject, Observable } from 'rxjs';
-import { switchMap, tap, map } from 'rxjs/operators';
+import { switchMap, tap, map, shareReplay } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
@@ -70,7 +70,8 @@ export class ListGastosComponent implements OnInit {
     tap(res => {
       if (res) this.totalElements$.next(res.getTotalElements);
     }),
-    map(res => res?.getContent || [])
+    map(res => res?.getContent || []),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   ngOnInit(): void {
