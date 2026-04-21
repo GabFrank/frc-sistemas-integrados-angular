@@ -42,14 +42,26 @@
       Volver
     </button>
 
-    <button mat-raised-button color="warn" (click)="rechazar()" type="button">
+    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="estaEnTramite" type="button">
       <mat-icon>cancel</mat-icon>
       {{ mostrarMotivoRechazo ? 'Confirmar Rechazo' : 'Rechazar' }}
     </button>
 
-    <button mat-raised-button class="boton-autorizar" (click)="autorizar()" *ngIf="!mostrarMotivoRechazo" type="button">
+    <button
+      mat-raised-button
+      class="boton-autorizar"
+      (click)="autorizar()"
+      *ngIf="!mostrarMotivoRechazo"
+      [disabled]="estaEnTramite"
+      type="button"
+    >
       <mat-icon>check_circle</mat-icon>
       Autorizar
+    </button>
+
+    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!estaEnTramite" type="button">
+      <mat-icon>task_alt</mat-icon>
+      Finalizar
     </button>
   </div>
 </div>

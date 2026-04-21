@@ -128,7 +128,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   gastoList: Gasto[] = [];
 
-  /** Si se guardó un gasto desde una solicitud AUTORIZADA, se marca el pre-gasto como COMPLETADO. */
   preGastoIdAlCompletarDespuesDeGasto: number | null = null;
   preGastoSucursalIdAlCompletarDespuesDeGasto: number | null = null;
 
@@ -303,7 +302,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onSearchTipoGasto() {
-    if (!this.selectedResponsable) {
+    if (!this.selectedResponsable || this.tipoGastoControl.disabled) {
       return;
     }
 
@@ -346,8 +345,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.guaraniVueltoControl.disable();
         this.realVueltoControl.disable();
         this.dolarVueltoControl.disable();
-        
-        // Abrir pre-gasto
         this.matDialog.open(SolicitudGastoSimpleDialogComponent, {
           data: {
             tipoGastoId: this.selectedTipoGasto.id,
@@ -379,9 +376,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Persiste la solicitud como pre-gasto (pendiente de autorización) y abre la lista de solicitudes.
-   */
   private guardarSolicitudPreGastoSimple(res: SolicitudGastoSimpleResult): void {
     const personaId = this.selectedResponsable?.persona?.id;
     if (!personaId) {
@@ -569,7 +563,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                   }
                   if (gastoResponse != null && preGastoId != null) {
                     this.gastoService
-                      .preGastoCompletar(preGastoId, preGastoSucursalId ?? undefined)
+                      .preGastoTramitar(preGastoId, preGastoSucursalId ?? undefined)
                       .pipe(untilDestroyed(this))
                       .subscribe({
                         next: () => {
@@ -578,7 +572,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                         },
                         error: () => {
                           this.notificacionService.openWarn(
-                            "El gasto se guardó, pero no se pudo cerrar la solicitud en el servidor."
+                            "El gasto se guardó, pero no se pudo pasar la solicitud a trámite en el servidor."
                           );
                           this.onCancelar();
                         },
@@ -817,9 +811,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.guaraniControl.disable();
         this.realControl.disable();
         this.dolarControl.disable();
-        this.guaraniVueltoControl.disable();
-        this.realVueltoControl.disable();
-        this.dolarVueltoControl.disable();
+        // Desde "Finalizar" el retiro ya viene definido, pero el vuelto debe poder cargarse.
+        this.guaraniVueltoControl.enable();
+        this.realVueltoControl.enable();
+        this.dolarVueltoControl.enable();
 
         this.stepper.selectedIndex = 0;
 

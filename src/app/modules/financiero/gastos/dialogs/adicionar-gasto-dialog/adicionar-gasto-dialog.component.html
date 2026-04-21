@@ -89,7 +89,7 @@
           </mat-form-field>
         </div>
         <div fxFlex>
-          <mat-form-field style="width: 100%" (click)="selectedResponsable && onSearchTipoGasto()">
+          <mat-form-field style="width: 100%" (click)="selectedResponsable && !tipoGastoControl.disabled && onSearchTipoGasto()">
             <mat-label>Tipo</mat-label>
             <input
               #tipoGastoInput

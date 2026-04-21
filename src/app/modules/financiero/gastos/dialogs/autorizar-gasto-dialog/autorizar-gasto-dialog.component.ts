@@ -21,6 +21,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
   preGasto: PreGasto;
   motivoRechazoControl = new FormControl('');
   mostrarMotivoRechazo = false;
+  readonly ESTADO_TRAMITE = 'TRAMITE';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AutorizarGastoData,
@@ -34,7 +35,15 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   ngOnInit(): void { }
 
+  get estaEnTramite(): boolean {
+    return this.preGasto?.estado === this.ESTADO_TRAMITE;
+  }
+
   autorizar(): void {
+    if (this.estaEnTramite) {
+      return;
+    }
+
     const autorizadorId = this.mainService.usuarioActual?.persona?.id || this.preGasto.funcionario?.id;
     if (!autorizadorId) {
       console.error('No se pudo determinar el autorizador');
@@ -50,6 +59,10 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   rechazar(): void {
+    if (this.estaEnTramite) {
+      return;
+    }
+
     if (!this.mostrarMotivoRechazo) {
       this.mostrarMotivoRechazo = true;
       this.motivoRechazoControl.setValidators(Validators.required);
@@ -61,6 +74,19 @@ export class AutorizarGastoDialogComponent implements OnInit {
     if (!this.motivoRechazoControl.valid) return;
 
     this.gastoService.preGastoRechazar(this.preGasto.id, this.motivoRechazoControl.value, this.preGasto.sucursalId)
+      .pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.matDialogRef.close(res);
+        }
+      });
+  }
+
+  finalizar(): void {
+    if (!this.estaEnTramite) {
+      return;
+    }
+
+    this.gastoService.preGastoCompletar(this.preGasto.id, this.preGasto.sucursalId)
       .pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) {
           this.matDialogRef.close(res);
