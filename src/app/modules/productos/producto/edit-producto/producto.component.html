@@ -22,8 +22,10 @@
         >
           <img
             [src]="imagenPrincipal"
+            [frcPrevisualizarImagen]="imagenPrincipal"
+            matTooltip="Ver imagen"
             alt="imagen principal mini"
-            style="width: 100px; height: 100px; object-fit: contain; border-radius: 50%"
+            style="width: 100px; height: 100px; object-fit: contain; border-radius: 50%; cursor: pointer;"
           />
         </div>
       </div>
@@ -43,11 +45,22 @@
         fxLayoutAlign="space-around start"
         style="width: 100%"
       >
+        <div fxFlex style="text-align: start; color: #f57c00">Familia:</div>
+        <div fxFlex style="text-align: right">
+          {{ selectedFamilia?.nombre }}
+        </div>
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
         <div fxFlex style="text-align: start; color: #f57c00">Subfamilia:</div>
         <div fxFlex style="text-align: right">
           {{ selectedSubfamilia?.nombre }}
         </div>
       </div>
+      
       <div
         fxLayout="row"
         fxLayoutAlign="space-around start"
@@ -305,8 +318,16 @@
                   <mat-menu #menu="matMenu">
                     <button
                       mat-menu-item
+                      (click)="onCambiarFamilia()"
+                    >
+                    <mat-icon>autorenew</mat-icon>
+                      Cambiar
+                    </button>
+                    <button
+                      mat-menu-item
                       (click)="onEditFamilia(item, itemIndex)"
                     >
+                    <mat-icon>edit</mat-icon>
                       Editar
                     </button>
                     <button
@@ -314,6 +335,7 @@
                       (click)="onDeleteFamilia(item, itemIndex)"
                       style="color: red"
                     >
+                    <mat-icon>delete</mat-icon>
                       Eliminar
                     </button>
                   </mat-menu>
@@ -420,7 +442,7 @@
       [completed]="selectedSubfamilia?.id != null"
     >
       <form [formGroup]="categoriaControl" style="width: 100%; height: 100%">
-        <ng-template matStepLabel>Familia</ng-template>
+        <ng-template matStepLabel>Subfamilia</ng-template>
         <div
           table
           style="height: 100%; background-color: rgb(70, 70, 70)"
@@ -564,8 +586,16 @@
                   <mat-menu #menu="matMenu">
                     <button
                       mat-menu-item
+                      (click)="onCambiarSubfamilia()"
+                    >
+                    <mat-icon>autorenew</mat-icon>
+                      Cambiar
+                    </button>
+                    <button
+                      mat-menu-item
                       (click)="onEditSubfamilia(item, itemIndex)"
                     >
+                    <mat-icon>edit</mat-icon>
                       Editar
                     </button>
                     <button
@@ -573,6 +603,7 @@
                       (click)="onDeleteSubfamilia(item, itemIndex)"
                       style="color: red"
                     >
+                    <mat-icon>delete</mat-icon>
                       Eliminar
                     </button>
                   </mat-menu>
