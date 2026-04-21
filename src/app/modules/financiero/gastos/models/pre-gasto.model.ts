@@ -31,6 +31,7 @@ export class PreGasto {
   moneda: Moneda;
   montoSolicitado: number;
   sucursalCaja: Sucursal;
+  cajaId: number;
   estado: string;
   qrToken: string;
   autorizadoPor: Persona;
@@ -75,6 +76,7 @@ export class PreGastoInput {
   monedaId: number;
   montoSolicitado: number;
   sucursalCajaId: number;
+  cajaId: number;
   estado: string;
   autorizadoPorId: number;
   delegadoAId: number;

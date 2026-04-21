@@ -28,6 +28,7 @@ import { PersonaSearchPageGQL } from '../../../../personas/persona/graphql/perso
 import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { CurrencyMaskInputMode } from 'ngx-currency';
 import { FilterTipoGastosGQL } from '../../graphql/filterTipoGastos';
+import { CajaService } from '../../../pdv/caja/caja.service';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -51,6 +52,7 @@ export class AdicionarPreGastoComponent implements OnInit {
   private personaSearchPageGQL = inject(PersonaSearchPageGQL);
   private proveedorSearchByPersonaPageGQL = inject(ProveedoresSearchByPersonaPageGQL);
   private filterTipoGastosGQL = inject(FilterTipoGastosGQL);
+  private cajaService = inject(CajaService);
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = this.currencyMask.currencyOptionsGuarani;
@@ -264,6 +266,7 @@ export class AdicionarPreGastoComponent implements OnInit {
     input.descripcion = this.descripcionControl.value;
     // monedaId y montoSolicitado se calculan en el backend desde finanzas
     input.sucursalCajaId = this.sucursalControl.value;
+    input.cajaId = this.cajaService.selectedCaja?.id;
     if (this.data && this.data.enteId) {
       input.enteId = this.data.enteId;
     } else if (this.enteSeleccionado) {
@@ -334,7 +337,15 @@ export class AdicionarPreGastoComponent implements OnInit {
   }
 
   cargarUltimasSolicitudes(): void {
-    this.gastoService.preGastoFilter(undefined, undefined, undefined, undefined, this.paginaActual, this.tamanoPagina)
+    this.gastoService.preGastoFilter(
+      undefined,
+      this.cajaService.selectedCaja?.id,
+      undefined,
+      undefined,
+      undefined,
+      this.paginaActual,
+      this.tamanoPagina
+    )
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {

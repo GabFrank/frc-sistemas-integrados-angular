@@ -226,7 +226,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
     this.filtroSolicitudIdControl.valueChanges
       .pipe(untilDestroyed(this))
-      .subscribe(() => this.aplicarFiltrosSolicitudesProcesadas());
+      .subscribe(() => this.cargarSolicitudesProcesadas());
 
     this.filtroSolicitudTipoControl.valueChanges
       .pipe(untilDestroyed(this))
@@ -407,6 +407,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     input.descripcion = res.descripcion;
     input.funcionarioId = personaId;
     input.sucursalCajaId = sucursalCajaId;
+    input.cajaId = this.selectedCaja?.id;
     input.beneficiarioProveedorId = res.proveedorId;
     input.beneficiarioPersonaId = null;
     input.nivelUrgencia = "NORMAL";
@@ -913,6 +914,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   private cargarSolicitudesProcesadas(): void {
+    const filtroIdTexto = (this.filtroSolicitudIdControl.value ?? "").toString().trim();
+    const filtroIdNumero = /^\d+$/.test(filtroIdTexto) ? Number(filtroIdTexto) : undefined;
     const sucursalesPermitidas = new Set<number>(
       [
         this.selectedCaja?.sucursalId,
@@ -925,7 +928,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.cargandoSolicitudes = true;
 
     this.gastoService.preGastoFilter(
-      undefined,
+      filtroIdNumero,
+      filtroIdNumero ? undefined : this.selectedCaja?.id,
       undefined,
       undefined,
       undefined,

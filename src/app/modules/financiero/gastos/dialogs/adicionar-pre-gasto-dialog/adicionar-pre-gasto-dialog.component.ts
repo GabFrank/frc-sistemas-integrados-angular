@@ -22,6 +22,7 @@ import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
 import { take } from 'rxjs/operators';
 import { Ente } from '../../../../activos/ente/models/ente.model';
 import { FilterTipoGastosGQL } from '../../graphql/filterTipoGastos';
+import { CajaService } from '../../../pdv/caja/caja.service';
 
 export interface SolicitudGastoData {
   enteId?: number;
@@ -112,6 +113,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     private filterTipoGastosGQL: FilterTipoGastosGQL,
     private enteService: EnteService,
     private enteFinancialSummaryGQL: EnteFinancialSummaryGQL,
+    private cajaService: CajaService,
     private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: SolicitudGastoData
   ) {
@@ -234,6 +236,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     input.monedaId = this.monedaControl.value;
     input.montoSolicitado = this.montoControl.value;
     input.sucursalCajaId = this.sucursalControl.value;
+    input.cajaId = this.cajaService.selectedCaja?.id;
     input.enteId = this.data?.enteId || this.enteSeleccionado?.id;
     input.funcionarioId = this.solicitanteControl.value?.persona?.id;
 

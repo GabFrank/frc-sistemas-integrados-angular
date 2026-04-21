@@ -340,8 +340,8 @@ export const enviarPreGastoATesoreriaMutation = gql`
 `;
 
 export const filterPreGastosQuery = gql`
-  query ($id: ID, $estado: String, $estados: [String], $inicio: String, $fin: String, $page: Int, $size: Int) {
-    data: filterPreGastos(id: $id, estado: $estado, estados: $estados, inicio: $inicio, fin: $fin, page: $page, size: $size) {
+  query ($id: ID, $cajaId: ID, $estado: String, $estados: [String], $inicio: String, $fin: String, $page: Int, $size: Int) {
+    data: filterPreGastos(id: $id, cajaId: $cajaId, estado: $estado, estados: $estados, inicio: $inicio, fin: $fin, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -367,6 +367,7 @@ export const filterPreGastosQuery = gql`
           simbolo
         }
         montoSolicitado
+        cajaId
         sucursalCaja {
           id
           nombre

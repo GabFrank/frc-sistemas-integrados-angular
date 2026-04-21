@@ -18,6 +18,7 @@ import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { CajaService } from '../../../pdv/caja/caja.service';
 
 @UntilDestroy()
 @Component({
@@ -35,6 +36,7 @@ export class ListPreGastosComponent {
   private reporteService = inject(ReporteService);
   private dialogosService = inject(DialogosService);
   private notificacionService = inject(NotificacionSnackbarService);
+  private cajaService = inject(CajaService);
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
@@ -89,6 +91,7 @@ export class ListPreGastosComponent {
 
       return this.gastoService.preGastoFilter(
         this.fechaFormGroup.controls.buscarId.value,
+        undefined,
         estado,
         inicioStr,
         finStr,
