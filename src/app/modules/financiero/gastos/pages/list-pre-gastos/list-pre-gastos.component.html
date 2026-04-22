@@ -54,12 +54,17 @@
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>
           <td mat-cell *matCellDef="let item" style="font-weight: 500;">
-            {{ item.montoSolicitado | number:'1.0-0' }}
+            <ng-container *ngIf="item.finanzas?.length; else montoPrincipal">
+              {{ resumenMontos(item) }}
+            </ng-container>
+            <ng-template #montoPrincipal>
+              {{ item.montoSolicitado | number:'1.0-0' }}
+            </ng-template>
           </td>
         </ng-container>
         <ng-container matColumnDef="moneda">
           <th mat-header-cell *matHeaderCellDef>Mon.</th>
-          <td mat-cell *matCellDef="let item">{{ item.moneda?.simbolo || item.moneda?.denominacion }}</td>
+          <td mat-cell *matCellDef="let item">{{ resumenMonedas(item) }}</td>
         </ng-container>
         <ng-container matColumnDef="sucursal">
           <th mat-header-cell *matHeaderCellDef>Sucursal</th>
@@ -133,11 +138,56 @@
           <div fxLayout="row" fxLayoutAlign="space-between start"
             style="font-weight: bold; font-size: 1.1em; color: #4CAF50; margin-top: 8px;">
             <span>Monto Solicitado:</span>
-            <span>{{ seleccionado.montoSolicitado | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+            <span *ngIf="seleccionado.finanzas?.length; else montoSeleccionadoPrincipal">
+              <ng-container *ngFor="let fin of seleccionado.finanzas; let last = last">
+                {{ fin.monto | number:'1.0-2' }} {{ fin.moneda?.simbolo || fin.moneda?.denominacion }}<span *ngIf="!last"> + </span>
+              </ng-container>
+            </span>
+            <ng-template #montoSeleccionadoPrincipal>
+              <span>{{ seleccionado.montoSolicitado | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+            </ng-template>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Estado:</span>
             <span [style.color]="colorEstado(seleccionado)">{{ etiquetaEstado(seleccionado) }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Rendición:</span>
+            <span [style.color]="seleccionado.estadoRendicion === 'RENDIDO_COMPLETO' ? '#66bb6a' : (seleccionado.estadoRendicion === 'RENDIDO_PARCIAL' ? '#ffa726' : '#ef5350')">
+              {{
+                seleccionado.estadoRendicion === 'RENDIDO_COMPLETO'
+                  ? 'Completo'
+                  : (seleccionado.estadoRendicion === 'RENDIDO_PARCIAL' ? 'Parcial' : 'No rindió')
+              }}
+            </span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">% rendido:</span>
+            <span>{{ (seleccionado.porcentajeRendicion || 0) | number:'1.0-2' }}%</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Monto no rendido:</span>
+            <span [style.color]="'#ffb74d'">
+              {{ (seleccionado.montoNoRendido || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}
+            </span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Fecha rendición:</span>
+            <span>{{ seleccionado.fechaRendicion ? (seleccionado.fechaRendicion | date:'short') : '-' }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Tuvo vuelto:</span>
+            <span>{{ (seleccionado.saldoDevolver || 0) > 0 ? 'Sí' : 'No' }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Monto vuelto:</span>
+            <span>{{ (seleccionado.saldoDevolver || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">¿Rindió?</span>
+            <span>
+              {{ seleccionado.rindioGasto ? 'Sí' : 'No' }}
+            </span>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
-import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { startWith } from 'rxjs/operators';
@@ -12,6 +12,7 @@ import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedo
 export interface SolicitudGastoSimpleData {
   tipoGastoId: number;
   tipoGastoDescripcion: string;
+  requiereAutorizacion?: boolean;
   solicitanteId: number;
   solicitanteNombre: string;
 }
@@ -21,7 +22,6 @@ export interface SolicitudGastoSimpleMontoLinea {
   monto: number;
 }
 
-/** Resultado al confirmar el formulario (antes: "Aceptar", ahora "Solicitar"). */
 export interface SolicitudGastoSimpleResult {
   tipoGastoId: number;
   solicitanteId: number;
@@ -67,7 +67,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     if (this.data) {
       this.tipoGastoDescripcionControl.setValue(this.data.tipoGastoDescripcion);
       this.solicitanteNombreControl.setValue(this.data.solicitanteNombre);
-    }
+    }  
 
     if (this.mainService.sucursalActual) {
       this.sucursalRetiroControl.setValue(this.mainService.sucursalActual.nombre);
@@ -123,10 +123,12 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       .valueChanges.pipe(startWith(grupo.get('monedaId')!.value), untilDestroyed(this))
       .subscribe(() => {
         this.aplicarValidadoresMontoPorMoneda(grupo);
+        this.actualizarErroresMonedasDuplicadas();
         this.cdr.markForCheck();
       });
 
     this.filasMonto.push(grupo);
+    this.actualizarErroresMonedasDuplicadas();
     if (markForCheck) {
       this.cdr.markForCheck();
     }
@@ -137,13 +139,27 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       return;
     }
     this.filasMonto.removeAt(index);
+    this.actualizarErroresMonedasDuplicadas();
     this.cdr.markForCheck();
+  }
+
+  esMonedaOcupada(monedaId: number | null | undefined, filaIndex: number): boolean {
+    if (monedaId == null) {
+      return false;
+    }
+    return this.filasMonto.controls.some((control, index) => {
+      if (index === filaIndex) {
+        return false;
+      }
+      return control.get('monedaId')?.value === monedaId;
+    });
   }
 
   abrirBuscadorProveedor(): void {
     const data = new SearchListtDialogData();
     data.titulo = 'Seleccionar Proveedor';
     data.query = this.proveedoresSearchByPersonaPageGQL;
+    data.isServidor = this.data?.requiereAutorizacion === true;
     data.paginator = true;
     data.searchFieldName = 'texto';
     data.tableData = [
@@ -201,5 +217,44 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
            this.vencimientoControl.valid &&
            this.filasMonto.valid &&
            this.proveedorIdControl.valid;
+  }
+
+  trackByFilaMonto(index: number, fila: FormGroup): FormGroup {
+    return fila;
+  }
+
+  private actualizarErroresMonedasDuplicadas(): void {
+    const cantidadPorMoneda = new Map<number, number>();
+
+    this.filasMonto.controls.forEach(control => {
+      const monedaId = control.get('monedaId')?.value as number | null | undefined;
+      if (monedaId != null) {
+        cantidadPorMoneda.set(monedaId, (cantidadPorMoneda.get(monedaId) ?? 0) + 1);
+      }
+    });
+
+    this.filasMonto.controls.forEach(control => {
+      const monedaIdControl = control.get('monedaId');
+      if (!monedaIdControl) {
+        return;
+      }
+      const monedaId = monedaIdControl.value as number | null | undefined;
+      const duplicada = monedaId != null && (cantidadPorMoneda.get(monedaId) ?? 0) > 1;
+      this.setControlError(monedaIdControl, 'monedaDuplicada', duplicada);
+    });
+  }
+
+  private setControlError(control: AbstractControl, key: string, enabled: boolean): void {
+    const erroresActuales = control.errors ?? {};
+    if (enabled) {
+      if (!erroresActuales[key]) {
+        control.setErrors({ ...erroresActuales, [key]: true });
+      }
+      return;
+    }
+    if (erroresActuales[key]) {
+      const { [key]: _, ...resto } = erroresActuales;
+      control.setErrors(Object.keys(resto).length > 0 ? resto : null);
+    }
   }
 }

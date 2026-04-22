@@ -41,15 +41,15 @@ export class ListPreGastosComponent {
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
 
-  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'RECHAZADO', null];
-  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Rechazados', 'Todos'];
+  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'RECHAZADO', 'COMPLETADO', null];
+  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Rechazados', 'Completados', 'Todos'];
 
   columnasVisibles = [
     'id', 'funcionario', 'tipoGasto', 'descripcion',
     'monto', 'moneda', 'sucursal', 'estado', 'fecha', 'acciones'
   ];
 
-  private tabActivaSubject = new BehaviorSubject<number>(4); // Todos por defecto
+  private tabActivaSubject = new BehaviorSubject<number>(6); // Todos por defecto
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
   private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
@@ -245,6 +245,32 @@ export class ListPreGastosComponent {
       return preGastoOrEstado;
     }
     return preGastoOrEstado?.estadoEtiqueta || preGastoOrEstado?.estado || '-';
+  }
+
+  resumenMontos(preGasto: PreGasto): string {
+    const finanzas = preGasto?.finanzas || [];
+    if (finanzas.length === 0) {
+      return preGasto?.montoSolicitado != null ? `${preGasto.montoSolicitado}` : '0';
+    }
+    return finanzas
+      .filter(f => f?.monto != null)
+      .map(f => `${f.monto}`)
+      .join(' + ');
+  }
+
+  resumenMonedas(preGasto: PreGasto): string {
+    const finanzas = preGasto?.finanzas || [];
+    if (finanzas.length === 0) {
+      return preGasto?.moneda?.simbolo || preGasto?.moneda?.denominacion || '-';
+    }
+    const etiquetas = Array.from(
+      new Set(
+        finanzas
+          .map(f => f?.moneda?.simbolo || f?.moneda?.denominacion)
+          .filter(v => !!v)
+      )
+    );
+    return etiquetas.join(' / ');
   }
 
   private formatDate(d: Date): string {

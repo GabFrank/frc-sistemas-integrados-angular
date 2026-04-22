@@ -6,6 +6,15 @@ import { PreGasto } from '../../models/pre-gasto.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../../main.service';
 
+interface ResumenMontoPorMoneda {
+  etiquetaMoneda: string;
+  simboloMoneda: string;
+  solicitado: number;
+  retirado: number;
+  rendido: number;
+  vuelto: number;
+}
+
 export class AutorizarGastoData {
   preGasto: PreGasto;
 }
@@ -20,8 +29,10 @@ export class AutorizarGastoData {
 export class AutorizarGastoDialogComponent implements OnInit {
   preGasto: PreGasto;
   motivoRechazoControl = new FormControl('');
+  montoRendidoControl = new FormControl<number | null>(null, { validators: [Validators.required, Validators.min(0)] });
   mostrarMotivoRechazo = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
+  resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AutorizarGastoData,
@@ -33,7 +44,17 @@ export class AutorizarGastoDialogComponent implements OnInit {
     this.preGasto = data.preGasto;
   }
 
-  ngOnInit(): void { }
+  ngOnInit(): void {
+    this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
+    if (this.estaEnTramite) {
+      const montoRetirado = Number(this.preGasto?.montoRetirado ?? 0);
+      const montoGastado = Number(this.preGasto?.montoGastado ?? 0);
+      const montoInicial = montoGastado > 0 ? montoGastado : montoRetirado;
+      this.montoRendidoControl.setValue(montoInicial > 0 ? montoInicial : 0);
+      this.montoRendidoControl.addValidators(Validators.max(montoRetirado > 0 ? montoRetirado : Number.MAX_SAFE_INTEGER));
+      this.montoRendidoControl.updateValueAndValidity({ emitEvent: false });
+    }
+  }
 
   get estaEnTramite(): boolean {
     return this.preGasto?.estado === this.ESTADO_TRAMITE;
@@ -85,8 +106,18 @@ export class AutorizarGastoDialogComponent implements OnInit {
     if (!this.estaEnTramite) {
       return;
     }
+    if (!this.montoRendidoControl.valid) {
+      this.montoRendidoControl.markAsTouched();
+      return;
+    }
+    const montoRendido = Number(this.montoRendidoControl.value ?? 0);
 
-    this.gastoService.preGastoCompletar(this.preGasto.id, this.preGasto.sucursalId)
+    this.gastoService.preGastoCompletar(
+      this.preGasto.id,
+      this.preGasto.sucursalId,
+      montoRendido > 0,
+      montoRendido
+    )
       .pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) {
           this.matDialogRef.close(res);
@@ -96,5 +127,82 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   cancelar(): void {
     this.matDialogRef.close();
+  }
+
+  formatMonto(value: number | null | undefined): string {
+    const monto = Number(value ?? 0);
+    return monto.toLocaleString('es-PY', {
+      minimumFractionDigits: monto % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  private buildResumenMontosPorMoneda(): ResumenMontoPorMoneda[] {
+    const finanzas = this.preGasto?.finanzas ?? [];
+    if (finanzas.length === 0) {
+      return [{
+        etiquetaMoneda: this.preGasto?.moneda?.denominacion ?? 'Moneda',
+        simboloMoneda: this.preGasto?.moneda?.simbolo ?? '',
+        solicitado: Number(this.preGasto?.montoSolicitado ?? 0),
+        retirado: Number(this.preGasto?.montoRetirado ?? 0),
+        rendido: Number(this.preGasto?.montoGastado ?? 0),
+        vuelto: Number(this.preGasto?.saldoDevolver ?? 0),
+      }];
+    }
+
+    return finanzas.map((fin) => {
+      const simbolo = fin?.moneda?.simbolo ?? '';
+      const etiqueta = fin?.moneda?.denominacion ?? 'Moneda';
+      const solicitado = Number(fin?.monto ?? 0);
+      const retirado = this.valorRetiradoPorMoneda(simbolo, etiqueta);
+      const vuelto = this.valorVueltoPorMoneda(simbolo, etiqueta);
+      const rendido = Math.max(retirado - vuelto, 0);
+      return {
+        etiquetaMoneda: etiqueta,
+        simboloMoneda: simbolo,
+        solicitado,
+        retirado,
+        rendido,
+        vuelto,
+      };
+    });
+  }
+
+  private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {
+    const normalized = (simbolo ?? '').trim().toUpperCase();
+    const normalizedDen = (denominacion ?? '').trim().toUpperCase();
+    const gasto = this.preGasto?.gasto;
+    if (!gasto) {
+      return 0;
+    }
+    if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) {
+      return Number(gasto.retiroGs ?? 0);
+    }
+    if (normalized.includes('R$') || normalized.includes('RS') || normalizedDen.includes('REAL')) {
+      return Number(gasto.retiroRs ?? 0);
+    }
+    if (normalized.includes('USD') || normalized.includes('US$') || normalized === '$' || normalizedDen.includes('DOLAR')) {
+      return Number(gasto.retiroDs ?? 0);
+    }
+    return 0;
+  }
+
+  private valorVueltoPorMoneda(simbolo: string, denominacion: string): number {
+    const normalized = (simbolo ?? '').trim().toUpperCase();
+    const normalizedDen = (denominacion ?? '').trim().toUpperCase();
+    const gasto = this.preGasto?.gasto;
+    if (!gasto) {
+      return 0;
+    }
+    if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) {
+      return Number(gasto.vueltoGs ?? 0);
+    }
+    if (normalized.includes('R$') || normalized.includes('RS') || normalizedDen.includes('REAL')) {
+      return Number(gasto.vueltoRs ?? 0);
+    }
+    if (normalized.includes('USD') || normalized.includes('US$') || normalized === '$' || normalizedDen.includes('DOLAR')) {
+      return Number(gasto.vueltoDs ?? 0);
+    }
+    return 0;
   }
 }

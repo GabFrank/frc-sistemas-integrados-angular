@@ -3,6 +3,7 @@ import { Funcionario } from "../../../personas/funcionarios/funcionario.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { PdvCaja } from "../../pdv/caja/caja.model";
 import { GastoDetalle, GastoDetalleInput } from "./gasto-detalle.model";
+import { PreGasto } from "./pre-gasto.model";
 import { TipoGasto } from "./tipo-gasto.model";
 
 
@@ -27,6 +28,9 @@ export class Gasto {
     vueltoDs: number;
     sucursalVuelto: Sucursal;
     sucursal: Sucursal
+    preGasto: PreGasto;
+    preGastoId: number;
+    preGastoSucursalId: number;
 
     toInput(): GastoInput {
         let input = new GastoInput;
@@ -47,6 +51,8 @@ export class Gasto {
         input.activo = this.activo;
         input.finalizado = this.finalizado;
         input.sucursalId = this.sucursalId;
+        input.preGastoId = this.preGasto?.id ?? this.preGastoId;
+        input.preGastoSucursalId = this.preGasto?.sucursalId ?? this.preGastoSucursalId;
         return input;
     }
 
@@ -77,4 +83,6 @@ export class GastoInput {
     vueltoDs: number;
     activo: boolean;
     finalizado: boolean;
+    preGastoId: number;
+    preGastoSucursalId: number;
 }

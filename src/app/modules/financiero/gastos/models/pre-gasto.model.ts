@@ -22,6 +22,15 @@ export class PreGastoDetalleFinanzas {
   creadoEn: Date;
 }
 
+export class PreGastoGastoRendicion {
+  retiroGs: number;
+  retiroRs: number;
+  retiroDs: number;
+  vueltoGs: number;
+  vueltoRs: number;
+  vueltoDs: number;
+}
+
 export class PreGasto {
   id: number;
   sucursalId: number;
@@ -54,7 +63,11 @@ export class PreGasto {
   fechaVencimiento: Date;
   nivelUrgencia: string;
   observaciones: string;
+  rindioGasto: boolean;
+  estadoRendicion: string;
+  fechaRendicion: Date;
   finanzas: PreGastoDetalleFinanzas[];
+  gasto: PreGastoGastoRendicion;
   creadoEn: Date;
 }
 

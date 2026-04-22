@@ -23,11 +23,23 @@
     </div>
   </div>
 
-  <div class="monto-destacado">
+  <div class="monto-destacado" *ngIf="resumenMontosPorMoneda.length === 1">
     <span class="monto-etiqueta">MONTO SOLICITADO</span>
     <span class="monto-cantidad">
-      {{ preGasto.moneda?.simbolo }} {{ preGasto.montoSolicitado | number:'1.0-0' }}
+      {{ resumenMontosPorMoneda[0].simboloMoneda }} {{ formatMonto(resumenMontosPorMoneda[0].solicitado) }}
     </span>
+  </div>
+
+  <div class="resumen-solicitud" *ngIf="resumenMontosPorMoneda.length > 0">
+    <div class="resumen-campo" *ngFor="let m of resumenMontosPorMoneda">
+      <span class="resumen-label">{{ m.etiquetaMoneda }} ({{ m.simboloMoneda || '-' }})</span>
+      <span class="resumen-valor">
+        Solicitado: {{ m.simboloMoneda }} {{ formatMonto(m.solicitado) }} |
+        Retirado: {{ m.simboloMoneda }} {{ formatMonto(m.retirado) }} |
+        Rendido: {{ m.simboloMoneda }} {{ formatMonto(m.rendido) }} |
+        Vuelto: {{ m.simboloMoneda }} {{ formatMonto(m.vuelto) }}
+      </span>
+    </div>
   </div>
   <div *ngIf="mostrarMotivoRechazo" class="rechazo-seccion">
     <mat-form-field appearance="outline" style="width: 100%;">
@@ -37,6 +49,25 @@
       <mat-icon matSuffix color="warn">warning</mat-icon>
     </mat-form-field>
   </div>
+
+  <div class="rendicion-seccion" *ngIf="estaEnTramite">
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Monto rendido real</mat-label>
+      <input matInput type="number" min="0" [formControl]="montoRendidoControl" />
+      <span matSuffix>{{ preGasto.moneda?.simbolo }}</span>
+      <mat-hint>Ingrese el monto que realmente rindió con comprobantes.</mat-hint>
+      <mat-error *ngIf="montoRendidoControl.hasError('required')">
+        Debe ingresar el monto rendido.
+      </mat-error>
+      <mat-error *ngIf="montoRendidoControl.hasError('min')">
+        El monto no puede ser negativo.
+      </mat-error>
+      <mat-error *ngIf="montoRendidoControl.hasError('max')">
+        El monto rendido no puede superar el monto retirado.
+      </mat-error>
+    </mat-form-field>
+  </div>
+
   <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
     <button mat-stroked-button (click)="cancelar()" type="button">
       Volver

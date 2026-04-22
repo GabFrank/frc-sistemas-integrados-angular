@@ -42,7 +42,7 @@ import { CajaService } from "../../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
 import { TipoGasto } from "../../models/tipo-gasto.model";
 import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { FilterTipoGastosGQL } from "../../graphql/filterTipoGastos";
+import { TipoGastoSearchGQL } from "../../graphql/tipoGastosSearch";
 import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData, SolicitudGastoSimpleResult } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 @UntilDestroy({ checkProperties: true })
@@ -144,7 +144,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private notificationHttpService: NotificationHttpService,
     private matDialog: MatDialog,
-    private filterTipoGastosGQL: FilterTipoGastosGQL
+    private tipoGastoSearchGQL: TipoGastoSearchGQL
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -308,10 +308,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
     const data = new SearchListtDialogData();
     data.titulo = 'Seleccionar tipo de gasto';
-    data.query = this.filterTipoGastosGQL;
+    data.query = this.tipoGastoSearchGQL;
+    data.isServidor = false;
     data.searchFieldName = 'texto';
     data.inicialSearch = true;
-    data.paginator = true;
+    data.paginator = false;
     data.tableData = [
       { id: 'id', nombre: 'ID', width: '70px' },
       { id: 'descripcion', nombre: 'Descripción', width: 'auto' },
@@ -349,6 +350,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           data: {
             tipoGastoId: this.selectedTipoGasto.id,
             tipoGastoDescripcion: this.selectedTipoGasto.descripcion,
+            requiereAutorizacion: this.selectedTipoGasto?.autorizacion === true,
             solicitanteId: this.selectedResponsable?.id,
             solicitanteNombre: this.selectedResponsable?.persona?.nombre
           } as SolicitudGastoSimpleData,
@@ -535,13 +537,18 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               } else {
                 gasto.finalizado = false;
               }
+              const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
+              const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
+              if (preGastoId != null) {
+                gasto.preGastoId = preGastoId;
+                gasto.preGastoSucursalId =
+                  preGastoSucursalId ?? this.mainService.sucursalActual?.id;
+              }
               this.gastoService
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
                 .subscribe((gastoResponse) => {
                   this.cargandoDialog.closeDialog();
-                  const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
-                  const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
                     if (this.mainService.usuarioActual?.persona?.id) {
@@ -555,9 +562,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                       ).subscribe();
                     }
 
-                    this.gastoService.onSave(gasto, true).subscribe(res => {
-                      this.cargandoDialog.closeDialog();
-                    });
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
@@ -742,10 +746,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     }
     return true;
   }
-
-  /**
-   * Desde una fila AUTORIZADO: abre el panel Información para finalizar el gasto.
-   */
   onFinalizarSolicitudAutorizada(solicitud: PreGasto, ev?: Event): void {
     if (ev) {
       ev.stopPropagation();
@@ -798,9 +798,10 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           { emitEvent: false }
         );
         this.observacionControl.setValue(solicitud.descripcion ?? "");
-        this.guaraniControl.setValue(solicitud.moneda?.simbolo === "Gs." ? solicitud.montoSolicitado : 0);
-        this.realControl.setValue(solicitud.moneda?.simbolo === "R$" ? solicitud.montoSolicitado : 0);
-        this.dolarControl.setValue(solicitud.moneda?.simbolo === "USD" ? solicitud.montoSolicitado : 0);
+        const montosSolicitud = this.obtenerMontosSolicitudPorMoneda(solicitud);
+        this.guaraniControl.setValue(montosSolicitud.gs);
+        this.realControl.setValue(montosSolicitud.rs);
+        this.dolarControl.setValue(montosSolicitud.ds);
         this.guaraniVueltoControl.setValue(0);
         this.realVueltoControl.setValue(0);
         this.dolarVueltoControl.setValue(0);
@@ -812,7 +813,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.guaraniControl.disable();
         this.realControl.disable();
         this.dolarControl.disable();
-        // Desde "Finalizar" el retiro ya viene definido, pero el vuelto debe poder cargarse.
         this.guaraniVueltoControl.enable();
         this.realVueltoControl.enable();
         this.dolarVueltoControl.enable();
@@ -836,6 +836,45 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       nombre: nombre ?? "-",
     } as any;
     return f;
+  }
+
+  private obtenerMontosSolicitudPorMoneda(solicitud: PreGasto): { gs: number; rs: number; ds: number } {
+    const montos = { gs: 0, rs: 0, ds: 0 };
+    const finanzas = solicitud?.finanzas ?? [];
+
+    if (finanzas.length > 0) {
+      finanzas.forEach((fin) => {
+        const monto = Number(fin?.monto ?? 0);
+        const simbolo = (fin?.moneda?.simbolo ?? "").trim().toUpperCase();
+        const denominacion = (fin?.moneda?.denominacion ?? "").trim().toUpperCase();
+
+        if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
+          montos.gs += monto;
+          return;
+        }
+        if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
+          montos.rs += monto;
+          return;
+        }
+        if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
+          montos.ds += monto;
+        }
+      });
+
+      return montos;
+    }
+
+    const montoSolicitado = Number(solicitud?.montoSolicitado ?? 0);
+    const simbolo = (solicitud?.moneda?.simbolo ?? "").trim().toUpperCase();
+    const denominacion = (solicitud?.moneda?.denominacion ?? "").trim().toUpperCase();
+    if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
+      montos.gs = montoSolicitado;
+    } else if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
+      montos.rs = montoSolicitado;
+    } else if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
+      montos.ds = montoSolicitado;
+    }
+    return montos;
   }
 
   goTo(text) {

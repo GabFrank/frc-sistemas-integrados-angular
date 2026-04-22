@@ -50,6 +50,10 @@ export const saveGasto = gql`
         id
         nombre
       }
+      preGasto {
+        id
+        sucursalId
+      }
     }
   }
 `;
@@ -99,6 +103,10 @@ export const saveVueltoGasto = gql`
         id
         nombre
       }
+      preGasto {
+        id
+        sucursalId
+      }
     }
   }
 `;
@@ -147,6 +155,10 @@ export const gastosPorCajaIdQuery = gql`
       sucursalVuelto {
         id
         nombre
+      }
+      preGasto {
+        id
+        sucursalId
       }
     }
   }
@@ -313,11 +325,12 @@ export const tramitarPreGastoMutation = gql`
 `;
 
 export const completarPreGastoMutation = gql`
-  mutation completarPreGasto($id: ID!, $sucId: ID) {
-    data: completarPreGasto(id: $id, sucId: $sucId) {
+  mutation completarPreGasto($id: ID!, $sucId: ID, $rindioGasto: Boolean, $montoGastado: Float) {
+    data: completarPreGasto(id: $id, sucId: $sucId, rindioGasto: $rindioGasto, montoGastado: $montoGastado) {
       id
       sucursalId
       estado
+      rindioGasto
     }
   }
 `;
@@ -390,6 +403,26 @@ export const filterPreGastosQuery = gql`
         estadoIcono
         estadoColor
         solicitudPagoId
+        rindioGasto
+        estadoRendicion
+        fechaRendicion
+        finanzas {
+          id
+          monto
+          moneda {
+            id
+            denominacion
+            simbolo
+          }
+        }
+        gasto {
+          retiroGs
+          retiroRs
+          retiroDs
+          vueltoGs
+          vueltoRs
+          vueltoDs
+        }
         creadoEn
       }
     }

@@ -46,17 +46,24 @@
       </div>
 
       <!-- Filas Moneda / Monto (múltiples) -->
-      <ng-container *ngFor="let fila of filasMonto.controls; let i = index">
+      <ng-container *ngFor="let fila of filasMonto.controls; let i = index; trackBy: trackByFilaMonto">
         <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start" [formGroup]="$any(fila)">
           <mat-form-field fxFlex="38%">
             <mat-label>Moneda</mat-label>
-            <mat-select formControlName="monedaId" required>
-              <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+            <mat-select formControlName="monedaId" [attr.name]="'moneda-' + i" required>
+              <mat-option
+                *ngFor="let moneda of listaMonedas"
+                [value]="moneda.id"
+                [disabled]="esMonedaOcupada(moneda.id, i)"
+              >
                 {{ moneda.denominacion }} ({{ moneda.simbolo }})
               </mat-option>
             </mat-select>
             <mat-error *ngIf="fila.get('monedaId')?.hasError('required')">
               La moneda es requerida
+            </mat-error>
+            <mat-error *ngIf="fila.get('monedaId')?.hasError('monedaDuplicada')">
+              Esta moneda ya fue seleccionada en otra línea
             </mat-error>
           </mat-form-field>
 
@@ -65,6 +72,7 @@
             <input
               matInput
               currencyMask
+              [attr.name]="'monto-' + i"
               [options]="currencyMaskOptionsForMonedaId(fila.get('monedaId')?.value)"
               formControlName="monto"
               required

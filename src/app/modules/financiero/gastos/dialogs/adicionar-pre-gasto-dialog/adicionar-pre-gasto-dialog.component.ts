@@ -201,14 +201,10 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
         this.beneficiarioControl.setValue(summary.proveedorNombre || '');
         if (summary.monedaId) this.monedaControl.setValue(summary.monedaId);
         if (summary.cuotasPagadas != null) this.numeroCuotaControl.setValue(summary.cuotasPagadas + 1);
-
-        // Auto-rellenar monto con cuota
         if (summary.cuotasTotales > 0 && summary.montoTotal > 0) {
           const montoCuota = Math.round(summary.montoTotal / summary.cuotasTotales);
           if (!this.montoControl.value) this.montoControl.setValue(montoCuota);
         }
-
-        // Auto-rellenar descripción
         if (!this.descripcionControl.value) {
           this.descripcionControl.setValue(`Pago de Activo - ${summary.descripcion}`);
         }
