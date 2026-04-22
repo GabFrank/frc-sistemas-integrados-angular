@@ -54,6 +54,7 @@ import { ListGastosComponent } from "../../../gastos/pages/list-gastos/list-gast
 import { ListRetiroComponent } from "../../../retiro/list-retiro/list-retiro.component";
 import { ROLES } from "../../../../personas/roles/roles.enum";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
+import { GastoService } from "../../../gastos/service/gasto.service";
 
 @UntilDestroy()
 @Component({
@@ -119,6 +120,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   isCierre = false;
 
   isDeliveryAbierto = false;
+  isSolicitudPendienteOAutorizado = false;
 
   verificarMaletinTimeout = null;
 
@@ -135,6 +137,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
     private deliveryService: DeliveryService,
+    private gastoService: GastoService,
     private tabService: TabService,
     public mainService: MainService
   ) {
@@ -177,6 +180,23 @@ export class AdicionarCajaDialogComponent implements OnInit {
               ], this.selectedCaja.sucursal.id, !this.isVentaTouch)
               .subscribe((deliveryRes: Delivery[]) => {
                 if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
+              });
+
+            this.gastoService.preGastoFilter(
+              undefined,
+              this.selectedCaja.id,
+              undefined,
+              undefined,
+              undefined,
+              0,
+              1,
+              ["PENDIENTE", "AUTORIZADO"]
+            )
+              .pipe(untilDestroyed(this))
+              .subscribe((solicitudRes) => {
+                this.isSolicitudPendienteOAutorizado =
+                  (solicitudRes?.getNumberOfElements ?? 0) > 0 ||
+                  (solicitudRes?.getContent?.length ?? 0) > 0;
               });
           }
         });
@@ -419,6 +439,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
       case "cierre":
         if (this.isDeliveryAbierto) {
           this.notificacionBar.openWarn("Posee deliverys sin concluir");
+        } else if (this.isSolicitudPendienteOAutorizado) {
+          this.notificacionBar.openWarn(
+            "Posee solicitudes en estado pendiente o autorizado"
+          );
         } else {
           this.stepper.selectedIndex = 1;
           this.stepper.selectedIndex = 2;

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { GastoService } from '../../service/gasto.service';
 import { PreGastoInput } from '../../models/pre-gasto.model';
@@ -378,8 +378,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
       }
     });
   }
-
-  /** Buscador genérico de bienes (todos los tipos) - replica lógica de bienes por sucursal */
   abrirBuscadorBienGenerico(): void {
     if (this.tipoBienControl.value) {
       this.abrirBuscadorBien(this.tipoBienControl.value);
@@ -398,18 +396,6 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
     this.data.proveedor = undefined;
     this.cdr.markForCheck();
   }
-
-
-  private mapearEnteASolicitudData(ente: Ente, tipoStr: string): void {
-    if (!this.data) this.data = {};
-    this.data.enteId = ente.id;
-    this.data.tipoBien = tipoStr;
-    const label = tipoStr.charAt(0) + tipoStr.slice(1).toLowerCase();
-    this.data.bienDescripcion = `${label} #${ente.id}`;
-    this.data.referenciaId = ente.referenciaId;
-    this.pasoActual = 0;
-  }
-
   actualizarCurrencyOptions(): void {
     const monedaId = this.monedaControl.value;
     const moneda = this.listaMonedas.find(m => m.id === monedaId);

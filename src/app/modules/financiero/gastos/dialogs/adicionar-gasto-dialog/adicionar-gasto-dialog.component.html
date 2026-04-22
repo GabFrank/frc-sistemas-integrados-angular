@@ -1,61 +1,27 @@
 <div fxLayout="row" style="width: 100%; height: 100%">
-  <mat-card
-    fxFlex="20%"
-    fxLayout="column"
-    fxLayoutGap="10px"
-    fxLayoutAlign="space-between start"
-    style="background-color: rgb(32, 32, 32); height: auto; padding: 10px"
-  >
-    <div
-      fxFlex
-      fxLayout="column"
-      fxLayoutAlign="start"
-      fxLayoutGap="5px"
-      style="width: 100%; height: 100%"
-    >
-      <button
-        style="width: 100%"
-        [color]="stepper.selectedIndex == 0 ? 'accent' : ''"
-        (click)="goTo('informacion')"
-        mat-raised-button
-      >
+  <mat-card fxFlex="20%" fxLayout="column" fxLayoutGap="10px" fxLayoutAlign="space-between start"
+    style="background-color: rgb(32, 32, 32); height: auto; padding: 10px">
+    <div fxFlex fxLayout="column" fxLayoutAlign="start" fxLayoutGap="5px" style="width: 100%; height: 100%">
+      <button style="width: 100%" [color]="stepper.selectedIndex == 0 ? 'accent' : ''" (click)="goTo('informacion')"
+        mat-raised-button>
         Información
       </button>
 
-      <button
-        style="width: 100%"
-        [color]="stepper.selectedIndex == 1 ? 'accent' : ''"
-        mat-raised-button
-        (click)="goTo('lista-gastos')"
-      >
+      <button style="width: 100%" [color]="stepper.selectedIndex == 1 ? 'accent' : ''" mat-raised-button
+        (click)="goTo('lista-gastos')">
         Lista de Gastos
       </button>
-      <button
-        style="width: 100%"
-        [color]="stepper.selectedIndex == 2 ? 'accent' : ''"
-        mat-raised-button
-        (click)="goTo('lista-solicitudes')"
-      >
+      <button style="width: 100%" [color]="stepper.selectedIndex == 2 ? 'accent' : ''" mat-raised-button
+        (click)="goTo('lista-solicitudes')">
         Lista de Solicitudes
       </button>
       <br />
     </div>
-    <button
-      style="width: 100%; margin: 10px"
-      color="primary"
-      mat-raised-button
-      (click)="goTo('salir')"
-    >
+    <button style="width: 100%; margin: 10px" color="primary" mat-raised-button (click)="goTo('salir')">
       Salir
     </button>
   </mat-card>
-  <mat-stepper
-    fxFlex="80%"
-    fxLayout="column"
-    [linear]="false"
-    #stepper
-    style="width: 100%"
-  >
+  <mat-stepper fxFlex="80%" fxLayout="column" [linear]="false" #stepper style="width: 100%">
     <mat-step style="width: 100%">
       <ng-template matStepLabel>Información</ng-template>
 
@@ -63,25 +29,12 @@
         <div fxFlex>
           <mat-form-field style="width: 100%">
             <mat-label>Responsable</mat-label>
-            <input
-              #responsableInput
-              type="text"
-              matInput
-              [formControl]="responsableControl"
-              oninput="this.value == ' ' ? this.value = '': null"
-              [matAutocomplete]="autoResponsable"
-              (keyup.enter)="tipoGastoInput.select()"
-              (focusin)="responsableInput.select()"
-            />
-            <mat-autocomplete
-              #autoResponsable="matAutocomplete"
-              (optionSelected)="onResponsableSelect($event.option.value)"
-              (closed)="onResponsableAutocompleteClose()"
-            >
-              <mat-option
-                *ngFor="let funcionario of responsableList"
-                [value]="funcionario"
-              >
+            <input #responsableInput type="text" matInput [formControl]="responsableControl"
+              oninput="this.value == ' ' ? this.value = '': null" [matAutocomplete]="autoResponsable"
+              (keyup.enter)="tipoGastoInput.select()" (focusin)="responsableInput.select()" />
+            <mat-autocomplete #autoResponsable="matAutocomplete"
+              (optionSelected)="onResponsableSelect($event.option.value)" (closed)="onResponsableAutocompleteClose()">
+              <mat-option *ngFor="let funcionario of responsableList" [value]="funcionario">
                 {{ funcionario.persona?.id }} -
                 {{ funcionario?.persona?.nombre | uppercase }}
               </mat-option>
@@ -89,40 +42,24 @@
           </mat-form-field>
         </div>
         <div fxFlex>
-          <mat-form-field style="width: 100%" (click)="selectedResponsable && !tipoGastoControl.disabled && onSearchTipoGasto()">
+          <mat-form-field style="width: 100%"
+            (click)="selectedResponsable && !tipoGastoControl.disabled && onSearchTipoGasto()">
             <mat-label>Tipo</mat-label>
-            <input
-              #tipoGastoInput
-              type="text"
-              matInput
-              readonly
-              [disabled]="!selectedResponsable"
-              [formControl]="tipoGastoControl"
-            />
+            <input #tipoGastoInput type="text" matInput readonly [disabled]="!selectedResponsable"
+              [formControl]="tipoGastoControl" />
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
         </div>
         <div fxFlex *ngIf="selectedTipoGasto?.autorizacion == true">
           <mat-form-field style="width: 100%">
             <mat-label>Autorizado Por</mat-label>
-            <input
-              #autorizadoPorInput
-              type="text"
-              matInput
-              [formControl]="autorizadoPorControl"
-              oninput="this.value == ' ' ? this.value = '': null"
-              [matAutocomplete]="autoAutorizadoPor"
-              (keyup.enter)="obs.select()"
-            />
-            <mat-autocomplete
-              #autoAutorizadoPor="matAutocomplete"
+            <input #autorizadoPorInput type="text" matInput [formControl]="autorizadoPorControl"
+              oninput="this.value == ' ' ? this.value = '': null" [matAutocomplete]="autoAutorizadoPor"
+              (keyup.enter)="obs.select()" />
+            <mat-autocomplete #autoAutorizadoPor="matAutocomplete"
               (optionSelected)="onAutorizadoPorSelect($event.option.value)"
-              (closed)="onAutorizadoPorAutocompleteClose()"
-            >
-              <mat-option
-                *ngFor="let autorizadoPor of autorizadoPorList"
-                [value]="autorizadoPor"
-              >
+              (closed)="onAutorizadoPorAutocompleteClose()">
+              <mat-option *ngFor="let autorizadoPor of autorizadoPorList" [value]="autorizadoPor">
                 {{ autorizadoPor.id }} -
                 {{ autorizadoPor?.persona?.nombre | uppercase }}
               </mat-option>
@@ -132,147 +69,80 @@
         <div #retiro fxFlex fxLayout="row">
           <mat-form-field style="width: 100%">
             <mat-label>Observación</mat-label>
-            <input
-              #obs
-              type="text"
-              matInput
-              [formControl]="observacionControl"
-              (keyup.enter)="gs.select()"
-            />
+            <input #obs type="text" matInput [formControl]="observacionControl" (keyup.enter)="gs.select()" />
           </mat-form-field>
         </div>
         <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
-          <mat-card
-            fxFlex="50%"
-            fxLayout="column"
-            style="
+          <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
               background-color: rgb(32, 32, 32);
               padding: 10px;
-            "
-          >
+            ">
             <div style="text-align: center">Retirado</div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Guaranies G$</mat-label>
-                <input
-                  #gs
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="guaraniControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsGuarani"
-                  (keyup.enter)="rs.select()"
-                />
+                <input #gs type="text" matInput numericOnly [formControl]="guaraniControl" currencyMask
+                  [options]="currencyMask.currencyOptionsGuarani" (keyup.enter)="rs.select()" />
               </mat-form-field>
             </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Reales R$</mat-label>
-                <input
-                  #rs
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="realControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsNoGuarani"
-                  (keyup.enter)="ds.select()"
-                />
+                <input #rs type="text" matInput numericOnly [formControl]="realControl" currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani" (keyup.enter)="ds.select()" />
               </mat-form-field>
             </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Dolares D$</mat-label>
-                <input
-                  #ds
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="dolarControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsNoGuarani"
-                  (keyup.enter)="guardarBtn.onGetFocus()"
-                />
+                <input #ds type="text" matInput numericOnly [formControl]="dolarControl" currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani" (keyup.enter)="guardarBtn.onGetFocus()" />
               </mat-form-field>
             </div>
           </mat-card>
-          <mat-card
-            fxFlex="50%"
-            fxLayout="column"
-            style="
+          <mat-card fxFlex="50%" fxLayout="column" style="
               width: 100%;
               background-color: rgb(32, 32, 32);
               padding: 10px;
-            "
-          >
+            ">
             <div style="text-align: center">Vuelto</div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Guaranies G$</mat-label>
-                <input
-                  #guaraniVueltoGs
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="guaraniVueltoControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsGuarani"
-                />
+                <input #guaraniVueltoGs type="text" matInput numericOnly [formControl]="guaraniVueltoControl"
+                  currencyMask [options]="currencyMask.currencyOptionsGuarani" />
               </mat-form-field>
             </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Reales R$</mat-label>
-                <input
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="realVueltoControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsNoGuarani"
-                />
+                <input type="text" matInput numericOnly [formControl]="realVueltoControl" currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani" />
               </mat-form-field>
             </div>
             <div fxFlex>
               <mat-form-field style="width: 100%">
                 <mat-label>Dolares D$</mat-label>
-                <input
-                  type="text"
-                  matInput
-                  numericOnly
-                  [formControl]="dolarVueltoControl"
-                  currencyMask
-                  [options]="currencyMask.currencyOptionsNoGuarani"
-                />
+                <input type="text" matInput numericOnly [formControl]="dolarVueltoControl" currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani" />
               </mat-form-field>
             </div>
           </mat-card>
         </div>
         <br />
         <div style="height: 35px">
-          <app-boton
-            #guardarBtn
-            (clickEvent)="isVuelto != true ? onGuardar() : onSaveVuelto()"
-            [disableExpression]="
+          <app-boton #guardarBtn (clickEvent)="isVuelto != true ? onGuardar() : onSaveVuelto()" [disableExpression]="
               selectedResponsable == null ||
               selectedTipoGasto == null ||
               autorizado != true
-            "
-            color="accent"
-            nombre="Guardar"
-          >
+            " color="accent" nombre="Guardar">
           </app-boton>
         </div>
         <br />
         <div style="height: 35px">
-          <button
-            style="width: 100%; height: 100%; font-size: 1.2em"
-            mat-raised-button
-            color="primary"
-            (click)="onCancelar()"
-          >
+          <button style="width: 100%; height: 100%; font-size: 1.2em" mat-raised-button color="primary"
+            (click)="onCancelar()">
             Cancelar
           </button>
         </div>
@@ -304,135 +174,75 @@
 
         <!-- Weight Column -->
         <ng-container matColumnDef="tipo">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 10%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
             Tipo
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 10%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 10%; text-align: center">
             {{ gasto.tipoGasto?.descripcion }}
           </td>
         </ng-container>
 
         <!-- Weight Column -->
         <ng-container matColumnDef="valorGs">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 10%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
             G$
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 10%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 10%; text-align: center">
             {{ gasto.retiroGs | number : "1.0-0" }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="valorRs">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 10%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
             R$
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 10%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 10%; text-align: center">
             {{ gasto.retiroRs | number : "1.0-2" }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="valorDs">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 10%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
             D$
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 10%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 10%; text-align: center">
             {{ gasto.retiroDs | number : "1.0-2" }}
           </td>
         </ng-container>
 
         <!-- Weight Column -->
         <ng-container matColumnDef="creadoEn">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 10%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
             Creado en
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 10%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 10%; text-align: center">
             {{ gasto.creadoEn | date : "short" }}
           </td>
         </ng-container>
 
         <!-- Symbol Column -->
         <ng-container matColumnDef="vuelto">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
             Vuelto
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 5%; text-align: center"
-          >
+          <td mat-cell *matCellDef="let gasto" style="width: 5%; text-align: center">
             {{
-              gasto?.sucursalVuelto != null ||
-              (gasto?.vueltoGs || 0) > 0 ||
-              (gasto?.vueltoRs || 0) > 0 ||
-              (gasto?.vueltoDs || 0) > 0
-                ? "Si"
-                : "No"
+            gasto?.sucursalVuelto != null ||
+            (gasto?.vueltoGs || 0) > 0 ||
+            (gasto?.vueltoRs || 0) > 0 ||
+            (gasto?.vueltoDs || 0) > 0
+            ? "Si"
+            : "No"
             }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="acciones">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
             ...
           </th>
-          <td
-            mat-cell
-            *matCellDef="let gasto"
-            style="width: 5%; text-align: center"
-          >
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
-            >
+          <td mat-cell *matCellDef="let gasto" style="width: 5%; text-align: center">
+            <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu">
@@ -469,7 +279,8 @@
         <div *ngIf="cargandoSolicitudes" style="padding: 16px; color: #bdbdbd;">
           Cargando solicitudes...
         </div>
-        <table *ngIf="!cargandoSolicitudes" style="width: 100%" mat-table [dataSource]="solicitudesProcesadasDataSource">
+        <table *ngIf="!cargandoSolicitudes" style="width: 100%" mat-table
+          [dataSource]="solicitudesProcesadasDataSource">
           <ng-container matColumnDef="id">
             <th mat-header-cell *matHeaderCellDef style="width: 7%">#</th>
             <td mat-cell *matCellDef="let solicitud">{{ solicitud.id }}</td>
@@ -522,13 +333,8 @@
           <ng-container matColumnDef="accionDetalle">
             <th mat-header-cell *matHeaderCellDef style="width: 11%; text-align: center">Detalle</th>
             <td mat-cell *matCellDef="let solicitud" style="text-align: center">
-              <button
-                mat-stroked-button
-                color="accent"
-                type="button"
-                [disabled]="solicitud.estado !== 'AUTORIZADO'"
-                (click)="onFinalizarSolicitudAutorizada(solicitud, $event)"
-              >
+              <button mat-stroked-button color="accent" type="button" [disabled]="solicitud.estado !== 'AUTORIZADO'"
+                (click)="onFinalizarSolicitudAutorizada(solicitud, $event)">
                 Finalizar
               </button>
             </td>
