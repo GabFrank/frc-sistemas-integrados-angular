@@ -82,6 +82,7 @@ export class PreGastoDetalleFinanzasInput {
 
 export class PreGastoInput {
   id: number;
+  sucursalId: number;
   funcionarioId: number;
   enteId: number;
   tipoGastoId: number;

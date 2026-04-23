@@ -405,8 +405,16 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     }
 
     const input = new PreGastoInput();
+    const sucursalSolicitudId = Number(
+      this.mainService.sucursalActual?.id ?? this.selectedCaja?.sucursalId ?? this.selectedCaja?.sucursal?.id
+    );
+    if (!Number.isFinite(sucursalSolicitudId) || sucursalSolicitudId <= 0) {
+      this.notificacionService.openWarn("No se pudo determinar la sucursal de la filial para la solicitud.");
+      return;
+    }
     input.tipoGastoId = res.tipoGastoId;
     input.descripcion = res.descripcion;
+    input.sucursalId = sucursalSolicitudId;
     input.funcionarioId = personaId;
     input.sucursalCajaId = sucursalCajaId;
     input.cajaId = this.selectedCaja?.id;
@@ -539,10 +547,18 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               }
               const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
               const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
+              if (
+                preGastoId != null &&
+                (preGastoSucursalId == null || Number(preGastoSucursalId) <= 0)
+              ) {
+                this.notificacionService.openWarn(
+                  "No se pudo determinar la sucursal de la solicitud. Vuelve a seleccionar la solicitud antes de guardar."
+                );
+                return;
+              }
               if (preGastoId != null) {
                 gasto.preGastoId = preGastoId;
-                gasto.preGastoSucursalId =
-                  preGastoSucursalId ?? this.mainService.sucursalActual?.id;
+                gasto.preGastoSucursalId = preGastoSucursalId;
               }
               this.gastoService
                 .onSave(gasto, false)
@@ -820,11 +836,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         this.stepper.selectedIndex = 0;
 
         const sucursalPre = Number(
-          solicitud.sucursalId ?? solicitud.sucursalCaja?.id ?? this.mainService.sucursalActual?.id
+          solicitud.sucursalId
         );
         this.preGastoIdAlCompletarDespuesDeGasto = solicitud.id;
         this.preGastoSucursalIdAlCompletarDespuesDeGasto =
-          Number.isFinite(sucursalPre) && sucursalPre >= 0 ? sucursalPre : null;
+          Number.isFinite(sucursalPre) && sucursalPre > 0 ? sucursalPre : null;
       });
   }
 
