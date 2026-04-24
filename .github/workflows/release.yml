@@ -120,13 +120,17 @@ jobs:
 
           # Copy manifests with channel name
           # electron-updater looks for {channel}.yml and {channel}-linux.yml
-          for f in release/latest*.yml; do
-            if [ -f "$f" ]; then
-              NEWNAME=$(echo "$f" | sed "s/latest/${CHANNEL}/")
-              cp "$f" "$NEWNAME"
-              echo "Created $NEWNAME"
-            fi
-          done
+          if [ "${CHANNEL}" != "latest" ]; then
+            for f in release/latest*.yml; do
+              if [ -f "$f" ]; then
+                NEWNAME=$(echo "$f" | sed "s/latest/${CHANNEL}/")
+                cp "$f" "$NEWNAME"
+                echo "Created $NEWNAME"
+              fi
+            done
+          else
+            echo "Channel is latest — manifests already have correct names, skipping copy"
+          fi
 
       - name: Upload artifacts to GitHub Release
         shell: bash
