@@ -1,0 +1,263 @@
+<div class="inutilizacion-tab-container" fxLayout="column" fxLayoutGap="24px">
+  <!-- Sección superior: Crear nuevo evento -->
+  <div class="section-card crear-evento-section">
+    <div class="section-title">Crear Nuevo Evento de Inutilización</div>
+    
+    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px" style="margin-top: 16px">
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="sucursalControl.hasError('required')">Sucursal es requerida</mat-error>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Timbrado Detalle</mat-label>
+          <mat-select [formControl]="timbradoDetalleControl" [disabled]="!sucursalControl.value">
+            <mat-option *ngFor="let timbradoDetalle of timbradoDetalleList" [value]="timbradoDetalle">
+              {{ timbradoDetalle.timbrado?.numero }} - {{ timbradoDetalle.puntoExpedicion }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="timbradoDetalleControl.hasError('required')">Timbrado Detalle es requerido</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Nro. Inicio</mat-label>
+          <input type="number" matInput [formControl]="numeroInicioControl" min="1">
+          <mat-error *ngIf="numeroInicioControl.hasError('required')">Nro. Inicio es requerido</mat-error>
+          <mat-error *ngIf="numeroInicioControl.hasError('min')">Debe ser mayor a 0</mat-error>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Nro. Fin</mat-label>
+          <input type="number" matInput [formControl]="numeroFinControl" min="1">
+          <mat-error *ngIf="numeroFinControl.hasError('required')">Nro. Fin es requerido</mat-error>
+          <mat-error *ngIf="numeroFinControl.hasError('min')">Debe ser mayor a 0</mat-error>
+          <mat-error *ngIf="numeroFinControl.hasError('rangoInvalido')">Debe ser mayor o igual a Nro. Inicio</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Motivo</mat-label>
+          <mat-select [formControl]="motivoControl">
+            <mat-option *ngFor="let motivo of motivosPredefinidos" [value]="motivo">
+              {{ motivo }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="motivoControl.hasError('required')">Motivo es requerido</mat-error>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100" *ngIf="isMotivoOtros">
+        <mat-form-field class="full-width">
+          <mat-label>Especifique el motivo</mat-label>
+          <input type="text" matInput [formControl]="motivoOtrosControl">
+          <mat-error *ngIf="motivoOtrosControl.hasError('required')">Debe especificar el motivo</mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="16px" style="margin-top: 16px">
+      <app-boton
+        nombre="Cancelar"
+        color="primary"
+        (clickEvent)="onCancelar()"
+        class="btn-accion"
+      ></app-boton>
+      <app-boton
+        nombre="Guardar"
+        color="accent"
+        [disableExpression]="
+          sucursalControl.invalid ||
+          timbradoDetalleControl.invalid ||
+          numeroInicioControl.invalid ||
+          numeroFinControl.invalid ||
+          motivoControl.invalid ||
+          (isMotivoOtros && motivoOtrosControl.invalid)
+        "
+        (clickEvent)="onGuardar()"
+        class="btn-accion"
+      ></app-boton>
+    </div>
+  </div>
+
+  <!-- Sección inferior: Lista de eventos -->
+  <div class="section-card eventos-list-section" fxFlex>
+    <div class="section-title">Eventos de Inutilización</div>
+    
+    <!-- Filtros -->
+    <div class="filtros-container" fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px" style="margin-top: 16px; margin-bottom: 16px">
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Filtrar por Sucursal</mat-label>
+          <mat-select [formControl]="filtroSucursalControl">
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Filtrar por Estado</mat-label>
+          <mat-select [formControl]="filtroEstadoControl">
+            <mat-option *ngFor="let estado of estadosDisponibles" [value]="estado.value">
+              {{ estado.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Fecha Inicio</mat-label>
+          <input matInput [matDatepicker]="pickerInicio" [formControl]="filtroFechaInicioControl">
+          <mat-datepicker-toggle matSuffix [for]="pickerInicio"></mat-datepicker-toggle>
+          <mat-datepicker #pickerInicio></mat-datepicker>
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex fxFlex.lt-md="100">
+        <mat-form-field class="full-width">
+          <mat-label>Fecha Fin</mat-label>
+          <input matInput [matDatepicker]="pickerFin" [formControl]="filtroFechaFinControl">
+          <mat-datepicker-toggle matSuffix [for]="pickerFin"></mat-datepicker-toggle>
+          <mat-datepicker #pickerFin></mat-datepicker>
+        </mat-form-field>
+      </div>
+      
+      <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px" style="padding-top: 8px">
+        <app-boton
+          nombre="Filtrar"
+          color="primary"
+          [clickDelay]="0"
+          (clickEvent)="onFiltrar()"
+          class="btn-filtro"
+        ></app-boton>
+        <app-boton
+          nombre="Limpiar"
+          color="accent"
+          [clickDelay]="0"
+          (clickEvent)="onLimpiarFiltros()"
+          class="btn-filtro"
+        ></app-boton>
+      </div>
+    </div>
+
+    <!-- Tabla de eventos -->
+    <div class="table-container">
+      <table mat-table [dataSource]="eventosDataSource" class="mat-elevation-z8" style="width: 100%">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">ID</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">{{ evento.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Fecha</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.creadoEn | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="timbrado">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Timbrado</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.timbrado?.numero }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="establecimiento">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Establecimiento</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.establecimiento }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="puntoExpedicion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Punto Expedición</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.puntoExpedicion }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="numeroInicio">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Nro. Inicio</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.numeroInicio }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="numeroFin">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Nro. Fin</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.numeroFin }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="motivo">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Motivo</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: left; max-width: 300px">
+            <span [title]="evento.motivoInutilizacion" class="text-truncate">
+              {{ evento.motivoInutilizacion }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Estado</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            <span [class]="getEstadoClass(evento.estado)" class="estado-badge">
+              {{ getEstadoLabel(evento.estado) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="codigoRespuesta">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Código</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: center">
+            {{ evento.codigoRespuesta || '-' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="mensaje">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Mensaje</th>
+          <td mat-cell *matCellDef="let evento" style="text-align: left; max-width: 300px">
+            <span [title]="evento.mensajeRespuesta" class="text-truncate">
+              {{ evento.mensajeRespuesta || '-' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+      
+      <mat-paginator
+        [pageSizeOptions]="pageSizeOptions"
+        [pageSize]="pageSize"
+        [length]="selectedPageInfo?.getTotalElements || 0"
+        (page)="handlePageEvent($event)"
+        showFirstLastButtons
+        style="width: 100%"
+      ></mat-paginator>
+    </div>
+  </div>
+</div>
+

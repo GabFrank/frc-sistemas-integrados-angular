@@ -1,7 +1,7 @@
-<div fxLayout="column" style="width: 100%; height: 100%">
-  <div style="text-align: center">Información del cliente</div>
+<div fxLayout="column" style="width: 100%; height: 100%; margin-top: 10px; margin-bottom: 10px;">
+  <h3 style="text-align: center; margin-bottom: 0px;">Información del cliente</h3>
   <br />
-  <div fxLayout="row" fxFlexAlign="space-around center">
+  <div fxLayout="row" fxFlexAlign="space-around center" style="text-align: center;">
     <div fxFlex="50">
       <mat-form-field style="width: 90%" class="form-element">
         <mat-label class="required-field">Nombre</mat-label>
@@ -26,9 +26,8 @@
   <div fxLayout="row" fxFlexAlign="space-around center">
     <div fxFlex="50">
       <mat-form-field
-        style="width: 90%"
         class="form-element"
-        style="width: 50%"
+        style="width: 90%; margin-left: 26px"
       >
         <mat-label class="required-field">C.I / RUC (Sin digito verificador)</mat-label>
         <input
@@ -44,7 +43,7 @@
     </div>
 
     <div fxFlex="50" fxFlexAlign="space-around center">
-      <mat-form-field style="width: 90%" class="form-element">
+      <mat-form-field style="width: 90%; margin-left: 26px" class="form-element">
         <mat-label class="required-field">Teléfono</mat-label>
         <input matInput [formControl]="telefonoControl" />
       </mat-form-field>
@@ -54,8 +53,8 @@
     </div>
   </div>
 
-  <div>
-    <mat-form-field style="width: 90%" class="form-element">
+  <div style="text-align: center;">
+    <mat-form-field style="width: 95%" class="form-element">
       <mat-label>Dirección</mat-label>
       <input
         matInput
@@ -65,7 +64,7 @@
     </mat-form-field>
   </div>
 
-  <div fxLayout="row" fxFlexAlign="space-around center">
+  <div fxLayout="row" fxFlexAlign="space-around center" style="text-align: center;">
     <div fxFlex="50">
       <mat-form-field style="width: 90%">
         <mat-label>Fecha de nacimiento</mat-label>
@@ -88,8 +87,9 @@
     </div>
   </div>
 
-  <div fxLayout="row" fxLayoutGap="10px">
-    <mat-form-field style="width: 100%">
+  <div fxLayout="row" fxLayoutAlign="space-around center" style="text-align: center;">
+    <div fxFlex="50">
+    <mat-form-field style="width: 90%">
       <mat-label>Tipo</mat-label>
       <mat-select [formControl]="tipoControl" name="tipoCliente">
         <mat-option *ngFor="let tipo of tipoClienteList" [value]="tipo">
@@ -97,9 +97,11 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+  </div>
+  <div fxFlex="50">
     <mat-form-field
       class="example-form-field"
-      style="width: 100%; height: 100%"
+      style="width: 90%; height: 100%"
     >
       <mat-label>Crédito</mat-label>
       <input
@@ -120,9 +122,10 @@
         aria-label="Clear"
         (click)="creditoControl.setValue(null)"
       >
-        <mat-icon style="color: white; font-size: 1.5em">close</mat-icon>
+        <mat-icon style="color: white; font-size: 1em">close</mat-icon>
       </button>
     </mat-form-field>
+  </div>
   </div>
   <br />
 

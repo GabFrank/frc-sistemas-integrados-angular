@@ -30,12 +30,22 @@ import { CajaService } from "../caja.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
-import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
+import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/sucursalesByNombre";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
 import { PageInfo } from "../../../../../app.component";
 import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
+import { CajaObservacionDashboardComponent } from "../../caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component";
+import { CajaObservacionService } from "../../caja-observacion/caja-observacion.service";
+import { MainCajaObservacionComponent } from "../../caja-observacion/main-caja-observacion/main-caja-observacion.component";
+import { CajaObservacion } from "../../caja-observacion/caja-observacion.model";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../../../notificacion-snackbar.service";
+import { GenericCrudService } from "../../../../../generics/generic-crud.service";
+import { SucursalesSearchGQL } from "../../../../empresarial/sucursal/graphql/sucursalesSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -55,6 +65,7 @@ import { Usuario } from "../../../../personas/usuarios/usuario.model";
 })
 export class ListCajaComponent implements OnInit {
   dataSource = new MatTableDataSource<PdvCaja>([]);
+  cajaObservacionList: CajaObservacion[];
   selectedPdvCaja: PdvCaja;
   expandedCaja: PdvCaja;
   selectedProducto: Producto;
@@ -98,6 +109,7 @@ export class ListCajaComponent implements OnInit {
   codigoMaletinControl = new FormControl();
   sucursalControl = new FormControl();
   sucursalCodigoControl = new FormControl();
+  conObsControl = new FormControl(false);
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
@@ -117,7 +129,10 @@ export class ListCajaComponent implements OnInit {
     private searchMaletin: SearchMaletinGQL,
     private mainService: MainService,
     private searchSucursal: SucursalesSearchGQL,
-    private searchUsuario: UsuarioSearchGQL
+    private searchUsuario: UsuarioSearchGQL, 
+    private cajaObservacionService: CajaObservacionService,
+    private notificacionService: NotificacionSnackbarService,
+    private genericCrudService: GenericCrudService
   ) {}
 
   ngOnInit(): void {
@@ -156,15 +171,32 @@ export class ListCajaComponent implements OnInit {
   }
 
   onFilter() {
+
+    // Asegurar que sucursalId sea un número
+    let sucursalId: number = null;
+    if (this.selectedSucursal?.id != null) {
+      sucursalId = typeof this.selectedSucursal.id === 'string' 
+        ? parseInt(this.selectedSucursal.id, 10) 
+        : this.selectedSucursal.id;
+    }
+    
+    // Asegurar que otros IDs sean números o null/undefined
+    const maletinId = this.selectedMaletin?.id != null 
+      ? (typeof this.selectedMaletin.id === 'string' ? parseInt(this.selectedMaletin.id, 10) : this.selectedMaletin.id)
+      : null;
+    const cajeroId = this.selectedCajero?.id != null
+      ? (typeof this.selectedCajero.id === 'string' ? parseInt(this.selectedCajero.id, 10) : this.selectedCajero.id)
+      : null;
+
     this.cajaService
       .onGetCajasWithFilters(
         this.codigoControl.value,
         this.estadoControl.value,
-        this.maletinControl.value?.id,
-        this.cajeroControl.value?.id,
+        maletinId,
+        cajeroId,
         this.fechaInicioControl.value,
         this.fechaFinalControl.value,
-        this.selectedSucursal.id,
+        sucursalId,
         this.verificadoControl.value,
         this.pageIndex,
         this.pageSize
@@ -175,6 +207,9 @@ export class ListCajaComponent implements OnInit {
           this.dataSource.data = [];
           this.dataSource.data = res.getContent;
           this.selectedPageInfo = res;
+          let cajas: PdvCaja[] = res.getContent;
+          cajas = this.onObservado(cajas);  // Marca las cajas que tienen observación
+          this.dataSource.data = cajas; 
         }
       });
   }
@@ -189,6 +224,7 @@ export class ListCajaComponent implements OnInit {
     aux.setDate(hoy.getDate() - 5);
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
+    this.conObsControl.setValue(false);
   }
 
   irVentas(caja: PdvCaja) {
@@ -204,6 +240,31 @@ export class ListCajaComponent implements OnInit {
     );
   }
 
+  onObservado(cajas: PdvCaja[]): PdvCaja[] {
+    cajas.forEach((caja) => {
+      caja['hasObservation'] = caja.cajaObservacionList && caja.cajaObservacionList.length > 0;
+    });
+  
+    if (this.conObsControl.value) {
+      cajas = cajas.filter((box) => box['hasObservation']);
+    }
+    return cajas;
+  }
+  
+
+  irObservacion(caja: PdvCaja) {
+    const dialogRef = this.matDialog
+      .open(CajaObservacionDashboardComponent, {
+        width: "1950px",
+        height: "550px",
+        data: { caja: caja }
+      })
+      dialogRef.afterClosed()
+        .subscribe(() => {
+          this.onFilter();
+        })
+  }
+
   onCondigoEnter() {}
 
   onCajeroSearch() {
@@ -212,17 +273,13 @@ export class ListCajaComponent implements OnInit {
       tableData: [
         { id: "id", nombre: "Id", width: "5%" },
         {
-          id: "nombre",
+          id: "persona.nombre",
           nombre: "Nombre",
-          nested: true,
-          nestedId: "persona",
           width: "50%",
         },
         {
-          id: "documento",
+          id: "persona.documento",
           nombre: "Documento",
-          nested: true,
-          nestedId: "persona",
           width: "40%",
         },
       ],
@@ -274,6 +331,34 @@ export class ListCajaComponent implements OnInit {
   }
 
   onMaletinSearch() {
+    // Verificar que hay una sucursal seleccionada
+    if (!this.selectedSucursal || !this.selectedSucursal.id) {
+      this.notificacionService.notification$.next({
+        texto: 'Debe seleccionar una sucursal antes de buscar maletines.',
+        color: NotificacionColor.warn,
+        duracion: 4
+      });
+      return;
+    }
+
+    // Convertir ID a número si es string
+    let sucursalId: number;
+    if (typeof this.selectedSucursal.id === 'string') {
+      sucursalId = parseInt(this.selectedSucursal.id, 10);
+    } else {
+      sucursalId = this.selectedSucursal.id;
+    }
+
+    // Validar que el ID convertido sea válido
+    if (isNaN(sucursalId) || sucursalId <= 0) {
+      this.notificacionService.notification$.next({
+        texto: 'Error: ID de sucursal inválido. Por favor, seleccione nuevamente la sucursal.',
+        color: NotificacionColor.danger,
+        duracion: 4
+      });
+      return;
+    }
+
     let data: SearchListtDialogData = {
       titulo: "Buscar maletin",
       tableData: [
@@ -283,10 +368,12 @@ export class ListCajaComponent implements OnInit {
       ],
       query: this.searchMaletin,
       queryData: {
-        sucId: this.selectedSucursal.id,
+        sucId: sucursalId,
+        texto: null
       },
       inicialSearch: true,
     };
+
     this.matDialog
       .open(SearchListDialogComponent, {
         data: data,
@@ -302,7 +389,12 @@ export class ListCajaComponent implements OnInit {
       });
   }
 
-  onClearCajero() {}
+  onClearCajero() {
+    this.codigoCajeroControl.setValue(null);
+    this.cajeroControl.setValue(null);
+    this.selectedCajero = null;
+    this.onFilter();
+  }
 
   onSelectMaletin(maletin: Maletin) {
     if (maletin == null) {
@@ -314,6 +406,9 @@ export class ListCajaComponent implements OnInit {
       this.maletinControl.setValue(maletin.descripcion);
       this.selectedMaletin = maletin;
     }
+    
+    // Llamar automáticamente el filtro cuando se selecciona maletin
+    this.onFilter();
   }
 
   onSelectCajero(cajero: Usuario) {
@@ -326,6 +421,9 @@ export class ListCajaComponent implements OnInit {
       this.cajeroControl.setValue(cajero.persona.nombre);
       this.selectedCajero = cajero;
     }
+    
+    // Llamar automáticamente el filtro cuando se selecciona cajero
+    this.onFilter();
   }
 
   onSucursalSearchById(id) {
@@ -336,23 +434,24 @@ export class ListCajaComponent implements OnInit {
     // })
   }
 
-  onSucursalSearch(texto?) {
+  onSucursalSearch(texto?: string) {
     let data: SearchListtDialogData = {
       titulo: "Seleccionar sucursal",
       tableData: [
         { id: "id", nombre: "Id", width: "5%" },
         { id: "nombre", nombre: "Nombre", width: "50%" },
         {
-          id: "descripcion",
+          id: "ciudad.descripcion",
           nombre: "Ciudad",
           width: "22%",
-          nested: true,
-          nestedId: "ciudad",
         },
       ],
       query: this.searchSucursal,
       inicialSearch: true,
-      texto: texto,
+      texto: texto || '',
+      isAdicionar: false,
+      paginator: true,
+      searchFieldName: 'texto',
     };
     this.matDialog
       .open(SearchListDialogComponent, {
@@ -360,21 +459,29 @@ export class ListCajaComponent implements OnInit {
         height: "80vh",
         width: "70vw",
         restoreFocus: true,
+        panelClass: 'search-dialog-dark'
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.onSelectSucursal(res);
-          this.onFilter();
+          // No llamar onFilter() aquí porque ya se llama en onSelectSucursal()
         }
       });
   }
 
   onSelectSucursal(sucursal: Sucursal) {
-    this.sucursalCodigoControl.setValue(sucursal.id);
+    // Asegurar que el ID sea un número
+    const sucursalId = typeof sucursal.id === 'string' ? parseInt(sucursal.id, 10) : sucursal.id;
+    this.sucursalCodigoControl.setValue(sucursalId);
     this.sucursalControl.setValue(sucursal.nombre);
     this.selectedSucursal = sucursal;
+    // Asegurar que el ID en el objeto sea número
+    this.selectedSucursal.id = sucursalId;
+    
+    // Llamar automáticamente el filtro cuando se selecciona sucursal
+    this.onFilter();
   }
 
   cargarMasDatos() {}

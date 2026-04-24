@@ -1,0 +1,130 @@
+<div class="container">
+  <h1>Administración de Pagos</h1>
+
+  <mat-card class="filter-card">
+    <mat-card-header>
+      <mat-card-title>Filtros de búsqueda</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="filterForm" (ngSubmit)="loadPagos()">
+        <div class="row">
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>ID de Pago</mat-label>
+              <input matInput formControlName="pagoId" type="number">
+            </mat-form-field>
+          </div>
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>ID de Solicitud de Pago</mat-label>
+              <input matInput formControlName="solicitudPagoId" type="number">
+            </mat-form-field>
+          </div>
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="estado">
+                <mat-option [value]="''">Todos</mat-option>
+                <mat-option *ngFor="let estado of estadoOptions" [value]="estado">
+                  {{estado}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Programado</mat-label>
+              <mat-select formControlName="programado">
+                <mat-option [value]="''">Todos</mat-option>
+                <mat-option [value]="true">Sí</mat-option>
+                <mat-option [value]="false">No</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Fecha Inicio</mat-label>
+              <input matInput [matDatepicker]="fechaInicioPicker" formControlName="fechaInicio">
+              <mat-datepicker-toggle matSuffix [for]="fechaInicioPicker"></mat-datepicker-toggle>
+              <mat-datepicker #fechaInicioPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+          <div class="col-md-3">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Fecha Fin</mat-label>
+              <input matInput [matDatepicker]="fechaFinPicker" formControlName="fechaFin">
+              <mat-datepicker-toggle matSuffix [for]="fechaFinPicker"></mat-datepicker-toggle>
+              <mat-datepicker #fechaFinPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+          <div class="col-md-6 button-container">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+              <mat-icon>search</mat-icon> Buscar
+            </button>
+            <button mat-raised-button type="button" (click)="resetFilters()" [disabled]="loading">
+              <mat-icon>refresh</mat-icon> Limpiar
+            </button>
+          </div>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="table-card">
+    <mat-card-content>
+      <div class="spinner-container" *ngIf="loading">
+        <mat-spinner diameter="50"></mat-spinner>
+      </div>
+
+      <table mat-table [dataSource]="dataSource" class="full-width" *ngIf="!loading">
+        <!-- ID Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 8%;"> ID </th>
+          <td mat-cell *matCellDef="let pago"> {{pago.id}} </td>
+        </ng-container>
+
+        <!-- Solicitud Pago Column -->
+        <ng-container matColumnDef="solicitudPago">
+          <th mat-header-cell *matHeaderCellDef style="width: 15%;"> Solicitud de Pago </th>
+          <td mat-cell *matCellDef="let pago"> {{pago.solicitudPago?.id || 'N/A'}} </td>
+        </ng-container>
+
+        <!-- Estado Column -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef style="width: 20%;"> Estado </th>
+          <td mat-cell *matCellDef="let pago"> 
+            <span [ngClass]="'estado-' + pago.estado?.toLowerCase()">{{pago.estado}}</span>
+          </td>
+        </ng-container>
+
+        <!-- Fecha Column -->
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef style="width: 25%;"> Fecha de Creación </th>
+          <td mat-cell *matCellDef="let pago"> {{pago.creadoEn | date:'dd/MM/yyyy HH:mm'}} </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 32%;"> Acciones </th>
+          <td mat-cell *matCellDef="let pago">
+            <button mat-icon-button color="primary" (click)="verDetalle(pago.id)" matTooltip="Ver detalle">
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <mat-paginator 
+        [length]="totalItems"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[5, 10, 25, 50]"
+        (page)="onPageChange($event)">
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div> 

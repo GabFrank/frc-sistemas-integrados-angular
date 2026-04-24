@@ -60,6 +60,10 @@ input::-webkit-inner-spin-button {
   background-color: rgb(51, 51, 51) !important;
 }
 
+.con-observacion {
+  background-color: #54c5f8 !important;
+}
+
 input {
   text-transform: uppercase;
 }
@@ -82,4 +86,9 @@ input {
 
 .verificado {
   background-color: #f57c00;
+}
+
+.icon:hover {
+  color: rgb(0, 172, 46);
+  cursor: pointer;
 }

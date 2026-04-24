@@ -52,7 +52,7 @@ export class VentaItemInput {
     precioVentaId: number;
     precio: number;
     creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
     sucursalId: number;
     valorDescuento: number;
     activo: boolean

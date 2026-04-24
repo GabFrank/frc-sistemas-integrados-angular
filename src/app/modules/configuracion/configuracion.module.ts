@@ -12,18 +12,53 @@ import { ListRolesComponent } from './roles/list-roles/list-roles.component';
 import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adicionar-role-dialog.component';
 import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
 import { SolicitarRecursosDialogComponent } from './solicitar-recursos-dialog/solicitar-recursos-dialog.component';
-
-
+import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
+import { ListReplicationComponent } from './logical-replication/list-replication/list-replication.component';
+import { LogicalReplicationService } from './logical-replication/logical-replication.service';
+import { EditRemotePublicationDialogComponent } from './logical-replication/edit-remote-publication-dialog/edit-remote-publication-dialog.component';
+import { EditRemoteSubscriptionDialogComponent } from './logical-replication/edit-remote-subscription-dialog/edit-remote-subscription-dialog.component';
+import { ConfiguracionRoutingModule } from './configuracion-routing.module';
+import { ListReplicationTablesComponent } from './logical-replication/list-replication-tables/list-replication-tables.component';
+import { EditReplicationTableDialogComponent } from './logical-replication/edit-replication-table-dialog/edit-replication-table-dialog.component';
+import { SetupReplicationDialogComponent } from './logical-replication/setup-replication-dialog/setup-replication-dialog.component';
+import { RemoveReplicationDialogComponent } from './logical-replication/remove-replication-dialog/remove-replication-dialog.component';
+import { EmpresarialModule } from '../empresarial/empresarial.module';
 
 @NgModule({
-  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent, UpdateWizardComponent, ListRolesComponent, AdicionarRoleDialogComponent, AdicionarGrupoRoleDialogComponent, SolicitarRecursosDialogComponent],
+  declarations: [
+    ConfigurarServidorDialogComponent, 
+    ListActualizacionComponent, 
+    EditActualizacionComponent, 
+    UpdateWizardComponent, 
+    ListRolesComponent, 
+    AdicionarRoleDialogComponent, 
+    AdicionarGrupoRoleDialogComponent, 
+    SolicitarRecursosDialogComponent,
+    ListReplicationComponent,
+    EditRemotePublicationDialogComponent,
+    EditRemoteSubscriptionDialogComponent,
+    ListReplicationTablesComponent,
+    EditReplicationTableDialogComponent,
+    SetupReplicationDialogComponent,
+    RemoveReplicationDialogComponent
+  ],
   imports: [
     CommonModule,
     FlexLayoutModule,
     ReactiveFormsModule,
     FormsModule,
     MaterialModule,
-    SharedModule
+    SharedModule,
+    ThermalPrinterModule,
+    ConfiguracionRoutingModule,
+    EmpresarialModule
+  ],
+  providers: [
+    LogicalReplicationService
+  ],
+  exports: [
+    ListReplicationComponent,
+    ListReplicationTablesComponent
   ]
 })
 export class ConfiguracionModule { }

@@ -1,0 +1,23 @@
+<mat-card class="mensaje-card">
+    <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+
+        <div *ngIf="mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px"
+            class="camara-wrapper">
+            <camara-reconocimiento #camaraRef [modo]="'busqueda'"
+                (usuarioIdentificado)="usuarioIdentificado.emit($event)" (busquedaManual)="busquedaManual.emit()"
+                (cerrar)="cerrarCamara.emit()">
+            </camara-reconocimiento>
+        </div>
+
+        <div *ngIf="!mostrandoCamara" fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px">
+            <mat-icon class="placeholder-icon">person_search</mat-icon>
+            <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                <span class="placeholder-text">Reconocimiento Facial Pausado</span>
+                <button mat-raised-button color="warn" (click)="iniciarBusqueda.emit()">
+                    <mat-icon>photo_camera</mat-icon> Activar Reconocimiento
+                </button>
+            </div>
+        </div>
+
+    </mat-card-content>
+</mat-card>

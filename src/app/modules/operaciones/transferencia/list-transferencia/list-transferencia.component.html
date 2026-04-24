@@ -3,7 +3,7 @@
   (adicionar)="onAdd()"
   (filtrar)="onFilter()"
   (resetFiltro)="onResetFiltro()"
-  [isAdicionar]="mainService?.sucursalActual?.id == 0 ? true : false"
+  [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || mainService?.usuarioActual?.roles.includes('CREAR_TRANSFERENCIA') ? true : false"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
@@ -12,6 +12,7 @@
           placeholder="Id"
           matInput
           [formControl]="idControl"
+          (keyup.enter)="onFilter()"
           type="number"
         />
       </mat-form-field>
@@ -263,13 +264,12 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(transferencia, i)">
-              {{ mainService?.isServidor ? "Editar" : "Ver" }}
+              Editar
             </button>
             <button mat-menu-item (click)="onImprimir(transferencia.id)">
               Imprimir
             </button>
             <button
-              *ngIf="mainService?.isServidor"
               mat-menu-item
               (click)="onDelete(transferencia, i)"
               style="color: red"

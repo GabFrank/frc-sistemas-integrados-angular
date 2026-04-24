@@ -112,7 +112,7 @@ export class EntradaSalidaComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe((res) => {
+    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res.sort((a, b) => {
         if (a.nombre < b.nombre) {
           return -1;

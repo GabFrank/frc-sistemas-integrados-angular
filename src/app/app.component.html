@@ -1,20 +1,10 @@
-<div
-  #container
-  class="mat-app-background darkMode"
-  style="height: 100%"
-  [style.cursor]="genericService.isLoading ? 'progress' : 'auto'"
->
+<div #container class="mat-app-background darkMode" style="height: 100%"
+  [style.cursor]="cursorStyle">
   <router-outlet></router-outlet>
 </div>
 
-<ngx-spinner
-  bdColor="rgba(0, 0, 0, 0.8)"
-  size="medium"
-  color="#fff"
-  type="ball-newton-cradle"
-  [fullScreen]="true"
-  fxLayout="column"
->
+<ngx-spinner bdColor="rgba(0, 0, 0, 0.8)" size="medium" color="#fff" type="ball-newton-cradle" [fullScreen]="true"
+  fxLayout="column">
   <p style="color: white">Cargando...</p>
   <app-boton [delay]="10000" nombre="Cerrar" (clickEvent)="onCerrarCargando()"></app-boton>
 </ngx-spinner>

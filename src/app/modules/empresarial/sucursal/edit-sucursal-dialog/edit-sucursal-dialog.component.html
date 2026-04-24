@@ -1,0 +1,187 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>{{ selectedSucursal.id ? 'Editar' : 'Nueva' }} Sucursal</h2>
+  
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="15px">
+    <!-- Nombre -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Nombre</mat-label>
+          <input
+            matInput
+            [formControl]="nombreControl"
+            required
+            #nombre
+          />
+          <mat-error *ngIf="nombreControl.hasError('required')">
+            Nombre es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Localización -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Localización</mat-label>
+          <input
+            matInput
+            [formControl]="localizacionControl"
+            required
+          />
+          <mat-error *ngIf="localizacionControl.hasError('required')">
+            Localización es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Dirección -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Dirección</mat-label>
+          <input
+            matInput
+            [formControl]="direccionControl"
+          />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Ciudad -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Ciudad</mat-label>
+          <mat-select [formControl]="ciudadControl" required>
+            <mat-option *ngFor="let ciudad of ciudadList" [value]="ciudad.id">
+              {{ ciudad.descripcion | titlecase }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="ciudadControl.hasError('required')">
+            Ciudad es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- IP y Puerto -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="60%">
+        <mat-form-field style="width: 100%">
+          <mat-label>IP</mat-label>
+          <input
+            matInput
+            [formControl]="ipControl"
+          />
+          <mat-error *ngIf="ipControl.hasError('pattern')">
+            Formato de IP inválido (ej: 192.168.1.1)
+          </mat-error>
+        </mat-form-field>
+      </div>
+      <div fxFlex="40%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Puerto</mat-label>
+          <input
+            matInput
+            type="number"
+            [formControl]="puertoControl"
+          />
+          <mat-error *ngIf="puertoControl.hasError('min')">
+            El puerto debe ser mayor o igual a 0
+          </mat-error>
+          <mat-error *ngIf="puertoControl.hasError('max')">
+            El puerto debe ser menor o igual a 65535
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Número de Delivery -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Número de Delivery</mat-label>
+          <input
+            matInput
+            [formControl]="nroDeliveryControl"
+          />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Código Establecimiento Factura -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Código Establecimiento Factura</mat-label>
+          <input
+            matInput
+            [formControl]="codigoEstablecimientoFacturaControl"
+          />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Checkboxes -->
+    <div fxLayout="column" fxLayoutGap="10px">
+      <!-- Primera fila: Es Depósito y Depósito Predeterminado -->
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="depositoControl"
+            [checked]="depositoControl.value">
+            Es Depósito
+          </mat-checkbox>
+        </div>
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="depositoPredeterminadoControl"
+            [checked]="depositoPredeterminadoControl.value">
+            Depósito Predeterminado
+          </mat-checkbox>
+        </div>
+      </div>
+      
+      <!-- Segunda fila: Configurado y Activo -->
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="isConfiguredControl"
+            [checked]="isConfiguredControl.value">
+            Configurado
+          </mat-checkbox>
+        </div>
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="activoControl"
+            [checked]="activoControl.value">
+            Activo
+          </mat-checkbox>
+        </div>
+      </div>
+      <div fxFlex="25%">
+        <mat-checkbox [formControl]="activoControl">
+          Activa
+        </mat-checkbox>
+      </div>
+    </div>
+  </form>
+
+  <!-- Action Buttons -->
+  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="margin-top: 20px;">
+    <button mat-raised-button color="primary" (click)="onCancelar()">
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      [disabled]="isEditting && formGroup.invalid"
+      (click)="isEditting ? onGuardar() : onHabilitarEdicion()"
+    >
+      {{ isEditting ? 'Guardar' : 'Editar' }}
+    </button>
+  </div>
+</div> 

@@ -1,0 +1,235 @@
+<app-generic-list
+  [titulo]="titulo"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
+  [isAdicionar]="mainService?.usuarioActual?.roles?.includes('ADMIN') || true"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="15">
+        <mat-label>Número</mat-label>
+        <input matInput [formControl]="numeroControl" placeholder="Buscar por número..." (keyup.enter)="onFilter()" />
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Proveedor</mat-label>
+        <input
+          matInput
+          [formControl]="proveedorControl"
+          placeholder="Buscar proveedor..."
+          [readonly]="selectedProveedor != null"
+          (click)="!selectedProveedor && onSearchProveedor()"
+          (keydown)="onProveedorKeyDown($event)"
+        />
+        <mat-icon
+          *ngIf="!selectedProveedor"
+          matSuffix
+          (click)="onSearchProveedor()"
+          style="cursor: pointer"
+        >
+          search
+        </mat-icon>
+        <button
+          *ngIf="selectedProveedor"
+          type="button"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="onClearProveedor(); $event.stopPropagation()"
+        >
+          <mat-icon style="cursor: pointer">clear</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option *ngFor="let opt of estadoOpciones" [value]="opt.value">
+            {{ opt.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+          <input matStartDate formControlName="inicio" placeholder="Desde" [max]="today" />
+          <input matEndDate formControlName="fin" placeholder="Hasta" [max]="today" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="numeroSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Número
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.numeroSolicitud }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="proveedor">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 25%">
+          Proveedor
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 25%">
+          {{ row.proveedor?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Fecha
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.fechaSolicitudFormattedComputed }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoTotal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Monto
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.moneda?.simbolo }} {{ row.montoTotal | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
+          {{ row.estadoDisplayNameComputed }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">
+          ...
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 10%">
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onEditarPago(row)">
+              <mat-icon>edit</mat-icon>
+              Editar pago
+            </button>
+            <button *ngIf="row.estado !== 'CANCELADO'" mat-menu-item (click)="onGestionarPago(row)">
+              <mat-icon>payments</mat-icon>
+              Gestionar pago
+            </button>
+            <button mat-menu-item (click)="onImprimir(row)">
+              <mat-icon>print</mat-icon>
+              Imprimir PDF
+            </button>
+            <button mat-menu-item (click)="onImprimirTicket(row)">
+              <mat-icon>receipt_long</mat-icon>
+              Imprimir ticket
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let row"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="row === expandedSolicitud ? 'expanded' : 'collapsed'"
+            fxLayout="row"
+            fxLayoutGap="16px"
+          >
+            <div class="expand-section expand-section-notas" fxFlex="50">
+              <div class="expand-section-title">Notas vinculadas</div>
+              <div *ngIf="row?.notasRecepcion?.length; else sinNotas" class="expand-table-wrapper">
+                <table mat-table [dataSource]="row.notasRecepcion" class="expand-table expand-table-notas">
+                  <ng-container matColumnDef="numero">
+                    <th mat-header-cell *matHeaderCellDef>Número</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.numero }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="fecha">
+                    <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.fecha | date:'dd/MM/yyyy' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="monto">
+                    <th mat-header-cell *matHeaderCellDef>Monto</th>
+                    <td mat-cell *matCellDef="let nr">{{ (nr.montoIncluido ?? nr.notaRecepcion?.valorTotal) | number:'1.0-0' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="estado">
+                    <th mat-header-cell *matHeaderCellDef>Estado</th>
+                    <td mat-cell *matCellDef="let nr">{{ nr.notaRecepcion?.estado }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="ver">
+                    <th mat-header-cell *matHeaderCellDef>Ver nota</th>
+                    <td mat-cell *matCellDef="let nr">
+                      <button mat-button color="primary" (click)="onVerNota(nr.notaRecepcion?.id); $event.stopPropagation()" type="button">
+                        <mat-icon>visibility</mat-icon>
+                        Ver nota
+                      </button>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="['numero','fecha','monto','estado','ver']"></tr>
+                  <tr mat-row *matRowDef="let r; columns: ['numero','fecha','monto','estado','ver']"></tr>
+                </table>
+              </div>
+              <ng-template #sinNotas>
+                <p class="expand-empty">No hay notas vinculadas</p>
+              </ng-template>
+            </div>
+            <div class="expand-section expand-section-pagos" fxFlex="50">
+              <div class="expand-section-title">Pagos vinculados</div>
+              <p class="expand-placeholder">(Próximamente)</p>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedSolicitud === row"
+        [ngClass]="estadoToRowClass[row.estado] || ''"
+        (click)="onRowClick(row)"
+      ></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+    </table>
+    <mat-paginator
+      itemsPerPageLabel="Items por página"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="length"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>

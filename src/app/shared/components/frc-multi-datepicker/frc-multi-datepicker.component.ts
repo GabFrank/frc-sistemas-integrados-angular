@@ -63,6 +63,12 @@ export class FrcMultiDatepickerComponent implements OnInit, OnChanges {
   ngOnInit() {
     this.selectedDates = this.initialDates;
     this.updateDisplayDates();
+    
+    // Apply initial disabled state
+    if (this.disabled) {
+      this.dateControl.disable();
+      this.displayDateControl.disable();
+    }
   }
 
   addEvent(event) {
@@ -140,8 +146,10 @@ export class FrcMultiDatepickerComponent implements OnInit, OnChanges {
     if(changes['disabled'] && !changes['disabled'].firstChange){
       if(this.disabled){
         this.dateControl.disable();
+        this.displayDateControl.disable();
       } else {
         this.dateControl.enable();
+        this.displayDateControl.enable();
       }
     }
   }

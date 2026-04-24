@@ -1,0 +1,48 @@
+<div style="padding: 20px; min-height: 300px;" fxLayout="column">
+  <div style="width: 100%;" fxLayoutAlign="center">
+      <button 
+          fxFlex="50" 
+          mat-raised-button 
+          color="accent"
+          (click)="openNewObservacion(selectedCaja)"
+        >
+          Nueva Observación
+      </button>
+  </div>
+  <div style="width: 100%; text-align: center; padding-top: 10px;">
+    <h3>Lista de Observaciones</h3>
+  </div>
+  <div>
+  <table mat-table [dataSource]="addCajaObservacionDataSource"  class="mat-elevation-z8">
+    <ng-container matColumnDef="id">
+      <th mat-header-cell  *matHeaderCellDef>ID</th>
+      <td mat-cell *matCellDef="let observacion">{{ observacion.id }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="descripcion">
+      <th mat-header-cell *matHeaderCellDef>Descripción</th>
+      <td mat-cell *matCellDef="let observacion"> 
+        {{ observacion.descripcion ? observacion.descripcion : 'SIN DESCRIPCIÓN' }} 
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="motivo">
+      <th mat-header-cell *matHeaderCellDef>Motivo</th>
+      <td mat-cell *matCellDef="let observacion"> {{ observacion?.cajaMotivoObservacion?.descripcion | uppercase }} </td>
+    </ng-container>
+   
+    <ng-container matColumnDef="encargado">
+      <th mat-header-cell *matHeaderCellDef>Encargado</th>
+      <td mat-cell *matCellDef="let observacion"> {{ observacion?.usuario?.persona?.nombre | uppercase }} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="creadoEn">
+      <th mat-header-cell *matHeaderCellDef>Creado En</th>
+      <td mat-cell *matCellDef="let observacion"> {{ observacion?.creadoEn | date : "dd/MM/yyyy HH:mm" }} </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="['id', 'descripcion', 'motivo', 'encargado', 'creadoEn']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['id', 'descripcion', 'motivo', 'encargado', 'creadoEn']"></tr>
+  </table>
+  </div>
+</div>

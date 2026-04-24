@@ -338,6 +338,7 @@
           *ngIf="formaPagoList?.length > 0"
         >
           <app-boton
+            #efectivoInput
             style="height: 80%"
             nombre="Efectivo (F4)"
             (clickEvent)="setFormaPago('EFECTIVO')"

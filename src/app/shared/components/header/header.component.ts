@@ -9,10 +9,10 @@ import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
 import { Observable, Subscription } from "rxjs";
-import { connectionStatusSub } from "../../../app.module";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
+import { LoginDialogService } from "../../services/login-dialog.service";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
 import { LoginService } from "./../../../modules/login/login.service";
 import { SearchBarDialogComponent } from "./../../widgets/search-bar-dialog/search-bar-dialog.component";
@@ -22,18 +22,14 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../environments/environment";
 import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
 import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
-import { ConfiguracionService } from "../../../modules/configuracion/configuracion.service";
-import { ConfigurarServidorDialogComponent } from "../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
+import { ConfiguracionService } from "../../services/configuracion.service";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
-import { resolve } from "path";
-import { rejects } from "assert";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
-
-// import { ApolloConfigService } from '../../../apollo-config.service';
-
+import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
+import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -42,17 +38,24 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   isDev = isDevMode();
-  isLocalhost = localStorage.getItem("ip") == "localhost";
-  status = false;
+  isLocalhost = false;
+  isLocal = true;
+  localStatus = false;
+  cloudStatus = false;
+  serverWarning = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
   editServerIp = false;
   serverIpControl = new FormControl();
-  statusSub: Subscription;
+  localStatusSub: Subscription;
+  cloudStatusSub: Subscription;
+  configChangedSub: Subscription;
   sucursalList: any[];
   readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
+  @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
+  unreadCount$ = this.notificacionesTableroService.unreadCount$;
 
   constructor(
     public mainService: MainService,
@@ -65,47 +68,94 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private actualizacionService: ActualizacionService,
     private configService: ConfiguracionService,
     private dialogoService: DialogosService,
-    private usuarioService: UsuarioService
-  ) {}
+    private usuarioService: UsuarioService,
+    private loginDialogService: LoginDialogService,
+    private notificacionesTableroService: NotificacionesTableroService
+  ) { 
+    setTimeout(() => {
+      console.log(this.mainService.usuarioActual);
+    }, 2000);
+  }
 
   ngOnInit(): void {
-    this.statusSub = connectionStatusSub
+    const config = this.configService.getConfig();
+    this.isLocalhost = config.serverIp === "localhost";
+    this.isLocal = config.isLocal;
+    this.configChangedSub = this.configService.configChanged
+      .pipe(untilDestroyed(this))
+      .subscribe(newConfig => {
+        this.isLocal = newConfig.isLocal;
+        this.isLocalhost = newConfig.serverIp === "localhost";
+        this.updateServerWarning();
+      });
+    this.localStatusSub = connectionStatusSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.status = res;
+        this.localStatus = res;
+        this.updateServerWarning();
       });
-
-    this.sucursalList = environment["sucursales"];
+    this.cloudStatusSub = cloudConnectionStatusSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.cloudStatus = res;
+        this.updateServerWarning();
+      });
+    this.sucursalList = environment["sucursales"] || [];
 
     this.appVersion = this.electronService.getAppVersion();
+
+    const tokenFcm = localStorage.getItem("pushToken");
+    if (tokenFcm && this.mainService.usuarioActual) {
+      this.notificacionesTableroService.setTokenFcm(tokenFcm);
+    }
+
+    this.mainService.authenticationSub
+      .pipe(untilDestroyed(this))
+      .subscribe((authenticated) => {
+        if (authenticated) {
+          const tokenFcm = localStorage.getItem("pushToken");
+          if (tokenFcm) {
+            this.notificacionesTableroService.setTokenFcm(tokenFcm);
+          }
+        }
+      });
+  }
+  private updateServerWarning(): void {
+    if (this.cloudStatus != null) {
+      if (this.isLocal && this.localStatus != null) {
+        this.serverWarning = (this.localStatus && !this.cloudStatus) || (!this.localStatus && this.cloudStatus);
+      } else {
+        this.serverWarning = !this.cloudStatus;
+      }
+    } else {
+      this.serverWarning = false;
+    }
   }
 
   toogleSideBar() {
     this.toogleSideBarEvent.emit();
-    setTimeout(() => {
-      window.dispatchEvent(new Event("resize"));
-    }, 300);
+  }
+
+  onOpenNotifications() {
+    this.openNotificationsEvent.emit();
   }
 
   async onLogout() {
     let inicioSesion = new InicioSesion();
     Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
-    inicioSesion.horaFin = new Date();  
-    if(inicioSesion != null && inicioSesion?.sucursal != null){
+    inicioSesion.horaFin = new Date();
+    if (inicioSesion != null && inicioSesion?.sucursal != null) {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
           .subscribe((res) => {
             resolve(res);
           });
-      }); 
-    }  
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuarioId");
-    this.mainService.usuarioActual = null;
-    this.mainService.logged = false;
+      });
+    }
+    this.mainService.logout();
     this.tabService.removeAllTabs();
-    this.electronService.relaunch();
+    this.loginDialogService.openLoginDialog();
   }
 
   onLogin() {
@@ -113,9 +163,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    //Called once, before the instance is destroyed.
-    //Add 'implements OnDestroy' to the class.
-    this.statusSub.unsubscribe();
+    this.localStatusSub.unsubscribe();
+    if (this.cloudStatusSub) {
+      this.cloudStatusSub.unsubscribe();
+    }
+    if (this.configChangedSub) {
+      this.configChangedSub.unsubscribe();
+    }
   }
 
   onSearch() {
@@ -126,8 +180,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   removeServer() {
-    // this.apolloService.removeClient()
-    // this.apolloService.connectClient()
   }
 
   createQrCode() {
@@ -146,22 +198,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
         },
       })
       .afterClosed()
-      .subscribe((res) => {});
+      .subscribe((res) => { });
+  }
+  openConfigDialog() {
+    this.configService
+      .showConfigDialog()
+      .pipe(untilDestroyed(this))
+      .subscribe((result) => {
+        if (result) {
+          this.dialogoService
+            .confirm("Configuración actualizada", "¿Desea reiniciar ahora para aplicar los cambios?")
+            .subscribe((shouldRestart) => {
+              if (shouldRestart) {
+                this.electronService.relaunch();
+              }
+            });
+        }
+      });
   }
 
   onGetConfiguracion() {
-    this.configService
-      .isConfigured()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!res) {
-          this.matDialog.open(ConfigurarServidorDialogComponent, {
-            width: "80%",
-            height: "500px",
-            disableClose: true,
-          });
-        }
-      });
+    this.openConfigDialog();
   }
 
   cambiarSucursal(sucursal) {
@@ -170,13 +227,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         .confirm("Atención!!", "Realmente quieres cambiar de sucursal?")
         .subscribe((res) => {
           if (res) {
-            localStorage.setItem("ip", sucursal["ip"]);
-            localStorage.setItem("port", sucursal["port"]);
-            localStorage.setItem("centralIp", environment["serverCentralIp"]);
-            localStorage.setItem(
-              "centralPort",
-              environment["serverCentralPort"] + ""
-            );
+            this.configService.updateConfig({
+              serverIp: sucursal["ip"]
+            });
             this.electronService.relaunch();
           }
         });
@@ -184,8 +237,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onDevMode(server) {
-    localStorage.setItem("ip", "localhost");
-    localStorage.setItem("port", server ? "8081" : "8082");
+    this.configService.updateConfig({
+      serverIp: "localhost"
+    });
     this.electronService.relaunch();
   }
 }

@@ -7,7 +7,6 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { UsuarioInput } from "./usuario-input.model";
-import { MainService } from "../../../main.service";
 import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -17,9 +16,12 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 import { UsuariosGQL } from "./graphql/usuariosQuery";
 import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonaId";
-import { PageInfo } from "../../../app.component";
 import { SaveInicioSesionGQL } from "./graphql/saveInicioSesion";
 import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inicio-sesion.model";
+
+import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
+import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
+import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -39,75 +41,60 @@ export class UsuarioService {
     private injector: Injector,
     private verificarUsuario: VerificarUsuarioGQL,
     private getUsuarios: UsuariosGQL,
-    private saveInicioSesion: SaveInicioSesionGQL
+    private saveInicioSesion: SaveInicioSesionGQL,
+    private getUsuarioImages: GetUsuarioImagesGQL,
+    private saveUsuarioImage: SaveUsuarioImageGQL,
+    private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL
 
-  ) // private mainService: MainService
-  {
+  ) {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
   }
 
-  onGetUsuarios(page): Observable<Usuario[]>{
-    return this.genericService.onGetAll(this.getUsuarios, page)
+  onGetUsuarios(page, servidor: boolean = true): Observable<Usuario[]> {
+    return this.genericService.onGetAll(this.getUsuarios, page, null, servidor)
   }
 
-  onGetUsuario(id: number): Observable<any> {
-    return this.genericService.onCustomQuery(this.getUsuario, {id});
+  onGetUsuario(id: number, servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
   }
 
-  onGetUsuarioPorPersonaId(id: number): Observable<any> {
-    return this.genericService.onGetById(this.getUsuarioPorPersonaId, id)
+  onGetUsuarioPorPersonaId(id: number, servidor: boolean = true, errorConf?: any): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioPorPersonaId, { id }, servidor, errorConf)
   }
 
-  onSeachUsuario(texto: string): Observable<Usuario[]> {
-    return this.genericService.onGetByTexto(this.searchUsuario, texto)
+  onSeachUsuario(texto: string, servidor: boolean = true): Observable<Usuario[]> {
+    return this.genericService.onGetByTexto(this.searchUsuario, texto, servidor)
   }
 
-  onSaveUsuario(input: UsuarioInput): Observable<any> {
-    return new Observable((obs) => {
-      if (input.usuarioId == null) {
-        input.usuarioId = +localStorage.getItem("usuarioId");
-      }
-      this.saveUsuario
-        .mutate(
-          {
-            entity: input,
-          },
-          { errorPolicy: "all" }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-            this.notificacionBar.notification$.next({
-              texto: "Producto guardado con éxito",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-          } else {
-            obs.next(null);
-            this.notificacionBar.notification$.next({
-              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 4,
-            });
-          }
-        });
-    });
+  onSaveUsuario(input: UsuarioInput, servidor: boolean = true): Observable<any> {
+    return this.genericService.onSave(this.saveUsuario, input, null, null, servidor)
   }
 
-  onDeleteUsuario(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteUsuario, id)
+  onDeleteUsuario(id, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteUsuario, id, "¿Eliminar usuario?", null, true, servidor, "¿Está seguro que desea eliminar este usuario?");
   }
 
-  onDeleteUsuarioSinDialogo(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteUsuario, id, null, null,)
+  onDeleteUsuarioSinDialogo(id, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteUsuario, id, null, null, false, servidor)
   }
 
-  onVerificarUsuario(texto): Observable<boolean>{
-    return this.genericService.onGetByTexto(this.verificarUsuario, texto)
+  onVerificarUsuario(texto, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onGetByTexto(this.verificarUsuario, texto, servidor)
   }
 
-  onSaveInicioSesion(entity: InicioSesionInput): Observable<InicioSesion>{
-    return this.genericService.onSave(this.saveInicioSesion, entity);
+  onSaveInicioSesion(entity: InicioSesionInput, servidor: boolean = true): Observable<InicioSesion> {
+    return this.genericService.onSave(this.saveInicioSesion, entity, null, null, servidor);
+  }
+
+  onGetUsuarioImages(id: number, type: string, servidor: boolean = true, errorConf?: any): Observable<string[]> {
+    return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor, errorConf);
+  }
+
+  onSaveUsuarioImage(id: number, type: string, image: string, embedding: number[], servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image, embedding }, servidor);
+  }
+
+  onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding, excludeIds }, servidor, null, true);
   }
 }

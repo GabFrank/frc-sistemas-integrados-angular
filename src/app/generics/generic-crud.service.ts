@@ -11,6 +11,7 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { Apollo } from "apollo-angular";
 
 /**
  * Interfaz para gestionar el manejo de errores en una solicitud GraphQL.
@@ -58,12 +59,13 @@ export class GenericCrudService {
     private dialogoService: DialogosService,
     private notificacionBar: NotificacionSnackbarService,
     private cargandoService: CargandoDialogService,
-    private injector: Injector
+    private injector: Injector,
+    private apollo: Apollo
   ) {
     setTimeout(() => (this.mainService = injector.get(MainService)));
   }
 
-  onGetAll(gql: Query, page?, size?, servidor?): Observable<any> {
+  onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -77,7 +79,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -100,31 +102,40 @@ export class GenericCrudService {
     });
   }
 
-  onCustomQuery(gql: Query, data, servidor?, errorConf?, silentLoad?:boolean): Observable<any> {
-    console.log("Entrando en custom query");
-
+  onCustomQuery(
+    gql: Query,
+    data,
+    servidor: boolean = true,
+    errorConf?,
+    silentLoad?: boolean
+  ): Observable<any> {
     this.isLoading = true;
-    let { requestId = null, signal = null } = silentLoad != true ? this.cargandoService.openDialog(
-      false,
-      "Buscando..."
-    ) : {};
+    // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
+    const shouldShowDialog = silentLoad !== true;
+    let { requestId = null, signal = null } =
+      shouldShowDialog
+        ? this.cargandoService.openDialog(false, "Buscando...")
+        : {};
     return new Observable((obs) => {
-      gql
-        .fetch(data, {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-          context: {
-            clientName: servidor == true ? "servidor" : null,
-            fetchOptions: { signal },
-          },
-        })
+      this.apollo.query({
+        query: gql.document,
+        variables: data,
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all',
+        context: {
+          clientName: servidor == null || servidor ? "servidor" : null,
+          fetchOptions: { signal },
+        },
+      })
         .pipe(
           untilDestroyed(this),
           timeout(300000) // Adjust as per your needs
         )
         .subscribe({
           next: (res) => {
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -139,7 +150,9 @@ export class GenericCrudService {
           },
           error: (error) => {
             this.isLoading = false;
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            if (shouldShowDialog) {
+              this.cargandoService.closeDialog(requestId);
+            }
             if (errorConf?.networkError?.show == true) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
@@ -156,35 +169,57 @@ export class GenericCrudService {
     });
   }
 
-  onCustomMutation(gql: Mutation, data, servidor?): Observable<any> {
+  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
-      false,
-      "Guardando..."
-    );
+    let requestId: number | null = null;
+    let signal: AbortSignal | undefined;
+    
+    if (silentLoad !== true) {
+      const result = this.cargandoService.openDialog(
+        false,
+        "Guardando..."
+      );
+      requestId = result.requestId;
+      signal = result.signal;
+    }
+    
     return new Observable((obs) => {
       gql
         .mutate(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
-            fetchOptions: { signal }
+            clientName: servidor == null || servidor ? "servidor" : null,
+            fetchOptions: { signal },
           },
         })
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
+        .subscribe({
+          next: (res) => {
+            if (silentLoad !== true) {
+              this.cargandoService.closeDialog(requestId);
+            }
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              if (silentLoad !== true) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              obs.error(res.errors);
+            }
+          },
+          error: (error) => {
+            if (silentLoad !== true) {
+              this.cargandoService.closeDialog(requestId);
+            }
+            this.isLoading = false;
+            obs.error(error);
           }
         });
     });
@@ -193,7 +228,7 @@ export class GenericCrudService {
   onCustomSub(
     gql: Subscription,
     data,
-    servidor?,
+    servidor: boolean = true,
     cargando?: boolean
   ): Observable<any> {
     this.isLoading = true;
@@ -212,7 +247,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -241,17 +276,19 @@ export class GenericCrudService {
     id: number,
     page?,
     size?,
-    servidor?,
+    servidor: boolean = true,
     sucId?,
     error?,
     duracion?,
-    silentLoad?
+    silentLoad?,
+    errorText?,
+    warningText?
   ): Observable<T> {
     this.isLoading = true;
-    let { requestId = null, signal = null } = silentLoad != true ? this.cargandoService.openDialog(
-      false,
-      "Buscando..."
-    ) : {};
+    let { requestId = null, signal = null } =
+      silentLoad != true
+        ? this.cargandoService.openDialog(false, "Buscando...")
+        : {};
     return new Observable((obs) => {
       gql
         .fetch(
@@ -260,7 +297,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -268,7 +305,9 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this))
         .subscribe(
           (res) => {
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            silentLoad != true
+              ? this.cargandoService.closeDialog(requestId)
+              : null;
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -282,7 +321,7 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -290,7 +329,7 @@ export class GenericCrudService {
           },
           (err) => {
             this.notificacionBar.openWarn(
-              "Problema al realizar esta operación"
+              warningText != null ? warningText : "Problema al realizar esta operación"
             );
             this.cargandoService.closeDialog(requestId);
           }
@@ -301,8 +340,9 @@ export class GenericCrudService {
   onGetByTexto(
     gql: Query,
     texto: string,
-    servidor?,
-    duracion?
+    servidor: boolean = true,
+    duracion?,
+    errorConf?: QueryError
   ): Observable<any> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
@@ -318,25 +358,48 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              const errorMessage = res.errors[0].message;
+              if (errorConf?.graphError?.show !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + errorMessage,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              if (errorConf?.graphError?.propagate === true) {
+                obs.error({ message: errorMessage, errors: res.errors });
+              }
+            }
+          },
+          error: (error) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (errorConf?.networkError?.show === true) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Error de red",
+                color:
+                  errorConf?.networkError?.color || NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+            if (errorConf?.networkError?.propagate === true) {
+              obs.error(error);
+            }
+          },
         });
     });
   }
@@ -346,13 +409,18 @@ export class GenericCrudService {
     input,
     printerName?: string,
     local?: string,
-    servidor?,
-    errorConf?: QueryError
+    servidor: boolean = true,
+    errorConf?: QueryError,
+    usuarioId?: number
   ): Observable<T> {
     this.isLoading = true;
-    if (input?.usuarioId == null) {
-      input.usuarioId = this.mainService.usuarioActual.id;
+    if (usuarioId == null) usuarioId = this.mainService.usuarioActual.id;
+    if ("usuarioId" in input) {
+      if (input?.usuarioId == null) {
+        input["usuarioId"] = this.mainService.usuarioActual.id;
+      }
     }
+
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
       "Guardando..."
@@ -365,7 +433,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -416,7 +484,7 @@ export class GenericCrudService {
     });
   }
 
-  onSaveCustom<T>(gql: Mutation, data, servidor?): Observable<T> {
+  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -428,7 +496,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -464,7 +532,8 @@ export class GenericCrudService {
     titulo?,
     data?: any,
     showDialog?: boolean,
-    servidor?
+    servidor: boolean = true,
+    mensaje?: string
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
@@ -480,7 +549,7 @@ export class GenericCrudService {
             {
               errorPolicy: "all",
               context: {
-                clientName: servidor == true ? "servidor" : null,
+                clientName: servidor == null || servidor ? "servidor" : null,
                 fetchOptions: { signal },
               },
             }
@@ -511,7 +580,7 @@ export class GenericCrudService {
           });
       } else {
         this.dialogoService
-          .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
+          .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
             const { requestId, signal } = this.cargandoService.openDialog(
@@ -527,7 +596,7 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null,
+                      clientName: servidor == null || servidor ? "servidor" : null,
                       fetchOptions: { signal },
                     },
                   }
@@ -570,7 +639,7 @@ export class GenericCrudService {
     titulo?,
     data?: any,
     showDialog?: boolean,
-    servidor?
+    servidor: boolean = true
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
@@ -587,7 +656,7 @@ export class GenericCrudService {
             {
               errorPolicy: "all",
               context: {
-                clientName: servidor == true ? "servidor" : null,
+                clientName: servidor == null || servidor ? "servidor" : null,
                 fetchOptions: { signal },
               },
             }
@@ -634,7 +703,7 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null,
+                      clientName: servidor == null || servidor ? "servidor" : null,
                       fetchOptions: { signal },
                     },
                   }
@@ -674,7 +743,7 @@ export class GenericCrudService {
     gql: any,
     inicio: Date,
     fin: Date,
-    servidor?,
+    servidor: boolean = true,
     sucId?
   ): Observable<any> {
     let hoy = new Date();
@@ -711,7 +780,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -740,7 +809,7 @@ export class GenericCrudService {
     info?: string,
     printerName?: string,
     pdvId?: number,
-    servidor?,
+    servidor: boolean = true,
     error?: boolean
   ) {
     const { requestId, signal } = this.cargandoService.openDialog();
@@ -758,7 +827,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }

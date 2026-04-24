@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { MainService } from '../../../../main.service';
 import { Presentacion } from '../../presentacion/presentacion.model';
 import { TipoPrecio } from '../../tipo-precio/tipo-precio.model';
 import { TipoPrecioService } from '../../tipo-precio/tipo-precio.service';
@@ -28,7 +29,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   selectedPrecioPorSucursal: PrecioPorSucursal;
   precioControl = new FormControl(null, Validators.required);
   principalControl = new FormControl(null);
-  tipoPrecioControl = new FormControl(null);
+  tipoPrecioControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(null);
   precioInput = new PrecioPorSucursalInput;
   isEditting = false;
@@ -40,13 +41,13 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     private precioService: PrecioPorSucursalService,
     private notificacionSnackBar: NotificacionSnackbarService,
     private tipoPrecioService: TipoPrecioService,
-    private cargandoDialog: CargandoDialogService
+    private cargandoDialog: CargandoDialogService,
+    private mainService: MainService
   ) {}
 
   ngOnInit(): void {
     this.createForm();
 
-    //inicializando arrays
     this.tipoPrecioList = []
 
     this.loadTipoPrecios()
@@ -61,8 +62,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
 
   loadTipoPrecios(){
     this.tipoPrecioService.onGetAllTipoPrecios().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res.errors==null){
-        this.tipoPrecioList = res.data.data;
+      if(res!=null){
+        this.tipoPrecioList = res;
       }
     })
   }
@@ -74,11 +75,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.formGroup.addControl("activo", this.activoControl);
     this.formGroup.addControl("tipoPrecio", this.tipoPrecioControl);
 
-    //inicializando controles
     this.principalControl.setValue(false);
     this.activoControl.setValue(true);
-
-
   }
 
   cargarDato() {
@@ -86,28 +84,95 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioControl.setValue(this.selectedPrecioPorSucursal.precio);
     this.principalControl.setValue(this.selectedPrecioPorSucursal.principal);
     this.activoControl.setValue(this.selectedPrecioPorSucursal.activo);
-    this.tipoPrecioControl.setValue(this.selectedPrecioPorSucursal.tipoPrecio.id);
+    
+    if (this.selectedPrecioPorSucursal.tipoPrecio && this.selectedPrecioPorSucursal.tipoPrecio.id) {
+      this.tipoPrecioControl.setValue(this.selectedPrecioPorSucursal.tipoPrecio.id);
+    }
 
-    //cargar input
     this.precioInput.id = this.selectedPrecioPorSucursal.id;
 
-    console.log(this.tipoPrecioControl.value)
+    console.log('Tipo precio cargado:', this.tipoPrecioControl.value);
   }
 
   onSave() {
-    this.cargandoDialog.openDialog()
+    if (!this.formGroup.valid) {
+      this.notificacionSnackBar.notification$.next({
+        texto: "Por favor complete todos los campos obligatorios",
+        color: NotificacionColor.warn,
+        duracion: 3
+      });
+      return;
+    }
+
+    this.cargandoDialog.openDialog();
+    
     this.precioInput.precio = this.precioControl.value;
     this.precioInput.activo = this.activoControl.value;
     this.precioInput.principal = this.principalControl.value;
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
-    //primero buscar si ya existe el codigo a guardar
+
+    if (this.principalControl.value === true) {
+      this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)
+        .pipe(untilDestroyed(this))
+        .subscribe((preciosExistentes: PrecioPorSucursal[]) => {
+          const updatePromises = [];
+          
+          if (preciosExistentes && preciosExistentes.length > 0) {
+            preciosExistentes.forEach(precio => {
+              if (precio.principal && precio.id !== this.precioInput.id) {
+                // Crear input para la actualización
+                const updateInput = new PrecioPorSucursalInput();
+                updateInput.id = precio.id;
+                updateInput.precio = precio.precio;
+                updateInput.activo = precio.activo;
+                updateInput.principal = false;
+                updateInput.presentacionId = this.data.presentacion.id;
+                updateInput.tipoPrecioId = precio.tipoPrecio?.id;
+                updateInput.sucursalId = this.mainService?.sucursalActual?.id;
+                updateInput.usuarioId = null;
+                
+                updatePromises.push(
+                  this.precioService.onSave(updateInput, false).pipe(untilDestroyed(this))
+                );
+              }
+            });
+          }
+
+          if (updatePromises.length > 0) {
+            Promise.all(updatePromises.map(promise => promise.toPromise()))
+              .then(() => {
+                this.guardarPrecio();
+              })
+              .catch(error => {
+                console.error('Error al actualizar precios principales:', error);
+                this.guardarPrecio();
+              });
+          } else {
+            this.guardarPrecio();
+          }
+        });
+    } else {
+      this.guardarPrecio();
+    }
+  }
+
+  private guardarPrecio() {
+    this.precioInput.sucursalId = this.mainService?.sucursalActual?.id;
+    
     this.precioService.onSave(this.precioInput).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoDialog.closeDialog()
-      if(res!=null){
-        this.matDialogRef.close(res)
+      this.cargandoDialog.closeDialog();
+      if (res != null) {
+        this.matDialogRef.close(res);
       }
-    })    
+    }, error => {
+      this.cargandoDialog.closeDialog();
+      this.notificacionSnackBar.notification$.next({
+        texto: "Error al guardar el precio",
+        color: NotificacionColor.warn,
+        duracion: 3
+      });
+    });
   }
 
   onCancelar() {

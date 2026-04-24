@@ -10,14 +10,14 @@ import { MatButton } from "@angular/material/button";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { CurrencyMask } from "../../../../commons/core/utils/numbersUtils";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { PedidoItem } from "../../pedido/edit-pedido/pedido-item.model";
+// import { PedidoItem } from "../../pedido/edit-pedido/pedido-item.model";
 import { CompraItemEstado } from "../compra-enums";
 import { CompraItem } from "../compra-item.model";
 import { CompraService } from "../compra.service";
 
 class AdicionarDetalleCompraItemDialogData {
   compraItem: CompraItem;
-  pedidoItem: PedidoItem;
+  // pedidoItem: PedidoItem;
   modificarPrecio?: boolean
 }
 
@@ -85,11 +85,11 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
     this.selectedCompraItem.cantidad = this.cantidadPorUnidadControl.value
     this.selectedCompraItem.vencimiento = this.vencimientoControl.value
     this.selectedCompraItem.lote = this.loteControl.value
-    if(this.onComparar(this.selectedCompraItem, this.data.pedidoItem)){
-      this.selectedCompraItem.estado = CompraItemEstado.MODIFICADO
-    } else {
-      this.selectedCompraItem.estado = CompraItemEstado.SIN_MODIFICACIONN
-    }
+    // if(this.onComparar(this.selectedCompraItem, this.data.compraItem)){
+    //   this.selectedCompraItem.estado = CompraItemEstado.MODIFICADO
+    // } else {
+    //   this.selectedCompraItem.estado = CompraItemEstado.SIN_MODIFICACIONN
+    // }
     this.selectedCompraItem.verificado = false;
     this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
@@ -143,15 +143,15 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
     }
   }
 
-  onComparar(compraItem: CompraItem, pedidoItem: PedidoItem): boolean {
-    if (
-      (compraItem.precioUnitario != pedidoItem?.precioUnitario ||
-      compraItem.descuentoUnitario != pedidoItem?.descuentoUnitario ||
-      compraItem.cantidad != pedidoItem?.cantidad)
-    ) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+  // onComparar(compraItem: CompraItem, compraItem: CompraItem): boolean {
+  //   if (
+  //     (compraItem.precioUnitario != compraItem?.precioUnitarioCreacion ||
+  //     compraItem.descuentoUnitario != compraItem?.descuentoUnitarioCreacion ||
+  //     compraItem.cantidad != compraItem?.cantidadCreacion)
+  //   ) {
+  //     return true;
+  //   } else {
+  //     return false;
+  //   }
+  // }
 }

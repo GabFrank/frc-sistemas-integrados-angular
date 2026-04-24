@@ -18,7 +18,7 @@ export class Role {
 export class RoleInput {
     id: number;
     nombre: string;
-    usuarioId: number;
+    usuarioId: number = null;
 }
 
 export class UsuarioRole {
@@ -42,5 +42,5 @@ export class UsuarioRoleInput {
     id: number;
     userId: number;
     roleId: number;
-    usuarioId: number;
+    usuarioId: number = null;
 }

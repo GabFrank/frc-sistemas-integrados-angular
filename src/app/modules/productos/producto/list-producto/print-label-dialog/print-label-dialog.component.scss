@@ -1,0 +1,162 @@
+.dialog-content {
+  padding: 16px 0;
+}
+
+.product-info {
+  text-align: center;
+  margin-bottom: 16px;
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  color: black
+}
+
+.product-info h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 50px;
+  color: black;
+}
+
+.price {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color: #000;
+}
+
+.my-3 {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.spinner-inline {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+mat-dialog-content {
+  min-width: 350px;
+  max-width: 500px;
+  padding-top: 20px !important;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+// Label preview styles
+.label-preview {
+  margin-top: 20px;
+  margin-bottom: 20px;
+
+  h3 {
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+}
+
+.label-shape {
+  width: 250px;
+  height: 150px;
+  border: 1px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  margin: 0 auto;
+  background-color: white;
+
+  // Landscape orientation
+  &.landscape {
+    width: 150px;
+    height: 250px;
+  }
+}
+
+.label-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: black;
+
+  .product-name {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+
+  .product-price {
+    font-size: 22px;
+    font-weight: bold;
+  }
+}
+
+// Form sections spacing
+.label-type-selection,
+.printer-selection,
+.quantity-selection,
+.barcode-data,
+.qr-data,
+.qr-title,
+.checkbox-options {
+  margin-bottom: 15px;
+}
+
+.checkbox-options {
+  margin-top: 10px;
+
+  mat-checkbox {
+    display: block;
+    margin-bottom: 10px;
+  }
+}
+
+// Dialog
+mat-dialog-actions {
+  padding: 16px 0;
+}
+
+h2 {
+  margin-bottom: 0;
+}
+
+.button-spinner {
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.box {
+  width: 160px;
+  height: 160px;
+  margin: 8px auto;
+  background: #ffffff;
+  position: relative;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+h2 {
+  padding-bottom: 0;
+}
+
+.img-size {
+  max-width:150px;
+  max-height:150px;
+}

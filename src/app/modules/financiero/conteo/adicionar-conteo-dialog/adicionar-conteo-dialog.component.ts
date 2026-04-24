@@ -26,6 +26,7 @@ import { Conteo } from "../conteo.model";
 export class AdicionarConteoData {
   conteo?: Conteo;
   sucId?: number;
+  isVentaTouch?: boolean;
 }
 
 export interface AdicionarConteoResponse {
@@ -57,7 +58,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   @Input() cajaId;
   @Input() sucursalId;
   @Input() nombreBoton: string;
-
+  @Input() isVentaTouch: boolean;
   @Output()
   onGetConteoMoneda = new EventEmitter<AdicionarConteoResponse>(null);
 
@@ -231,7 +232,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   cargarMonedas() {
-    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
+    this.monedaService.onGetAll(false).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         let monedaList: Moneda[] = res;
         monedaList.forEach((m) => {
@@ -350,7 +351,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         if (res) {
           this.conteoService
-            .onSave(conteo, this.cajaId, apertura )
+            .onSave(conteo, this.cajaId, apertura, !this.isVentaTouch)
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res != null) {

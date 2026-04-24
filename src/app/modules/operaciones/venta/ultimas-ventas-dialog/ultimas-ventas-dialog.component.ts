@@ -19,8 +19,11 @@ class UltimasVentasDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { MatPaginator } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { catchError, map, merge, startWith, switchMap, Observable, of as observableOf } from "rxjs";
+import { VentaEstado } from "../enums/venta-estado.enums";
+import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
+import { PageInfo } from "../../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -29,12 +32,19 @@ import { catchError, map, merge, startWith, switchMap, Observable, of as observa
   styleUrls: ["./ultimas-ventas-dialog.component.scss"],
 })
 export class UltimasVentasDialogComponent implements OnInit {
-
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<Venta>([]);
   selectedVenta: Venta;
   codigoVentaControl = new FormControl();
   titulo = "";
+  isLoading = false;
+  selectedPageInfo: PageInfo<Venta>;
+
+  // Pagination properties
+  pageIndex = 0;
+  pageSize = 10;
+  pageSizeOptions = [5, 10, 15, 25, 50];
 
   displayedColumns = [
     "id",
@@ -57,40 +67,40 @@ export class UltimasVentasDialogComponent implements OnInit {
     private dialogService: DialogosService
   ) {
     if (data?.cancelacion == true) {
-      this.titulo = "Cancelar venta";
+      this.titulo = "CANCELAR VENTA";
     } else if (data?.reimpresion == true) {
-      this.titulo = "Reimpresión de ticket";
+      this.titulo = "REIMPRESIÓN DE TICKET";
     }
   }
 
   ngOnInit(): void {
+    this.cargarVentas();
+  }
+
+  cargarVentas() {
+    this.isLoading = true;
     this.ventaService
-      .onSearch(null, this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
+        this.isLoading = false;
         if (res != null) {
+          this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
         }
       });
   }
 
-  buscarVentas() {
-    this.ventaService
-      .onSearch(null, this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = res.getContent;
-        }
-      });
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.cargarVentas();
   }
-
 
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {
-      this.cargandoService.openDialog();
       this.ventaService
-        .onGetPorId(this.codigoVentaControl.value).pipe(untilDestroyed(this))
+        .onGetPorId(this.codigoVentaControl.value, null, null, false).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
           if (res != null) {
             this.dataSource.data = [res];
           } else {
@@ -107,37 +117,36 @@ export class UltimasVentasDialogComponent implements OnInit {
     }
   }
 
-  cancelarVenta(id) {
-    this.cargandoService.openDialog(false, 'Cancelando venta');
+  cancelarVenta(venta: Venta, index) {
     this.dialogService
       .confirm(
-        "Realmente desea cancelar la venta " + id + "?",
-        null,
-        null,
-        null
+        "ATENCIÓN!!",
+        "Realmente desea cancelar la venta " + venta.id + "?",
+        "Al cancelar una venta debe escribir el motivo de canceación en el ticket y enviar una foto de la nota"
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          // this.ventaService.onCancelarVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
-          //   setTimeout(() => {
-          //     this.cargandoService.closeDialog();
-          //   }, 1000);
-          //   if (res != null) {
-          //     console.log("exito");
-          //     this.dataSource.data = [];
-          //     this.buscarVentas();
-          //   }
-          // });
+          this.ventaService.onCancelarVenta(venta.id, venta.sucursalId, false).pipe(untilDestroyed(this)).subscribe((res) => {
+            if (res) {
+              this.notificacionSnackBar.openSucess("Cancelado con éxito");
+              venta.estado = VentaEstado.CANCELADA;
+              this.dataSource.data = updateDataSource(this.dataSource.data, venta, index);
+              this.reimpresionVenta(venta.id);
+            }
+          });
         }
       });
   }
 
   reimpresionVenta(id) {
-    this.cargandoService.openDialog();
-    this.ventaService.onReimprimirVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoService.closeDialog();
+    this.ventaService.onReimprimirVenta(id, false).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
+        this.notificacionSnackBar.openSucess("Reimpreso con éxito");
       }
     });
+  }
+
+  salir() {
+    this.matDialogRef.close();
   }
 }

@@ -76,7 +76,7 @@
           (click)="selectedPrecio = precio; onGridCardClick(presentacion)"
         >
           <div fxFlex>
-            {{ precio?.tipoPrecio?.descripcion?.substring(0, 4) | uppercase }}
+            {{ precio?.tipoPrecio?.descripcion | uppercase }}
           </div>
           <div fxFlex>
             {{ precio?.precio | number : "1.0-2" }}

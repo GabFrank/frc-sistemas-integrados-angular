@@ -3,6 +3,8 @@ import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Conteo } from "../../conteo/conteo.model";
 import { Maletin } from "../../maletin/maletin.model";
 
+import { CajaObservacion } from "../caja-observacion/caja-observacion.model";
+
 export class PdvCaja {
     id:number;
     descripcion: string
@@ -12,6 +14,7 @@ export class PdvCaja {
     fechaApertura: Date
     fechaCierre: Date
     observacion: String
+    cajaObservacionList: CajaObservacion[]
     maletin: Maletin
     creadoEn: Date
     usuario: Usuario
@@ -23,9 +26,28 @@ export class PdvCaja {
     verificado: boolean;
     verificadoPor: Usuario;
 
-    constructor(id, sucId){
-        this.id = id;
-        this.sucursalId = sucId;
+    constructor(){
+    }
+
+    toInput(): PdvCajaInput {
+        let input = new PdvCajaInput();
+        input.id = this.id;
+        input.descripcion = this.descripcion;
+        input.activo = this.activo;
+        input.estado = this.estado;
+        input.tuvoProblema = this.tuvoProblema;
+        input.fechaApertura = this.fechaApertura;
+        input.fechaCierre = this.fechaCierre;
+        input.observacion = this.observacion;
+        input.maletinId = this.maletin?.id;
+        input.creadoEn = this.creadoEn;
+        input.usuarioId = this.usuario?.id;
+        input.conteoAperturaId = this.conteoApertura?.id;
+        input.conteoCierreId = this.conteoCierre?.id;
+        input.sucursalId = this.sucursalId;
+        input.verificado = this.verificado;
+        input.verificadoPorId = this.verificadoPor?.id;
+        return input;
     }
 }
 
@@ -40,10 +62,10 @@ export class PdvCajaInput {
     observacion: String
     maletinId: number
     creadoEn: Date
-    usuarioId: number
+    usuarioId: number = null;
     conteoAperturaId: number
     conteoCierreId: number
-    sucursalId: number;
+    sucursalId: number = null;
     verificado: boolean;
     verificadoPorId: number;
 }
@@ -64,6 +86,11 @@ export class CajaBalance {
     totalVentaRs: number;
     totalVentaDs: number;
     totalTarjeta: number;
+    totalTarjetaRs: number;
+    totalTarjetaDs: number;
+    totalTransferencia: number;
+    totalTransferenciaRs: number;
+    totalTransferenciaDs: number;
     totalRetiroGs: number;
     totalRetiroRs: number;
     totalRetiroDs: number;

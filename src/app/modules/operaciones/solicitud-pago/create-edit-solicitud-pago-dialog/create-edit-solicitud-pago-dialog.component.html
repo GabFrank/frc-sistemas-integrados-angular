@@ -1,0 +1,249 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title class="titulo-center font-medium">{{ tituloDialogo }}</h2>
+
+  <mat-dialog-content>
+    <mat-card class="resumen-card">
+      <mat-card-header>
+        <mat-card-title>Resumen de solicitud de pago</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="resumen-fields">
+          <div class="form-row resumen-proveedor">
+            <mat-form-field appearance="outline" class="proveedor-field">
+              <mat-label>Proveedor</mat-label>
+              <input
+                #proveedorInput
+                matInput
+                [value]="proveedorNombreDisplay"
+                [readonly]="true"
+                (click)="puedeEditarProveedorComputed && onBuscarProveedor()"
+                (keydown)="puedeEditarProveedorComputed && onProveedorKeydown($event)"
+              />
+              <button
+                *ngIf="puedeEditarProveedorComputed"
+                matSuffix
+                mat-icon-button
+                (click)="onBuscarProveedor()"
+                type="button"
+                title="Buscar proveedor"
+                tabindex="-1"
+              >
+                <mat-icon>search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+          <div class="resumen-row">
+            <div class="resumen-item">
+              <span class="resumen-label">Notas</span>
+              <span class="resumen-value">{{ notasAgregadas.length }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">Monto total</span>
+              <span class="resumen-value">{{ montoTotalComputed | number:'1.0-0' }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">Formas de pago</span>
+              <span class="resumen-value">{{ detallesAgregados.length }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="resumen-label">Total formas</span>
+              <span class="resumen-value">{{ totalFormasPagoComputed | number:'1.0-0' }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <form [formGroup]="form">
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="observaciones-field">
+          <mat-label>Observaciones</mat-label>
+          <input matInput formControlName="observaciones" />
+        </mat-form-field>
+      </div>
+    </form>
+
+    <div class="tab-group-wrapper">
+      <mat-tab-group class="tab-group-full-height">
+        <mat-tab label="Notas de recepción">
+          <div class="section-notas tab-pane-content">
+            <div class="section-title-row">
+              <h4 class="titulo-center font-medium section-title">Notas de recepción</h4>
+              <button
+                *ngIf="isEditable"
+                mat-raised-button
+                color="primary"
+                type="button"
+                (click)="onAgregarNota()"
+                [disabled]="!selectedProveedor?.id"
+              >
+                <mat-icon>add</mat-icon>
+                Adicionar nota
+              </button>
+            </div>
+            <div class="notas-table-wrapper notas-table-scroll notas-table-full-width">
+              <div class="notas-table-scroll-inner" *ngIf="notasAgregadas?.length > 0">
+                <table mat-table [dataSource]="notasAgregadas" class="notas-table table-center mat-elevation-z1" multiTemplateDataRows>
+                  <ng-container matColumnDef="numero">
+                    <th mat-header-cell *matHeaderCellDef>Número</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.numero }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="fecha">
+                    <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.fecha | date:'dd/MM/yyyy' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="valorTotal">
+                    <th mat-header-cell *matHeaderCellDef>Valor total</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.valorTotal | number:'1.0-0' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="moneda">
+                    <th mat-header-cell *matHeaderCellDef>Moneda (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoMonedaDisplay }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="formaPago">
+                    <th mat-header-cell *matHeaderCellDef>Forma pago (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoFormaPagoDisplay }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="plazo">
+                    <th mat-header-cell *matHeaderCellDef>Plazo (pedido)</th>
+                    <td mat-cell *matCellDef="let nota">{{ nota.pedidoPlazoDisplay }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="quitar">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let nota; let i = index">
+                      <button *ngIf="isEditable" mat-icon-button (click)="onQuitarNota(i); $event.stopPropagation()" type="button">
+                        <mat-icon color="warn">delete</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="expandedDetail">
+                    <td mat-cell *matCellDef="let nota" [attr.colspan]="displayedColumnsNotas.length" class="expanded">
+                      <div
+                        class="example-element-detail"
+                        [@detailExpand]="nota === expandedNota ? 'expanded' : 'collapsed'"
+                      >
+                        <div class="expand-section expand-section-observacion" *ngIf="nota.pedidoObservacionDisplay">
+                          <div class="expand-section-title">Observación forma de pago (pedido)</div>
+                          <p class="expand-observacion-text">{{ nota.pedidoObservacionDisplay }}</p>
+                        </div>
+                        <div class="expand-section expand-section-observacion" *ngIf="!nota.pedidoObservacionDisplay">
+                          <p class="expand-empty">Sin observación de forma de pago en el pedido</p>
+                        </div>
+                      </div>
+                    </td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="displayedColumnsNotas"></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: displayedColumnsNotas"
+                    class="example-element-row notas-data-row"
+                    [class.example-expanded-row]="expandedNota === row"
+                    [class.row-pedido-con-observacion]="notaTieneObservacionMap[row.id]"
+                    (click)="onNotaRowClick(row)"
+                  ></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+                </table>
+              </div>
+            </div>
+            <div class="notas-footer-bar">
+              <span class="footer-total-text">Total: {{ notasAgregadas.length }} nota(s)</span>
+              <span class="footer-monto-text">Monto: {{ montoTotalComputed | number:'1.0-0' }}</span>
+            </div>
+          </div>
+        </mat-tab>
+        <mat-tab label="Formas de pago">
+          <div class="section-formas-pago tab-pane-content">
+          <div class="section-title-row">
+            <h4 class="titulo-center font-medium section-title">Formas de pago</h4>
+            <button
+              *ngIf="isEditable"
+              mat-raised-button
+              color="primary"
+              type="button"
+              (click)="onAgregarFormaPago()"
+              [disabled]="!selectedProveedor?.id || (!isEditMode && notasAgregadas?.length < 1)"
+            >
+              <mat-icon>add</mat-icon>
+              Adicionar forma de pago
+            </button>
+          </div>
+          <div class="detalles-table-wrapper" *ngIf="detallesAgregados?.length > 0">
+            <mat-table [dataSource]="detallesTableDataSource" class="table-center mat-elevation-z1">
+              <ng-container matColumnDef="moneda">
+                <th mat-header-cell *matHeaderCellDef>Moneda</th>
+                <mat-cell *matCellDef="let d">{{ d.monedaDenominacion }}</mat-cell>
+              </ng-container>
+              <ng-container matColumnDef="formaPago">
+                <th mat-header-cell *matHeaderCellDef>Forma de pago</th>
+                <mat-cell *matCellDef="let d">{{ d.formaPagoDescripcion }}</mat-cell>
+              </ng-container>
+              <ng-container matColumnDef="valor">
+                <th mat-header-cell *matHeaderCellDef>Valor</th>
+                <mat-cell *matCellDef="let d">{{ d.valor | number:'1.0-0' }}</mat-cell>
+              </ng-container>
+              <ng-container matColumnDef="fechaPago">
+                <th mat-header-cell *matHeaderCellDef>Fecha pago</th>
+                <mat-cell *matCellDef="let d">{{ d.fechaPago | date:'dd/MM/yyyy' }}</mat-cell>
+              </ng-container>
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <mat-cell *matCellDef="let d; let i = index">
+                  <button
+                    *ngIf="isEditable"
+                    mat-icon-button
+                    [matMenuTriggerFor]="menuFormaPago"
+                    type="button"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #menuFormaPago="matMenu">
+                    <button mat-menu-item (click)="onEditarDetalle(d, i)" [disabled]="!puedeEditarFormaPagoComputed">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button mat-menu-item (click)="onQuitarDetalle(i)">
+                      <mat-icon color="warn">delete</mat-icon>
+                      <span>Eliminar</span>
+                    </button>
+                  </mat-menu>
+                </mat-cell>
+              </ng-container>
+              <mat-header-row *matHeaderRowDef="displayedColumnsDetalles"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: displayedColumnsDetalles"></mat-row>
+            </mat-table>
+          </div>
+          <mat-card class="resumen-moneda-card" *ngIf="detallesAgregados?.length > 0">
+            <mat-card-header>
+              <mat-card-title>Resumen por moneda</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="resumen-moneda-row" *ngFor="let item of resumenPorMonedaComputed">
+                <span class="resumen-moneda-label">{{ item.monedaDenominacion }}</span>
+                <span class="resumen-moneda-value">{{ item.total | number:'1.0-0' }}</span>
+              </div>
+              <div class="resumen-moneda-row resumen-total-gs">
+                <span class="resumen-moneda-label">Total en Guaraníes</span>
+                <span class="resumen-moneda-value">{{ totalEnGuaraniesComputed | number:'1.0-0' }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">{{ isEditable ? 'Cancelar' : 'Cerrar' }}</button>
+    <button
+      *ngIf="isEditable"
+      mat-raised-button
+      color="primary"
+      (click)="onGuardar()"
+      [disabled]="saving || !selectedProveedor || notasAgregadas?.length < 1"
+    >
+      {{ saving ? 'Guardando...' : 'Guardar' }}
+    </button>
+  </mat-dialog-actions>
+</div>

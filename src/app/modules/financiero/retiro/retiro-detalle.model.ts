@@ -32,5 +32,5 @@ export class RetiroDetalleInput {
   cambio: number;
   cantidad: number;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

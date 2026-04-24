@@ -1,4 +1,4 @@
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { RouterModule } from '@angular/router';
@@ -13,6 +13,7 @@ import { NgxPanZoomModule } from 'ngx-panzoom';
 import { CapturarImagenComponent } from './capturar-imagen/capturar-imagen.component';
 import { BotonComponent } from './components/boton/boton.component';
 import { CargandoDialogComponent } from './components/cargando-dialog/cargando-dialog.component';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 import { DialogosComponent } from './components/dialogos/dialogos.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { GenericListComponent } from './components/generic-list/generic-list.component';
@@ -53,6 +54,15 @@ import { FormattedTooltipDirective } from './directives/formatted-tooltip.direct
 import { MatTooltip } from '@angular/material/tooltip';
 import { AutoFitTextDirective } from './directives/auto-fit-text-directive.directive';
 import { NgxSpinnerModule } from 'ngx-spinner';
+import { DataDisplayComponent } from './data-display/data-display.component';
+import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
+import { A11yModule } from '@angular/cdk/a11y';
+import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
+import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
+import { UpdateDialogComponent } from './components/update-dialog/update-dialog.component';
+import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
+import { CellFormatPipe } from '../commons/core/pipes/cell-format.pipe';
+import { NotificationBoardComponent } from '../modules/notificaciones/components/notification-board/notification-board.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -66,6 +76,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GenericListComponent,
     DialogosComponent,
     CargandoDialogComponent,
+    ConfirmDialogComponent,
     TecladoNumericoComponent,
     Imagebase64Component,
     QrCodeComponent,
@@ -93,7 +104,13 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     LettersOnlyDirective,
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
-    AutoFitTextDirective
+    AutoFitTextDirective,
+    DataDisplayComponent,
+    ConfiguracionFullDialogComponent,
+    ConfiguracionDialogComponent,
+    UpdateDialogComponent,
+    SideMiniVariantComponent,
+    CellFormatPipe
   ],
   imports: [
     CommonModule,
@@ -108,15 +125,19 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxQRCodeModule,
     Ng2FittextModule,
     BootstrapModule,
+    NgxSpinnerModule,
+    NotificationBoardComponent
   ],
   exports: [
     HeaderComponent,
     SideComponent,
+    SideMiniVariantComponent,
     FooterComponent,
     CardComponent,
     FileUploadComponent,
     GenericListComponent,
     DialogosComponent,
+    ConfirmDialogComponent,
     Imagebase64Component,
     NgxCurrencyModule,
     NgxPanZoomModule,
@@ -138,7 +159,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
     NgxSpinnerModule,
+    DataDisplayComponent,
+    A11yModule,
+    ConfiguracionDialogComponent,
+    CellFormatPipe,
+    NotificationBoardComponent
   ],
-  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip]
+  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })
 export class SharedModule { }

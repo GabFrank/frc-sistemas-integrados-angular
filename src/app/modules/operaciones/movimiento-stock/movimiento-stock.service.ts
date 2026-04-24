@@ -17,6 +17,9 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { PageInfo } from "../../../app.component";
 import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
 import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
+import { SaveMovimientoStockGQL } from "./graphql/saveMovimientoStock";
+import { GetStockPrevioAjusteGQL } from "./graphql/getStockPrevioAjuste";
+import { GetStockAntesDeFechaGQL } from "./graphql/getStockAntesDeFecha";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -30,44 +33,12 @@ export class MovimientoStockService {
     private getMovimientoStockPorFilters: GetMovimientoStockPorFiltrosGQL,
     private genericService: GenericCrudService,
     private getStockWithFilters: GetStockPorFiltrosGQL,
-    private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL
-  ) {}
+    private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL,
+    private saveMovimientoStockGQL: SaveMovimientoStockGQL,
+    private getStockPrevioAjusteGQL: GetStockPrevioAjusteGQL,
+    private getStockAntesDeFechaGQL: GetStockAntesDeFechaGQL
+  ) { }
 
-  onGetMovimientosPorFecha(
-    inicio: Date,
-    fin: Date
-  ): Observable<MovimientoStock[]> {
-    // let inicioString = inicio.getFullYear() + "-" + inicio.getMonth() + "-" + inicio.getDay() + " 00:00:00"
-    // let finString = fin.getFullYear() + "-" + fin.getMonth() + "-" + fin.getDay() + " 00:00:00"
-    // console.log('inicio', inicioString)
-    // console.log('fin', finString)
-    return new Observable((obs) => {
-      this.getMovimientosPorFecha
-        .fetch(
-          {
-            inicio,
-            fin,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data);
-          } else {
-            console.log(res.errors[0].message);
-            this.notificacionBar.notification$.next({
-              texto: "Ups!, algo salio mal: " + res.errors[0].message,
-              duracion: 3,
-              color: NotificacionColor.danger,
-            });
-          }
-        });
-    });
-  }
 
   getTipoMovimientoComponent(tipo: TipoMovimiento): Type<any> {
     switch (tipo) {
@@ -83,23 +54,12 @@ export class MovimientoStockService {
     }
   }
 
-  onGetStockPorProducto(id): Observable<number> {
-    return new Observable((obs) => {
-      this.getStockPorProducto
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups!, algo salio mal: " + res.errors[0].message,
-              duracion: 3,
-              color: NotificacionColor.danger,
-            });
-          }
-        });
-    });
+  onGetStockPorProducto(id, sucursalId?: number, servidor = true): Observable<number> {
+    //use genericService        
+    return this.genericService.onCustomQuery(this.getStockPorProducto, {
+      id,
+      sucId: sucursalId
+    }, servidor);
   }
 
   onGetMovimientoStockPorFiltros(
@@ -110,8 +70,10 @@ export class MovimientoStockService {
     tipoMovimientoList: TipoMovimiento[],
     usuarioId: number,
     page: number,
-    size: number
-  ): Observable<PageInfo<MovimientoStock>>{
+    size: number,
+    servidor = true,
+    silentLoad = false
+  ): Observable<PageInfo<MovimientoStock>> {
     return this.genericService.onCustomQuery(this.getMovimientoStockPorFilters, {
       inicio,
       fin,
@@ -121,7 +83,7 @@ export class MovimientoStockService {
       usuarioId,
       page,
       size,
-    });
+    }, servidor, undefined, silentLoad);
   }
 
   onGetStockPorFiltros(
@@ -130,15 +92,17 @@ export class MovimientoStockService {
     sucursalList: number[],
     productoId: number,
     tipoMovimientoList: TipoMovimiento[],
-    usuarioId: number
-  ): Observable<number>{
+    usuarioId: number,
+    servidor = true
+  ): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockWithFilters, {
       inicio,
       fin,
       sucursalList,
       productoId,
       tipoMovimientoList,
-      usuarioId})
+      usuarioId
+    }, servidor);
   }
 
   onGetStockPorTipoMovimiento(
@@ -147,16 +111,46 @@ export class MovimientoStockService {
     sucursalList: number[],
     productoId: number,
     tipoMovimientoList: TipoMovimiento[],
-    usuarioId: number
-  ): Observable<StockPorTipoMovimientoDto[]>{
+    usuarioId: number,
+    servidor = true
+  ): Observable<StockPorTipoMovimientoDto[]> {
     return this.genericService.onCustomQuery(this.getStockPorTipoMovimiento, {
       inicio,
       fin,
       sucursalList,
       productoId,
       tipoMovimientoList,
-      usuarioId})
+      usuarioId
+    }, servidor);
   }
 
+  // getStockByProductoAndSucursal(productoId: number, sucursalId: number): Observable<number> {
+  //   //refactorizar usando genericService
+  //   return this.genericService.onCustomQuery(this.getStockByProductoAndSucursalGQL, {
+  //     productoId,
+  //     sucursalId
+  //   });
+  // }
 
+  onSaveMovimientoStock(movimientoStock: any, servidor = true): Observable<MovimientoStock> {
+    return this.genericService.onCustomMutation(this.saveMovimientoStockGQL, {
+      movimientoStock: movimientoStock
+    }, servidor);
+  }
+
+  onGetStockPrevioAjuste(productoId: number, movimientoId: number, sucursalId: number, servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.getStockPrevioAjusteGQL, {
+      productoId,
+      movimientoId,
+      sucursalId
+    }, servidor);
+  }
+
+  onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.getStockAntesDeFechaGQL, {
+      productoId,
+      sucursalId,
+      fecha
+    }, servidor);
+  }
 }

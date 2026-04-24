@@ -26,6 +26,11 @@ import { SearchEnvaseDialogComponent } from './envase/search-envase-dialog/searc
 import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-dialog.component';
 import { ProductosDashboardComponent } from './productos-dashboard/productos-dashboard.component';
 import { ListGrupoComponent } from './list-grupo/list-grupo.component';
+import { PrintLabelDialogComponent } from './producto/list-producto/print-label-dialog/print-label-dialog.component';
+import { AjustarStockDialogComponent } from './producto/ajustar-stock-dialog/ajustar-stock-dialog.component';
+import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/ajustar-costo-dialog.component';
+import { GestionProveedoresProductoDialogComponent } from './producto/gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component';
+import { GestionProductosProveedorDialogComponent } from './producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
 
 
 
@@ -52,6 +57,11 @@ import { ListGrupoComponent } from './list-grupo/list-grupo.component';
     AddEnvaseDialogComponent,
     ProductosDashboardComponent,
     ListGrupoComponent,
+    PrintLabelDialogComponent,
+    AjustarStockDialogComponent,
+    AjustarCostoDialogComponent,
+    GestionProveedoresProductoDialogComponent,
+    GestionProductosProveedorDialogComponent
   ],
   imports: [
     CommonModule,
@@ -64,6 +74,9 @@ import { ListGrupoComponent } from './list-grupo/list-grupo.component';
   providers: [
     { provide: MAT_DIALOG_DATA, useValue: {} },
     { provide: MatDialogRef, useValue: {} }
-]
+  ],
+  exports: [
+    GestionProductosProveedorDialogComponent
+  ]
 })
 export class ProductoModule { }

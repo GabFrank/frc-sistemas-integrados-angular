@@ -22,10 +22,7 @@ export class FavoritosComponent implements OnInit {
   isCargandoPDV = true;
 
   constructor(
-    private pdvCategoriaService: PdvCategoriaService,
-    private cargandoService: CargandoDialogService,
-    private notificacionSnackbar: NotificacionSnackbarService,
-    private mainService: MainService
+    private pdvCategoriaService: PdvCategoriaService
   ) { }
 
   ngOnInit(): void {

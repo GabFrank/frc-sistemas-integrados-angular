@@ -1,43 +1,73 @@
-<div fxLayout="column" fxLayoutGap="10px">
+<div fxLayout="column" fxLayoutGap="20px" style="padding: 20px;">
   <div fxFlex class="titulo" style="text-align: center">
-    <h3>Nuevo inventario</h3>
+    <h2>Crear nuevo inventario</h2>
   </div>
-  <div fxFlex>Resposable: {{ responsable?.persona?.nombre | titlecase }}</div>
-  <div fxFlex class="titulo" style="text-align: center">
-    <p>Seleccione el tipo de inventario que desea crear</p>
+  
+  <div fxFlex fxLayout="column" fxLayoutGap="15px">
+    <div fxFlex fxLayout="row" fxLayoutAlign="space-between center">
+      <div fxFlex="40">
+        <strong>Sucursal:</strong>
+      </div>
+      <div fxFlex="60">
+        <mat-form-field style="width: 100%">
+          <mat-label>Seleccionar Sucursal</mat-label>
+          <input 
+            matInput 
+            [value]="sucursalNombre | titlecase"
+            (click)="onSelectSucursal()"
+            readonly
+            placeholder="Click para seleccionar"
+            style="cursor: pointer;">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+    </div>
+    <div fxFlex fxLayout="row" fxLayoutAlign="space-between center">
+      <div fxFlex="40">
+        <strong>Responsable:</strong>
+      </div>
+      <div fxFlex="60">
+        {{ responsableNombre | titlecase }}
+      </div>
+    </div>
+    <div fxFlex fxLayout="row" fxLayoutAlign="space-between center">
+      <div fxFlex="40">
+        <strong>Tipo:</strong>
+      </div>
+      <div fxFlex="60">
+        Zona
+      </div>
+    </div>
   </div>
-  <div fxFlex>
-    <mat-form-field style="width: 90%">
-      <mat-label>Tipo de inventario</mat-label>
-      <mat-select [formControl]="tipoInventarioControl" name="tipo">
-        <mat-option *ngFor="let tipo of tipoInventarioList" [value]="tipo">
-          {{ tipo }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+  <mat-divider></mat-divider>
+  <div fxFlex fxLayout="column" fxLayoutGap="10px">
+    <div fxFlex>
+      <strong>Recomendaciones:</strong>
+    </div>
+    <div fxFlex style="padding-left: 15px;">
+      <p>Verifique que todas los sectores y zonas estén debidamente identificados.</p>
+    </div>
   </div>
-  <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
-    <div fxFlex="50" style="width: 100%">
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" style="margin-top: 20px;">
+    <div fxFlex="50">
       <button
         style="width: 100%"
-        fxFlexAlign="center"
         mat-raised-button
-        color="primary"
+        color="warn"
         (click)="onCancel()"
       >
         Cancelar
       </button>
     </div>
-    <div fxFlex="50" style="width: 100%">
+    <div fxFlex="50">
       <button
         style="width: 100%"
-        fxFlexAlign="center"
         mat-raised-button
         color="accent"
-        [disabled]="tipoInventarioControl.invalid"
+        [disabled]="!selectedSucursal"
         (click)="onIniciarInventario()"
       >
-        Iniciar inventario
+        Iniciar
       </button>
     </div>
   </div>

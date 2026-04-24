@@ -14,12 +14,57 @@ export const sucursalesQuery = gql
         id
       }
       deposito
+      ip
+      puerto
+      direccion
+      nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
+      isConfigured
+      activo
     }
   }`;
 
 export const sucursalesSearch = gql
-  `query($texto: String){
-    data : sucursalesSearch(texto: $texto){
+  `query($texto: String, $activo: Boolean, $page: Int, $size: Int){
+    data : sucursalesSearch(texto: $texto, activo: $activo, page: $page, size: $size){
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        localizacion
+        ciudad{
+          id
+          descripcion
+        }
+        creadoEn
+        usuario{
+          id
+          nickname
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
+      }
+    }
+  }`
+
+export const sucursalesSearchConFiltros = gql
+  `query($texto: String, $deposito: Boolean, $activo: Boolean, $page: Int, $size: Int){
+    data : findByNombreConFiltros(nombre: $texto, deposito: $deposito, activo: $activo, page: $page, size: $size){
       id
       nombre
       localizacion
@@ -31,6 +76,14 @@ export const sucursalesSearch = gql
       usuario{
         id
       }
+      deposito
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+      activo
+      activo
     }
   }`
 
@@ -47,10 +100,19 @@ export const sucursalQuery = gql
       usuario{
         id
       }
+      ip
+      puerto
+      direccion
+      nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
+      isConfigured
+      activo
     }
   }`
 
-  export const sucursalActualQuery = gql
+export const sucursalActualQuery = gql
   `query{
     data : sucursalActual{
       id
@@ -58,6 +120,15 @@ export const sucursalQuery = gql
       ciudad{
         id
       }
+      ip
+      puerto
+      direccion
+      nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
+      isConfigured
+      activo
     }
   }`
 
@@ -65,6 +136,20 @@ export const saveSucursal = gql
   `mutation saveSucursal($entity:SucursalInput!){
       data: saveSucursal(sucursal:$entity){
         id
+        nombre
+        localizacion
+        ciudad{
+          id
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
       }
     }`
 
@@ -72,3 +157,39 @@ export const deleteSucursalQuery = gql
   ` mutation deleteSucursal($id: ID!){
       deleteSucursal(id: $id)
     }`
+
+export const sucursalesByNombreQuery = gql`
+  query ($nombre: String, $page: Int, $size: Int) {
+    data: findByNombre(nombre: $nombre, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        localizacion
+        ciudad {
+          id
+          descripcion
+        }
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
+      }
+    }
+  }`

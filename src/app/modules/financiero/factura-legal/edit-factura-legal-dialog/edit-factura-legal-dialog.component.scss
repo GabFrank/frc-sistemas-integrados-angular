@@ -1,0 +1,128 @@
+:host {
+  display: block;
+  background-color: #333; // Color de fondo oscuro general
+  color: white;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #444;
+
+  h2 {
+    margin: 0;
+  }
+
+  .close-button {
+    color: white;
+  }
+}
+
+mat-dialog-content {
+  padding: 24px;
+
+  .info-section {
+    margin-bottom: 24px;
+    background-color: #444;
+    padding: 16px;
+    border-radius: 4px;
+
+    .info-label {
+      font-size: 0.8em;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      font-size: 1em;
+      font-weight: 500;
+    }
+  }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+}
+
+.items-section {
+  margin-top: 16px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+
+  .table-container {
+    border: 1px solid #555;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    background: transparent;
+  }
+
+  th, td {
+    padding: 12px;
+    border-bottom: 1px solid #555;
+  }
+
+  th {
+    background-color: #444;
+    font-weight: 600;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .mat-row:hover {
+    background-color: #4a4a4a;
+  }
+}
+
+.totals-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #555;
+
+  .info-label {
+    font-size: 0.8em;
+    color: #ccc;
+  }
+
+  .info-value {
+    font-size: 1em;
+    font-weight: 500;
+  }
+
+  .total-final {
+    .info-label {
+      font-size: 0.9em;
+      color: white;
+    }
+    .info-value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #4caf50; // Un color verde para resaltar
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #444;
+}
+
+
+
+

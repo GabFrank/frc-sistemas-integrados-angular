@@ -36,7 +36,7 @@ export class PdvCategoriaService implements OnDestroy {
   }
 
   cargarCategorias() {
-    this.onGetCategorias()
+    this.onGetCategorias(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.pdvCategorias = res;
@@ -44,7 +44,7 @@ export class PdvCategoriaService implements OnDestroy {
         this.pdvCategorias.forEach((cat) => {
           cat.grupos.forEach((gr) => {
             if (gr.activo == true) {
-              this.onGetGrupoProductosPorGrupoId(gr.id)
+              this.onGetGrupoProductosPorGrupoId(gr.id, false)
                 .pipe(untilDestroyed(this))
                 .subscribe((res) => {
                   if (res != null) {
@@ -61,12 +61,12 @@ export class PdvCategoriaService implements OnDestroy {
     clearInterval(this.timer)
   }
 
-  onGetCategorias(): Observable<PdvCategoria[]> {
-    return this.genericService.onCustomQuery(this.getCategorias, {}, null, null, true);
+  onGetCategorias(servidor: boolean = true): Observable<PdvCategoria[]> {
+    return this.genericService.onCustomQuery(this.getCategorias, {}, servidor, null, true);
   }
 
   onRefresh() {
-    this.onGetCategorias().subscribe(res => {
+    this.onGetCategorias(false).subscribe(res => {
       this.pdvCategorias = res;
       this.pdvCategoriasSub.next(this.pdvCategorias)
       this.pdvCategorias.forEach((cat) => {
@@ -85,38 +85,16 @@ export class PdvCategoriaService implements OnDestroy {
     })
   }
 
-  onSaveCategoria(input: PdvCategoriaInput) {
-    return new Observable(obs => {
-      this.saveCategoria.mutate({
-        input
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res.errors != null) {
-          this.notificacionService.notification$.next({
-            texto: 'Ups! Algo salió mal',
-            duracion: 3,
-            color: NotificacionColor.danger
-          })
-          obs.next({ 'error': res })
-        } else {
-          this.notificacionService.notification$.next({
-            texto: 'Categoria guardada correctamente!',
-            duracion: 2,
-            color: NotificacionColor.success
-          })
-          obs.next({ 'data': res.data.data })
-        }
-      })
-    })
+  onSaveCategoria(input: PdvCategoriaInput, servidor = true) {
+    // refactor 
+    return this.genericService.onSave(this.saveCategoria, input, null, null,  servidor)
   }
 
-  onGetGrupoProductosPorGrupoId(id): Observable<PdvGruposProductos[]> {
-    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id, null, null, null, null, null, null, true)
+  onGetGrupoProductosPorGrupoId(id, servidor: boolean = true): Observable<PdvGruposProductos[]> {
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id, null, null, servidor, null, null, null, true)
   }
 
-  onGetGrupoProductosPorGrupoIdSimple(id): Observable<PdvGruposProductos[]> {
-    return this.genericService.onGetById(this.getGruposProductosPorGrupoIdSimple, id, null, null, null, null, null, null, true)
+  onGetGrupoProductosPorGrupoIdSimple(id, servidor: boolean = true): Observable<PdvGruposProductos[]> {
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoIdSimple, id, null, null, servidor, null, null, null, true)
   }
 }

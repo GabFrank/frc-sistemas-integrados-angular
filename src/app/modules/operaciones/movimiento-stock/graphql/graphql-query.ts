@@ -106,8 +106,8 @@ export const deleteMovimientoQuery = gql`
 `;
 
 export const stockPorProductoQuery = gql`
-  query ($id: ID!) {
-    data: stockPorProducto(id: $id)
+  query ($id: ID!, $sucId: ID) {
+    data: stockPorProducto(id: $id, sucId: $sucId)
   }
 `;
 
@@ -207,5 +207,45 @@ export const findStockPorTipoMovimientoQuery = gql`
       tipoMovimiento
       stock
     }
+  }
+`;
+
+export const saveMovimientoStockMutationQuery = gql`
+    mutation saveMovimientoStock($movimientoStock: MovimientoStockInput!) {
+      data: saveMovimientoStock(movimientoStock: $movimientoStock) {
+        id
+        sucursalId
+        producto {
+          id
+          descripcion
+        }
+        tipoMovimiento
+        referencia
+        cantidad
+        estado
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        sucursal {
+          id
+          nombre
+        }
+      }
+    }
+  `;
+
+export const stockPrevioAjusteQuery = gql`
+  query getStockPrevioAjuste($productoId: ID!, $movimientoId: ID!, $sucursalId: ID!) {
+    data: stockByProductoIdExeptMovimientoId(productoId: $productoId, movimientoId: $movimientoId, sucursalId: $sucursalId)
+  }
+`;
+
+export const stockAntesDeFechaQuery = gql`
+  query getStockAntesDeFecha($productoId: ID!, $sucursalId: ID!, $fecha: String!) {
+    data: stockByProductoIdAntesDeFecha(productoId: $productoId, sucursalId: $sucursalId, fecha: $fecha)
   }
 `;

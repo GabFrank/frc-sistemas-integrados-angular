@@ -10,6 +10,7 @@ export const usuariosQuery = gql`
         id
         nombre
         telefono
+        imagenes
       }
       creadoEn
     }
@@ -25,6 +26,7 @@ export const usuariosSearch = gql`
       persona {
         id
         nombre
+        imagenes
       }
       creadoEn
       usuario {
@@ -45,6 +47,7 @@ export const usuarioQuery = gql`
       persona {
         id
         nombre
+        imagenes
       }
       creadoEn
       usuario {
@@ -81,6 +84,7 @@ export const usuarioPorPersonaIdQuery = gql`
       persona {
         id
         nombre
+        imagenes
       }
       creadoEn
       usuario {
@@ -117,6 +121,7 @@ export const saveUsuario = gql`
       persona {
         id
         nombre
+        imagenes
       }
       creadoEn
       usuario {
@@ -210,3 +215,15 @@ export const saveInicioSesionGQL = gql`
 `;
 
 // usuarioPorPersonaId
+
+export const saveUsuarioImageQuery = gql`
+  query ($id: ID!, $type: String!, $image: String!) {
+    data: saveUsuarioImage(id: $id, type: $type, image: $image)
+  }
+`;
+
+export const getUsuarioImagesQuery = gql`
+  query ($id: ID!, $type: String!) {
+    data: getUsuarioImages(id: $id, type: $type)
+  }
+`;

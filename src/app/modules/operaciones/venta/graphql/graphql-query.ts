@@ -65,6 +65,7 @@ export const ventaQuery = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       ventaItemList {
         id
@@ -124,6 +125,7 @@ export const ventaQuery = gql`
           valor
         }
         estado
+        fechaConcluido
       }
     }
   }
@@ -247,6 +249,8 @@ export const ventasPorCajaIdQuery = gql`
     $estado: VentaEstado
     $isDelivery: Boolean
     $monedaId: Int
+    $conDescuento: Boolean
+    $conAumento: Boolean
   ) {
     data: ventasPorCajaId(
       idVenta: $idVenta
@@ -259,6 +263,8 @@ export const ventasPorCajaIdQuery = gql`
       estado: $estado
       isDelivery: $isDelivery
       monedaId: $monedaId
+      conDescuento: $conDescuento
+      conAumento: $conAumento
     ) {
       getTotalPages
       getTotalElements
@@ -281,12 +287,16 @@ export const ventasPorCajaIdQuery = gql`
         totalGs
         totalRs
         totalDs
+        ventaObservacionList {
+          id
+        }
         delivery {
           id
           precio {
             valor
           }
           estado
+          fechaConcluido
         }
       }
     }
@@ -342,6 +352,88 @@ export const ventaItemQuery = gql`
       venta {
         id
         sucursalId
+      }
+    }
+  }
+`;
+
+export const ventasGenericFilterQuery = gql`
+  query (
+    $idVenta: ID
+    $idCaja: ID
+    $page: Int
+    $size: Int
+    $asc: Boolean
+    $sucId: ID
+    $formaPago: ID
+    $estado: VentaEstado
+    $isDelivery: Boolean
+    $monedaId: Int
+    $conDescuento: Boolean
+    $conAumento: Boolean
+    $conObservacion: Boolean
+    $clienteId: ID
+    $fechaInicio: String
+    $fechaFin: String
+  ) {
+    data: ventasGenericFilter(
+      idVenta: $idVenta
+      idCaja: $idCaja
+      page: $page
+      size: $size
+      asc: $asc
+      sucId: $sucId
+      formaPago: $formaPago
+      estado: $estado
+      isDelivery: $isDelivery
+      monedaId: $monedaId
+      conDescuento: $conDescuento
+      conAumento: $conAumento
+      conObservacion: $conObservacion
+      clienteId: $clienteId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        sucursal {
+          id
+          nombre
+        }
+        cliente {
+          id
+          persona {
+            nombre
+          }
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        estado
+        creadoEn
+        totalGs
+        totalRs
+        totalDs
+        ventaObservacionList {
+          id
+        }
+        delivery {
+          id
+          precio {
+            valor
+          }
+          estado
+          fechaConcluido
+        }
       }
     }
   }

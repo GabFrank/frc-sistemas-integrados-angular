@@ -1,0 +1,274 @@
+<h2 mat-dialog-title>Imprimir Etiqueta</h2>
+
+<mat-dialog-content class="mat-typography">
+  <form [formGroup]="printForm">
+    <!-- Label Type Selection -->
+    <div class="label-type-selection">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Tipo de Etiqueta</mat-label>
+        <mat-select formControlName="selectedLabelType">
+          <mat-option *ngFor="let type of labelTypes" [value]="type.value">
+            {{type.label}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Price Label Options (default) -->
+    <div *ngIf="printForm.get('selectedLabelType').value === 'price'">
+      <div class="printer-selection">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Impresora Térmica</mat-label>
+          <mat-select formControlName="selectedPrinter">
+            <mat-option *ngFor="let printer of printers" [value]="printer.name">
+              {{printer.displayName || printer.name}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
+            Seleccione una impresora
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="quantity-selection">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Cantidad</mat-label>
+          <input matInput type="number" min="1" formControlName="quantity">
+          <mat-error *ngIf="printForm.get('quantity').hasError('required')">
+            Ingrese la cantidad
+          </mat-error>
+          <mat-error *ngIf="printForm.get('quantity').hasError('min')">
+            La cantidad debe ser al menos 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="date-selection" *ngIf="includeCreationDate">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Elaboración</mat-label>
+          <input matInput type="date" formControlName="creationDate">
+        </mat-form-field>
+      </div>
+
+      <div class="checkbox-options">
+        <mat-checkbox 
+          [checked]="includeCreationDate" 
+          (change)="toggleIncludeCreationDate()"
+        >
+          Incluir fecha de elaboración
+        </mat-checkbox>
+
+        <mat-checkbox formControlName="isLandscape">
+          Orientación Horizontal (Landscape)
+        </mat-checkbox>
+
+        <mat-checkbox formControlName="useImagePrinting">
+          Imprimir como Imagen (Recomendado)
+        </mat-checkbox>
+      </div>
+
+      <!-- Label Preview -->
+      <div class="label-preview">
+        <div style="display: flex;">
+          <h3>Vista Previa</h3>
+          <mat-icon
+            style="
+              cursor: pointer;
+              margin-left: 5px;
+            "
+            (click)="togglePreview()"
+          >
+            {{ previewVisible ? 'visibility' : 'visibility_off' }}
+          </mat-icon>
+        </div>
+
+        <div 
+          class="label-shape" 
+          *ngIf="previewVisible" 
+          [ngClass]="{'landscape': printForm.get('isLandscape').value}"
+        >
+          <div #labelPreview class="label-content">
+            <div class="product-name">
+              {{data.producto?.descripcion | slice:0:24}} 
+              {{data.producto?.descripcion?.length > 24 ? '...' : ''}}
+            </div>
+            <div class="product-price">
+              {{data.producto?.precioPrincipal | currency:'PYG':'symbol-narrow':'1.0-0':'es-PY'}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barcode Options -->
+    <div *ngIf="printForm.get('selectedLabelType').value === 'barcode'">
+      <div class="printer-selection">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Impresora Térmica</mat-label>
+          <mat-select formControlName="selectedPrinter">
+            <mat-option *ngFor="let printer of printers" [value]="printer.name">
+              {{printer.displayName || printer.name}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
+            Seleccione una impresora
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="barcode-data">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Datos del Código de Barras</mat-label>
+          <input matInput formControlName="barcodeData" placeholder="Ej: 7890123456789">
+          <mat-hint>Ingrese los datos para el código de barras (Code 128)</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="quantity-selection">
+        <mat-form-field appearance="outline" class="full-width" style="margin-top: 15px">
+          <mat-label>Cantidad</mat-label>
+          <input matInput type="number" min="1" formControlName="quantity">
+          <mat-error *ngIf="printForm.get('quantity').hasError('required')">
+            Ingrese la cantidad
+          </mat-error>
+          <mat-error *ngIf="printForm.get('quantity').hasError('min')">
+            La cantidad debe ser al menos 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="date-selection" *ngIf="includeCreationDate">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Elaboración</mat-label>
+          <input matInput type="date" formControlName="creationDate">
+        </mat-form-field>
+      </div>
+
+      <div class="checkbox-options">
+        <mat-checkbox 
+          [checked]="includeCreationDate" 
+          (change)="toggleIncludeCreationDate()"
+        >
+          Incluir fecha de elaboración
+        </mat-checkbox>
+      </div>
+
+      <!-- Vista previa de la etiqueta 40x40 -->
+      <div class="label-preview">
+       <div style="display: flex;">
+        <h3>Vista Previa</h3>
+        <mat-icon
+          style="
+            cursor: pointer;
+            margin-left: 5px;
+          "
+          (click)="togglePreview()"
+        >
+          {{ previewVisible ? 'visibility' : 'visibility_off' }}
+        </mat-icon>
+       </div>
+        <div class="label-shape box" *ngIf="previewVisible">
+          <div style="text-align:center;">
+            <img 
+              *ngIf="previewBarcodeDataUrl" 
+              [src]="previewBarcodeDataUrl" 
+              alt="barcode" 
+              style="height:60px;"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code Options -->
+    <div *ngIf="printForm.get('selectedLabelType').value === 'qr'">
+      <div class="printer-selection">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Impresora Térmica</mat-label>
+          <mat-select formControlName="selectedPrinter">
+            <mat-option *ngFor="let printer of printers" [value]="printer.name">
+              {{printer.displayName || printer.name}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
+            Seleccione una impresora
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="qr-title">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Título (Opcional)</mat-label>
+          <input matInput formControlName="qrCodeTitle" placeholder="Título del QR">
+        </mat-form-field>
+      </div>
+
+      <div class="qr-data">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Datos del Código QR</mat-label>
+          <textarea matInput formControlName="qrCodeData" rows="4" placeholder="Texto o URL para el código QR"></textarea>
+        </mat-form-field>
+      </div>
+
+      <div class="quantity-selection">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Cantidad</mat-label>
+          <input matInput type="number" min="1" formControlName="quantity">
+          <mat-error *ngIf="printForm.get('quantity').hasError('required')">
+            Ingrese la cantidad
+          </mat-error>
+          <mat-error *ngIf="printForm.get('quantity').hasError('min')">
+            La cantidad debe ser al menos 1
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Vista previa de la etiqueta QR -->
+      <div class="label-preview">
+        <div style="display: flex;">
+          <h3>Vista Previa</h3>
+          <mat-icon
+            style="
+              cursor: pointer;
+              margin-left: 5px;
+            "
+            (click)="togglePreview()"
+          >
+            {{ previewVisible ? 'visibility' : 'visibility_off' }}
+          </mat-icon>
+        </div>
+        <div class="label-shape box" *ngIf="previewVisible">
+          <div style="text-align:center;">
+            <img 
+              class="img-size" 
+              *ngIf="previewQrDataUrl" 
+              [src]="previewQrDataUrl" 
+              alt="QR Code"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" style="padding-right: 24px">
+  <button 
+    mat-button 
+    (click)="onCancel()" 
+    [disabled]="loading"
+  >
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="printLabel()" 
+    [disabled]="loading || printForm.invalid"
+  >
+    <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
+    <span *ngIf="!loading">
+      Imprimir
+    </span>
+  </button>
+</mat-dialog-actions>

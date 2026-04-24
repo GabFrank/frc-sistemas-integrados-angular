@@ -1,75 +1,51 @@
-<!-- <div style="width: 100% !important; height: 100% !important">
-  <button
-    #btn
-    type="button"
-    mat-raised-button
-    [color]="color"
-    style="width: 100%; height: 99%"
-    [disabled]="disableExpression || temporaryDisable"
-    (click)="onClick()"
-    [class.warn]="color?.includes('warn')"
-    *ngIf="showButton"
-  >
-    <div fxLayout="column" fxLayoutGap="10px" style="height: 100%">
-      <div
-        fxFlex="50"
-        *ngIf="icon != null"
-        fxLayout="row"
-        fxLayoutAlign="center end"
-      >
-        <mat-icon
-          style="width: 100%; height: auto; text-align: center"
-          [style.fontSize.em]="iconSize"
-          >{{ icon }}</mat-icon
-        >
-      </div>
-      <div
-        [fxFlex]="icon != null ? '50' : '100'"
-        fxLayout="row"
-        [fxLayoutAlign]="icon != null ? 'center start' : 'center center'"
-        style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
-      >
-        <div
-          style="
-            text-align: center;
-            white-space: normal;
-            overflow-wrap: break-word;
-            word-wrap: break-word;
-            word-break: break-word;
-          "
-        >
-          {{ prefix }} {{ !isNumber ? nombre : (nombre | number : "1.0-2") }}
-          {{ sufix }}
-        </div>
-      </div>
-    </div>
-  </button>
-</div> -->
-
-
 <div style="width: 100%; height: 100%;">
-  <button
-    #btn
-    type="button"
-    mat-raised-button
-    [color]="color"
-    style="width: 100%; height: 99%; min-height: 30px;"
-    [disabled]="disableExpression || temporaryDisable"
-    (click)="onClick()"
-    [class.warn]="color?.includes('warn')"
-    *ngIf="showButton"
-  >
-    <div
-      fxLayout="column"
-      fxLayoutGap="10px"
-      style="height: 100%; text-align: center; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;"
+  <ng-container *ngIf="!basic; else flatButton">
+    <!-- Raised Button (Default) -->
+    <button
+      #btn
+      type="button"
+      mat-raised-button
+      [color]="color"
+      style="width: 100%; height: 99%; min-height: 30px;"
+      [disabled]="disableExpression || temporaryDisable"
+      (click)="onClick()"
+      [class.warn]="color?.includes('warn')"
+      *ngIf="showButton"
     >
       <div
-        style="width: 100%; height: 100%;"
-        #textContent
+        fxLayout="column"
+        fxLayoutGap="10px"
+        style="height: 100%; text-align: center; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;"
       >
-        {{ prefix }} {{ !isNumber ? nombre : (nombre | number : '1.0-2') }} {{ sufix }}
+        <div style="width: 100%; height: 100%;" #textContent>
+          {{ prefix }} {{ !isNumber ? nombre : (nombre | number: '1.0-2') }} {{ sufix }}
+        </div>
       </div>
-    </div>
-  </button>
+    </button>
+  </ng-container>
+
+  <ng-template #flatButton>
+    <!-- Flat Button -->
+    <button
+      #btn
+      type="button"
+      mat-button
+      [color]="color"
+      style="width: 100%; height: 99%; min-height: 30px;"
+      [disabled]="disableExpression || temporaryDisable"
+      (click)="onClick()"
+      [class.warn]="color?.includes('warn')"
+      *ngIf="showButton"
+    >
+      <div
+        fxLayout="column"
+        fxLayoutGap="10px"
+        style="height: 100%; text-align: center; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;"
+      >
+        <div style="width: 100%; height: 100%;" #textContent>
+          {{ prefix }} {{ !isNumber ? nombre : (nombre | number: '1.0-2') }} {{ sufix }}
+        </div>
+      </div>
+    </button>
+  </ng-template>
 </div>

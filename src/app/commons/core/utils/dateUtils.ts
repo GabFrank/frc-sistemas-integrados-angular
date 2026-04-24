@@ -167,3 +167,27 @@ export function parseShortDate(dateString: string | null): Date | null {
   throw new Error('Invalid date format');
 }
 
+
+export function formatearFecha(event: any): any {
+  let input = event.target.value.replace(/\D/g, ""); // Remove any non-digit characters
+
+  if (input.length > 2 && input.length <= 4) {
+    if(+input.slice(0,2) > 31){
+      return `${input.slice(0, 2)}/12`
+    }
+    // Add slash after day
+    input = `${input.slice(0, 2)}/${input.slice(2)}`;
+  } else if (input.length > 4) {
+    // Add slashes after day and month
+    if(+input.slice(0,2) > 31){
+      return `${input.slice(0, 2)}/12`
+    }
+    
+    if(+input.slice(2,4) > 12){
+      return `${input.slice(0, 2)}/12`
+    }
+    input = `${input.slice(0, 2)}/${input.slice(2, 4)}/${input.slice(4, 6)}`;
+  }
+
+  return input; // Update the form control without emitting an event
+}

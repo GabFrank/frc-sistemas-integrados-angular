@@ -16,6 +16,7 @@ import { IpcRenderer } from "electron";
 import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
+import { ConfiguracionService } from "./shared/services/configuracion.service";
 
 @UntilDestroy()
 @Injectable({
@@ -49,29 +50,67 @@ export class MainService implements OnDestroy {
   constructor(
     // private getMonedas: MonedasGetAllGQL,
     public sucursalService: SucursalService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private configService: ConfiguracionService
   ) {
-
-    localStorage.setItem("ip", this.serverIpAddres);
-
+    // Get server IP from ConfiguracionService instead of environment
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
   }
 
+  /**
+   * Checks if the system is running in local mode
+   * Reads from the 'configuracion-sistema' object in localStorage
+   * @returns boolean indicating if the system is in local mode
+   */
+  isLocal(): boolean {
+    try {
+      const configString = localStorage.getItem('configuracion-sistema');
+      if (configString) {
+        const config = JSON.parse(configString);
+        return config.isLocal === true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking isLocal configuration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a user is authenticated by checking token and keepLogged flag
+   * For frontend-only session management
+   */
   isAuthenticated(): Observable<boolean> {
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
-      if (isToken != null) {
+      let keepLogged = localStorage.getItem("keepLogged");
+
+      // Only consider authenticated if token exists and either keepLogged is true or it's a new session
+      if (isToken != null && (keepLogged === "true" || this.logged)) {
         this.getUsuario()
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res) {
+              this.logged = true;
               obs.next(true);
               this.authenticationSub.next(res);
             } else {
+              // If getUsuario failed, clear the token if not keepLogged
+              if (keepLogged !== "true") {
+                localStorage.removeItem("token");
+                localStorage.removeItem("usuarioId");
+              }
               obs.next(false);
               this.authenticationSub.next(res);
             }
           });
       } else {
+        // If not keepLogged, clear the token when checking authentication
+        if (keepLogged !== "true") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("usuarioId");
+        }
         obs.next(false);
       }
     });
@@ -82,7 +121,7 @@ export class MainService implements OnDestroy {
       let id = localStorage.getItem("usuarioId");
       if (id != null) {
         this.usuarioService
-          .onGetUsuario(+id)
+          .onGetUsuario(+id, !this.isLocal())
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
@@ -99,23 +138,59 @@ export class MainService implements OnDestroy {
   }
 
   load(): Promise<boolean> {
-    let res;    
-    this.sucursalService.onGetSucursalActual()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {          
-          this.sucursalActual = res;
-          if (this.sucursalActual?.id == 0) {
-            this.isServidor = true;
+    // Update server configuration from ConfiguracionService
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
+
+    // Create a Promise that resolves when sucursal is loaded or rejects after timeout
+    return new Promise<boolean>((resolve, reject) => {
+      const isLocal = this.isLocal();
+      const hasToken = !!localStorage.getItem("token");
+
+      if (!isLocal && !hasToken) {
+        console.warn('No token found and not in local mode, skipping sucursal loading');
+        resolve(false);
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        console.warn('Sucursal loading timed out');
+        resolve(false);
+      }, 5000);
+
+      this.sucursalService.onGetSucursalActual(!isLocal)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => {
+            clearTimeout(timeout);
+            if (res != null) {
+              this.sucursalActual = res;
+              if (this.sucursalActual?.id == 0) {
+                this.isServidor = true;
+              }
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          },
+          error: (err) => {
+            clearTimeout(timeout);
+            console.error('Error loading sucursal:', err);
+            resolve(false);
           }
-        }
-      });
-    return res;
+        });
+    });
   }
 
-  changeServerIpAddress(text) {
-    localStorage.setItem("ip", text);
-    this.serverIpAddres = localStorage.getItem("ip");
+  /**
+   * Changes the server IP address using ConfiguracionService
+   * This ensures all IP references are updated consistently
+   */
+  changeServerIpAddress(text: string) {
+    this.configService.updateConfig({
+      serverIp: text
+    });
+    this.serverIpAddres = text;
   }
 
   // async getConfigFile(){
@@ -129,6 +204,23 @@ export class MainService implements OnDestroy {
   // async getWs(){
   //   return `ws://${await this.configFile.serverUrl}:${await this.configFile.serverPor}/subscriptions`
   // }
+
+  /**
+   * Logout the current user by clearing tokens and user data
+   * This will force a re-authentication on next app start
+   */
+  logout(): void {
+    // Clear authentication tokens
+    localStorage.removeItem("token");
+    localStorage.removeItem("token_central");
+    localStorage.removeItem("usuarioId");
+    localStorage.removeItem("keepLogged");
+
+    // Reset user data
+    this.usuarioActual = null;
+    this.logged = false;
+    this.authenticationSub.next(false);
+  }
 
   ngOnDestroy(): void { }
 }

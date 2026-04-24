@@ -8,7 +8,7 @@
 
 $angular-primary: mat.define-palette(mat.$red-palette, 500, 100, 700);
 $angular-accent: mat.define-palette(mat.$green-palette, 600, 100, 600);
-$angular-warn: mat.define-palette(mat.$red-palette, 500, 100, 700);
+$angular-warn: mat.define-palette(mat.$orange-palette, 600, 100, 700);
 
 $angular-default-theme: mat.define-light-theme((color: (primary: $angular-primary,
         accent: $angular-accent,
@@ -29,7 +29,7 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
 
 .darkMode {
   @include mat.all-component-colors($angular-dark-theme);
-  @include mat.all-legacy-component-themes($angular-dark-theme); // this is the important line
+  @include mat.all-legacy-component-themes($angular-dark-theme);
 }
 
 html {
@@ -159,15 +159,32 @@ input::selection {
 .titulo {
   text-align: start;
   color: #f57c00;
+  padding-right: 10px;
 }
 
 .titulo-color {
-  color: #f57c00;
+  color: #f57c00 !important;
 }
 
 .titulo-center {
-  text-align: center;
-  color: #f57c00;
+  text-align: center !important;
+  color: #f57c00 !important;
+}
+
+.center {
+  text-align: center !important;
+}
+
+.start {
+  text-align: start;
+}
+
+.end {
+  text-align: end;
+}
+
+.padding {
+  padding: 10px;
 }
 
 .subtitulo {
@@ -203,7 +220,6 @@ input::selection {
 ::ng-deep .cdk-overlay-pane:has(mat-mdc-simple-snack-bar) {
   position: fixed !important;
   bottom: 30% !important;
-  /* Adjust this value as needed */
 }
 
 .info {
@@ -257,8 +273,6 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
-/* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
 }
@@ -277,6 +291,18 @@ input {
 
 .mat-mdc-tab-body-wrapper {
   height: 100% !important;
+}
+
+.success {
+  color: #43a047;
+}
+
+.warn {
+  color: #f57c00;
+}
+
+.danger {
+  color: #f44336;
 }
 
 .btn-success-flat {
@@ -322,7 +348,6 @@ input {
 
 .mat-snack-bar-container {
   bottom: 30%;
-  /* Adjust this value as needed */
 }
 
 @media print {
@@ -335,4 +360,148 @@ input {
 
 .mat-mdc-row:hover {
   background-color: #3b883f !important;
+}
+
+.fondo-success {
+  background-color: #43a047 !important;
+}
+
+.fondo-warn {
+  background-color: #f57c00 !important;
+}
+
+.fondo-danger {
+  background-color: #f44336 !important;
+}
+
+/* Global warn color configuration */
+.mat-warn, .mat-mdc-button.mat-warn, .mat-mdc-raised-button.mat-warn,
+.mat-mdc-outlined-button.mat-warn, .mat-mdc-fab.mat-warn, .mat-mdc-mini-fab.mat-warn,
+.mat-mdc-icon-button.mat-warn {
+  --mdc-filled-button-container-color: #f57c00 !important;
+  --mdc-protected-button-container-color: #f57c00 !important;
+  --mdc-outlined-button-outline-color: #f57c00 !important;
+  --mdc-outlined-button-label-text-color: #f57c00 !important;
+  --mdc-text-button-label-text-color: #f57c00 !important;
+  --mdc-fab-container-color: #f57c00 !important;
+  --mdc-icon-button-icon-color: #f57c00 !important;
+  color: #f57c00 !important;
+}
+
+.mat-mdc-button.mat-warn:not([disabled]),
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-outlined-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]),
+.mat-mdc-icon-button.mat-warn:not([disabled]) {
+  color: #f57c00 !important;
+}
+
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]) {
+  background-color: #f57c00 !important;
+  color: white !important;
+}
+
+.background-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.item-total {
+  color: #4caf50 !important;
+}
+
+/* put this in your global styles.scss (or in your component scss with ::ng-deep) */
+.mat-mdc-table, .mat-table {
+  /* target the header row when it's made sticky */
+  .mat-mdc-header-row.mat-table-sticky,
+  .mat-header-row.mat-table-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;                      /* sit above table body */
+    background-color: #3c3c3c;        /* solid dark grey */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  /* ensure each header cell matches the row's background & has your border */
+  .mat-mdc-header-row.mat-table-sticky .mat-mdc-header-cell,
+  .mat-header-row.mat-table-sticky th {
+    background-color: #3c3c3c !important;
+    border-bottom: 1px solid #f57c00 !important;
+  }
+}
+
+
+// Estilos para diálogo fullscreen de comentarios
+::ng-deep .comentarios-fullscreen-dialog {
+  .mat-mdc-dialog-container {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    border-radius: 0 !important;
+  }
+
+  .mat-mdc-dialog-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: calc(100vh - 120px) !important;
+    overflow: hidden !important;
+  }
+
+  .mat-mdc-dialog-title {
+    padding: 16px 24px !important;
+    margin: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 12px 24px !important;
+    margin: 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    min-height: auto !important;
+  }
+}
+
+.notificacion-dialog-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    background: #1a1a1a;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    
+    .mat-mdc-dialog-surface {
+      background: transparent;
+    }
+  }
+}
+
+.gestion-proveedores-producto-dialog-panel {
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 50vh;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-surface {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
 }

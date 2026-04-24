@@ -170,6 +170,12 @@ export const finalizarVentaCreditoQuery = gql`
   }
 `;
 
+export const finalizarVentaCreditosQuery = gql`
+  mutation finalizarVentaCreditos($ventaCreditoInputList: [VentaCreditoInput]!) {
+    data: finalizarVentaCreditos(ventaCreditoInputList: $ventaCreditoInputList)
+  }
+`;
+
 export const imprimirReciboQuery = gql`
   query imprimirRecibo(
     $clienteId: ID!
@@ -179,6 +185,18 @@ export const imprimirReciboQuery = gql`
     data: imprimirRecibo(
       clienteId: $clienteId
       ventaCreditoInputList: $ventaCreditoInputList
+      usuarioId: $usuarioId
+    )
+  }
+`;
+
+export const imprimirReciboMultiplesClientesQuery = gql`
+  query imprimirReciboMultiplesClientes(
+    $clienteVentaCreditoList: [ClienteVentaCreditoInput]!
+    $usuarioId: ID!
+  ) {
+    data: imprimirReciboMultiplesClientes(
+      clienteVentaCreditoList: $clienteVentaCreditoList
       usuarioId: $usuarioId
     )
   }

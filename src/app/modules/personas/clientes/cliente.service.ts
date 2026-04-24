@@ -5,6 +5,7 @@ import { GenericCrudService, QueryError } from './../../../generics/generic-crud
 import { Cliente, ClienteInput, TipoCliente } from './cliente.model';
 import { ClienteByIdGQL } from './graphql/clienteById';
 import { ClientePersonaDocumentoGQL } from './graphql/clientePorPersonaDocumento';
+import { ClientePorPersonaDocumentoDetalladoGQL } from './graphql/clientePorPersonaDocumentoDetallado';
 import { ClientePersonaIdFromServerGQL } from './graphql/clientePorPersonaIdFromServer';
 import { ClientesSearchByPersonaGQL } from './graphql/clienteSearchByPersona';
 import { ClientesSearchByPersonaIdGQL } from './graphql/clienteSearchByPersonaId';
@@ -14,6 +15,7 @@ import { PageInfo } from '../../../app.component';
 import { ConsultaRucGQL } from './graphql/consultaRuc';
 import { RucResponse } from '../../../shared/services/ruc.service';
 import { NotificacionColor } from '../../../notificacion-snackbar.service';
+import { ClienteResponse } from './cliente.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +29,7 @@ export class ClienteService {
     private getClienteById: ClienteByIdGQL,
     public searchByPersonaNombre: ClientesSearchByPersonaGQL,
     private getClientePorPersonaDocumento: ClientePersonaDocumentoGQL,
+    private getClientePorPersonaDocumentoDetallado: ClientePorPersonaDocumentoDetalladoGQL,
     private getClientePorPersonaId: ClientesSearchByPersonaIdGQL,
     private getClientePorPersonaIdFromServer: ClientePersonaIdFromServerGQL,
     private searchWithFilters: ClientesSearchConFiltrosGQL,
@@ -35,56 +38,82 @@ export class ClienteService {
   ) {
   }
 
-  onSaveCliente(input: ClienteInput): Observable<Cliente> {
+  onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
     let errorConf: QueryError = {
       networkError: {
         show: false,
         propagate: true
       }
     }
-    return this.genericService.onSave(this.saveCliente, input, null, null, true, errorConf);
+    return this.genericService.onSave(this.saveCliente, input, null, null, servidor, errorConf);
   }
 
-  onGetClientePorPersonaDocumento(texto: string): Observable<Cliente> {
-    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto)
+  onGetClientePorPersonaDocumento(texto: string, servidor: boolean = true): Observable<Cliente> {
+    let errorConf: QueryError = {
+      graphError: {
+        show: false,
+        propagate: true
+      },
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    };
+    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto, servidor, null, errorConf);
   }
 
-  onGetById(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClienteById, id);
+  onGetClientePorPersonaDocumentoDetallado(texto: string, servidor: boolean = true): Observable<ClienteResponse> {
+    let errorConf: QueryError = {
+      graphError: {
+        show: false,
+        propagate: true
+      },
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    };
+    return this.genericService.onCustomQuery(this.getClientePorPersonaDocumentoDetallado, { texto }, servidor, errorConf);
   }
 
-  onGetByIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaIdFromServer, id);
+  onGetById(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClienteById, id, null, null, servidor);
   }
 
-  onGetByPersonaId(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id);
+  onGetByIdFromServer(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClientePorPersonaIdFromServer, id, null, null, servidor);
   }
 
-  onSearch(texto: string): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto);
+  onGetByPersonaId(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, servidor);
   }
 
-  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<PageInfo<Cliente>> {
-    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, false);
+  onSearch(texto: string, servidor: boolean = true): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor);
+  }
+
+  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size, servidor: boolean = true): Observable<PageInfo<Cliente>> {
+    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000);
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet");
   }
 
   onSearchFromServer(texto: string): Observable<Cliente[]> {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
   }
 
-  onConsultaRuc(ruc:string): Observable<RucResponse>{
+  onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{
     let errorConf: QueryError = {
       networkError: {
         show: false,
         propagate: true
       }
     }
-    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, errorConf)
+    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, servidor, errorConf)
   }
 
 }

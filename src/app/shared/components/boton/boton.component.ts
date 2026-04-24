@@ -130,7 +130,7 @@ export class BotonComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onGetFocus() {
-    this.btn?.focus();
+  onGetFocus() {    
+    this.btn?._elementRef?.nativeElement?.focus();
   }
 }

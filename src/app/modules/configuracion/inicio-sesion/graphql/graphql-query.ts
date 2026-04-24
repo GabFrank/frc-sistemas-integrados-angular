@@ -10,3 +10,9 @@ export const requestPushNotificationQuery = gql`
     )
   }
 `;
+
+export const notificarInicioSesionMutation = gql`
+  mutation ($usuarioId: Int!) {
+    data: notificarInicioSesion(usuarioId: $usuarioId)
+  }
+`;

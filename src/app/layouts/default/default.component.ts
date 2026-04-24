@@ -1,14 +1,20 @@
-import { Component, Inject, OnInit, ViewEncapsulation } from "@angular/core";
+import { Component, OnInit, ViewEncapsulation, OnDestroy, ViewChild, ChangeDetectorRef } from "@angular/core";
+import { Router } from "@angular/router";
 import { TabService } from "../tab/tab.service";
 import { Tab } from "../tab/tab.model";
 import { MatDialog } from "@angular/material/dialog";
+import { MatTabGroup } from "@angular/material/tabs";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
-import { Observable } from "rxjs/internal/Observable";
-import { fromEvent } from "rxjs";
 import { MainService } from "../../main.service";
 
+import {
+  MarcarNotificacionLeidaGQL
+} from "../../modules/notificaciones/graphql/notificacionMutations.gql";
+import { NotificacionesTableroService } from "../../modules/notificaciones/services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { NotificacionPersonalizadaComponent } from "../../modules/notificaciones/components/notificacion-personalizada/notificacion-personalizada.component";
+import { FormControl, FormGroup } from "@angular/forms";
 
 @UntilDestroy()
 @Component({
@@ -17,48 +23,106 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
   styleUrls: ["./default.component.scss"],
   encapsulation: ViewEncapsulation.None,
 })
-export class DefaultComponent implements OnInit {
+export class DefaultComponent implements OnInit, OnDestroy {
+
+  @ViewChild(MatTabGroup) matTabGroup: MatTabGroup;
+
   sideBarOpen = false;
+  notificationsOpen = false;
 
   tabs = new Array<Tab>();
 
+  fechaFormGroup: FormGroup;
+  fechaInicioControl: FormControl<Date | null>;
+  fechaFinControl: FormControl<Date | null>;
+  today = new Date();
+
   selectedTab: number;
-
   onTabClose: false;
-
   closeTab?: false;
-
   res = true;
 
   constructor(
     private tabService: TabService,
     public dialog: MatDialog,
     public windowInfo: WindowInfoService,
-    private mainService: MainService
+    private mainService: MainService,
+    private cdr: ChangeDetectorRef,
+    private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
+    private notificacionesTableroService: NotificacionesTableroService,
+    private router: Router
   ) {
-    fromEvent(document.body, "mousemove")
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    this.fechaInicioControl = new FormControl<Date | null>(ayer);
+    this.fechaFinControl = new FormControl<Date | null>(hoy);
+
+    this.fechaFormGroup = new FormGroup({
+      inicio: this.fechaInicioControl,
+      fin: this.fechaFinControl
+    });
+  }
+  crearNotificacion(): void {
+    const dialogRef = this.dialog.open(NotificacionPersonalizadaComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      restoreFocus: true,
+      panelClass: 'notificacion-dialog-panel'
+    });
+
+    dialogRef
+      .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((e) => {
-        let event = e as MouseEvent;
-        if (event.pageX < 10) {
-          this.sideBarOpen = true;
+      .subscribe((result) => {
+        if (result) {
+          console.log('Notificación a enviar:', result);
         }
       });
   }
 
-  ngOnInit(): void {
-    this.mainService.authenticationSub.subscribe((res) => {
-      if (res) {
-        this.tabService.tabSub
-        .pipe(untilDestroyed(this))
-        .subscribe((tabs) => {
-          this.tabs = tabs;
-          this.selectedTab = tabs.findIndex((tab) => tab.active);
-        });
-      }
-    });
+  marcarTodasComoLeidas(): void {
+    this.notificacionesTableroService.marcarTodasComoLeidas()
+      .pipe(untilDestroyed(this))
+      .subscribe();
   }
 
+
+
+  ngOnInit(): void {
+    this.mainService.authenticationSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.tabService.tabSub
+            .pipe(untilDestroyed(this))
+            .subscribe((tabs) => {
+              this.tabs = tabs;
+              const newIndex = tabs.findIndex((tab) => tab.active);
+              this.selectedTab = newIndex;
+              if (newIndex >= 0 && this.matTabGroup) {
+                this.matTabGroup.selectedIndex = newIndex;
+                this.cdr.detectChanges();
+              } else if (newIndex >= 0) {
+                setTimeout(() => {
+                  if (this.matTabGroup) {
+                    this.matTabGroup.selectedIndex = newIndex;
+                    this.cdr.detectChanges();
+                  }
+                }, 0);
+              }
+            });
+        } else {
+          this.sideBarOpen = false;
+          this.notificationsOpen = false;
+        }
+      });
+  }
   tabChanged(event): void {
     this.tabService.tabChanged(event.index);
   }
@@ -67,8 +131,66 @@ export class DefaultComponent implements OnInit {
     this.openDialog(index);
   }
 
-  tootleSideBar(e): void {
+  toggleSideNav(): void {
     this.sideBarOpen = !this.sideBarOpen;
+  }
+  setSideNav(isExpanded: boolean): void {
+    this.sideBarOpen = isExpanded;
+  }
+
+
+
+  openNotifications(): void {
+    this.notificationsOpen = !this.notificationsOpen;
+
+    if (this.notificationsOpen) {
+      const tokenFcm = localStorage.getItem("pushToken");
+      if (tokenFcm) {
+        this.notificacionesTableroService.setTokenFcm(tokenFcm);
+        this.aplicarFiltroFechas();
+      }
+    }
+  }
+
+  aplicarFiltroFechas(): void {
+    const fechaInicio = this.fechaInicioControl.value;
+    const fechaFin = this.fechaFinControl.value;
+
+    let fechaInicioStr: string | null = null;
+    let fechaFinStr: string | null = null;
+
+    if (fechaInicio) {
+      const inicio = new Date(fechaInicio);
+      inicio.setHours(0, 0, 0, 0);
+      fechaInicioStr = inicio.toISOString();
+    }
+
+    if (fechaFin) {
+      const fin = new Date(fechaFin);
+      const ahora = new Date();
+      if (fin.toDateString() === ahora.toDateString()) {
+        fin.setHours(23, 59, 59, 999);
+      } else {
+        fin.setHours(23, 59, 59, 999);
+      }
+      fechaFinStr = fin.toISOString();
+    }
+
+    this.notificacionesTableroService.actualizarFiltroFechas(fechaInicioStr, fechaFinStr);
+  }
+
+  limpiarFiltroFechas(): void {
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    this.fechaInicioControl.setValue(ayer);
+    this.fechaFinControl.setValue(hoy);
+
+    this.aplicarFiltroFechas();
   }
 
   openDialog(index): void {
@@ -89,11 +211,6 @@ export class DefaultComponent implements OnInit {
       });
   }
 
-  onSideBarFocus() {
-    if (this.sideBarOpen) {
-      setTimeout(() => {
-        this.sideBarOpen = false;
-      }, 1000);
-    }
+  ngOnDestroy(): void {
   }
 }

@@ -5,7 +5,7 @@ import {
   transition,
   animate,
 } from "@angular/animations";
-import { Component, Input, OnInit, ViewChild } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, OnInit, ViewChild } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -36,6 +36,10 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
+import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
+import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
+import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-categoria-observacion.model";
+import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -60,7 +64,9 @@ export class ListVentaComponent implements OnInit {
   @Input()
   data: Tab;
 
+  addVentaObservacionDataSource = new MatTableDataSource<VentaObservacion>([]);
   ventaDataSource = new MatTableDataSource<Venta>([]);
+  subCategoriaObsDataSource = new MatTableDataSource<SubCategoriaObservacion>([])
   ventaDisplayedColumns = [
     "id",
     "cliente",
@@ -71,7 +77,9 @@ export class ListVentaComponent implements OnInit {
     "acciones",
   ];
   expandedVenta: Venta;
+  ventaList: Venta[];
   selectedCaja: PdvCaja;
+  ventaObservacionList: VentaObservacion[];
   loading = false;
   isCargando = false;
   isLastPage = false;
@@ -92,6 +100,9 @@ export class ListVentaComponent implements OnInit {
   ventaEstadoList = Object.keys(VentaEstado);
   estadoControl = new FormControl(null);
   filterChanged = true;
+  conObsControl = new FormControl(false);
+  conDescuentoControl = new FormControl(false);
+  conAumentoControl = new FormControl(false);
 
   length = 15;
   pageSize = 15;
@@ -113,7 +124,9 @@ export class ListVentaComponent implements OnInit {
     private tabService: TabService,
     private matDialog: MatDialog,
     private monedaService: MonedaService,
-    private mainService: MainService
+    private mainService: MainService,
+    private ventaObservacionService: VentaObservacionService,
+    private cd: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -122,13 +135,27 @@ export class ListVentaComponent implements OnInit {
     });
 
     if (this.data?.tabData?.data != null) {
-      this.selectedCaja = this.data.tabData.data;
+      // Verificar si data es un objeto con caja y ventaId, o solo la caja (compatibilidad hacia atrás)
+      const tabData = this.data.tabData.data;
+      let ventaId: number = null;
+      
+      if (tabData.caja) {
+        this.selectedCaja = tabData.caja;
+        ventaId = tabData.ventaId;
+      } else {
+        // Compatibilidad: si solo viene la caja directamente
+        this.selectedCaja = tabData;
+      }
 
       this.cajaService
         .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true)
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
+            // Establecer el filtro de ventaId si existe, antes de filtrar
+            if (ventaId) {
+              this.idVentaControl.setValue(ventaId);
+            }
             this.onFiltrar();
             this.onGetBalance();
           }
@@ -141,10 +168,21 @@ export class ListVentaComponent implements OnInit {
       this.formaPagoList = res;
     });
 
+    this.ventaObservacionService.ventaObservacionBS
+      .pipe(untilDestroyed(this))
+      .subscribe((observaciones: VentaObservacion[]) => {
+        this.ventaObservacionList = observaciones;
+        this.onObservado(this.ventaDataSource.data);
+        this.ventaDataSource.data = [...this.ventaDataSource.data];
+      })
+
     this.form = new FormGroup({
       id: this.idVentaControl,
       formaPago: this.formaPagoControl,
       estado: this.estadoControl,
+      conObservacion: this.conObsControl,
+      conDescuento: this.conDescuentoControl,
+      conAumento: this.conAumentoControl
     });
 
     this.form.valueChanges.subscribe((res) => {
@@ -202,7 +240,9 @@ export class ListVentaComponent implements OnInit {
         this.formaPagoControl.value,
         this.estadoControl.value,
         this.modoControl.value,
-        this.monedaControl.value?.id
+        this.monedaControl.value?.id,
+        this.conDescuentoControl.value,
+        this.conAumentoControl.value
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
@@ -210,7 +250,9 @@ export class ListVentaComponent implements OnInit {
         // this.isCargando = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.ventaDataSource.data = res.getContent;
+          let ventas: Venta[] = res.getContent;
+          ventas = this.onObservado(ventas);
+          this.ventaDataSource.data = ventas;
         }
       });
   }
@@ -240,6 +282,7 @@ export class ListVentaComponent implements OnInit {
     } else {
       this.getTotales(venta);
     }
+    // this.loadObservaciones();
   }
 
   getTotales(venta: Venta) {
@@ -266,12 +309,22 @@ export class ListVentaComponent implements OnInit {
           this.totalRecibidoRs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
           this.totalFinal += res.valor * res.cambio;
+        } else if (res.aumento) {
+          this.totalAumento += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        } else if (res.descuento) {
+          this.totalDescuento += res.valor * res.cambio;
         }
       } else if (res.moneda.denominacion == "DOLAR") {
         if (res.pago || res.vuelto) {
           this.totalRecibidoDs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
           this.totalFinal += res.valor * res.cambio;
+        } else if (res.aumento) {
+          this.totalAumento += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        } else if (res.descuento) {
+          this.totalDescuento += res.valor * res.cambio;
         }
       }
     });
@@ -352,6 +405,9 @@ export class ListVentaComponent implements OnInit {
     this.estadoControl.setValue(null);
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
+    this.conObsControl.setValue(false);
+    this.conDescuentoControl.setValue(false);
+    this.conAumentoControl.setValue(false);
   }
 
   onGoToRetiros() {
@@ -436,5 +492,42 @@ export class ListVentaComponent implements OnInit {
             });
         }
       });
+  }
+
+  onObservado(ventas: Venta[]): Venta[] {
+    ventas.forEach((venta) => {
+      venta['hasObservation'] = venta.ventaObservacionList && venta.ventaObservacionList.length > 0;
+    });
+
+    if (this.conObsControl.value) {
+      ventas = ventas.filter((sale) => sale['hasObservation']);
+    }
+
+    return ventas;
+  }
+ 
+  onListObservaciones(venta: Venta) {
+    const dialogRef = this.matDialog
+      .open(VentaObservacionDashboardComponent, {
+        width: "1950px",
+        height: "550px",
+        data: { venta: venta }
+      })
+    dialogRef.afterClosed()
+      .subscribe(() => {
+        this.ventaObservacionService.onGetVentasObservaciones().subscribe();
+      })
+  }
+
+  onToggleConObs(selected: boolean) {
+    this.conObsControl.setValue(selected);
+  }
+
+  onToggleConDescuento(selected: boolean) {
+    this.conDescuentoControl.setValue(selected);
+  }
+
+  onToggleConAumento(selected: boolean) {
+    this.conAumentoControl.setValue(selected);
   }
 }

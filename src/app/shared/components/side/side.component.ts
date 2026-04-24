@@ -1,9 +1,15 @@
+/**
+ * LEGACY: Este componente ya no está en uso.
+ * El menú lateral activo es side-mini-variant (app-side-mini-variant).
+ * Se mantiene por compatibilidad o referencia.
+ */
 import { Component, OnInit } from "@angular/core";
 import { MatDialog } from '@angular/material/dialog';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
+import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
 import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
@@ -12,7 +18,6 @@ import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caj
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
-import { PedidoDashboardComponent } from '../../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
@@ -28,11 +33,22 @@ import { CambioComponent } from './../../../modules/financiero/cambio/cambio.com
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { SolicitudPagoDashboardComponent } from "../../../modules/operaciones/solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
+import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
+import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
+import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
+import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
 
+/** @deprecated LEGACY - En uso: app-side-mini-variant */
 @Component({
   selector: "app-side",
   templateUrl: "./side.component.html",
@@ -41,6 +57,16 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 export class SideComponent implements OnInit {
 
   isTest = false;
+  isPdvVisible = false;
+  isAdminSectionVisible = false;
+  isInventarioSectionVisible = false;
+  isFinancieroSectionVisible = false;
+  isPersonasSectionVisible = false;
+  isProductosSectionVisible = false;
+  isOperacionesSectionVisible = false;
+  isConfiguracionSectionVisible = false;
+  isHorariosSectionVisible = true;
+  isListaMarcacionVisible = false;
 
   constructor(
     public tabService: TabService,
@@ -49,16 +75,104 @@ export class SideComponent implements OnInit {
     private cargandoDialogService: CargandoDialogService,
     private electronService: ElectronService,
     private notificacionService: NotificacionSnackbarService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private loginDialogService: LoginDialogService
   ) {
 
   }
 
   ngOnInit(): void {
+    console.log(this.mainService.usuarioActual?.roles);
+
+    this.updateMenuVisibility();
+
+    this.mainService.authenticationSub.subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.updateMenuVisibility();
+      } else {
+        this.resetMenuVisibility();
+      }
+    });
+  }
+
+  updateMenuVisibility(): void {
+    this.isPdvVisible = this.mainService.isLocal();
+    this.isAdminSectionVisible = this.hasAnyRole([ROLES.ADMIN, ROLES.SOPORTE]);
+
+    this.isInventarioSectionVisible = this.hasAnyRole([
+      ROLES.VER_INVENTARIO,
+      ROLES.CREAR_INVENTARIO,
+      ROLES.PARTICIPAR_DEL_INVENTARIO,
+      ROLES.VER_MOVIMIENTO_DE_STOCK
+    ]);
+
+    this.isFinancieroSectionVisible = this.hasAnyRole([
+      ROLES.ANALISIS_DE_CAJA,
+      ROLES.ANALISIS_CONTABLE,
+      ROLES.CAMBIAR_COTIZACION
+    ]);
+
+    this.isPersonasSectionVisible = this.hasAnyRole([
+      ROLES.VER_PERSONAS,
+      ROLES.EDITAR_PERSONAS,
+      ROLES.VER_USUARIOS,
+      ROLES.EDITAR_USUARIOS,
+      ROLES.VER_FUNCIONARIOS,
+      ROLES.CREAR_FUNCIONARIOS,
+      ROLES.EDITAR_FUNCIONARIOS
+    ]);
+
+    this.isProductosSectionVisible = this.hasAnyRole([
+      ROLES.VER_PRODUCTOS,
+      ROLES.EDITAR_PRODUCTOS,
+      ROLES.CREAR_PRECIOS,
+      ROLES.EDITAR_PRECIOS,
+      ROLES.VER_PRECIO_COSTO
+    ]);
+
+    this.isOperacionesSectionVisible = this.hasAnyRole([
+      ROLES.VER_TRANSFERENCIA,
+      ROLES.CREAR_TRANSFERENCIA,
+      ROLES.ADMIN,
+      ROLES.SOPORTE
+    ]);
+
+    this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
+    this.isHorariosSectionVisible = true;
+    this.isListaMarcacionVisible = this.hasAnyRole([
+      ROLES.VER_PERSONAS,
+      ROLES.EDITAR_PERSONAS,
+      ROLES.VER_USUARIOS,
+      ROLES.EDITAR_USUARIOS,
+      ROLES.VER_FUNCIONARIOS,
+      ROLES.CREAR_FUNCIONARIOS,
+      ROLES.EDITAR_FUNCIONARIOS
+    ]);
+  }
+  resetMenuVisibility(): void {
+    this.isPdvVisible = false;
+    this.isAdminSectionVisible = false;
+    this.isInventarioSectionVisible = false;
+    this.isFinancieroSectionVisible = false;
+    this.isPersonasSectionVisible = false;
+    this.isProductosSectionVisible = false;
+    this.isOperacionesSectionVisible = false;
+    this.isConfiguracionSectionVisible = false;
+    this.isHorariosSectionVisible = false;
+    this.isListaMarcacionVisible = false;
+  }
+
+  /**
+   * Helper method to check if the user has any of the specified roles
+   * @param roleList Array of roles to check
+   * @returns true if user has any of the specified roles
+   */
+  private hasAnyRole(roleList: string[]): boolean {
+    if (!this.mainService.usuarioActual?.roles) return false;
+    return roleList.some(role => this.mainService.usuarioActual.roles.includes(role));
   }
 
   onItemClick(tab: string): void {
-    // this.isTest = this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
     switch (tab) {
       case "list-persona":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS)) {
@@ -104,19 +218,13 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-compra":
-        // this.tabService.addTab(
-        //   new Tab(ListCompraComponent, "Compras", null, null)
-        // );
         break;
       case "list-pedido":
-        this.tabService.addTab(
-          new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
+        // );
         break;
       case "pdv-restaurant":
-        // this.tabService.addTab(
-        //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
-        // );
         break;
       case "funcionario-dashboard":
         if (
@@ -130,19 +238,10 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-paises":
-        // this.tabService.addTab(
-        //   new Tab(ListPaisComponent, "Países", null, null)
-        // );
         break;
       case "list-ciudades":
-        // this.tabService.addTab(
-        //   new Tab(ListCiudadComponent, "Ciudades", null, null)
-        // );
         break;
       case "list-necesidad":
-        // this.tabService.addTab(
-        //   new Tab(ListNecesidadComponent, "Necesidades", null, null)
-        // );
         break;
       case "pdv-venta-touch":
         if ((this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH))) {
@@ -228,6 +327,17 @@ export class SideComponent implements OnInit {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
+      case "list-pagos":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
+        ) {
+          // this.tabService.addTab(
+          //   new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
+          // );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
       case "list-transferencias":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.VER_TRANSFERENCIA
@@ -281,6 +391,42 @@ export class SideComponent implements OnInit {
           new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null)
         );
         break;
+      case "observacion-ventas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainVentaObservacionComponent, "Observación de Ventas", null, null)
+          );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "observacion-cajas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainCajaObservacionComponent, "Observación de Cajas", null, null)
+          );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "modificaciones":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(ModificacionesComponent, "Modificaciones", null, null)
+          );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
       case "lucro-por-producto":
         this.tabService.addTab(
           new Tab(LucroPorProductoComponent, "Lucro por producto", null, null)
@@ -289,6 +435,11 @@ export class SideComponent implements OnInit {
       case "compras-dashboard":
         this.tabService.addTab(
           new Tab(CompraDashboardComponent, "Compras", null, null)
+        );
+        break;
+      case "solicitud-pago-dashboard":
+        this.tabService.addTab(
+          new Tab(SolicitudPagoDashboardComponent, "Solicitud de pago", null, null)
         );
         break;
       case "list-retiros":
@@ -309,35 +460,87 @@ export class SideComponent implements OnInit {
           );
         }
         break;
+      case "list-sucursal":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(ListSucursalComponent, "Lista de sucursales", null, null)
+          );
+        }
+        break;
+      case "thermal-printer":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) ||
+          this.mainService.usuarioActual?.roles.includes("CONFIGURACION")
+        ) {
+          this.tabService.addTab(
+            new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "logical-replication":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.tabService.addTab(
+            new Tab(ListReplicationComponent, "Replicación Lógica", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
+        }
+        break;
+      case "replication-tables":
+        console.log("replication-tables");
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          console.log("replication-tables 2");
+          this.tabService.addTab(
+            new Tab(ListReplicationTablesComponent, "Tablas de Replicación", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
+        }
+        break;
+      case "marcar-horario":
+        this.tabService.addTab(
+          new Tab(MarcarHorarioComponent, "Marcar horario", null, null)
+        );
+        break;
+      case "list-marcacion":
+        if (this.hasAnyRole([ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS])) {
+          this.tabService.addTab(
+            new Tab(ListMarcacionComponent, "Lista de horarios", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.')
+        }
+        break;
     }
   }
 
   async onLogout() {
     let inicioSesion = new InicioSesion();
     Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
-    inicioSesion.horaFin = new Date();  
-    if(inicioSesion != null && inicioSesion?.sucursal != null){
+    inicioSesion.horaFin = new Date();
+    if (inicioSesion != null && inicioSesion?.sucursal != null) {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
           .subscribe((res) => {
             resolve(res);
           });
-      }); 
-    }  
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuarioId");
-    this.mainService.usuarioActual = null;
-    this.mainService.logged = false;
+      });
+    }
+    this.mainService.logout();
     this.tabService.removeAllTabs();
-    this.electronService.relaunch();
+    this.loginDialogService.openLoginDialog();
   }
 
   onLogin() {
     this.electronService.relaunch()
   }
 
-  onReiniciar(){
+  onReiniciar() {
     this.electronService.relaunch()
   }
 }

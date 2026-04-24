@@ -70,6 +70,7 @@ export class UtilitariosDialogComponent implements OnInit {
       .open(AdicionarCajaDialogComponent, {
         data: {
           caja: this.selectedCaja,
+          isVentaTouch: true
         },
         width: "90%",
         height: "95vh",

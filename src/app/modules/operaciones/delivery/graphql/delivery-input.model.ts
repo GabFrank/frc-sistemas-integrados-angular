@@ -13,4 +13,5 @@ export class DeliveryInput {
     valor: number
     barrioId?: number;
     vueltoId?: number;
+    fechaConcluido?: Date;
 }

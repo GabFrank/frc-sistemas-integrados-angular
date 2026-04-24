@@ -12,6 +12,7 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 Happy linting! 💖
 */
 module.exports = {
+    "root": true,
     "env": {
         "browser": true,
         "node": true
@@ -32,8 +33,7 @@ module.exports = {
         "eslint-plugin-jsdoc",
         "@angular-eslint/eslint-plugin-template",
         "eslint-plugin-prefer-arrow",
-        "@typescript-eslint",
-        "@typescript-eslint/tslint"
+        "@typescript-eslint"
     ],
     "rules": {
         "@angular-eslint/component-class-suffix": "error",
@@ -63,9 +63,6 @@ module.exports = {
         "@angular-eslint/no-output-on-prefix": "error",
         "@angular-eslint/no-output-rename": "error",
         "@angular-eslint/no-outputs-metadata-property": "error",
-        "@angular-eslint/template/banana-in-box": "error",
-        "@angular-eslint/template/eqeqeq": "error",
-        "@angular-eslint/template/no-negated-async": "error",
         "@angular-eslint/use-lifecycle-interface": "error",
         "@angular-eslint/use-pipe-transform-interface": "error",
         "@typescript-eslint/adjacent-overload-signatures": "error",
@@ -308,22 +305,17 @@ module.exports = {
         ],
         "use-isnan": "error",
         "valid-typeof": "off",
-        "@typescript-eslint/tslint/config": [
-            "error",
-            {
-                "rules": {
-                    "import-spacing": true,
-                    "whitespace": [
-                        true,
-                        "check-branch",
-                        "check-decl",
-                        "check-operator",
-                        "check-separator",
-                        "check-type",
-                        "check-typecast"
-                    ]
-                }
+    },
+    "overrides": [
+        {
+            "files": ["*.html"],
+            "parser": "@angular-eslint/template-parser",
+            "plugins": ["@angular-eslint/eslint-plugin-template"],
+            "rules": {
+                "@angular-eslint/template/banana-in-box": "error",
+                "@angular-eslint/template/eqeqeq": "error",
+                "@angular-eslint/template/no-negated-async": "error"
             }
-        ]
-    }
+        }
+    ]
 };

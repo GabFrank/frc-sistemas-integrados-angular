@@ -4,8 +4,9 @@ import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { Persona } from '../persona/persona.model';
 import { Usuario } from '../usuarios/usuario.model';
 import { FuncionarioInput } from './funcionario-input.model';
+import { Horario } from '../../administrativo/horarios/models/horario.model';
 
-export class Funcionario  {
+export class Funcionario {
   id: number;
   persona: Persona;
   cargo: Cargo;
@@ -21,6 +22,7 @@ export class Funcionario  {
   usuario: Usuario;
   nickname: string;
   imagenPrincipal: string;
+  horario: Horario;
 
   toInput(): FuncionarioInput {
     let input = new FuncionarioInput;
@@ -36,6 +38,7 @@ export class Funcionario  {
     input.supervisadoPorId = this.supervisadoPor?.id
     input.activo = this.activo
     input.usuarioId = this.usuario?.id
+    input.horarioId = this.horario?.id
     return input;
   }
 }

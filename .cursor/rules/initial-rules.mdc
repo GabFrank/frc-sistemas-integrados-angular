@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Project Structure and Access
+- **Full Stack Access**: This AI Agent has access to both the frontend (Angular/TypeScript) and backend (Spring Boot/Java) projects. The agent is free to read and modify files in both projects when necessary to solve issues or implement features. Any modifications to backend files will always be clearly communicated to the user with explanations of what was changed and why.
+- **Cross-Project Problem Solving**: When encountering issues that span both frontend and backend (such as GraphQL schema mismatches, entity relationship problems, API inconsistencies, etc.), the agent should analyze and fix problems on both sides as needed, always informing the user of all changes made.
+
+For Angular Material
+- Our navigation is tab based and we use [tab.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/layouts/tab/tab.service.ts)
+- all crud operations for apollo on .service file must be done using [generic-crud.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/generics/generic-crud.service.ts)
+- Never use functions directly on html, this can cause angular bad performance, also never use getters or setters on html, has the same problem
+- always save string as uppercase, unless user explicitly indicate another way
+- always edit .ts and .js, example, main.ts and main.js (if exist), preload.ts and preload.js (if exists)
+- Do not create a agnular module for new components if i explicitly not ask to do, instead use the nearest module on path
+- for snackbar messages use [notificacion-snackbar.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/notificacion-snackbar.service.ts)
+- for dialogs use [dialogos.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/shared/components/dialogos/dialogos.service.ts)
+- never use white or light background color becouse our app is in always dark mode 
+- always center the text on tables, unless user explicitly ask to do other way
+- for graphql input clases, always use string for date fields, and on toInput() function convert date to string using dateToString 
+method from [dateUtils.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/commons/core/utils/dateUtils.ts)
+- do not use container class on components, becouse it is a defined class in Bootstraps and you will get a not desired result
+- on filters, do not filter on form control value changes, unless user explicitly ask
+- for graphql querys, we have a graphql file for each model, example: [graphql-query.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/graphql/graphql-query.ts), and for each query and mutation there is a apollo service class, example: [getPagoDetalle.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/pago-detalle/graphql/getPagoDetalle.ts)
+- pagination on graphql has this format:
+getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        //here comes the entity fields
+      }
+- all titles must use class "titulo-center" and font medium
+- for all components always create .ts, html and .scss, skip test file
+- do not use Dynamic imports unless we really need
+- for keyboard navigation in forms: use Enter key to navigate between form fields, use ViewChild with MatButton to focus buttons, implement keydown handlers for each form field that move focus to the next field using document.querySelector, for textarea fields check !event.shiftKey to allow line breaks with Shift+Enter, for mat-select components DO NOT use keydown events - instead use (selectionChange) and (closed) events to navigate after user selects option and dropdown closes, use setTimeout with small delay to ensure dropdown is properly closed before focusing next field, ALWAYS validate current field before allowing navigation to next field using formControl.valid, if field is invalid mark as touched and call updateComputedProperties to show error message, only allow navigation if current field is valid
+- If there is a complex/heavy logic computation, always prefer do it on backend.
+
+## Database Verification Rules
+- **CRITICAL**: Before modifying any existing entity or creating a new entity, ALWAYS consult the database using MCP PostgreSQL queries to verify the current structure, constraints, and data types. This prevents errors and ensures migrations are correctly aligned with the actual database state.
+- **Entity Structure Verification**: Use queries like `SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = 'operaciones' AND table_name = 'table_name'` to understand current structure.
+- **Enum Verification**: Check existing enums with `SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname LIKE '%enum_name%'`.
+- **Constraint Verification**: Verify foreign keys and constraints before creating new relationships.
+- **Data Migration Planning**: When restructuring entities, always check existing data count and plan migration strategy accordingly.
+
+## Build and Compilation Rules
+- **Frontend Build Automation**: The Angular application automatically generates builds when frontend files are modified. DO NOT manually run `npm run build` or `npm start` for frontend changes.
+- **Backend Compilation**: Only when backend files are modified (Java, GraphQL, migrations) is manual compilation required. In these cases, ALWAYS notify the user explicitly to compile using available tools.
+- **Workflow**: Frontend changes = automatic build, Backend changes = notify user for manual compilation.

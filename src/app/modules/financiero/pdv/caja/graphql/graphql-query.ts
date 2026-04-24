@@ -126,6 +126,11 @@ export const balancePorCajaIdQuery = gql`
       totalVentaRs
       totalVentaDs
       totalTarjeta
+      totalTarjetaRs
+      totalTarjetaDs
+      totalTransferencia
+      totalTransferenciaRs
+      totalTransferenciaDs
       totalCredito
       totalRetiroGs
       totalRetiroRs
@@ -162,6 +167,11 @@ export const balancePorCajaIAndSucursalIdQuery = gql`
       totalVentaRs
       totalVentaDs
       totalTarjeta
+      totalTarjetaRs
+      totalTarjetaDs
+      totalTransferencia
+      totalTransferenciaRs
+      totalTransferenciaDs
       totalCredito
       totalRetiroGs
       totalRetiroRs
@@ -454,7 +464,7 @@ export const imprimirBalanceQuery = gql`
     $local: String
     $sucId: ID
   ) {
-    imprimirBalance(
+    data: imprimirBalance(
       id: $id
       printerName: $printerName
       local: $local
@@ -511,6 +521,9 @@ export const cajasWithFilters = gql`
         fechaApertura
         fechaCierre
         observacion
+        cajaObservacionList {
+           id 
+        }
         verificado
         maletin {
           id
@@ -523,7 +536,230 @@ export const cajasWithFilters = gql`
             nombre
           }
         }
+        conteoApertura {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+        conteoCierre {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
       }
     }
   }
 `;
+
+export const cajasAnalisisDiferencias = gql`
+  query (
+    $cajaId: ID
+    $cajaAnteriorId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $maletinDescripcion: String
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $difEstado: String,
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasAnalisisDiferencias(
+      cajaId: $cajaId
+      cajaAnteriorId: $cajaAnteriorId
+      estado: $estado
+      maletinId: $maletinId
+      maletinDescripcion: $maletinDescripcion
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      difEstado: $difEstado
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalId
+        descripcion
+        activo
+        estado
+        tuvoProblema
+        fechaApertura
+        fechaCierre
+        observacion
+        verificado
+        maletin {
+          id
+          descripcion
+        }
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        cajaAnteriorId
+        estadoDiferenciaConsecutiva
+        conteoApertura {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+        conteoCierre {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const cajaAbiertoPorSucursalQuery = gql`
+  query ($sucursalId: ID!) {
+    data: cajaAbiertoPorSucursal(sucursalId: $sucursalId) {
+      id
+      descripcion
+      activo
+      estado
+      tuvoProblema
+      fechaApertura
+      fechaCierre
+      observacion
+      maletin {
+        id
+        descripcion
+      }
+      sucursal {
+        id
+        nombre
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      balance {
+        cajaId
+        totalGeneral
+        totalVentaGs
+        totalVentaRs
+        totalVentaDs
+        totalTarjeta
+        totalTarjetaRs
+        totalTarjetaDs
+        totalTransferencia
+        totalTransferenciaRs
+        totalTransferenciaDs
+        totalCredito
+        totalRetiroGs
+        totalRetiroRs
+        totalRetiroDs
+        totalGastoGs
+        totalGastoRs
+        totalGastoDs
+        totalAperGs
+        totalAperRs
+        totalAperDs
+        totalCierreGs
+        totalCierreRs
+        totalCierreDs
+        totalDescuento
+        totalAumento
+        totalCanceladasGs
+        totalCanceladasRs
+        totalCanceladasDs
+        vueltoGs
+        vueltoRs
+        vueltoDs
+        diferenciaGs
+        diferenciaRs
+        diferenciaDs
+      }
+    }
+  }
+`;
+
+export const transferirCajaQuery = gql`
+    mutation transferirCaja($cajaId: ID!, $usuarioId: ID!) {
+      data: transferirCaja(cajaId: $cajaId, usuarioId: $usuarioId) {
+        id
+        usuario {
+            id
+            nickname
+            persona {
+                id
+                nombre
+            }
+        }
+      }
+    }
+  `;

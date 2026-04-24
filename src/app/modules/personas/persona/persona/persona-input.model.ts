@@ -14,7 +14,7 @@ export class PersonaInput {
   socialMedia: string;
   imagenes: string;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   isFuncionario: boolean
   isCliente: boolean
   isProveedor: boolean

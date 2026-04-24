@@ -5,7 +5,7 @@ import {
   transition,
   trigger,
 } from "@angular/animations";
-import { Component, ElementRef, OnInit, ViewChild } from "@angular/core";
+import { Component, ElementRef, Input, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -32,7 +32,7 @@ import { PageInfo } from "../../../../app.component";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
-import { PageEvent } from "@angular/material/paginator";
+import { PageEvent, MatPaginator } from "@angular/material/paginator";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 
 export interface OrderList {
@@ -63,9 +63,12 @@ export interface TipoOrder {
   ],
 })
 export class ListInventarioComponent implements OnInit {
+  @Input() data: Tab;
+  
   @ViewChild("buscarUsuarioInput", { static: true })
   buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<InventarioProductoItem>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
@@ -95,6 +98,7 @@ export class ListInventarioComponent implements OnInit {
   buscarProductoControl = new FormControl();
   isPesable = false;
   selectedProducto: Producto;
+  estadoControl = new FormControl();
 
   displayedColumns = [
     "descripcion", //producto
@@ -168,21 +172,25 @@ export class ListInventarioComponent implements OnInit {
     this.sucursalIdList = [];
 
     setTimeout(() => {
-      this.sucursalService
-        .onGetAllSucursales()
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.sucursalList = res.filter((s) => {
-            if (s.id != 0) {
-              this.sucursalIdList.push(s.id);
-              return s;
-            }
-          });
+      this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
+        this.sucursalList = res.filter((s) => {
+          if (s.id != 0) {
+            this.sucursalIdList.push(s.id);
+            return s;
+          }
         });
+        
+        // Procesar datos del TabData para autocompletar filtros si vienen desde movimiento de stock
+        this.procesarDatosTabData();
+      });
     });
   }
 
-  onFiltrar() {
+  onFiltrar(resetPage: boolean = false) {
+    if (resetPage) {
+      this.pageIndex = 0;
+      if (this.paginator) this.paginator.firstPage();
+    }
     let productoIdList: number[];
     this.productoList.forEach((p) => {
       if (productoIdList == null) productoIdList = [];
@@ -200,6 +208,10 @@ export class ListInventarioComponent implements OnInit {
     fechaFin.setMinutes(horaFinal.getMinutes());
     fechaFin.setSeconds(horaFinal.getSeconds());
     
+    const sucursalIds = this.toSucursalesId(this.sucursalControl.value);
+    const usuarioIds = this.selectedUsuario != null ? [this.selectedUsuario.id] : null;
+    const estado = this.estadoControl.value;
+    
     this.inventarioService
       .onGetInventarioProductoItemWithFilters(
         dateToString(fechaInicial),
@@ -208,9 +220,10 @@ export class ListInventarioComponent implements OnInit {
         this.pageSize,
         this.ordenarPorControl.value?.value,
         this.tipoOrdenControl.value?.value,
-        this.toSucursalesId(this.sucursalControl.value),
-        this.selectedUsuario != null ? [this.selectedUsuario.id] : null,
-        productoIdList
+        sucursalIds,
+        usuarioIds,
+        productoIdList,
+        estado
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<InventarioProductoItem>) => {
@@ -249,6 +262,7 @@ export class ListInventarioComponent implements OnInit {
       .subscribe((res: Usuario) => {
         if (res != null) {
           this.selectedUsuario = res;
+          this.buscarUsuarioControl.setValue(`${res.id} - ${res.nickname}`);
         }
       });
   }
@@ -336,11 +350,15 @@ export class ListInventarioComponent implements OnInit {
     }
   }
 
-  toSucursalesId(sucursales: Sucursal[]) {
-    let idList = [];
-    if (sucursales == null) sucursales = this.sucursalList;
-    sucursales?.forEach((s) => idList.push(s?.id));
-    return idList;
+  toSucursalesId(sucursales: any[]): number[] {
+    let idList: number[] = [];
+    if (sucursales == null) return null;
+    sucursales?.forEach((sucursal) => {
+      if (sucursal?.id != null) {
+        idList.push(sucursal.id);
+      }
+    });
+    return idList.length > 0 ? idList : null;
   }
 
   irAProducto(producto) {
@@ -378,6 +396,77 @@ export class ListInventarioComponent implements OnInit {
         this.selectedUsuario != null ? [this.selectedUsuario.id] : null,
         productoIdList,
       )
+    }
+  }
+
+  onResetFiltro(){
+    // set fecha inicio a 2 dias atras
+    let aux = new Date();
+    aux.setDate(aux.getDate() - 2);
+    this.fechaInicioControl.setValue(aux);
+    this.fechaFinalControl.setValue(new Date());
+    // set hora inicio a 00:00 and fin to 23:59
+    this.horaInicioControl.setValue("00:00");
+    this.horaFinalControl.setValue("23:59");
+    this.sucursalControl.setValue(null);
+    this.selectedUsuario = null;
+    this.buscarProductoControl.setValue(null);
+    this.buscarUsuarioControl.setValue(null);
+    this.ordenarPorControl.setValue(null);
+    this.tipoOrdenControl.setValue(null);
+    this.estadoControl.setValue(null);
+    }
+
+  procesarDatosTabData() {
+    if (this.data?.tabData?.data) {
+      const datosMovimiento = this.data.tabData.data;
+
+      if (datosMovimiento.producto) {
+        this.selectedProducto = datosMovimiento.producto;
+        this.productoList = [datosMovimiento.producto];
+        this.buscarProductoControl.setValue(
+          `${datosMovimiento.producto.id} - ${datosMovimiento.producto.descripcion}`
+        );
+      }
+
+      if (datosMovimiento.usuario) {
+        this.selectedUsuario = datosMovimiento.usuario;
+        this.buscarUsuarioControl.setValue(
+          `${datosMovimiento.usuario.id} - ${datosMovimiento.usuario.nickname}`
+        );
+      }
+
+      if (datosMovimiento.sucursalId) {
+        const sucursal = this.sucursalList.find(s => Number(s.id) === Number(datosMovimiento.sucursalId));
+        
+        if (sucursal) {
+          this.sucursalControl.setValue([sucursal]);
+        } else {
+          console.warn('No se encontró la sucursal con ID:', datosMovimiento.sucursalId);
+        }
+      }
+
+      if (datosMovimiento.fecha) {
+        let fechaMovimiento: Date;
+        if (typeof datosMovimiento.fecha === 'string') {
+          fechaMovimiento = new Date(datosMovimiento.fecha);
+        } else {
+          fechaMovimiento = datosMovimiento.fecha;
+        }
+        
+        const fechaInicio = new Date(fechaMovimiento);
+        fechaInicio.setHours(0, 0, 0, 0);
+        
+        const fechaFin = new Date(fechaMovimiento);
+        fechaFin.setHours(23, 59, 59, 999);
+        
+        this.fechaInicioControl.setValue(fechaInicio);
+        this.fechaFinalControl.setValue(fechaFin);
+      }
+
+      setTimeout(() => {
+        this.onFiltrar();
+      }, 700);
     }
   }
 }

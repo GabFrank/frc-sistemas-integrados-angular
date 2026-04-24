@@ -1,0 +1,186 @@
+.table-container {
+  height: 100%;
+  background-color: rgb(70, 70, 70);
+  width: 100%;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 100%;
+
+  .header-cell {
+    font-weight: bold;
+    background-color: #424242;
+    color: white;
+    padding: 12px 8px;
+  }
+
+  .data-cell {
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .text-center {
+    text-align: center;
+  }
+}
+
+.estado-badge {
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 500;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.saldo-cell,
+.vencimiento-cell {
+  font-weight: 600;
+}
+
+.dias-vencimiento-cell {
+  font-weight: 500;
+  font-size: 0.9em;
+  text-transform: capitalize;
+
+  &.vencido {
+    background: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #f44336;
+  }
+
+  &.por-vencer {
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #ff9800;
+  }
+
+  &.vigente {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid #4caf50;
+  }
+}
+
+.header-row {
+  background-color: #424242;
+}
+
+.data-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &.selected-row {
+    background-color: rgba(33, 150, 243, 0.15);
+  }
+}
+
+.empty-row {
+  .empty-cell {
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .empty-message {
+    color: #999;
+    font-style: italic;
+    font-size: 1.1em;
+  }
+}
+
+.select-all-option {
+  font-weight: 600;
+  background-color: rgba(63, 81, 181, 0.05);
+  
+  &:hover {
+    background-color: rgba(63, 81, 181, 0.15);
+  }
+  
+  strong {
+    color: #e6e8f0;
+  }
+}
+
+.suffix-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+
+  &.clear-button {
+    color: #f44336;
+
+    &:hover {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.paginator {
+  width: 100%;
+  background-color: #424242;
+  color: white;
+
+  &.full-width-paginator {
+    min-width: 100%;
+    margin-top: 0;
+  }
+
+  ::ng-deep {
+    .mat-paginator-container {
+      justify-content: space-between;
+      min-height: 56px;
+    }
+
+    .mat-paginator-page-size,
+    .mat-paginator-range-label,
+    .mat-paginator-navigation-button {
+      color: white;
+    }
+
+    .mat-select-value {
+      color: white;
+    }
+
+    .mat-form-field-underline {
+      background-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    min-width: 800px;
+  }
+
+  .paginator.full-width-paginator {
+    min-width: 800px;
+  }
+}
+
+.example-additional-selection {
+  opacity: 0.75;
+  font-size: 0.9em;
+}

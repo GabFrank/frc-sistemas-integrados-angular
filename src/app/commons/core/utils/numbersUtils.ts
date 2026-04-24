@@ -57,9 +57,7 @@ export function isInt(n) {
   return n % 1 === 0;
 }
 
-export function updateDataSource(dataSourceData: any[], value?: any, index?: number | null): any[] {
-  console.log(dataSourceData, value, index);
-  
+export function updateDataSource(dataSourceData: any[], value?: any, index?: number | null): any[] {  
   let newArray: any[] = [...dataSourceData];
   if (index != null) {
     if (value != null) {
@@ -82,14 +80,22 @@ export function updateDataSource(dataSourceData: any[], value?: any, index?: num
 
 export function updateDataSourceWithId(arr, value, id?): any[] {
   if (id != null) {
+    if(arr == null) arr = [];
     let index = arr.findIndex(e => e.id == id);
     if (index != -1) {
-      arr[index] = value;
+      if(value!=null){
+        arr[index] = value;
+      } else {
+        arr.splice(index, 1);
+      }
+      return arr;
     } else {
       arr.unshift(value);
+      return arr;
     }
+  } else {
+    updateDataSource(arr, value)
   }
-  return arr;
 }
 
 export function updateDataSourceInsertFirst(arr: any[], value): any[] {

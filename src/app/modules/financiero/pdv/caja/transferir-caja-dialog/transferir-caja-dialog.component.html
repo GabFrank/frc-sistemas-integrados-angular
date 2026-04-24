@@ -1,0 +1,71 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div 
+    fxFlex="10" 
+    style="text-align: center; padding-top: 10px;"
+  >
+    <h3>Transferir Caja</h3>
+  </div>
+  <div 
+    fxFlex="80" 
+    fxLayout="column" 
+    style="padding: 10px"
+  >
+    <div fxFlex>
+      <mat-form-field 
+        appearance="outline" 
+        style="width: 100%; margin-bottom: 10px"
+      >
+        <mat-label>Usuario</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="usuarioControl"
+          autocomplete="off"
+        />
+        <mat-icon matPrefix>person</mat-icon>
+      </mat-form-field>
+      <mat-form-field appearance="outline" style="width: 100%">
+        <mat-label>Contraseña</mat-label>
+        <input
+          [type]="hidePassword ? 'password' : 'text'"
+          matInput
+          [formControl]="passwordControl"
+          (keyup.enter)="onConfirm()"
+        />
+        <mat-icon matPrefix>lock</mat-icon>
+        <button 
+          mat-icon-button 
+          matSuffix 
+          (click)="hidePassword = !hidePassword" 
+          type="button" 
+          tabindex="-1"
+        >
+          <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+  </div>
+  <div 
+    fxFlex="10" 
+    fxLayout="row" 
+    fxLayoutAlign="end center" 
+    fxLayoutGap="10px" 
+    style="padding: 10px"
+  >
+    <button 
+      mat-raised-button 
+      color="warn" 
+      (click)="onCancel()"
+    >
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="onConfirm()"
+      [disabled]="usuarioControl.invalid || passwordControl.invalid"
+    >
+      Transferir
+    </button>
+  </div>
+</div>

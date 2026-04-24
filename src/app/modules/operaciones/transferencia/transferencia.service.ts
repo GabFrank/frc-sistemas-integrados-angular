@@ -8,7 +8,7 @@ import { FinalizarTransferenciaGQL } from './graphql/finalizarTransferencia';
 import { DeleteTransferenciaItemGQL } from './graphql/deleteTransferenciaItem';
 import { SaveTransferenciaItemGQL } from './graphql/saveTransferenciaItem';
 import { SaveTransferenciaGQL } from './graphql/saveTransferencia';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
@@ -27,8 +27,8 @@ import { PageInfo } from '../../../app.component';
 import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
 import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
-
-@UntilDestroy()
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -53,93 +53,82 @@ export class TransferenciaService {
     private imprimirTransferencia: ImprimirTransferenciaGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private getTransferenciaItem: GetTransferenciaItemGQL
+    private getTransferenciaItem: GetTransferenciaItemGQL,
+    private configService: ConfiguracionService
   ) { }
 
-  onImprimirTransferencia(id, ticket?) {
+  onImprimirTransferencia(id, ticket?, servidor = true) {
     this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {
       id: id,
       ticket: ticket,
-      printerName: environment['printers']['ticket'],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      servidor: servidor
     }).subscribe(res => {
       if (res != null) {
-        this.reporteService.onAdd('Transferencia '+ id, res)
+        this.reporteService.onAdd('Transferencia ' + id, res)
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
       }
     })
   }
 
-  onGetTrasferenciasPorFecha(inicio, fin) {
-    return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin);
+  onGetTrasferenciasPorFecha(inicio, fin, servidor = true) {
+    return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin, servidor);
   }
 
-  onGetTrasnferenciasPorUsuario(id): Observable<Transferencia[]> {
-    return this.genericCrudService.onGetById(this.transferenciasPorUsuario, id)
+  onGetTrasnferenciasPorUsuario(id, servidor = true): Observable<Transferencia[]> {
+    return this.genericCrudService.onGetById(this.transferenciasPorUsuario, id, servidor);
   }
 
 
-  onGetTransferencia(id): Observable<Transferencia> {
-    return this.genericCrudService.onGetById(this.getTransferencia, id);
+  onGetTransferencia(id, servidor = true): Observable<Transferencia> {
+    return this.genericCrudService.onGetById(this.getTransferencia, id, null, null, servidor);
   }
 
-  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<PageInfo<TransferenciaItem>> {
-    return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size);
+  onGetTransferenciaItensPorTransferenciaId(id, page?, size?, servidor = true): Observable<PageInfo<TransferenciaItem>> {
+    return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size, servidor);
   }
 
-  onSaveTransferencia(input, responseOnError?:boolean): Observable<Transferencia> {
+  onSaveTransferencia(input, responseOnError?: boolean, servidor = true): Observable<Transferencia> {
     input.usuarioPreTransferenciaId = this.mainService.usuarioActual.id;
-    return this.genericCrudService.onSave(this.saveTransferencia, input);
+    return this.genericCrudService.onSave(this.saveTransferencia, input, null, null, servidor, null, this.mainService.usuarioActual.id);
   }
 
-  onDeleteTransferencia(id): Observable<boolean> {
-    return this.genericCrudService.onDelete(this.deleteTransfencia, id, 'Realmente  desea eliminar esta transferencia?')
+  onDeleteTransferencia(id, servidor = true): Observable<boolean> {
+    return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?");
   }
 
-  onSaveTransferenciaItem(input, precioCosto?: number): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto });
+  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor);
   }
 
-  onDeleteTransferenciaItem(id): Observable<boolean> {
-    return this.genericCrudService.onDelete(this.deleteTransferenciaItem, id, 'Realmente  desea eliminar este item')
+  onDeleteTransferenciaItem(id, servidor = true): Observable<boolean> {
+    return this.genericCrudService.onDelete(this.deleteTransferenciaItem, id, '¿Eliminar item de transferencia?', null, true, servidor, "¿Está seguro que desea eliminar este item de transferencia?");
   }
 
-  onFinalizar(transferencia: Transferencia): Observable<boolean> {
-    return new Observable(obs => {
-      if (transferencia.estado == TransferenciaEstado.ABIERTA) {
-        this.dialogoService.confirm('Realmente desea finalizar esta transferencia?', 'Una vez finalizada, la transferencia estara disponible para ser preparada').subscribe(res => {
-          if (res) {
-            this.finalizarTransferencia.mutate({
-              id: transferencia.id,
-              usuarioId: this.mainService.usuarioActual.id
-            }, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
-              .pipe(untilDestroyed(this))
-              .subscribe(res => {
-                if (res.errors == null) {
-                  obs.next(true)
-                  this.notificacionService.notification$.next({
-                    texto: 'Transferencia finalizada con éxito',
-                    color: NotificacionColor.success,
-                    duracion: 3
-                  })
-                } else {
-                  obs.next(false)
-                  this.notificacionService.notification$.next({
-                    texto: 'Atención, ocurrio un error al finalizar la transferencia.' + res.errors[0],
-                    color: NotificacionColor.danger,
-                    duracion: 3
-                  })
-                }
-              })
-          }
-        })
+  // onFinalizar(transferencia: Transferencia, servidor = true): Observable<boolean> {
+  //   return new Observable(obs => {
+  //     if (transferencia.estado == TransferenciaEstado.ABIERTA) {
+  //       this.dialogoService.confirm('Realmente desea finalizar esta transferencia?', 'Una vez finalizada, la transferencia estara disponible para ser preparada').subscribe(res => {
+  //         if (res) {
+  //           return this.genericCrudService.onCustomMutation(this.finalizarTransferencia, {
+  //             id: transferencia.id,
+  //             usuarioId: this.mainService.usuarioActual.id
+  //           }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+  //             obs.next(res);
+  //             obs.complete();
+  //           })
+  //         }
+  //       })
+  //     }
+  //   })
+  // }
 
-      }
-    })
-  }
-
-  onAvanzarEtapa(transferencia: Transferencia, etapa: EtapaTransferencia): Observable<boolean> {
+  onAvanzarEtapa(transferencia: Transferencia, etapa: EtapaTransferencia, servidor = true): Observable<boolean> {
     let texto = ''
-    if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+    // add etapa PRE_TRANSFERENCIA_CREACION
+    if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
+      texto = 'Estas culminando la etapa de creación de transferencia, verifique con cuidado cada item';
+    } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
       texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
     } else if (etapa == EtapaTransferencia.PREPARACION_MERCADERIA) {
       texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
@@ -156,35 +145,30 @@ export class TransferenciaService {
     } else if (etapa == EtapaTransferencia.RECEPCION_CONCLUIDA) {
       texto = 'Estas culminando la etapa de recepción, al aceptar, las mercaderias van a ser cargadas en stock';
     }
-    return new Observable(obs => {
+    return new Observable<boolean>(obs => {
       this.dialogoService.confirm('Atención, revise los datos antes de proceder.', texto).subscribe(res => {
         if (res) {
-          this.prepararTransferencia.mutate({
+          this.genericCrudService.onCustomMutation(this.prepararTransferencia, {
             id: transferencia.id,
             etapa,
             usuarioId: this.mainService.usuarioActual.id
-          }, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
-            .pipe(untilDestroyed(this))
-            .subscribe(res => {
-              if (res.errors == null) {
-                obs.next(true)
-                this.notificacionService.notification$.next({
-                  texto: 'Transferencia guardada',
-                  color: NotificacionColor.success,
-                  duracion: 3
-                })
-              } else {
-                obs.next(false)
-                this.notificacionService.notification$.next({
-                  texto: 'Atención, ocurrio un error: ' + res.errors[0],
-                  color: NotificacionColor.danger,
-                  duracion: 3
-                })
-              }
-            })
+          }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+            console.log('res', res);
+            obs.next(res);
+            obs.complete();
+          }, error => {
+            obs.error(error);
+            obs.complete();
+          });
+        } else {
+          obs.next(false);
+          obs.complete();
         }
-      })
-    })
+      }, error => {
+        obs.error(error);
+        obs.complete();
+      });
+    });
   }
 
   onGetTransferenciasWithFilters(
@@ -198,7 +182,8 @@ export class TransferenciaService {
     creadoDesde?: string,
     creadoHasta?: string,
     page?: number,
-    size?: number): Observable<PageInfo<Transferencia>> {
+    size?: number,
+    servidor = true): Observable<PageInfo<Transferencia>> {
     return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
       sucursalOrigenId,
       sucursalDestinoId,
@@ -211,17 +196,17 @@ export class TransferenciaService {
       creadoHasta,
       page,
       size
-    });
+    }, servidor);
   }
 
-  onGetTransferenciaItem(id: number): Observable<TransferenciaItem> {
-    return this.genericCrudService.onGetById(this.getTransferenciaItem, id);
+  onGetTransferenciaItem(id: number, servidor = true): Observable<TransferenciaItem> {
+    return this.genericCrudService.onGetById(this.getTransferenciaItem, id, null, null, servidor);
   }
 
-  onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?) {
-    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, {id, name: texto, page, size});
- 
+  onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?, servidor = true) {
+    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, { id, name: texto, page, size }, servidor);
+
   }
-  
+
 }
 

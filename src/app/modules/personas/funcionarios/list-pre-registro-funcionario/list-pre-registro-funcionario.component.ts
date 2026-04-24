@@ -4,9 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
-import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService } from '../../../../layouts/tab/tab.service';
-import { EditInventarioComponent } from '../../../operaciones/inventario/edit-inventario/edit-inventario.component';
 import { FuncionarioWizardComponent } from '../funcionario-wizard/funcionario-wizard.component';
 import { FuncionarioService } from '../funcionario.service';
 import { PreRegistroFuncionario } from '../pre-registro-funcionario.model';
@@ -35,7 +33,7 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
   page = 0;
   isLastPage = false;
   expandedPreRegistro;
-  
+
   constructor(
     private funcionarioService: FuncionarioService,
     private matDialog: MatDialog,
@@ -76,21 +74,21 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
   cargarMasDatos() {
     this.page++;
     this.funcionarioService.onGetAllPreRegistroFuncionarios(this.page)
-    .pipe(untilDestroyed(this))
-    .subscribe(res => {
-      if(res.length == 0) this.isLastPage = true;
-      this.dataSource.data = this.dataSource.data.concat(res)
-    })
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res.length == 0) this.isLastPage = true;
+        this.dataSource.data = this.dataSource.data.concat(res)
+      })
   }
 
-  onAdicionarSolicitud(){
-
-  }
-
-  onVerFuncionario(preRegistro, i){
+  onAdicionarSolicitud() {
 
   }
 
-  onEliminar(preRegistro, i){}
+  onVerFuncionario(preRegistro, i) {
+
+  }
+
+  onEliminar(preRegistro, i) { }
 
 }

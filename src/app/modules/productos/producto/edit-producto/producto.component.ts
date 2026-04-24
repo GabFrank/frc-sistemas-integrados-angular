@@ -88,6 +88,7 @@ export class ProductoDialogData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -552,6 +553,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         .subscribe((res) => {
           if (res != null) {
             this.selectedProducto = res;
+            this.stepper.next();
           } else {
             this.stepper.previous();
             setTimeout(() => {
@@ -560,6 +562,51 @@ export class ProductoComponent implements OnInit, OnDestroy {
           }
         });
     }
+  }
+
+  onDatosGeneralesNext() {
+    const controlDescripcion = this.datosGeneralesControl.controls.descripcion;
+    const descripcion: string = controlDescripcion.value;
+
+    if (!descripcion || !this.datosGeneralesControl.valid) {
+      return;
+    }
+
+    const descripcionUpper = descripcion.toUpperCase();
+
+    if (
+      this.selectedProducto &&
+      this.selectedProducto.descripcion === descripcionUpper
+    ) {
+      this.onProductoSave();
+      return;
+    }
+
+    this.productoService
+      .onProductoDescripcionExists(descripcionUpper)
+      .pipe(untilDestroyed(this))
+      .subscribe(
+        (exists: boolean) => {
+          if (exists === true) {
+            this.matDialog.open(ProductoDuplicadoDialogComponent, {
+              data: { descripcion: descripcionUpper },
+            }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+              setTimeout(() => {
+                this.nombreInput.nativeElement.focus();
+              }, 150);
+            });
+          } else {
+            this.onProductoSave();
+          }
+        },
+        () => {
+          this.notifiActionBar.notification$.next({
+            texto: "No se pudo validar el nombre del producto",
+            color: NotificacionColor.warn,
+            duracion: 4,
+          });
+        }
+      );
   }
   // funciones datos generales
 
@@ -862,11 +909,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        let presentacion = new Presentacion();
-        presentacion = res as Presentacion;
-        if (presentacion?.id != null) {
-          this.presentacionesList.push(presentacion);
-          this.presentacionesDataSource.data = this.presentacionesList;
+        if (res?.id != null) {
+          // Recargar todas las presentaciones para asegurar sincronización completa
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
       });
   }
@@ -886,11 +931,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res?.id != null) {
-          this.presentacionesList[
-            this.presentacionesList.findIndex((p) => p.id == res.id)
-          ] = res;
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
-        this.presentacionesDataSource.data = this.presentacionesList;
       });
   }
 
@@ -900,15 +942,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
       this.codigoService
         .onGetCodigosPorPresentacionId(this.selectedPresentacion.id)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.selectedPresentacionCodigoDataSource.data = res.data.data;
+        .subscribe((res: Codigo[]) => {
+          this.selectedPresentacionCodigoDataSource.data = res;
           this.precioPorSucursalService
             .onGetPrecioPorSurursalPorPresentacionId(
               this.selectedPresentacion.id
             )
             .pipe(untilDestroyed(this))
-            .subscribe((res2) => {
-              this.selectedPresentacionPrecioDataSource.data = res2.data.data;
+            .subscribe((res2: PrecioPorSucursal[]) => {
+              this.selectedPresentacionPrecioDataSource.data = res2;
             });
         });
     }
@@ -939,80 +981,70 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePresentacion(presentacion: Presentacion) {
-    this.presentacionService
-      .onDeletePresentacion(presentacion)
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id);
-        }
-      });
+    this.dialogo.confirm(
+      'Atención!!', 
+      'Realmente deseas eliminar esta presentación?', 
+      'Todos los códigos y precios también serán eliminados.', 
+      [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]
+    ).pipe(untilDestroyed(this)).subscribe(confirmed => {
+      if (confirmed) {
+        this.cargandoDialog.openDialog();
+        this.presentacionService
+          .onDeletePresentacion(presentacion)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            this.cargandoDialog.closeDialog();
+            
+            if (res === true || res === 'true' || res != null) {
+              this.notifiActionBar.notification$.next({
+                texto: "Presentación eliminada correctamente",
+                color: NotificacionColor.success,
+                duracion: 3
+              });
+              this.getPresentacionPorProductoId(this.selectedProducto.id);
+            }
+          }, error => {
+            this.cargandoDialog.closeDialog();
+            this.notifiActionBar.notification$.next({
+              texto: "Error al eliminar la presentación",
+              color: NotificacionColor.warn,
+              duracion: 3
+            });
+            console.error('Error al eliminar presentación:', error);
+          });
+      }
+    });
   }
 
   //fin funciones de presentacion
 
   //adicionar codigo y precio
   onAddCodigo(index?, presentacionIndex?) {
-    this.selectedPresentacion.producto = this.selectedProducto;
+    const presentacion = this.presentacionesDataSource.data[presentacionIndex];
+    if (!presentacion) {
+      console.error('No se pudo encontrar la presentación en el índice:', presentacionIndex);
+      return;
+    }
+    
+    presentacion.producto = this.selectedProducto;
     let data = new AdicionarCodigoData();
-    data.codigo = this.selectedCodigo;
-    data.presentacion = this.selectedPresentacion;
+    data.codigo = index === null ? null : this.selectedCodigo;
+    data.presentacion = presentacion;
+    data.index = index;
+    data.presentacionIndex = presentacionIndex;
     this.matDialog
       .open(AdicionarCodigoDialogComponent, {
         data,
-        minWidth: '400px',
+        minWidth: '500px',
         disableClose: true,
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe((res: {codigo: Codigo, index: number, presentacionIndex: number}) => {
+        this.selectedCodigo = null;
+        
         if (res != null) {
-          this.codigoDataSource.data = updateDataSource(
-            this.codigoDataSource.data,
-            res,
-            index
-          );
-          let presentacion =
-            this.presentacionesDataSource.data[presentacionIndex];
-          if (res.principal) {
-            presentacion.codigoPrincipal = res;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          } else if (
-            presentacion?.codigoPrincipal != null &&
-            presentacion?.codigoPrincipal?.id == res.id
-          ) {
-            presentacion.codigoPrincipal = null;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          }
-          // let presentacionId = res.presentacion.id;
-          // if (presentacionId != null) {
-          //   let presentacionIndex =
-          //     this.presentacionesDataSource.data.findIndex(
-          //       (p) => p.id == presentacionId
-          //     );
-          //   let codigoIndex = this.presentacionesDataSource.data[
-          //     presentacionIndex
-          //   ].codigos.findIndex((c) => c.id == res.id);
-          //   let list = [...this.presentacionesDataSource.data];
-          //   if (codigoIndex != -1) {
-          //     console.log('actualizando codigo')
-          //     console.log(res)
-          //     list[presentacionIndex].codigos[codigoIndex] = res;
-          //   } else {
-          //     console.log('agregando nuevo codigo', presentacionIndex, res)
-          //     list[presentacionIndex].codigos.push(res)
-          //   }
-          //   this.presentacionesDataSource.data = [...list];
-          //   this.codigoTable.renderRows()
-          // }
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
       });
   }
@@ -1023,19 +1055,23 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeleteCodigo(codigo: Codigo, codigoIndex) {
-    // this.cargandoDialog.openDialog()
-    // this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
-    //   this.cargandoDialog.closeDialog()
-    //   if (res) {
-    //     this.getPresentacionPorProductoId(this.selectedProducto.id);
-    //   }
-    // });
+    this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res) {
+        this.getPresentacionPorProductoId(this.selectedProducto.id);
+      }
+    });
   }
 
   onAddPrecio(index?, presentacionIndex?) {
+    const presentacion = this.presentacionesDataSource.data[presentacionIndex];
+    if (!presentacion) {
+      console.error('No se pudo encontrar la presentación en el índice:', presentacionIndex);
+      return;
+    }
+    
     let data = new AdicionarPrecioPorSucursalData();
-    data.precio = this.selectedPrecio;
-    data.presentacion = this.selectedPresentacion;
+    data.precio = index === null ? null : this.selectedPrecio;
+    data.presentacion = presentacion;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,
@@ -1045,50 +1081,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
+        this.selectedPrecio = null;
+        
         if (res != null) {
-          this.precioDataSource.data = updateDataSource(
-            this.precioDataSource.data,
-            res,
-            index
-          );
-          let presentacion =
-            this.presentacionesDataSource.data[presentacionIndex];
-          if (res.principal) {
-            presentacion.precioPrincipal = res;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          } else if (
-            presentacion?.precioPrincipal != null &&
-            presentacion?.precioPrincipal?.id == res.id
-          ) {
-            presentacion.precioPrincipal = null;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          }
-          // let presentacionId = res.presentacion.id;
-          // if (presentacionId != null) {
-          //   let presentacionIndex =
-          //     this.presentacionesDataSource.data.findIndex(
-          //       (p) => p.id == presentacionId
-          //     );
-          //   let precioIndex = this.presentacionesDataSource.data[
-          //     presentacionIndex
-          //   ].precios.findIndex((c) => c.id == res.id);
-          //   let list = [...this.presentacionesDataSource.data];
-          //   if (precioIndex != -1) {
-          //     list[presentacionIndex].precios[precioIndex] = res;
-          //   } else {
-          //     list[presentacionIndex].precios.push(res)
-          //   }
-          //   this.presentacionesDataSource.data = [...list];
-          //   this.precioTable.renderRows()
-          // }
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
         }
       });
   }

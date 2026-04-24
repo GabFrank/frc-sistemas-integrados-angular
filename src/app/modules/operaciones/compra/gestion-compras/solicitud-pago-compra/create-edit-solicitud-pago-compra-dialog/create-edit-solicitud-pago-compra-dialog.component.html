@@ -1,0 +1,240 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>
+    <mat-icon>payment</mat-icon>
+    {{ isEditMode ? "Editar" : "Nueva" }} Solicitud de Pago
+  </h2>
+
+  <mat-dialog-content>
+    <form [formGroup]="solicitudForm" class="form-container">
+      <!-- Proveedor Info -->
+      <div class="proveedor-info" *ngIf="pedido?.proveedor">
+        <div class="info-card">
+          <div class="info-header">
+            <mat-icon>business</mat-icon>
+            <span>Proveedor</span>
+          </div>
+          <div class="info-content">
+            <strong>{{ pedido.proveedor.persona?.nombre }}</strong>
+            <span *ngIf="pedido.proveedor.persona?.documento">
+              ({{ pedido.proveedor.persona.documento }})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pedido Info (si está disponible) -->
+      <div class="pedido-info" *ngIf="pedido">
+        <div class="info-card">
+          <div class="info-header">
+            <mat-icon>shopping_cart</mat-icon>
+            <span>Información del Pedido</span>
+          </div>
+          <div class="info-content">
+            <div class="info-row">
+              <span
+                ><strong>Forma de Pago:</strong>
+                {{ pedido.formaPago?.descripcion }}</span
+              >
+              <span
+                ><strong>Moneda:</strong>
+                {{ pedido.moneda?.denominacion }}</span
+              >
+            </div>
+            <div class="info-row" *ngIf="pedido.plazoCredito">
+              <span
+                ><strong>Plazo de Crédito:</strong>
+                {{ pedido.plazoCredito }} días</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Fields -->
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Forma de Pago</mat-label>
+          <mat-select formControlName="formaPagoId">
+            <mat-option
+              *ngFor="let formaPago of formasPago"
+              [value]="formaPago.id"
+            >
+              {{ formaPago.descripcion }}
+            </mat-option>
+          </mat-select>
+          <mat-error
+            *ngIf="solicitudForm.get('formaPagoId')?.hasError('required')"
+          >
+            Forma de pago es requerida
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Moneda</mat-label>
+          <mat-select formControlName="monedaId">
+            <mat-option *ngFor="let moneda of monedas" [value]="moneda.id">
+              {{ moneda.denominacion }}
+            </mat-option>
+          </mat-select>
+          <mat-error
+            *ngIf="solicitudForm.get('monedaId')?.hasError('required')"
+          >
+            Moneda es requerida
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Plazo en Días</mat-label>
+          <input matInput type="number" formControlName="plazoDias" min="0" />
+          <mat-hint>Días para calcular la fecha de pago propuesta</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Fecha de Pago Propuesta</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            formControlName="fechaPagoPropuesta"
+            [readonly]="true"
+          />
+          <mat-datepicker-toggle
+            matIconSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Observaciones</mat-label>
+          <textarea
+            matInput
+            formControlName="observaciones"
+            rows="3"
+          ></textarea>
+        </mat-form-field>
+      </div>
+
+      <!-- Notas Selection -->
+      <div class="notas-selection">
+        <h4>Seleccionar Notas de Recepción</h4>
+
+        <div class="notas-info">
+          <mat-chip-listbox>
+            <mat-chip-option color="primary" selected>
+              Total Seleccionado:
+              {{
+                montoNotasSeleccionadasComputed | currency : "" : "" : "1.0-0"
+              }}
+            </mat-chip-option>
+          </mat-chip-listbox>
+        </div>
+
+        <div class="notas-table-container" *ngIf="!loadingNotas; else loadingTemplate">
+          <mat-table [dataSource]="notasDisponiblesComputed" class="notas-table" *ngIf="notasDisponiblesComputed.length > 0">
+            
+            <!-- Columna de Checkbox -->
+            <ng-container matColumnDef="select">
+              <mat-header-cell *matHeaderCellDef>
+                <mat-checkbox 
+                  [checked]="isAllNotasSelected()"
+                  [indeterminate]="isSomeNotasSelected()"
+                  (change)="toggleAllNotas($event)"
+                  [disabled]="!hasSelectableNotas()">
+                </mat-checkbox>
+              </mat-header-cell>
+              <mat-cell *matCellDef="let nota">
+                <mat-checkbox 
+                  [checked]="isNotaSelected(nota.id)"
+                  [disabled]="!(nota.estado === 'CONCILIADA' && !nota.pagado)"
+                  (change)="toggleNota(nota.id, $event)">
+                </mat-checkbox>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Columna de Número -->
+            <ng-container matColumnDef="numero">
+              <mat-header-cell *matHeaderCellDef>Número</mat-header-cell>
+              <mat-cell *matCellDef="let nota">
+                <strong>{{ nota.numero }}</strong>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Columna de Fecha -->
+            <ng-container matColumnDef="fecha">
+              <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+              <mat-cell *matCellDef="let nota">
+                {{ nota.fecha | date : "dd/MM/yyyy" }}
+              </mat-cell>
+            </ng-container>
+
+            <!-- Columna de Monto -->
+            <ng-container matColumnDef="monto">
+              <mat-header-cell *matHeaderCellDef>Monto</mat-header-cell>
+              <mat-cell *matCellDef="let nota" class="monto-cell">
+                {{ nota.valorTotal | currency : "" : "" : "1.0-0" }}
+                <span class="moneda" *ngIf="nota.moneda">{{ nota.moneda.denominacion }}</span>
+              </mat-cell>
+            </ng-container>
+
+            <!-- Columna de Estado -->
+            <ng-container matColumnDef="estado">
+              <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+              <mat-cell *matCellDef="let nota">
+                <mat-chip
+                  [color]="nota.estado === 'CONCILIADA' ? 'primary' : 'basic'"
+                  class="estado-chip">
+                  {{ nota.estado }}
+                </mat-chip>
+              </mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="displayedColumnsNotas"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: displayedColumnsNotas;"
+                     [class.nota-disabled]="!(row.estado === 'CONCILIADA' && !row.pagado)">
+            </mat-row>
+          </mat-table>
+
+          <div class="no-notas" *ngIf="notasDisponiblesComputed.length === 0">
+            <mat-icon>info</mat-icon>
+            <p>
+              No hay notas de recepción disponibles para crear solicitudes de
+              pago.
+            </p>
+            <p>
+              Las notas deben estar en estado <strong>CONCILIADA</strong> y no
+              pagadas.
+            </p>
+          </div>
+        </div>
+
+        <ng-template #loadingTemplate>
+          <div class="loading-notas">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Cargando notas disponibles...</p>
+          </div>
+        </ng-template>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onSave()"
+      [disabled]="!canSaveComputed || loading"
+    >
+      <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+      <mat-icon *ngIf="!loading">save</mat-icon>
+      {{ isEditMode ? "Actualizar" : "Crear" }} Solicitud
+    </button>
+  </mat-dialog-actions>
+</div>

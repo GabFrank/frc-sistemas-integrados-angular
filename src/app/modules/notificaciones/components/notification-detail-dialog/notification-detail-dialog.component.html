@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>{{ data?.notificacion?.titulo }}</h2>
+<mat-dialog-content>
+    <div class="detail-row">
+        <div class="detail-label">Mensaje</div>
+        <div class="detail-value">{{ data?.notificacion?.mensaje }}</div>
+    </div>
+
+    <div class="detail-row">
+        <div class="detail-label">Tipo</div>
+        <div class="detail-value">{{ data?.notificacion?.tipo }}</div>
+    </div>
+
+    <div class="detail-row">
+        <div class="detail-label">Fecha de Recepción</div>
+        <div class="detail-value">{{ data?.notificacion?.creadoEn | date:'medium' }}</div>
+    </div>
+
+    <div class="detail-row">
+        <div class="detail-label">Estado</div>
+        <div class="detail-value">
+            <span class="status-badge" [class.status-read]="data?.leida" [class.status-unread]="!data?.leida">
+                {{ data?.leida ? 'Leída' : 'No leída' }}
+            </span>
+            <span *ngIf="data?.leida && data?.fechaLeida" style="margin-left: 8px; font-size: 12px; opacity: 0.7;">
+                ({{ data?.fechaLeida | date:'short' }})
+            </span>
+        </div>
+    </div>
+
+    <div class="detail-row" *ngIf="data?.notificacion?.verificadoPorUsuario">
+        <div class="detail-label">Verificación</div>
+        <div class="detail-value">
+            Verificado por {{ data?.notificacion?.verificadoPorUsuario?.nickname }}
+            <span *ngIf="data?.notificacion?.fechaVerificacion">
+                el {{ data?.notificacion?.fechaVerificacion | date:'short' }}
+            </span>
+        </div>
+    </div>
+
+    <div class="detail-row" *ngIf="data?.interactuada">
+        <div class="detail-label">Interacción</div>
+        <div class="detail-value">
+            Interactuada el {{ data?.fechaInteraccion | date:'short' }}
+            <div *ngIf="data?.accionRealizada" class="action-done">
+                Acción: {{ data?.accionRealizada }}
+            </div>
+        </div>
+    </div>
+</mat-dialog-content>
+<mat-dialog-actions class="dialog-actions">
+    <button mat-button (click)="close()">Cerrar</button>
+</mat-dialog-actions>

@@ -6,5 +6,5 @@ export class MonedaInput {
     denominacion: string;
     simbolo: string;
     paisId: number;
-    usuarioId: number;
+    usuarioId: number = null;
 }

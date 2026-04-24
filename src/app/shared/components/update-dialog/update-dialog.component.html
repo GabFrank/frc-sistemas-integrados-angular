@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Actualizaciones</h2>
+<mat-dialog-content fxLayout="column" fxLayoutGap="16px">
+
+  <div fxLayout="row" fxLayoutAlign="space-between center">
+    <span class="label">Version actual</span>
+    <span class="value">{{ currentVersion }}</span>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="space-between center">
+    <span class="label">Canal</span>
+    <span class="value">{{ getChannelLabel() }}</span>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <mat-form-field>
+    <mat-label>Cambiar canal</mat-label>
+    <mat-select [value]="currentChannel" (selectionChange)="onChannelChange($event.value)">
+      <mat-option value="stable">Estable (Produccion)</mat-option>
+      <mat-option value="beta">Beta (Pre-produccion)</mat-option>
+      <mat-option value="alpha">Alpha (Desarrollo)</mat-option>
+      <mat-option value="dev">Desarrollo (Sin actualizaciones)</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <div fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="16px">
+    <button mat-raised-button color="primary"
+            [disabled]="checkingForUpdate || !autoUpdateEnabled"
+            (click)="checkForUpdate()">
+      <mat-icon>refresh</mat-icon>
+      {{ checkingForUpdate ? 'Buscando...' : 'Buscar actualizacion' }}
+    </button>
+  </div>
+
+  <div *ngIf="updateStatus" class="status-message">
+    {{ updateStatus }}
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onClose()">CERRAR</button>
+</mat-dialog-actions>

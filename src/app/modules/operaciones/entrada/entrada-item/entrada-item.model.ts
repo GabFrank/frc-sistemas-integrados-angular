@@ -39,5 +39,5 @@ export class EntradaItemInput {
   presentacionId: number;
   observacion: string;
   cantidad: number;
-  usuarioId: number;
+  usuarioId: number = null;
 }

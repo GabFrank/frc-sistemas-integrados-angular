@@ -1,0 +1,210 @@
+<div class="solicitud-pago-container">
+  <!-- Header con resumen -->
+  <div class="header-section">
+    <h3 class="titulo-center">Solicitud de Pago</h3>
+    
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <mat-card class="summary-card">
+        <mat-card-content>
+          <div class="card-icon">
+            <mat-icon>request_quote</mat-icon>
+          </div>
+          <div class="card-info">
+            <div class="card-value">{{ totalSolicitudesComputed }}</div>
+            <div class="card-label">Solicitudes</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="summary-card">
+        <mat-card-content>
+          <div class="card-icon">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <div class="card-info">
+            <div class="card-value">{{ totalMontoSolicitudesComputed | currency:'':'':'1.0-0' }}</div>
+            <div class="card-label">Total Solicitado</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <mat-card class="summary-card">
+        <mat-card-content>
+          <div class="card-icon">
+            <mat-icon>description</mat-icon>
+          </div>
+          <div class="card-info">
+            <div class="card-value">{{ notasDisponiblesComputed.length }}</div>
+            <div class="card-label">Notas Disponibles</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Action Button -->
+    <div class="actions-section">
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="onCreateSolicitud()"
+        [disabled]="!canCreateSolicitudComputed || loading">
+        <mat-icon>add</mat-icon>
+        Nueva Solicitud de Pago
+      </button>
+      
+      
+    </div>
+  </div>
+
+
+
+  <!-- Table Section -->
+  <div class="table-section">
+    <mat-card *ngIf="solicitudesPagoComputed.length > 0">
+      <mat-card-header>
+        <mat-card-title>Solicitudes de Pago Existentes</mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="solicitudesPagoComputed" class="full-width">
+            
+            <!-- Número -->
+            <ng-container matColumnDef="numero">
+              <th mat-header-cell *matHeaderCellDef>Número</th>
+              <td mat-cell *matCellDef="let solicitud">
+                <strong>{{ solicitud.numeroSolicitud }}</strong>
+              </td>
+            </ng-container>
+            
+            <!-- Fecha -->
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let solicitud">
+                {{ solicitud.fechaSolicitudFormattedComputed }}
+              </td>
+            </ng-container>
+            
+            <!-- Monto -->
+            <ng-container matColumnDef="monto">
+              <th mat-header-cell *matHeaderCellDef>Monto</th>
+              <td mat-cell *matCellDef="let solicitud">
+                <strong>{{ solicitud.montoTotalFormattedComputed }}</strong>
+              </td>
+            </ng-container>
+            
+            <!-- Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let solicitud">
+                <mat-chip [color]="solicitud.estadoChipColorComputed">
+                  {{ solicitud.estadoDisplayNameComputed }}
+                </mat-chip>
+              </td>
+            </ng-container>
+            
+            <!-- Notas -->
+            <ng-container matColumnDef="notas">
+              <th mat-header-cell *matHeaderCellDef>Notas</th>
+              <td mat-cell *matCellDef="let solicitud">
+                <mat-chip-listbox>
+                  <mat-chip-option color="accent">
+                    {{ solicitud.cantidadNotasComputed }} notas
+                  </mat-chip-option>
+                </mat-chip-listbox>
+              </td>
+            </ng-container>
+            
+            <!-- Acciones -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let solicitud">
+                <div class="action-buttons">
+                  <!-- Menu de Acciones -->
+                  <button 
+                    mat-icon-button 
+                    [matMenuTriggerFor]="accionesMenu"
+                    matTooltip="Más acciones">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #accionesMenu="matMenu">
+                    
+                    <!-- Imprimir -->
+                    <button 
+                      mat-menu-item 
+                      (click)="onPrintSolicitud(solicitud)">
+                      <mat-icon>print</mat-icon>
+                      Imprimir Solicitud
+                    </button>
+                    
+                    <mat-divider></mat-divider>
+                    
+                    <!-- Cambios de Estado -->
+                    <button 
+                      mat-menu-item 
+                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.PARCIAL)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
+                      <mat-icon>payments</mat-icon>
+                      Marcar como Pago Parcial
+                    </button>
+                    <button 
+                      mat-menu-item 
+                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.CONCLUIDO)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.PARCIAL">
+                      <mat-icon>check_circle</mat-icon>
+                      Marcar como Pagada
+                    </button>
+                    <button 
+                      mat-menu-item 
+                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.CANCELADO)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.PARCIAL">
+                      <mat-icon>cancel</mat-icon>
+                      Cancelar
+                    </button>
+                    
+                    <!-- Eliminar -->
+                    <mat-divider *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE && isEditMode"></mat-divider>
+                    <button 
+                      mat-menu-item 
+                      (click)="onDeleteSolicitud(solicitud)"
+                      class="delete-option"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE && isEditMode">
+                      <mat-icon>delete</mat-icon>
+                      Eliminar Solicitud
+                    </button>
+                    
+                  </mat-menu>
+                </div>
+              </td>
+            </ng-container>
+            
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="solicitudesPagoComputed.length === 0 && !loading">
+      <mat-icon>request_quote</mat-icon>
+      <h4>No hay solicitudes de pago</h4>
+      <p>Aún no se han creado solicitudes de pago para este pedido.</p>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="onCreateSolicitud()"
+        *ngIf="canCreateSolicitudComputed">
+        <mat-icon>add</mat-icon>
+        Crear Primera Solicitud
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Procesando...</p>
+  </div>
+</div>

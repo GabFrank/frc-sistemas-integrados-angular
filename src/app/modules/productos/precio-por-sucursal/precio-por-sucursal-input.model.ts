@@ -4,10 +4,9 @@ export class PrecioPorSucursalInput {
     id: number;
     sucursalId: number;
     presentacionId: number;
-    tipoPrecioId: TipoPrecio;
+    tipoPrecioId: number;
     principal: boolean;
     activo: boolean;
     precio: number;
-    creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
 }

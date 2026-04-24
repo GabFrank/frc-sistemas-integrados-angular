@@ -1,0 +1,242 @@
+.side-nav-container {
+  height: 100%;
+  width: 60px;
+  position: relative;
+  transition: width 0.3s ease;
+  background-color: #424242;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 1000;
+
+  &.expanded {
+    width: 250px;
+  }
+
+  .side-nav-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+// Profile section
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  color: white;
+  
+  .profile-info {
+    text-align: center;
+    width: 100%;
+    
+    h3 {
+      margin: 8px 0 4px;
+      font-size: 16px;
+      font-weight: 500;
+      color: white;
+      padding-left: 10px;
+    }
+    
+    h5 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.7);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 90%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  
+  .profile-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    &.mini {
+      height: 48px;
+      width: 48px;
+    }
+    
+    mat-icon {
+      font-size: 64px;
+      height: 64px;
+      width: 64px;
+      transition: all 0.3s ease;
+      color: white;
+    }
+    
+    &.mini mat-icon {
+      font-size: 32px;
+      height: 32px;
+      width: 32px;
+    }
+  }
+}
+
+// Navigation menu
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 8px;
+  overflow-y: auto;
+  
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+    color: white;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    &.expanded-item {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .menu-icon {
+      min-width: 24px;
+      
+      mat-icon {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+    
+    .menu-text {
+      margin-left: 16px;
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      span {
+        font-size: 14px;
+      }
+      
+      .expand-icon {
+        font-size: 20px;
+        transition: transform 0.3s;
+      }
+    }
+  }
+  
+  .submenu {
+    background-color: rgba(0, 0, 0, 0.2);
+    
+    .submenu-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px 8px 32px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      color: white;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      &.with-children {
+        padding-left: 24px;
+      }
+      
+      &.expanded-item {
+        background-color: rgba(255, 255, 255, 0.15);
+      }
+      
+      .menu-icon {
+        min-width: 24px;
+        
+        mat-icon {
+          font-size: 20px;
+          color: rgba(255, 255, 255, 0.9);
+        }
+      }
+      
+      .menu-text {
+        margin-left: 16px;
+        flex: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        span {
+          font-size: 13px;
+        }
+      }
+    }
+    
+    .nested-submenu {
+      background-color: rgba(0, 0, 0, 0.3);
+      
+      .submenu-item {
+        padding-left: 48px;
+      }
+    }
+  }
+}
+
+// Footer actions
+.footer-actions {
+  display: flex;
+  flex-direction: column;
+  // padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  
+  &.mini {
+    align-items: center;
+  }
+  
+  .footer-button {
+    display: flex;
+    align-items: center;
+    padding: 18px 18px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    span {
+      margin-left: 16px;
+      font-size: 14px;
+    }
+    
+    &.logout-button mat-icon {
+      color: #ff6b6b;
+    }
+    
+    &.login-button mat-icon {
+      color: #63cdff;
+    }
+  }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

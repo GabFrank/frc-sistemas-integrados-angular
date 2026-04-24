@@ -12,10 +12,12 @@ import { PrintModule } from './print/print.module';
 import { FinancieroModule } from './financiero/financiero.module';
 import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { AdministrativoModule } from './administrativo/administrativo.module';
 
 
 @NgModule({
-  declarations: [    
+  declarations: [
   ],
   imports: [
     CommonModule,
@@ -30,6 +32,8 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     FinancieroModule,
     ReportesModule,
     ConfiguracionModule,
+    NotificacionesModule,
+    AdministrativoModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

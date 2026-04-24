@@ -24,7 +24,8 @@ export class Venta {
     cobro: Cobro
     sucursalId: number;
     isDelivery: boolean;
-    delivery: Delivery
+    delivery: Delivery;
+    ventaObservacionList: any[];
 
     toInput(): VentaInput {
         let input = new VentaInput()
@@ -62,7 +63,7 @@ export class VentaInput {
     formaPagoId: number;
     estado: VentaEstado;
     creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
     totalGs: number;
     totalRs: number;
     totalDs: number;

@@ -3,6 +3,6 @@ export class UsuarioInput {
   personaId: number;
   nickname: string;
   password: string;
-  usuarioId: number;
+  usuarioId: number = null;
   activo: boolean;
 }

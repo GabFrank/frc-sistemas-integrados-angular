@@ -1,0 +1,158 @@
+<div class="verificacion-rapida-sucursales-dialog">
+  <h2 mat-dialog-title>
+    <mat-icon>check_circle</mat-icon>
+    Verificación Rápida - Múltiples Sucursales
+  </h2>
+
+  <mat-dialog-content>
+    <form [formGroup]="seleccionForm" class="seleccion-form">
+      
+      <!-- Información del Producto -->
+      <div class="producto-info">
+        <mat-card class="producto-card">
+          <mat-card-content>
+            <div class="producto-header">
+              <mat-icon>inventory_2</mat-icon>
+              <div class="producto-details">
+                <div class="producto-codigo">{{ item.producto.codigo }}</div>
+                <div class="producto-descripcion">{{ item.producto.descripcion }}</div>
+              </div>
+            </div>
+            
+            <div class="cantidades-resumen">
+              <div class="cantidad-item">
+                <span class="label">Cantidad Total Esperada:</span>
+                <span class="value">{{ cantidadTotalEsperadaComputed | number }}</span>
+              </div>
+              <div class="cantidad-item">
+                <span class="label">Sucursales Seleccionadas:</span>
+                <span class="value seleccionadas">{{ sucursalesSeleccionadasComputed }} de {{ distribuciones.length }}</span>
+              </div>
+              <div class="cantidad-item">
+                <span class="label">Cantidad a Verificar:</span>
+                <span class="value verificacion">{{ getCantidadTotalSeleccionada() | number }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Controles de Selección -->
+      <div class="controles-seleccion">
+        <div class="controles-header">
+          <h3>Seleccionar Sucursales para Verificación</h3>
+          <div class="controles-buttons">
+            <button 
+              type="button"
+              mat-stroked-button 
+              color="primary"
+              (click)="onSeleccionarTodas()"
+              [disabled]="todasSeleccionadasComputed">
+              <mat-icon>select_all</mat-icon>
+              Seleccionar Todas
+            </button>
+            <button 
+              type="button"
+              mat-stroked-button 
+              color="warn"
+              (click)="onDeseleccionarTodas()"
+              [disabled]="ningunaSeleccionadaComputed">
+              <mat-icon>deselect</mat-icon>
+              Deseleccionar Todas
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Sucursales -->
+      <div class="sucursales-lista">
+        <table class="sucursales-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column">
+                <mat-checkbox
+                  [checked]="todasSeleccionadasComputed"
+                  [indeterminate]="!todasSeleccionadasComputed && !ningunaSeleccionadaComputed"
+                  (change)="todasSeleccionadasComputed ? onDeseleccionarTodas() : onSeleccionarTodas()">
+                </mat-checkbox>
+              </th>
+              <th>Sucursal</th>
+              <th class="text-center">Cant. Esperada</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let dist of distribuciones" 
+                [class.seleccionada]="isSucursalSeleccionada(dist.sucursalId)"
+                (click)="onToggleSucursal(dist.sucursalId)">
+              <td class="checkbox-column">
+                <mat-checkbox
+                  [formControlName]="'seleccionada_' + dist.sucursalId"
+                  (click)="$event.stopPropagation()">
+                </mat-checkbox>
+              </td>
+              <td class="sucursal-info">
+                <div class="sucursal-nombre">{{ dist.sucursalNombre }}</div>
+                <div class="sucursal-codigo">{{ dist.sucursalId }}</div>
+              </td>
+              <td class="text-center cantidad">
+                {{ dist.cantidadEsperada | number }}
+              </td>
+              <td class="text-center estado">
+                <mat-chip-option 
+                  [ngClass]="isSucursalSeleccionada(dist.sucursalId) ? 'estado-seleccionada' : 'estado-no-seleccionada'"
+                  selected 
+                  disabled>
+                  {{ isSucursalSeleccionada(dist.sucursalId) ? 'SELECCIONADA' : 'NO SELECCIONADA' }}
+                </mat-chip-option>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Resumen de Verificación -->
+      <div *ngIf="sucursalesSeleccionadasComputed > 0" class="resumen-verificacion">
+        <mat-card class="resumen-card">
+          <mat-card-content>
+            <h4>Resumen de Verificación Rápida</h4>
+            <div class="resumen-details">
+              <div class="resumen-item">
+                <span class="label">Sucursales a verificar:</span>
+                <span class="value">{{ sucursalesSeleccionadasComputed }}</span>
+              </div>
+              <div class="resumen-item">
+                <span class="label">Cantidad total a verificar:</span>
+                <span class="value">{{ getCantidadTotalSeleccionada() | number }}</span>
+              </div>
+              <div class="resumen-item">
+                <span class="label">Acción:</span>
+                <span class="value accion">Verificación rápida automática</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button 
+      mat-button 
+      #cancelButton
+      (click)="onCancel()"
+      cdkFocusInitial>
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="primary"
+      #saveButton
+      [disabled]="!formValidComputed"
+      (click)="onSave()">
+      <mat-icon>check_circle</mat-icon>
+      Confirmar Verificación
+    </button>
+  </mat-dialog-actions>
+</div> 

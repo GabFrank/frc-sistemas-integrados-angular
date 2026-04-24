@@ -1,0 +1,108 @@
+:host ::ng-deep .lote-de-list .mat-mdc-card {
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+mat-chip {
+  height: 22px !important;
+  font-size: 14px !important;
+  padding: 4px 8px !important;
+  line-height: 14px !important;
+}
+
+:host ::ng-deep .mat-chip.chip-pendiente, 
+:host ::ng-deep .mdc-evolution-chip.chip-pendiente { 
+  background: #4caf50 !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-proceso, 
+:host ::ng-deep .mdc-evolution-chip.chip-proceso { 
+  background: #64b5f6 !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-procesado, 
+:host ::ng-deep .mdc-evolution-chip.chip-procesado { 
+  background: #a0438c !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-procesado-con-error, 
+:host ::ng-deep .mdc-evolution-chip.chip-procesado-con-error { 
+  background: #f57c00 !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-error-envio, 
+:host ::ng-deep .mdc-evolution-chip.chip-error-envio { 
+  background: #fa6a11 !important; 
+  color: #ffffff; 
+}
+
+
+:host ::ng-deep .mat-chip.chip-error-red, 
+:host ::ng-deep .mdc-evolution-chip.chip-error-red { 
+  background: #ff5722 !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-error-permanente, 
+:host ::ng-deep .mdc-evolution-chip.chip-error-permanente { 
+  background: #f44336 !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-rechazado, 
+:host ::ng-deep .mdc-evolution-chip.chip-rechazado { 
+  background: #d32f2f !important; 
+  color: #ffffff; 
+}
+
+:host ::ng-deep .mat-chip.chip-default, 
+:host ::ng-deep .mdc-evolution-chip.chip-default { 
+  background: #90a4ae !important; 
+  color: #ffffff; 
+}
+
+.example-element-row {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgb(70, 70, 70) !important;
+  }
+
+  &.estado-pendiente-envio:hover {
+    background-color: rgba(76, 175, 80, 0.2) !important;
+  }
+
+  &.estado-en-proceso:hover {
+    background-color: rgba(100, 181, 246, 0.2) !important;
+  }
+
+  &.estado-procesado:hover {
+    background-color: rgba(160, 67, 140, 0.2) !important;
+  }
+
+  &.estado-procesado-con-error:hover {
+    background-color: rgba(245, 124, 0, 0.2) !important;
+  }
+
+  &.estado-error-envio:hover {
+    background-color: rgba(250, 106, 17, 0.2) !important;
+  }
+
+  &.estado-error-red:hover {
+    background-color: rgba(255, 87, 34, 0.2) !important;
+  }
+
+  &.estado-error-permanente:hover {
+    background-color: rgba(244, 67, 54, 0.2) !important; 
+  }
+
+  &.estado-rechazado:hover {
+    background-color: rgba(244, 67, 54, 0.2) !important;
+  }
+}

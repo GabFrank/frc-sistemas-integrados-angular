@@ -1,0 +1,24 @@
+/* Resalta la fila seleccionada */
+.selected {
+  background-color: #43a047 !important;
+}
+
+.goBack {
+  background-color: #f44336;
+}
+
+table {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+td,
+th {
+  text-align: center;
+}
+
+::ng-deep .mat-horizontal-stepper-wrapper,
+::ng-deep .mat-horizontal-content-container,
+::ng-deep .mat-horizontal-stepper-content {
+  height: 100%; 
+}

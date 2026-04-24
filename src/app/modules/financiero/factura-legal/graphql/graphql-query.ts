@@ -1,27 +1,33 @@
-import gql from "graphql-tag";
+import { gql } from "apollo-angular";
 
 export const facturaLegalesQuery = gql`
-  query (
+  query facturaLegales(
     $page: Int
     $size: Int
-    $fechaInicio: String!
-    $fechaFin: String!
     $sucId: [ID]
+    $fechaInicio: String
+    $fechaFin: String
     $ruc: String
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $isElectronico: Boolean
+    $activo: Boolean
+    $sinNombre: Boolean
   ) {
     data: facturaLegales(
       page: $page
       size: $size
+      sucId: $sucId
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
-      sucId: $sucId
-      nombre: $nombre
       ruc: $ruc
+      nombre: $nombre
       iva5: $iva5
       iva10: $iva10
+      isElectronico: $isElectronico
+      activo: $activo
+      sinNombre: $sinNombre
     ) {
       getTotalPages
       getTotalElements
@@ -32,23 +38,35 @@ export const facturaLegalesQuery = gql`
       hasPrevious
       getContent {
         id
-        viaTributaria
-        numeroFactura
-        fecha
-        credito
+        sucursalId
         nombre
         ruc
-        direccion
-        ivaParcial0
-        ivaParcial5
-        ivaParcial10
-        totalParcial0
-        totalParcial5
-        totalParcial10
+        cdc
         totalFinal
         creadoEn
-        sucursalId
-        descuento
+        activo
+        numeroFactura
+        sucursal {
+          id
+          nombre
+          codigoEstablecimientoFactura
+        }
+        timbradoDetalle {
+          id
+          puntoExpedicion
+        }
+        cliente {
+          id
+          persona {
+            nombre
+            documento
+          }
+        }
+        documentoElectronico {
+          id
+          cdc
+          estado
+        }
       }
     }
   }
@@ -92,6 +110,7 @@ export const facturaLegalesFullInfoQuery = gql`
           id
           timbrado {
             numero
+            isElectronico
           }
           puntoExpedicion
         }
@@ -100,6 +119,7 @@ export const facturaLegalesFullInfoQuery = gql`
           id
           persona {
             nombre
+            documento
           }
         }
         venta {
@@ -110,6 +130,7 @@ export const facturaLegalesFullInfoQuery = gql`
         nombre
         ruc
         direccion
+        cdc
         ivaParcial0
         ivaParcial5
         ivaParcial10
@@ -118,6 +139,7 @@ export const facturaLegalesFullInfoQuery = gql`
         totalParcial10
         totalFinal
         descuento
+        activo
         creadoEn
         sucursal {
           id
@@ -130,6 +152,11 @@ export const facturaLegalesFullInfoQuery = gql`
             nombre
           }
         }
+        documentoElectronico {
+          id
+          cdc
+          estado
+        }
         facturaLegalItemList {
           id
           ventaItem {
@@ -137,9 +164,15 @@ export const facturaLegalesFullInfoQuery = gql`
           }
           cantidad
           descripcion
+          unidadMedida
           precioUnitario
+          iva
           total
           creadoEn
+          producto {
+            id
+            descripcion
+          }
         }
       }
     }
@@ -155,6 +188,7 @@ export const facturaLegalQuery = gql`
         id
         timbrado {
           numero
+          isElectronico
         }
         puntoExpedicion
       }
@@ -163,6 +197,7 @@ export const facturaLegalQuery = gql`
         id
         persona {
           nombre
+          documento
         }
       }
       venta {
@@ -173,6 +208,7 @@ export const facturaLegalQuery = gql`
       nombre
       ruc
       direccion
+      cdc
       ivaParcial0
       ivaParcial5
       ivaParcial10
@@ -181,8 +217,11 @@ export const facturaLegalQuery = gql`
       totalParcial10
       totalFinal
       descuento
+      activo
       creadoEn
+      sucursalId
       sucursal {
+        id
         nombre
         codigoEstablecimientoFactura
       }
@@ -191,6 +230,11 @@ export const facturaLegalQuery = gql`
         persona {
           nombre
         }
+      }
+      documentoElectronico {
+        id
+        cdc
+        estado
       }
       facturaLegalItemList {
         id
@@ -202,11 +246,15 @@ export const facturaLegalQuery = gql`
         precioUnitario
         total
         creadoEn
+        producto {
+          id
+          descripcion
+        }
       }
     }
   }
 `;
-
+// this returns TimbradoDetalle
 export const saveFacturaLegal = gql`
   mutation saveFacturaLegal(
     $entity: FacturaLegalInput!
@@ -219,13 +267,23 @@ export const saveFacturaLegal = gql`
       detalleList: $detalleList
       printerName: $printerName
       pdvId: $pdvId
-    )
+    ) {
+        id
+        timbrado {
+          numero
+          fechaInicio
+          fechaFin
+        }
+        rangoDesde
+        rangoHasta
+        numeroActual
+      }
   }
 `;
 
 export const deleteFacturaLegalQuery = gql`
   mutation deleteFacturaLegal($id: ID!, $sucId: ID) {
-    deleteFacturaLegal(id: $id, sucId: $sucId)
+    data: deleteFacturaLegal(id: $id, sucId: $sucId)
   }
 `;
 
@@ -241,7 +299,9 @@ export const saveFacturaLegalItem = gql`
       }
       cantidad
       descripcion
+      unidadMedida
       precioUnitario
+      iva
       total
       creadoEn
       usuario
@@ -278,6 +338,7 @@ export const resumenFacturasQuery = gql`
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $sinNombre: Boolean
   ) {
     data: findResumenFacturas(
       fechaInicio: $fechaInicio
@@ -287,6 +348,7 @@ export const resumenFacturasQuery = gql`
       ruc: $ruc
       iva5: $iva5
       iva10: $iva10
+      sinNombre: $sinNombre
     ) {
       cantFacturas
       maxNumero
@@ -323,6 +385,46 @@ export const generarExcelFacturasZipQuery = gql`
       fechaFin: $fechaFin
       sucId: $sucId
     )
+  }
+`;
+
+export const descargarXmlFacturaElectronicaQuery = gql`
+  query descargarXmlFacturaElectronica($id: ID!, $sucId: ID!) {
+    data: descargarXmlFacturaElectronica(id: $id, sucId: $sucId)
+  }
+`;
+
+export const descargarPdfFacturaElectronicaQuery = gql`
+  query descargarPdfFacturaElectronica($id: ID!, $sucId: ID!) {
+    data: descargarPdfFacturaElectronica(id: $id, sucId: $sucId)
+  }
+`;
+
+export const saveFacturaLegalToFilialQuery = gql`
+  mutation saveFacturaLegalToFilial(
+    $entity: FacturaLegalInput!
+    $detalleList: [FacturaLegalItemInput]
+    $sucursalId: ID!
+    $timbradoDetalleId: ID!
+    $monedaId: ID
+    $tipoCambio: Float
+  ) {
+    data: saveFacturaLegalToFilial(
+      entity: $entity
+      detalleList: $detalleList
+      sucursalId: $sucursalId
+      timbradoDetalleId: $timbradoDetalleId
+      monedaId: $monedaId
+      tipoCambio: $tipoCambio
+    ) {
+      facturaId
+      numeroFactura
+      cdc
+      urlQr
+      estadoDocumentoElectronico
+      mensajeRespuestaSifen
+      documentoElectronicoGenerado
+    }
   }
 `;
 

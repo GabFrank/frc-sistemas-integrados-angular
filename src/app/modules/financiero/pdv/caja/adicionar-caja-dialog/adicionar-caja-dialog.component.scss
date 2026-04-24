@@ -19,3 +19,11 @@ mat-stepper,
 mat-step {
   height: 100%;
 }
+
+.botonTransferir {
+  justify-content: end;
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  padding-right: 20px
+}

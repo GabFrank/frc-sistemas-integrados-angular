@@ -1,51 +1,76 @@
 <div style="height: 100vh">
-  <app-header (toogleSideBarEvent)="tootleSideBar($event)"></app-header>
+  <app-header (toogleSideBarEvent)="toggleSideNav()" (openNotificationsEvent)="openNotifications()"></app-header>
 
-  <mat-drawer-container>
-    <mat-drawer mode="side" [opened]="sideBarOpen">
-      <app-side></app-side>
+  <mat-drawer-container [hasBackdrop]="false">
+    <mat-drawer mode="side" [opened]="true" class="side-drawer">
+      <app-side-mini-variant [isExpanded]="sideBarOpen" (toggleSideNav)="setSideNav($event)"></app-side-mini-variant>
     </mat-drawer>
-    <mat-drawer-content (mouseover)="onSideBarFocus()" style="overflow: hidden;">
-      <mat-tab-group
-        class="main-tab-group mt-2"
-        [selectedIndex]="selectedTab"
-        (selectedTabChange)="tabChanged($event)"
-        style="width: 100%"
-        mat-stretch-tabs="false"
-      >
-        <mat-tab
-          class="mat-tab-class"
-          *ngFor="let tab of tabs; let tabIndex = index"
-          style="width: 100%; height: 100%"
-        >
-          <ng-template mat-tab-label style="height: 2em !important;">
-            <div
-              fxLayout="row"
-              fxLayoutAlign="start center"
-              style="width: 100%"
-            >
-              <div
-                fxFlex="70"
-                matTooltip="{{ tab.title }}"
-                style="font-size: 1em; text-align: center; color: white"
-              >
-                {{ tab.title.substring(0, 25) }}
+    <mat-drawer mode="over" position="end" [(opened)]="notificationsOpen" class="notifications-drawer">
+      <div class="notifications-content">
+        <div class="notifications-header">
+          <div class="notifications-title">
+            Notificaciones
+          </div>
+          <div class="notifications-actions">
+            <mat-form-field class="date-filter-field" appearance="outline">
+              <mat-label>Rango de fecha</mat-label>
+              <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker">
+                <input matStartDate formControlName="inicio" placeholder="Fecha Inicio" [max]="today" />
+                <input matEndDate formControlName="fin" placeholder="Fecha Fin" [max]="today" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+            <button mat-raised-button color="accent" class="filter-button" (click)="aplicarFiltroFechas()">
+              <mat-icon>search</mat-icon>
+              Filtrar
+            </button>
+            <button mat-raised-button class="clear-button" (click)="limpiarFiltroFechas()">
+              <mat-icon>clear</mat-icon>
+              Limpiar
+            </button>
+            <button mat-raised-button class="mark-all-button" (click)="marcarTodasComoLeidas()">
+              <mat-icon>done_all</mat-icon>
+              <span>Marcar todas</span>
+            </button>
+            <button mat-raised-button color="primary" class="btn-crear-notificacion" (click)="crearNotificacion()">
+              <mat-icon>add</mat-icon>
+              <span>Crear Notificacion</span>
+            </button>
+          </div>
+        </div>
+        <div class="notifications-scroll">
+          <app-notification-board></app-notification-board>
+        </div>
+        <ng-template #noNotifications>
+          <div class="no-notifications">
+            No hay nuevas notificaciones
+          </div>
+        </ng-template> 
+      </div>
+    </mat-drawer>
+    <mat-drawer-content style="overflow: hidden;">
+      <mat-tab-group class="main-tab-group" [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)"
+        style="width: 100%" mat-stretch-tabs="false">
+        <mat-tab class="mat-tab-class" *ngFor="let tab of tabs; let tabIndex = index" style="width: 100%; height: 100%">
+          <ng-template mat-tab-label>
+            <div fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%; min-width: 100%;">
+              <div fxFlex matTooltip="{{ tab.title }}" class="tab-label-text">
+                {{ tab.title }}
               </div>
-              <div fxFlex="30">
-                <mat-icon style="font-size: 1em" (click)="removeTab(tabIndex)"
-                  >close</mat-icon
-                >
+              <div class="highlight-hover-danger" fxFlex="24px" fxLayout="row" fxLayoutAlign="center center" style="margin-left: 4px;">
+                <mat-icon style="font-size: 1.1em; cursor: pointer;" (click)="removeTab(tabIndex)">close</mat-icon>
               </div>
             </div>
           </ng-template>
           <div style="padding-top: 10px; height: calc(100% - 2em)">
-            <div
-              fxLayout="row"
-              fxLayoutAlign="center center"
+            <div 
+              fxLayout="row" 
+              fxLayoutAlign="center center" 
               style="width: 100%; height: 100%"
             >
-              <div
-                fxFlex="100"
+              <div 
+                fxFlex="100" 
                 style="overflow-y: hidden; overflow-x: hidden; height: 100%"
               >
                 <app-tab-content [tab]="tab"></app-tab-content>
@@ -57,5 +82,3 @@
     </mat-drawer-content>
   </mat-drawer-container>
 </div>
-
-<!-- <app-footer></app-footer> -->

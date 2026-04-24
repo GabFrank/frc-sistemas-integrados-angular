@@ -126,8 +126,6 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: EditDeliveryDialogData,
     private deliveryService: DeliveryService,
-    private monedaService: MonedaService,
-    private formaPagoService: FormaPagoService,
     private matDialogRef: MatDialogRef<EditDeliveryDialogComponent>,
     private clienteService: ClienteService,
     private matDialog: MatDialog,
@@ -155,7 +153,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.deliveryService.onGetPreciosDelivery().subscribe(res => {
+    this.deliveryService.onGetPreciosDelivery(false).subscribe(res => {
       this.precioList = res;
       if (this.precioList.length > 0) {
         if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
@@ -518,7 +516,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       );
       if (this.selectedDelivery?.id != null && item?.id == null) {
         item.cobro = this.selectedDelivery?.venta?.cobro
-        this.ventaService.onSaveCobroDetalle(item.toInput()).subscribe(cbRes => {
+        this.ventaService.onSaveCobroDetalle(item.toInput(), false).subscribe(cbRes => {
           if (cbRes != null) {
             item.id = cbRes.id;
             this.cobroItemList.push(item);
@@ -581,7 +579,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
   onDeleteItem(item: CobroDetalle, i) {
     if (item?.id != null) {
-      this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId).subscribe(res => {
+      this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId, false).subscribe(res => {
         if (res) {
           this.valorParcialPagado -= item.valor * item.moneda.cambio;
 
@@ -650,7 +648,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         cobro.cobroDetalleList = this.cobroItemList;
       }
 
-      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList()).subscribe(res => {
+      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false).subscribe(res => {
         if (res != null) {
           delivery.id = res.id;
           delivery.venta = res.venta;

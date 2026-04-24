@@ -1,0 +1,25 @@
+<div class="gestion-de-dialog-container" fxLayout="column">
+  <header class="dialog-header">
+    <h2 class="titulo-center">Gestión de Documentos Electrónicos</h2>
+  </header>
+
+  <section class="dialog-body" fxLayout="column" fxFlex>
+    <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="gestion-tabs">
+      <mat-tab label="Inutilización de Números">
+        <app-inutilizacion-numeros-tab></app-inutilizacion-numeros-tab>
+      </mat-tab>
+    </mat-tab-group>
+  </section>
+
+  <footer class="dialog-footer">
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="16px">
+      <app-boton
+        nombre="Cerrar"
+        color="primary"
+        (clickEvent)="onClose()"
+        class="btn-accion"
+      ></app-boton>
+    </div>
+  </footer>
+</div>
+

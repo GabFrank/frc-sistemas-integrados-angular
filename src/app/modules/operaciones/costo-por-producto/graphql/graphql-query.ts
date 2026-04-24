@@ -70,3 +70,39 @@ export const costoQuery = gql`
     }
   }
 `;
+
+export const saveCostoPorProductoMutation = gql`
+  mutation saveCostoPorProducto($costoPorProducto: CostoPorProductoInput!) {
+    data: saveCostoPorProducto(costoPorProducto: $costoPorProducto) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      producto {
+        id
+        descripcion
+      }
+      movimientoStock {
+        id
+        referencia
+        tipoMovimiento
+      }
+      ultimoPrecioCompra
+      ultimoPrecioVenta
+      costoMedio
+      moneda {
+        id
+      }
+      cotizacion
+      existencia
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;

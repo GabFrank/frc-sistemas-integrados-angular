@@ -1,0 +1,128 @@
+<div 
+  fxLayout="column" 
+  class="dialog-container"
+  style="width: 100%; min-width: 500px"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+>
+  <div fxLayout="row" fxLayoutAlign="center center">
+    <h2 style="margin: 0">Ajustar Stock</h2>
+  </div>
+
+  <div fxLayout="column" fxLayoutGap="10px" class="info-container">
+    <div fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="75">
+        <mat-label class="titulo">Descripción:</mat-label>
+        <div class="descripcion-producto">
+          {{ data.producto?.descripcion }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="20px">
+    
+    <mat-form-field style="width: 100%">
+      <mat-label>Sucursal</mat-label>
+      <mat-select 
+        formControlName="sucursal" 
+        placeholder="Seleccione una sucursal"
+      >
+        <mat-option 
+          *ngFor="let sucursal of sucursales" 
+          [value]="sucursal.id"
+        >
+          {{ sucursal.id }} - {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="sucursalControl.hasError('required')">
+        La sucursal es requerida
+      </mat-error>  
+    </mat-form-field>
+
+    <div fxLayout="row" *ngIf="selectedSucursal" class="stock-row">
+      <div fxFlex="33">
+        <mat-form-field style="width: 100%">
+          <mat-label>Stock Actual</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            class="stock-input"
+            [value]="stockActual" 
+            readonly
+          />
+        </mat-form-field>
+      </div>
+      
+      <div fxFlex="33">
+        <mat-form-field style="width: 100%">
+          <mat-label>Cantidad Real</mat-label>
+          <input 
+            #cantidadInput
+            matInput 
+            type="number" 
+            step="0.01"
+            formControlName="cantidad"
+            style="text-align: center;"
+          />
+          <mat-error *ngIf="cantidadControl.hasError('required')">
+            La cantidad es requerida
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="33">
+        <mat-form-field style="width: 100%">
+          <mat-label>Ajuste</mat-label>
+          <input 
+            matInput 
+            type="text" 
+            class="diferencia-input"
+            [value]="diferencia > 0 ? '+' + diferencia : diferencia" 
+            readonly
+            [style.color]="
+              diferencia > 0 ? '#4caf50' : 
+              diferencia < 0 ? '#f44336' : 
+              '#ffffff'"
+          />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div *ngIf="selectedSucursal && diferencia !== 0" style="margin-top: 10px;">
+        <div class="info-stock">
+          <mat-icon class="info-icon">info</mat-icon>
+          El stock se ajustará de <strong>{{stockActual}}</strong> 
+          a <strong>{{cantidadControl.value || 0}}</strong> unidades
+        </div>
+    </div>
+
+  </form>
+
+  <div 
+    fxLayout="row" 
+    fxLayoutAlign="end center" 
+    fxLayoutGap="10px" 
+    style="margin-top: 20px"
+  >
+    <button 
+      mat-raised-button 
+      (click)="onCancelar()"
+      color="primary"
+      style="min-width: 120px"
+    >
+      Cancelar
+    </button>
+    
+    <button 
+      mat-raised-button 
+      color="accent"
+      (click)="onGuardar()"
+      [disabled]="formGroup.invalid || diferencia === 0 || isLoadingStock"
+      style="min-width: 120px"
+    >
+      Guardar
+    </button>
+  </div>
+
+</div> 

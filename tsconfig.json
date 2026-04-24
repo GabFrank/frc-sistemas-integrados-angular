@@ -2,6 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "strict": false,
+    "skipLibCheck": true,
     "strictNullChecks": false,
     "outDir": "./dist/out-tsc",
     "module": "es2022",
@@ -26,9 +27,15 @@
     ],
     "useDefineForClassFields": false
   },
-  "exclude": [
-    "node_modules",
-    "release"
+  // "exclude": [
+  //   "node_modules",
+  //   "release",
+  //   "dist",
+  //   ".angular"
+  // ],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.html"
   ],
   "angularCompilerOptions": {
     "strictTemplates": true,

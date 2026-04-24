@@ -62,6 +62,12 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
       this.inputChanged.next(res)
       this.filterList();
     })
+    
+    // Apply initial disabled state
+    if (this.disabled) {
+      this.control.disable();
+      this.filterControl.disable();
+    }
   }
 
 
@@ -84,8 +90,10 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
     if(changes['disabled'] && !changes['disabled'].firstChange){
       if(this.disabled){
         this.control.disable();
+        this.filterControl.disable();
       } else {
         this.control.enable();
+        this.filterControl.enable();
       }
     }
   }

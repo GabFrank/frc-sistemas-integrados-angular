@@ -14,6 +14,10 @@ export const clientesQuery = gql`
         id
         telefono
       }
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -33,6 +37,7 @@ export const clientesSearchByPersona = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       saldo
       codigo
@@ -57,6 +62,7 @@ export const clientePorPersonaDocumento = gql`
         id
         nombre
         direccion
+        email
       }
       tipo
       nombre
@@ -65,6 +71,7 @@ export const clientePorPersonaDocumento = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       saldo
       codigo
@@ -76,6 +83,57 @@ export const clientePorPersonaDocumento = gql`
       contactos {
         id
         telefono
+      }
+    }
+  }
+`;
+
+export const clientePorPersonaDocumentoDetallado = gql`
+  query ($texto: String) {
+    data: clientePorPersonaDocumentoDetallado(texto: $texto) {
+      exito
+      warnings
+      errores
+      cliente {
+        id
+        persona {
+          id
+          nombre
+          direccion
+          email
+          documento
+        }
+        tipo
+        nombre
+        credito
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+        saldo
+        codigo
+        sucursal {
+          id
+        }
+        tributa
+        verificadoSet
+        contactos {
+          id
+          telefono
+        }
+      }
+      datosBasicos {
+        ruc
+        razonSocial
+        direccion
+        estado
+        estadoContribuyente
+        tributa
+        tipoContribuyente
+        telefono
+        nombreFantasia
+        dv
       }
     }
   }
@@ -149,6 +207,10 @@ export const clienteSearchByPersonaId = gql`
       saldo
       tipo
       codigo
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -170,6 +232,10 @@ export const clientePorPersonaIdFromServer = gql`
       saldo
       tipo
       codigo
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -187,6 +253,10 @@ export const clientesSearchByTelefono = gql`
       contactos {
         id
         telefono
+      }
+      usuario {
+        id
+        nickname
       }
     }
   }
@@ -212,6 +282,10 @@ export const clienteQuery = gql`
       contactos {
         id
         telefono
+      }
+      usuario {
+        id
+        nickname
       }
     }
   }
@@ -240,7 +314,10 @@ export const saveCliente = gql`
         telefono
       }
       creadoEn
-      
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;

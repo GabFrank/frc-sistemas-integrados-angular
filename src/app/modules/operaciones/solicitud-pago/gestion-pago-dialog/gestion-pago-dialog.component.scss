@@ -1,0 +1,33 @@
+.dialog-container {
+  min-width: 320px;
+  width: 100%;
+  box-sizing: border-box;
+
+  h2[mat-dialog-title] {
+    margin: 0;
+    padding: 0 0 1rem;
+  }
+
+  mat-dialog-content {
+    padding: 1rem;
+    min-height: 120px;
+    box-sizing: border-box;
+  }
+
+  .info-solicitud {
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+
+    .info-line {
+      margin: 0.25rem 0;
+      font-size: 0.95rem;
+    }
+  }
+
+  .estado-field {
+    width: 100%;
+    max-width: 280px;
+  }
+}

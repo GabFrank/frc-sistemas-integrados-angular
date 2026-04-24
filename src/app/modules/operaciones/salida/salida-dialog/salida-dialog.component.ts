@@ -158,14 +158,8 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe((res) => {
-      this.sucursalList = res.sort((a, b) => {
-        if (a.nombre < b.nombre) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
+    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.sucursalList = res;
     });
   }
 

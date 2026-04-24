@@ -69,8 +69,11 @@ export class AddClienteDialogComponent implements OnInit {
       'tipoControl': this.tipoControl,
       'creditoControl': this.creditoControl,
       'nombreControl': this.nombreControl,
+      'apodoControl': this.apodoControl,
       'documentoControl': this.documentoControl,
       'telefonoControl': this.telefonoControl,
+      'emailControl': this.emailControl,
+      'nacimientoControl': this.nacimientoControl,
       'direccionControl': this.direccionControl
     })
 
@@ -172,17 +175,27 @@ export class AddClienteDialogComponent implements OnInit {
     newPersona.nacimiento = this.nacimientoControl.value;
     newPersona.email = this.emailControl.value;
     newPersona.telefono = this.telefonoControl.value;
+    
     this.personaService.onSavePersona(newPersona.toInput()).pipe(untilDestroyed(this)).subscribe((personaRes: Persona) => {
       if (personaRes != null) {
         this.selectedPersona = personaRes;
         let newCliente = new Cliente;
         if (this.selectedCliente != null) Object.assign(newCliente, this.selectedCliente)
+        
+        // CRÍTICO: Actualizar los campos del Cliente con los valores de la Persona actualizada
         newCliente.persona = this.selectedPersona;
+        newCliente.nombre = this.selectedPersona.nombre;  // ✅ Usar nombre actualizado
+        newCliente.direccion = this.selectedPersona.direccion;  // ✅ Usar dirección actualizada  
+        newCliente.documento = this.selectedPersona.documento;  // ✅ Usar documento actualizado
+        
         newCliente.tipo = this.tipoControl.value;
         newCliente.credito = this.creditoControl.value;
+        
         this.clienteService.onSaveCliente(newCliente.toInput()).pipe(untilDestroyed(this)).subscribe((clienteRes: Cliente) => {
           if (clienteRes != null) {
             this.selectedCliente = clienteRes;
+            this.notificacionService.openGuardadoConExito();
+            this.dialogRef.close(this.selectedCliente);
           }
         })
       }

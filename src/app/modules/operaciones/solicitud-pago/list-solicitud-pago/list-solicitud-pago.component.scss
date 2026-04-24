@@ -1,0 +1,110 @@
+table {
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.example-element-row {
+  cursor: pointer;
+}
+
+.row-estado-parcial {
+  background-color: rgba(255, 235, 59, 0.5) !important;
+}
+
+.row-estado-concluido {
+  background-color: rgba(76, 175, 80, 0.5) !important;
+}
+
+.row-estado-cancelado {
+  background-color: rgba(244, 67, 54, 0.5) !important;
+}
+
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
+.example-element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.expanded:hover {
+  background-color: rgb(51, 51, 51) !important;
+}
+
+.tableRows:hover {
+  background-color: rgb(51, 51, 51) !important;
+}
+
+.expand-section {
+  background-color: rgb(32, 32, 32);
+  padding: 1rem;
+  border-radius: 4px;
+  min-height: 80px;
+}
+
+.expand-section-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.expand-table-wrapper {
+  overflow-x: auto;
+}
+
+.expand-table {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+
+  mat-header-cell,
+  mat-cell {
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+  }
+
+  mat-header-cell {
+    font-weight: 500;
+  }
+
+  &.expand-table-notas {
+    
+    .mat-column-numero {
+      text-align: center;
+      flex: 0 0 10%;
+      width: 10%;
+    }
+
+    .mat-column-fecha {
+      text-align: center;
+      flex: 1 1 auto;
+    }
+
+    .mat-column-monto {
+      text-align: center;
+      flex: 1 1 auto;
+    }
+
+    .mat-column-estado {
+      text-align: center;
+      flex: 1 1 auto;
+    }
+
+    .mat-column-ver {
+      text-align: center;
+      flex: 0 0 10%;
+      width: 15%;
+    }
+  }
+}
+
+.expand-empty,
+.expand-placeholder {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+}

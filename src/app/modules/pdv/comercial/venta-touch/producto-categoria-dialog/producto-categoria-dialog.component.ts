@@ -28,6 +28,7 @@ export class ProductoCategoriaDialogData {
   presentaciones: Presentacion[];
   cantidad?: number;
   texto?;
+  autoSeleccionar?: boolean;
 }
 
 export class ProductoCategoriaResponseData {
@@ -40,7 +41,7 @@ export class ProductoCategoriaResponseData {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../../../environments/environment";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
-
+import { ConfiguracionService } from "../../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-producto-categoria-dialog",
@@ -69,12 +70,15 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
     public windowInfo: WindowInfoService,
     public matDialog: MatDialog,
     public mainService: MainService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private configService: ConfiguracionService
   ) {
     this.presentaciones = data?.presentaciones;
     this.cantidad = +data?.cantidad;
-    this.filteredPrecios = environment['precios']
-    this.modoPrecio = environment['modo']
+    this.filteredPrecios = this.configService?.getConfig()?.precios.split(',').map(p => p.trim())
+    this.modoPrecio = this.configService?.getConfig()?.modo
+    console.log(this.filteredPrecios, this.modoPrecio);
+
     if (this.filteredPrecios != null && this.modoPrecio == 'ONLY') {
       this.presentaciones.filter((p, index) => {
         this.presentaciones[index].precios = p.precios.filter(pre => this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
@@ -96,7 +100,11 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
     }
   }
   ngAfterViewInit(): void {
-    if (this.data?.cantidad != null && this.presentaciones?.length == 1 && this.presentaciones[0]?.precios?.length == 1) {
+    if (
+      this.data?.autoSeleccionar === true &&
+      this.presentaciones?.length === 1 &&
+      this.presentaciones[0]?.precios?.length === 1
+    ) {
       this.onGridCardClick(this.presentaciones[0]);
     }
   }

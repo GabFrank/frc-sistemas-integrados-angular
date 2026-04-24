@@ -4,8 +4,6 @@ export const inventariosQuery = gql`
   {
     data: inventarios {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -24,10 +22,6 @@ export const inventariosQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -56,8 +50,6 @@ export const inventarioQuery = gql`
   query ($id: ID!) {
     data: inventario(id: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -76,10 +68,6 @@ export const inventarioQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -94,9 +82,16 @@ export const inventarioQuery = gql`
             id
             cantidad
             imagenPrincipal
+            producto {
+              id
+              descripcion
+              codigoPrincipal
+            }
           }
           cantidad
+          cantidadFisica
           vencimiento
+          estado
           creadoEn
         }
       }
@@ -126,10 +121,6 @@ export const inventarioPorUsuarioQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -158,8 +149,6 @@ export const saveInventario = gql`
   mutation saveInventario($entity: InventarioInput!) {
     data: saveInventario(inventario: $entity) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -178,10 +167,6 @@ export const saveInventario = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -216,8 +201,6 @@ export const inventarioPorFechaQuery = gql`
   query ($inicio: String, $fin: String) {
     data: inventarioPorFecha(inicio: $inicio, fin: $fin) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -269,9 +252,8 @@ export const saveInventarioProducto = gql`
     data: saveInventarioProducto(inventarioProducto: $entity) {
       id
       concluido
-      producto {
+      inventario {
         id
-        descripcion
       }
       zona {
         id
@@ -293,9 +275,16 @@ export const saveInventarioProducto = gql`
           id
           cantidad
           imagenPrincipal
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
         }
         cantidad
+        cantidadFisica
         vencimiento
+        estado
         creadoEn
       }
     }
@@ -348,8 +337,6 @@ export const inverntarioAbiertoPorSucursalQuery = gql`
   query ($id: ID!) {
     data: inventarioAbiertoPorSucursal(sucId: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -368,10 +355,6 @@ export const inverntarioAbiertoPorSucursalQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -407,6 +390,7 @@ export const inventarioProductoItemWithFilterQuery = gql`
     $size: Int
     $orderBy: String
     $tipoOrder: String
+    $estado: String
   ) {
     data: inventarioProductoItemWithFilter(
       startDate: $startDate
@@ -418,6 +402,7 @@ export const inventarioProductoItemWithFilterQuery = gql`
       size: $size
       orderBy: $orderBy
       tipoOrder: $tipoOrder
+      estado: $estado
     ) {
       getTotalPages
       getTotalElements
@@ -525,5 +510,202 @@ export const inventarioProductoItemQuery = gql`
         nickname
       }
     }
+  }
+`;
+export const productosVencidosQuery = gql`
+  query ProductosVencidos(
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $soloRealmenteVencidos: Boolean
+    $page: Int
+    $size: Int
+  ) {
+    productosVencidos(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      soloRealmenteVencidos: $soloRealmenteVencidos
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        inventarioProducto {
+          id
+          inventario {
+            id
+            sucursal {
+              id
+              nombre
+            }
+          }
+        }
+        zona {
+          id
+          descripcion
+        }
+        sector {
+          id
+          descripcion
+        }
+        presentacion {
+          id
+          cantidad
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        cantidad
+        cantidadFisica
+        vencimiento
+        estado
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;
+
+export const inventarioProductoQuery = gql`
+  query ($id: ID!) {
+    data: inventarioProducto(id: $id) {
+      id
+      inventario {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        tipo
+        estado
+      }
+      zona {
+        id
+        sector {
+          id
+          descripcion
+        }
+        descripcion
+      }
+      concluido
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      inventarioProductoItemList {
+        id
+        presentacion {
+          id
+          cantidad
+          imagenPrincipal
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        cantidad
+        cantidadFisica
+        vencimiento
+        estado
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const inventarioProductosItemPorInventarioProductoQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int) {
+    data: inventarioProductosItemPorInventarioProducto(id: $id, page: $page, size: $size) {
+      id
+      inventarioProducto {
+        id
+      }
+      zona {
+        id
+        sector {
+          id
+          descripcion
+        }
+        descripcion
+      }
+      presentacion {
+        id
+        cantidad
+        imagenPrincipal
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      cantidad
+      cantidadFisica
+      vencimiento
+      estado
+      creadoEn
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;
+
+export const finalizarInventarioQuery = gql`
+  mutation ($id: ID!) {
+    data: finalizarInventario(id: $id) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      fechaInicio
+      fechaFin
+      abierto
+      tipo
+      estado
+      usuario {
+        persona {
+          nombre
+        }
+      }
+      observacion
+    }
+  }
+`;
+
+export const cancelarInventarioQuery = gql`
+  mutation ($id: ID!) {
+    cancelarInventario(id: $id)
+  }
+`;
+
+export const reabrirInventarioQuery = gql`
+  mutation ($id: ID!) {
+    reabrirInventario(id: $id)
   }
 `;

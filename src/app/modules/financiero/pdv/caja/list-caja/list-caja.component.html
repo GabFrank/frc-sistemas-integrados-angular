@@ -20,7 +20,7 @@
             type="number"
             matInput
             [formControl]="codigoControl"
-            (keyup.enter)="onCondigoEnter()"
+            (keyup.enter)="onFilter()"
             style="text-align: end"
           />
         </mat-form-field>
@@ -47,6 +47,13 @@
               ? "Si"
               : "No"
           }}
+        </mat-checkbox>
+      </div>
+      <div fxFlex="30%">
+        <mat-label>Cajas con observaciones</mat-label>
+        <mat-checkbox
+          [formControl]="conObsControl"
+        >
         </mat-checkbox>
       </div>
       <div fxFlex="8%"></div>
@@ -142,7 +149,7 @@
           color="primary"
           (click)="onProductoSearch()"
         > -->
-        <mat-icon (click)="onMaletinSearch()" style="cursor: pointer"
+        <mat-icon class="icon" (click)="onMaletinSearch()"
           >search</mat-icon
         >
         <mat-icon
@@ -196,7 +203,7 @@
           color="primary"
           (click)="onCajeroSearch()"
         > -->
-        <mat-icon (click)="onCajeroEnter()" style="cursor: pointer"
+        <mat-icon class="icon" (click)="onCajeroEnter()"
           >search</mat-icon
         >
         <mat-icon
@@ -237,7 +244,7 @@
           color="primary"
           (click)="onCajeroSearch()"
         > -->
-        <mat-icon (click)="onSucursalSearch()" style="cursor: pointer"
+        <mat-icon class="icon" (click)="onSucursalSearch()"
           >search</mat-icon
         >
         <!-- </button> -->
@@ -434,6 +441,7 @@
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onAdd(caja, i)">Ir a Caja</button>
             <button mat-menu-item (click)="irVentas(caja)">Ir a Ventas</button>
+            <button mat-menu-item (click)="irObservacion(caja)">Adicionar observación</button>
           </mat-menu>
         </td>
       </ng-container>
@@ -462,6 +470,7 @@
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [ngClass]="{'con-observacion': row.hasObservation}"
         [class.verificado]="row?.verificado == true"
       ></tr>
       <tr

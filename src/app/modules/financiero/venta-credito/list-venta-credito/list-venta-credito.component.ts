@@ -58,6 +58,7 @@ import {
 } from "../../../../commons/core/utils/dateUtils";
 import { PageInfo } from "../../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -139,7 +140,8 @@ export class ListVentaCreditoComponent implements OnInit {
     private dialog: MatDialog,
     private cajaService: CajaService,
     private tabService: TabService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {
     this.estadoControl.valueChanges
       .pipe(untilDestroyed(this))
@@ -324,27 +326,42 @@ export class ListVentaCreditoComponent implements OnInit {
       });
   }
 
-  onCancelar(ventaCredito: VentaCredito, index) {
+  onCancelar(ventaCredito: VentaCredito, index: number) {
     this.dialogoService
-      .confirm(
-        "Atención!!",
-        "Realmente desea cancelar este item?",
-        "Esta acción no se puede deshacer"
-      )
+      .confirm("Atención!!", "Realmente desea cancelar esta venta a crédito?")
       .subscribe((res) => {
-        this.ventaCreditoService
-          .onCancelarVentaCredito(ventaCredito.id, ventaCredito.sucursal.id)
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res == true) {
-              this.dataSource.data = updateDataSource(
-                this.dataSource.data,
-                null,
-                index
-              );
-            }
-            this.verificarEstados();
-          });
+        if (res) {
+          this.ventaService
+            .onCancelarVenta(ventaCredito.venta.id, ventaCredito.sucursal.id)
+            .pipe(untilDestroyed(this))
+            .subscribe((res1) => {
+              if (res1) {
+                this.notificacionService.openSucess(
+                  "Venta a crédito cancelada con éxito"
+                );
+                const selectedIds: number[] = this.selection.selected.map((vc: VentaCredito) => vc.id);
+
+                if (this.selection.isSelected(ventaCredito) && !selectedIds.includes(ventaCredito.id)) {
+                  selectedIds.push(ventaCredito.id);
+                }
+
+                this.onFiltrar().then(() => {
+                  this.selection.clear();
+
+                  this.dataSource.data.forEach((row) => {
+                    if (selectedIds.includes(row.id)) {
+                      this.selection.select(row);
+                    }
+                  });
+                  this.verificarEstados();
+                });
+              } else {
+                this.notificacionService.openAlgoSalioMal(
+                  "Ups! No se pudo cancelar la venta a crédito. "
+                );
+              }
+            });
+        }
       });
   }
 

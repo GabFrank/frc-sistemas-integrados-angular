@@ -71,10 +71,12 @@ export const productosExistenciaCostoSearch = gql`
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int, $isEnvase: Boolean, $activo: Boolean) {
+  query ($texto: String, $offset: Int, $sucursalId: Int, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean) {
     data: productoSearch(
       texto: $texto
       offset: $offset
+      sucursalId: $sucursalId
+      conStock: $conStock
       isEnvase: $isEnvase
       activo: $activo
     ) {
@@ -88,6 +90,7 @@ export const productoSearchPdv = gql`
       observacion
       codigoPrincipal
       precioPrincipal
+      activo
       costo {
         ultimoPrecioCompra
       }
@@ -178,6 +181,9 @@ export const searchProductoWithFilters = gql`
     $balanza: Boolean
     $subfamilia: Int
     $vencimiento: Boolean
+    $costoCero: Boolean
+    $stockFiltro: String
+    $sucursalId: Int
     $page: Int
     $size: Int
   ) {
@@ -189,6 +195,9 @@ export const searchProductoWithFilters = gql`
       balanza: $balanza
       subfamilia: $subfamilia
       vencimiento: $vencimiento
+      costoCero: $costoCero
+      stockFiltro: $stockFiltro
+      sucursalId: $sucursalId
       page: $page
       size: $size
     ) {
@@ -208,6 +217,7 @@ export const searchProductoWithFilters = gql`
         }
         precioPrincipal
         codigoPrincipal
+        activo
       }
     }
   }
@@ -447,6 +457,13 @@ export const productoUltimasComprasQuery = gql`
         cantidad
         precio
         creadoEn
+        presentacionEnNota {
+          id
+          cantidad
+          tipoPresentacion {
+            descripcion
+          }
+        }
         pedido {
           id
           proveedor {
@@ -655,6 +672,7 @@ export const lucroPorProductoQuery = gql`
     $usuarioId: ID!
     $usuarioIdList: [ID]
     $productoIdList: [ID]
+    $subfamiliaId: ID
   ) {
     data: lucroPorProducto(
       fechaInicio: $fechaInicio
@@ -663,6 +681,7 @@ export const lucroPorProductoQuery = gql`
       usuarioId: $usuarioId
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
+      subfamiliaId: $subfamiliaId
     )
   }
 `;
@@ -672,3 +691,92 @@ export const imprimirCodigoBarraQuery = gql`
     data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;
+
+export const productoDescripcionExistsQuery = gql`
+  query ($descripcion: String) {
+    data: productoDescripcionExists(descripcion: $descripcion)
+  }
+`;
+
+export const exportarReporteConFiltrosQuery = gql`
+    query (
+      $texto: String, 
+      $codigo: Boolean, 
+      $activo: Boolean, 
+      $stock: Boolean, 
+      $balanza: Boolean, 
+      $vencimiento: Boolean, 
+      $costoCero: Boolean, 
+      $subfamiliaId: ID, 
+      $stockFiltro: String, 
+      $sucursalId: ID, 
+      $usuarioId: ID, 
+      $usuario: String
+    ) {
+      data: exportarReporteConFiltros(
+        texto: $texto, 
+        codigo: $codigo, 
+        activo: $activo, 
+        stock: $stock, 
+        balanza: $balanza, 
+        vencimiento: $vencimiento, 
+        costoCero: $costoCero, 
+        subfamiliaId: $subfamiliaId, 
+        stockFiltro: $stockFiltro, 
+        sucursalId: $sucursalId, 
+        usuarioId: $usuarioId, 
+        usuario: $usuario
+      )
+    }
+  `;
+
+  export const lucroPorProductoListQuery = gql`
+    query lucroPorProductoList(
+      $fechaInicio: String
+      $fechaFin: String
+      $sucursalIdList: [ID]
+      $usuarioIdList: [ID]
+      $productoIdList: [ID]
+      $subfamiliaId: ID
+      $page: Int
+      $size: Int
+    ) {
+       data: lucroPorProductoList(
+        fechaInicio: $fechaInicio
+        fechaFin: $fechaFin
+        sucursalIdList: $sucursalIdList
+        usuarioIdList: $usuarioIdList
+        productoIdList: $productoIdList
+        subfamiliaId: $subfamiliaId
+        page: $page
+        size: $size
+      ) {
+        content {
+          productoId
+          descripcion
+          cantidad
+          costoTotal
+          costoUnitario
+          totalVenta
+          lucro
+          percent
+          ventaMedia
+          margen
+          totalDescuento
+          totalAumento
+        }
+        totalElements
+        summary {
+          cantidad
+          costoTotal
+          totalVenta
+          lucro
+          margen
+          totalDescuento
+          totalAumento
+          ventaMedia
+          costoUnitario
+        }
+      }
+    }
+  `;

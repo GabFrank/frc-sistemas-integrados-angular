@@ -1,316 +1,356 @@
-<div
-  fxLayout="column"
-  style="width: 100%; padding: 10px; height: 100%"
-  fxLayoutGap="10px"
->
-  <div fxFlex style="width: 100%; text-align: center">
-    <h2>Factura legal</h2>
-  </div>
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutAlign="start center"
-  >
-    <div fxFlex="20%">
-      <mat-form-field style="width: 95%">
-        <input
-          numericOnly
-          #rucInput
-          type="text"
-          matInput
-          [formControl]="rucControl"
-          (keyup.enter)="buscarCliente()"
-          (keydown.tab)="buscarCliente(); $event.preventDefault()"
-          style="text-align: center"
-        />
-        <span matTextPrefix>{{
-          tributaControl.value == true ? "RUC:" : "Cédula"
-        }}</span>
-        <span
-          *ngIf="tributaControl.value == true"
-          matTextSuffix
-          style="display: block; width: 30px"
-        >
-          {{ digitoVerificador }}
-        </span>
-      </mat-form-field>
-    </div>
-    <div fxFlex="70%">
-      <mat-form-field style="width: 100%">
-        <!-- <mat-label></mat-label> -->
-        <input
-          #nombreInput
-          noSpaces
-          type="text"
-          matInput
-          [formControl]="clienteDescripcionControl"
-          (keyup.enter)="onSaveCliente()"
-        />
-        <span matTextPrefix style="padding-right: 20px">{{
-          tributaControl.value == true ? "Razon Social:" : "Nombre:"
-        }}</span>
-      </mat-form-field>
-    </div>
-    <div fxFlex="10%" fxLayout="row" fxLayoutAlign="space-around center">
-      <mat-icon (click)="onClienteSearch()" class="highlight-hover"
-        >search</mat-icon
-      >
-      <mat-icon (click)="onClear()" style="color: red">clear</mat-icon>
-    </div>
-  </div>
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutAlign="start center"
-  >
-    <div fxFlex="50%">
-      <mat-form-field style="width: 100%">
-        <mat-label>Dirección</mat-label>
-        <input type="text" matInput [formControl]="direccionControl" />
-      </mat-form-field>
-    </div>
-    <mat-checkbox
-      fxFlex
-      [checked]="tributaControl.value == true"
-      (change)="tributaControl.setValue(!tributaControl.value)"
-      >RUC</mat-checkbox
-    >
-    <mat-checkbox
-      fxFlex
-      [checked]="tributaControl.value == false"
-      (change)="tributaControl.setValue(!tributaControl.value)"
-      >Cédula</mat-checkbox
-    >
-    <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
-      <div fxFlex style="text-align: center">
-        <mat-slide-toggle [formControl]="creditoControl"
-          >{{ creditoControl.value == false ? "Contado" : "Crédito" }}
-        </mat-slide-toggle>
+<div class="factura-dialog-container" fxLayout="column">
+  <header class="dialog-header">
+    <h2 class="titulo-center">Factura legal</h2>
+  </header>
+
+  <section class="dialog-body" fxLayout="column" fxFlex>
+    <!-- Campos para modo filial -->
+    <div class="section-card" fxLayout="column" fxLayoutGap="16px" *ngIf="isServidor">
+      <div class="section-title">Configuración de Factura</div>
+      
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Sucursal</mat-label>
+            <mat-select #sucursalSelect [formControl]="sucursalControl" (opened)="onSucursalSelectOpened()">
+              <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+                {{ sucursal.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Timbrado Detalle</mat-label>
+            <mat-select [formControl]="timbradoDetalleControl">
+              <mat-option *ngFor="let timbradoDetalle of timbradoDetalleList" [value]="timbradoDetalle">
+                {{ timbradoDetalle.timbrado?.numero }} - {{ timbradoDetalle.puntoExpedicion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Moneda</mat-label>
+            <mat-select [formControl]="monedaControl">
+              <mat-option *ngFor="let moneda of monedaList" [value]="moneda">
+                {{ moneda.denominacion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Tipo de Cambio</mat-label>
+            <input
+              type="number"
+              matInput
+              [formControl]="tipoCambioControl"
+            />
+          </mat-form-field>
+        </div>
       </div>
     </div>
-    <div fxFlex>
-      <app-boton
-        [basic]="true"
-        nombre="Verificar RUC"
-        (clickEvent)="
-          selectedCliente.verificadoSet = false; setCliente(selectedCliente)
-        "
-        [disableExpression]="selectedCliente?.id == null"
-      ></app-boton>
-    </div>
-  </div>
-  <div
-    fxFlex="5"
-    fxLayout="row"
-    style="width: 100%; text-align: center"
-    fxLayoutAlign="start center"
-  >
-    <div fxFlex="20%"></div>
-    <div fxFlex="60%" style="text-align: center">
-      <h4 style="width: 100%">Lista de productos</h4>
-    </div>
-    <div fxFlex="20%">
-      <app-boton
-        nombre="+ Producto"
-        color="primary"
-        (clickEvent)="addItem(null, null)"
-        style="height: 40px"
-      ></app-boton>
-    </div>
-  </div>
-  <div fxFlex="70" style="width: 100%">
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
-      <ng-container matColumnDef="cantidad" [sticky]="true">
-        <th mat-header-cell *matHeaderCellDef style="width: 10%">Cant.</th>
-        <td mat-cell *matCellDef="let item" style="width: 10%">
-          {{ item.cantidad }}
-        </td>
-      </ng-container>
+    
+    <div class="section-card" fxLayout="column" fxLayoutGap="16px">
+      <div class="section-title">Datos del cliente</div>
 
-      <ng-container matColumnDef="descripcion">
-        <th mat-header-cell *matHeaderCellDef style="width: 50%">
-          Descripción
-        </th>
-        <td mat-cell *matCellDef="let item" style="width: 50%">
-          {{ item.descripcion | titlecase }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="precioUnitario" style="text-align: center">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 15%; text-align: center"
-        >
-          Precio Unit.
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="width: 15%; text-align: center"
-        >
-          {{ item.precioUnitario | number : "1.0-0" }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="total" style="text-align: center">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 20%; text-align: center"
-        >
-          Total
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="width: 20%; text-align: center"
-        >
-          {{ item.total | number : "1.0-0" }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
-          ...
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let item; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
-            <mat-icon>more_vert</mat-icon>
-          </button>
-          <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="addItem(item, i)">Editar</button>
-            <button
-              style="color: red"
-              mat-menu-item
-              (click)="deleteItem(item, i)"
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <span matTextPrefix>{{
+              tributaControl.value == true ? "RUC:" : "Cédula"
+            }}</span>
+            <input
+              numericOnly
+              #rucInput
+              type="text"
+              matInput
+              [formControl]="rucControl"
+              (keydown.enter)="onRucEnter($event)"
+              (keydown.tab)="buscarCliente(); $event.preventDefault()"
+              style="text-align: center"
+            />
+            <span
+              *ngIf="tributaControl.value == true"
+              matTextSuffix
+              class="suffix-verificador"
             >
-              Eliminar
-            </button>
-          </mat-menu>
-        </td>
-      </ng-container>
+              {{ digitoVerificador }}
+            </span>
+          </mat-form-field>
+        </div>
 
-      <tr
-        mat-header-row
-        *matHeaderRowDef="
-          ['cantidad', 'descripcion', 'precioUnitario', 'total', 'acciones'];
-          sticky: true
-        "
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="
-          let row;
-          columns: [
-            'cantidad',
-            'descripcion',
-            'precioUnitario',
-            'total',
-            'acciones'
-          ];
-          let i = index
-        "
-        (click)="onSelectItem(row)"
-      ></tr>
-    </table>
-  </div>
-  <div fxFlex fxLayout="row" fxLayoutAlign="end center">
-    <div fxFlex="30" fxLayout="column">
-      <div fxLayout="row">
-        <h5 fxFlex="50">Total parcial:</h5>
-        <h5 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value | number : "1.0-0" }}
-        </h5>
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <span matTextPrefix class="prefix-label">{{
+              tributaControl.value == true ? "Razón Social:" : "Nombre:"
+            }}</span>
+            <input
+              #nombreInput
+              noSpaces
+              type="text"
+              matInput
+              [formControl]="clienteDescripcionControl"
+              (keydown.enter)="onNombreEnter($event)"
+            />
+          </mat-form-field>
+        </div>
+
+        <div
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          fxLayoutGap="8px"
+          class="acciones-rapidas"
+        >
+          <button mat-icon-button (click)="onClienteSearch()">
+            <mat-icon>search</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onClear()">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </div>
       </div>
-      <div fxLayout="row">
-        <h5 fxFlex="50">Descuento:</h5>
-        <h5 fxFlex="50" style="text-align: end">
-          {{ (data?.descuento || 0) | number : "1.0-0" }}
-        </h5>
-      </div>
-      <hr class="custom-line">
-      <div fxLayout="row">
-        <h3 fxFlex="50">Total final:</h3>
-        <h3 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0" }}
-        </h3>
+
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Dirección</mat-label>
+            <input
+              #direccionInput
+              type="text"
+              matInput
+              [formControl]="direccionControl"
+              (keydown.enter)="onDireccionEnter($event)"
+            />
+          </mat-form-field>
+        </div>
+
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Email</mat-label>
+            <input
+              #emailInput
+              type="email"
+              matInput
+              [formControl]="emailControl"
+              (keydown.enter)="onEmailEnter($event)"
+            />
+          </mat-form-field>
+        </div>
+
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px">
+          <mat-checkbox
+            [checked]="tributaControl.value == true"
+            (change)="tributaControl.setValue(!tributaControl.value)"
+            >RUC</mat-checkbox
+          >
+          <mat-checkbox
+            [checked]="tributaControl.value == false"
+            (change)="tributaControl.setValue(!tributaControl.value)"
+            >Cédula</mat-checkbox
+          >
+        </div>
+
+        <div fxLayout="row" fxLayoutAlign="center center">
+          <mat-slide-toggle [formControl]="creditoControl">
+            {{ creditoControl.value == false ? "Contado" : "Crédito" }}
+          </mat-slide-toggle>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- <mat-card
-    fxFlex="10"
-    fxLayout="row"
-    style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
-  >
-    <div fxFlex="70%" fxLayout="column">
-      <div fxFlex="50">Cantidad de itens: {{ dataSource?.data?.length }}</div>
+
+    <div class="section-card" fxLayout="column" fxFlex>
+      <div class="productos-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <h4 class="titulo-center">Lista de productos</h4>
+        <app-boton
+          nombre="+ Producto"
+          color="primary"
+          (clickEvent)="addItem(null, null)"
+          class="btn-agregar-producto"
+        ></app-boton>
+      </div>
+
+      <div class="productos-table-container" fxFlex>
+        <table
+          mat-table
+          [dataSource]="dataSource"
+          class="mat-elevation-z8"
+          style="width: 100%"
+        >
+          <ng-container matColumnDef="cantidad" [sticky]="true">
+            <th mat-header-cell *matHeaderCellDef style="width: 10%">Cant.</th>
+            <td mat-cell *matCellDef="let item" style="width: 10%">
+              {{ item.cantidad }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef style="width: 50%">
+              Descripción
+            </th>
+            <td mat-cell *matCellDef="let item" style="width: 50%">
+              {{ item.descripcion | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="precioUnitario" style="text-align: center">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 15%; text-align: center"
+            >
+              Precio Unit.
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let item"
+              style="width: 15%; text-align: center"
+            >
+              {{ item.precioUnitario | number : "1.0-0" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="total" style="text-align: center">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 20%; text-align: center"
+            >
+              Total
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let item"
+              style="width: 20%; text-align: center"
+            >
+              {{ item.total | number : "1.0-0" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let item; let i = index"
+              style="text-align: center; width: 5%"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="addItem(item, i)">Editar</button>
+                <button
+                  style="color: red"
+                  mat-menu-item
+                  (click)="deleteItem(item, i)"
+                >
+                  Eliminar
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr
+            mat-header-row
+            *matHeaderRowDef="
+              ['cantidad', 'descripcion', 'precioUnitario', 'total', 'acciones'];
+              sticky: true
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: [
+                'cantidad',
+                'descripcion',
+                'precioUnitario',
+                'total',
+                'acciones'
+              ];
+              let i = index
+            "
+            (click)="onSelectItem(row)"
+          ></tr>
+        </table>
+      </div>
     </div>
-    <div fxFlex="30" fxLayout="column">
-      <div fxLayout="row">
-        <h5 fxFlex="50">Total parcial:</h5>
-        <h5 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value | number : "1.0-0" }}
-        </h5>
+
+    <div class="totales-grid" fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+      <div class="total-card total-items" fxFlex>
+        <div class="total-card__title">Total de ítems</div>
+        <div class="total-card__value">
+          {{ dataSource?.data?.length || 0 | number : "1.0-0" }}
+        </div>
       </div>
-      <div fxLayout="row">
-        <h5 fxFlex="50">Descuento:</h5>
-        <h5 fxFlex="50" style="text-align: end">
+      <div class="total-card total-parcial" fxFlex>
+        <div class="total-card__title">Total parcial</div>
+        <div class="total-card__value">
           {{ totalFinalControl.value | number : "1.0-0" }}
-        </h5>
+        </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ totalFinalControl.value / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
+        </div>
       </div>
-      <div fxLayout="row">
-        <h3 fxFlex="50">Total final:</h3>
-        <h3 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value | number : "1.0-0" }}
-        </h3>
+      <div class="total-card total-descuento" fxFlex>
+        <div class="total-card__title">Descuento</div>
+        <div class="total-card__value">
+          {{ data?.descuento || 0 | number : "1.0-0" }}
+        </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ (data?.descuento || 0) / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
+        </div>
+      </div>
+      <div class="total-card total-final" fxFlex>
+        <div class="total-card__title">Total final</div>
+        <div class="total-card__value">
+          {{
+            totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0"
+          }}
+        </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ totalFinalEnMoneda | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
+        </div>
       </div>
     </div>
-  </mat-card> -->
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutAlign="center center"
-    fxLayoutGap="10px"
-  >
-    <div fxFlex="30%" style="height: 35px">
+  </section>
+
+  <footer class="dialog-footer">
+    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutAlign="center center" fxLayoutGap="16px">
       <app-boton
         nombre="Cancelar"
         color="primary"
         (clickEvent)="onCancelar()"
+        class="btn-accion"
       ></app-boton>
-    </div>
-    <div fxFlex="30%" style="height: 35px">
       <app-boton
+        #imprimirBtb
         (focusEvent)="guardarSub.asObservable()"
         nombre="Imprimir"
         color="accent"
         [disableExpression]="
           rucControl.invalid ||
-          clienteDescripcionControl.invalid ||
-          totalFinalControl.invalid
+          clienteDescripcionControl.invalid
         "
         (clickEvent)="onGuardar()"
+        class="btn-accion"
       ></app-boton>
     </div>
-  </div>
+  </footer>
 </div>

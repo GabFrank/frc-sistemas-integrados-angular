@@ -1,0 +1,56 @@
+.marcar-horario-container {
+  padding: 32px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background-color: rgb(30, 30, 30);
+  font-family: 'Roboto', sans-serif;
+  background-image: radial-gradient(circle at 10% 20%, rgba(76, 175, 80, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(76, 175, 80, 0.05) 0%, transparent 20%);
+}
+
+:host {
+  ::ng-deep {
+
+    .mat-mdc-form-field {
+      .mdc-text-field--filled {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 12px 12px 0 0 !important;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        &.mdc-text-field--focused {
+          background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+      }
+
+      &.mat-form-field-appearance-outline {
+        .mdc-text-field--outlined {
+          background-color: rgba(255, 255, 255, 0.05) !important;
+          border-radius: 12px !important;
+
+          .mdc-notched-outline__leading,
+          .mdc-notched-outline__notch,
+          .mdc-notched-outline__trailing {
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            border-width: 1px !important;
+          }
+        }
+
+        &.mat-focused {
+          .mdc-text-field--outlined {
+
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: #4caf50 !important;
+              border-width: 2px !important;
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -52,6 +52,20 @@
     >
       {{ this.data.btn2Name }}
     </button>
+
+    <button
+      *ngIf="data.btn3Name"
+      type="button"
+      #cancelButton2
+      matDialogClose
+      mat-button
+      mat-flat-button
+      color="basic"
+      (keydown)="cancel2KeydownEvent($event)"
+      (click)="dialogRef.close(null)"
+    >
+      {{ this.data.btn3Name }}
+    </button>
   </div>
 
   <div *ngIf="!data.action" matDialogActions fxLayoutAlign="center center">

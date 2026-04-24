@@ -19,3 +19,12 @@ tr:not(.example-detail-row) {
   text-decoration: underline;
   color: rgb(44, 44, 208)
 }
+
+.icon {
+  font-size: 2em;
+}
+
+.icon:hover {
+  color: rgb(0, 172, 46);
+  cursor: pointer !important;
+}

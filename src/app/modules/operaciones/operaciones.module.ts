@@ -13,16 +13,11 @@ import { PrecioDeliveryComponent } from './delivery/precio-delivery/precio-deliv
 import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
 import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
 import { InventarioModule } from './inventario/inventario.module';
+import { ModificacionesModuleModule } from './modificaciones-sistema/modificaciones.module';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
-import { AdicionarItemDialogComponent } from './pedido/adicionar-item-dialog/adicionar-item-dialog.component';
-import { EditPedidoComponent } from './pedido/edit-pedido/edit-pedido.component';
-import { ListPedidoComponent } from './pedido/list-pedido/list-pedido.component';
-import { AdicionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component';
-import { AdicionarNotaRecepcionItemDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-item-dialog/adicionar-nota-recepcion-item-dialog.component';
-import { SeleccionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/seleccionar-nota-recepcion-dialog/seleccionar-nota-recepcion-dialog.component';
-import { PedidoDashboardComponent } from './pedido/pedido-dashboard/pedido-dashboard.component';
+
 import { AdicionarProgramarPrecioDialogComponent } from './precio/programar-precio/adicionar-programar-precio-dialog/adicionar-programar-precio-dialog.component';
 import { SalidaDialogComponent } from './salida/salida-dialog/salida-dialog.component';
 import { CreateItemDialogComponent } from './transferencia/create-item-dialog/create-item-dialog.component';
@@ -37,12 +32,43 @@ import { VentaPorPeriodoComponent } from './venta/reportes/venta-por-periodo/ven
 import { UltimasVentasDialogComponent } from './venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashboard.component';
-import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir-item-dialog.component';
+import { AddCategoriaObsDialogComponent } from './categoria-observacion/add-categoria-obs-dialog/add-categoria-obs-dialog.component';
+import { VentaObservacionDashboardComponent } from './venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component';
+import { AddSubcategoriaObsDialogComponent } from './sub-categoria-observacion/add-subcategoria-obs-dialog/add-subcategoria-obs-dialog.component';
+import { AddVentaObservacionComponent } from './venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { AddMotivoObsDialogComponent } from './motivo-observacion/add-motivo-obs-dialog/add-motivo-obs-dialog.component';
+import { MainVentaObservacionComponent } from './venta-observacion/main-venta-observacion/main-venta-observacion.component';
+import { ListPagoComponent } from './pago/list-pago/list-pago.component';
+import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
+import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
+import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
+import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
+
+
+import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
+import { AddEditItemDialogComponent } from './compra/gestion-compras/dialogs/add-edit-item-dialog/add-edit-item-dialog.component';
+import { SelectSucursalesDialogComponent } from './compra/gestion-compras/dialogs/add-edit-item-dialog/select-sucursales-dialog.component';
+import { DistributeItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-item-dialog/distribute-item-dialog.component';
+import { AddEditNotaRecepcionDialogComponent } from './compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
+import { EditNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
+import { DistributeNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
+import { DividirItemDialogComponent } from './compra/gestion-compras/dialogs/dividir-item-dialog/dividir-item-dialog.component';
+import { RechazarItemDialogComponent } from './compra/gestion-compras/dialogs/rechazar-item-dialog/rechazar-item-dialog.component';
+import { RecepcionMercaderiaComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia.component';
+import { RecepcionMercaderiaVerificarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-verificar-item-dialog/recepcion-mercaderia-verificar-item-dialog.component';
+import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-rechazar-item-dialog/recepcion-mercaderia-rechazar-item-dialog.component';
+import { VerificacionRapidaSucursalesDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
+import { SolicitudPagoCompraComponent } from './compra/gestion-compras/solicitud-pago-compra/solicitud-pago-compra.component';
+import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-compras/solicitud-pago-compra/create-edit-solicitud-pago-compra-dialog/create-edit-solicitud-pago-compra-dialog.component';
+import { SolicitudPagoDashboardComponent } from './solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component';
+import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
+import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-dialog/adicionar-nota-dialog.component';
+import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
+import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 
 @NgModule({
   declarations: [
-    ListPedidoComponent,
-    EditPedidoComponent,
     ListCompraComponent,
     EditCompraComponent,
     ListNecesidadComponent,
@@ -51,10 +77,6 @@ import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
-    AdicionarItemDialogComponent,
-    AdicionarNotaRecepcionDialogComponent,
-    AdicionarNotaRecepcionItemDialogComponent,
-    SeleccionarNotaRecepcionDialogComponent,
     AdicionarDetalleCompraItemDialogComponent,
     AdicionarProgramarPrecioDialogComponent,
     UltimasVentasDialogComponent,
@@ -67,12 +89,42 @@ import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir
     CreateItemDialogComponent,
     ModificarItemDialogComponent,
     TransferenciaTimelineDialogComponent,
-    PedidoDashboardComponent,
     PrecioDeliveryComponent,
     DeliveryDashboardComponent,
     LucroPorProductoComponent,
     CompraDashboardComponent,
+    AddCategoriaObsDialogComponent,
+    VentaObservacionDashboardComponent,
+    AddSubcategoriaObsDialogComponent,
+    AddVentaObservacionComponent,
+    AddMotivoObsDialogComponent,
+    MainVentaObservacionComponent,
+    ListPagoComponent,
+    EditPagoComponent,
+    PagoDetalleDialogComponent,
+    ModificarSucursalPagoDetalleComponent,
+    GestionComprasComponent,
+    AddEditItemDialogComponent,
+    SelectSucursalesDialogComponent,
+    DistributeItemDialogComponent,
+    AddEditNotaRecepcionDialogComponent,
+    EditNotaRecepcionItemDialogComponent,
+    DistributeNotaRecepcionItemDialogComponent,
     DividirItemDialogComponent,
+    RechazarItemDialogComponent,
+    RecepcionMercaderiaComponent,
+    RecepcionMercaderiaVerificarItemDialogComponent,
+    RecepcionMercaderiaRechazarItemDialogComponent,
+    VerificacionRapidaSucursalesDialogComponent,
+    SolicitudPagoCompraComponent,
+    CreateEditSolicitudPagoCompraDialogComponent,
+    SolicitudPagoDashboardComponent,
+    ListSolicitudPagoComponent,
+    CreateEditSolicitudPagoDialogComponent,
+    AdicionarNotaDialogComponent,
+    AdicionarFormaPagoDialogComponent,
+    GestionPagoDialogComponent,
+    GenericListVentaComponent
   ],
   imports: [
     CommonModule,
@@ -82,10 +134,11 @@ import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir
     MaterialModule,
     SharedModule,
     InventarioModule,
-    EmpresarialModule
+    EmpresarialModule,
+    ModificacionesModuleModule,
+    
   ],
   exports: [
-    EditPedidoComponent
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,

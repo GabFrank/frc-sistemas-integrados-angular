@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewCh
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
+import { MainService } from '../../../../main.service';
 import { CurrencyMask, stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -22,6 +23,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CajaService } from '../../pdv/caja/caja.service';
+import { NotificationHttpService } from '../../../../shared/services/notification-http.service';
+import { Moneda } from '../../moneda/moneda.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -45,7 +48,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   dolarControl = new FormControl(0, Validators.min(1))
   currencyMask = new CurrencyMask
   funcionarioList: Funcionario[];
-
+  monedaList: Moneda[];
 
   retiroDetalleList: RetiroDetalle[]
   funcionarioSub: Subscription;
@@ -73,20 +76,35 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     private monedaService: MonedaService,
     private cargandoService: CargandoDialogService,
     private notificacionService: NotificacionSnackbarService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private notificationHttpService: NotificationHttpService,
+    private mainService: MainService
   ) {
     if (data?.caja != null) {
+      //find all monedas using monedaService.onGetAll() and assign to monedaList
+      this.monedaService.onGetAll(false).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.monedaList = res;
+        }
+      });
       this.selectedCajaSalida = data.caja;
-      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id).pipe(untilDestroyed(this)).subscribe((res) => {
+      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id, false).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
         }
       });
-      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id).subscribe(res => {
+      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id, false).subscribe(res => {
         if (res != null) {
           this.selectedCajaSalida.balance = res;
         }
       })
+    } else {
+      //show a dialog with the message "No se encontró caja" and when dialog is closed, close the current dialog
+      this.dialogService.confirm('No se encontró caja', null, null, ['No se encontró caja']).subscribe(res => {
+        if (res) {
+          this.dialogRef.close(null);
+        }
+      });
     }
   }
   ngAfterViewInit(): void {
@@ -113,11 +131,11 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     })
   }
 
-  onResponsableSearch(){
+  onResponsableSearch() {
     if (this.responsableControl.valid) {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
-          .onGetFuncionarioPorPersona(this.responsableControl.value)
+          .onGetFuncionarioPorPersona(this.responsableControl.value, false)
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -131,20 +149,20 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
-  onResponsableSearchByTexto(){
+  onResponsableSearchByTexto() {
     this.funcionarioService
-    .onFuncionarioSearch(this.responsableControl.value)
-    .pipe(untilDestroyed(this))
-    .subscribe((response) => {
-      this.funcionarioList = response;
-      if (this.funcionarioList.length == 1) {
-        this.onResponsableSelect(this.funcionarioList[0]);
-        this.onResponsableAutocompleteClose();
-      } else {
-        this.onResponsableAutocompleteClose();
-        this.onResponsableSelect(null);
-      }
-    });
+      .onFuncionarioSearch(this.responsableControl.value, false)
+      .pipe(untilDestroyed(this))
+      .subscribe((response) => {
+        this.funcionarioList = response;
+        if (this.funcionarioList.length == 1) {
+          this.onResponsableSelect(this.funcionarioList[0]);
+          this.onResponsableAutocompleteClose();
+        } else {
+          this.onResponsableAutocompleteClose();
+          this.onResponsableSelect(null);
+        }
+      });
   }
 
   onResponsableSelect(e) {
@@ -153,10 +171,10 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
         " - " +
-        this.selectedResponsable?.persona?.nombre
+        this.selectedResponsable?.persona?.nombre, { emitEvent: false }
       );
     }
-    if(e != null && this.responsableInput != null){
+    if (e != null && this.responsableInput != null) {
       this.responsableInput.nativeElement.select();
     }
   }
@@ -172,32 +190,57 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
         if (res) {
           let retiro = new Retiro()
           retiro.cajaSalida = this.selectedCajaSalida;
+          retiro.sucursalId = this.mainService.sucursalActual?.id;
           retiro.observacion = this.observacionControl.value;
           retiro.responsable = this.selectedResponsable;
           let guaraniDetalle = new RetiroDetalle()
-          guaraniDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'GUARANI');
+          guaraniDetalle.moneda = this.monedaList.find(m => m.denominacion == 'GUARANI');
           guaraniDetalle.cambio = guaraniDetalle?.moneda?.cambio
           guaraniDetalle.cantidad = +this.guaraniControl.value;
           let realDetalle = new RetiroDetalle()
-          realDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'REAL');
+          realDetalle.moneda = this.monedaList.find(m => m.denominacion == 'REAL');
           realDetalle.cambio = realDetalle?.moneda?.cambio
           realDetalle.cantidad = +this.realControl.value;
           let dolarDetalle = new RetiroDetalle()
-          dolarDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'DOLAR');
+          dolarDetalle.moneda = this.monedaList.find(m => m.denominacion == 'DOLAR');
           dolarDetalle.cambio = dolarDetalle?.moneda?.cambio
           dolarDetalle.cantidad = +this.dolarControl.value;
           let retiroDetalleList: RetiroDetalle[] = [
             guaraniDetalle, realDetalle, dolarDetalle
           ]
           retiro.retiroDetalleList = retiroDetalleList;
-          this.retiroService.onSave(retiro).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
-            this.cargandoDialog.closeDialog()
-            if (retiroResponse != null) {
-              this.dialogRef.close(true)
-            } else {
+          this.retiroService.onSave(retiro, false).pipe(untilDestroyed(this)).subscribe({
+            next: (retiroResponse) => {
+              if (retiroResponse != null) {
+                this.notificacionService.openSucess('Retiro guardado con éxito');
+                retiro.id = retiroResponse.id;
+                retiro.creadoEn = retiroResponse.creadoEn;
 
+                // Enviar notificación push con el ID de persona del cajero logueado (no del responsable)
+                if (this.mainService.usuarioActual?.persona?.id) {
+                  this.notificationHttpService.sendRetiroNotification(
+                    retiro.id,
+                    this.mainService.sucursalActual.id,
+                    this.mainService.usuarioActual.persona.id,
+                    retiro.retiroGs,
+                    this.mainService.usuarioActual.persona.nombre,
+                    this.mainService.sucursalActual.nombre
+                  ).subscribe({
+                    next: () => { },
+                    error: (err) => console.log("Error sending notification", err)
+                  });
+                }
+
+                this.dialogRef.close(true);
+              } else {
+                this.notificacionService.openAlgoSalioMal('No se recibió confirmación del servidor');
+              }
+            },
+            error: (err) => {
+              console.error("Error al guardar retiro:", err);
+              this.notificacionService.openAlgoSalioMal('Ocurrió un error al guardar el retiro');
             }
-          })
+          });
         }
       })
     }
@@ -260,7 +303,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onReimprimir(retiro: Retiro) {
-    this.retiroService.onReimprimirRetiro(retiro.id).subscribe(res => {
+    this.retiroService.onReimprimirRetiro(retiro.id, null, false).subscribe(res => {
       if (res == true) {
         this.notificacionService.openSucess('Reimpresión con éxito')
       } else {

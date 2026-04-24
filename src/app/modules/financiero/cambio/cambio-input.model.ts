@@ -5,5 +5,5 @@ export class CambioInput {
     id: number;
     valorEnGs: number;
     monedaId: number;
-    usuarioId: number;
+    usuarioId: number = null;
 }

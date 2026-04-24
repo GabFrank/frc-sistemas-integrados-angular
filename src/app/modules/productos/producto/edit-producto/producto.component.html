@@ -654,8 +654,7 @@
                 type="button"
                 style="width: 100px; padding-right: 10px"
                 mat-raised-button
-                matStepperNext
-                [disabled]="true"
+                matStepperPrevious
               >
                 Atras
               </button>
@@ -1019,14 +1018,13 @@
               <button
                 style="width: 100px; margin-right: 10px"
                 mat-raised-button
-                matStepperNext
                 type="button"
                 [disabled]="
                   datosGeneralesControl.controls.descripcion.value == null ||
                   datosGeneralesControl.controls.descripcion.value == ''
                 "
                 [class.selectedRow]="datosGeneralesControl.valid"
-                (click)="onProductoSave()"
+                (click)="onDatosGeneralesNext()"
               >
                 Siguiente
               </button>
@@ -1279,7 +1277,7 @@
                         onImprimirCodigoDeBarra(element?.codigoPrincipal)
                       "
                     >
-                      <mat-icon> barcode_scanner</mat-icon>
+                      <mat-icon>print</mat-icon>
                       <span>Imprimir</span>
                     </button>
                   </mat-menu>

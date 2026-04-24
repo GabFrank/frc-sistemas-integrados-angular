@@ -8,7 +8,9 @@ import { MaterialModule } from '../../../commons/core/material.module';
 import { SharedModule } from '../../../shared/shared.module';
 import { CreateInventarioDialogComponent } from './create-inventario-dialog/create-inventario-dialog.component';
 import { AddProductoDialogComponent } from './add-producto-dialog/add-producto-dialog.component';
+import { AgregarZonaDialogComponent } from './agregar-zona-dialog/agregar-zona-dialog.component';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
+import { ListProductosVencidosComponent } from './list-productos-vencidos/list-productos-vencidos.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +18,9 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
     ListInventarioComponent,
     EditInventarioComponent,
     CreateInventarioDialogComponent,
-    AddProductoDialogComponent
+    AddProductoDialogComponent,
+    AgregarZonaDialogComponent,
+    ListProductosVencidosComponent
   ],
   imports: [
     CommonModule,

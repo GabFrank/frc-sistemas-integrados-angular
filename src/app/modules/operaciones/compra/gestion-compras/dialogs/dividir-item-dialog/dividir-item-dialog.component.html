@@ -1,0 +1,133 @@
+<div class="dialog-container">
+  <!-- Header del diálogo -->
+  <div class="dialog-header" style="text-align: center;">
+    <h2>Dividir Ítem: {{ productoDisplay }}</h2>
+  </div>
+
+  <!-- Contenido del diálogo -->
+  <div class="dialog-content">
+    <form class="form-container" [formGroup]="form" (ngSubmit)="onGuardar()">
+      
+      <!-- Información de contexto -->
+      <div class="context-info">
+        <div class="info-row">
+          <span class="info-label">Cantidad Total:</span>
+          <span class="info-value">{{ cantidadTotal / (presentacionSeleccionada?.cantidad || 1) | number:'1.0-2' }} unidades</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Cantidad Asignada:</span>
+          <span class="info-value" [ngClass]="{'text-warning': isOverQuantity}">{{ cantidadAsignadaDisplay| number:'1.0-2' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Cantidad Pendiente:</span>
+          <span class="info-value" [ngClass]="{'text-success': cantidadPendiente === 0, 'text-warning': cantidadPendiente < 0}">{{ cantidadPendienteDisplay | number:'1.0-2' }}</span>
+        </div>
+      </div>
+
+      <!-- Paso 1: Selección de Presentación -->
+      <div class="step-section">
+        <h3>Paso 1: Seleccionar Presentación</h3>
+        <div class="form-field">
+          <mat-form-field appearance="outline" style="width: 100%; padding-bottom: 10px;">
+            <mat-label>Presentación para la División</mat-label>
+            <mat-select formControlName="presentacionId">
+              <mat-option *ngFor="let presentacion of presentaciones" [value]="presentacion.id">
+                {{ presentacion.cantidad }} 
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('presentacionId')?.hasError('required')">
+              La presentación es obligatoria
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Paso 2: Lista de Items -->
+      <div class="step-section" style="flex: 1;">
+        <div class="step-header">
+          <h3>Paso 2: Configurar División</h3>
+          <button type="button" mat-icon-button color="accent" 
+                  (click)="addItem()" 
+                  [disabled]="!canAddMoreItems"
+                  matTooltip="Agregar otro ítem">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+
+        <!-- Lista de formularios de items -->
+        <div class="items-list" *ngIf="presentacionSeleccionada">
+           <div class="item-form" *ngFor="let i of itemsIndices" [formGroup]="getItemForm(i)">
+             <div class="item-row">
+               <div class="item-label">
+                 <span class="item-number">Ítem {{ i + 1 }}</span>
+               </div>
+               
+               <div class="item-cantidad">
+                 <mat-form-field appearance="outline">
+                   <mat-label>Cantidad</mat-label>
+                   <input matInput type="number" formControlName="cantidad" min="1">
+                   <mat-error *ngIf="getItemForm(i).get('cantidad')?.hasError('required')">
+                     La cantidad es obligatoria
+                   </mat-error>
+                   <mat-error *ngIf="getItemForm(i).get('cantidad')?.hasError('min')">
+                     La cantidad debe ser mayor a 0
+                   </mat-error>
+                 </mat-form-field>
+               </div>
+
+               <div class="item-nota">
+                 <mat-form-field appearance="outline">
+                   <mat-label>Nota de Recepción</mat-label>
+                   <mat-select formControlName="notaRecepcionId">
+                     <mat-option *ngFor="let nota of notasDisponiblesDisplay" [value]="nota.value">
+                       {{ nota.viewValue }}
+                     </mat-option>
+                   </mat-select>
+                   <mat-error *ngIf="getItemForm(i).get('notaRecepcionId')?.hasError('required')">
+                     La nota de recepción es obligatoria
+                   </mat-error>
+                 </mat-form-field>
+               </div>
+
+               <div class="item-actions">
+                 <button type="button" mat-icon-button color="warn" 
+                         (click)="removeItem(i)"
+                         [disabled]="items.length <= 1"
+                         matTooltip="Eliminar ítem">
+                   <mat-icon>delete</mat-icon>
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+
+        <!-- Mensaje de ayuda -->
+        <div class="help-message" *ngIf="cantidadPendiente > 0">
+          <mat-icon>info</mat-icon>
+          <span>Puede agregar más ítems para distribuir las {{ cantidadPendiente }} unidades restantes</span>
+        </div>
+
+        <!-- Advertencia de exceso -->
+        <div class="warning-message" *ngIf="isOverQuantity">
+          <mat-icon>warning</mat-icon>
+          <span>La cantidad total asignada excede la cantidad solicitada</span>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="dialog-actions">
+        <button type="button" mat-button class="cancel-btn" (click)="onCancelar()" [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button type="submit" mat-raised-button color="accent" 
+                class="save-btn"
+                #btnGuardar
+                [disabled]="!canSave || isLoading">
+          <mat-spinner diameter="20" *ngIf="isLoading"></mat-spinner>
+          <span *ngIf="!isLoading">Dividir Ítem</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div> 

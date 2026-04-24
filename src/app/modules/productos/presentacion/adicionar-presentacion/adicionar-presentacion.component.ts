@@ -49,7 +49,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     private tipoPresentacionService: TipoPresentacionService,
     private notificacionSnackBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     //inicializando arrays
@@ -87,11 +87,10 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   onSave() {
-    this.cargandoDialog.openDialog()
     if (this.selectedPresentacion != null) {
       this.presentacionInput.id = this.selectedPresentacion.id;
     }
-    if(this.descripcionControl.value == ''){
+    if (this.descripcionControl.value == '') {
       this.descripcionControl.setValue(null)
     }
     this.presentacionInput.descripcion = this.descripcionControl.value;
@@ -104,22 +103,8 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionService
       .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.cargandoDialog.closeDialog()
-        if(res?.errors?.length>0){
-          this.notificacionSnackBar.notification$.next({
-            texto: res.errors[0]?.message,
-            color: NotificacionColor.danger,
-            duracion: 3
-          })
-        } else {
-          this.notificacionSnackBar.notification$.next({
-            texto: 'Presentación guardada con éxito',
-            color: NotificacionColor.success,
-            duracion: 2
-          })
-          setTimeout(() => {
-            this.matDialogRef.close(res.data.data);
-          }, 500);
+        if (res != null) {
+          this.matDialogRef.close(res);
         }
 
       });
@@ -130,32 +115,31 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   cargarPresentacion() {
-    this.cargandoDialog.openDialog()
     this.descripcionControl.setValue(this.selectedPresentacion.descripcion);
     this.principalControl.setValue(this.selectedPresentacion.principal);
     this.activoControl.setValue(this.selectedPresentacion.activo);
     this.cantidadControl.setValue(this.selectedPresentacion.cantidad);
     this.selectedTipoPresentacion = this.selectedPresentacion.tipoPresentacion;
     this.tipoPresentacionControl.setValue(this.selectedTipoPresentacion.id);
-    this.cargandoDialog.closeDialog()
   }
 
   //tipo presentacion
   createTipoPresentacionSelect() {
-    this.cargandoDialog.openDialog()
     this.tipoPresentacionService.onGetPresentaciones().pipe(untilDestroyed(this)).subscribe((res) => {
-      this.tipoPresentacionList = res.data.data.sort((a, b) => {
-        if (a.id > b.id) {
-          return 1;
-        } else {
-          return -1;
-        }
-      });
-      this.cargandoDialog.closeDialog()
+      if (res != null) {
+        this.tipoPresentacionList = res.sort((a, b) => {
+          if (a.id > b.id) {
+            return 1;
+          } else {
+            return -1;
+          }
+        });
+      }
+
     });
   }
 
-  onTipoPresentacionSelect(e) {}
+  onTipoPresentacionSelect(e) { }
 
   //fin tipo presentacion
 }

@@ -1,32 +1,162 @@
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { ProveedoresSearchByPersonaGQL } from './graphql/proveedorSearchByPersona';
-import { SaveProveedorGQL } from './graphql/saveProveedor';
-import { Proveedor } from './proveedor.model';
-import { ProveedorByIdGQL } from './graphql/proveedorById';
+import { Injectable } from "@angular/core";
+import { Observable, switchMap } from "rxjs";
+import { map } from "rxjs/operators";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ProveedoresSearchByPersonaGQL } from "./graphql/proveedorSearchByPersona";
+import { SaveProveedorGQL } from "./graphql/saveProveedor";
+import { Proveedor } from "./proveedor.model";
+import { ProveedorByIdGQL } from "./graphql/proveedorById";
+import { ProveedorPorPersonaGQL } from "./graphql/proveedorPorPersona";
+import { MatDialog } from "@angular/material/dialog";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+  TableData,
+} from "../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { ProveedoresSearchByPersonaPageGQL } from "./graphql/proveedorSearchByPersonaPage";
+import { EditProveedorComponent } from "./edit-proveedor/edit-proveedor.component";
 
+export interface ProveedorPageResult {
+  getContent?: Proveedor[];
+  getTotalElements?: number;
+}
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class ProveedorService {
-
   constructor(
     private genericService: GenericCrudService,
     public proveedorSearch: ProveedoresSearchByPersonaGQL,
     private saveProveedor: SaveProveedorGQL,
-    private proveedorPorId: ProveedorByIdGQL
-  ) { }
+    private proveedorPorId: ProveedorByIdGQL,
+    private proveedorPorPersona: ProveedorPorPersonaGQL,
+    private proveedorSearchByPersonaPage: ProveedoresSearchByPersonaPageGQL,
+    private dialog: MatDialog
+  ) {}
+
+  onGetProveedoresPaginated(
+    page: number,
+    size: number,
+    texto?: string
+  ): Observable<ProveedorPageResult> {
+    return this.genericService.onCustomQuery(
+      this.proveedorSearchByPersonaPage,
+      { texto: texto?.trim() || null, page, size },
+      true,
+      null,
+      true
+    ).pipe(
+      map((pageResult: ProveedorPageResult) => ({
+        getContent: pageResult?.getContent ?? [],
+        getTotalElements: pageResult?.getTotalElements ?? 0
+      }))
+    );
+  }
 
   onSearch(text: string): Observable<Proveedor[]> {
-    return this.genericService.onGetByTexto(this.proveedorSearch, text)
+    return this.genericService.onGetByTexto(this.proveedorSearch, text);
   }
 
-  onSave(input): Observable<Proveedor[]> {
-    return this.genericService.onSave(this.saveProveedor, input)
+  onSave(input): Observable<Proveedor> {
+    return this.genericService.onSave(this.saveProveedor, input);
   }
 
-  onGetPorId(id: number): Observable<Proveedor>{
+  onGetPorId(id: number): Observable<Proveedor> {
     return this.genericService.onGetById(this.proveedorPorId, id);
+  }
+
+  onGetPorPersona(id: number): Observable<Proveedor> {
+    return this.genericService.onCustomQuery(this.proveedorPorPersona, {
+      personaId: id,
+    });
+  }
+
+  onSearchProveedorPorTexto(texto: string): Observable<Proveedor> {
+    let tableData: TableData[] = [
+      {
+        id: "id",
+        nombre: "Id",
+      },
+      {
+        id: "persona.nombre",
+        nombre: "Razon Social",
+      },
+      {
+        id: "persona.apodo",
+        nombre: "Nombre Comercial",
+      },
+      {
+        id: "persona.documento",
+        nombre: "RUC/CI",
+      },
+    ];
+
+    let data: SearchListtDialogData = {
+      query: this.proveedorSearchByPersonaPage,
+      tableData: tableData,
+      titulo: "Buscar proveedor",
+      search: true,
+      texto: texto,
+      inicialSearch: texto != null && texto.trim() !== "",
+      isAdicionar: true,
+      paginator: true,
+      queryData: {
+        texto: texto,
+        page: 0,
+        size: 10,
+      },
+    };
+
+    // Return an observable that chains the dialog operations
+    return new Observable<Proveedor>((observer) => {
+      this.dialog
+        .open(SearchListDialogComponent, {
+          data: data,
+          width: "60%",
+          height: "80%",
+        })
+        .afterClosed()
+        .pipe(
+          // Handle the result of the first dialog
+          switchMap((res) => {
+            if (res != null) {
+              if (res["adicionar"] === true) {
+                return this.dialog
+                  .open(EditProveedorComponent, { width: "600px", data: {} })
+                  .afterClosed();
+              } else if (res?.id != null) {
+                // If a valid result is selected, emit it as an observable
+                return new Observable<Proveedor>((obs) => {
+                  obs.next(res);
+                  obs.complete();
+                });
+              }
+            }
+            // If no valid result, return an empty observable
+            return new Observable<Proveedor>((obs) => {
+              obs.complete();
+            });
+          })
+        )
+        .subscribe({
+          next: (result) => {
+            if (result) {
+              const proveedor = result?.proveedor ?? result;
+              if (proveedor?.id) {
+                observer.next(proveedor);
+              }
+            }
+          },
+          error: (err) => {
+            observer.error(err); // Forward any errors
+          },
+          complete: () => {
+            observer.complete(); // Signal completion
+          },
+        });
+    });
   }
 }

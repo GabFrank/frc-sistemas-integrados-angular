@@ -1,108 +1,442 @@
-<mat-card fxLayout="row" *ngIf="!showBienvenida" style="padding: 20px">
-  <div fxFlex="50%" style="width: 100%; height: 100%">
-    <img
-      src="assets/logo_inicio.png"
-      alt="logo"
-      style="width: 90%; object-fit: contain; border-radius: 10px"
-    />
-  </div>
-  <div fxFlex="50%">
-    <form [formGroup]="formGroup" style="width: 100%; color: white">
-      <div
-        fxLayout="column"
-        fxLayoutAlign="space-between center"
-        style="width: 100%; font-size: 1.2em"
-      >
-        <div fxFlex fxLayout="row">
-          <h1>Bienvenido</h1>
-        </div>
-        <div fxFlex fxLayout="row">
-          <h4>Ingrese sus credenciales para tener acceso al sistema.</h4>
-        </div>
-        <div fxFlex fxLayout="row" style="width: 100%">
-          <mat-form-field fxFlex style="width: 100%">
-            <!-- <input matInput type="text" formControlName="nickname"/> -->
-            <input
-              matInput
-              type="text"
-              formControlName="nickname"
-              placeholder="Usuario"
-            />
-          </mat-form-field>
-        </div>
-        <br />
-        <div fxFlex fxLayout="row" style="width: 100%">
-          <mat-form-field fxFlex style="width: 100%">
-            <!-- <input matInput type="password" formControlName="password"/> -->
-            <input
-              matInput
-              type="password"
-              formControlName="password"
-              placeholder="Contraseña"
-            />
-          </mat-form-field>
-        </div>
-        <br />
-        <div
-          fxFlex
-          fxLayout="row"
-          style="width: 100%"
-          fxLayoutAlign="center center"
-          fxLayoutGap="10px"
-        >
-          <button
-            [disabled]="!formGroup.valid"
-            type="submit"
-            style="width: 90%"
-            color="accent"
-            mat-raised-button
-            (click)="onEntrar()"
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            style="width: 90%"
-            color="primary"
-            mat-raised-button
-            (click)="onCancelar()"
-          >
-            Cancelar
-          </button>
-        </div>
-        <br />
-        <div fxFlex fxLayout="row" fxLayoutGap="10ppx">
-          <h4 style="color: red">{{ errorMessage }}</h4>
-        </div>
-        <div
-          *ngIf="errorMessage == 'Servidor no configurado'"
-          fxFlex
-          fxLayout="row"
-          fxLayoutGap="10ppx"
-        >
-          <button mat-raised-button (click)="onConfigurarServidor()">
-            Configurar servidor
-          </button>
+<div class="login-container">
+  <mat-card fxLayout="column" *ngIf="!showBienvenida" class="login-card">
+    <button 
+      mat-icon-button 
+      class="config-button" 
+      (click)="onConfiguraServidor()" 
+      matTooltip="Configuración del sistema">
+      <mat-icon>settings</mat-icon>
+    </button>
+
+    <div fxLayout="row" fxLayout.xs="column">
+      <div fxFlex="45%" fxFlex.xs="100%" class="logo-container">
+        <div class="logo-background" [style.background-color]="logoBackgroundColor">
+          <img
+            #logoImage
+            src="assets/logo_inicio.png"
+            alt="logo"
+            class="logo-image"
+            crossorigin="anonymous"
+          />
+          <div class="system-name">
+            FRC Sistemas Informaticos ®
+          </div>
         </div>
       </div>
-    </form>
-  </div>
-</mat-card>
-
-<mat-card
-  *ngIf="showBienvenida"
-  fxLayout="row"
-  fxLayoutAlign="center center"
-  style="width: 100%; height: 200px; color: white"
->
-  <div fxFlex="35%" style="text-align: center; width: 140%">
-    <img src="assets/icons/celebration.png" alt="celebration" style="width: 150px;"/>
-  </div>
-  <div fxFlex="65%" style="text-align: center">
-    <div style="font-size: xx-large; color: #43a047">Bienvenido</div>
-    <br>
-    <div style="font-size: x-large; color: rgb(200, 200, 200)">
-      {{ mainService?.usuarioActual?.persona?.nombre }}
+      <div fxFlex="55%" fxFlex.xs="100%" class="form-container">
+        <form [formGroup]="formGroup">
+          <div
+            fxLayout="column"
+            fxLayoutAlign="center stretch"
+            class="form-content"
+          >
+            <div class="welcome-text">
+              <h1>Bienvenido</h1>
+              <h4>Ingrese sus credenciales para tener acceso al sistema.</h4>
+            </div>
+            
+            <div class="server-info" *ngIf="false">
+              <mat-icon>dns</mat-icon>
+              <span>{{ serverInfo }}</span>
+            </div>
+            
+            <div fxLayout="column" fxLayoutGap="20px" style="width: 100%">
+              <mat-form-field appearance="outline">
+                <mat-label>Usuario</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  formControlName="nickname"
+                  placeholder="Usuario"
+                />
+                <mat-icon matPrefix>person</mat-icon>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Contraseña</mat-label>
+                <input
+                  matInput
+                  [type]="hidePassword ? 'password' : 'text'"
+                  formControlName="password"
+                  placeholder="Contraseña"
+                />
+                <mat-icon matPrefix>lock</mat-icon>
+                <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" tabindex="-1">
+                  <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                </button>
+              </mat-form-field>
+              
+              <div fxLayout="row" fxLayoutAlign="space-between center">
+                <mat-checkbox formControlName="keepLogged" color="accent">Mantener sesión iniciada</mat-checkbox>
+                <a mat-button color="accent" class="forgot-password" (click)="onForgotPassword()">¿Olvidó su contraseña?</a>
+              </div>
+              
+              <div class="login-error-message" *ngIf="errorMessage">
+                <mat-icon color="warn">error_outline</mat-icon>
+                <span>{{ errorMessage }}</span>
+              </div>
+              
+              <div
+                *ngIf="errorMessage == 'Servidor no configurado'"
+                fxLayout="row"
+                fxLayoutAlign="center center"
+              >
+                <button mat-raised-button color="warn" (click)="onConfigurarServidor()">
+                  <mat-icon>settings</mat-icon> Configurar servidor
+                </button>
+              </div>
+              
+              <div class="button-container" fxLayout="row" fxLayout.xs="column" fxLayoutGap="15px">
+                <button
+                  [disabled]="!formGroup.valid"
+                  type="submit"
+                  color="accent"
+                  mat-raised-button
+                  (click)="onEntrar()"
+                  class="login-button"
+                >
+                  <mat-icon>login</mat-icon> Entrar
+                </button>
+                <!-- <button
+                  type="button"
+                  color="primary"
+                  mat-stroked-button
+                  (click)="onCancelar()"
+                  class="cancel-button"
+                >
+                  <mat-icon>close</mat-icon> Cancelar
+                </button> -->
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
-</mat-card>
+  </mat-card>
+
+  <mat-card
+    *ngIf="showBienvenida"
+    class="welcome-card"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+  >
+    <div class="welcome-content">
+      <div class="welcome-title">BIENVENIDO AL SISTEMA</div>
+      
+      <div class="user-avatar">
+        <mat-icon class="avatar-icon">account_circle</mat-icon>
+      </div>
+      
+      <div class="welcome-name">
+        {{ mainService?.usuarioActual?.persona?.nombre | uppercase }}
+      </div>
+      
+      <div class="welcome-message">
+        Estamos preparando su sesión. Por favor espere un momento...
+      </div>
+      
+      <div class="welcome-subtitle">
+        Accediendo a sus módulos y configuraciones personalizadas
+      </div>
+      
+      <div class="loading-indicator">
+        <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+      </div>
+    </div>
+  </mat-card>
+</div>
+
+<style>
+  .login-container {
+    min-height: 100%;
+    background-color: #303030;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-card {
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    overflow: hidden;
+    width: 100%;
+    max-width: 900px;
+    background-color: #424242;
+    position: relative;
+  }
+  
+  .config-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 100%;
+    overflow: hidden;
+  }
+  
+  .logo-background {
+    background-color: #c30e0e;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+  
+  .logo-image {
+    width: 90%;
+    object-fit: contain;
+  }
+  
+  .form-container {
+    padding: 40px 30px;
+  }
+  
+  .form-content {
+    width: 100%;
+    font-size: 1.1em;
+  }
+  
+  .welcome-text {
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  
+  .welcome-text h1 {
+    margin-bottom: 10px;
+    color: #4CAF50;
+    font-size: 28px;
+    font-weight: 500;
+  }
+  
+  .welcome-text h4 {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  .mat-form-field {
+    width: 100%;
+  }
+  
+  .mat-form-field-wrapper {
+    margin-bottom: 15px;
+  }
+  
+  .button-container {
+    margin-top: 30px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .login-button {
+    min-width: 130px;
+    border-radius: 4px;
+    padding: 8px 20px;
+    font-weight: 500;
+    background-color: #c30e0e;
+  }
+  
+  .cancel-button {
+    min-width: 130px;
+    border-radius: 4px;
+    padding: 8px 20px;
+    font-weight: 500;
+  }
+  
+  .server-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(0,0,0,0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+  }
+  
+  .server-info mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    color: #c30e0e;
+  }
+  
+  .login-error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255,0,0,0.1);
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+    color: #f44336;
+  }
+  
+  .error-message {
+    display: flex;
+    align-items: center;
+    color: #f44336;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: rgba(244, 67, 54, 0.1);
+    margin: 10px 0;
+  }
+  
+  .error-message mat-icon {
+    margin-right: 8px;
+  }
+  
+  .forgot-password {
+    color: #f0f0f0;
+    font-size: 14px;
+    text-decoration: none;
+  }
+  
+  .forgot-password:hover {
+    text-decoration: underline;
+  }
+  
+  .welcome-card {
+    width: 100%;
+    height: 100%;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    margin: 20px;
+    background-color: #424242;
+    background-image: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(33, 33, 33, 0.1) 100%);
+    overflow: hidden;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .welcome-content {
+    width: 100%;
+    padding: 30px;
+    text-align: center;
+  }
+  
+  .user-avatar {
+    margin: 20px auto;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .avatar-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: white;
+  }
+  
+  .welcome-title {
+    font-size: 2.2rem;
+    background: linear-gradient(45deg, #4CAF50, #8BC34A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  .welcome-name {
+    font-size: 1.8rem;
+    color: rgb(240, 240, 240);
+    margin: 15px 0;
+    font-weight: 500;
+  }
+  
+  .welcome-message {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 20px 0;
+  }
+  
+  .welcome-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 10px 0 20px;
+    font-style: italic;
+  }
+  
+  .loading-indicator {
+    width: 80%;
+    margin: 20px auto 10px;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .system-name {
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 15px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    width: 100%;
+  }
+  
+  @media screen and (max-width: 600px) {
+    .login-card {
+      width: 100%;
+    }
+    
+    .form-container {
+      padding: 20px;
+    }
+    
+    .logo-background {
+      padding: 20px;
+    }
+    
+    .button-container {
+      flex-direction: column;
+    }
+    
+    .login-button, .cancel-button {
+      width: 100%;
+      margin: 5px 0;
+    }
+    
+    .welcome-card {
+      width: 95%;
+      min-height: 320px;
+    }
+    
+    .welcome-content {
+      padding: 20px;
+    }
+    
+    .welcome-title {
+      font-size: 1.8rem;
+    }
+    
+    .welcome-name {
+      font-size: 1.5rem;
+    }
+    
+    .system-name {
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  }
+</style>

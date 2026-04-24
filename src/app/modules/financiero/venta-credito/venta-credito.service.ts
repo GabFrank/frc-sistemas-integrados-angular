@@ -11,7 +11,9 @@ import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 import { CancelarVentaCreditoGQL } from './graphql/cancelarVentaCredito';
 import { CobrarVentaCreditoGQL } from './graphql/cobrarVentaCredito';
 import { FinalizarVentaCreditoGQL } from './graphql/finalizarVentaCredito';
+import { FinalizarVentaCreditosGQL } from './graphql/finalizarVentaCreditos';
 import { ReporteCobroVentaCreditoGQL } from './graphql/imprimirReporteCobro';
+import { ReporteCobroVentaCreditoMultiplesGQL } from './graphql/imprimirReporteCobroMultiples';
 import { ImprimirVentaCreditoGQL } from './graphql/imprimirVentaCredito';
 import { SaveVentaCreditoByIdGQL } from './graphql/saveVentaCredito';
 import { VentaCreditoPorClienteGQL } from './graphql/ventaCreditoPorCliente';
@@ -19,7 +21,7 @@ import { VentaCreditoByIdGQL } from './graphql/ventaCreditoPorId';
 import { VentaCreditoQrSubAuthGQL } from './graphql/ventaCreditoQrSub';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoCuotaInput, VentaCreditoInput } from './venta-credito.model';
 import { PageInfo } from '../../../app.component';
-
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -34,10 +36,13 @@ export class VentaCreditoService {
     private imprimirVentaCredito: ImprimirVentaCreditoGQL,
     private cobrarVentaCredito: CobrarVentaCreditoGQL,
     private finalizarVentaCredito: FinalizarVentaCreditoGQL,
+    private finalizarVentaCreditos: FinalizarVentaCreditosGQL,
     private cancelarVentaCredito: CancelarVentaCreditoGQL,
     private imprimirReporteCobroVentaCredito: ReporteCobroVentaCreditoGQL,
+    private imprimirReporteCobroVentaCreditoMultiples: ReporteCobroVentaCreditoMultiplesGQL,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private configService: ConfiguracionService
   ) { }
 
   onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, cobro: boolean): Observable<VentaCredito[]> {
@@ -53,7 +58,7 @@ export class VentaCreditoService {
   }
 
   onImprimirVentaCredito(id: number, sucId): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.imprimirVentaCredito, { id, sucId, printerName: environment['printers']['ticket'] })
+    return this.genericService.onCustomQuery(this.imprimirVentaCredito, { id, sucId, printerName: this.configService?.getConfig()?.printers?.ticket })
   }
 
   onCobrarVentaCredito(ventaCreditoInputList: VentaCreditoInput[], cobroDetalleInputList: CobroDetalleInput[]) {
@@ -62,6 +67,10 @@ export class VentaCreditoService {
 
   onFinalizarVentaCredito(id, sucId): Observable<boolean> {
     return this.genericService.onCustomMutation(this.finalizarVentaCredito, { id, sucId }, true);
+  }
+
+  onFinalizarVentaCreditos(ventaCreditoInputList: VentaCreditoInput[]): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.finalizarVentaCreditos, { ventaCreditoInputList }, true);
   }
 
   onCancelarVentaCredito(id, sucId): Observable<boolean> {
@@ -75,7 +84,19 @@ export class VentaCreditoService {
       usuarioId
     }, true).subscribe(res => {
       if (res != null) {
-        this.reporteService.onAdd('VC del cliente '+ clienteId, res)
+        this.reporteService.onAdd('VC del cliente ' + clienteId, res)
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaComponent))
+      }
+    })
+  }
+
+  onImprimirReporteCobroMultiplesClientes(clienteVentaCreditoList: any[], usuarioId: number) {
+    this.genericService.onCustomQuery(this.imprimirReporteCobroVentaCreditoMultiples, {
+      clienteVentaCreditoList,
+      usuarioId
+    }, true).subscribe(res => {
+      if (res != null) {
+        this.reporteService.onAdd('VC Múltiples Clientes', res)
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaComponent))
       }
     })

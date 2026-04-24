@@ -70,7 +70,7 @@ import {
   parseShortDate,
   validarFecha,
 } from "../../../../commons/core/utils/dateUtils";
-import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -243,7 +243,9 @@ export class EditTransferenciaComponent implements OnInit {
     });
 
     setTimeout(() => {
-      this.codigoInput.nativeElement.focus();
+      if (this.codigoInput != null) {
+        this.codigoInput.nativeElement.focus();
+      }
     }, 1000);
 
     setTimeout(() => {
@@ -280,21 +282,6 @@ export class EditTransferenciaComponent implements OnInit {
 
     this.monedaControl.setValue("1 - GUARANI");
     this.monedaControl.disable();
-
-    setTimeout(() => {
-      this.matDialog.open(DialogoNuevasFuncionesComponent, {
-        data: {
-          id: 123,
-          componente: EditTransferenciaComponent,
-          titulo: "Nuevas funciones en esta pantalla de transferencias",
-          mensaje: `
-          1 - A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.\n
-          2 - Al pasar productos pesables, el sistema no avisará sobre productos duplicados. Verificar atentamente para no pasar dos veces el mismo producto.
-          `,
-        },
-        width: "60%",
-      });
-    }, 1000);
   }
 
   @HostListener("window:keyup", ["$event"])
@@ -699,19 +686,19 @@ export class EditTransferenciaComponent implements OnInit {
       });
   }
 
-  onFinalizar() {
-    this.transferenciaService
-      .onFinalizar(this.selectedTransferencia)
-      .pipe()
-      .subscribe((res) => {
-        if (res) {
-          this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          this.selectedTransferencia.etapa =
-            EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN;
-          this.verificarEtapa();
-        }
-      });
-  }
+  // onFinalizar() {
+  //   this.transferenciaService
+  //     .onFinalizar(this.selectedTransferencia)
+  //     .pipe(untilDestroyed(this))
+  //     .subscribe((res) => {
+  //       if (res) {
+  //         this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
+  //         this.selectedTransferencia.etapa =
+  //           EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN;
+  //         this.verificarEtapa();
+  //       }
+  //     });
+  // }
 
   isAllSelected() {
     const numSelected = this.selection.selected.length;
@@ -899,6 +886,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onAvanzarEtapa(etapa) {
+    console.log('etapa', etapa);
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
@@ -906,7 +894,9 @@ export class EditTransferenciaComponent implements OnInit {
         if (res) {
           this.selectedTransferencia.etapa = etapa;
           this.verificarEtapa();
-          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
+            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
+          } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
           } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_CAMINO) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_TRANSITO;
@@ -1073,8 +1063,36 @@ export class EditTransferenciaComponent implements OnInit {
     }
   }
   onPresentacionSelect() {
-    this.cantPresentacionInput.nativeElement.select();
-    this.matSelect.close();
+    const tienePrecioUnidad = this.precioUnidadControl.value != null && this.precioUnidadControl.value > 0;
+    const tienePrecioPresentacion = this.precioPresentacionControl.value != null && this.precioPresentacionControl.value > 0;
+    
+    if (tienePrecioUnidad || tienePrecioPresentacion) {
+      let costoUnidadParaValidar = 0;
+      
+      if (tienePrecioUnidad) {
+        const nuevoPrecioPresentacion = this.precioUnidadControl.value * this.presentacionControl.value?.cantidad;
+        this.precioPresentacionControl.setValue(nuevoPrecioPresentacion);
+        costoUnidadParaValidar = this.precioUnidadControl.value;
+      } else if (tienePrecioPresentacion) {
+        costoUnidadParaValidar = this.precioPresentacionControl.value / this.presentacionControl.value?.cantidad;
+        this.precioUnidadControl.setValue(costoUnidadParaValidar);
+      }
+      
+      this.onValidarCostoConDialogo().then((puedeGuardar) => {
+        if (puedeGuardar) {
+          this.cantPresentacionInput.nativeElement.select();
+          this.matSelect.close();
+        } else {
+          if (!tienePrecioUnidad && tienePrecioPresentacion) {
+            this.precioUnidadControl.setValue(null);
+          }
+          this.matSelect.focus();
+        }
+      });
+    } else {
+      this.cantPresentacionInput.nativeElement.select();
+      this.matSelect.close();
+    }
   }
   onCantidadPresentacionEnter() {
     this.vencimientoInput.nativeElement.select();
@@ -1093,56 +1111,24 @@ export class EditTransferenciaComponent implements OnInit {
 
   onPrecioPresentacionEnter() {
     if (this.precioPresentacionControl.value != null) {
-      this.precioUnidadControl.setValue(
-        this.precioPresentacionControl.value /
-          this.presentacionControl.value?.cantidad
-      );
-    }
-    if (this.selectedTransferencia?.id != null) {
-      this.cantidadPresentacionControl.enable();
-      this.presentacionControl.enable();
-      if (
-        this.selectedProducto != null &&
-        this.presentacionControl.valid &&
-        this.cantidadPresentacionControl.valid
-      ) {
-        let item = new TransferenciaItem();
-        Object.assign(item, this.selectedTransferenciaItem);
-        item.activo = true;
-        item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
-        item.vencimientoPreTransferencia = parseShortDate(
-          this.vencimientoControl.value
-        );
-        item.transferencia = this.selectedTransferencia;
-        item.presentacionPreTransferencia = this.presentacionControl.value;
-        item.poseeVencimiento = this.vencimientoControl.value != null;
-        this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
-        this.onClear();
-      }
-    } else {
-      this.onSaveTransferencia().then((res) => {
-        this.cantidadPresentacionControl.enable();
-        this.presentacionControl.enable();
-        if (
-          this.selectedProducto != null &&
-          this.presentacionControl.valid &&
-          this.cantidadPresentacionControl.valid
-        ) {
-          let item = new TransferenciaItem();
-          item.activo = true;
-          item.cantidadPreTransferencia =
-            this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia = parseShortDate(
-            this.vencimientoControl.value
-          );
-          item.transferencia = this.selectedTransferencia;
-          item.presentacionPreTransferencia = this.presentacionControl.value;
-          item.poseeVencimiento = this.vencimientoControl.value != null;
-          this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
-          this.onClear();
+      const costoUnidadCalculado = this.precioPresentacionControl.value / this.presentacionControl.value?.cantidad;
+      
+      const costoUnidadOriginal = this.precioUnidadControl.value;
+      this.precioUnidadControl.setValue(costoUnidadCalculado);
+      
+      this.onValidarCostoConDialogo().then((puedeGuardar) => {
+        if (!puedeGuardar) {
+          this.precioUnidadControl.setValue(costoUnidadOriginal);
+          this.precioPresentacionInput.nativeElement.select();
+          return;
         }
+        
+        this.onEjecutarGuardadoItem();
       });
+      return;
     }
+    
+    this.onEjecutarGuardadoItem();
   }
 
   onVencimientoEnter(date?: string) {
@@ -1156,62 +1142,17 @@ export class EditTransferenciaComponent implements OnInit {
         return;
       }
     }
+    
     if (
       this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
     ) {
       this.precioUnidadInput.nativeElement.select();
     } else {
-      if (this.selectedTransferencia?.id != null) {
-        this.cantidadPresentacionControl.enable();
-        this.presentacionControl.enable();
-        if (
-          this.selectedProducto != null &&
-          this.presentacionControl.valid &&
-          this.cantidadPresentacionControl.valid
-        ) {
-          let item = new TransferenciaItem();
-          Object.assign(item, this.selectedTransferenciaItem);
-          item.activo = true;
-          item.cantidadPreTransferencia =
-            this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia = parseShortDate(
-            this.vencimientoControl.value
-          );
-          item.transferencia = this.selectedTransferencia;
-          item.presentacionPreTransferencia = this.presentacionControl.value;
-          item.poseeVencimiento = this.vencimientoControl.value != null;
-          console.log(item);
-          this.onSaveTransferenciaItem(item);
-          this.onClear();
+      this.onValidarCostoConDialogo().then((puedeGuardar) => {
+        if (puedeGuardar) {
+          this.onEjecutarGuardadoItem();
         }
-      } else {
-        this.onSaveTransferencia().then((res) => {
-          this.cantidadPresentacionControl.enable();
-          this.presentacionControl.enable();
-          if (
-            this.selectedProducto != null &&
-            this.presentacionControl.valid &&
-            this.cantidadPresentacionControl.valid &&
-            (this.vencimientoControl.value == null ||
-              this.vencimientoControl.value >= new Date())
-          ) {
-            let item = new TransferenciaItem();
-            item.activo = true;
-            item.cantidadPreTransferencia =
-              this.cantidadPresentacionControl.value;
-            item.vencimientoPreTransferencia = parseShortDate(
-              this.vencimientoControl.value
-            );
-            item.transferencia = this.selectedTransferencia;
-            item.presentacionPreTransferencia = this.presentacionControl.value;
-            item.poseeVencimiento = this.vencimientoControl.value != null;
-            console.log(item);
-
-            this.onSaveTransferenciaItem(item);
-            this.onClear();
-          }
-        });
-      }
+      });
     }
   }
 
@@ -1341,6 +1282,112 @@ export class EditTransferenciaComponent implements OnInit {
             this.dataSource.data = res.getContent;
           }
         });
+    }
+  }
+
+  onValidarCostoConDialogo(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const costoIngresado = this.precioUnidadControl.value;
+      const producto = this.selectedProducto;
+      
+      if (!costoIngresado || !producto?.costo) {
+        resolve(true);
+        return;
+      }
+      
+      const { costoMedio, ultimoPrecioCompra } = producto.costo;
+      
+      const variacionVsMedio = this.onCalcularVariacionPorcentual(costoIngresado, costoMedio);
+      const variacionVsUltimo = this.onCalcularVariacionPorcentual(costoIngresado, ultimoPrecioCompra);
+      const variacionMaxima = Math.max(variacionVsMedio, variacionVsUltimo);
+      
+      if (variacionMaxima > 75) {
+        const referencias = this.onConstruirMensajeReferencias(costoMedio, ultimoPrecioCompra, variacionVsMedio, variacionVsUltimo);
+        
+        this.dialogoService.confirm(
+          "Atención!!",
+          `Costo ingresado: ${costoIngresado.toLocaleString()} Gs.`,
+          "¿Está seguro de que desea guardar este costo?",
+          [referencias],
+          true,
+          "Guardar de todas formas", 
+          "Revisar costo"
+        ).subscribe(resolve);
+        return;
+      }
+      
+      resolve(true);
+    });
+  }
+
+  private onCalcularVariacionPorcentual(costoActual: number, costoReferencia: number): number {
+    if (!costoReferencia || costoReferencia === 0) return 0;
+    return ((costoActual - costoReferencia) / costoReferencia) * 100;
+  }
+
+  private onConstruirMensajeReferencias(costoMedio: number, ultimoPrecioCompra: number, varMedio: number, varUltimo: number): string {
+    const referencias = [];
+    
+    if (costoMedio) {
+      referencias.push(`Promedio: ${costoMedio.toLocaleString()} (+${varMedio.toFixed(0)}%)`);
+    }
+    
+    if (ultimoPrecioCompra && ultimoPrecioCompra !== costoMedio) {
+      referencias.push(`Última compra: ${ultimoPrecioCompra.toLocaleString()} Gs. (+${varUltimo.toFixed(0)}%)`);
+    }
+    
+    return referencias.join(' | ');
+  }
+
+  private onEjecutarGuardadoItem() {
+    if (this.selectedTransferencia?.id != null) {
+      this.cantidadPresentacionControl.enable();
+      this.presentacionControl.enable();
+      if (
+        this.selectedProducto != null &&
+        this.presentacionControl.valid &&
+        this.cantidadPresentacionControl.valid
+      ) {
+        let item = new TransferenciaItem();
+        Object.assign(item, this.selectedTransferenciaItem);
+        item.activo = true;
+        item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+        item.vencimientoPreTransferencia = parseShortDate(
+          this.vencimientoControl.value
+        );
+        item.transferencia = this.selectedTransferencia;
+        item.presentacionPreTransferencia = this.presentacionControl.value;
+        item.poseeVencimiento = this.vencimientoControl.value != null;
+        this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
+        this.onClear();
+      }
+    } else {
+      this.onSaveTransferencia().then((res) => {
+        this.cantidadPresentacionControl.enable();
+        this.presentacionControl.enable();
+        if (
+          this.selectedProducto != null &&
+          this.presentacionControl.valid &&
+          this.cantidadPresentacionControl.valid &&
+          (this.vencimientoControl.value == null ||
+            this.vencimientoControl.value >= new Date())
+        ) {
+          let item = new TransferenciaItem();
+          item.activo = true;
+          item.cantidadPreTransferencia =
+            this.cantidadPresentacionControl.value;
+          item.vencimientoPreTransferencia = parseShortDate(
+            this.vencimientoControl.value
+          );
+          item.transferencia = this.selectedTransferencia;
+          item.presentacionPreTransferencia = this.presentacionControl.value;
+          item.poseeVencimiento = this.vencimientoControl.value != null;
+          console.log(item);
+
+          this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
+          this.onClear();
+        }
+      });
     }
   }
 }

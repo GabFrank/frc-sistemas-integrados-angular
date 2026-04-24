@@ -1,0 +1,131 @@
+.dialog-container {
+  padding: 0;
+  min-width: 500px;
+}
+
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #f57c00;
+  font-weight: 500;
+  padding: 20px 24px;
+  margin: 0;
+  border-bottom: 1px solid #333;
+  
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.dialog-content {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #333;
+  
+  button {
+    margin-left: 12px;
+    
+    mat-icon {
+      margin-right: 8px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.info-card {
+  background-color: #202020;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.info-label {
+  font-size: 0.85em;
+  color: #f57c00;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 1em;
+  color: #ffffff;
+  font-weight: 400;
+}
+
+.producto-search-field {
+  cursor: pointer !important;
+  
+  ::ng-deep {
+    .mat-form-field-wrapper {
+      cursor: pointer !important;
+    }
+    
+    input {
+      cursor: pointer !important;
+    }
+  }
+}
+
+.producto-seleccionado-card {
+  background-color: rgba(33, 150, 243, 0.08);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-left: 4px solid #2196f3;
+  padding: 14px 16px;
+  margin-top: 5px;
+}
+
+.producto-nombre {
+  font-weight: 500;
+  color: #ffffff;
+  font-size: 0.95em;
+  margin-bottom: 6px;
+}
+
+.producto-detalle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8em;
+}
+
+.producto-codigo {
+  color: #9e9e9e;
+}
+
+.separador {
+  color: #616161;
+}
+
+.producto-presentacion {
+  color: #2196f3;
+  font-weight: 500;
+}
+
+::ng-deep {
+  .mat-form-field {
+    width: 100%;
+  }
+  
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    color: #424242;
+  }
+  
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+    color: #f57c00;
+  }
+  
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-label {
+    color: #f57c00;
+  }
+}
+

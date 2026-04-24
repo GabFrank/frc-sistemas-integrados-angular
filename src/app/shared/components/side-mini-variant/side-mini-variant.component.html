@@ -1,0 +1,104 @@
+<div class="side-nav-container" [class.expanded]="isExpanded" (click)="onSideNavClick()">
+    <div class="side-nav-content">
+        <!-- Profile Section -->
+        <div class="profile-card">
+            <div class="profile-avatar" [class.mini]="!isExpanded">
+                <mat-icon>perm_identity</mat-icon>
+            </div>
+            <div *ngIf="isExpanded" class="profile-info">
+                <h3>{{ mainService?.usuarioActual?.persona?.nombre | titlecase }}</h3>
+                <h5>{{ mainService?.usuarioActual?.email }}</h5>
+            </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Navigation Menu -->
+        <div class="nav-menu">
+            <ng-container *ngFor="let section of navigationItems">
+                <ng-container *ngIf="section.isVisible !== false">
+                    <!-- Top level menu item -->
+                    <div class="menu-item"
+                        [class.expanded-item]="isExpanded && hasChildren(section) && section.isExpanded"
+                        (click)="toggleMenuSection(section, $event)">
+                        <div class="menu-icon">
+                            <mat-icon>{{section.icon}}</mat-icon>
+                        </div>
+                        <div class="menu-text" *ngIf="isExpanded">
+                            <span>{{section.name}}</span>
+                            <mat-icon class="expand-icon" *ngIf="hasChildren(section)">
+                                {{section.isExpanded ? 'expand_less' : 'expand_more'}}
+                            </mat-icon>
+                        </div>
+                    </div>
+
+                    <!-- Expanded submenu (only visible when expanded) -->
+                    <div class="submenu" *ngIf="isExpanded && hasChildren(section) && section.isExpanded">
+                        <ng-container *ngFor="let item of section.items">
+                            <!-- Second level menu item that might have its own submenu -->
+                            <ng-container *ngIf="hasChildren(item) && item.isVisible !== false">
+                                <div class="submenu-item with-children" [class.expanded-item]="item.isExpanded"
+                                    (click)="toggleMenuSection(item, $event)">
+                                    <div class="menu-icon">
+                                        <mat-icon>{{item.icon}}</mat-icon>
+                                    </div>
+                                    <div class="menu-text">
+                                        <span>{{item.name}}</span>
+                                        <mat-icon class="expand-icon">
+                                            {{item.isExpanded ? 'expand_less' : 'expand_more'}}
+                                        </mat-icon>
+                                    </div>
+                                </div>
+
+                                <!-- Third level menu items -->
+                                <div class="nested-submenu" *ngIf="item.isExpanded">
+                                    <ng-container *ngFor="let subItem of item.items">
+                                        <div *ngIf="subItem.isVisible !== false" class="submenu-item"
+                                            (click)="onItemClick(getAction(subItem), $event)">
+                                            <div class="menu-icon">
+                                                <mat-icon>{{subItem.icon}}</mat-icon>
+                                            </div>
+                                            <div class="menu-text">
+                                                <span>{{subItem.name}}</span>
+                                            </div>
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </ng-container>
+
+                            <!-- Second level menu item without children -->
+                            <div *ngIf="!hasChildren(item) && item.isVisible !== false" class="submenu-item"
+                                (click)="onItemClick(getAction(item), $event)">
+                                <div class="menu-icon">
+                                    <mat-icon>{{item.icon}}</mat-icon>
+                                </div>
+                                <div class="menu-text">
+                                    <span>{{item.name}}</span>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </div>
+
+        <div class="footer-actions" [class.mini]="!isExpanded">
+            <div *ngIf="mainService?.usuarioActual != null" class="footer-button logout-button"
+                (click)="onLogout(); $event.stopPropagation()">
+                <mat-icon>exit_to_app</mat-icon>
+                <span *ngIf="isExpanded">SALIR</span>
+            </div>
+
+            <div *ngIf="mainService?.usuarioActual == null" class="footer-button login-button"
+                (click)="onLogin(); $event.stopPropagation()">
+                <mat-icon>login</mat-icon>
+                <span *ngIf="isExpanded">ENTRAR</span>
+            </div>
+
+            <div class="footer-button restart-button" (click)="onReiniciar(); $event.stopPropagation()">
+                <mat-icon>refresh</mat-icon>
+                <span *ngIf="isExpanded">Reiniciar</span>
+            </div>
+        </div>
+    </div>
+</div>

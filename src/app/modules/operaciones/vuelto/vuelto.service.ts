@@ -14,6 +14,6 @@ export class VueltoService {
   ) { }
 
   onDeleteVueltoItem(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteVueltoItem, id, 'item', 'Esta acción no se puede deshacer', true);
+    return this.genericService.onDelete(this.deleteVueltoItem, id, "¿Eliminar item de vuelto?", null, true, false, "¿Está seguro que desea eliminar este item de vuelto?");
   }
 }

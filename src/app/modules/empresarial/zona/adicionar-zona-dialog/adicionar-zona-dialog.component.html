@@ -1,60 +1,44 @@
-<div>
-    <form [formGroup]="formGroup">
-      <div fxLayout="column" fxLayoutAlign="start">
-        <div fxFlex style="width: 100%; text-align: center">
-          <h3 *ngIf="selectedZona?.id != null">Editar Zona</h3>
-          <h3 *ngIf="selectedZona?.id == null">Nueva Zona</h3>
-        </div>
-        <div fxFlex fxLayout="row" fxLayoutGap="20px">
-          <div fxFlex="50%">
-            <mat-form-field style="width: 100%">
-              <mat-label>Descripción</mat-label>
-              <input
-                #nombreInput
-                type="text"
-                matInput
-                formControlName="descripcion"
-                autocomplete="off"
-                oninput="this.value == ' ' ? this.value = '': null"
-              />
-            </mat-form-field>
-          </div>
-          <div fxFlex="50%" fxLayout="row" fxLayoutAlign="center center">
-            <mat-label fxFlex="30">Activo</mat-label>
-            <mat-slide-toggle fxFlex="30" formControlName="activo">{{
-              activoControl.value == true ? "Si" : "No"
-            }}</mat-slide-toggle>
-          </div>
-        </div>
-        <br />
-        <div fxFlex fxLayout="row">
-          <div fxFlex="50%" style="text-align: center">
-            <button
-              style="width: 70%"
-              mat-raised-button
-              [color]="isEditting ? 'accent' : 'primary'"
-              [disabled]="isEditting ? !formGroup.valid : false"
-              (click)="
-                isEditting ? onSave() : (isEditting = true);
-                formGroup.enable();
-                nombreInput.focus()
-              "
-            >
-              {{ isEditting ? "Guardar" : "Editar" }}
-            </button>
-          </div>
-          <div fxFlex="50%" style="text-align: center">
-            <button
-              style="width: 70%"
-              mat-raised-button
-              color="primary"
-              (click)="onCancel()"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </div>
-    </form>
-  </div>
+<h2 mat-dialog-title>{{ selectedZona?.id != null ? 'Editar Zona' : 'Nueva Zona' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="16px">
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>Descripción</mat-label>
+        <input 
+          #nombreInput
+          type="text"
+          matInput
+          formControlName="descripcion"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
+        <mat-error *ngIf="formGroup.get('descripcion').invalid">Obligatorio</mat-error>
+      </mat-form-field>
+    </div>
+    
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px">
+      <mat-label>Activo</mat-label>
+      <mat-slide-toggle formControlName="activo">
+        {{ activoControl.value ? "Sí" : "No" }}
+      </mat-slide-toggle>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button 
+    mat-button 
+    (click)="onCancel()"
+  >
+    CANCELAR
+  </button>
+  <button 
+    mat-raised-button 
+    [color]="isEditting ? 'accent' : 'primary'"
+    [disabled]="isEditting ? !formGroup.valid : false"
+    (click)="isEditting ? onSave() : isEditting = true; formGroup.enable(); nombreInput.focus()"
+  >
+    {{ isEditting ? "GUARDAR" : "EDITAR" }}
+  </button>
+</mat-dialog-actions>
   

@@ -57,15 +57,22 @@ export class VizualizarImagenDialogComponent implements OnInit {
         })
         .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
-          if (res != null) this.img = res;
-          this.presentacionService.onImageSave(
-            res,
-            `${id}.jpg`
-          ).pipe(untilDestroyed(this)).subscribe(res2 => {
-            if(res2!=null){
-              this.img = res2;
-            }
-          });
+          if (res != null) {
+            this.img = res;
+            this.presentacionService.onImageSave(
+              res,
+              `${id}.jpg`
+            ).pipe(untilDestroyed(this)).subscribe({
+              next: (res2) => {
+                if(res2 != null){
+                  this.img = res2;
+                }
+              },
+              error: (error) => {
+                console.error('Error al guardar imagen:', error);
+              }
+            });
+          }
         });
     };
     reader.readAsDataURL(file);

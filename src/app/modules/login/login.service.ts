@@ -4,10 +4,10 @@ import {
   HttpHeaders,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { environment } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";
+import { ConfiguracionService } from "../../shared/services/configuracion.service";
 
 export interface LoginResponse {
   usuario?: Usuario;
@@ -15,11 +15,13 @@ export interface LoginResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { catchError, tap } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
 import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
+import { NotificarInicioSesionGQL } from "../configuracion/inicio-sesion/graphql/notificarInicioSesion.gql";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -40,18 +42,24 @@ export class LoginService {
     private usuarioService: UsuarioService,
     public mainService: MainService,
     private deviceDetector: DeviceDetectorService,
-    private electronService: ElectronService
-  ) {}
+    private electronService: ElectronService,
+    private configService: ConfiguracionService,
+    private notificarInicioSesionGQL: NotificarInicioSesionGQL
+  ) { }
 
-  login(nickname, password): Observable<LoginResponse> {
+  login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {
     return new Observable((obs) => {
+      const config = this.configService.getConfig();
+      const serverIp = config.isLocal ? config.serverIp : config.serverCentralIp;
+      const serverPort = config.isLocal ? config.serverPort : config.serverCentralPort;
+
       let httpBody = {
         nickname: nickname,
-        password: password,
+        password: password
       };
       let httpResponse = this.http
         .post(
-          `http://${environment["serverIp"]}:${environment["serverPort"]}/login`,
+          `http://${serverIp}:${serverPort}/login`,
           httpBody,
           this.httpOptions
         )
@@ -60,12 +68,21 @@ export class LoginService {
           (res) => {
             if (res["token"] != null) {
               localStorage.setItem("token", res["token"]);
+              localStorage.setItem("keepLogged", keepLogged.toString());
+
+              if (res["usuarioId"] != null) {
+                localStorage.setItem("usuarioId", res["usuarioId"]);
+              }
+
               this.mainService.sucursalActual = res["sucursal"];
+              if (config.isLocal) {
+                this.autenticarEnCentral(nickname, password).subscribe();
+              }
+
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
-                  localStorage.setItem("usuarioId", res["usuarioId"]);
                   this.usuarioService
-                    .onGetUsuario(res["usuarioId"])
+                    .onGetUsuario(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe((res) => {
                       if (res?.id != null) {
@@ -76,6 +93,7 @@ export class LoginService {
                           this.mainService?.sucursalActual;
                         inicioSesion.horaInicio = new Date();
                         inicioSesion.creadoEn = new Date();
+
                         let deviceId = localStorage.getItem("deviceId");
                         if (deviceId == null) {
                           let uuid = generateUUID();
@@ -83,21 +101,22 @@ export class LoginService {
                           deviceId = uuid;
                         }
                         inicioSesion.idDispositivo = deviceId;
+                        inicioSesion.token = localStorage.getItem("pushToken");
 
                         if (
                           res?.inicioSesion != null &&
                           res?.inicioSesion?.idDispositivo == deviceId &&
                           res?.inicioSesion?.sucursal != null
                         ) {
-                          console.log("Dispositivo conocido encontrado");
+                          this.notificarInicioSesionGQL.mutate({ usuarioId: res.id }).pipe(untilDestroyed(this)).subscribe();
+                          this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                         } else {
-                          if (this.mainService)
-                            console.log("Nuevo disposito encontrado");
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
-                              console.log(res);
+                              this.notificarInicioSesionGQL.mutate({ usuarioId: res.usuario.id }).pipe(untilDestroyed(this)).subscribe();
                               this.mainService.usuarioActual.inicioSesion = res;
+                              this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                             });
                         }
 
@@ -106,7 +125,6 @@ export class LoginService {
                           error: null,
                         };
                         obs.next(response);
-                      } else {
                       }
                     });
                 }
@@ -122,5 +140,30 @@ export class LoginService {
           }
         );
     });
+  }
+  private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
+  }
+
+  autenticarEnCentral(nickname: string, password: string): Observable<any> {
+    const config = this.configService.getConfig();
+    const centralIp = config.serverCentralIp;
+    const centralPort = config.serverCentralPort;
+
+    if (!centralIp || !centralPort) return of(null);
+
+    return this.http.post(`http://${centralIp}:${centralPort}/login`, {
+      nickname: nickname,
+      password: password
+    }, this.httpOptions).pipe(
+      tap((res: any) => {
+        if (res && res.token) {
+          localStorage.setItem("token_central", res.token);
+        }
+      }),
+      catchError(err => {
+        console.error("Error al autenticar en servidor central para notificaciones", err);
+        return of(null);
+      })
+    );
   }
 }

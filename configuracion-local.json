@@ -1,6 +1,6 @@
 {
-  "ipDefault": "localhost",
-  "puertoDefault": "8082",
+  "ip": "localhost",
+  "port": "8082",
   "centralIp": "172.25.0.1",
   "centralPort": "8081",
   "ipCentralDefault": "172.25.0.1",

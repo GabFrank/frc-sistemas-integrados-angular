@@ -1,0 +1,634 @@
+<div
+  fxLayout="row"
+  style="height: 100%; width: 100%; overflow-y: hidden"
+  fxLayoutGap="10px"
+>
+<div fxFlex="20">
+  <mat-card
+    appearance="outlined"
+    fxLayout="column"
+    fxLayoutGap="10px"
+    style="width: 100%; height: 100%; padding: 20px"
+  >
+    <div fxFlex="5" style="text-align: center; color: #f57c00">
+      <h3>Resumen de la observación</h3>
+    </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Caja Categoría:
+      </div>
+      <div fxFlex style="text-align: left">
+        {{ selectedCajaCategoriaObs?.descripcion | uppercase }}
+      </div>
+    </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Caja Subcategoría:
+      </div>
+        <div fxFlex style="text-align: right">
+          {{ selectedCajaSubCategoriaObs?.descripcion | uppercase }}
+        </div>
+      </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Caja Motivo:
+      </div>
+        <div fxFlex style="text-align: start">
+          {{ selectedCajaMotivoObs?.descripcion | uppercase }}
+        </div>
+    </div>
+  </mat-card>
+</div>
+<mat-horizontal-stepper 
+  fxFlex="80" 
+  fxFlexFill 
+  #stepper 
+  linear 
+  style="width: 100%; height: 100%;"
+>
+  <mat-step 
+    [stepControl]="cajaCategoriaObsControl"
+  >
+    <ng-template matStepLabel>Caja Categoría</ng-template>
+    <div
+      table
+      style="height: 100%; background-color: rgb(70, 70, 70)"
+      fxLayout="column"
+      fxLayoutAlign="space-between start"
+    >
+      <div
+        style="
+          width: 100%;
+          height: 100%;
+          overflow-y: auto;
+          background-color: rgb(52, 52, 52);
+          padding: 10px;
+        "
+      >
+        <table 
+          mat-table 
+          [dataSource]="cajaCategoriaObsDataSource" 
+          class="mat-elevation-z8"
+        >
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef> ID </th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat" 
+                (click)="onSelectCajaCategoria(cat)"
+                [class.selected]="selectedCajaCategoriaObs?.id === cat.id"
+              >
+                {{cat.id}}
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef style="width: 70%">
+                <div fxLayout="row" fxLayoutAlign="start space-between">
+                  <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                    <span *ngIf="!filtroCajaCategoriaOpen">Descripción</span>
+                    <span *ngIf="filtroCajaCategoriaOpen" style="width: 100%">
+                      <div>
+                        <mat-form-field 
+                          style="width: 100%" 
+                          appearance="outline" 
+                          class="shrinking-mat-form-field"
+                        >
+                          <input
+                            #filtroCajaCategoriaObsInput
+                            matInput
+                            type="text"
+                            [formControl]="filtroCajaCategoriaControl"
+                            (keyup.enter)="onFilterCajaCategoriaObs(); $event.stopPropagation()"
+                            (focusin)="filtroCajaCategoriaObsInput.select()"
+                          />
+                        </mat-form-field>
+                      </div>
+                    </span>
+                  </div>
+                  <div fxFlex="30" fxLayout="row">
+                    <span>
+                      <button 
+                        matTooltip="Abrir buscador" 
+                        mat-icon-button
+                        (click)="filtroCajaCategoriaOpen ? null : abrirFiltroCajaCategoria()"
+                      >
+                        <mat-icon>search</mat-icon>
+                      </button>
+                    </span>
+                    <span *ngIf="filtroCajaCategoriaOpen">
+                      <button 
+                        matTooltip="Limpiar buscador" 
+                        mat-icon-button 
+                        (click)="abrirFiltroCajaCategoria()"
+                      >
+                        <mat-icon>clear</mat-icon>
+                      </button>
+                    </span>
+                    <span>
+                      <button 
+                        matTooltip="Crear nueva categoría" 
+                        mat-icon-button  
+                        (click)="onAddCajaCategoriaObs()"
+                      >
+                        <mat-icon>add_circle</mat-icon>
+                      </button>
+                    </span>
+                    <span>
+                      <button 
+                        matTooltip="Recargar lista" 
+                        mat-icon-button
+                        (click)="filtroCajaCategoriaControl.setValue(''); onFilterCajaCategoriaObs()"
+                      >
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </th>
+              <td
+                mat-cell 
+                *matCellDef="let cat" 
+                style="width: 70%;"
+                [class.selected]="selectedCajaCategoriaObs?.id === cat.id"
+              >
+                <span> {{cat.descripcion}} </span>
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="activo">
+            <th mat-header-cell *matHeaderCellDef> Activo </th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat" 
+                (click)="onSelectCajaCategoria(cat)"
+                [class.selected]="selectedCajaCategoriaObs?.id === cat.id"
+              >
+                {{cat?.activo === true ? "Si" : "No"}}
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="accion">
+            <th 
+              mat-header-cell 
+              *matHeaderCellDef 
+              style="width: 5%; text-align: center"
+            ></th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat; let itemIndex = dataIndex" 
+                style="width: 5%; text-align: center"
+                (click)="onSelectCajaCategoria(cat)" 
+                [class.selected]="selectedCajaCategoriaObs?.id === cat.id"
+              >
+                <button 
+                  mat-icon-button 
+                  [matMenuTriggerFor]="menuCat" 
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menuCat="matMenu">
+                  <button 
+                    mat-menu-item 
+                    (click)="onEditCajaCategoriaObs(cat, itemIndex)"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    mat-menu-item 
+                    style="color:red" 
+                    (click)="onDeleteCajaCategoriaObs(cat, itemIndex)"
+                  >
+                    Eliminar
+                  </button>
+                </mat-menu>
+              </td>
+          </ng-container>
+          <tr 
+            mat-header-row
+            *matHeaderRowDef="cajaCategoriaColumnsToDisplay"></tr>
+          <tr 
+            mat-row 
+            *matRowDef="let row; columns: cajaCategoriaColumnsToDisplay;" 
+            (click)="onSelectCajaCategoria(row)"
+          ></tr>
+        </table>
+      </div>
+      <div
+        fxLayout="row"
+        style="width: 100%"
+        fxLayoutAlign="end center"
+      >
+        <div fxFlex="30" style="text-align: center">
+          <button
+            type="button"
+            style="width: 300px; padding-right: 10px"
+            mat-raised-button
+            matStepperNext
+            [disabled]="selectedCajaCategoriaObs == null"
+            [class.selected]="selectedCajaCategoriaObs != null"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+   </div>
+  </mat-step>
+  <mat-step [stepControl]="cajaSubCategoriaObsControl">
+    <ng-template matStepLabel>Caja Subcategoría</ng-template>
+    <div
+      table
+      style="height: 100%; background-color: rgb(70, 70, 70)"
+      fxLayout="column"
+      fxLayoutAlign="space-between start"
+    >
+      <div
+        style="
+          width: 100%;
+          height: 100%;
+          overflow-y: auto;
+          background-color: rgb(52, 52, 52);
+          padding: 10px;
+        "
+      >
+        <table 
+          mat-table 
+          [dataSource]="getCajaSubCategorias(selectedCajaCategoriaObs?.id)" 
+          class="mat-elevation-z8"
+        >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub" 
+              (click)="onSelectCajaSubCategoria(sub)"
+              [class.selected]="selectedCajaSubCategoriaObs?.id === sub.id"
+            >
+              {{sub.id}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 70%">
+            <div fxLayout="row" fxLayoutAlign="start space-between">
+              <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                <span *ngIf="!filtroCajaSubCategoriaOpen">Descripción</span>
+                <span *ngIf="filtroCajaSubCategoriaOpen" style="width: 100%">
+                  <div>
+                    <mat-form-field 
+                      style="width: 100%" 
+                      appearance="outline" 
+                      class="shrinking-mat-form-field"
+                    >
+                      <input
+                        #filtroCajaSubCategoriaObsInput
+                        matInput
+                        type="text"
+                        [formControl]="filtroCajaSubCategoriaControl"
+                        (keyup.enter)="onFilterCajaSubCategoriaObs(); $event.stopPropagation()"
+                        (focusin)="filtroCajaSubCategoriaObsInput.select()"
+                      />
+                    </mat-form-field>
+                  </div>
+                </span>
+              </div>
+              <div fxFlex="30" fxLayout="row">
+                <span>
+                  <button 
+                    matTooltip="Abrir buscador" 
+                    mat-icon-button
+                    (click)="filtroCajaSubCategoriaOpen ? null : abrirFiltroCajaSubCategoria()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </span>
+                <span *ngIf="filtroCajaSubCategoriaOpen">
+                  <button 
+                    matTooltip="Limpiar buscador" 
+                    mat-icon-button 
+                    (click)="abrirFiltroCajaSubCategoria()"
+                  >
+                    <mat-icon>clear</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Crear nueva subcategoría" 
+                    mat-icon-button 
+                    (click)="onAddCajaSubCategoriaObs()"
+                  >
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Recargar lista" 
+                    mat-icon-button
+                    (click)="filtroCajaSubCategoriaControl.setValue(''); onFilterCajaSubCategoriaObs()"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </th>
+          <td
+            mat-cell 
+            *matCellDef="let sub" 
+            style="width: 70%;"
+            [class.selected]="selectedCajaSubCategoriaObs?.id === sub.id"
+          >
+            <span> {{sub.descripcion}} </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef> Activo </th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub" 
+              (click)="onSelectCajaSubCategoria(sub)"
+              [class.selected]="selectedCajaSubCategoriaObs?.id === sub.id"
+            >
+              {{sub.activo === true ? 'Si' : 'No'}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="accion">
+          <th 
+            mat-header-cell 
+            *matHeaderCellDef 
+            style="width: 5%; text-align: center"
+          ></th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub; let itemIndex = dataIndex" 
+              style="width: 5%; text-align: center"
+              (click)="onSelectCajaSubCategoria(sub)" 
+              [class.selected]="selectedCajaSubCategoriaObs?.id === sub.id"
+            >
+              <button 
+                mat-icon-button
+                [matMenuTriggerFor]="menuSub" 
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menuSub="matMenu">
+                <button 
+                  mat-menu-item 
+                  (click)="onEditCajaSubCategoriaObs(sub, itemIndex)"
+                >
+                  Editar
+                </button>
+                <button 
+                  mat-menu-item style="color:red" 
+                  (click)="onDeleteCajaSubCategoriaObs(sub, itemIndex)"
+                >
+                  Eliminar
+                </button>
+              </mat-menu>
+            </td>
+        </ng-container>
+        <tr 
+          mat-header-row 
+          *matHeaderRowDef="cajaSubCategoriaColumnsToDisplay"
+        ></tr>
+        <tr 
+          mat-row 
+          *matRowDef="let row; columns: cajaSubCategoriaColumnsToDisplay;" 
+          (click)="onSelectCajaSubCategoria(row)">
+        </tr>
+      </table>
+    </div>
+    <div
+      style="width: 100%"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+    >
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperPrevious
+          class="goBack"
+        >
+          Atras
+        </button>
+      </div>
+    <div fxFlex="30" style="text-align: center">
+      <button
+        type="button"
+        style="width: 300px; padding-right: 10px"
+        mat-raised-button
+        matStepperNext
+        [disabled]="selectedCajaCategoriaObs === null || selectedCajaSubCategoriaObs === null"
+        [class.selected]="selectedCajaCategoriaObs != null"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+  </div>
+  </mat-step>
+  <mat-step [stepControl]="cajaMotivoObsControl">
+    <ng-template matStepLabel>Caja Motivo</ng-template>
+    <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <div
+      style="
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        background-color: rgb(52, 52, 52);
+        padding: 10px;
+      "
+    >
+      <table 
+        mat-table 
+        [dataSource]="getCajaMotivos(selectedCajaSubCategoriaObs?.id)" 
+        class="mat-elevation-z8"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+            <td 
+              mat-cell 
+              *matCellDef="let cajaMotivo" 
+              (click)="onSelectCajaMotivo(cajaMotivo)"
+              [class.selected]="selectedCajaMotivoObs?.id === cajaMotivo.id"
+            >
+              {{cajaMotivo.id}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 70%">
+            <div fxLayout="row" fxLayoutAlign="start space-between">
+              <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                <span *ngIf="!filtroCajaMotivoOpen">Descripción</span>
+                <span *ngIf="filtroCajaMotivoOpen" style="width: 100%">
+                  <div>
+                    <mat-form-field 
+                      style="width: 100%" 
+                      appearance="outline" 
+                      class="shrinking-mat-form-field"
+                    >
+                      <input
+                        #filtroCajaMotivoObsInput
+                        matInput
+                        type="text"
+                        [formControl]="filtroCajaMotivoControl"
+                        (keyup.enter)="onFilterCajaMotivoObs(); $event.stopPropagation()"
+                        (focusin)="filtroCajaMotivoObsInput.select()"
+                      />
+                    </mat-form-field>
+                  </div>
+                </span>
+              </div>
+              <div fxFlex="30" fxLayout="row">
+                <span>
+                  <button 
+                    matTooltip="Abrir buscador" 
+                    mat-icon-button
+                    (click)="filtroCajaMotivoOpen ? null : abrirFiltroCajaMotivo()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </span>
+                <span *ngIf="filtroCajaMotivoOpen">
+                  <button 
+                    matTooltip="Limpiar buscador" 
+                    mat-icon-button 
+                    (click)="abrirFiltroCajaMotivo()"
+                  >
+                    <mat-icon>clear</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Crear nuevo cajaMotivo" 
+                    mat-icon-button 
+                    (click)="onAddCajaMotivoObs()"
+                  >
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Recargar lista" 
+                    mat-icon-button
+                    (click)="filtroCajaMotivoControl.setValue(''); onFilterCajaMotivoObs()"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </th>
+          <td
+            mat-cell 
+            *matCellDef="let cajaMotivo" 
+            style="width: 70%;"
+            [class.selected]="selectedCajaMotivoObs?.id === cajaMotivo.id"
+          >
+            <span> {{cajaMotivo.descripcion}} </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef> Activo </th>
+          <td 
+            mat-cell 
+            *matCellDef="let cajaMotivo" 
+            (click)="onSelectCajaMotivo(cajaMotivo)"
+            [class.selected]="selectedCajaMotivoObs?.id === cajaMotivo.id"
+          >
+            {{cajaMotivo.activo === true ? 'Si' : 'No'}}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef> Acción </th>
+          <td 
+            mat-cell 
+            *matCellDef="let cajaMotivo; let itemIndex = dataIndex" 
+            (click)="onSelectCajaMotivo(cajaMotivo)"
+            [class.selected]="selectedCajaMotivoObs?.id === cajaMotivo.id"
+          >
+            <button 
+              mat-icon-button 
+              [matMenuTriggerFor]="menuCajaMotivo" 
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menuCajaMotivo="matMenu">
+              <button 
+                mat-menu-item 
+                (click)="onEditCajaMotivoObs(cajaMotivo, itemIndex)"
+              >
+                Editar
+              </button>
+              <button 
+                mat-menu-item style="color:red" 
+                (click)="onDeleteCajaMotivoObs(cajaMotivo, itemIndex)"
+              >
+                Eliminar
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr 
+          mat-header-row 
+          *matHeaderRowDef="cajaMotivoColumnsToDisplay">
+        </tr>
+        <tr 
+          mat-row 
+          *matRowDef="let row; columns: cajaMotivoColumnsToDisplay;" 
+          (click)="onSelectCajaMotivo(row)"></tr>
+      </table>
+    </div>
+    <div
+      style="width: 100%"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+    >
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperPrevious
+          class="goBack"
+        >
+          Atras
+        </button>
+      </div>
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperNext
+          [disabled]="selectedCajaSubCategoriaObs === null || selectedCajaMotivoObs === null"
+          [class.selected]="selectedCajaSubCategoriaObs != null"
+          (click)="onFinalizar()"
+        >
+          Finalizar
+        </button>
+      </div>
+    </div>
+  </div>
+  </mat-step>
+</mat-horizontal-stepper>
+</div>

@@ -15,6 +15,7 @@ import {
   ElementRef,
   Inject,
   HostListener,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
 import {
@@ -51,6 +52,7 @@ export interface PdvSearchProductoData {
   conservarUltimaBusqueda?: boolean;
   costo?: boolean;
   transferencia?: Transferencia;
+  servidor?: boolean;
 }
 
 export interface PdvSearchProductoResponseData {
@@ -63,7 +65,7 @@ export interface PdvSearchProductoResponseData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../../environments/environment";
 import { Transferencia } from "../../../operaciones/transferencia/transferencia.model";
-
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-pdv-search-producto-dialog",
@@ -125,10 +127,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     public dialogRef: MatDialogRef<PdvSearchProductoDialogComponent>,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private getProducto: ProductoForPdvGQL,
     private productoService: ProductoService,
     private _el: ElementRef,
-    private stockService: MovimientoStockService
+    private stockService: MovimientoStockService,
+    private configService: ConfiguracionService,
+    private cdr: ChangeDetectorRef
   ) {
     if (data?.mostrarStock == true) {
       this.displayedColumns = [
@@ -138,12 +141,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         "existencia",
         // "acciones"
       ];
-      this.precios = environment["precios"];
-      this.modoPrecio = environment["modo"];
+      if (this.configService.getConfig().precios) {
+        this.precios = this.configService.getConfig().precios.split(',').map(precio => precio.trim());
+      }
+      if (this.configService.getConfig().modo) {
+        this.modoPrecio = this.configService.getConfig().modo?.trim();
+      }
+      console.log('Configuracion de precios', this.precios, this.modoPrecio);
     }
   }
 
   ngOnInit(): void {
+    console.log('Iniciando dialogo de busqueda de producto');
+    this.dataSource = new MatTableDataSource<Producto>([]);
     this.createForm();
 
     this.productoDetailList = [];
@@ -165,13 +175,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.buscarInput.nativeElement.focus();
     }, 300);
-    this.dataSource = new MatTableDataSource<Producto>([]);
   }
 
   createForm() {
     this.formGroup = new FormGroup({
       buscarControl: new FormControl(null),
       cantidad: new FormControl(null),
+      soloStock: new FormControl(false)
     });
 
     this.formGroup
@@ -180,6 +190,16 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       .subscribe((value) => {
         if (value != null) this.onSearchProducto(value);
       });
+
+    this.formGroup
+      .get("soloStock")
+      .valueChanges.pipe(untilDestroyed(this))
+      .subscribe((checked) => {
+        const textoActual = this.formGroup.get("buscarControl").value;
+        if (textoActual) {
+          this.onSearchProducto(textoActual);
+        }
+      })
 
     this.formGroup.get("buscarControl").setValue(this.data?.texto);
     this.formGroup.get("cantidad").setValue(this.data?.cantidad);
@@ -190,11 +210,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     let peso;
     let codigo;
     this.isSearching = true;
+    const soloStock = this.formGroup.get("soloStock").value;
+    
     if (this.data.conservarUltimaBusqueda == true)
       this.productoService.lastSearchText = text;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
+
+    let sucursalIdParaFiltro = this.sucursalActual?.id;
+    if (this.isTransferencia && this.data?.transferencia?.sucursalOrigen) {
+      sucursalIdParaFiltro = this.data.transferencia.sucursalOrigen.id;
+    }
+
     if (text == "" || text == null || text == " ") {
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
@@ -208,7 +236,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       // }
       this.onSearchTimer = setTimeout(() => {
         this.productoService
-          .onSearch(text, offset, true)
+          .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (offset == null) {
@@ -217,6 +245,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
               const arr = [...this.dataSource.data.concat(res)];
               this.dataSource.data = arr;
             }
+
+            if (this.isTransferencia) {
+              this.dataSource.data.forEach((p, index) => {
+                this.mostrarStock(p, index);
+              });
+            }
+
             this.buscarInput.nativeElement.focus();
             this.isSearching = false;
           });
@@ -254,7 +289,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   getProductoDetail(producto: Producto, index) {
     if (producto?.presentaciones == null) {
       this.productoService
-        .getProducto(producto.id)
+        .getProducto(producto.id, this.data.servidor)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (this.precios != null && this.modoPrecio == "ONLY") {
@@ -313,7 +348,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         } else {
           this.onPresentacionClick(
             this.dataSource.data[index]?.presentaciones[
-              this.selectedPresentacionRowIndex
+            this.selectedPresentacionRowIndex
             ],
             this.dataSource.data[index],
             null
@@ -476,7 +511,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.productoService
         .onGetStockPorProductoAndSucursal(
           producto.id,
-          this.data.transferencia.sucursalOrigen.id
+          this.data.transferencia.sucursalOrigen.id,
+          this.data.servidor
         )
         .subscribe((stock) => {
           if (stock != null) {
@@ -487,7 +523,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.productoService
         .onGetStockPorProductoAndSucursal(
           producto.id,
-          this.data.transferencia.sucursalDestino.id
+          this.data.transferencia.sucursalDestino.id,
+          this.data.servidor
         )
         .subscribe((stock) => {
           if (stock != null) {
@@ -497,7 +534,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         });
     } else {
       this.stockService
-        .onGetStockPorProducto(producto.id)
+        .onGetStockPorProducto(producto.id, null, this.data.servidor)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -510,7 +547,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   mostrarCodigoPrincipal(producto: Producto, index?) {
     this.stockService
-      .onGetStockPorProducto(producto.id)
+      .onGetStockPorProducto(producto.id, null, this.data.servidor)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {

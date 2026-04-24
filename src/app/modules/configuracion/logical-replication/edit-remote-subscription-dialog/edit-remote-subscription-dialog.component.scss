@@ -1,0 +1,80 @@
+.dialog-container {
+  padding: 16px;
+  min-width: 400px;
+  max-width: 550px;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.form-content {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.connection-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+.connection-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.manual-connection {
+  margin-top: 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  background-color: #fdecea;
+  border-radius: 4px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  color: #d32f2f;
+
+  mat-icon {
+    margin-right: 8px;
+  }
+}
+
+.spinner-button {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+} 
+
+input {
+    text-transform: lowercase;
+}

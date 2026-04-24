@@ -25,27 +25,27 @@ export class TipoGastoService {
     private tipoGastoSearch: TipoGastoSearchGQL
   ) { }
 
-  onGetAll(): Observable<any> {
-    return this.genericService.onGetAll(this.getAllTipoGastos);
+  onGetAll(servidor = true): Observable<any> {
+    return this.genericService.onGetAll(this.getAllTipoGastos, null, null, servidor);
   }
 
-  onGetRoot(): Observable<any>{
-    return this.genericService.onGetAll(this.getRootTipoGasto);
+  onGetRoot(servidor = true): Observable<any>{
+    return this.genericService.onGetAll(this.getRootTipoGasto, null, null, servidor);
   }
 
-  onSave(input): Observable<any> {
-    return this.genericService.onSave(this.onSaveTipoGasto, input);
+  onSave(input, servidor = true): Observable<any> {
+    return this.genericService.onSave(this.onSaveTipoGasto, input, null, null, servidor);
   }
 
-  onGetById(id): Observable<any>{
-    return this.genericService.onGetById(this.tipoGastoPorId, id);
+  onGetById(id, servidor = true): Observable<any>{
+    return this.genericService.onGetById(this.tipoGastoPorId, id, null, null, servidor);
   }
 
-  onDelete(id): Observable<any>{
-    return this.genericService.onDelete(this.deleteTipoGasto, id);
+  onDelete(id, servidor = true): Observable<any>{
+    return this.genericService.onDelete(this.deleteTipoGasto, id, "¿Eliminar tipo de gasto?", null, true, servidor, "¿Está seguro que desea eliminar este tipo de gasto?");
   }
 
-  onSearch(texto): Observable<any>{
-    return this.genericService.onGetByTexto(this.tipoGastoSearch, texto);
+  onSearch(texto, servidor = true): Observable<any>{
+    return this.genericService.onGetByTexto(this.tipoGastoSearch, texto, servidor);
   }
 }

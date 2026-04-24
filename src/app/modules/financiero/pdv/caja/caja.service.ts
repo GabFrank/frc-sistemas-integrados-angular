@@ -20,10 +20,14 @@ import { BalancePorFechaGQL } from "./graphql/balancePorFecha";
 import { environment } from "../../../../../environments/environment";
 import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
+import { CajasAnalisisDiferenciasGQL } from "../../analisis-diferencia/graphql/cajasAnalisisDiferencias";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
 import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
 import { VerificarCajaGQL } from "./graphql/verificarCaja";
+import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { TransferirCajaGQL } from "./graphql/transferirCaja";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -45,20 +49,24 @@ export class CajaService {
     private balancePorFecha: BalancePorFechaGQL,
     private balancePorCajaId: BalancePorCajaIdGQL,
     private cajasWithFilters: CajasWithFiltersGQL,
+    private cajasAnalisisDiferencias: CajasAnalisisDiferenciasGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
-    private verificarCaja: VerificarCajaGQL
-  ) {}
+    private verificarCaja: VerificarCajaGQL,
+    private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
+    private configService: ConfiguracionService,
+    private transferirCaja: TransferirCajaGQL
+  ) { }
 
   // onGetAll(): Observable<any> {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  onCajaBalancePorId(id: number): Observable<CajaBalance> {
-    return this.genericService.onGetById(this.balancePorCajaId, id);
+  onCajaBalancePorId(id: number, servidor: boolean = true): Observable<CajaBalance> {
+    return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor);
   }
 
-  onCajaBalancePorIdAndSucursalId(id: number, sucId: number): Observable<CajaBalance> {
-    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, {id, sucId}, null, null, true);
+  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true): Observable<CajaBalance> {
+    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, null, true);
   }
 
   onGetCajasWithFilters(
@@ -71,23 +79,60 @@ export class CajaService {
     sucId: number,
     verificado: boolean,
     page: number,
-    size: number
-  ){
-    return this.genericService.onCustomQuery(this.cajasWithFilters, {
+    size: number,
+    servidor: boolean = true
+  ) {
+    // Preparar los parámetros, convirtiendo null/undefined a null explícitamente
+    const queryParams: any = {
+      cajaId: cajaId || null,
+      estado: estado || null,
+      maletinId: maletinId || null,
+      cajeroId: cajeroId || null,
+      fechaInicio: fechaInicio ? dateToString(fechaInicio) : null,
+      fechaFin: fechaFin ? dateToString(fechaFin) : null,
+      sucId: sucId || null,
+      verificado: verificado !== null && verificado !== undefined ? verificado : null,
+      page: page || 0,
+      size: size || 15
+    };
+    
+    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor);
+  }
+
+  onGetCajasAnalisisDiferencias(
+    cajaId: number,
+    cajaAnteriorId: number,
+    estado: PdvCajaEstado,
+    maletinId: number,
+    maletinDescripcion: string,
+    cajeroId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+    sucId: number,
+    verificado: boolean,
+    page: number,
+    size: number,
+    difEstado: string = null,
+    servidor: boolean = true
+  ) {
+    return this.genericService.onCustomQuery(this.cajasAnalisisDiferencias, {
       cajaId,
+      cajaAnteriorId,
       estado,
       maletinId,
+      maletinDescripcion,
       cajeroId,
       fechaInicio: dateToString(fechaInicio),
       fechaFin: dateToString(fechaFin),
       sucId,
       verificado,
       page,
-      size
-    });
+      size,
+      difEstado
+    }, servidor);
   }
 
-  onGetByDate(inicio?: Date, fin?: Date, sucId?): Observable<PdvCaja[]> {
+  onGetByDate(inicio?: Date, fin?: Date, sucId?, servidor: boolean = true): Observable<PdvCaja[]> {
     let hoy = new Date();
     if (inicio == null) {
       inicio = new Date();
@@ -101,7 +146,7 @@ export class CajaService {
       this.cajasPorFecha,
       inicio,
       fin,
-      null,
+      servidor,
       sucId
     );
   }
@@ -109,7 +154,8 @@ export class CajaService {
   onGetBalanceByDate(
     inicio?: Date,
     fin?: Date,
-    sucId?
+    sucId?,
+    servidor: boolean = true
   ): Observable<CajaBalance> {
     let hoy = new Date();
     if (inicio == null) {
@@ -124,73 +170,78 @@ export class CajaService {
       this.balancePorFecha,
       inicio,
       fin,
-      null,
+      servidor,
       sucId
     );
   }
 
-  onSave(input: PdvCajaInput): Observable<any> {
-    return this.genericService.onSave(this.onSaveCaja, input);
+  onSave(input: PdvCajaInput, servidor: boolean = true): Observable<any> {
+    return this.genericService.onSave(this.onSaveCaja, input, null, null, servidor);
   }
 
-  onGetById(id, sucId?, silentLoad?): Observable<any> {
+  onGetById(id, sucId?, silentLoad?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaPorId,
       id,
       null,
       null,
-      null,
+      servidor,
       sucId,
       null
     );
   }
 
-  onGetByIdSimp(id, sucId?, silentLoad?): Observable<any> {
+  onGetByIdSimp(id, sucId?, silentLoad?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaSimplePorId,
       id,
       null,
       null,
-      null,
+      servidor,
       sucId,
       null
     );
   }
 
-  onGetByUsuarioIdAndAbierto(id, sucId?): Observable<any> {
+  onGetByUsuarioIdAndAbierto(id, sucId?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaPorUsuarioIdAndAbierto,
       id,
       null,
-      null,
-      null,
+      null, servidor,
       sucId
     );
   }
 
-  onDelete(id, showDialog?: boolean): Observable<any> {
-    return this.genericService.onDelete(this.deleteCaja, id, showDialog);
+  onDelete(id, showDialog?: boolean, servidor: boolean = true): Observable<any> {
+    return this.genericService.onDelete(this.deleteCaja, id, "¿Eliminar caja?", null, showDialog, servidor, "¿Está seguro que desea eliminar esta caja?");
   }
 
-  onImprimirBalance(id, sucId?) {
-    return this.imprimirBalance
-      .fetch(
-        {
-          id,
-          printerName: environment["printers"]["ticket"],
-          cajaName: environment["local"],
-          sucId,
-        },
-        {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-        }
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {});
+  onImprimirBalance(id, sucId?, servidor: boolean = true) {
+    console.log('imprimir balance', 'id', id, 'printerName', this.configService.getConfig().printers["ticket"], 'local', this.configService.getConfig().local, 'sucId', sucId);
+    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], local: this.configService.getConfig().local, sucId}, servidor, null, null);
   }
 
-  onVerificarCaja(cajaId, sucursalId, usuarioId, verificado){
-    return this.genericService.onCustomQuery(this.verificarCaja, {cajaId, sucursalId, usuarioId, verificado})
+  onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {
+    return this.genericService.onCustomQuery(this.verificarCaja, { cajaId, sucursalId, usuarioId, verificado }, servidor)
+  }
+
+  /**
+   * Obtiene las cajas abiertas de una sucursal con sus balances
+   * @param sucursalId ID de la sucursal
+   * @returns Observable con un array de cajas abiertas con sus balances
+   */
+  onGetCajasAbiertasPorSucursal(sucursalId: number, servidor: boolean = true): Observable<PdvCaja[]> {
+    return this.genericService.onCustomQuery(
+      this.cajaAbiertoPorSucursal,
+      { sucursalId },
+      servidor,
+      null,
+      true
+    );
+  }
+
+  onTransferirCaja(cajaId: number, usuarioId: number, servidor: boolean = false): Observable<any> {
+    return this.genericService.onCustomMutation(this.transferirCaja, { cajaId, usuarioId }, servidor);
   }
 }

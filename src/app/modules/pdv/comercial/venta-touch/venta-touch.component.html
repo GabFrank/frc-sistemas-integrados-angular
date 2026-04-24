@@ -1,7 +1,7 @@
 <div
   #container
   fxLayout="row"
-  style="width: 100%; height: 95%"
+  style="width: 100%; height: 100%"
   fxLayoutGap="5px"
 >
   <mat-card
@@ -48,7 +48,7 @@
       </div>
       <div fxFlex="33%">
         <app-boton
-          nombre="Eliminar todo (ESC)"
+          nombre="Eliminar todo"
           [disableExpression]="selectedItemList.length == 0"
           (clickEvent)="removeItem({})"
         ></app-boton>

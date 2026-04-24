@@ -1,0 +1,145 @@
+<div fxLayout="column" class="dialog-container">
+  <div fxLayout="row" fxLayoutAlign="center center">
+    <h2 style="margin: 0">Ajustar Costo</h2>
+  </div>
+  <div fxLayout="column" fxLayoutGap="10px">
+    <div fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="75">
+        <mat-label class="titulo">Descripción:</mat-label>
+        <div class="descripcion-producto">
+          {{ data.producto?.descripcion }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form 
+    [formGroup]="formGroup" 
+    fxLayout="column" 
+    fxLayoutGap="20px" 
+    style="margin-top: 20px;"
+  >
+      <div 
+        fxLayout="row" 
+        fxLayoutGap="20px" 
+        style="text-align: center"
+      >
+        <div fxFlex="50">
+            <div class="titulo-center">Costo actual</div>
+          <div class="info-text">
+            <span *ngIf="!isLoadingCosto"
+          >
+           {{ costoActual | number:'1.0-0' }} Gs.
+          </span>
+            <mat-spinner *ngIf="isLoadingCosto" diameter="20"></mat-spinner>
+          </div>
+        </div>
+        <div fxFlex="50">
+          <div class="titulo-center">Última compra</div>
+          <div class="info-text">
+            {{ ultimoPrecioCompra | number:'1.0-0' }} Gs.
+          </div>
+        </div>
+      </div>
+
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Nuevo Costo (Gs.)</mat-label>
+      <input 
+        #costoInput
+        matInput 
+        type="number" 
+        formControlName="costo"
+        min="0"
+        step="1"
+        placeholder="Ingrese el nuevo costo"
+        (focus)="costoInput.select()"
+      >
+      <mat-error *ngIf="costoControl.hasError('required')">
+        El costo es requerido
+      </mat-error>
+      <mat-error *ngIf="costoControl.hasError('min')">
+        El costo debe ser mayor o igual a 0
+      </mat-error>
+    </mat-form-field>
+
+    <div *ngIf="costoControl.value !== null" 
+         fxLayout="column" fxLayoutGap="10px"
+         style="text-align: center;"
+         >
+      
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="33">
+          <div class="titulo-center">Diferencia</div>
+          <div class="info-text" 
+               [style.color]="diferenciaCosto >= 0 ? 
+               '#4caf50' : '#f44336'"
+          >
+            <mat-icon 
+              *ngIf="diferenciaCosto > 0" 
+              class="green-icon"
+            >
+              trending_up
+            </mat-icon>
+            <mat-icon 
+              *ngIf="diferenciaCosto < 0" 
+              class="red-icon"
+            >
+              trending_down
+            </mat-icon>
+              {{ diferenciaCosto >= 0 ? '+' : '' }}
+              {{ diferenciaCosto | number:'1.0-0' }} Gs.
+          </div>
+        </div>
+        <div fxFlex="33">
+          <div class="titulo-center">Variación %</div>
+          <div class="info-text"
+               [style.color]="variacionPorcentual >= 0 ? 
+               '#4caf50' : '#f44336'"
+          >
+            <mat-icon 
+              *ngIf="variacionPorcentual > 0" 
+              class="green-icon"
+            >
+              trending_up
+            </mat-icon>
+            <mat-icon 
+              *ngIf="variacionPorcentual < 0"
+              class="red-icon"
+            >
+              trending_down
+            </mat-icon>
+              {{ variacionPorcentual >= 0 ? '+' : '' }}
+              {{ variacionPorcentual | number:'1.1-1' }}%
+          </div>
+        </div>
+        <div fxFlex="33">
+            <div class="titulo-center">Nuevo costo</div>
+            <div class="info-text">
+            {{ costoControl.value | number:'1.0-0' }} Gs.
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div 
+  fxLayout="row" 
+  fxLayoutGap="10px" 
+  fxLayoutAlign="end center" 
+  style="padding: 0 20px 20px 0;"
+>
+  <button 
+    mat-raised-button 
+    color="primary"
+    (click)="onCancelar()">
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="accent" 
+    (click)="onGuardar()"
+    [disabled]="formGroup.invalid">
+    Guardar
+  </button>
+</div> 

@@ -1,0 +1,455 @@
+<div class="distribute-item-dialog">
+  <!-- Header -->
+  <div class="dialog-header center">
+    <h3 style="margin: 0px">{{ dialogTitleComputed }}</h3>
+    <p class="dialog-subtitle">{{ dialogSubtitleComputed }}</p>
+  </div>
+
+  <!-- Content -->
+  <div class="dialog-content">
+    <!-- Consolidated Product & Status Card -->
+    <div class="left-panel">
+      <div class="consolidated-summary-card">
+        <div class="summary-row">
+          <!-- Product Info Section (40%) -->
+          <div class="product-section">
+            <div class="product-name">{{ data.item.producto.descripcion }}</div>
+            <div class="product-code">
+              Código: {{ data.item.producto.codigoPrincipal }}
+            </div>
+            <div class="product-presentation">
+              <mat-icon>inventory_2</mat-icon>
+              <span
+                >{{ presentacionCreacionComputed }} ({{
+                  cantidadPorPresentacionComputed | number : "1.0-2"
+                }}
+                unidades)</span
+              >
+            </div>
+          </div>
+
+          <!-- Order Info Section -->
+          <div class="order-info-section">
+            <div class="info-item">
+              <div class="info-label">Cantidad Solicitada</div>
+              <div class="info-value primary">
+                <div>
+                  {{ cantidadSolicitadaFormattedComputed | number : "1.0-2" }}
+                  unidades
+                </div>
+                <div class="secondary-info">
+                  {{
+                    cantidadSolicitadaPorPresentacionComputed | number : "1.0-2"
+                  }}
+                  {{ presentacionCreacionComputed }}
+                </div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Precio Unitario</div>
+              <div
+                class="info-value"
+                [class.bonificacion]="data.item.esBonificacion"
+              >
+                {{
+                  data.item.esBonificacion
+                    ? "BONIFICACIÓN"
+                    : (data.item.precioUnitarioSolicitado | number : "1.0-2")
+                }}
+              </div>
+            </div>
+            <!-- move total asignado here -->
+            <div class="info-item">
+              <div class="info-label">Total Asignado</div>
+              <div class="info-value">
+                {{ totalAsignadoFormattedComputed | number : "1.0-2" }}
+                {{ unidadMostrarComputed }}
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-label">Discrepancia</div>
+              <div class="info-value">
+                {{ discrepanciaFormattedComputed | number : "1.0-2" }}
+                {{ unidadMostrarComputed }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Distribution Status Section -->
+          <!-- <div class="distribution-section">
+            <div class="status-item">
+              <div class="status-with-icon">
+                <mat-icon [class]="discrepanciaClassComputed">{{
+                  discrepanciaIconComputed
+                }}</mat-icon>
+                <div class="status-content">
+                  <div class="status-label">Total Asignado</div>
+                  <div class="status-value" [class]="discrepanciaClassComputed">
+                    {{ totalAsignadoFormattedComputed | number : "1.0-2" }}
+                    {{ unidadMostrarComputed }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="status-item" *ngIf="hasDiscrepanciaComputed">
+              <div class="status-with-icon">
+                <mat-icon class="discrepancia-icon">info</mat-icon>
+                <div class="status-content">
+                  <div class="status-label">Discrepancia</div>
+                  <div class="status-value" [class]="discrepanciaClassComputed">
+                    {{ discrepanciaMostrarComputed > 0 ? "+" : ""
+                    }}{{ discrepanciaFormattedComputed | number : "1.0-2" }}
+                    {{ unidadMostrarComputed }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div> -->
+
+          <div class="toggle-section">
+            <div class="toggle-info">
+              <div class="toggle-text">
+                <div class="toggle-label">Modo de Distribución</div>
+              </div>
+            </div>
+            <mat-slide-toggle
+              [checked]="distribuyePorPresentacion"
+              (change)="onToggleDistribucionMode()"
+              color="primary"
+            >
+              {{
+                distribuyePorPresentacion ? "Por Presentación" : "Por Unidad"
+              }}
+            </mat-slide-toggle>
+          </div>
+
+          <div class="toggle-section">
+            <div class="toggle-info">
+              <div class="toggle-text">
+                <div class="toggle-label">Modo de Visualización</div>
+              </div>
+            </div>
+            <mat-slide-toggle
+              [checked]="modoVisualizacion === 'simplificado'"
+              (change)="onToggleVisualizacionMode()"
+              color="accent"
+            >
+              {{
+                modoVisualizacion === 'trazabilidad' ? "Trazabilidad Completa" : "Distribución Simplificada"
+              }}
+            </mat-slide-toggle>
+          </div>
+        </div>
+
+        <!-- Warning message for discrepancy -->
+        <div class="discrepancia-warning" *ngIf="hasDiscrepanciaComputed">
+          <mat-icon>warning</mat-icon>
+          <span *ngIf="discrepanciaTipoComputed === 'mayor'">
+            La cantidad distribuida es mayor a la solicitada. Hay
+            {{ absDiscrepanciaFormattedComputed }}
+            {{ unidadMostrarComputed }} de exceso.
+          </span>
+          <span *ngIf="discrepanciaTipoComputed === 'menor'">
+            La cantidad distribuida es menor a la solicitada. Faltan
+            {{ absDiscrepanciaFormattedComputed }}
+            {{ unidadMostrarComputed }} por asignar.
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <!-- Distribution Form -->
+      <form [formGroup]="distribucionForm" class="distribution-form">
+        <div class="distribuciones-container">
+          <h4 class="distribuciones-title">
+            {{
+              modoBorrado
+                ? "Seleccionar Distribuciones a Eliminar"
+                : "Distribución por Sucursal de Influencia"
+            }}
+          </h4>
+          <p class="distribuciones-subtitle">
+            {{
+              modoBorrado
+                ? "Marque las distribuciones que desea eliminar"
+                : "Para cada sucursal que necesita el producto, seleccione dónde se entregará y qué cantidad"
+            }}
+          </p>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <button
+              mat-button
+              color="accent"
+              (click)="onDistribuirUniforme()"
+              class="action-btn"
+              [disabled]="modoBorrado"
+            >
+              <mat-icon>balance</mat-icon>
+              Distribuir Uniformemente
+            </button>
+
+            <button
+              mat-button
+              color="accent"
+              (click)="onAsignarTotal()"
+              class="action-btn"
+              [disabled]="modoBorrado"
+            >
+              <mat-icon>location_on</mat-icon>
+              Asignar Todo a Primera Sucursal
+            </button>
+
+            <button
+              mat-button
+              color="primary"
+              (click)="onLimpiarDistribuciones()"
+              class="action-btn clear-btn"
+              [disabled]="modoBorrado"
+            >
+              <mat-icon>clear_all</mat-icon>
+              Limpiar Distribuciones
+            </button>
+
+            <!-- disable for now -->
+            <!-- <button
+              mat-button
+              (click)="onToggleBorradoMode()"
+              class="action-btn delete-btn"
+              [class.active]="modoBorrado"
+            >
+              <mat-icon>{{ modoBorrado ? "cancel" : "delete" }}</mat-icon>
+              {{ modoBorrado ? "Cancelar Borrado" : "Borrar Distribución" }}
+            </button> -->
+          </div>
+          <div formArrayName="distribuciones" class="distribuciones-list">
+            <div
+              *ngFor="
+                let distribucion of distribucionesComputed;
+                let i = index
+              "
+              [formGroupName]="i"
+              class="distribucion-item"
+            >
+              <!-- Checkbox para modo borrado -->
+              <div class="checkbox-container" *ngIf="modoBorrado">
+                <mat-checkbox
+                  formControlName="seleccionado"
+                  (change)="onToggleSeleccion(i)"
+                  color="warn"
+                >
+                </mat-checkbox>
+              </div>
+
+              <!-- Sucursal de Influencia (readonly) -->
+              <div class="sucursal-influencia-info" *ngIf="modoVisualizacion === 'trazabilidad'" style="flex: 1;">
+                <div class="section-label">
+                  <mat-icon>location_city</mat-icon>
+                  Sucursal que necesita el producto:
+                </div>
+                <div class="sucursal-name">
+                  {{ distribucion.sucursalInfluenciaNombre }}
+                </div>
+              </div>
+
+              <!-- Sucursales de Influencia (readonly) - Modo Simplificado -->
+              <div class="sucursal-influencia-info" *ngIf="modoVisualizacion === 'simplificado'" style="flex: 1;">
+                <div class="section-label">
+                  <mat-icon>location_city</mat-icon>
+                  Sucursales que necesitan el producto:
+                </div>
+                <div class="sucursal-name ellipsis" [matTooltip]="distribucion.sucursalInfluenciaNombre">
+                  {{ distribucion.sucursalInfluenciaNombre }}
+                </div>
+              </div>
+
+              <!-- Sucursal de Entrega (selectable) -->
+              <div class="sucursal-entrega-container" *ngIf="!modoBorrado" style="flex: 1;">
+                <mat-form-field appearance="outline" class="sucursal-field" style="width: 100%;">
+                  <mat-label>Sucursal de Entrega*</mat-label>
+                  <mat-select formControlName="sucursalEntrega">
+                    <mat-option
+                      *ngFor="let sucursal of data.sucursalesEntrega"
+                      [value]="sucursal.id"
+                    >
+                      {{ sucursal.nombre }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error
+                    *ngIf="distribucionesArray.at(i).get('sucursalEntrega')?.hasError('required')"
+                  >
+                    Debe seleccionar una sucursal de entrega
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <!-- Cantidad -->
+              <div class="cantidad-container" *ngIf="!modoBorrado" style="flex: 1;">
+                <mat-form-field appearance="outline" class="cantidad-field">
+                  <mat-label>
+                    {{
+                      distribuyePorPresentacion
+                        ? "Cantidad (" + presentacionCreacionComputed + ")"
+                        : "Cantidad (unidades)"
+                    }}
+                  </mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="cantidadAsignada"
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                    (keydown)="onCantidadKeydown($event, i)"
+                  />
+                  <mat-error
+                    *ngIf="
+                      distribucionesArray.at(i).get('cantidadAsignada')?.hasError('min')
+                    "
+                  >
+                    La cantidad debe ser mayor o igual a 0
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Percentage display - corregido para usar el total correcto según el modo -->
+                <div
+                  class="percentage-display"
+                  *ngIf="totalAsignadoMostrarComputed > 0"
+                >
+                  {{
+                    (
+                      ((distribucion.cantidadAsignada || 0) /
+                        totalAsignadoMostrarComputed) *
+                      100
+                    ).toFixed(1)
+                  }}%
+                </div>
+              </div>
+
+              <!-- Información de distribución existente en modo borrado -->
+              <div class="distribucion-info" *ngIf="modoBorrado">
+                <div class="info-row">
+                  <span class="info-label">Sucursal que Necesita:</span>
+                  <span class="info-value">
+                    {{ distribucion.sucursalInfluenciaNombre }}
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Sucursal de Entrega:</span>
+                  <span class="info-value">
+                    {{ distribucion.sucursalEntregaNombre }}
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Cantidad Asignada:</span>
+                  <span class="info-value">
+                    {{
+                      distribucion.cantidadAsignada
+                        | number : "1.0-2"
+                    }}
+                    {{
+                      distribuyePorPresentacion
+                        ? presentacionCreacionComputed
+                        : "unidades"
+                    }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <!-- Help Section -->
+      <div class="help-section" *ngIf="!modoBorrado">
+        <mat-expansion-panel class="help-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>help</mat-icon>
+              Ayuda: Distribución de Ítems
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="help-content">
+            <ul>
+              <li>
+                <strong>Distribuir Uniformemente:</strong> Divide la cantidad
+                total en partes iguales entre todas las sucursales.
+              </li>
+              <li>
+                <strong>Asignar Todo:</strong> Asigna toda la cantidad a la
+                primera sucursal y limpia las demás.
+              </li>
+              <li><strong>Limpiar:</strong> Pone todas las cantidades en 0.</li>
+              <li>
+                <strong>Borrar Distribución:</strong> Permite eliminar
+                distribuciones existentes.
+              </li>
+              <li>
+                <strong>Discrepancia:</strong> Si la suma no coincide con lo
+                solicitado, puede actualizar la cantidad original al guardar.
+              </li>
+              <li>
+                <strong>Navegación:</strong> Use Enter para navegar entre los
+                campos de cantidad.
+              </li>
+            </ul>
+          </div>
+        </mat-expansion-panel>
+      </div>
+
+      <!-- Help Section para modo borrado -->
+      <div class="help-section" *ngIf="modoBorrado">
+        <mat-expansion-panel class="help-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>help</mat-icon>
+              Ayuda: Eliminación de Distribuciones
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="help-content">
+            <ul>
+              <li>
+                <strong>Selección:</strong> Marque las distribuciones que desea
+                eliminar.
+              </li>
+              <li>
+                <strong>Eliminar:</strong> Presione "Eliminar Distribuciones"
+                para confirmar la eliminación.
+              </li>
+              <li>
+                <strong>Cancelar:</strong> Presione "Cancelar Borrado" para
+                volver al modo normal.
+              </li>
+              <li>
+                <strong>Precaución:</strong> Esta acción no se puede deshacer.
+              </li>
+            </ul>
+          </div>
+        </mat-expansion-panel>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="dialog-actions">
+    <button mat-button #cancelarBtn (click)="onCancel()" class="cancel-btn">
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      #guardarBtn
+      [color]="modoBorrado ? 'warn' : 'accent'"
+      [disabled]="modoBorrado ? !canDeleteComputed : !canSaveComputed"
+      (click)="onSave()"
+      class="save-btn"
+    >
+      <mat-icon>{{ modoBorrado ? "delete" : "save" }}</mat-icon>
+      {{ modoBorrado ? "Eliminar Distribuciones" : "Guardar Distribución" }}
+    </button>
+  </div>
+</div>

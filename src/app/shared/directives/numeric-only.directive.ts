@@ -8,15 +8,19 @@ export class NumericOnlyDirective {
   constructor(private el: ElementRef) {}
 
   @HostListener('keydown', ['$event']) onKeyDown(event: KeyboardEvent) {
-    console.log(event.key);
-    
-    let allowedKeys = ['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete'];
+    const allowedKeys = ['Backspace', 'Tab', 'End', 'Home', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'];
     if (allowedKeys.includes(event.key)) {
       return;  // Allow navigation keys
     }
   
     // Block space key
     if (event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      return;
+    }
+
+    // Block negative sign
+    if (event.key === '-') {
       event.preventDefault();
       return;
     }
@@ -28,23 +32,12 @@ export class NumericOnlyDirective {
     }
   }
 
-  @HostListener('keyup', ['$event']) onKeyUp(event: KeyboardEvent) {
-    let value = this.el.nativeElement.value;
-    // Remove non-numeric characters
-    value = value.replace(/[^\d]/g, '');
-
-    if (value.length > 0) {
-      // Remove the last character
-      const lastChar = value.charAt(value.length - 1);
-      value = value.slice(0, -1);
-
-      // Trigger Angular's change detection by setting the value
-      this.el.nativeElement.value = value;
-
-      // Re-add the last character
-      this.el.nativeElement.value += lastChar;
-    } else {
-      this.el.nativeElement.value = value;
+  @HostListener('input', ['$event']) onInput(event: InputEvent) {
+    // Sanitize value on any input (including paste/composition)
+    const currentValue: string = this.el.nativeElement.value ?? '';
+    const sanitizedValue = currentValue.replace(/[^\d]/g, '');
+    if (sanitizedValue !== currentValue) {
+      this.el.nativeElement.value = sanitizedValue;
     }
   }
   

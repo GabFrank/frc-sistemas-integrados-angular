@@ -29,6 +29,10 @@ import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { interval } from "rxjs";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "./../../../../notificacion-snackbar.service";
 
 @UntilDestroy()
 @Component({
@@ -65,6 +69,7 @@ export class ListTransferenciaComponent implements OnInit {
   fechaFinControl = new FormControl();
   fechaFormGroup: FormGroup;
   sucursalList: Sucursal[];
+  sucursalIdlist: Number[];
   estadoList = Object.values(TransferenciaEstado);
   etapaList = Object.values(EtapaTransferencia);
   today = new Date();
@@ -92,7 +97,8 @@ export class ListTransferenciaComponent implements OnInit {
     private tabService: TabService,
     public mainService: MainService,
     private sucursalService: SucursalService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -109,24 +115,19 @@ export class ListTransferenciaComponent implements OnInit {
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
     });
-    this.onGetTransferencias();
-    this.sucursalService.onGetAllSucursales().subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
-    });
 
-    setTimeout(() => {
-      this.matDialog.open(DialogoNuevasFuncionesComponent, {
-        data: {
-          id: 123,
-          componente: ListTransferenciaComponent,
-          titulo: 'Nuevas funciones en esta pantalla de transferencias',
-          mensaje: `
-          A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.
-          `
-        },
-        width: '60%'
+    this.sucursalList = [];
+    this.sucursalIdlist = [];
+
+    this.onGetTransferencias();
+    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
+      this.sucursalList = res.filter((s) => {
+        if (s.id != 0) {
+          this.sucursalIdlist.push(s.id);
+          return s;
+        }
       })
-    }, 1000);
+    });
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
       this.onFilter();      
@@ -224,7 +225,7 @@ export class ListTransferenciaComponent implements OnInit {
     this.tabService.addTab(
       new Tab(
         EditTransferenciaComponent,
-        "Transferencia " + transferencia.id,
+        "Transf. " + transferencia.id,
         new TabData(transferencia.id),
         ListTransferenciaComponent
       )
@@ -232,16 +233,52 @@ export class ListTransferenciaComponent implements OnInit {
   }
 
   onDelete(transferencia: Transferencia, index) {
+    // Primero cargar los detalles completos de la transferencia para verificar si tiene productos
+    this.cargandoService.openDialog();
+    
     this.transferenciaService
-      .onDeleteTransferencia(transferencia.id)
+      .onGetTransferencia(transferencia.id)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          this.dataSource.data = updateDataSource(
-            this.dataSource.data,
-            null,
-            index
-          );
+      .subscribe({
+        next: (transferenciaCompleta) => {
+          this.cargandoService.closeDialog();
+          
+          // Verificar si la transferencia tiene productos
+          if (transferenciaCompleta?.transferenciaItemList && transferenciaCompleta.transferenciaItemList.length > 0) {
+            this.notificacionService.notification$.next({
+              texto: `No se puede eliminar la transferencia. Contiene ${transferenciaCompleta.transferenciaItemList.length} producto(s).`,
+              color: NotificacionColor.warn,
+              duracion: 4
+            });
+            return;
+          }
+
+          // Si no tiene productos, proceder con la eliminación
+          this.transferenciaService
+            .onDeleteTransferencia(transferencia.id)
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+              if (res) {
+                this.dataSource.data = updateDataSource(
+                  this.dataSource.data,
+                  null,
+                  index
+                );
+                this.notificacionService.notification$.next({
+                  texto: 'Transferencia eliminada correctamente',
+                  color: NotificacionColor.success,
+                  duracion: 3
+                });
+              }
+            });
+        },
+        error: (error) => {
+          this.cargandoService.closeDialog();
+          this.notificacionService.notification$.next({
+            texto: 'Error al verificar los detalles de la transferencia',
+            color: NotificacionColor.danger,
+            duracion: 4
+          });
         }
       });
   }
