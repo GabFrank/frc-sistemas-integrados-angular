@@ -1,9 +1,11 @@
-
 <div style="width: 100%; height: 100%;" fxLayout="column">
-  <h4 style="text-align: center; margin: 0;">Buscador de ventas</h4>
   <app-generic-list
     (filtrar)="onFiltrarConReset()"
     (resetFiltro)="onResetFiltro()"
+    [isCustom]="true"
+    (customFunction)="onGenerarReporte()"
+    [disableCustom]="isGenerarReporteDisabled"
+    customName="Generar Reporte"
     style="width: 100%; height: 100%;"
   >
     <div filtros>
