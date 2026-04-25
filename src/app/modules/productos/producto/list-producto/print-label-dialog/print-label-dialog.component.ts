@@ -8,7 +8,9 @@ import { Observable, of, from } from 'rxjs';
 import { catchError, map, switchMap, take } from 'rxjs/operators';
 import { Producto } from '../../producto.model';
 import { PrinterInfo, PrintResult } from '../../../../../commons/core/electron/electron.service';
-import { BarcodeQrGeneratorService } from './barcode-qr-generator.service'; 
+import { BarcodeQrGeneratorService } from './barcode-qr-generator.service';
+import { MonedaService } from '../../../../financiero/moneda/moneda.service';
+import { Moneda } from '../../../../financiero/moneda/moneda.model';
 
 @Component({
   selector: 'app-print-label-dialog',
@@ -37,18 +39,28 @@ export class PrintLabelDialogComponent implements OnInit {
     { value: 'qr', label: 'Código QR' }
   ];
 
+  // Cotizaciones cargadas desde MonedaService
+  cotizacionReal: number = 130;
+  cotizacionDolar: number = 7000;
+
+  // Precios calculados para preview
+  previewPrecioReal: string = '';
+  previewPrecioDolar: string = '';
+
   constructor(
     public dialogRef: MatDialogRef<PrintLabelDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
     private fb: FormBuilder,
-    private barcodeQrService: BarcodeQrGeneratorService
+    private barcodeQrService: BarcodeQrGeneratorService,
+    private monedaService: MonedaService
   ) { }
 
   ngOnInit(): void {
     this.initForm();
     this.loadPrinters();
+    this.loadCotizaciones();
     console.log('Product data:', this.data.producto);
 
     // Set initial form values based on product
@@ -87,6 +99,25 @@ export class PrintLabelDialogComponent implements OnInit {
     });
   }
 
+  loadCotizaciones(): void {
+    this.monedaService.onGetAll(false).subscribe({
+      next: (monedas: Moneda[]) => {
+        const real = monedas?.find(m => m.denominacion === 'REAL');
+        const dolar = monedas?.find(m => m.denominacion === 'DOLAR');
+        if (real?.cambio) {
+          this.cotizacionReal = real.cambio;
+          this.printForm.get('cotizacionReal').setValue(real.cambio, { emitEvent: false });
+        }
+        if (dolar?.cambio) {
+          this.cotizacionDolar = dolar.cambio;
+          this.printForm.get('cotizacionDolar').setValue(dolar.cambio, { emitEvent: false });
+        }
+        this.updatePreviewComputedProperties();
+      },
+      error: () => {/* usa valores por defecto */}
+    });
+  }
+
   initForm(): void {
     this.printForm = this.fb.group({
       selectedPrinter: ['', Validators.required],
@@ -97,7 +128,10 @@ export class PrintLabelDialogComponent implements OnInit {
       barcodeData: [''],
       qrCodeData: [''],
       qrCodeTitle: [''],
-      creationDate: [new Date().toISOString().split('T')[0]]
+      creationDate: [new Date().toISOString().split('T')[0]],
+      currencyMode: ['guarani'],
+      cotizacionReal: [this.cotizacionReal],
+      cotizacionDolar: [this.cotizacionDolar]
     });
   }
 
@@ -195,12 +229,16 @@ export class PrintLabelDialogComponent implements OnInit {
     const barcodeVal: string = (this.printForm.get('barcodeData').value || this.data.producto?.codigoPrincipal || '').toString();
     const qrDataVal: string = (this.printForm.get('qrCodeData').value || '').toString();
     const creationDate = this.printForm.get('creationDate').value;
+    const cotReal = this.printForm.get('cotizacionReal')?.value || this.cotizacionReal;
+    const cotDolar = this.printForm.get('cotizacionDolar')?.value || this.cotizacionDolar;
 
     const selType = this.printForm.get('selectedLabelType').value;
     const nameMaxChars = this.getMaxNameCharsForLabel(selType);
     this.previewNameLines = this.wrapNameToTwoLines(productName, nameMaxChars);
     this.previewPrice = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     this.previewDate = `Fab: ${this.formatShortDate(creationDate)}`;
+    this.previewPrecioReal = `R$ ${(priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    this.previewPrecioDolar = `D$ ${(priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // Generar imagen de código de barras para preview si el tipo seleccionado es barcode
     if (selType === 'barcode' && barcodeVal) {
@@ -513,5 +551,186 @@ export class PrintLabelDialogComponent implements OnInit {
 
   toggleIncludeCreationDate(): void {
     this.includeCreationDate = !this.includeCreationDate;
+  }
+
+  async printOfficeLabel(): Promise<void> {
+    const product = this.data.producto;
+    if (!product) return;
+
+    const productName: string = (product.descripcion || '').toString().toUpperCase();
+    const codigoPrincipal: string = (product.codigoPrincipal || '').toString().trim();
+    const priceNum: number = typeof product.precioPrincipal === 'number'
+      ? product.precioPrincipal
+      : parseFloat(product.precioPrincipal) || 0;
+    const quantity: number = this.printForm.get('quantity').value || 1;
+    const currencyMode: string = this.printForm.get('currencyMode').value || 'guarani';
+    const cotReal: number = this.printForm.get('cotizacionReal').value || this.cotizacionReal;
+    const cotDolar: number = this.printForm.get('cotizacionDolar').value || this.cotizacionDolar;
+
+    const priceGs = priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const priceReal = (priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const priceDolar = (priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const showAllCurrencies = currencyMode === 'todas';
+
+    // Generar barcode como data URL (Code 128)
+    let barcodeDataUrl: string | null = null;
+    if (codigoPrincipal) {
+      try {
+        barcodeDataUrl = await this.barcodeQrService.generateBarcode(codigoPrincipal, 'CODE128', {
+          height: 40,
+          width: 1.5,
+          margin: 2,
+          displayValue: true,
+          fontSize: 10,
+          textMargin: 2,
+          fontOptions: '',
+          font: 'Arial',
+          textAlign: 'center',
+          lineColor: '#000000',
+          background: '#ffffff'
+        });
+      } catch (e) {
+        barcodeDataUrl = null;
+      }
+    }
+
+    // Bloque barcode o espacio vacío si no tiene código
+    const barcodeSection = barcodeDataUrl
+      ? `<div class="barcode-wrap"><img class="barcode-img" src="${barcodeDataUrl}" alt="${codigoPrincipal}"/></div>`
+      : '';
+
+    // Construir HTML de una etiqueta individual
+    const buildLabel = (): string => {
+      const priceSection = showAllCurrencies
+        ? `<div class="prices-row">
+            <span class="price-gs">Gs. ${priceGs}</span>
+            <span class="price-divider">|</span>
+            <span class="price-other">R$ ${priceReal}</span>
+            <span class="price-divider">|</span>
+            <span class="price-other">D$ ${priceDolar}</span>
+           </div>`
+        : `<div class="prices-row"><span class="price-gs-solo">Gs. ${priceGs}</span></div>`;
+
+      return `<div class="etiqueta">
+        <div class="product-name">${productName}</div>
+        ${barcodeSection}
+        <div class="separator"></div>
+        ${priceSection}
+      </div>`;
+    };
+
+    // Generar N etiquetas
+    let labelsHtml = '';
+    for (let i = 0; i < quantity; i++) {
+      labelsHtml += buildLabel();
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Etiquetas de Precio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: A4 portrait; margin: 10mm; }
+    body { font-family: Arial, sans-serif; background: white; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 104mm);
+      gap: 0;
+    }
+    .etiqueta {
+      width: 104mm;
+      height: 42mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2mm 5mm;
+      border: 1px dashed #aaa;
+      text-align: center;
+      overflow: hidden;
+      gap: 0;
+    }
+    .product-name {
+      font-size: 14pt;
+      font-weight: bold;
+      line-height: 1.1;
+      text-align: center;
+      word-break: break-word;
+      width: 100%;
+      margin-bottom: 1mm;
+    }
+    .barcode-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin: 0.5mm 0;
+    }
+    .barcode-img {
+      max-width: 88mm;
+      height: 11mm;
+      object-fit: contain;
+    }
+    .separator {
+      width: 85%;
+      height: 1px;
+      background: #333;
+      margin: 1mm 0;
+    }
+    .prices-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3mm;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+    .price-gs { font-size: 14pt; font-weight: bold; }
+    .price-gs-solo { font-size: 14pt; font-weight: bold; }
+    .price-other { font-size: 14pt; font-weight: 600; }
+    .price-divider { font-size: 8pt; color: #555; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid">${labelsHtml}</div>
+</body>
+</html>`;
+
+    // Crear iframe oculto e imprimir
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      this.snackBar.open('Error al preparar impresión', 'Cerrar', { duration: 3000 });
+      document.body.removeChild(iframe);
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (e) {
+        this.snackBar.open('Error al imprimir', 'Cerrar', { duration: 3000 });
+      } finally {
+        setTimeout(() => document.body.removeChild(iframe), 2000);
+      }
+    }, 500);
   }
 }
