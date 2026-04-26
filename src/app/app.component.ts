@@ -279,7 +279,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.keyPressed = "Control";
         break;
       case " ":
-        if (this.keyPressed == "Control")
+        if (this.keyPressed == "Control" && this.matDialog.openDialogs.length === 0)
           this.matDialog.open(SearchBarDialogComponent, {
             data: null,
             width: "50%",

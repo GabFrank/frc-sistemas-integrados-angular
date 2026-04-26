@@ -15,90 +15,150 @@
     </div>
 
     <!-- Price Label Options (default) -->
-    <div *ngIf="printForm.get('selectedLabelType').value === 'price'">
-      <div class="printer-selection">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Impresora Térmica</mat-label>
-          <mat-select formControlName="selectedPrinter">
-            <mat-option *ngFor="let printer of printers" [value]="printer.name">
-              {{printer.displayName || printer.name}}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
-            Seleccione una impresora
-          </mat-error>
-        </mat-form-field>
-      </div>
+    <div *ngIf="printForm.get('selectedLabelType').value === 'price'" class="price-layout">
 
-      <div class="quantity-selection">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Cantidad</mat-label>
-          <input matInput type="number" min="1" formControlName="quantity">
-          <mat-error *ngIf="printForm.get('quantity').hasError('required')">
-            Ingrese la cantidad
-          </mat-error>
-          <mat-error *ngIf="printForm.get('quantity').hasError('min')">
-            La cantidad debe ser al menos 1
-          </mat-error>
-        </mat-form-field>
-      </div>
+      <!-- Columna izquierda: configuración de impresora térmica -->
+      <div class="price-col-left">
+        <p class="section-subtitle">Impresora Térmica</p>
 
-      <div class="date-selection" *ngIf="includeCreationDate">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Fecha de Elaboración</mat-label>
-          <input matInput type="date" formControlName="creationDate">
-        </mat-form-field>
-      </div>
-
-      <div class="checkbox-options">
-        <mat-checkbox 
-          [checked]="includeCreationDate" 
-          (change)="toggleIncludeCreationDate()"
-        >
-          Incluir fecha de elaboración
-        </mat-checkbox>
-
-        <mat-checkbox formControlName="isLandscape">
-          Orientación Horizontal (Landscape)
-        </mat-checkbox>
-
-        <mat-checkbox formControlName="useImagePrinting">
-          Imprimir como Imagen (Recomendado)
-        </mat-checkbox>
-      </div>
-
-      <!-- Label Preview -->
-      <div class="label-preview">
-        <div style="display: flex;">
-          <h3>Vista Previa</h3>
-          <mat-icon
-            style="
-              cursor: pointer;
-              margin-left: 5px;
-            "
-            (click)="togglePreview()"
-          >
-            {{ previewVisible ? 'visibility' : 'visibility_off' }}
-          </mat-icon>
+        <div class="printer-selection">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Impresora</mat-label>
+            <mat-select formControlName="selectedPrinter">
+              <mat-option *ngFor="let printer of printers" [value]="printer.name">
+                {{printer.displayName || printer.name}}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
+              Seleccione una impresora
+            </mat-error>
+          </mat-form-field>
         </div>
 
-        <div 
-          class="label-shape" 
-          *ngIf="previewVisible" 
-          [ngClass]="{'landscape': printForm.get('isLandscape').value}"
-        >
-          <div #labelPreview class="label-content">
-            <div class="product-name">
-              {{data.producto?.descripcion | slice:0:24}} 
-              {{data.producto?.descripcion?.length > 24 ? '...' : ''}}
-            </div>
-            <div class="product-price">
-              {{data.producto?.precioPrincipal | currency:'PYG':'symbol-narrow':'1.0-0':'es-PY'}}
+        <div class="quantity-selection">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Cantidad de etiquetas</mat-label>
+            <input matInput type="number" min="1" formControlName="quantity">
+            <mat-error *ngIf="printForm.get('quantity').hasError('required')">
+              Ingrese la cantidad
+            </mat-error>
+            <mat-error *ngIf="printForm.get('quantity').hasError('min')">
+              La cantidad debe ser al menos 1
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="date-selection" *ngIf="includeCreationDate">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Fecha de Elaboración</mat-label>
+            <input matInput type="date" formControlName="creationDate">
+          </mat-form-field>
+        </div>
+
+        <div class="checkbox-options">
+          <mat-checkbox 
+            [checked]="includeCreationDate" 
+            (change)="toggleIncludeCreationDate()"
+          >
+            Incluir fecha de elaboración
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="isLandscape">
+            Orientación Horizontal (Landscape)
+          </mat-checkbox>
+
+          <mat-checkbox formControlName="useImagePrinting">
+            Imprimir como Imagen (Recomendado)
+          </mat-checkbox>
+        </div>
+
+        <!-- Vista previa térmica pequeña -->
+        <div class="label-preview">
+          <div style="display: flex; align-items: center;">
+            <h3>Vista Previa (Térmica)</h3>
+            <mat-icon
+              style="cursor: pointer; margin-left: 5px;"
+              (click)="togglePreview()"
+            >
+              {{ previewVisible ? 'visibility' : 'visibility_off' }}
+            </mat-icon>
+          </div>
+
+          <div 
+            class="label-shape" 
+            *ngIf="previewVisible" 
+            [ngClass]="{'landscape': printForm.get('isLandscape').value}"
+          >
+            <div #labelPreview class="label-content">
+              <div class="product-name">
+                {{data.producto?.descripcion | slice:0:24}} 
+                {{data.producto?.descripcion?.length > 24 ? '...' : ''}}
+              </div>
+              <div class="product-price">
+                {{data.producto?.precioPrincipal | currency:'PYG':'symbol-narrow':'1.0-0':'es-PY'}}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Columna derecha: configuración afiche A4 -->
+      <div class="price-col-right">
+        <p class="section-subtitle">Afiche A4 (10cm × 4cm)</p>
+
+        <!-- Selector de monedas -->
+        <div class="currency-mode-selection">
+          <label class="currency-label">Monedas a mostrar:</label>
+          <mat-button-toggle-group formControlName="currencyMode" class="currency-toggle">
+            <mat-button-toggle value="guarani">Solo Gs.</mat-button-toggle>
+            <mat-button-toggle value="todas">Gs. + R$ + D$</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        <!-- Cotizaciones (solo visible si modo = todas) -->
+        <div class="cotizaciones-row" *ngIf="printForm.get('currencyMode').value === 'todas'">
+          <mat-form-field appearance="outline" class="cot-field">
+            <mat-label>Cotización Real (Gs./R$)</mat-label>
+            <input matInput type="number" min="1" formControlName="cotizacionReal" readonly>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="cot-field">
+            <mat-label>Cotización Dólar (Gs./D$)</mat-label>
+            <input matInput type="number" min="1" formControlName="cotizacionDolar" readonly>
+          </mat-form-field>
+        </div>
+
+        <!-- Vista previa etiqueta afiche -->
+        <div class="afiche-preview-wrap">
+          <p class="preview-hint">Vista previa del afiche:</p>
+          <div class="afiche-preview-label">
+            <div class="afiche-product-name">
+              {{data.producto?.descripcion?.toUpperCase()}}
+            </div>
+            <div class="afiche-barcode-placeholder" *ngIf="data.producto?.codigoPrincipal">
+              <mat-icon style="font-size:14px; height:14px; width:14px; color: rgba(255,255,255,0.5)">barcode_reader</mat-icon>
+              <span class="afiche-barcode-text">{{data.producto?.codigoPrincipal}}</span>
+            </div>
+            <div class="afiche-separator"></div>
+            <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'guarani'">
+              <span class="afiche-price-solo">{{previewPrice}}</span>
+            </div>
+            <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'todas'">
+              <span class="afiche-price-gs">{{previewPrice}}</span>
+              <span class="afiche-divider">|</span>
+              <span class="afiche-price-other">{{previewPrecioReal}}</span>
+              <span class="afiche-divider">|</span>
+              <span class="afiche-price-other">{{previewPrecioDolar}}</span>
+            </div>
+          </div>
+          <p class="preview-hint" style="margin-top: 8px;">
+            <mat-icon style="font-size:14px; height:14px; width:14px; vertical-align:middle;">info</mat-icon>
+            {{printForm.get('quantity').value}} etiqueta(s) — 2 por fila en hoja A4
+          </p>
+        </div>
+      </div>
+
     </div>
+
 
     <!-- Barcode Options -->
     <div *ngIf="printForm.get('selectedLabelType').value === 'barcode'">
@@ -268,7 +328,17 @@
   >
     <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
     <span *ngIf="!loading">
-      Imprimir
+      Imprimir (Térmica)
     </span>
+  </button>
+  <button 
+    mat-raised-button 
+    color="accent"
+    *ngIf="printForm.get('selectedLabelType').value === 'price'"
+    (click)="printOfficeLabel()"
+    [disabled]="loading"
+  >
+    <mat-icon style="transform: scale(1.5);">print</mat-icon>
+    Imprimir Afiche A4
   </button>
 </mat-dialog-actions>
