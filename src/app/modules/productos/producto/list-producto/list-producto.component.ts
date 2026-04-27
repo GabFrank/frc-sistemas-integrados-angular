@@ -397,7 +397,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   updatePermisos() {
-    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false;
+    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) || false;
   }
 
   onAjustarStock(producto: Producto) {
