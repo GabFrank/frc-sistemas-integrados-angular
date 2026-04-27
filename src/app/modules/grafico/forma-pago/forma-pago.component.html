@@ -91,7 +91,7 @@
                                 <span class="item-transactions">{{ item.cantidadFormateada }}</span>
                             </div>
                             <div class="item-values">
-                                <span class="item-amount">{{ item.montoFormateada }}</span>
+                                <span class="item-amount">{{ item.montoFormateado }}</span>
                                 <span class="item-percentage" [class.zero]="item.porcentaje === 0">
                                     {{ item.porcentaje | number:'1.2-2' }}%
                                 </span>

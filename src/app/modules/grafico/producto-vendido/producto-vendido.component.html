@@ -60,7 +60,7 @@
     <ng-container *ngIf="datos$ | async as datos">
         <div class="main-content" [class.loading]="cargando$ | async">
             <div class="chart-card">
-                <div echarts [options]="datos.opciones" [merge]="false" class="pie-chart"></div>
+                <div echarts [options]="datos.opciones" class="pie-chart"></div>
             </div>
 
             <div class="details-card">
