@@ -47,8 +47,8 @@ import { ListLoteDeComponent } from '../../../modules/financiero/documento-elect
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { GraficosComponent } from '../../../modules/grafico/graficos/graficos.component';
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
-import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
-import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
+import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/pages/list-marcacion/list-marcacion.component';
+import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 
 
 interface BaseNavigationItem {
