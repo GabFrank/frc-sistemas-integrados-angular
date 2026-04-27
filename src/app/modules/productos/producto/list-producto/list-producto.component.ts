@@ -284,7 +284,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onPrintPriceLabel(producto: Producto) {
     if (producto && producto.precioPrincipal) {
       this.matDialog.open(PrintLabelDialogComponent, {
-        width: '400px',
+        width: '800px',
         data: { producto: producto }
       });
     } else {
