@@ -45,6 +45,7 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { GraficosComponent } from '../../../modules/grafico/graficos/graficos.component';
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/components/list-marcacion/list-marcacion.component';
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/components/marcar-horario/marcar-horario.component';
@@ -355,6 +356,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
+      name: 'Gráficos',
+      icon: 'bar_chart',
+      action: 'graficos',
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN]
+    },
+    {
       name: 'Configuración',
       icon: 'settings',
       isExpanded: false,
@@ -505,7 +513,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
   toggleSidenav(expanded: boolean): void {
     this.isExpanded = expanded;
     this.toggleSideNav.emit(this.isExpanded);
-    
+
     // Resetear el estado de expansión de todos los items cuando se cierra el menú
     if (!expanded) {
       this.resetMenuExpansion();
@@ -531,7 +539,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
-  
+
   onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
@@ -683,6 +691,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
+        break;
+      case "graficos":
+        this.openTabIfAuthorized(ROLES.ADMIN, GraficosComponent, "Gráficos");
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));

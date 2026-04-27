@@ -94,17 +94,17 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     data?.tableData.forEach(e => {
       this.displayedColumns.push(e.id);
     });
-    
+
     // Set initial data if provided
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
     }
-    
+
     // Initialize query data
     if (data?.queryData != null) {
       this.queryData = data.queryData;
     }
-    
+
     // Set initial search text
     const searchField = data?.searchFieldName || 'texto';
     if (data?.queryData?.[searchField] != null) {
@@ -115,9 +115,19 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.displayedColumns = [];
+    this.data?.tableData.forEach(e => {
+      const columnId = e.nestedColumnId != null ? e.nestedColumnId : e.id;
+      this.displayedColumns.push(columnId);
+    })
+
+    console.log('Columnas a mostrar en ngOnInit:', this.displayedColumns);
+    if (this.displayedColumns.length === 0) {
+      this.displayedColumns = ['id', 'nombre'];
+    }
     // **PERFORMANCE**: Initialize computed properties
     this.updateComputedProperties();
-    
+
     // Perform initial search if configured
     if (this.data?.inicialSearch) {
       if (this.data?.texto != null) {
@@ -165,7 +175,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
         this.selectedItem = this.dataSource.data[currentIndex];
       }
       this.tableRows.toArray()[currentIndex].nativeElement.focus();
-      
+
       // **PERFORMANCE**: Update computed properties after selection change
       this.updateComputedProperties();
     }
@@ -277,7 +287,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       this.matDialogRef.close(row)
       return;
     }
-    
+
     this.selectedItem = row;
     this.updateComputedProperties();
   }
@@ -291,7 +301,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   }
 
   onAdicionar() {
-    this.matDialogRef.close({adicionar: true})
+    this.matDialogRef.close({ adicionar: true })
   }
 
   handlePageEvent(e: PageEvent): void {
@@ -307,19 +317,19 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   private updateComputedProperties(): void {
     // Dialog title
     this.dialogTitleComputed = this.data?.titulo || 'Buscar';
-    
+
     // Data state
     this.hasDataComputed = this.dataSource.data.length > 0;
-    
+
     // Selection state
     this.hasSelectedItemComputed = this.selectedItem != null;
-    
+
     // Pagination
     this.showPaginatorComputed = this.data?.paginator === true && this.selectedPageInfo != null;
-    
+
     // Adicionar button
     this.showAdicionarButtonComputed = this.data?.isAdicionar === true;
-    
+
     // Search placeholder
     this.searchPlaceholderComputed = this.data?.textHint || this.data?.searchFieldName || 'Ingrese texto para buscar...';
   }

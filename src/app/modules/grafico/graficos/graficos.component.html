@@ -1,0 +1,40 @@
+<div class="graficos-dashboard">
+
+
+  <div class="charts-grid">
+    <div class="chart-card clickable" (click)="onChartClick('venta-sucursal')">
+      <div echarts [options]="ventasPorSucursalOptions" class="chart"></div>
+    </div>
+
+    <!-- DESHABILITADO: Gráfico de ventas mensuales no se utiliza
+    <div class="chart-card clickable" (click)="onChartClick('venta-mes')">
+      <div echarts [options]="evolucionVentasOptions" class="chart"></div>
+    </div>
+    -->
+
+    <div class="chart-card clickable" (click)="onChartClick('pago')">
+      <div echarts [options]="formasPagoOptions" class="chart"></div>
+    </div>
+
+    <div class="chart-card clickable" (click)="onChartClick('gasto-categoria')">
+      <div echarts [options]="gastosCategoriaOptions" class="chart"></div>
+    </div>
+
+    <div class="chart-card clickable" (click)="onChartClick('ingreso-gasto')">
+      <div echarts [options]="ingresosGastosOptions" class="chart"></div>
+    </div>
+
+    <div class="chart-card clickable" (click)="onChartClick('hora')">
+      <div echarts [options]="ventasHoraOptions" class="chart"></div>
+    </div>
+
+
+    <div class="chart-card clickable" (click)="onChartClick('funcionario')">
+      <div echarts [options]="ventasFuncionarioOptions" class="chart"></div>
+    </div>
+
+    <div class="chart-card clickable" (click)="onChartClick('productos')">
+      <div echarts [options]="productosMasVendidosOptions" class="chart"></div>
+    </div>
+  </div>
+</div>

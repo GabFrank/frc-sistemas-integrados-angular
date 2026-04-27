@@ -1,0 +1,24 @@
+<div class="ventas-dias-container">
+    <div class="filtros-container">
+        <mat-form-field appearance="outline">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+                <mat-option [value]="null">Todas las Sucursales</mat-option>
+                <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
+                    {{sucursal.nombre}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+
+    <div class="grafico-wrapper" *ngIf="!cargando; else cargandoTpl">
+        <div echarts [options]="echartsOption" class="chart"></div>
+    </div>
+
+    <ng-template #cargandoTpl>
+        <div class="loading-container">
+            <mat-spinner diameter="50"></mat-spinner>
+            <p>Cargando datos comparativos...</p>
+        </div>
+    </ng-template>
+</div>

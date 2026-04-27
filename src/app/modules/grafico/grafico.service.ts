@@ -1,0 +1,144 @@
+import { inject, Injectable } from '@angular/core';
+import { GenericCrudService } from '../../generics/generic-crud.service';
+import { VentaPorPeriodoGQL } from './graphql/venta-por-periodo.gql';
+
+import { FormaPagoEstadisticasConFiltrosGQL } from './graphql/forma-pago-estadisticas-con-filtros.gql';
+import { ProductosMasVendidosGQL } from './graphql/productos-mas-vendidos.gql';
+import { VentasPorFuncionarioGQL } from './graphql/ventas-por-funcionario.gql';
+import { SucursalService } from '../empresarial/sucursal/sucursal.service';
+import { FamiliaService } from '../productos/familia/familia.service';
+import { Observable } from 'rxjs';
+import { VentaPorPeriodo } from './models/venta-por-periodo.model';
+import { Sucursal } from '../empresarial/sucursal/sucursal.model';
+import { Familia } from '../productos/familia/familia.model';
+import { VentasPorHoraGQL } from './graphql/ventas-por-hora.gql';
+import { GastosPorCategoriaGQL } from './graphql/gastos-por-categoria.gql';
+import { VentasPorMesGQL } from './graphql/ventas-por-mes.gql';
+import { GastosPorMesGQL } from './graphql/gastos-por-mes.gql';
+import { VentasPorSucursalGQL } from './graphql/ventas-por-sucursal.gql';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class GraficoService {
+  private genericService = inject(GenericCrudService);
+  private sucursalService = inject(SucursalService);
+  private familiaService = inject(FamiliaService);
+  private ventaPorPeriodoGQL = inject(VentaPorPeriodoGQL);
+
+  private formaPagoGQL = inject(FormaPagoEstadisticasConFiltrosGQL);
+  private productosMasVendidosGQL = inject(ProductosMasVendidosGQL);
+  private ventasPorFuncionarioGQL = inject(VentasPorFuncionarioGQL);
+  private ventasPorHoraGQL = inject(VentasPorHoraGQL);
+  private gastosPorCategoriaGQL = inject(GastosPorCategoriaGQL);
+  private ventasPorMesGQL = inject(VentasPorMesGQL);
+  private gastosPorMesGQL = inject(GastosPorMesGQL);
+  private ventasPorSucursalGQL = inject(VentasPorSucursalGQL);
+
+  obtenerSucursales(): Observable<Sucursal[]> {
+    return this.sucursalService.onGetAllSucursales(true);
+  }
+
+  obtenerFamilias(): Observable<Familia[]> {
+    return this.familiaService.familiaBS.asObservable();
+  }
+
+  obtenerVentasPorPeriodo(inicio: string, fin: string, sucId?: number): Observable<VentaPorPeriodo[]> {
+    return this.genericService.onCustomQuery(
+      this.ventaPorPeriodoGQL,
+      { inicio, fin, sucId },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerEstadisticasFormaPago(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.formaPagoGQL,
+      { inicio, fin, sucursalId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerProductosMasVendidos(inicio: string, fin: string, sucId?: number, familiaId?: number, limit: number = 10): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.productosMasVendidosGQL,
+      {
+        inicio, fin, limit,
+        sucursalId: sucId ? String(sucId) : null,
+        familiaId: familiaId ? String(familiaId) : null
+      },
+      true,
+      null,
+      true
+
+    );
+  }
+
+  obtenerVentasPorFuncionario(inicio: string, fin: string, sucId?: number, usuarioId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorFuncionarioGQL,
+      {
+        inicio, fin,
+        sucId: sucId ? String(sucId) : null,
+        usuarioId: usuarioId ? String(usuarioId) : null
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorHora(fecha: string, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorHoraGQL,
+      { fecha, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerGastosPorCategoria(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.gastosPorCategoriaGQL,
+      { inicio, fin, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorMes(anio: number, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorMesGQL,
+      { anio, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerGastosPorMes(anio: number, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.gastosPorMesGQL,
+      { anio, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorSucursal(inicio: string, fin: string): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorSucursalGQL,
+      { inicio, fin },
+      true,
+      null,
+      true
+    );
+  }
+}
