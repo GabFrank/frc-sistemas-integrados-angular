@@ -32,6 +32,8 @@ import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioS
 import { Subfamilia } from "../../../../productos/sub-familia/sub-familia.model";
 import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/subfamiliasSearch";
 import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
+import { FuncionarioSearchGQL } from "../../../../personas/funcionarios/graphql/funcionarioSearch";
+import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -98,7 +100,7 @@ export class LucroPorProductoComponent implements OnInit {
     private dialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private personaService: PersonaService,
-    private usuarioSearch: UsuarioSearchGQL,
+    private funcionarioSearch: FuncionarioSearchGQL,
     private usuarioService: UsuarioService,
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
     private matDialog: MatDialog
@@ -349,7 +351,7 @@ export class LucroPorProductoComponent implements OnInit {
   onBuscarCajero() {
     let data: SearchListtDialogData = {
       titulo: "Buscar Cajero",
-      query: this.usuarioSearch,
+      query: this.funcionarioSearch,
       tableData: [
         { id: "id", nombre: "Id", width: "10%" },
         { id: "nickname", nombre: "Nombre", width: "90%" },
@@ -367,22 +369,28 @@ export class LucroPorProductoComponent implements OnInit {
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res: Usuario) => {
+      .subscribe((res: Funcionario) => {
         if (res != null) {
-          this.usuarioService
-            .onGetUsuario(res.id)
-            .pipe(untilDestroyed(this))
-            .subscribe((resUsuario) => {
-              if (resUsuario != null) {
-                this.selectedUsuario = resUsuario;
-                this.buscarCajeroControl.setValue(res.id + " - " + res.nickname);
-              } else {
-                this.notificacionService.openWarn(
-                  "No posee usuario registrado"
-                );
-                this.buscadorCajeroInput.nativeElement.select();
-              }
-            });
+          if (res.persona?.id) {
+            this.usuarioService
+              .onGetUsuarioPorPersonaId(res.persona.id)
+              .pipe(untilDestroyed(this))
+              .subscribe((resUsuario) => {
+                if (resUsuario != null) {
+                  this.selectedUsuario = resUsuario;
+                  this.buscarCajeroControl.setValue(res.id + " - " + res.nickname);
+                } else {
+                  this.notificacionService.openWarn(
+                    "Nombre de usuario no encontrado"
+                  );
+                  this.buscadorCajeroInput.nativeElement.select();
+                }
+              });
+          } else {
+            this.notificacionService.openWarn(
+              "El funcionario seleccionado no tiene una persona asociada"
+            );
+          }
         }
       });
   }
@@ -395,20 +403,17 @@ export class LucroPorProductoComponent implements OnInit {
           },
           {
             id: "nombre",
-            nombre: "Familia",
-            nested: true,
-            nestedId: "familia",
-            nestedColumnId: "familia",
+            nombre: "Nombre",
           },
           {
-            id: "nombre",
-            nombre: "Nombre",
+            id: "familia.nombre",
+            nombre: "Familia",
           },
         ];
         let data: SearchListtDialogData = {
           query: this.searchSubfamilia,
           tableData: tableData,
-          titulo: "Buscar subfamilia",
+          titulo: "Buscar Subfamilia",
           search: true,
           queryData: { texto: this.buscarSubfamiliaControl.value },
           inicialSearch: true,

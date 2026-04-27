@@ -49,8 +49,8 @@ export class GenericListVentaComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
-  @Input()
-  data: Tab;
+  @Input() data: Tab;
+  @Input() isGenerarReporteDisabled: boolean = true;
 
   today = new Date();
   selectedCliente: Cliente;
@@ -210,6 +210,7 @@ export class GenericListVentaComponent implements OnInit {
           this.ventaDataSource.data = res.getContent;
           this.onObservado(this.ventaDataSource.data);
           this.ventaDataSource.data = [...this.ventaDataSource.data];
+          this.isGenerarReporteDisabled = !res.getContent || res.getContent.length === 0;
         }
       });
   }
@@ -258,6 +259,7 @@ export class GenericListVentaComponent implements OnInit {
     this.conAumentoControl.setValue(false);
     this.fechaInicioControl.setValue(null);
     this.conDescuentoControl.setValue(false);
+    this.isGenerarReporteDisabled = true;
   }
 
   getTotales(venta: Venta) {
@@ -439,5 +441,28 @@ export class GenericListVentaComponent implements OnInit {
             });
         }
       });
+  }
+
+  onGenerarReporte() {
+    let fechaInicio = this.fechaInicioControl.value != null ?
+      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
+    let fechaFin = this.fechaFinControl.value != null ?
+      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+
+    this.ventaService.onReporteGenericVentas(
+      this.idVentaControl.value,
+      null,
+      this.sucursalControl.value,
+      this.formaPagoControl.value,
+      this.estadoControl.value,
+      this.modoControl.value,
+      this.monedaControl.value?.id,
+      this.conDescuentoControl.value,
+      this.conAumentoControl.value,
+      this.conObsControl.value,
+      this.selectedCliente?.id,
+      fechaInicio,
+      fechaFin
+    );
   }
 }

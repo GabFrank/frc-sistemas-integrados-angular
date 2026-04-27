@@ -89,6 +89,9 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.component";
+import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
+import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -245,7 +248,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private copyToClipService: Clipboard,
     private presentacionService: PresentacionService,
     private changeDetectorRefs: ChangeDetectorRef,
-    private cargandoDialog: CargandoDialogService
+    private cargandoDialog: CargandoDialogService,
+    private familiasSearchGQL: FamiliasSearchGQL,
+    private subfamiliasSearchGQL: SubfamiliasSearchGQL,
+    private notificacionService: NotificacionSnackbarService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -484,7 +490,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onProductoSave() {
-    if (this.selectedProducto != null && !this.datosGeneralesControl.dirty) {
+    let subfamiliaCambiada = false;
+    if (this.selectedProducto?.subfamilia?.id != this.selectedSubfamilia?.id) {
+      subfamiliaCambiada = true;
+    }
+    
+    if (this.selectedProducto != null && !this.datosGeneralesControl.dirty && !subfamiliaCambiada) {
       //nada
     } else {
       const {
@@ -554,6 +565,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
           if (res != null) {
             this.selectedProducto = res;
             this.stepper.next();
+            this.notificacionService.openSucess("Producto guardado correctamente", 4);
           } else {
             this.stepper.previous();
             setTimeout(() => {
@@ -618,6 +630,86 @@ export class ProductoComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.stepper.next();
     }, 500);
+  }
+
+  onCambiarFamilia() {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID' },
+      { id: 'nombre', nombre: 'Nombre' },
+    ];
+    const dialogData: SearchListtDialogData = {
+      query: this.familiasSearchGQL,
+      tableData,
+      titulo: 'Cambiar Familia',
+      search: true,
+      inicialSearch: true,
+      paginator: true,
+      searchFieldName: 'texto',
+      queryData: {
+        texto: '',
+        page: 0,
+        size: 15,
+      },
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: dialogData,
+        width: '60%',
+        height: '80%',
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Familia) => {
+        if (res != null && res.id != null) {
+          this.onFamiliaSelect(res);
+          this.familiaDataSource.data = [res];
+          this.selectedSubfamilia = null;
+          this.subfamiliaDataSource.data = [];
+          this.nextFamilia();
+        }
+      });
+  }
+
+  onCambiarSubfamilia() {
+    const tableData: TableData[] = [
+      { id: 'id', nombre: 'ID' },
+      { id: 'nombre', nombre: 'Nombre' },
+    ];
+    const dialogData: SearchListtDialogData = {
+      query: this.subfamiliasSearchGQL,
+      tableData,
+      titulo: 'Cambiar Subfamilia',
+      search: true,
+      inicialSearch: true,
+      paginator: true,
+      searchFieldName: 'texto',
+      queryData: {
+        familiaId: this.selectedFamilia?.id,
+        texto: '',
+        page: 0,
+        size: 15,
+      },
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: dialogData,
+        width: '60%',
+        height: '80%',
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Subfamilia) => {
+        if (res != null && res.id != null) {
+          this.onSubfamiliaSelect(res);
+          this.subfamiliaDataSource.data = [res];
+        }
+      });
+  }
+
+  onEditarFamilia() {
+    if(this.stepper){
+      this.stepper.selectedIndex = 0;
+    }
   }
 
   seleccionarSubfamilia(tipo) {
@@ -903,7 +995,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.matDialog
       .open(AdicionarPresentacionComponent, {
         data,
-        width: "50%",
+        width: "25%",
         disableClose: true,
       })
       .afterClosed()

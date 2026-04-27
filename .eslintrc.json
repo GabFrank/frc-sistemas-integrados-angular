@@ -16,8 +16,7 @@
         "createDefaultProgram": true
       },
       "extends": [
-        "plugin:@angular-eslint/recommended",
-        "plugin:@angular-eslint/template/process-inline-templates"
+        "plugin:@angular-eslint/recommended"
       ],
       "rules": {
         "@angular-eslint/component-selector": [
@@ -42,6 +41,7 @@
       "files": [
         "*.html"
       ],
+      "parser": "@angular-eslint/template-parser",
       "extends": [
         "plugin:@angular-eslint/template/recommended"
       ],

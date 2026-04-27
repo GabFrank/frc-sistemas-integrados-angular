@@ -67,6 +67,18 @@
     </mat-form-field>
     
     <mat-checkbox formControlName="isLocal">Usar Servidor Local</mat-checkbox>
+
+    <mat-form-field>
+      <mat-label>Canal de Actualización</mat-label>
+      <mat-select formControlName="updateChannel" required>
+        <mat-option value="stable">Estable (Producción)</mat-option>
+        <mat-option value="beta">Beta (Pre-producción)</mat-option>
+        <mat-option value="alpha">Alpha (Desarrollo)</mat-option>
+        <mat-option value="dev">Desarrollo (Sin actualizaciones)</mat-option>
+      </mat-select>
+      <mat-error *ngIf="configForm.get('updateChannel').invalid">Obligatorio</mat-error>
+      <mat-hint>Determina qué versiones recibe esta máquina</mat-hint>
+    </mat-form-field>
   </form>
 </mat-dialog-content>
 

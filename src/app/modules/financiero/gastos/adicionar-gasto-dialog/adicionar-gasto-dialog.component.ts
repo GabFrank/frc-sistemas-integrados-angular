@@ -402,12 +402,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                   this.cargandoDialog.closeDialog();
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
-                    if (gasto.responsable?.persona?.id) {
+                    if (this.mainService.usuarioActual?.persona?.id) {
                       this.notificationHttpService.sendGastoNotification(
                         gasto.id,
                         this.mainService.sucursalActual.id,
-                        gasto.responsable.persona.id,
-                        gasto.retiroGs
+                        this.mainService.usuarioActual.persona.id,
+                        gasto.retiroGs,
+                        this.mainService.usuarioActual.persona.nombre,
+                        this.mainService.sucursalActual.nombre
                       ).subscribe();
                     }
 

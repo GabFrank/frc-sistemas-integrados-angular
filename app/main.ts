@@ -1,14 +1,165 @@
 import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "electron";
-import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
 import { exec } from "child_process";
 import { PosPrinter } from 'electron-pos-printer';
 
+import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
+
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
+
+autoUpdater.logger = log;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+let updateEnabled = false;
+
+function configureUpdateChannel(): boolean {
+  try {
+    const configPath = path.join(app.getPath('userData'), 'config', 'config-backup.json');
+    log.info(`Looking for config at: ${configPath}`);
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const channel = config.updateChannel;
+      if (!channel || channel === 'dev') {
+        log.info('Update channel not configured or set to dev, auto-update disabled');
+        updateEnabled = false;
+        return false;
+      }
+      log.info(`Update channel from config: ${channel}`);
+      return applyUpdateChannel(channel);
+    } else {
+      log.info(`Config file NOT found at: ${configPath}`);
+      // Try fallback: check parent userData directory for misplaced config
+      const fallbackPaths = [
+        path.join(app.getPath('userData'), 'config-backup.json'),
+        path.join(app.getPath('appData'), 'frc-sistemas', 'config-backup.json'),
+      ];
+      for (const fallback of fallbackPaths) {
+        log.info(`Trying fallback: ${fallback}`);
+        if (fs.existsSync(fallback)) {
+          log.info(`Found config at fallback: ${fallback}`);
+          const config = JSON.parse(fs.readFileSync(fallback, 'utf8'));
+          const channel = config.updateChannel;
+          if (!channel || channel === 'dev') {
+            updateEnabled = false;
+            return false;
+          }
+          // Copy to expected location for next time
+          const configDir = path.join(app.getPath('userData'), 'config');
+          if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+          }
+          fs.copyFileSync(fallback, configPath);
+          log.info(`Copied config to expected location: ${configPath}`);
+          return applyUpdateChannel(channel);
+        }
+      }
+      log.info('No config file found in any location, auto-update disabled until configured');
+      updateEnabled = false;
+      return false;
+    }
+  } catch (e) {
+    log.error('Error reading update channel config:', e);
+    updateEnabled = false;
+    return false;
+  }
+}
+
+function applyUpdateChannel(channel: string): boolean {
+  switch (channel) {
+    case 'alpha':
+      autoUpdater.allowPrerelease = true;
+      autoUpdater.channel = 'alpha';
+      updateEnabled = true;
+      break;
+    case 'beta':
+      autoUpdater.allowPrerelease = true;
+      autoUpdater.channel = 'beta';
+      updateEnabled = true;
+      break;
+    case 'stable':
+      autoUpdater.allowPrerelease = false;
+      autoUpdater.channel = 'latest';
+      updateEnabled = true;
+      break;
+    default:
+      updateEnabled = false;
+      break;
+  }
+  log.info(`Auto-updater configured: channel=${channel}, enabled=${updateEnabled}, allowPrerelease=${autoUpdater.allowPrerelease}`);
+  return updateEnabled;
+}
+
+function calculateDefaultZoom(): number {
+  try {
+    const display = screen.getPrimaryDisplay();
+    const { width } = display.workAreaSize;
+    const scaleFactor = display.scaleFactor;
+    // workAreaSize ya es la resolución lógica (descontando scaleFactor y taskbar)
+    // A menor resolución lógica disponible, más necesitamos reducir el zoom
+    // Referencia: 1920px lógicos con scale 1.0 → -1.5
+    let zoom: number;
+    if (width <= 1280) {
+      zoom = -2.5;
+    } else if (width <= 1366) {
+      zoom = -2.0;
+    } else if (width <= 1600) {
+      zoom = -1.75;
+    } else if (width <= 1920) {
+      zoom = -1.5;
+    } else if (width <= 2560) {
+      zoom = -1.0;
+    } else {
+      zoom = -0.5;
+    }
+    // Si el SO tiene escala > 100%, reducir un poco más porque el SO ya agranda todo
+    if (scaleFactor > 1.0) {
+      zoom -= (scaleFactor - 1.0);
+    }
+    log.info(`Default zoom calculated: ${zoom} (resolution: ${width}x${display.workAreaSize.height}, scaleFactor: ${scaleFactor})`);
+    return zoom;
+  } catch (e) {
+    log.warn('Could not calculate default zoom, using -1.5:', e);
+    return -1.5;
+  }
+}
+
+function getZoomFilePath(): string {
+  return path.join(app.getPath('userData'), 'config', 'zoom-level.json');
+}
+
+function saveZoomLevel(level: number): void {
+  try {
+    const filePath = getZoomFilePath();
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify({ zoomLevel: level }), 'utf8');
+  } catch (e) {
+    log.warn('Could not save zoom level to file:', e);
+  }
+}
+
+function loadZoomLevel(): number {
+  try {
+    const filePath = getZoomFilePath();
+    if (fs.existsSync(filePath)) {
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (typeof data.zoomLevel === 'number') {
+        log.info(`Zoom level loaded from file: ${data.zoomLevel}`);
+        return data.zoomLevel;
+      }
+    }
+  } catch (e) {
+    log.warn('Could not read zoom level from file:', e);
+  }
+  return calculateDefaultZoom();
+}
 
 interface PrinterConfig {
   id: number;
@@ -24,13 +175,6 @@ interface PrinterConfig {
 
 let printers: PrinterConfig[] = [];
 
-autoUpdater.logger = log
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: 'GabFrank',
-  repo: 'franco-system-frontend-general',
-  private: false
-});
 
 const { ipcMain } = require('electron');
 let instanceCount = 0;
@@ -71,6 +215,11 @@ export async function createWindow(): Promise<BrowserWindow> {
   ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
 
     try {
+      if (!Notification.isSupported()) {
+        log.warn('Native notifications not supported on this system, skipping');
+        return;
+      }
+
       const title = notification?.notification?.title ||
         notification?.data?.title ||
         'FRC Sistemas Integrados';
@@ -104,7 +253,7 @@ export async function createWindow(): Promise<BrowserWindow> {
       nativeNotification.show();
 
     } catch (error) {
-      // Silent notification error
+      log.warn('Error showing native notification:', error);
     }
   });
 
@@ -171,29 +320,12 @@ export async function createWindow(): Promise<BrowserWindow> {
   });
 
   win.webContents.on('did-finish-load', () => {
-    win.webContents
-      .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-      .then((zoomLevel) => {
-        if (zoomLevel !== null && zoomLevel !== undefined && zoomLevel !== '') {
-          const parsedZoom = parseFloat(zoomLevel);
-          win.webContents.setZoomLevel(parsedZoom);
-        } else {
-          // Si no hay preferencia guardada, iniciamos con zoom -1.5 como base
-          // Esto soluciona el problema de que se vea muy grande tanto en alta como baja resolución
-          try {
-            const defaultZoom = -1.5;
-            win.webContents.setZoomLevel(defaultZoom);
-            // Guardamos el zoom inicial para evitar que se pierda o cause errores
-            win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
-          } catch (e) {
-            win.webContents.setZoomLevel(-1.5);
-          }
-        }
-      })
-      .catch((error) => {
-        // En caso de error crítico al leer localStorage, forzamos zoom -1.5 para asegurar que inicie
-        win.webContents.setZoomLevel(-1.5);
-      });
+    // Leer zoom desde archivo (no depende de localStorage ni del renderer)
+    const zoom = loadZoomLevel();
+    win.webContents.setZoomLevel(zoom);
+    // Sincronizar con localStorage del renderer para mantener compatibilidad
+    win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${zoom});`, true);
+    log.info(`Zoom level applied on load: ${zoom}`);
   });
 
   return win;
@@ -201,6 +333,46 @@ export async function createWindow(): Promise<BrowserWindow> {
 
 ipcMain.on('get-config-file', (event: any, arg: any) => {
   console.log(arg)
+})
+
+ipcMain.on('save-config-backup', (event: any, configData: string) => {
+  try {
+    const configDir = path.join(app.getPath('userData'), 'config');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    const configPath = path.join(configDir, 'config-backup.json');
+    fs.writeFileSync(configPath, configData, 'utf8');
+    log.info(`Config backup saved by main process to: ${configPath}`);
+  } catch (e) {
+    log.error('Error saving config backup from renderer:', e);
+  }
+});
+
+ipcMain.on('set-update-channel', (event: any, channel: string) => {
+  log.info(`Update channel changed to: ${channel}`);
+  if (applyUpdateChannel(channel)) {
+    autoUpdater.checkForUpdates();
+  }
+})
+
+ipcMain.on('check-for-update-manual', () => {
+  if (!updateEnabled) {
+    if (win) win.webContents.send('update-status', 'Auto-update desactivado. Configure un canal primero.');
+    return;
+  }
+  autoUpdater.checkForUpdates().then(result => {
+    if (!result || !result.updateInfo) {
+      if (win) win.webContents.send('update-status', 'Ya tiene la ultima version.');
+    }
+  }).catch(err => {
+    log.error('Error checking for updates:', err);
+    if (win) win.webContents.send('update-status', `Error: ${err.message}`);
+  });
+})
+
+ipcMain.on('open-update-dialog', () => {
+  if (win) win.webContents.send('open-update-dialog');
 })
 
 ipcMain.on('reiniciar', (event: any, arg: any) => {
@@ -759,41 +931,6 @@ function registerPrinterIpcHandlers() {
 
 try {
   app.on('ready', () => {
-    if (!isDev) {
-      autoUpdater.checkForUpdatesAndNotify();
-      setInterval(() => {
-        log.info('Buscando actualizacion');
-        autoUpdater.checkForUpdatesAndNotify();
-      }, 100000)
-    }
-
-    autoUpdater.on('update-available', () => {
-      log.info('Actualizacion disponible, descargando...');
-    })
-
-    autoUpdater.on('update-not-available', () => {
-      log.info('No existen actualizaciones disponibles...');
-    })
-
-    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
-      const dialogOpts: MessageBoxOptions = {
-        type: 'info',
-        buttons: ['Reiniciar'],
-        title: 'Actualización disponible',
-        message: event.releaseName + ' - ' + event.version,
-        detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
-      }
-
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall()
-      })
-    })
-
-    autoUpdater.on('error', message => {
-      console.error('There was a problem updating the application')
-      console.error(message)
-    })
-
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([
         {
@@ -828,27 +965,29 @@ try {
               label: "Zoom in",
               click() {
                 const currentZoom = win.webContents.getZoomLevel();
-                win.webContents.setZoomLevel(currentZoom + 0.5);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+                const newZoom = currentZoom + 0.5;
+                win.webContents.setZoomLevel(newZoom);
+                saveZoomLevel(newZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${newZoom});`, true);
               },
             },
             {
               label: "Zoom out",
               click() {
                 const currentZoom = win.webContents.getZoomLevel();
-                win.webContents.setZoomLevel(currentZoom - 0.5);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+                const newZoom = currentZoom - 0.5;
+                win.webContents.setZoomLevel(newZoom);
+                saveZoomLevel(newZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${newZoom});`, true);
               },
             },
             {
               label: "Restablecer Zoom",
               click() {
-                const defaultZoom = -1.5;
+                const defaultZoom = calculateDefaultZoom();
                 win.webContents.setZoomLevel(defaultZoom);
-                win.webContents
-                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
+                saveZoomLevel(defaultZoom);
+                win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
               },
             },
             {
@@ -896,19 +1035,79 @@ try {
           ],
         },
         {
-          role: 'about',
-          label: "Sobre",
+          label: "Actualizacion",
           submenu: [
             {
-              label: app.getVersion(),
+              label: `Version: ${app.getVersion()}`,
+              enabled: false,
+            },
+            { type: 'separator' },
+            {
+              label: 'Gestionar actualizaciones...',
+              click() {
+                if (win) win.webContents.send('open-update-dialog');
+              }
             },
           ],
         }
       ])
     );
 
+    log.info(`=== FRC v${app.getVersion()} started ===`);
+
     createWindow().then(() => {
       registerPrinterIpcHandlers();
+    });
+
+    if (!isDev) {
+      if (configureUpdateChannel()) {
+        autoUpdater.checkForUpdates();
+        setInterval(() => {
+          if (updateEnabled) {
+            log.info('Buscando actualizacion...');
+            autoUpdater.checkForUpdates();
+          }
+        }, 5 * 60 * 1000); // cada 5 minutos
+      }
+    }
+
+    autoUpdater.on('update-available', (info) => {
+      log.info(`Actualizacion disponible: version ${info.version}`);
+      if (win) win.webContents.send('update-status', `Version ${info.version} disponible. Descargando...`);
+      autoUpdater.downloadUpdate();
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      log.info('No existen actualizaciones disponibles.');
+      if (win) win.webContents.send('update-status', 'Ya tiene la ultima version.');
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+      log.info(`Descarga en progreso: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`);
+      if (win) win.webContents.send('update-status', `Descargando: ${progress.percent.toFixed(0)}%`);
+    });
+
+    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      const version = event.version || 'desconocida';
+      log.info(`Actualizacion descargada: version ${version}`);
+      const dialogOpts: MessageBoxOptions = {
+        type: 'info',
+        buttons: ['Cerrar y actualizar', 'Mas tarde'],
+        title: 'Actualizacion disponible',
+        message: `Version ${version}`,
+        detail: 'Una actualizacion fue descargada. Al cerrar la aplicacion se instalara automaticamente.',
+      };
+
+      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        if (returnValue.response === 0) {
+          autoUpdater.quitAndInstall(false, true);
+        }
+      });
+    });
+
+    autoUpdater.on('error', (err) => {
+      log.error('Error en auto-update:', err);
+      if (win) win.webContents.send('update-status', `Error en actualizacion: ${err.message}`);
     });
   });
 
@@ -1487,4 +1686,6 @@ async function printWithElectronPosPrinter(printer: PrinterConfig, content: stri
     console.error('Error in printWithElectronPosPrinter:', error);
     return false;
   }
-}
+}// auto-update test
+// auto-update channel test
+// channel auto-update test 1775060791

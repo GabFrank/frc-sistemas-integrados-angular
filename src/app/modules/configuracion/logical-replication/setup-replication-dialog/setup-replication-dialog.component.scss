@@ -1,0 +1,208 @@
+.setup-replication-dialog {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .full-width {
+    width: 100%;
+  }
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .error-message {
+    margin-bottom: 12px;
+    color: #ff5252;
+    font-weight: 500;
+  }
+
+  .info-card {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    mat-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    mat-card-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
+  .card-row {
+    margin-bottom: 8px;
+
+    &.card-actions {
+      margin-top: 8px;
+    }
+
+    &.counts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+  }
+
+  .card-label,
+  .card-value {
+    font-size: 1rem;
+  }
+
+  .card-label {
+    font-weight: 500;
+    margin-right: 8px;
+  }
+
+  .count-item {
+    font-size: 1rem;
+  }
+
+  .tables-expansion {
+    margin-top: 8px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .mat-expansion-panel-body {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+  }
+
+  .tables-preview-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tables-loading,
+  .tables-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+  }
+
+  .tables-table-scroll {
+    overflow: auto;
+    max-height: 280px;
+
+    th.mat-header-cell,
+    td.mat-cell {
+      text-align: center;
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: auto;
+    flex-shrink: 0;
+    padding: 20px 24px 24px;
+  }
+
+  .setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .state-card {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .state-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+  }
+
+  .state-title {
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+  }
+
+  .state-line {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+  }
+
+  .state-warning {
+    margin: 12px 0 0 0;
+    color: #ffab91;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .spinner-button {
+    margin-right: 8px;
+  }
+
+  .result-section {
+    margin: 16px 0;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    &.result-success {
+      border-color: rgba(76, 175, 80, 0.5);
+      background: rgba(76, 175, 80, 0.08);
+    }
+
+    &.result-error {
+      border-color: rgba(255, 82, 82, 0.5);
+      background: rgba(255, 82, 82, 0.08);
+    }
+  }
+
+  .result-title {
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+  }
+
+  .log-output {
+    margin: 0;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 1rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
+

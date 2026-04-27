@@ -999,7 +999,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                   res.id,
                   sucursalId,
                   personaId,
-                  ventaCreditoInput.valorTotal
+                  ventaCreditoInput.valorTotal,
+                  this.mainService.usuarioActual?.persona?.nombre,
+                  this.mainService.sucursalActual?.nombre
                 ).subscribe({
                   next: () => console.log('Notificación enviada exitosamente'),
                   error: (err) => console.error('Error al enviar notificación:', err)
@@ -1022,7 +1024,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                   this.notificationHttpService.sendVentaTransferenciaNotification(
                     res.id,
                     sucursalId,
-                    totalTransferencia
+                    totalTransferencia,
+                    this.mainService.usuarioActual?.persona?.nombre,
+                    this.mainService.sucursalActual?.nombre
                   ).subscribe({
                     next: () => console.log('Notificación de Transferencia enviada exitosamente'),
                     error: (err) => console.error('Error al enviar notificación de transferencia:', err)

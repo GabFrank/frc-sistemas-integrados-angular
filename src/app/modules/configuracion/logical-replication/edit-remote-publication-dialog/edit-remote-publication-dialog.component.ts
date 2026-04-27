@@ -1,10 +1,11 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { LogicalReplicationService } from '../logical-replication.service';
 import { LogicalReplication } from '../logical-replication.model';
-import { Observable, forkJoin, of } from 'rxjs';
+import { MainToAllTableNamesGQL } from '../graphql/table-names-gql';
+import { Observable } from 'rxjs';
 
 export interface EditRemotePublicationDialogData {
   branchSucursalId: number;
@@ -22,20 +23,18 @@ export class EditRemotePublicationDialogComponent implements OnInit {
   
   form: FormGroup;
   isLoading = false;
+  isLoadingTables = false;
   errorMessage: string = null;
   
-  // Common database tables that might be included in publications
-  commonTables: string[] = [
-    'cliente', 'factura', 'factura_detalle', 'producto', 'categoria', 
-    'marca', 'inventario', 'movimiento', 'sucursal', 'ciudad',
-    'usuario', 'proveedor', 'compra', 'compra_detalle', 'precio'
-  ];
+  // Tablas disponibles para incluir en la publicación
+  availableTables: string[] = [];
 
   constructor(
     private dialogRef: MatDialogRef<EditRemotePublicationDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EditRemotePublicationDialogData,
     private formBuilder: FormBuilder,
-    private logicalReplicationService: LogicalReplicationService
+    private logicalReplicationService: LogicalReplicationService,
+    private mainToAllTableNamesGQL: MainToAllTableNamesGQL
   ) { }
 
   ngOnInit(): void {
@@ -66,6 +65,36 @@ export class EditRemotePublicationDialogComponent implements OnInit {
           }
         });
     }
+
+    // Cargar tablas disponibles desde el backend
+    this.loadAvailableTables();
+  }
+
+  private loadAvailableTables(): void {
+    this.isLoadingTables = true;
+
+    this.mainToAllTableNamesGQL
+      .watch()
+      .valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (result) => {
+          const data = result?.data as { data: string[] };
+          this.availableTables = data?.data || [];
+
+          // Si es creación y no hay selección previa, seleccionar todas por defecto
+          if (!this.data.isEdit && this.availableTables.length > 0) {
+            this.form.get('selectedTables')?.setValue([...this.availableTables]);
+          }
+
+          this.isLoadingTables = false;
+        },
+        error: (error) => {
+          console.error('Error loading table names', error);
+          this.isLoadingTables = false;
+          this.errorMessage = 'Error al cargar las tablas disponibles para la publicación';
+        }
+      });
   }
 
   onSave(): void {
@@ -111,12 +140,12 @@ export class EditRemotePublicationDialogComponent implements OnInit {
   toggleAllTables(): void {
     const selectedTables = this.form.get('selectedTables').value;
     
-    if (selectedTables.length === this.commonTables.length) {
+    if (selectedTables.length === this.availableTables.length) {
       // Deselect all
       this.form.get('selectedTables').setValue([]);
     } else {
       // Select all
-      this.form.get('selectedTables').setValue([...this.commonTables]);
+      this.form.get('selectedTables').setValue([...this.availableTables]);
     }
   }
 } 

@@ -62,8 +62,7 @@ export class RetiroService {
     }, servidor)
   }
 
-  onSave(retiro: Retiro, servidor = true): Observable<any> {
-    this.cargandoDialog.openDialog(true, 'Guardando...')
+  onSave(retiro: Retiro, servidor = true, silentLoad: boolean = false): Observable<any> {
     let retiroAux = retiro;
     if (!(retiro instanceof Retiro)) {
       retiroAux = new Retiro();
@@ -76,12 +75,12 @@ export class RetiroService {
     }
 
     retiroAux.usuario = this.mainService.usuarioActual;
-    //refactur using custom mutation,
+
     return this.crudService.onCustomMutation(this.saveRetiro, {
       entity: retiroAux.toInput(),
       retiroDetalleInputList: retiroAux.toDetalleInput(),
       printerName: this.configService?.getConfig()?.printers?.ticket,
       local: this.configService?.getConfig()?.local
-    }, servidor);
+    }, servidor, silentLoad);
   }
 }
