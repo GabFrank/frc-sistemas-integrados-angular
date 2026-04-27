@@ -8,8 +8,7 @@
   "modo": "NOT",
   "pdvId": 24,
   "isConfigured": true,
-  "isLocal": false,
-  "updateChannel": "dev",
+  "isLocal": true,
   "printers": {
     "ticket": "ticket_soporte",
     "factura": ""

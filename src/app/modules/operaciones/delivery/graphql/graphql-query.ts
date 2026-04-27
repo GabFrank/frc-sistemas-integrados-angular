@@ -229,6 +229,7 @@ export const deliverysByEstadoList = gql`
           producto {
             id
             descripcion
+            descripcionFactura
           }
           presentacion {
             id
@@ -406,6 +407,7 @@ export const deliveryQuery = gql`
           producto {
             id
             descripcion
+            descripcionFactura
           }
           presentacion {
             id
@@ -485,6 +487,7 @@ export const saveDelivery = gql`
           }
           producto {
             id
+            descripcionFactura
           }
           presentacion {
             id
@@ -648,6 +651,7 @@ export const saveDeliveryAndVentaQuery = gql`
           producto {
             id
             descripcion
+            descripcionFactura
           }
           presentacion {
             id
