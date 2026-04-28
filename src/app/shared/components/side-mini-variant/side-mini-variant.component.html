@@ -20,7 +20,7 @@
                     <!-- Top level menu item -->
                     <div class="menu-item"
                         [class.expanded-item]="isExpanded && hasChildren(section) && section.isExpanded"
-                        (click)="toggleMenuSection(section, $event)">
+                        (click)="hasChildren(section) ? toggleMenuSection(section, $event) : onItemClick(getAction(section), $event)">
                         <div class="menu-icon">
                             <mat-icon>{{section.icon}}</mat-icon>
                         </div>
@@ -31,6 +31,7 @@
                             </mat-icon>
                         </div>
                     </div>
+
 
                     <!-- Expanded submenu (only visible when expanded) -->
                     <div class="submenu" *ngIf="isExpanded && hasChildren(section) && section.isExpanded">

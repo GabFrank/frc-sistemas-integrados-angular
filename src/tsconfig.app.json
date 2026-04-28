@@ -2,12 +2,14 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/app",
-    "module": "es2015",
+    "module": "es2020",
     "baseUrl": "",
     "types": []
   },
   "paths": {
-    "fs": ["./node_modules/fs-web"]
+    "fs": [
+      "./node_modules/fs-web"
+    ]
   },
   "files": [
     "main.ts",

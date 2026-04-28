@@ -42,8 +42,8 @@
 }
 
 mat-dialog-content {
-  min-width: 350px;
-  max-width: 500px;
+  min-width: 720px;
+  max-width: 900px;
   padding-top: 20px !important;
 }
 
@@ -159,4 +159,159 @@ h2 {
 .img-size {
   max-width:150px;
   max-height:150px;
+}
+
+// ── Sección Afiche A4 ──────────────────────────────────────────
+.afiche-section {
+  margin-top: 4px;
+}
+
+// Layout dos columnas para tipo 'price'
+.price-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.price-col-left {
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding-right: 20px;
+}
+
+.price-col-right {
+  padding-left: 4px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+// Barcode placeholder en vista previa
+.afiche-barcode-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.afiche-barcode-text {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+
+.currency-mode-selection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  justify-content: center;
+
+  .currency-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    margin: 0;
+  }
+
+  .currency-toggle {
+    ::ng-deep .mat-button-toggle {
+      font-size: 13px;
+    }
+  }
+}
+
+.cotizaciones-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  .cot-field {
+    flex: 1;
+  }
+}
+
+// Vista previa etiqueta afiche
+.afiche-preview-wrap {
+  margin-top: 12px;
+
+  .preview-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 8px;
+  }
+}
+
+.afiche-preview-label {
+  width: 100%;
+  min-height: 80px;
+  border: 1px dashed rgba(255,255,255,0.3);
+  border-right: 2px dashed rgba(255,255,255,0.45);
+  border-left: 2px dashed rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 5px;
+  border-radius: 2px;
+}
+
+.afiche-product-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: rgba(255,255,255,0.92);
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+.afiche-separator {
+  width: 80%;
+  height: 1px;
+  background: rgba(255,255,255,0.3);
+}
+
+.afiche-prices-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.afiche-price-solo {
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.afiche-price-gs {
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.afiche-price-other {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.afiche-divider {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
 }

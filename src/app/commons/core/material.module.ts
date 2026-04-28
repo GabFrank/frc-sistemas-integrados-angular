@@ -38,6 +38,7 @@ import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatKeyboardModule } from 'angular-onscreen-material-keyboard';
 import { MatTreeModule } from '@angular/material/tree';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFileUploadModule } from 'angular-material-fileupload';
 import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
 import { EnumToStringPipe } from './utils/pipes/enum-to-string';
@@ -99,7 +100,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
     TimeDiffPipe,
     BdcWalkModule,
     NgxChartsModule,
-    DragDropModule
+    DragDropModule,
+    MatDividerModule
   ]
 })
 export class MaterialModule { }

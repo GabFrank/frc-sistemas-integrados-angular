@@ -1,0 +1,66 @@
+.ingreso-gasto-host {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: #303030;
+    color: #e0e0e0;
+
+    .header-filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+
+        .filter-field {
+            font-size: 0.9rem;
+
+            &.small {
+                width: 120px;
+            }
+        }
+    }
+
+    .chart-area {
+        flex: 1;
+        min-height: 400px;
+        position: relative;
+
+        .chart-instance {
+            width: 100%;
+            height: 100%;
+        }
+
+        &.no-data {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #757575;
+
+            mat-icon {
+                font-size: 48px;
+                width: 48px;
+                height: 48px;
+                margin-bottom: 1rem;
+            }
+
+            p {
+                font-size: 1.1rem;
+            }
+        }
+    }
+
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(48, 48, 48, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+}

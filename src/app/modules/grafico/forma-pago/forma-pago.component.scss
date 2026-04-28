@@ -1,0 +1,516 @@
+// Colores del sistema
+$primary: #689F38;
+$primary-light: #8BC34A;
+$primary-dark: #558B2F;
+$accent: #009688;
+$accent-light: #4DB6AC;
+$warn: #F44336;
+$warning: #FF9800;
+$info: #2196F3;
+$background: #424242;
+$background-dark: #303030;
+$text: #E0E0E0;
+$text-secondary: #9E9E9E;
+$border: #555;
+
+// Contenedor principal
+.forma-pago-container {
+    padding: 16px;
+    min-height: calc(100vh - 120px);
+    background: $background-dark;
+    overflow-y: auto;
+    color: $text;
+    position: relative;
+}
+
+// Encabezado
+.header-section {
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.title-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: $primary;
+}
+
+.title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: $text;
+    margin: 0;
+}
+
+.subtitle {
+    color: $text-secondary;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+// Sección de Filtros
+.filters-section {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: $background;
+    border-radius: 10px;
+    border: 1px solid $border;
+}
+
+.filters-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-field {
+    flex: 1;
+    min-width: 150px;
+    max-width: 250px;
+
+    &.sucursal-filter {
+        min-width: 200px;
+        max-width: 300px;
+    }
+
+    ::ng-deep {
+        .mat-mdc-form-field-subscript-wrapper {
+            display: none;
+        }
+
+        .mat-mdc-text-field-wrapper {
+            background: $background-dark;
+        }
+
+        .mat-mdc-form-field-flex {
+            height: 40px;
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+            border-color: $border;
+        }
+
+        .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+        .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+        .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+            border-color: $primary;
+        }
+
+        .mat-mdc-select-value,
+        .mat-mdc-floating-label {
+            color: $text-secondary;
+        }
+
+        .mat-mdc-select-arrow {
+            color: $text-secondary;
+        }
+
+        .mat-icon {
+            color: $text-secondary;
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+}
+
+.clear-filters-btn {
+    color: $text-secondary;
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: $warn;
+        background: rgba($warn, 0.1);
+    }
+
+    mat-icon {
+        font-size: 22px;
+    }
+}
+
+// Overlay de carga
+.loading-overlay {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba($background-dark, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+// Grid principal
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    transition: opacity 0.2s ease;
+
+    &.loading {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+}
+
+// Sección del gráfico
+.chart-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 16px;
+    height: 100%;
+    min-height: 450px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: $primary;
+    }
+}
+
+.pie-chart {
+    width: 100%;
+    height: 420px;
+}
+
+// Sección de detalles
+.details-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+// Tarjetas de resumen
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.summary-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.2s ease;
+    min-height: 100px;
+
+    &:hover {
+        border-color: $primary;
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+    }
+
+    &.total-monto {
+        mat-icon {
+            color: $primary;
+        }
+    }
+
+    &.total-transacciones {
+        mat-icon {
+            color: $accent;
+        }
+    }
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+.card-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: $text;
+    white-space: nowrap;
+}
+
+// Lista de detalles
+.details-list {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 16px;
+    flex: 1;
+}
+
+.list-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text;
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid $border;
+}
+
+.list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.detail-item {
+    display: grid;
+    grid-template-columns: 6px 40px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0 12px;
+    padding: 12px;
+    background: $background-dark;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: $primary;
+        background: lighten($background-dark, 3%);
+    }
+
+    &.no-data {
+        opacity: 0.5;
+    }
+}
+
+.item-indicator {
+    grid-row: span 2;
+    width: 6px;
+    border-radius: 3px;
+    align-self: stretch;
+}
+
+.item-icon {
+    grid-row: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba($primary, 0.15);
+    border-radius: 8px;
+    align-self: center;
+
+    mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: $primary-light;
+    }
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+.item-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $text;
+}
+
+.item-transactions {
+    font-size: 0.75rem;
+    color: $text-secondary;
+}
+
+.item-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+}
+
+.item-amount {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $primary-light;
+}
+
+.item-percentage {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $accent;
+    padding: 2px 8px;
+    background: rgba($accent, 0.1);
+    border-radius: 10px;
+
+    &.zero {
+        color: $text-secondary;
+        background: rgba($text-secondary, 0.1);
+    }
+}
+
+.progress-bar-container {
+    grid-column: 3 / 5;
+    height: 4px;
+    background: rgba($text-secondary, 0.2);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+// Mensaje sin datos
+.no-data-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    background: $background;
+    border: 1px dashed $border;
+    border-radius: 12px;
+    margin-top: 20px;
+
+    mat-icon {
+        font-size: 24px;
+        color: $warning;
+    }
+
+    span {
+        color: $text-secondary;
+        font-size: 1rem;
+    }
+}
+
+// Estado de carga
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 300px;
+
+    span {
+        color: $text-secondary;
+        font-size: 0.9rem;
+    }
+}
+
+// Responsive
+@media (max-width: 1200px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-card {
+        min-height: 400px;
+    }
+
+    .pie-chart {
+        height: 360px;
+    }
+}
+
+@media (max-width: 768px) {
+    .forma-pago-container {
+        padding: 12px;
+    }
+
+    .filters-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-field {
+        max-width: none;
+
+        &.sucursal-filter {
+            max-width: none;
+        }
+    }
+
+    .clear-filters-btn {
+        align-self: flex-end;
+    }
+
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-item {
+        grid-template-columns: 4px 36px 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 8px;
+    }
+
+    .item-values {
+        grid-column: 3;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .progress-bar-container {
+        grid-column: 1 / 4;
+    }
+}
+
+// Scrollbar personalizado
+.forma-pago-container::-webkit-scrollbar,
+.list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.forma-pago-container::-webkit-scrollbar-track,
+.list-container::-webkit-scrollbar-track {
+    background: $background-dark;
+}
+
+.forma-pago-container::-webkit-scrollbar-thumb,
+.list-container::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 3px;
+
+    &:hover {
+        background: $primary;
+    }
+}
