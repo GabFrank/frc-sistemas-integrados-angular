@@ -36,7 +36,7 @@ import { HorarioService } from '../../../horarios/service/horario.service';
 import { HorarioInput } from '../../../horarios/models/horario.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
-import { ObservacionJornadaDialogComponent } from '../observacion-jornada-dialog.component';
+import { ObservacionJornadaDialogComponent } from '../../components/observacion-jornada-dialog.component';
 import { EstadoJornada } from '../../enums/estado-jornada.enum';
 
 
