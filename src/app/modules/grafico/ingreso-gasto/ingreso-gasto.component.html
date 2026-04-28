@@ -1,0 +1,31 @@
+<div class="ingreso-gasto-host">
+    <div class="header-filters">
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option *ngFor="let s of sucursales$ | async" [value]="s.id">{{ s.nombre }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field small">
+            <mat-label>Año</mat-label>
+            <mat-select [formControl]="yearControl">
+                <mat-option *ngFor="let y of years" [value]="y">{{ y }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+
+    <div class="chart-area" *ngIf="!cargando && hasData">
+        <div echarts [options]="echartsOption" class="chart-instance"></div>
+    </div>
+
+    <div class="chart-area no-data" *ngIf="!cargando && !hasData">
+        <mat-icon>bar_chart</mat-icon>
+        <p>No hay datos disponibles para los filtros seleccionados</p>
+    </div>
+
+    <div class="loading-overlay" *ngIf="cargando">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+</div>

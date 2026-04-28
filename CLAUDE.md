@@ -190,3 +190,39 @@ El desktop consume GraphQL del `frc-comercial/central`. Si el backend cambia el 
 - [../../propuesta-fix-NSIS-1.md](../../propuesta-fix-NSIS-1.md) — Fix propuesto para el instalador NSIS (problema crítico en updates entre canales).
 - [../../CLAUDE.md](../../CLAUDE.md) — Mapa cross-project del workspace.
 - [../central/CLAUDE.md](../central/CLAUDE.md) — Backend al que este desktop habla por GraphQL.
+
+## Automated Issue Resolution (Claude Code Action)
+
+Este repo esta configurado para resolucion automatizada de issues via Jira + Claude Code.
+
+### Branch naming
+Crear desde `develop`: `auto/{jira-key}-{slug}`
+- `{jira-key}`: Jira key en minusculas (ej: `frc-42`)
+- `{slug}`: max 40 chars, minusculas, solo hyphens, del titulo del issue
+- Ejemplo: `auto/frc-42-fix-validacion-ruc`
+
+### Commit format
+`fix(scope): descripcion en minusculas` o `feat(scope): descripcion`
+- Scope: modulo afectado (ej: `clientes`, `ventas`, `auth`)
+- Max 72 chars en subject
+- Referenciar Jira key en el body del commit
+
+### Preflight: correr tests antes de abrir PR
+`npm run build:prod && npm run electron:serve-tsc`
+
+Si los tests fallan, NO abrir PR — comentar en el issue explicando el fallo.
+
+### PR rules
+- SIEMPRE draft: nunca PR ready-for-review
+- Target: `develop`
+- Titulo: Conventional Commits con Jira key (ej: `fix(clientes): validacion RUC [FRC-42]`)
+- Body: que cambio, como testear, impacto DB, riesgo rollback
+- NUNCA mergear — requiere review humano
+- NUNCA push directo a `master`, `release/beta`, o `develop`
+
+### Archivos que NO tocar
+- Secretos, `.env`, keystores, certificados
+- Nombres de artefactos `FRC-Setup.exe`, `FRC.AppImage`
+- `electron-builder.json` artifactName fields
+- `assets/configuracion.json`, `configuracion-local.json`
+- Archivos `.js` de Electron main sin editar el `.ts` correspondiente (`main.ts` <-> `main.js`, `preload.ts` <-> `preload.js`)

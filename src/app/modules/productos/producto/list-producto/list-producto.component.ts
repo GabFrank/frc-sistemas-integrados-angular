@@ -284,7 +284,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onPrintPriceLabel(producto: Producto) {
     if (producto && producto.precioPrincipal) {
       this.matDialog.open(PrintLabelDialogComponent, {
-        width: '400px',
+        width: '800px',
         data: { producto: producto }
       });
     } else {
@@ -397,7 +397,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   updatePermisos() {
-    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false;
+    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) || false;
   }
 
   onAjustarStock(producto: Producto) {

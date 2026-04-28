@@ -1,0 +1,62 @@
+<div class="venta-funcionario-host">
+    <div class="header-filters">
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option *ngFor="let s of sucursales$ | async" [value]="s.id">{{ s.nombre }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field small">
+            <mat-label>Año</mat-label>
+            <mat-select [formControl]="anhoControl">
+                <mat-option *ngFor="let a of anhos" [value]="a">{{ a }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field medium">
+            <mat-label>Mes</mat-label>
+            <mat-select [formControl]="mesControl">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let m of meses" [value]="m.valor">{{ m.nombre }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field medium">
+            <mat-label>Día Específico</mat-label>
+            <input matInput [matDatepicker]="picker" [formControl]="fechaControl" placeholder="dd/mm/aaaa">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+
+        <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros generales">
+            <mat-icon>filter_alt_off</mat-icon>
+        </button>
+
+        <button mat-icon-button (click)="buscarFuncionario()" matTooltip="Buscar Funcionario específico"
+            [color]="funcionarioSeleccionado ? 'primary' : ''">
+            <mat-icon>person_search</mat-icon>
+        </button>
+
+        <button *ngIf="funcionarioSeleccionado" mat-icon-button (click)="limpiarFuncionario()"
+            matTooltip="Quitar filtro de funcionario" color="warn">
+            <mat-icon>person_off</mat-icon>
+        </button>
+    </div>
+
+    <div class="chart-area" *ngIf="datos$ | async as datos">
+        <div *ngIf="datos.hayDatos; else noData" echarts [options]="datos.opciones" class="chart-instance"></div>
+        <ng-template #noData>
+            <div class="no-data">
+                <mat-icon>bar_chart</mat-icon>
+                <p>No hay datos disponibles para los filtros seleccionados</p>
+            </div>
+        </ng-template>
+    </div>
+
+    <div class="loading-overlay" *ngIf="cargando$ | async">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+</div>
