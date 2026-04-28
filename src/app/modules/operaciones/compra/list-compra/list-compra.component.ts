@@ -79,6 +79,7 @@ export class ListCompraComponent implements OnInit {
     "id",
     "proveedor",
     "vendedor",
+    "responsable",
     "fecha",
     "etapa",
     "acciones",
