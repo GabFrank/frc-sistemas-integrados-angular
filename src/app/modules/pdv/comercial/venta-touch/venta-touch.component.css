@@ -64,3 +64,49 @@ td {
   text-align: center;
   font-weight: bolder;
 }
+
+.acciones-laterales-card {
+  position: relative;
+}
+
+.solicitudes-notificacion-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ffd54f;
+  border: 1px solid #f57f17;
+  border-radius: 4px;
+  padding: 6px 8px;
+  min-height: 42px;
+}
+
+.solicitudes-notificacion-card mat-icon {
+  color: #bf360c;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.solicitudes-notificacion-content {
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.solicitudes-notificacion-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3e2723;
+}
+
+.solicitudes-notificacion-detail {
+  font-size: 10px;
+  color: #4e342e;
+}
+
+.solicitudes-notificacion-overlay {
+  position: absolute;
+  right: 10px;
+  top: calc(85% - 56px);
+  width: calc(20% - 10px);
+  z-index: 10;
+}
