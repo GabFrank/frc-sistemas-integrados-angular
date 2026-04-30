@@ -1370,6 +1370,21 @@ export const getSucursalesDisponiblesRecepcionFisicaQuery = gql`
   }
 `;
 
+export const getPedidoRecepcionFisicaResumenQuery = gql`
+  query GetPedidoRecepcionFisicaResumen($pedidoId: ID!) {
+    data: getPedidoRecepcionFisicaResumen(pedidoId: $pedidoId) {
+      pedidoId
+      totalSucursalesRecepcionFisica
+      sucursalesRecepcionFisica {
+        sucursalId
+        sucursalNombre
+        cantidadItemsRecepcionados
+        fechaUltimaRecepcion
+      }
+    }
+  }
+`;
+
 export const pedidosWithFiltersQuery = gql`
   query (
     $sucursalId: Int

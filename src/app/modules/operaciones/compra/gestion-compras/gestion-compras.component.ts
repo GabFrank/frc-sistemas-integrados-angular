@@ -980,6 +980,7 @@ export class GestionComprasComponent
   // Método original para crear nuevos pedidos
   private savePedidoCabecera(): void {
     const formValue = this.datosGeneralesForm.value;
+    const usuarioActualId = +(localStorage.getItem("usuarioId") || 1);
 
     // Create PedidoInput from form
     const pedidoInput = {
@@ -989,7 +990,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: 1, // TODO: Get from auth service
+      usuarioId: usuarioActualId,
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1007,7 +1008,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        1, // TODO: Get from auth service
+        usuarioActualId,
       )
       .subscribe({
         next: (result) => {

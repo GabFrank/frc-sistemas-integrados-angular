@@ -19,3 +19,30 @@ tr.example-detail-row {
   background-color: rgb(34, 34, 34);
 }
 
+.nombre-cell {
+  text-align: left;
+  padding: 8px;
+  width: 70%;
+}
+
+.stock-cell {
+  text-align: center;
+  padding: 8px;
+  width: 30%;
+}
+
+.titulo-cell {
+  text-align: left;
+  padding: 8px;
+  width: 70%;
+}
+
+.highlight-cell {
+  transition: background-color 0.2s ease;
+}
+
+.nombre-cell:hover,
+.nombre-cell:hover + .stock-cell {
+  background: #38853c;
+}
+

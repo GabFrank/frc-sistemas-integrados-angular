@@ -245,6 +245,7 @@
                       step="0.01"
                       min="0"
                       [formControl]="getDistribucionControl(i, 'cantidadPedir')"
+                      (focus)="onCantidadInputFocus(getDistribucionControl(i, 'cantidadPedir'))"
                       (keydown)="onCantidadPedirKeydown($event, i)"
                       (blur)="onCantidadPedirBlur(i)"
                       [attr.data-index]="i"
@@ -329,6 +330,7 @@
                 step="0.01"
                 min="0"
                 [formControl]="cantidadSimplificadaControl"
+                (focus)="onCantidadInputFocus(cantidadSimplificadaControl)"
                 (keydown)="onCantidadSimplificadaKeydown($event)"
               />
               <mat-hint>{{ cantidadTotalComputedText }}</mat-hint>

@@ -1759,6 +1759,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input de cantidad a pedir
    */
   onCantidadPedirKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -1793,6 +1798,13 @@ export class AddEditItemDialogComponent implements OnInit {
     this.calculateCantidadTotal();
   }
 
+  onCantidadInputFocus(control: FormControl): void {
+    const value = Number(control?.value ?? 0);
+    if (value === 0) {
+      control.setValue(null);
+    }
+  }
+
   /**
    * Actualiza las distribuciones desde el modo simplificado
    */
@@ -1821,6 +1833,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input simplificado
    */
   onCantidadSimplificadaKeydown(event: KeyboardEvent): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();
