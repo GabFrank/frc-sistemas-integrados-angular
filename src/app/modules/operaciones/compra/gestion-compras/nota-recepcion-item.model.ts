@@ -74,7 +74,7 @@ export class NotaRecepcionItem {
       cantidadEnNota: this.cantidadEnNota,
       precioUnitarioEnNota: this.precioUnitarioEnNota,
       esBonificacion: this.esBonificacion,
-      vencimientoEnNota: dateToString(this.vencimientoEnNota),
+      vencimientoEnNota: dateToString(this.vencimientoEnNota, 'yyyy-MM-dd'),
       observacion: this.observacion,
       estado: this.estado,
       motivoRechazo: this.motivoRechazo
