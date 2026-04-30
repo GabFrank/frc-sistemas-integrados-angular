@@ -273,6 +273,53 @@ export class ListPreGastosComponent {
     return etiquetas.join(' / ');
   }
 
+  porcentajeRendidoPorMoneda(preGasto: PreGasto): string {
+    const requested = this.getSolicitadoPorMoneda(preGasto);
+    const rendido = this.getRendidoPorMoneda(preGasto);
+    const parts = Object.keys(requested).map((currencyKey) => {
+      const solicitado = requested[currencyKey] ?? 0;
+      if (solicitado <= 0) {
+        return null;
+      }
+      const porcentaje = ((rendido[currencyKey] ?? 0) * 100) / solicitado;
+      return `${currencyKey}: ${porcentaje.toFixed(2)}%`;
+    }).filter((value): value is string => !!value);
+    return parts.length > 0 ? parts.join(' | ') : '0.00%';
+  }
+
+  private getSolicitadoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    const finanzas = preGasto?.finanzas || [];
+    const requested: Record<string, number> = {};
+    finanzas.forEach((f) => {
+      const key = this.resolveMonedaKey(f?.moneda?.simbolo, f?.moneda?.denominacion);
+      if (!key) return;
+      requested[key] = Number(f?.monto ?? 0);
+    });
+    if (Object.keys(requested).length === 0) {
+      const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';
+      requested[key] = Number(preGasto?.montoSolicitado ?? 0);
+    }
+    return requested;
+  }
+
+  private getRendidoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    const gasto = preGasto?.gasto;
+    return {
+      GS: Math.max(Number(gasto?.retiroGs ?? 0) - Number(gasto?.vueltoGs ?? 0), 0),
+      RS: Math.max(Number(gasto?.retiroRs ?? 0) - Number(gasto?.vueltoRs ?? 0), 0),
+      DS: Math.max(Number(gasto?.retiroDs ?? 0) - Number(gasto?.vueltoDs ?? 0), 0),
+    };
+  }
+
+  private resolveMonedaKey(simbolo?: string, denominacion?: string): 'GS' | 'RS' | 'DS' | null {
+    const normalized = (simbolo ?? '').trim().toUpperCase();
+    const normalizedDen = (denominacion ?? '').trim().toUpperCase();
+    if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) return 'GS';
+    if (normalized.includes('R$') || normalized.includes('RS') || normalizedDen.includes('REAL')) return 'RS';
+    if (normalized.includes('USD') || normalized.includes('US$') || normalized === '$' || normalizedDen.includes('DOLAR')) return 'DS';
+    return null;
+  }
+
   private formatDate(d: Date): string {
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;

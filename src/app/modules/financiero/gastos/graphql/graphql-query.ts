@@ -325,8 +325,24 @@ export const tramitarPreGastoMutation = gql`
 `;
 
 export const completarPreGastoMutation = gql`
-  mutation completarPreGasto($id: ID!, $sucId: ID, $rindioGasto: Boolean, $montoGastado: Float) {
-    data: completarPreGasto(id: $id, sucId: $sucId, rindioGasto: $rindioGasto, montoGastado: $montoGastado) {
+  mutation completarPreGasto(
+    $id: ID!,
+    $sucId: ID,
+    $rindioGasto: Boolean,
+    $montoGastado: Float,
+    $montoGastadoGs: Float,
+    $montoGastadoRs: Float,
+    $montoGastadoDs: Float
+  ) {
+    data: completarPreGasto(
+      id: $id,
+      sucId: $sucId,
+      rindioGasto: $rindioGasto,
+      montoGastado: $montoGastado,
+      montoGastadoGs: $montoGastadoGs,
+      montoGastadoRs: $montoGastadoRs,
+      montoGastadoDs: $montoGastadoDs
+    ) {
       id
       sucursalId
       estado

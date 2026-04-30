@@ -5,6 +5,7 @@ import { GastoService } from '../../service/gasto.service';
 import { PreGasto } from '../../models/pre-gasto.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../../main.service';
+import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
 
 interface ResumenMontoPorMoneda {
   etiquetaMoneda: string;
@@ -29,10 +30,13 @@ export class AutorizarGastoData {
 export class AutorizarGastoDialogComponent implements OnInit {
   preGasto: PreGasto;
   motivoRechazoControl = new FormControl('');
-  montoRendidoControl = new FormControl<number | null>(null, { validators: [Validators.required, Validators.min(0)] });
+  montoRendidoGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  montoRendidoRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  montoRendidoDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
+  currencyMask = new CurrencyMask();
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AutorizarGastoData,
@@ -46,22 +50,31 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
-    if (this.estaEnTramite) {
-      const montoRetirado = Number(this.preGasto?.montoRetirado ?? 0);
-      const montoGastado = Number(this.preGasto?.montoGastado ?? 0);
-      const montoInicial = montoGastado > 0 ? montoGastado : montoRetirado;
-      this.montoRendidoControl.setValue(montoInicial > 0 ? montoInicial : 0);
-      this.montoRendidoControl.addValidators(Validators.max(montoRetirado > 0 ? montoRetirado : Number.MAX_SAFE_INTEGER));
-      this.montoRendidoControl.updateValueAndValidity({ emitEvent: false });
+    if (this.esTramite()) {
+      const gasto = this.preGasto?.gasto;
+      const retiroGs = Number(gasto?.retiroGs ?? 0);
+      const retiroRs = Number(gasto?.retiroRs ?? 0);
+      const retiroDs = Number(gasto?.retiroDs ?? 0);
+      const vueltoGs = Number(gasto?.vueltoGs ?? 0);
+      const vueltoRs = Number(gasto?.vueltoRs ?? 0);
+      const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+
+      this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
+      this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
+      this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+
+      this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
+      this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
+      this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
     }
   }
 
-  get estaEnTramite(): boolean {
+  esTramite(): boolean {
     return this.preGasto?.estado === this.ESTADO_TRAMITE;
   }
 
   autorizar(): void {
-    if (this.estaEnTramite) {
+    if (this.esTramite()) {
       return;
     }
 
@@ -80,7 +93,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   rechazar(): void {
-    if (this.estaEnTramite) {
+    if (this.esTramite()) {
       return;
     }
 
@@ -103,26 +116,49 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   finalizar(): void {
-    if (!this.estaEnTramite) {
+    if (!this.esTramite()) {
       return;
     }
-    if (!this.montoRendidoControl.valid) {
-      this.montoRendidoControl.markAsTouched();
-      return;
-    }
-    const montoRendido = Number(this.montoRendidoControl.value ?? 0);
+    const montoRendidoGs = this.parseMontoMoneda(this.montoRendidoGsControl.value, 'GS');
+    const montoRendidoRs = this.parseMontoMoneda(this.montoRendidoRsControl.value, 'RS');
+    const montoRendidoDs = this.parseMontoMoneda(this.montoRendidoDsControl.value, 'DS');
+    const montoRendido = montoRendidoGs + montoRendidoRs + montoRendidoDs;
 
     this.gastoService.preGastoCompletar(
       this.preGasto.id,
       this.preGasto.sucursalId,
       montoRendido > 0,
-      montoRendido
+      montoRendido,
+      montoRendidoGs,
+      montoRendidoRs,
+      montoRendidoDs
     )
       .pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) {
           this.matDialogRef.close(res);
         }
       });
+  }
+
+  private parseMontoMoneda(value: unknown, moneda: 'GS' | 'RS' | 'DS'): number {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    }
+    if (value == null) {
+      return 0;
+    }
+    const text = String(value).trim();
+    if (text.length === 0) {
+      return 0;
+    }
+    if (moneda === 'GS') {
+      const numeric = text.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.-]/g, '');
+      const parsed = Number(numeric);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    }
+    const numeric = text.replace(/,/g, '').replace(/[^\d.-]/g, '');
+    const parsed = Number(numeric);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }
 
   cancelar(): void {

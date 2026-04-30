@@ -50,22 +50,36 @@
     </mat-form-field>
   </div>
 
-  <div class="rendicion-seccion" *ngIf="estaEnTramite">
-    <mat-form-field appearance="outline" style="width: 100%;">
-      <mat-label>Monto rendido real</mat-label>
-      <input matInput type="number" min="0" [formControl]="montoRendidoControl" />
-      <span matSuffix>{{ preGasto.moneda?.simbolo }}</span>
-      <mat-hint>Ingrese el monto que realmente rindió con comprobantes.</mat-hint>
-      <mat-error *ngIf="montoRendidoControl.hasError('required')">
-        Debe ingresar el monto rendido.
-      </mat-error>
-      <mat-error *ngIf="montoRendidoControl.hasError('min')">
-        El monto no puede ser negativo.
-      </mat-error>
-      <mat-error *ngIf="montoRendidoControl.hasError('max')">
-        El monto rendido no puede superar el monto retirado.
-      </mat-error>
-    </mat-form-field>
+  <div class="rendicion-seccion" *ngIf="esTramite()">
+    <div class="rendicion-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (Gs.)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsGuarani" [formControl]="montoRendidoGsControl" />
+        <span matSuffix>Gs.</span>
+        <mat-error *ngIf="montoRendidoGsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (R$)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="montoRendidoRsControl" />
+        <span matSuffix>R$</span>
+        <mat-error *ngIf="montoRendidoRsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (USD)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="montoRendidoDsControl" />
+        <span matSuffix>USD</span>
+        <mat-error *ngIf="montoRendidoDsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+    </div>
+    <small>Ingrese lo rendido real por moneda; el backend recalcula vuelto, estado y porcentajes.</small>
   </div>
 
   <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
@@ -73,7 +87,7 @@
       Volver
     </button>
 
-    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="estaEnTramite" type="button">
+    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="esTramite()" type="button">
       <mat-icon>cancel</mat-icon>
       {{ mostrarMotivoRechazo ? 'Confirmar Rechazo' : 'Rechazar' }}
     </button>
@@ -83,14 +97,14 @@
       class="boton-autorizar"
       (click)="autorizar()"
       *ngIf="!mostrarMotivoRechazo"
-      [disabled]="estaEnTramite"
+      [disabled]="esTramite()"
       type="button"
     >
       <mat-icon>check_circle</mat-icon>
       Autorizar
     </button>
 
-    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!estaEnTramite" type="button">
+    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite()" type="button">
       <mat-icon>task_alt</mat-icon>
       Finalizar
     </button>

@@ -118,8 +118,24 @@ export class GastoService {
     return this.genericService.onCustomMutation(this.tramitarGQL, { id, sucId });
   }
 
-  preGastoCompletar(id: number, sucId?: number, rindioGasto?: boolean, montoGastado?: number): Observable<PreGasto> {
-    return this.genericService.onCustomMutation(this.completarPreGastoGQL, { id, sucId, rindioGasto, montoGastado });
+  preGastoCompletar(
+    id: number,
+    sucId?: number,
+    rindioGasto?: boolean,
+    montoGastado?: number,
+    montoGastadoGs?: number,
+    montoGastadoRs?: number,
+    montoGastadoDs?: number
+  ): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.completarPreGastoGQL, {
+      id,
+      sucId,
+      rindioGasto,
+      montoGastado,
+      montoGastadoGs,
+      montoGastadoRs,
+      montoGastadoDs
+    });
   }
 
   preGastoImprimir(id: number, sucId?: number): Observable<string> {
