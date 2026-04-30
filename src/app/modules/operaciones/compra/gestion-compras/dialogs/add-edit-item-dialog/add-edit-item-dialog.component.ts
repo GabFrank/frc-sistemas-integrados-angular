@@ -87,6 +87,7 @@ export class AddEditItemDialogComponent implements OnInit {
   itemForm: FormGroup;
 
   // Product data
+  private originalSearchText = '';
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -278,6 +279,7 @@ export class AddEditItemDialogComponent implements OnInit {
 
   private initializeForm(): void {
     const initialSearch = (!this.data.isEdit && this.data.lastSearchText) ? this.data.lastSearchText : "";
+    this.originalSearchText = initialSearch;
     this.itemForm = this.formBuilder.group({
       productoSearch: [initialSearch],
       producto: [null, [Validators.required]],
@@ -626,6 +628,7 @@ export class AddEditItemDialogComponent implements OnInit {
   // Product search functionality similar to edit-transferencia.component.ts
   onSearchProducto(): void {
     const searchText = this.itemForm.get("productoSearch")?.value || "";
+    this.originalSearchText = searchText;
 
     const dialogData: PdvSearchProductoData = {
       texto: searchText,
@@ -1037,7 +1040,7 @@ export class AddEditItemDialogComponent implements OnInit {
             const result: AddEditItemDialogResult = {
               item: itemResult,
               action: "save",
-              lastSearchText: this.itemForm.get("productoSearch")?.value || "",
+              lastSearchText: this.originalSearchText,
             };
 
             this.dialogRef.close(result);
@@ -1068,7 +1071,7 @@ export class AddEditItemDialogComponent implements OnInit {
     const result: AddEditItemDialogResult = {
       item: {} as PedidoItem,
       action: "cancel",
-      lastSearchText: this.itemForm.get("productoSearch")?.value || "",
+      lastSearchText: this.originalSearchText,
     };
     this.dialogRef.close(result);
   }
