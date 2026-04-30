@@ -11,6 +11,7 @@ export class TipoGasto {
     autorizacion: boolean
     cargo: Cargo
     activo: boolean
+    activoEnSucursales?: boolean
     creadoEn: Date
     subtipoList: TipoGasto[] = []
     usuario: Usuario
@@ -28,6 +29,7 @@ export class TipoGastoInput {
     autorizacion: boolean
     cargoId: number
     activo: boolean
+    activoEnSucursales?: boolean
     afectaFinanzasActivo?: boolean;
     esPagoCuotaActivo?: boolean;
     creadoEn: Date

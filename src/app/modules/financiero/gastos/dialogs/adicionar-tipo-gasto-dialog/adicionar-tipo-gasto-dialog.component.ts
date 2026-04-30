@@ -26,6 +26,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   cargoControl = new FormControl();
   moduloPadreControl = new FormControl<string | null>(null, Validators.required);
   activoControl = new FormControl(true);
+  activoEnSucursalesControl = new FormControl(true);
   naturezaControl = new FormControl('VARIABLE');
   creadoEnControl = new FormControl();
   usuarioControl = new FormControl();
@@ -65,7 +66,8 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   cargarDatos() {
     this.idControl.setValue(this.selectedTipoGasto.id)
     this.descripcionControl.setValue(this.selectedTipoGasto?.descripcion)
-    this.activoControl.setValue(this.selectedTipoGasto?.activo)
+    this.activoControl.setValue(this.selectedTipoGasto?.activo ?? true)
+    this.activoEnSucursalesControl.setValue(this.selectedTipoGasto?.activoEnSucursales ?? true)
     this.autorizacionControl.setValue(this.selectedTipoGasto?.autorizacion)
     this.cargoControl.setValue(this.selectedTipoGasto?.cargo?.id)
     this.moduloPadreControl.setValue(this.selectedTipoGasto?.moduloPadre ?? null);
@@ -91,6 +93,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     input.autorizacion = this.autorizacionControl.value;
     input.cargoId = this.cargoControl.value;
     input.activo = this.activoControl.value;
+    input.activoEnSucursales = this.activoEnSucursalesControl.value;
     input.tipoNaturaleza = this.naturezaControl.value;
     this.gastoService.tipoGastoOnSave(input).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {

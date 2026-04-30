@@ -30,7 +30,7 @@ export class ListTipoGastosComponent implements OnInit {
   tabEtiquetas = ['Todos', 'Continuos', 'Recurrentes', 'Variables'];
 
   columnasVisibles = [
-    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'autorizacion', 'activo', 'acciones'
+    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
 
   // Tab activa (Naturaleza)

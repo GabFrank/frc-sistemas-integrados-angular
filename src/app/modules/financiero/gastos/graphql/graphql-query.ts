@@ -209,6 +209,7 @@ export const tipoGastosQuery = gql`
       descripcion
       autorizacion
       activo
+      activoEnSucursales
     }
   }
 `;
@@ -220,6 +221,7 @@ export const tipoGastoQuery = gql`
       descripcion
       autorizacion
       activo
+      activoEnSucursales
       isClasificacion
       tipoNaturaleza
       moduloPadre
@@ -247,6 +249,7 @@ export const tipoGastosSearch = gql`
       descripcion
       autorizacion
       activo
+      activoEnSucursales
     }
   }
 `;
@@ -258,6 +261,7 @@ export const saveTipoGasto = gql`
       descripcion
       autorizacion
       activo
+      activoEnSucursales
       isClasificacion
       tipoNaturaleza
       moduloPadre
@@ -460,6 +464,7 @@ export const filterTipoGastosQuery = gql`
         descripcion
         autorizacion
         activo
+        activoEnSucursales
         isClasificacion
         tipoNaturaleza
         moduloPadre
