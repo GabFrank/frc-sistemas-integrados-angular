@@ -59,7 +59,8 @@ export class AsignarItemsANotaGQL {
       variables: {
         notaRecepcionId,
         pedidoItemIds
-      }
+      },
+      context: { clientName: 'servidor' }
     }).pipe(
       map(result => result.data!.data)
     );

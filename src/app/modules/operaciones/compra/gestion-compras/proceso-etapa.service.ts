@@ -18,7 +18,8 @@ export class ProcesoEtapaService {
       variables: {
         pedidoId: pedidoId
       },
-      fetchPolicy: 'network-only'
+      fetchPolicy: 'network-only',
+      context: { clientName: 'servidor' }
     }).pipe(
       map(result => result.data.etapaActualPorPedido)
     );
