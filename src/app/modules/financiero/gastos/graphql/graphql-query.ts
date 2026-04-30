@@ -192,6 +192,21 @@ export const filterGastosQuery = gql`
         tipoGasto {
           descripcion
         }
+        autorizadoPor {
+          persona {
+            nombre
+          }
+        }
+        preGasto {
+          id
+          estado
+          estadoEtiqueta
+          estadoIcono
+          estadoColor
+          tipoGasto {
+            descripcion
+          }
+        }
         observacion
         retiroGs
         retiroRs

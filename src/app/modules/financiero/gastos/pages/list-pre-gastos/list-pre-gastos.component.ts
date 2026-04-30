@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { TabService } from '../../../../../layouts/tab/tab.service';
+import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject } from '@angular/core';
+import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
 import { MatDialog } from '@angular/material/dialog';
@@ -27,7 +27,7 @@ import { CajaService } from '../../../pdv/caja/caja.service';
   styleUrls: ['./list-pre-gastos.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ListPreGastosComponent {
+export class ListPreGastosComponent implements OnInit, DoCheck {
   private gastoService = inject(GastoService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
@@ -69,6 +69,35 @@ export class ListPreGastosComponent {
     fin: new FormControl<Date | null>(new Date()),
     buscarId: new FormControl<number | null>(null)
   });
+
+  private lastAppliedBuscarId: number | null = null;
+
+  ngOnInit(): void {
+    this.aplicarFiltroDesdeTabData();
+  }
+
+  ngDoCheck(): void {
+    this.aplicarFiltroDesdeTabData();
+  }
+
+  private aplicarFiltroDesdeTabData(): void {
+    const tabActual = this.tabService.currentTab();
+    if (tabActual?.component !== ListPreGastosComponent) return;
+
+    const tabData: TabData | undefined = this.tabService.currentTab()?.tabData;
+    const buscarId = Number(tabData?.data?.buscarId);
+    if (!Number.isFinite(buscarId) || buscarId <= 0) {
+      return;
+    }
+    if (this.lastAppliedBuscarId === buscarId) {
+      return;
+    }
+
+    this.lastAppliedBuscarId = buscarId;
+    this.fechaFormGroup.controls.buscarId.setValue(buscarId);
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.refetchSubject.next();
+  }
 
   /** Rango por defecto: desde hace 3 días hasta hoy (inclusive). */
   private static fechaInicioRangoPorDefecto(): Date {

@@ -163,6 +163,47 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="autorizadoPor">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Autorizado por
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ getAutorizadoPor(gasto) | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoGasto">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Tipo de gasto
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ getTipoGastoDescripcion(gasto) | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estadoSolicitud">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          <span
+            class="estado-badge"
+            [style.background-color]="getEstadoSolicitudColor(gasto) + '22'"
+            [style.color]="getEstadoSolicitudColor(gasto)"
+          >
+            <mat-icon class="estado-icono">{{ getEstadoSolicitudIcono(gasto) }}</mat-icon>
+            {{ getEstadoSolicitudEtiqueta(gasto) | uppercase }}
+          </span>
+          <button
+            mat-icon-button
+            matTooltip="Ir a solicitud de gasto"
+            (click)="onIrASolicitudGasto(gasto)"
+          >
+            <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em">launch</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="usuario">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Cajero
