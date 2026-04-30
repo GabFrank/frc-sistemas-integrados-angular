@@ -8,6 +8,7 @@ import { SearchListDialogComponent, SearchListtDialogData } from '../../../../..
 import { Moneda } from '../../../moneda/moneda.model';
 import { MonedaService } from '../../../moneda/moneda.service';
 import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
+import { EditProveedorComponent, EditProveedorResult } from '../../../../personas/proveedor/edit-proveedor/edit-proveedor.component';
 
 export interface SolicitudGastoSimpleData {
   tipoGastoId: number;
@@ -179,6 +180,23 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  abrirAdicionarProveedor(): void {
+    this.matDialog
+      .open(EditProveedorComponent, {
+        width: '600px',
+        data: {},
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: EditProveedorResult | undefined) => {
+        if (res?.saved && res?.proveedor?.id) {
+          this.proveedorIdControl.setValue(res.proveedor.id);
+          this.beneficiarioControl.setValue(res.proveedor.persona?.nombre || '');
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   onCancelar(): void {

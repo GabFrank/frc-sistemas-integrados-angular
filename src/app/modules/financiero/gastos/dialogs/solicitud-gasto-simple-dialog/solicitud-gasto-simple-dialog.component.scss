@@ -32,3 +32,11 @@ mat-form-field {
   color: #fff !important;
   box-shadow: none !important;
 }
+
+.beneficiario-acciones {
+  margin-top: -6px;
+}
+
+.beneficiario-bloqueado {
+  pointer-events: none;
+}

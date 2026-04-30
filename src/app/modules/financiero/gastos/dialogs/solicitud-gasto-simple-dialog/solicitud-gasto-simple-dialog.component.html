@@ -119,14 +119,22 @@
 
       <!-- Beneficiario (Proveedor) -->
       <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
-        <mat-form-field fxFlex="100%" (click)="abrirBuscadorProveedor()">
+        <mat-form-field fxFlex="100%" class="beneficiario-bloqueado">
           <mat-label>Beneficiario (Proveedor)</mat-label>
-          <input matInput [formControl]="beneficiarioControl" readonly placeholder="Seleccione un proveedor" required />
+          <input matInput [formControl]="beneficiarioControl" readonly tabindex="-1" placeholder="Seleccione un proveedor" required />
           <mat-icon matSuffix>search</mat-icon>
           <mat-error *ngIf="proveedorIdControl.hasError('required')">
             El beneficiario es requerido
           </mat-error>
         </mat-form-field>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" class="beneficiario-acciones">
+        <button mat-stroked-button color="primary" type="button" (click)="abrirBuscadorProveedor()">
+          Buscar
+        </button>
+        <button mat-raised-button color="accent" type="button" (click)="abrirAdicionarProveedor()">
+          Adicionar
+        </button>
       </div>
     </div>
   </mat-dialog-content>
