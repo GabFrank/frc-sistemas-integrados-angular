@@ -218,6 +218,9 @@ export class GestionComprasComponent
   // Current pedido instance
   currentPedido: Pedido | null = null;
 
+  // Último texto de búsqueda en el diálogo Añadir Item (persiste dentro de la misma sesión de gestión)
+  private lastItemSearchText = '';
+
   // Pedido resumen from backend (for edit mode)
   pedidoResumen: PedidoResumen | null = null;
 
@@ -585,9 +588,12 @@ export class GestionComprasComponent
     this.loadingPedido = false;
     this.currentPedido = null;
     this.pedidoResumen = null;
-    
+
     // Limpiar conjunto de tabs cargados
     this.loadedTabs.clear();
+
+    // Limpiar último texto de búsqueda de ítem
+    this.lastItemSearchText = '';
   }
 
   /**
@@ -599,6 +605,7 @@ export class GestionComprasComponent
       return;
     }
 
+    this.lastItemSearchText = '';
     this.loadingPedido = true;
 
     // Cargar pedido, ítems y etapa actual en paralelo
@@ -1953,6 +1960,7 @@ export class GestionComprasComponent
       pedido: this.currentPedido as Pedido,
       isEdit: false,
       title: "Añadir Nuevo Ítem al Pedido",
+      lastSearchText: this.lastItemSearchText,
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
@@ -1963,6 +1971,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.lastSearchText !== undefined) {
+        this.lastItemSearchText = result.lastSearchText;
+      }
       if (result && result.action === "save") {
         // Actualizar localmente el monto total del pedido
         if (this.isEditMode && result.item) {
