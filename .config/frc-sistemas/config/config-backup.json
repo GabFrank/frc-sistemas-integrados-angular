@@ -8,7 +8,7 @@
   "modo": "NOT",
   "pdvId": 24,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "updateChannel": "dev",
   "printers": {
     "ticket": "ultron22",
