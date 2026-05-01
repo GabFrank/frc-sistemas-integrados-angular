@@ -73,6 +73,10 @@ import { DeshacerVerificacionTodoPorNotaGQL } from './gestion-compras/recepcion-
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { RecepcionMercaderiaItem } from './gestion-compras/recepcion-mercaderia-item.model';
 import { GetPedidosWithFiltersGQL } from './gestion-compras/graphql/getPedidosWithFilters';
+import {
+  GetPedidoRecepcionFisicaResumenGQL,
+  PedidoRecepcionFisicaResumen
+} from './gestion-compras/graphql/getPedidoRecepcionFisicaResumen';
 
 @Injectable({
   providedIn: 'root'
@@ -131,7 +135,8 @@ export class PedidoService {
     private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL,
     private recepcionarTodoPorNotaGQL: RecepcionarTodoPorNotaGQL,
     private deshacerVerificacionTodoPorNotaGQL: DeshacerVerificacionTodoPorNotaGQL,
-    private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL
+    private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL,
+    private getPedidoRecepcionFisicaResumenGQL: GetPedidoRecepcionFisicaResumenGQL
   ) {}
 
   /**
@@ -600,6 +605,10 @@ export class PedidoService {
    */
   onGetSucursalesDisponiblesRecepcionFisica(pedidoId: number): Observable<Sucursal[]> {
     return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId });
+  }
+
+  onGetPedidoRecepcionFisicaResumen(pedidoId: number): Observable<PedidoRecepcionFisicaResumen> {
+    return this.genericCrudService.onCustomQuery(this.getPedidoRecepcionFisicaResumenGQL, { pedidoId });
   }
 
   /**

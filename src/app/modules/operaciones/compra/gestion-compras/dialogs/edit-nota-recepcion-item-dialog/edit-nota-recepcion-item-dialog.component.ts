@@ -530,9 +530,22 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
   // Métodos para manejar keydown en inputs
   onCantidadKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       this.focusNextField('precioPorPresentacion');
+    }
+  }
+
+  onCantidadFocus(): void {
+    const cantidadControl = this.itemForm.get('cantidadPorPresentacion');
+    const value = Number(cantidadControl?.value ?? 0);
+    if (value === 0) {
+      cantidadControl?.setValue(null);
     }
   }
 
@@ -692,8 +705,10 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
+    const productoDisplay = producto ? `${producto.id} - ${producto.descripcion}` : '';
 
     this.itemForm.patchValue({
+      searchProducto: productoDisplay,
       producto: producto,
       presentacion: presentacion || (this.presentacionesDisponibles.length > 0 ? this.presentacionesDisponibles[0] : null),
       precioUnitario: producto?.costo?.ultimoPrecioCompra || 0,
@@ -728,6 +743,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   onRemoverProducto(): void {
     this.selectedProducto = null;
     this.presentacionesDisponibles = [];
+    this.itemForm.get('searchProducto')?.setValue('');
     this.itemForm.get('producto')?.setValue(null);
     this.itemForm.get('presentacion')?.setValue(null);
     this.updateComputedProperties();

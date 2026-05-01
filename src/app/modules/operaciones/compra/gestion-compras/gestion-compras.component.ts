@@ -218,6 +218,9 @@ export class GestionComprasComponent
   // Current pedido instance
   currentPedido: Pedido | null = null;
 
+  // Último texto de búsqueda en el diálogo Añadir Item (persiste dentro de la misma sesión de gestión)
+  private lastItemSearchText = '';
+
   // Pedido resumen from backend (for edit mode)
   pedidoResumen: PedidoResumen | null = null;
 
@@ -585,9 +588,12 @@ export class GestionComprasComponent
     this.loadingPedido = false;
     this.currentPedido = null;
     this.pedidoResumen = null;
-    
+
     // Limpiar conjunto de tabs cargados
     this.loadedTabs.clear();
+
+    // Limpiar último texto de búsqueda de ítem
+    this.lastItemSearchText = '';
   }
 
   /**
@@ -599,6 +605,7 @@ export class GestionComprasComponent
       return;
     }
 
+    this.lastItemSearchText = '';
     this.loadingPedido = true;
 
     // Cargar pedido, ítems y etapa actual en paralelo
@@ -973,6 +980,7 @@ export class GestionComprasComponent
   // Método original para crear nuevos pedidos
   private savePedidoCabecera(): void {
     const formValue = this.datosGeneralesForm.value;
+    const usuarioActualId = +(localStorage.getItem("usuarioId") || 1);
 
     // Create PedidoInput from form
     const pedidoInput = {
@@ -982,7 +990,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: 1, // TODO: Get from auth service
+      usuarioId: usuarioActualId,
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1000,7 +1008,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        1, // TODO: Get from auth service
+        usuarioActualId,
       )
       .subscribe({
         next: (result) => {
@@ -1952,6 +1960,7 @@ export class GestionComprasComponent
       pedido: this.currentPedido as Pedido,
       isEdit: false,
       title: "Añadir Nuevo Ítem al Pedido",
+      lastSearchText: this.lastItemSearchText,
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
@@ -1962,6 +1971,9 @@ export class GestionComprasComponent
     });
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.lastSearchText !== undefined) {
+        this.lastItemSearchText = result.lastSearchText;
+      }
       if (result && result.action === "save") {
         // Actualizar localmente el monto total del pedido
         if (this.isEditMode && result.item) {
