@@ -172,3 +172,19 @@ export const imprimirReporteMarcacionesQuery = gql`
     )
   }
 `;
+
+export const ajustarJornadaA8HorasMutation = gql`
+  mutation ajustarJornadaA8Horas($id: ID!, $sucursalId: ID!, $observacion: String) {
+    data: ajustarJornadaA8Horas(id: $id, sucursalId: $sucursalId, observacion: $observacion) {
+      ${jornadaFragment}
+    }
+  }
+`;
+
+export const guardarObservacionJornadaMutation = gql`
+  mutation guardarObservacionJornada($id: ID!, $sucursalId: ID!, $observacion: String!) {
+    data: guardarObservacionJornada(id: $id, sucursalId: $sucursalId, observacion: $observacion) {
+      ${jornadaFragment}
+    }
+  }
+`;
