@@ -37,6 +37,10 @@ import {
   RechazarItemDialogData,
   RechazarItemDialogResult,
 } from "./dialogs/rechazar-item-dialog/rechazar-item-dialog.component";
+import {
+  StockDetalladoDialogComponent,
+  StockDetalladoDialogData,
+} from "./dialogs/stock-detallado-dialog/stock-detallado-dialog.component";
 import { Pedido } from "./pedido.model";
 import { PedidoItem, PedidoItemEstado } from "./pedido-item.model";
 import { PedidoItemDistribucion } from "./pedido-item-distribucion.model";
@@ -85,6 +89,7 @@ import { ProductoProveedorService } from "../../../productos/producto-proveedor/
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
 import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
+import { ProductoService } from "../../../productos/producto/producto.service";
 
 interface PedidoHeader {
   id?: number;
@@ -132,12 +137,25 @@ interface MockNotaRecepcion extends NotaRecepcion {
   valorTotal?: number;
 }
 
+interface StockPorSucursalEntry {
+  sucursal: Sucursal;
+  stock: number;
+  loading: boolean;
+}
+
 interface ProductoProveedorItem extends ProductoProveedor {
   // Computed properties
   descripcionComputed: string;
   precioDisplayComputed: string;
   isSelectedComputed: boolean;
   yaEnPedidoComputed: boolean;
+  // Stock lazy-loading
+  stockTotal: number | null;
+  stockTotalLoading: boolean;
+  stockPorSucursal: StockPorSucursalEntry[];
+  // Stock display (converted to presentacion principal)
+  stockDisplayComputed: string;
+  stockSubtitleComputed: string | null;
 }
 
 interface UltimaCompraItem {
@@ -380,7 +398,8 @@ export class GestionComprasComponent
     private dialogosService: DialogosService,
     private productoProveedorService: ProductoProveedorService,
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
-    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL
+    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
+    private productoService: ProductoService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -980,7 +999,6 @@ export class GestionComprasComponent
   // Método original para crear nuevos pedidos
   private savePedidoCabecera(): void {
     const formValue = this.datosGeneralesForm.value;
-    const usuarioActualId = +(localStorage.getItem("usuarioId") || 1);
 
     // Create PedidoInput from form
     const pedidoInput = {
@@ -990,7 +1008,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: usuarioActualId,
+      usuarioId: 1, // TODO: Get from auth service
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1008,7 +1026,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        usuarioActualId,
+        1, // TODO: Get from auth service
       )
       .subscribe({
         next: (result) => {
@@ -3475,7 +3493,12 @@ export class GestionComprasComponent
               descripcionComputed: pp.producto?.descripcion || '',
               precioDisplayComputed: this.formatNumber(precioPrincipal),
               isSelectedComputed: false,
-              yaEnPedidoComputed: pp.yaEnPedido || false
+              yaEnPedidoComputed: pp.yaEnPedido || false,
+              stockTotal: null,
+              stockTotalLoading: true,
+              stockPorSucursal: [],
+              stockDisplayComputed: '',
+              stockSubtitleComputed: null
             };
             return item;
           });
@@ -3483,6 +3506,7 @@ export class GestionComprasComponent
           this.productosProveedorDataSource.data = productos;
           this.productosProveedorTotalElements = response.getTotalElements || 0;
           this.productosProveedorLoading = false;
+          this.loadStockForProductosProveedor();
           
           // Si estamos navegando con teclado entre páginas, seleccionar el producto apropiado
           if (this.isNavigatingWithKeyboard && this.keyboardNavigationDirection) {
@@ -3559,6 +3583,126 @@ export class GestionComprasComponent
           this.productosProveedorLoading = false;
         },
       });
+  }
+
+  /**
+   * Retorna las sucursales de influencia efectivas, expandiendo el sentinel "Todos" (id=-1)
+   */
+  private getSucursalesDeInfluenciaEfectivas(): Sucursal[] {
+    const selected: Sucursal[] = this.datosGeneralesForm.get('sucursalesInfluencia')?.value || [];
+    const hasTodos = selected.some((s: Sucursal) => s.id === -1);
+    if (hasTodos || selected.length === 0) {
+      return this.sucursalesInfluenciaFiltradas;
+    }
+    return selected;
+  }
+
+  /**
+   * Inicia la carga asíncrona de stock para todos los productos del proveedor en la tabla actual.
+   * Usa staggered setTimeout para no saturar el servidor (mismo patrón que add-edit-item-dialog).
+   */
+  private loadStockForProductosProveedor(): void {
+    const sucursales = this.getSucursalesDeInfluenciaEfectivas();
+    const productos = this.productosProveedorDataSource.data;
+
+    if (sucursales.length === 0) {
+      productos.forEach(p => {
+        p.stockTotalLoading = false;
+        p.stockTotal = null;
+        p.stockPorSucursal = [];
+      });
+      return;
+    }
+
+    productos.forEach((producto, productoIndex) => {
+      producto.stockTotalLoading = true;
+      producto.stockTotal = null;
+      producto.stockPorSucursal = sucursales.map(suc => ({
+        sucursal: suc,
+        stock: 0,
+        loading: true
+      }));
+
+      sucursales.forEach((sucursal, sucIndex) => {
+        const delayMs = (productoIndex * sucursales.length + sucIndex) * 10;
+        setTimeout(() => {
+          this.loadStockForProductoSucursal(producto, sucursal);
+        }, delayMs);
+      });
+    });
+  }
+
+  /**
+   * Carga el stock de un producto en una sucursal específica y actualiza la entrada correspondiente
+   */
+  private loadStockForProductoSucursal(
+    producto: ProductoProveedorItem,
+    sucursal: Sucursal
+  ): void {
+    const productoId = producto.producto?.id;
+    if (!productoId) {
+      const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
+      if (entry) { entry.loading = false; }
+      this.recalcularStockTotal(producto);
+      return;
+    }
+
+    this.productoService
+      .onGetStockPorProductoAndSucursal(productoId, sucursal.id, true)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stock: number) => {
+          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
+          if (entry) {
+            entry.stock = stock ?? 0;
+            entry.loading = false;
+          }
+          this.recalcularStockTotal(producto);
+        },
+        error: () => {
+          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
+          if (entry) {
+            entry.stock = 0;
+            entry.loading = false;
+          }
+          this.recalcularStockTotal(producto);
+        }
+      });
+  }
+
+  /**
+   * Recalcula el stock total de un producto sumando solo stocks positivos.
+   * Marca stockTotalLoading = false cuando todas las entradas terminaron de cargar.
+   */
+  private recalcularStockTotal(producto: ProductoProveedorItem): void {
+    const entries = producto.stockPorSucursal;
+    const allLoaded = entries.every(e => !e.loading);
+
+    const total = entries
+      .filter(e => !e.loading && e.stock > 0)
+      .reduce((acc, e) => acc + e.stock, 0);
+
+    producto.stockTotal = total;
+
+    if (allLoaded) {
+      producto.stockTotalLoading = false;
+
+      // Calcular display convertido a presentación principal
+      const presentacionPrincipal = producto.producto?.presentaciones
+        ?.find(p => p.principal && p.activo);
+      const cantidad = presentacionPrincipal?.cantidad || 1;
+      const esBalanza = producto.producto?.balanza === true;
+
+      const stockConvertido = total / cantidad;
+      producto.stockDisplayComputed = stockConvertido.toLocaleString('es-PY', { maximumFractionDigits: 2 });
+
+      if (cantidad > 1 && !esBalanza) {
+        const tipoDesc = presentacionPrincipal?.tipoPresentacion?.descripcion || 'uds';
+        producto.stockSubtitleComputed = `(${tipoDesc} x ${cantidad})`;
+      } else {
+        producto.stockSubtitleComputed = null;
+      }
+    }
   }
 
   /**
@@ -3873,6 +4017,23 @@ export class GestionComprasComponent
     this.ultimasComprasPageIndex = event.pageIndex;
     this.ultimasComprasPageSize = event.pageSize;
     this.applyUltimasComprasPagination();
+  }
+
+  /**
+   * Abre el diálogo de stock detallado por sucursal para un producto
+   */
+  onVerStockDetallado(producto: ProductoProveedorItem, event: MouseEvent): void {
+    event.stopPropagation();
+    this.dialog.open(StockDetalladoDialogComponent, {
+      data: {
+        productoDescripcion: producto.descripcionComputed,
+        stockPorSucursal: producto.stockPorSucursal,
+        stockTotal: producto.stockTotal,
+        presentaciones: (producto.producto?.presentaciones || []).filter(p => p.activo)
+      } as StockDetalladoDialogData,
+      width: '480px',
+      maxHeight: '80vh'
+    });
   }
 
   /**
