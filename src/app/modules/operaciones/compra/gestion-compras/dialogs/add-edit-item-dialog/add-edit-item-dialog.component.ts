@@ -47,11 +47,13 @@ export interface AddEditItemDialogData {
   isEdit: boolean;
   pedido: Pedido;
   item?: PedidoItem;
+  lastSearchText?: string;
 }
 
 export interface AddEditItemDialogResult {
   item: PedidoItem;
   action: "save" | "cancel";
+  lastSearchText?: string;
 }
 
 export interface DistribucionItem {
@@ -85,6 +87,7 @@ export class AddEditItemDialogComponent implements OnInit {
   itemForm: FormGroup;
 
   // Product data
+  private originalSearchText = '';
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -275,8 +278,10 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   private initializeForm(): void {
+    const initialSearch = (!this.data.isEdit && this.data.lastSearchText) ? this.data.lastSearchText : "";
+    this.originalSearchText = initialSearch;
     this.itemForm = this.formBuilder.group({
-      productoSearch: [""], // Campo de búsqueda de producto
+      productoSearch: [initialSearch],
       producto: [null, [Validators.required]],
       presentacion: [null, [Validators.required]],
       cantidadSolicitada: [0, [Validators.required, Validators.min(0.01)]], // Cantidad en unidades base (calculada desde distribuciones)
@@ -389,7 +394,11 @@ export class AddEditItemDialogComponent implements OnInit {
           }
         }
       } else {
-        // Si no hay producto, el foco ya está en el input de búsqueda
+        // Si no hay producto, el foco está en el input de búsqueda
+        if (!this.data.isEdit && this.data.lastSearchText) {
+          this.productoInput?.nativeElement.focus();
+          this.productoInput?.nativeElement.select();
+        }
       }
     }, 300);
   }
@@ -619,6 +628,7 @@ export class AddEditItemDialogComponent implements OnInit {
   // Product search functionality similar to edit-transferencia.component.ts
   onSearchProducto(): void {
     const searchText = this.itemForm.get("productoSearch")?.value || "";
+    this.originalSearchText = searchText;
 
     const dialogData: PdvSearchProductoData = {
       texto: searchText,
@@ -1030,6 +1040,7 @@ export class AddEditItemDialogComponent implements OnInit {
             const result: AddEditItemDialogResult = {
               item: itemResult,
               action: "save",
+              lastSearchText: this.originalSearchText,
             };
 
             this.dialogRef.close(result);
@@ -1060,6 +1071,7 @@ export class AddEditItemDialogComponent implements OnInit {
     const result: AddEditItemDialogResult = {
       item: {} as PedidoItem,
       action: "cancel",
+      lastSearchText: this.originalSearchText,
     };
     this.dialogRef.close(result);
   }
@@ -1747,6 +1759,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input de cantidad a pedir
    */
   onCantidadPedirKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -1781,6 +1798,13 @@ export class AddEditItemDialogComponent implements OnInit {
     this.calculateCantidadTotal();
   }
 
+  onCantidadInputFocus(control: FormControl): void {
+    const value = Number(control?.value ?? 0);
+    if (value === 0) {
+      control.setValue(null);
+    }
+  }
+
   /**
    * Actualiza las distribuciones desde el modo simplificado
    */
@@ -1809,6 +1833,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input simplificado
    */
   onCantidadSimplificadaKeydown(event: KeyboardEvent): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();
