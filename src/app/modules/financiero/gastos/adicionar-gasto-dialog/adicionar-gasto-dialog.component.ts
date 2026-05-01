@@ -413,9 +413,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                       ).subscribe();
                     }
 
-                    this.gastoService.onSave(gasto, true).subscribe(res => {
-                      this.cargandoDialog.closeDialog();
-                    });
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
