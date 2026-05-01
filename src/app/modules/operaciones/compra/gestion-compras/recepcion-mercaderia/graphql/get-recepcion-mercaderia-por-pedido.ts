@@ -13,7 +13,8 @@ export class GetRecepcionMercaderiaPorPedidoGQL {
     return this.apollo.watchQuery({
       query: RECEPCION_MERCADERIA_POR_PEDIDO_QUERY,
       variables: { pedidoId },
-      fetchPolicy: 'cache-and-network'
+      fetchPolicy: 'cache-and-network',
+      context: { clientName: 'servidor' }
     });
   }
 
@@ -21,7 +22,8 @@ export class GetRecepcionMercaderiaPorPedidoGQL {
     return this.apollo.query({
       query: RECEPCION_MERCADERIA_POR_PEDIDO_QUERY,
       variables: { pedidoId },
-      fetchPolicy: 'network-only'
+      fetchPolicy: 'network-only',
+      context: { clientName: 'servidor' }
     });
   }
 } 

@@ -3576,7 +3576,13 @@ export class GestionComprasComponent
     this.ultimasComprasLoading = true;
 
     this.productoUltimasComprasGQL
-      .fetch({ id: productoId }, { fetchPolicy: 'network-only' })
+      .fetch(
+        { id: productoId },
+        {
+          fetchPolicy: 'network-only',
+          context: { clientName: 'servidor' },
+        }
+      )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -3890,6 +3896,8 @@ export class GestionComprasComponent
       .mutate({
         id: producto.id,
         motivo: motivo
+      }, {
+        context: { clientName: 'servidor' }
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({

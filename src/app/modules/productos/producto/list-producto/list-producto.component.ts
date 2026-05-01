@@ -502,7 +502,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       stockFiltro: this.stockFiltroControl.value !== 'todos' ? this.stockFiltroControl.value : null,
       sucursalId: (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) ? this.sucursalFiltroControl.value : null,
       usuarioId: this.mainService.usuarioActual.id,
-      usuario: this.mainService.usuarioActual.nickname || this.mainService.usuarioActual.persona?.nombre || 'Usuario'
+      usuario: this.mainService.usuarioActual.nickname || this.mainService.usuarioActual.persona?.nombre || 'Usuario',
+      page: this.pageIndex,
+      size: this.pageSize
     };
   }
 

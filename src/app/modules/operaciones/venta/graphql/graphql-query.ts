@@ -21,6 +21,7 @@ export const ventasQuery = gql`
         id
         producto {
           id
+          descripcionFactura
         }
         cantidad
         precioCosto
@@ -73,6 +74,7 @@ export const ventaQuery = gql`
         producto {
           id
           descripcion
+          descripcionFactura
           isEnvase
         }
         presentacion {

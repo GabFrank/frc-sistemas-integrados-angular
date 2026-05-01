@@ -94,7 +94,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   }
 
   onSave() {
-    this.selectedUsuario.nickname = this.nicknameControl.value
+    this.selectedUsuario.nickname = this.nicknameControl.value?.trim()
     this.selectedUsuario.activo = this.activoControl.value
     this.selectedUsuario.persona = this.selectedPersona;
     this.selectedUsuario.password = '123';
