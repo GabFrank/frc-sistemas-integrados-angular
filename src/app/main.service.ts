@@ -16,6 +16,7 @@ import { IpcRenderer } from "electron";
 import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
+import { PuntoDeVentaService } from "./modules/financiero/punto-de-venta/punto-de-venta.service";
 import { ConfiguracionService } from "./shared/services/configuracion.service";
 
 @UntilDestroy()
@@ -51,7 +52,8 @@ export class MainService implements OnDestroy {
     // private getMonedas: MonedasGetAllGQL,
     public sucursalService: SucursalService,
     private usuarioService: UsuarioService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private puntoDeVentaService: PuntoDeVentaService
   ) {
     // Get server IP from ConfiguracionService instead of environment
     const config = this.configService.getConfig();
@@ -168,6 +170,11 @@ export class MainService implements OnDestroy {
               if (this.sucursalActual?.id == 0) {
                 this.isServidor = true;
               }
+              // Si no es local (solo servidor central) y hay pdvId configurado,
+              // resolver la sucursal real usando el pdvId
+              if (!isLocal && config.pdvId) {
+                this.resolverSucursalPorPdvId(config.pdvId);
+              }
               resolve(true);
             } else {
               resolve(false);
@@ -180,6 +187,31 @@ export class MainService implements OnDestroy {
           }
         });
     });
+  }
+
+  /**
+   * Resuelve la sucursal actual usando el pdvId cuando se usa solo el servidor central.
+   * Consulta el punto de venta por ID en el servidor central y extrae la sucursal asociada.
+   * Esto permite que el frontend sepa a qué sucursal pertenece sin necesidad de un servidor local.
+   * @param pdvId ID del punto de venta configurado
+   */
+  private resolverSucursalPorPdvId(pdvId: number): void {
+    this.puntoDeVentaService.onGetPuntoDeVentaPorId(pdvId, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (puntoDeVenta) => {
+          if (puntoDeVenta?.sucursal) {
+            console.log(`Sucursal resuelta por pdvId ${pdvId}: ${puntoDeVenta.sucursal.nombre} (ID: ${puntoDeVenta.sucursal.id})`);
+            this.sucursalActual = puntoDeVenta.sucursal;
+            this.isServidor = false;
+          } else {
+            console.warn(`No se encontró sucursal para pdvId ${pdvId}`);
+          }
+        },
+        error: (err) => {
+          console.error(`Error al resolver sucursal por pdvId ${pdvId}:`, err);
+        }
+      });
   }
 
   /**
