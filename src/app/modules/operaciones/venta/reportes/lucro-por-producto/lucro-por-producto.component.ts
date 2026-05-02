@@ -58,6 +58,7 @@ export class LucroPorProductoComponent implements OnInit {
   selectedSucursal: Sucursal;
   sucursalList: Sucursal[];
   sucursalIdList: number[];
+  previousSelectedSucursales: any[] = [];
   buscarProductoControl = new FormControl();
   buscarSubfamiliaControl = new FormControl();
   isPesable = false;
@@ -120,6 +121,28 @@ export class LucroPorProductoComponent implements OnInit {
       inicioHora: this.horaInicioControl,
       finHora: this.horaFinalControl,
     });
+
+    this.sucursalControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((selectedValues: any[]) => {
+        if (!selectedValues) return;
+        const hasTodas = selectedValues.includes(null);
+        if (hasTodas && selectedValues.length > 1) {
+          const prevValues = this.previousSelectedSucursales || [];
+          const hadTodasPrev = prevValues.includes(null);
+
+          if (!hadTodasPrev) {
+            this.previousSelectedSucursales = [null];
+            this.sucursalControl.setValue([null], { emitEvent: false });
+          } else {
+            const newSelection = selectedValues.filter(val => val !== null);
+            this.previousSelectedSucursales = newSelection;
+            this.sucursalControl.setValue(newSelection, { emitEvent: false });
+          }
+        } else {
+          this.previousSelectedSucursales = selectedValues;
+        }
+      });
 
     this.sucursalList = [];
     this.sucursalIdList = [];
@@ -216,10 +239,30 @@ export class LucroPorProductoComponent implements OnInit {
   cargarMasDatos() {}
 
   resetFiltro() {
-    this.fechaInicioControl.setValue(null);
-    this.fechaFinalControl.setValue(null);
-    this.sucursalList = [];
-    this.sucursalIdList = [];
+    let hoy = new Date();
+    let aux = new Date();
+    aux.setDate(hoy.getDate() - 2);
+
+    this.fechaInicioControl.setValue(aux);
+    this.fechaFinalControl.setValue(hoy);
+    this.horaInicioControl.setValue("00:00");
+    this.horaFinalControl.setValue("23:59");
+    this.sucursalControl.setValue(null);
+    this.buscarProductoControl.setValue(null);
+    this.buscarSubfamiliaControl.setValue(null);
+    this.buscarCajeroControl.setValue(null);
+    this.selectedUsuario = null;
+    this.selectedSubFamilia = null;
+    this.productoList = [];
+    this.dataSource.data = [];
+    this.totalElements = 0;
+
+    this.totalVenta = 0;
+    this.totalCosto = 0;
+    this.totalLucro = 0;
+    this.totalDescuento = 0;
+    this.totalAumento = 0;
+    this.margenPromedio = 0;
   }
 
   onGenerarPdf() {
