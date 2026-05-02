@@ -1,3 +1,4 @@
+import { formatDate } from '@angular/common';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
@@ -23,7 +24,7 @@ import { AjustarJornadaA8HorasGQL } from '../graphql/ajustarJornadaA8Horas';
 import { GuardarObservacionJornadaGQL } from '../graphql/guardarObservacionJornada';
 import { ReporteService } from '../../../reportes/reporte.service';
 import { TabService } from '../../../../layouts/tab/tab.service';
-import { HoraServidorService } from '../../../../shared/services/hora-servidor.service';
+import { HoraServidorService, ZONA_OFFSET_PARAGUAY } from '../../../../shared/services/hora-servidor.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { ListMarcacionComponent } from '../pages/list-marcacion/list-marcacion.component';
@@ -160,9 +161,7 @@ export class MarcacionService {
   }
 
   private toLocalIsoString(date: Date): string {
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().slice(0, -1);
-    return localISOTime;
+    return formatDate(date, "yyyy-MM-dd'T'HH:mm:ss.SSS", 'en-US', ZONA_OFFSET_PARAGUAY);
   }
 
   onImprimirReporteMarcaciones(usuarioId?: number, fechaInicio?: string, fechaFin?: string, servidor = true) {
