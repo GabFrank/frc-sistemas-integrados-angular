@@ -545,4 +545,228 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-} 
+}
+
+// Two-column layout
+.content-area {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  &.has-product {
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+  }
+}
+
+// Product Info Sidebar
+.product-sidebar {
+  flex: 0 0 25%;
+  min-width: 180px;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+
+  .sidebar-image-container {
+    text-align: center;
+
+    .sidebar-product-image {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .sidebar-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .sidebar-codigo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    justify-content: center;
+
+    .sidebar-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .sidebar-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 4px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+
+    .sidebar-label {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .sidebar-precios-section {
+    margin-top: 4px;
+
+    .sidebar-section-title {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-precios-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+
+      th {
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 400;
+        padding: 3px 6px;
+        text-align: right;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        &:first-child {
+          text-align: left;
+        }
+      }
+
+      td {
+        color: #fff;
+        padding: 4px 6px;
+        text-align: right;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        &:first-child {
+          text-align: left;
+          color: rgba(255, 255, 255, 0.7);
+        }
+      }
+    }
+  }
+}
+
+// Right column
+.form-right-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// Price field wrapper (for "precio anterior" hints)
+.price-field-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .precio-anterior-hint {
+    font-size: 90%;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+    padding-left: 4px;
+    white-space: nowrap;
+  }
+}
+
+// Price change indicator
+.precio-cambio-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .cambio-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .cambio-text {
+      font-size: 13px;
+      font-weight: 500;
+    }
+  }
+
+  // 4-level color coding: lower cost = good (green), higher cost = bad (red)
+  &.cambio-nivel-muy-bajo .cambio-content {
+    mat-icon, .cambio-text { color: #2E7D32; } // dark green — great deal
+  }
+  &.cambio-nivel-bajo .cambio-content {
+    mat-icon, .cambio-text { color: #81C784; } // light green — good
+  }
+  &.cambio-nivel-alto .cambio-content {
+    mat-icon, .cambio-text { color: #FF9800; } // orange — warning
+  }
+  &.cambio-nivel-muy-alto .cambio-content {
+    mat-icon, .cambio-text { color: #f44336; } // red — bad
+  }
+
+  .programar-precio-btn {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.2);
+    height: 32px;
+    padding: 0 10px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+}
+
+// Responsive: collapse sidebar on small screens
+@media (max-width: 768px) {
+  .product-sidebar {
+    max-width: 100%;
+    flex: none;
+  }
+
+  .content-area.has-product {
+    flex-direction: column;
+  }
+}

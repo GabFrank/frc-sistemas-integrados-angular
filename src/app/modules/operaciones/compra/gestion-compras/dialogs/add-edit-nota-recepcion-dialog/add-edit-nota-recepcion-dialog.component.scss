@@ -153,24 +153,35 @@ mat-dialog-content {
                 .info-label {
                   color: #f57c00;
                   font-weight: 600;
-                  font-size: 12px;
+                  font-size: 14px;
                 }
 
                 .info-value {
                   color: #ffffff;
                   font-weight: 500;
-                  font-size: 12px;
-                  
+                  font-size: 14px;
+
                   &.boolean-value {
                     font-weight: 600;
-                    
+
                     &.true {
                       color: #4caf50;
                     }
-                    
+
                     &.false {
                       color: #f44336;
                     }
+                  }
+
+                  &.monto-rechazado {
+                    color: #f44336;
+                    font-weight: 600;
+                  }
+
+                  &.monto-final {
+                    color: #4caf50;
+                    font-weight: 700;
+                    font-size: 16px;
                   }
                 }
 

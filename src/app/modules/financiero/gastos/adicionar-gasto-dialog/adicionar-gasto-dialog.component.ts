@@ -39,7 +39,6 @@ export class AdicionarGastoData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
 import { CajaService } from "../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
 
