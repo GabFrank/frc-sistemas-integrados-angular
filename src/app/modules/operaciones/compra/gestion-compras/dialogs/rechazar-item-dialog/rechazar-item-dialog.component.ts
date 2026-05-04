@@ -468,7 +468,7 @@ export class RechazarItemDialogComponent implements OnInit {
         sucursalInfluenciaId: distribucion.sucursalInfluencia?.id || null,
         sucursalEntregaId: distribucion.sucursalEntrega?.id,
         cantidad: distribucion.cantidad,
-        creadoEn: distribucion.creadoEn,
+        creadoEn: distribucion.creadoEn ? dateToString(new Date(distribucion.creadoEn)) : null,
         usuarioId: distribucion.usuario?.id || null
       };
 
