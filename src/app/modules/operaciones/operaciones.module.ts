@@ -54,6 +54,7 @@ import { EditNotaRecepcionItemDialogComponent } from './compra/gestion-compras/d
 import { DistributeNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 import { DividirItemDialogComponent } from './compra/gestion-compras/dialogs/dividir-item-dialog/dividir-item-dialog.component';
 import { RechazarItemDialogComponent } from './compra/gestion-compras/dialogs/rechazar-item-dialog/rechazar-item-dialog.component';
+import { StockDetalladoDialogComponent } from './compra/gestion-compras/dialogs/stock-detallado-dialog/stock-detallado-dialog.component';
 import { RecepcionMercaderiaComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia.component';
 import { RecepcionMercaderiaVerificarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-verificar-item-dialog/recepcion-mercaderia-verificar-item-dialog.component';
 import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-rechazar-item-dialog/recepcion-mercaderia-rechazar-item-dialog.component';
@@ -112,6 +113,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
     DistributeNotaRecepcionItemDialogComponent,
     DividirItemDialogComponent,
     RechazarItemDialogComponent,
+    StockDetalladoDialogComponent,
     RecepcionMercaderiaComponent,
     RecepcionMercaderiaVerificarItemDialogComponent,
     RecepcionMercaderiaRechazarItemDialogComponent,
