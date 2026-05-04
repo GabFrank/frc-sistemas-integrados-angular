@@ -617,15 +617,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (pageInfo) => {
           if (pageInfo && pageInfo.getContent && pageInfo.getContent.length > 0) {
-            // Usar directamente los datos del backend
-            let items = pageInfo.getContent.map((item: any) => {
-              // Los datos ya vienen con los campos de recepción física del backend
-              // No necesitamos conversión adicional
-              return item;
-            });
+            // Usar directamente los datos del backend, filtrando ítems rechazados documentalmente
+            let items = pageInfo.getContent.filter((item: any) =>
+              item.estado !== 'RECHAZADO'
+            );
 
-            // Paginación backend-driven: el total debe venir del backend para que el paginator sea correcto
-            this.itemsTotalElements = pageInfo.getTotalElements || 0;
+            // Paginación: ajustar total descontando rechazados
+            const rechazadosCount = (pageInfo.getContent.length || 0) - items.length;
+            this.itemsTotalElements = (pageInfo.getTotalElements || 0) - rechazadosCount;
 
             this.items = items;
           } else {
@@ -2593,9 +2592,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
           return;
         }
 
-        // Filtrar solo items con estado PENDIENTE o PARCIAL (recepcionables)
-        const itemsRecepcionables = pageInfo.getContent.filter((item: any) => 
-          item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'
+        // Filtrar solo items recepcionables: excluir rechazados documentalmente y solo PENDIENTE/PARCIAL
+        const itemsRecepcionables = pageInfo.getContent.filter((item: any) =>
+          item.estado !== 'RECHAZADO' &&
+          (item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL')
         );
 
         if (itemsRecepcionables.length === 0) {
