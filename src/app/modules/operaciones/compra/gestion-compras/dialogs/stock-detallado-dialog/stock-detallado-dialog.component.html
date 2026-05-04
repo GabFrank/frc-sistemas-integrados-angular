@@ -1,0 +1,58 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>Stock Detallado</h2>
+    <span class="producto-nombre">{{ data.productoDescripcion }}</span>
+  </div>
+
+  <div class="dialog-content">
+    <!-- Selector de presentación -->
+    <div class="presentacion-selector" *ngIf="showPresentacionSelect">
+      <mat-form-field appearance="outline" class="presentacion-field">
+        <mat-label>Presentación</mat-label>
+        <mat-select [formControl]="presentacionControl">
+          <mat-option *ngFor="let p of presentacionesDisponibles" [value]="p">
+            {{ p.tipoPresentacion?.descripcion }} (x{{ p.cantidad }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <table mat-table [dataSource]="filas" class="stock-table">
+      <!-- Sucursal Column -->
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+        <td mat-cell *matCellDef="let fila">{{ fila.sucursalNombre }}</td>
+      </ng-container>
+
+      <!-- Stock Column -->
+      <ng-container matColumnDef="stock">
+        <th mat-header-cell *matHeaderCellDef class="text-right">Stock</th>
+        <td
+          mat-cell
+          *matCellDef="let fila"
+          class="text-right"
+          [class.stock-negativo]="fila.isNegativo"
+        >
+          {{ fila.stockDisplay }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <div class="stock-total-row">
+      <span class="total-label">Total (suma de positivos):</span>
+      <span class="total-value">{{ totalDisplay }}</span>
+    </div>
+
+    <div class="info-note">
+      <mat-icon>info</mat-icon>
+      <span>Los stocks negativos no se incluyen en el total.</span>
+    </div>
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-raised-button color="primary" (click)="onCerrar()">Cerrar</button>
+  </div>
+</div>
