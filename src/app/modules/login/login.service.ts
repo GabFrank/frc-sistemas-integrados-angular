@@ -108,13 +108,13 @@ export class LoginService {
                           res?.inicioSesion?.idDispositivo == deviceId &&
                           res?.inicioSesion?.sucursal != null
                         ) {
-                          this.notificarInicioSesionGQL.mutate({ usuarioId: res.id }).pipe(untilDestroyed(this)).subscribe();
+                          this.notificarInicioSesion(res.id);
                           this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                         } else {
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
-                              this.notificarInicioSesionGQL.mutate({ usuarioId: res.usuario.id }).pipe(untilDestroyed(this)).subscribe();
+                              this.notificarInicioSesion(res.usuario.id);
                               this.mainService.usuarioActual.inicioSesion = res;
                               this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                             });
@@ -141,6 +141,20 @@ export class LoginService {
         );
     });
   }
+
+  private notificarInicioSesion(usuarioId: number): void {
+    this.notificarInicioSesionGQL
+      .mutate({ usuarioId })
+      .pipe(
+        untilDestroyed(this),
+        catchError((err) => {
+          console.warn("No se pudo notificar inicio de sesion", err);
+          return of(null);
+        })
+      )
+      .subscribe();
+  }
+
   private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
   }
 
