@@ -425,6 +425,9 @@ export const productoQuery = gql`
           descripcion
         }
         imagenPrincipal
+        precioPrincipal {
+          precio
+        }
         precios {
           id
           precio
@@ -568,6 +571,9 @@ export const productoParaPedidoQuery = gql`
           descripcion
         }
         imagenPrincipal
+        precioPrincipal {
+          precio
+        }
         precios {
           id
           precio

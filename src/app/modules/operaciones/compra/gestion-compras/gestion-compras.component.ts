@@ -1982,7 +1982,7 @@ export class GestionComprasComponent
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "50%",
+      width: "65%",
       height: "70%",
       data: dialogData,
       disableClose: true,
@@ -2073,7 +2073,7 @@ export class GestionComprasComponent
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "70%",
+      width: "80%",
       height: "70%",
       data: dialogData,
       disableClose: true,
@@ -3902,7 +3902,7 @@ export class GestionComprasComponent
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "50%",
+      width: "65%",
       height: "70%",
       data: dialogData,
       disableClose: true,
