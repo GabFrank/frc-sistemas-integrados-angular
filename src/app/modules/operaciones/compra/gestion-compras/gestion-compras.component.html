@@ -485,6 +485,10 @@
               </div>
 
               <div class="items-actions">
+                <button mat-raised-button (click)="onNuevoProducto()" [disabled]="itemsTabState !== 'editable'">
+                  <mat-icon>inventory_2</mat-icon>
+                  Nuevo Producto
+                </button>
                 <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()" [disabled]="itemsTabState !== 'editable'">
                   <mat-icon>add</mat-icon>
                   Añadir Item

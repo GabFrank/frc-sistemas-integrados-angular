@@ -84,12 +84,13 @@ import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
-import { TabData } from "../../../../layouts/tab/tab.service";
+import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
 import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
+import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 
 interface PedidoHeader {
   id?: number;
@@ -399,7 +400,8 @@ export class GestionComprasComponent
     private productoProveedorService: ProductoProveedorService,
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
-    private productoService: ProductoService
+    private productoService: ProductoService,
+    private tabService: TabService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -1973,6 +1975,10 @@ export class GestionComprasComponent
   }
 
   // Step 2: Items del Pedido methods
+  onNuevoProducto(): void {
+    this.tabService.addTab(new Tab(ProductoComponent, "Nuevo Producto", null, null));
+  }
+
   onAddItem(): void {
     const dialogData: AddEditItemDialogData = {
       pedido: this.currentPedido as Pedido,
