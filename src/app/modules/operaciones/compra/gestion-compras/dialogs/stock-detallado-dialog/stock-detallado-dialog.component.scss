@@ -1,0 +1,97 @@
+.dialog-container {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+}
+
+.dialog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+
+  h2 {
+    margin: 0 0 4px 0;
+    font-size: 1.2rem;
+  }
+
+  .producto-nombre {
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+}
+
+.dialog-content {
+  padding: 20px 24px;
+  flex: 1;
+}
+
+.presentacion-selector {
+  margin-bottom: 16px;
+
+  .presentacion-field {
+    width: 100%;
+  }
+}
+
+.stock-table {
+  width: 100%;
+  background: transparent;
+
+  th,
+  td {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .stock-negativo {
+    color: #ff7043;
+  }
+}
+
+.stock-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 8px;
+
+  .total-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .total-value {
+    font-weight: 700;
+    color: #4fc3f7;
+    font-size: 1.1rem;
+  }
+}
+
+.info-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.dialog-actions {
+  padding: 12px 24px 16px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}

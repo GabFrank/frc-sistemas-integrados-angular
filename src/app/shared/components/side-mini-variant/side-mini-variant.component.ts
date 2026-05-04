@@ -178,7 +178,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               action: 'list-caja',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
-            { name: 'Ventas', icon: 'local_mall', action: 'generic-list-venta' },
+            {
+              name: 'Ventas',
+              icon: 'local_mall',
+              action: 'generic-list-venta',
+              visibilityRoles: [ROLES.ADMIN, ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_DE_VENTA]
+            },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
         },
@@ -579,7 +584,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListCajaComponent, "Cajas");
         break;
       case "generic-list-venta":
-        this.tabService.addTab(new Tab(GenericListVentaComponent, "Ventas", null, null));
+        if (this.hasAnyRole([ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_DE_VENTA])) {
+          this.tabService.addTab(new Tab(GenericListVentaComponent, "Ventas", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "finanzas-dashboard":
         this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");
