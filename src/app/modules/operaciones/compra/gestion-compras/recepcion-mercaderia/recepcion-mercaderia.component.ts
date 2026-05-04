@@ -22,6 +22,7 @@ import { NotificacionSnackbarService } from '../../../../../notificacion-snackba
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { ProcesoEtapaService } from '../proceso-etapa.service';
 import { ProcesoEtapaTipo, ProcesoEtapaEstado } from '../proceso-etapa.model';
+import { MainService } from '../../../../../main.service';
 
 // Dialog Components
 import { RecepcionMercaderiaVerificarItemDialogComponent } from './recepcion-mercaderia-verificar-item-dialog/recepcion-mercaderia-verificar-item-dialog.component';
@@ -177,7 +178,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
-    private procesoEtapaService: ProcesoEtapaService
+    private procesoEtapaService: ProcesoEtapaService,
+    private mainService: MainService
   ) {
     this.initializeForm();
   }
@@ -926,7 +928,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                 productoId: item.producto?.id,
                 presentacionRecibidaId: item.presentacionEnNota?.id || null,
                 sucursalEntregaId: sucursalSeleccionada.id,
-                usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+                usuarioId: this.mainService.usuarioActual?.id || 1,
                 cantidadRecibida: cantidadARecibir,
                 cantidadRechazada: 0,
                 esBonificacion: item.esBonificacion || false
@@ -1015,7 +1017,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
               productoId: item.producto?.id,
               presentacionRecibidaId: item.presentacionEnNota?.id || null,
               sucursalEntregaId: sucursalSeleccionada.id,
-              usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+              usuarioId: this.mainService.usuarioActual?.id || 1,
               cantidadRecibida: cantidadARecibir,
               cantidadRechazada: 0,
               esBonificacion: item.esBonificacion || false
@@ -1722,7 +1724,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
               productoId: item.producto?.id,
               presentacionRecibidaId: result.presentacionId || item.presentacionEnNota?.id,
               sucursalEntregaId: distDialogo.sucursalId,
-              usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+              usuarioId: this.mainService.usuarioActual?.id || 1,
               cantidadRecibida: distDialogo.cantidadRecibida, // Ya convertido a unidades base por el diálogo
               cantidadRechazada: 0,
               esBonificacion: item.esBonificacion || false
@@ -1800,7 +1802,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         motivoRechazo: rechazo.motivoRechazo,
         observaciones: rechazo.observaciones || ''
       })),
-      usuarioId: 1 // TODO: Obtener usuario actual del sistema de autenticación
+      usuarioId: this.mainService.usuarioActual?.id || 1
     };
 
     console.log('Enviando rechazo al backend:', rechazarItemInput);
@@ -1906,7 +1908,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                 productoId: item.producto?.id,
                 presentacionRecibidaId: result.presentacionId || item.presentacionEnNota?.id,
                 sucursalEntregaId: sucursalId,
-                usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+                usuarioId: this.mainService.usuarioActual?.id || 1,
                 cantidadRecibida: cantidadRestanteDistribucion, // Cantidad restante automáticamente recibida para esta distribución específica
                 cantidadRechazada: 0,
                 esBonificacion: item.esBonificacion || false,
