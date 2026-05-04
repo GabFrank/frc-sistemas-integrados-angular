@@ -13,6 +13,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
 import { forkJoin, of } from "rxjs";
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   orderByIdDesc,
   replaceObject,
@@ -225,7 +226,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.dolarVueltoControl.disable();
 
     this.filtroSolicitudIdControl.valueChanges
-      .pipe(untilDestroyed(this))
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
       .subscribe(() => this.cargarSolicitudesProcesadas());
 
     this.filtroSolicitudTipoControl.valueChanges
@@ -990,7 +995,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       undefined,
       0,
       1000,
-      ["PENDIENTE", "AUTORIZADO", "RECHAZADO"]
+      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"]
     )
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -1000,7 +1005,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             const coincideSucursal =
               sucursalesPermitidas.size > 0
                 ? (Number.isFinite(sucursalSolicitudId) &&
-                    sucursalesPermitidas.has(sucursalSolicitudId))
+                  sucursalesPermitidas.has(sucursalSolicitudId))
                 : true;
 
             return coincideSucursal;
@@ -1008,6 +1013,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
           this.solicitudesProcesadasOriginal = orderByIdDesc<PreGasto>(filtradas);
           this.aplicarFiltrosSolicitudesProcesadas();
+          if (filtroIdTexto && this.solicitudesProcesadasDataSource.data.length === 1) {
+            const match = this.solicitudesProcesadasDataSource.data[0];
+            if (match.id.toString() === filtroIdTexto && match.estado === 'AUTORIZADO') {
+              this.onFinalizarSolicitudAutorizada(match);
+            }
+          }
+
           this.cargandoSolicitudes = false;
         },
         error: () => {
