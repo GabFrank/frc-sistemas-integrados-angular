@@ -801,8 +801,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (notas) => {
-          this.notasRecepcion = notas;
-            this.notasDataSource.data = this.notasRecepcion;
+          // Filtrar notas de rechazo sin items activos (no aportan a la recepción física)
+          this.notasRecepcion = notas.filter(n => !n.esNotaRechazo || (n.valorTotal && n.valorTotal > 0));
+          this.notasDataSource.data = this.notasRecepcion;
           this.loadingNotas = false;
           this.updateComputedProperties();
         },
