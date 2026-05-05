@@ -87,6 +87,7 @@ export class AddEditItemDialogComponent implements OnInit {
   itemForm: FormGroup;
 
   // Product data
+  private originalSearchText = '';
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -188,6 +189,12 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Almacenar el precio original para comparar cambios
   precioOriginal: number = 0;
+
+  // Price change indicator (computed)
+  precioCambioComputed: number = 0;
+  precioCambioPorcentualComputed: number = 0;
+  precioHaCambiadoComputed: boolean = false;
+  precioCambioNivelComputed: 'muy-bajo' | 'bajo' | 'alto' | 'muy-alto' = 'bajo';
   
   // Bandera para evitar validaciones durante la carga inicial de datos
   private isLoadingInitialData = false;
@@ -278,6 +285,7 @@ export class AddEditItemDialogComponent implements OnInit {
 
   private initializeForm(): void {
     const initialSearch = (!this.data.isEdit && this.data.lastSearchText) ? this.data.lastSearchText : "";
+    this.originalSearchText = initialSearch;
     this.itemForm = this.formBuilder.group({
       productoSearch: [initialSearch],
       producto: [null, [Validators.required]],
@@ -584,6 +592,21 @@ export class AddEditItemDialogComponent implements OnInit {
     } else {
       this.cantidadTotalComputedText = "";
     }
+
+    // Price change indicator
+    const precioActual = this.itemForm.get('precioUnitarioSolicitado')?.value || 0;
+    if (this.precioOriginal > 0 && !this.isBonificacionComputed) {
+      this.precioCambioComputed = precioActual - this.precioOriginal;
+      this.precioCambioPorcentualComputed =
+        ((precioActual - this.precioOriginal) / this.precioOriginal) * 100;
+      this.precioHaCambiadoComputed = precioActual !== this.precioOriginal;
+      const pct = this.precioCambioPorcentualComputed;
+      this.precioCambioNivelComputed = pct <= -50 ? 'muy-bajo' : pct < 0 ? 'bajo' : pct <= 50 ? 'alto' : 'muy-alto';
+    } else {
+      this.precioCambioComputed = 0;
+      this.precioCambioPorcentualComputed = 0;
+      this.precioHaCambiadoComputed = false;
+    }
   }
 
   private updatePrecioPorPresentacionFromUnitario(
@@ -626,6 +649,7 @@ export class AddEditItemDialogComponent implements OnInit {
   // Product search functionality similar to edit-transferencia.component.ts
   onSearchProducto(): void {
     const searchText = this.itemForm.get("productoSearch")?.value || "";
+    this.originalSearchText = searchText;
 
     const dialogData: PdvSearchProductoData = {
       texto: searchText,
@@ -672,6 +696,17 @@ export class AddEditItemDialogComponent implements OnInit {
     
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
+
+    // Lazy-load full product data (precioPrincipal, imagenPrincipal, costo completo)
+    // ya que el producto del search dialog puede no traer todos los campos
+    this.productoService.onGetProductoParaPedido(producto.id, this.data.pedido != null)
+      .subscribe((productoCompleto) => {
+        if (productoCompleto?.presentaciones) {
+          this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
+          this.presentacionesDisponibles = productoCompleto.presentaciones;
+          this.updateComputedProperties();
+        }
+      });
 
     // Solo seleccionar automáticamente la primera presentación si NO se proporcionó una presentación
     // y hay exactamente una presentación disponible
@@ -1037,7 +1072,7 @@ export class AddEditItemDialogComponent implements OnInit {
             const result: AddEditItemDialogResult = {
               item: itemResult,
               action: "save",
-              lastSearchText: this.itemForm.get("productoSearch")?.value || "",
+              lastSearchText: this.originalSearchText,
             };
 
             this.dialogRef.close(result);
@@ -1068,7 +1103,7 @@ export class AddEditItemDialogComponent implements OnInit {
     const result: AddEditItemDialogResult = {
       item: {} as PedidoItem,
       action: "cancel",
-      lastSearchText: this.itemForm.get("productoSearch")?.value || "",
+      lastSearchText: this.originalSearchText,
     };
     this.dialogRef.close(result);
   }
@@ -1172,7 +1207,7 @@ export class AddEditItemDialogComponent implements OnInit {
       mensaje = "El precio unitario es 0. ¿Está seguro de que es correcto?";
     }
     // Solo validar cambio de precio si estamos editando y hay un precio original
-    else if (this.data.isEdit && this.precioOriginal > 0) {
+    else if (this.precioOriginal > 0) {
       const cambioPorcentual = ((precio - this.precioOriginal) / this.precioOriginal) * 100;
       const cambioAbsoluto = Math.abs(cambioPorcentual);
 
@@ -1206,6 +1241,10 @@ export class AddEditItemDialogComponent implements OnInit {
         }
       });
     }
+  }
+
+  onProgramarPrecioClick(): void {
+    this.notificacionService.openWarn('Próximamente: programación de cambio de precio');
   }
 
   private markFormGroupTouched(): void {
@@ -1756,6 +1795,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input de cantidad a pedir
    */
   onCantidadPedirKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -1790,6 +1834,13 @@ export class AddEditItemDialogComponent implements OnInit {
     this.calculateCantidadTotal();
   }
 
+  onCantidadInputFocus(control: FormControl): void {
+    const value = Number(control?.value ?? 0);
+    if (value === 0) {
+      control.setValue(null);
+    }
+  }
+
   /**
    * Actualiza las distribuciones desde el modo simplificado
    */
@@ -1818,6 +1869,11 @@ export class AddEditItemDialogComponent implements OnInit {
    * Maneja el keydown en el input simplificado
    */
   onCantidadSimplificadaKeydown(event: KeyboardEvent): void {
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
       if (event.key === "Enter") {
         event.preventDefault();

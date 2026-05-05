@@ -307,7 +307,17 @@ export class RechazarItemDialogComponent implements OnInit {
     let notaRecepcionItem: NotaRecepcionItem;
 
     if (this.itemToReject) {
-      // Si hay un ítem específico a rechazar, actualizar el ítem existente
+      const cantidadOriginal = this.itemToReject.cantidadEnNota || 0;
+      const cantidadARechazar = this.cantidadEnUnidadesBaseComputed;
+      const esRechazoParcial = cantidadARechazar < cantidadOriginal;
+
+      if (esRechazoParcial) {
+        // Rechazo parcial: reducir cantidad del ítem original y crear nuevo ítem RECHAZADO
+        this.procesarRechazoParcial(formValue, cantidadOriginal, cantidadARechazar);
+        return;
+      }
+
+      // Rechazo total: marcar el ítem existente como RECHAZADO
       notaRecepcionItem = Object.assign(new NotaRecepcionItem(), this.itemToReject);
       notaRecepcionItem.estado = NotaRecepcionItemEstado.RECHAZADO;
       notaRecepcionItem.motivoRechazo = formValue.motivoRechazo;
@@ -342,6 +352,50 @@ export class RechazarItemDialogComponent implements OnInit {
         this.guardarItemYRechazarDistribuciones(notaRecepcionItem);
       }
     }
+  }
+
+  private procesarRechazoParcial(formValue: any, cantidadOriginal: number, cantidadARechazar: number): void {
+    // 1. Actualizar el ítem original con la cantidad restante
+    const itemOriginal = Object.assign(new NotaRecepcionItem(), this.itemToReject);
+    itemOriginal.cantidadEnNota = cantidadOriginal - cantidadARechazar;
+
+    this.pedidoService.onSaveNotaRecepcionItem(itemOriginal.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: () => {
+          // 2. Crear nuevo ítem RECHAZADO con la cantidad rechazada
+          const itemRechazado = new NotaRecepcionItem();
+          itemRechazado.notaRecepcion = this.itemToReject.notaRecepcion;
+          itemRechazado.pedidoItem = this.itemToReject.pedidoItem;
+          itemRechazado.producto = this.itemToReject.producto;
+          itemRechazado.presentacionEnNota = this.presentacionSeleccionada || this.itemToReject.presentacionEnNota;
+          itemRechazado.cantidadEnNota = cantidadARechazar;
+          itemRechazado.precioUnitarioEnNota = this.itemToReject.precioUnitarioEnNota;
+          itemRechazado.esBonificacion = this.itemToReject.esBonificacion || false;
+          itemRechazado.vencimientoEnNota = this.itemToReject.vencimientoEnNota;
+          itemRechazado.observacion = formValue.observaciones;
+          itemRechazado.estado = NotaRecepcionItemEstado.RECHAZADO;
+          itemRechazado.motivoRechazo = formValue.motivoRechazo;
+
+          this.pedidoService.onSaveNotaRecepcionItem(itemRechazado.toInput())
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (itemGuardado) => {
+                this.finalizarRechazo(itemGuardado);
+              },
+              error: (error) => {
+                console.error('Error al crear ítem rechazado parcial:', error);
+                this.notificacionService.openAlgoSalioMal('Error al crear el ítem de rechazo parcial');
+                this.isLoading = false;
+              }
+            });
+        },
+        error: (error) => {
+          console.error('Error al actualizar ítem original:', error);
+          this.notificacionService.openAlgoSalioMal('Error al actualizar el ítem original');
+          this.isLoading = false;
+        }
+      });
   }
 
   private crearNuevaNotaYGuardarItem(notaRecepcionItem: NotaRecepcionItem, esNotaRechazo: boolean = false): void {
@@ -407,12 +461,18 @@ export class RechazarItemDialogComponent implements OnInit {
   private rechazarDistribucionesDelItem(itemId: number): void {
     // Rechazar todas las distribuciones del ítem
     const promesasRechazo = this.distribucionesDelItem.map(distribucion => {
-      distribucion.estado = 'RECHAZADO';
-      distribucion.fechaRechazo = new Date();
-      distribucion.motivoRechazo = 'ITEM_RECHAZADO';
-      distribucion.observacion = 'Rechazado automáticamente al rechazar el ítem';
-      
-      return this.pedidoService.onSaveNotaRecepcionItemDistribucion(distribucion.toInput()).toPromise();
+      // Construir input manualmente porque distribucion es un plain object del backend
+      const input = {
+        id: distribucion.id,
+        notaRecepcionItemId: distribucion.notaRecepcionItem?.id || itemId,
+        sucursalInfluenciaId: distribucion.sucursalInfluencia?.id || null,
+        sucursalEntregaId: distribucion.sucursalEntrega?.id,
+        cantidad: distribucion.cantidad,
+        creadoEn: distribucion.creadoEn ? dateToString(new Date(distribucion.creadoEn)) : null,
+        usuarioId: distribucion.usuario?.id || null
+      };
+
+      return this.pedidoService.onSaveNotaRecepcionItemDistribucion(input as any).toPromise();
     });
 
     Promise.all(promesasRechazo)

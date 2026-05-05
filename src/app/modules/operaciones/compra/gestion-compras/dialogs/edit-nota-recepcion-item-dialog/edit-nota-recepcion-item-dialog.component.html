@@ -100,6 +100,7 @@
               min="0.01"
               formControlName="cantidadPorPresentacion"
               #cantidadInput
+              (focus)="onCantidadFocus()"
               (keydown)="onCantidadKeydown($event)"
             />
             <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">

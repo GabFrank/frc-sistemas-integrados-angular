@@ -6,7 +6,7 @@ import {
   OnDestroy
 } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { HoraServidorService } from '../../../../../shared/services/hora-servidor.service';
+import { HoraServidorService, ZONA_OFFSET_PARAGUAY } from '../../../../../shared/services/hora-servidor.service';
 
 @UntilDestroy()
 @Component({
@@ -14,8 +14,9 @@ import { HoraServidorService } from '../../../../../shared/services/hora-servido
   template: `
     <div fxLayout="column" class="header-moderno" fxLayoutGap="16px" fxLayoutAlign="center center">
       <div fxLayout="column" fxLayoutAlign="center center">
-        <span class="reloj-digital">{{ horaActual | date:'HH:mm:ss' }}</span>
-        <span class="fecha-actual">{{ horaActual | date:'EEEE, d MMMM y' | titlecase }}</span>
+        <!-- Offset fijo -03:00 evita bug ICU con zona IANA America/Asuncion en Electron; instante del servidor. -->
+        <span class="reloj-digital">{{ horaActual | date:'HH:mm:ss':ZONA_OFFSET_PARAGUAY }}</span>
+        <span class="fecha-actual">{{ horaActual | date:'EEEE, d MMMM y':ZONA_OFFSET_PARAGUAY | titlecase }}</span>
         <span class="sync-status" *ngIf="!sincronizado">Sincronizando con servidor...</span>
       </div>
     </div>
@@ -24,6 +25,8 @@ import { HoraServidorService } from '../../../../../shared/services/hora-servido
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RelojHeaderComponent implements OnInit, OnDestroy {
+
+  readonly ZONA_OFFSET_PARAGUAY = ZONA_OFFSET_PARAGUAY;
 
   horaActual: Date = new Date();
   sincronizado = false;

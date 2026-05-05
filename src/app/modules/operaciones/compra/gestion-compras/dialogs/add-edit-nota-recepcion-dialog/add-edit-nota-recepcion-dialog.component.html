@@ -167,6 +167,14 @@
                     <span class="info-label">Monto Total:</span>
                     <span class="info-value">{{ montoTotalComputed | number:'1.0-2' }}</span>
                   </div>
+                  <div class="info-item" *ngIf="tieneItemsRechazados">
+                    <span class="info-label">Monto Rechazado:</span>
+                    <span class="info-value monto-rechazado">- {{ montoRechazadoComputed | number:'1.0-2' }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="tieneItemsRechazados">
+                    <span class="info-label">Monto Final:</span>
+                    <span class="info-value monto-final">{{ montoFinalComputed | number:'1.0-2' }}</span>
+                  </div>
                   <div class="info-item">
                     <span class="info-label">Estado:</span>
                     <mat-chip [ngClass]="estadoChipClass">

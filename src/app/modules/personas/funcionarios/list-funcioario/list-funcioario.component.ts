@@ -168,50 +168,86 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
 
   onAsignarHorario(): void {
     if (this.seleccionados.selected.length > 0 && this.horarioParaAsignar) {
-      let peticionesCompletadas = 0;
-      let totalPeticiones = this.seleccionados.selected.length;
-
-      this.seleccionados.selected.forEach(funcionario => {
-        let horarioInput = new HorarioInput();
-        horarioInput.horaEntrada = this.horarioParaAsignar.entrada;
-        horarioInput.horaSalida = this.horarioParaAsignar.salida;
-        if (funcionario.usuario?.id) {
-          horarioInput.usuarioId = funcionario.usuario.id;
+      // 1. Agrupar funcionarios por ID de usuario para evitar procesar al mismo usuario varias veces
+      const funcionariosPorUsuario = new Map<number, Funcionario[]>();
+      this.seleccionados.selected.forEach(f => {
+        const uId = f.usuario?.id;
+        if (uId) {
+          if (!funcionariosPorUsuario.has(uId)) funcionariosPorUsuario.set(uId, []);
+          funcionariosPorUsuario.get(uId).push(f);
         }
-        horarioInput.dias = this.horarioParaAsignar.diasValue;
-        horarioInput.turno = this.horarioParaAsignar.turnoValue;
+      });
 
-        this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe((res: any) => {
-          let funcInput = new FuncionarioInput();
-          funcInput.id = funcionario.id;
-          funcInput.personaId = funcionario.persona?.id;
-          funcInput.cargoId = funcionario.cargo?.id;
-          funcInput.sucursalId = funcionario.sucursal?.id;
-          funcInput.credito = funcionario.credito;
-          funcInput.sueldo = funcionario.sueldo;
-          funcInput.fasePrueba = funcionario.fasePrueba;
-          funcInput.diarista = funcionario.diarista;
-          funcInput.supervisadoPorId = funcionario.supervisadoPor?.id;
-          funcInput.activo = funcionario.activo;
-          funcInput.usuarioId = funcionario.usuario?.id;
-          funcInput.horarioId = res.id;
-          if (funcionario.fechaIngreso) {
-            let nD = new Date(funcionario.fechaIngreso);
-            funcInput.fechaIngreso = dateToString(nD);
+      let usuariosProcesados = 0;
+      const totalUsuarios = funcionariosPorUsuario.size;
+
+      const finalizarUsuario = () => {
+        usuariosProcesados++;
+        if (usuariosProcesados === totalUsuarios) {
+          this.notificacionService.openSucess('Horarios asignados correctamente');
+          this.seleccionados.clear();
+          this.dataSource.data = [...this.dataSource.data];
+        }
+      };
+
+      // 2. Para cada usuario único, verificar si ya tiene el horario antes de crear uno nuevo
+      funcionariosPorUsuario.forEach((funcionarios, usuarioId) => {
+        this.horarioService.onGetHorariosPorUsuario(usuarioId).pipe(untilDestroyed(this)).subscribe(horariosExistentes => {
+          // Buscar un horario idéntico en los registros del usuario
+          const horarioExistente = (horariosExistentes || []).find(h =>
+            h.horaEntrada === this.horarioParaAsignar.entrada &&
+            h.horaSalida === this.horarioParaAsignar.salida &&
+            h.turno === this.horarioParaAsignar.turnoValue &&
+            JSON.stringify((h.dias || []).sort()) === JSON.stringify((this.horarioParaAsignar.diasValue || []).sort())
+          );
+
+          if (horarioExistente) {
+            // Si ya existe para este usuario, lo REUTILIZAMOS para todos sus funcionarios
+            this.vincularMultiplesFuncionarios(funcionarios, horarioExistente.id, finalizarUsuario);
+          } else {
+            // Si no existe, creamos UNO SOLO para este usuario
+            let horarioInput = new HorarioInput();
+            horarioInput.horaEntrada = this.horarioParaAsignar.entrada;
+            horarioInput.horaSalida = this.horarioParaAsignar.salida;
+            horarioInput.usuarioId = usuarioId;
+            horarioInput.dias = this.horarioParaAsignar.diasValue;
+            horarioInput.turno = this.horarioParaAsignar.turnoValue;
+
+            this.horarioService.onSaveHorario(horarioInput).pipe(untilDestroyed(this)).subscribe((res: any) => {
+              this.vincularMultiplesFuncionarios(funcionarios, res.id, finalizarUsuario);
+            });
           }
-
-          this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe(savedFunc => {
-            funcionario.horario = savedFunc.horario;
-            this.dataSource.data = [...this.dataSource.data];
-            peticionesCompletadas++;
-            if (peticionesCompletadas === totalPeticiones) {
-              this.notificacionService.openSucess('Horarios asignados correctamente');
-              this.seleccionados.clear();
-            }
-          });
         });
       });
     }
+  }
+
+  private vincularMultiplesFuncionarios(funcionarios: Funcionario[], horarioId: number, onComplete: () => void) {
+    let completados = 0;
+    funcionarios.forEach(f => {
+      let funcInput = new FuncionarioInput();
+      funcInput.id = f.id;
+      funcInput.personaId = f.persona?.id;
+      funcInput.cargoId = f.cargo?.id;
+      funcInput.sucursalId = f.sucursal?.id;
+      funcInput.credito = f.credito;
+      funcInput.sueldo = f.sueldo;
+      funcInput.fasePrueba = f.fasePrueba;
+      funcInput.diarista = f.diarista;
+      funcInput.supervisadoPorId = f.supervisadoPor?.id;
+      funcInput.activo = f.activo;
+      funcInput.usuarioId = f.usuario?.id;
+      funcInput.horarioId = horarioId;
+      if (f.fechaIngreso) {
+        funcInput.fechaIngreso = dateToString(new Date(f.fechaIngreso));
+      }
+
+      this.service.onSaveFuncionario(funcInput, true).pipe(untilDestroyed(this)).subscribe(saved => {
+        f.horario = saved.horario;
+        completados++;
+        if (completados === funcionarios.length) onComplete();
+      });
+    });
   }
 
 }

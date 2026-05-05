@@ -425,6 +425,9 @@ export const productoQuery = gql`
           descripcion
         }
         imagenPrincipal
+        precioPrincipal {
+          precio
+        }
         precios {
           id
           precio
@@ -568,6 +571,9 @@ export const productoParaPedidoQuery = gql`
           descripcion
         }
         imagenPrincipal
+        precioPrincipal {
+          precio
+        }
         precios {
           id
           precio
@@ -711,7 +717,9 @@ export const exportarReporteConFiltrosQuery = gql`
       $stockFiltro: String, 
       $sucursalId: ID, 
       $usuarioId: ID, 
-      $usuario: String
+      $usuario: String,
+      $page: Int,
+      $size: Int
     ) {
       data: exportarReporteConFiltros(
         texto: $texto, 
@@ -725,7 +733,9 @@ export const exportarReporteConFiltrosQuery = gql`
         stockFiltro: $stockFiltro, 
         sucursalId: $sucursalId, 
         usuarioId: $usuarioId, 
-        usuario: $usuario
+        usuario: $usuario,
+        page: $page,
+        size: $size
       )
     }
   `;
