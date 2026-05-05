@@ -92,6 +92,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades computadas para el card informativo
   totalItemsComputed: number = 0;
   montoTotalComputed: number = 0;
+  montoParcialComputed: number = 0;
+  montoRechazadoComputed: number = 0;
+  montoFinalComputed: number = 0;
+  tieneItemsRechazados: boolean = false;
   estadoDisplayName: string = '';
   estadoChipClass: string = '';
   pagadoDisplayText: string = '';
@@ -465,9 +469,17 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Total items
     this.totalItemsComputed = this.itemsDataSource.data.length;
     
-    // Monto total
-    this.montoTotalComputed = this.itemsDataSource.data.reduce((total, item) => 
+    // Monto total y breakdown por estado
+    this.montoTotalComputed = this.itemsDataSource.data.reduce((total, item) =>
       total + (item.cantidadEnNota * item.precioUnitarioEnNota), 0);
+
+    this.montoRechazadoComputed = this.itemsDataSource.data
+      .filter(item => item.estado === 'RECHAZADO')
+      .reduce((total, item) => total + (item.cantidadEnNota * item.precioUnitarioEnNota), 0);
+
+    this.montoParcialComputed = this.montoTotalComputed - this.montoRechazadoComputed;
+    this.montoFinalComputed = this.montoParcialComputed;
+    this.tieneItemsRechazados = this.montoRechazadoComputed > 0;
     
     // Estado display name
     const estadoValue = this.notaRecepcionForm.get('estado')?.value;

@@ -33,6 +33,7 @@ import {
 import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import { interval } from "rxjs";
+import { SucursalRecepcionFisica } from "../gestion-compras/graphql/getPedidoRecepcionFisicaResumen";
 
 @UntilDestroy()
 @Component({
@@ -59,6 +60,8 @@ export class ListCompraComponent implements OnInit {
 
   selectedPedido: Pedido;
   expandedPedido: Pedido;
+  sucursalesRecepcionadasMap: { [pedidoId: number]: SucursalRecepcionFisica[] } = {};
+  loadingSucursalesRecepcionadasMap: { [pedidoId: number]: boolean } = {};
 
   idControl = new FormControl();
   sucursalControl = new FormControl();
@@ -79,6 +82,7 @@ export class ListCompraComponent implements OnInit {
     "id",
     "proveedor",
     "vendedor",
+    "responsable",
     "fecha",
     "etapa",
     "acciones",
@@ -202,7 +206,9 @@ export class ListCompraComponent implements OnInit {
   }
 
   onRowClick(pedido: Pedido, index) {
-    // Expand/collapse row functionality can be added here if needed
+    if (pedido && this.expandedPedido !== pedido) {
+      this.loadSucursalesRecepcionadas(pedido);
+    }
   }
 
   onView(pedido: Pedido, index) {
@@ -390,5 +396,31 @@ export class ListCompraComponent implements OnInit {
     }
     
     return "CREACION";
+  }
+
+  private loadSucursalesRecepcionadas(pedido: Pedido): void {
+    const pedidoId = pedido?.id;
+    if (pedidoId == null) {
+      return;
+    }
+
+    if (this.sucursalesRecepcionadasMap[pedidoId] != null) {
+      return;
+    }
+
+    this.loadingSucursalesRecepcionadasMap[pedidoId] = true;
+    this.pedidoService
+      .onGetPedidoRecepcionFisicaResumen(pedidoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          this.sucursalesRecepcionadasMap[pedidoId] = res?.sucursalesRecepcionFisica || [];
+          this.loadingSucursalesRecepcionadasMap[pedidoId] = false;
+        },
+        error: () => {
+          this.sucursalesRecepcionadasMap[pedidoId] = [];
+          this.loadingSucursalesRecepcionadasMap[pedidoId] = false;
+        },
+      });
   }
 }

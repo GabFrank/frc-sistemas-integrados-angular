@@ -197,7 +197,8 @@
             <div
               *ngFor="
                 let distribucion of distribucionesComputed;
-                let i = index
+                let i = index;
+                trackBy: trackByIndex
               "
               [formGroupName]="i"
               class="distribucion-item"

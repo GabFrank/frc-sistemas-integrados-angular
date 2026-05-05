@@ -485,6 +485,10 @@
               </div>
 
               <div class="items-actions">
+                <button mat-raised-button (click)="onNuevoProducto()" [disabled]="itemsTabState !== 'editable'">
+                  <mat-icon>inventory_2</mat-icon>
+                  Nuevo Producto
+                </button>
                 <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()" [disabled]="itemsTabState !== 'editable'">
                   <mat-icon>add</mat-icon>
                   Añadir Item
@@ -524,32 +528,62 @@
                           >
                           <!-- ID Column -->
                           <ng-container matColumnDef="id">
-                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 10%;">ID</th>
-                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 10%;">
+                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 8%;">ID</th>
+                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 8%;">
                               {{ producto.producto?.id }}
                             </td>
                           </ng-container>
 
                           <!-- Descripción Column -->
                           <ng-container matColumnDef="descripcion">
-                            <th mat-header-cell *matHeaderCellDef style="width: 50%;">Descripción</th>
-                            <td mat-cell *matCellDef="let producto" style="width: 50%;">
+                            <th mat-header-cell *matHeaderCellDef style="width: 42%;">Descripción</th>
+                            <td mat-cell *matCellDef="let producto" style="width: 42%;">
                               {{ producto.descripcionComputed }}
                             </td>
                           </ng-container>
 
                           <!-- Precio Principal Column -->
                           <ng-container matColumnDef="precioPrincipal">
-                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 20%;">Precio</th>
-                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 20%;">
+                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 18%;">Precio</th>
+                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 18%;">
                               {{ producto.precioDisplayComputed }}
+                            </td>
+                          </ng-container>
+
+                          <!-- Stock Column -->
+                          <ng-container matColumnDef="stock">
+                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 15%;">Stock</th>
+                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 15%;">
+                              <mat-spinner
+                                *ngIf="producto.stockTotalLoading"
+                                diameter="18"
+                                class="stock-spinner"
+                              ></mat-spinner>
+                              <span
+                                *ngIf="!producto.stockTotalLoading && producto.stockTotal === null"
+                                class="stock-no-data"
+                              >-</span>
+                              <button
+                                *ngIf="!producto.stockTotalLoading && producto.stockTotal !== null"
+                                mat-button
+                                class="stock-button"
+                                [matTooltip]="'Ver stock detallado'"
+                                (click)="onVerStockDetallado(producto, $event)"
+                              >
+                                <div class="stock-value-container">
+                                  <span class="stock-value">{{ producto.stockDisplayComputed }}</span>
+                                  <span *ngIf="producto.stockSubtitleComputed" class="stock-subtitle">
+                                    {{ producto.stockSubtitleComputed }}
+                                  </span>
+                                </div>
+                              </button>
                             </td>
                           </ng-container>
 
                           <!-- Acciones Column -->
                           <ng-container matColumnDef="acciones">
-                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 20%;">Acciones</th>
-                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 20%;">
+                            <th mat-header-cell *matHeaderCellDef class="text-center" style="width: 17%;">Acciones</th>
+                            <td mat-cell *matCellDef="let producto" class="text-center" style="width: 17%;">
                               <button
                                 mat-icon-button
                                 [matMenuTriggerFor]="menuProducto"
@@ -586,11 +620,11 @@
 
                             <tr
                               mat-header-row
-                              *matHeaderRowDef="['id', 'descripcion', 'precioPrincipal', 'acciones']"
+                              *matHeaderRowDef="['id', 'descripcion', 'precioPrincipal', 'stock', 'acciones']"
                             ></tr>
                             <tr
                               mat-row
-                              *matRowDef="let row; columns: ['id', 'descripcion', 'precioPrincipal', 'acciones']"
+                              *matRowDef="let row; columns: ['id', 'descripcion', 'precioPrincipal', 'stock', 'acciones']"
                               (click)="onProductoProveedorClick(row)"
                               [class.selected-row]="row.isSelectedComputed"
                               [class.producto-ya-en-pedido]="row.yaEnPedidoComputed"

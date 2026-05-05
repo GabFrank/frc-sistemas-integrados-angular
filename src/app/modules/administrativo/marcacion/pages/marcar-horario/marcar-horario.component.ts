@@ -25,9 +25,9 @@ import { CamaraService } from '../../../../../shared/services/camara.service';
 import { UsuarioHelperService } from '../../service/usuario-helper.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 
-import { ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.component';
-import { EstadoMarcacionComponent } from '../estado-marcacion/estado-marcacion.component';
-import { BusquedaUsuarioComponent } from '../busqueda-usuario/busqueda-usuario.component';
+import { ModoCamara } from '../../components/camara-reconocimiento/camara-reconocimiento.component';
+import { EstadoMarcacionComponent } from '../../components/estado-marcacion/estado-marcacion.component';
+import { BusquedaUsuarioComponent } from '../../components/busqueda-usuario/busqueda-usuario.component';
 import { ConfirmDialogComponent } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { cloudConnectionStatusSub } from '../../../../../shared/services/graphql-connection.service';
 

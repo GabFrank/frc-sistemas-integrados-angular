@@ -142,9 +142,9 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
         (click)="horarioParaAsignar ? seleccionados.toggle(row) : null"
-        [style.background-color]="seleccionados.isSelected(row) ? '#ffeb3b' : ''"
+        [style.background-color]="seleccionados.isSelected(row) ? '#0d47a1' : ''"
         [style.cursor]="horarioParaAsignar ? 'pointer' : ''"
-        [style.color]="seleccionados.isSelected(row) ? 'black' : ''"></tr>
+        [style.color]="seleccionados.isSelected(row) ? 'white' : ''"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"

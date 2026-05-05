@@ -1,17 +1,17 @@
 {
   "serverIp": "localhost",
   "serverPort": "8082",
-  "serverCentralIp": "159.203.86.103",
-  "serverCentralPort": "8083",
+  "serverCentralIp": "localhost",
+  "serverCentralPort": "8081",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
   "pdvId": 24,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "updateChannel": "dev",
   "printers": {
-    "ticket": "ticket_soporte",
+    "ticket": "ultron22",
     "factura": ""
   }
 }

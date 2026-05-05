@@ -39,7 +39,6 @@ export class AdicionarGastoData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
 import { CajaService } from "../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
 
@@ -413,9 +412,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                       ).subscribe();
                     }
 
-                    this.gastoService.onSave(gasto, true).subscribe(res => {
-                      this.cargandoDialog.closeDialog();
-                    });
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");

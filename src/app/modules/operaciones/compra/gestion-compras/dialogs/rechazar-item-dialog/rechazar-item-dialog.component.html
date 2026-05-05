@@ -92,7 +92,6 @@
               [max]="notaPreseleccionada ? cantidadMaxima : cantidadPendiente"
               step="0.01"
               (keydown)="onCantidadKeydown($event)"
-              [readonly]="hasItemToReject"
             />
             <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">
               = {{ cantidadEnUnidadesBaseComputed | number:'1.0-2' }} unidades base
