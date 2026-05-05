@@ -91,6 +91,7 @@ import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graph
 import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
+import { MainService } from "../../../../main.service";
 
 interface PedidoHeader {
   id?: number;
@@ -401,7 +402,8 @@ export class GestionComprasComponent
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
-    private tabService: TabService
+    private tabService: TabService,
+    public mainService: MainService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -925,7 +927,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.currentPedido!.usuario?.id || 1, // Mantener el usuario original
+      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1, // Mantener el usuario original
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
 
@@ -944,7 +946,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.currentPedido!.usuario?.id || 1
+        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1
       )
       .subscribe({
         next: (result) => {
@@ -1010,7 +1012,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: 1, // TODO: Get from auth service
+      usuarioId: this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1028,7 +1030,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        1, // TODO: Get from auth service
+        this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
       )
       .subscribe({
         next: (result) => {
