@@ -12,6 +12,7 @@ import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion
 import { Pedido } from '../../pedido.model';
 import { Moneda } from '../../../../../financiero/moneda/moneda.model';
 import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
+import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
@@ -146,7 +147,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private cambioService: CambioService
   ) {
     this.readOnly = !!data.readOnly;
     this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
@@ -187,12 +189,44 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       });
   }
 
+  private loadCotizacionFromCambio(monedaId?: number): void {
+    const id = monedaId || this.data.pedido?.moneda?.id;
+    const denominacion = this.data.pedido?.moneda?.denominacion;
+    if (!id || denominacion === 'GUARANI') {
+      if (!monedaId) return; // Initial call — skip for Guarani
+      // Explicit moneda change to Guarani — reset to 1
+      this.notaRecepcionForm.patchValue({ cotizacion: 1 });
+      return;
+    }
+    this.cambioService.getUltimoCambioPorMonedaId(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cambio) => {
+          if (cambio) {
+            const tasa = cambio.valorEnGsCompraMercado ?? cambio.valorEnGsVentaMercado ?? cambio.valorEnGs;
+            if (tasa && tasa > 0) {
+              const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+              // Only auto-fill if still at default (1) or empty
+              if (!currentCotizacion || currentCotizacion === 1) {
+                this.notaRecepcionForm.patchValue({ cotizacion: tasa });
+              }
+            }
+          }
+        }
+      });
+  }
+
   ngOnInit(): void {
     this.loadMonedas();
     this.initializeForm();
     this.setupKeyboardNavigation();
     this.loadItems();
     this.updateComputedProperties();
+
+    // Auto-fill cotización desde último Cambio (solo al crear, no al editar)
+    if (!this.data.isEdit) {
+      this.loadCotizacionFromCambio();
+    }
 
     // Modo solo lectura o nota de rechazo: deshabilitar el formulario
     if (this.readOnly || this.data.nota?.esNotaRechazo) {
@@ -263,6 +297,21 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.notaRecepcionForm.valueChanges.subscribe(() => {
       this.updateComputedProperties();
     });
+
+    // Auto-fill cotización cuando cambia la moneda
+    this.notaRecepcionForm.get('moneda')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((moneda: Moneda) => {
+        if (!this.data.isEdit && moneda) {
+          if (moneda.denominacion === 'GUARANI') {
+            this.notaRecepcionForm.patchValue({ cotizacion: 1 });
+          } else {
+            // Reset cotizacion to trigger auto-fill
+            this.notaRecepcionForm.patchValue({ cotizacion: 1 }, { emitEvent: false });
+            this.loadCotizacionFromCambio(moneda.id);
+          }
+        }
+      });
   }
 
   private loadItems(): void {

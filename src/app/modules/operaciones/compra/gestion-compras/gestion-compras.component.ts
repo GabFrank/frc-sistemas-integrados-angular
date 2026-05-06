@@ -266,6 +266,10 @@ export class GestionComprasComponent
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
   canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
+  // Moneda display properties
+  pedidoMonedaSimbolo = '';
+  pedidoMonedaDecimalFormat = '1.0-0';
+
   // Forms
   datosGeneralesForm: FormGroup;
   itemsForm: FormGroup;
@@ -1129,7 +1133,12 @@ export class GestionComprasComponent
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
     
-    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties 
+    // Moneda display
+    const moneda = this.headerDataComputed?.moneda;
+    this.pedidoMonedaSimbolo = moneda?.simbolo || '';
+    this.pedidoMonedaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+
+    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties
     // ahora se llaman de forma selectiva solo cuando los datos de items cambian
   }
 
@@ -3768,7 +3777,7 @@ export class GestionComprasComponent
                 ? this.formatDate(new Date(compra.creadoEn))
                 : 'Sin fecha',
               proveedorDisplayComputed: compra.pedido?.proveedor?.persona?.nombre || 'N/A',
-              precioDisplayComputed: this.formatNumber(compra.precio),
+              precioDisplayComputed: (compra.moneda?.simbolo ? compra.moneda.simbolo + ' ' : '') + this.formatNumber(compra.precio),
               cantidadDisplayComputed: cantidadDisplay
             };
             return item;

@@ -460,6 +460,12 @@ export const productoUltimasComprasQuery = gql`
         cantidad
         precio
         creadoEn
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        cotizacion
         presentacionEnNota {
           id
           cantidad
@@ -596,9 +602,11 @@ export const productoParaPedidoQuery = gql`
         ultimoPrecioCompra
         ultimoPrecioVenta
         costoMedio
+        cotizacion
         moneda {
           id
           denominacion
+          simbolo
           cambio
         }
         existencia

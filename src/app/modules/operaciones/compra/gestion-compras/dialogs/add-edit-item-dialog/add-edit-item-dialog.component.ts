@@ -185,6 +185,7 @@ export class AddEditItemDialogComponent implements OnInit {
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
+  selectedCurrencyDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -541,11 +542,13 @@ export class AddEditItemDialogComponent implements OnInit {
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
+      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
+      this.selectedCurrencyDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -717,7 +720,28 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null);
 
-    const precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+    let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+
+    // Convertir cross-currency si la moneda del costo difiere de la del pedido
+    const costo = producto?.costo;
+    const costoMonedaId = costo?.moneda?.id;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    console.log('[MONEDA-DEBUG] costo:', { ultimoPrecioCompra: costo?.ultimoPrecioCompra, cotizacion: costo?.cotizacion, moneda: costo?.moneda });
+    console.log('[MONEDA-DEBUG] pedido.moneda:', this.data.pedido?.moneda);
+    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
+      // Convertir a Gs: precio * cotización guardada (o último cambio conocido)
+      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
+      const pedidoCambio = this.data.pedido?.moneda?.cambio;
+      console.log('[MONEDA-DEBUG] conversion:', { precioInicial, costoEnGs, pedidoCambio });
+      if (pedidoCambio && pedidoCambio > 1) {
+        // Pedido en moneda extranjera: Gs → moneda del pedido
+        precioInicial = Math.round((costoEnGs / pedidoCambio) * 100) / 100;
+      } else {
+        // Pedido en Gs
+        precioInicial = Math.round(costoEnGs);
+      }
+      console.log('[MONEDA-DEBUG] precioInicial convertido:', precioInicial);
+    }
     
     this.itemForm.patchValue(
       {

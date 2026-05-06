@@ -28,6 +28,7 @@ export const pedidoQuery = gql`
         id
         denominacion
         simbolo
+        cambio
       }
       plazoCredito
       observacionFormaPago
@@ -93,7 +94,9 @@ export const pedidosQuery = gql`
       }
       moneda {
         id
-          denominacion
+        denominacion
+        simbolo
+        cambio
       }
       plazoCredito
       observacionFormaPago
@@ -156,6 +159,8 @@ export const savePedidoMutation = gql`
       moneda {
         id
         denominacion
+        simbolo
+        cambio
       }
       plazoCredito
       observacionFormaPago
@@ -208,6 +213,8 @@ export const savePedidoFullMutation = gql`
       moneda {
         id
         denominacion
+        simbolo
+        cambio
       }
       plazoCredito
       observacionFormaPago
