@@ -32,7 +32,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   usuarioControl = new FormControl();
   selectedTipoGasto: TipoGasto;
   listCargo: Cargo[];
-  moduloPadreList = ['MUEBLE', 'INMUEBLE', 'PERSONAS', 'VEHICULO', 'OPERACIONES', 'FINANCIERO', 'OTRO'];
+  moduloPadreList = ['MUEBLE', 'INMUEBLE', 'PERSONAS', 'VEHICULO', 'OTRO'];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarTipoGastoData,

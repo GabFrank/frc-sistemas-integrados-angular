@@ -325,9 +325,18 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         return null;
       }
       const montoNoRendido = Math.max(solicitado - (rendido[currencyKey] ?? 0), 0);
-      return `${currencyKey}: ${montoNoRendido.toFixed(2)}`;
+      return `${currencyKey}: ${this.formatMontoPorMoneda(currencyKey, montoNoRendido)}`;
     }).filter((value): value is string => !!value);
-    return parts.length > 0 ? parts.join(' | ') : 'GS: 0.00';
+    return parts.length > 0 ? parts.join(' | ') : 'GS: 0';
+  }
+
+  private formatMontoPorMoneda(currencyKey: string, amount: number): string {
+    const minFractionDigits = currencyKey === 'GS' ? 0 : 2;
+    const maxFractionDigits = currencyKey === 'GS' ? 0 : 2;
+    return new Intl.NumberFormat('es-PY', {
+      minimumFractionDigits: minFractionDigits,
+      maximumFractionDigits: maxFractionDigits,
+    }).format(amount);
   }
 
   private getSolicitadoPorMoneda(preGasto: PreGasto): Record<string, number> {
