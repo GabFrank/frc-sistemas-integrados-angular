@@ -21,15 +21,26 @@
                 </mat-chip-option>
               </mat-chip-listbox>
             </div>
-            <button
-              mat-icon-button
-              color="primary"
-              (click)="onActualizarPedido()"
-              matTooltip="Actualizar datos del pedido"
-              [disabled]="loadingPedido || !isEditMode"
-            >
-              <mat-icon>refresh</mat-icon>
-            </button>
+            <div class="title-actions">
+              <button
+                mat-icon-button
+                color="accent"
+                (click)="onImprimirPedido()"
+                matTooltip="Imprimir pedido"
+                [disabled]="!isEditMode || !pedidoId || loadingPedido"
+              >
+                <mat-icon>print</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="onActualizarPedido()"
+                matTooltip="Actualizar datos del pedido"
+                [disabled]="loadingPedido || !isEditMode"
+              >
+                <mat-icon>refresh</mat-icon>
+              </button>
+            </div>
           </div>
         </mat-card-title>
       </mat-card-header>

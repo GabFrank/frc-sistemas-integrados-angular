@@ -234,13 +234,19 @@ export class ListCompraComponent implements OnInit {
   }
 
   onImprimir(pedido: Pedido) {
-    this.pedidoService.onImprimirPedido(pedido.id).subscribe({
-      next: (res) => {
-        // TODO: Handle print result when implemented
+    this.pedidoService.onImprimirPedidoPDF(pedido.id).subscribe({
+      next: (pdfBase64) => {
+        if (pdfBase64) {
+          this.notificacionService.notification$.next({
+            texto: "Reporte generado exitosamente",
+            color: NotificacionColor.success,
+            duracion: 3
+          });
+        }
       },
       error: (error) => {
         this.notificacionService.notification$.next({
-          texto: "Funcionalidad de impresión no disponible aún",
+          texto: "Error al generar reporte",
           color: NotificacionColor.warn,
           duracion: 3
         });
