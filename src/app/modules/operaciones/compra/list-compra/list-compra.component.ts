@@ -34,6 +34,14 @@ import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from 
 import { MatDialog } from "@angular/material/dialog";
 import { interval } from "rxjs";
 import { SucursalRecepcionFisica } from "../gestion-compras/graphql/getPedidoRecepcionFisicaResumen";
+import {
+  ImprimirPedidoDialogComponent,
+  ImprimirPedidoDialogData,
+  ImprimirPedidoDialogResult,
+} from "../gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 @UntilDestroy()
 @Component({
@@ -102,7 +110,9 @@ export class ListCompraComponent implements OnInit {
     private sucursalService: SucursalService,
     private proveedorService: ProveedorService,
     private matDialog: MatDialog,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private reporteService: ReporteService,
+    private configService: ConfiguracionService
   ) {}
 
   ngOnInit(): void {
@@ -234,24 +244,96 @@ export class ListCompraComponent implements OnInit {
   }
 
   onImprimir(pedido: Pedido) {
-    this.pedidoService.onImprimirPedidoPDF(pedido.id).subscribe({
-      next: (pdfBase64) => {
-        if (pdfBase64) {
-          this.notificacionService.notification$.next({
-            texto: "Reporte generado exitosamente",
-            color: NotificacionColor.success,
-            duracion: 3
-          });
-        }
-      },
-      error: (error) => {
-        this.notificacionService.notification$.next({
-          texto: "Error al generar reporte",
-          color: NotificacionColor.warn,
-          duracion: 3
-        });
-      }
+    const dialogData: ImprimirPedidoDialogData = {
+      pedidoId: pedido.id,
+      pedidoNro: pedido.id,
+    };
+
+    const dialogRef = this.matDialog.open(ImprimirPedidoDialogComponent, {
+      data: dialogData,
+      width: "420px",
     });
+
+    dialogRef.afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result: ImprimirPedidoDialogResult | undefined) => {
+        if (!result) return;
+
+        switch (result.accion) {
+          case "ticket":
+            const printerName = this.configService?.getConfig()?.printers?.ticket;
+            this.pedidoService.onImprimirPedidoTicket(pedido.id, printerName)
+              .pipe(untilDestroyed(this))
+              .subscribe({
+                next: () => this.notificacionService.notification$.next({
+                  texto: "Ticket enviado a impresora",
+                  color: NotificacionColor.success,
+                  duracion: 3
+                }),
+                error: () => this.notificacionService.notification$.next({
+                  texto: "Error al imprimir ticket",
+                  color: NotificacionColor.warn,
+                  duracion: 3
+                })
+              });
+            break;
+          case "pdf-inapp":
+            this.pedidoService.onImprimirPedidoPDF(pedido.id)
+              .pipe(untilDestroyed(this))
+              .subscribe({
+                next: (pdfBase64) => {
+                  if (pdfBase64) {
+                    this.reporteService.onAdd(`Pedido ${pedido.id}`, pdfBase64);
+                    this.tabService.addTab(new Tab(ReportesComponent, "Reportes", null, null));
+                    this.notificacionService.notification$.next({
+                      texto: "Reporte generado exitosamente",
+                      color: NotificacionColor.success,
+                      duracion: 3
+                    });
+                  }
+                },
+                error: () => this.notificacionService.notification$.next({
+                  texto: "Error al generar PDF",
+                  color: NotificacionColor.warn,
+                  duracion: 3
+                })
+              });
+            break;
+          case "pdf-guardar":
+            this.pedidoService.onImprimirPedidoPDF(pedido.id)
+              .pipe(untilDestroyed(this))
+              .subscribe({
+                next: (pdfBase64) => {
+                  if (pdfBase64) {
+                    const byteCharacters = atob(pdfBase64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: "application/pdf" });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `pedido-${pedido.id}.pdf`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    this.notificacionService.notification$.next({
+                      texto: "PDF guardado exitosamente",
+                      color: NotificacionColor.success,
+                      duracion: 3
+                    });
+                  }
+                },
+                error: () => this.notificacionService.notification$.next({
+                  texto: "Error al guardar PDF",
+                  color: NotificacionColor.warn,
+                  duracion: 3
+                })
+              });
+            break;
+        }
+      });
   }
 
   onCancelar(pedido: Pedido, index) {
