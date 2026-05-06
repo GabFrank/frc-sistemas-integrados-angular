@@ -84,7 +84,12 @@ export class AutorizarGastoDialogComponent implements OnInit {
       return;
     }
 
-    this.gastoService.preGastoAutorizar(this.preGasto.id, autorizadorId, this.preGasto.sucursalId)
+    this.gastoService.preGastoAutorizar(
+      this.preGasto.id,
+      autorizadorId,
+      this.mainService.usuarioActual?.id,
+      this.preGasto.sucursalId
+    )
       .pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) {
           this.matDialogRef.close(res);
@@ -107,7 +112,14 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
     if (!this.motivoRechazoControl.valid) return;
 
-    this.gastoService.preGastoRechazar(this.preGasto.id, this.motivoRechazoControl.value, this.preGasto.sucursalId)
+    const rechazadorId = this.mainService.usuarioActual?.persona?.id || this.preGasto.funcionario?.id;
+    this.gastoService.preGastoRechazar(
+      this.preGasto.id,
+      this.motivoRechazoControl.value,
+      rechazadorId,
+      this.mainService.usuarioActual?.id,
+      this.preGasto.sucursalId
+    )
       .pipe(untilDestroyed(this)).subscribe(res => {
         if (res != null) {
           this.matDialogRef.close(res);

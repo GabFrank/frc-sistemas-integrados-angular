@@ -314,8 +314,8 @@ export const savePreGastoMutation = gql`
 `;
 
 export const autorizarPreGastoMutation = gql`
-  mutation autorizarPreGasto($id: ID!, $autorizadorId: ID!, $sucId: ID) {
-    data: autorizarPreGasto(id: $id, autorizadorId: $autorizadorId, sucId: $sucId) {
+  mutation autorizarPreGasto($id: ID!, $autorizadorId: ID!, $usuarioId: ID, $sucId: ID) {
+    data: autorizarPreGasto(id: $id, autorizadorId: $autorizadorId, usuarioId: $usuarioId, sucId: $sucId) {
       id
       sucursalId
       estado
@@ -324,8 +324,8 @@ export const autorizarPreGastoMutation = gql`
 `;
 
 export const rechazarPreGastoMutation = gql`
-  mutation rechazarPreGasto($id: ID!, $motivo: String!, $sucId: ID) {
-    data: rechazarPreGasto(id: $id, motivo: $motivo, sucId: $sucId) {
+  mutation rechazarPreGasto($id: ID!, $motivo: String!, $rechazadorId: ID, $usuarioId: ID, $sucId: ID) {
+    data: rechazarPreGasto(id: $id, motivo: $motivo, rechazadorId: $rechazadorId, usuarioId: $usuarioId, sucId: $sucId) {
       id
       sucursalId
       estado

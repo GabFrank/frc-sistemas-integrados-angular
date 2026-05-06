@@ -106,12 +106,12 @@ export class GastoService {
     return this.genericService.onSave(this.onSavePreGasto, input);
   }
 
-  preGastoAutorizar(id: number, autorizadorId: number, sucId?: number): Observable<PreGasto> {
-    return this.genericService.onCustomMutation(this.autorizarGQL, { id, autorizadorId, sucId });
+  preGastoAutorizar(id: number, autorizadorId: number, usuarioId?: number, sucId?: number): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.autorizarGQL, { id, autorizadorId, usuarioId, sucId });
   }
 
-  preGastoRechazar(id: number, motivo: string, sucId?: number): Observable<PreGasto> {
-    return this.genericService.onCustomMutation(this.rechazarGQL, { id, motivo, sucId });
+  preGastoRechazar(id: number, motivo: string, rechazadorId?: number, usuarioId?: number, sucId?: number): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.rechazarGQL, { id, motivo, rechazadorId, usuarioId, sucId });
   }
 
   preGastoTramitar(id: number, sucId?: number): Observable<PreGasto> {
