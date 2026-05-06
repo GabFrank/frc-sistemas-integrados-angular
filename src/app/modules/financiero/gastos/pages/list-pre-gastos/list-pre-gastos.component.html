@@ -172,7 +172,7 @@
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Monto no rendido:</span>
             <span [style.color]="'#ffb74d'">
-              {{ (seleccionado.montoNoRendido || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}
+              {{ montoNoRendidoPorMoneda(seleccionado) }}
             </span>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">

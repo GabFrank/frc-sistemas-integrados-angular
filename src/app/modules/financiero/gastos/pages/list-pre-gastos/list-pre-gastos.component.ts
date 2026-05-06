@@ -316,6 +316,20 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     return parts.length > 0 ? parts.join(' | ') : '0.00%';
   }
 
+  montoNoRendidoPorMoneda(preGasto: PreGasto): string {
+    const requested = this.getSolicitadoPorMoneda(preGasto);
+    const rendido = this.getRendidoPorMoneda(preGasto);
+    const parts = Object.keys(requested).map((currencyKey) => {
+      const solicitado = requested[currencyKey] ?? 0;
+      if (solicitado <= 0) {
+        return null;
+      }
+      const montoNoRendido = Math.max(solicitado - (rendido[currencyKey] ?? 0), 0);
+      return `${currencyKey}: ${montoNoRendido.toFixed(2)}`;
+    }).filter((value): value is string => !!value);
+    return parts.length > 0 ? parts.join(' | ') : 'GS: 0.00';
+  }
+
   private getSolicitadoPorMoneda(preGasto: PreGasto): Record<string, number> {
     const finanzas = preGasto?.finanzas || [];
     const requested: Record<string, number> = {};
