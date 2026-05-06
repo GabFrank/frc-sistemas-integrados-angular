@@ -1,22 +1,51 @@
-<div fxLayout="column" style="width: 500px; margin: 20px" fxLayoutGap="10px">
-    <div fxFlex style="width: 100%; text-align: center; font-weight: bold;">
-        Crear nueva cotización
+<div fxLayout="column" style="width: 520px; margin: 20px" fxLayoutGap="16px">
+    <div style="text-align: center; font-weight: bold; font-size: 16px;">
+        Actualizar cotización — {{ selectedMoneda?.simbolo }} {{ selectedMoneda?.denominacion | uppercase }}
     </div>
-    <div fxFlex style="width: 100%;">
-        Moneda: {{selectedMoneda?.denominacion | uppercase}}
-    </div>
-    <div fxFlex style="width: 100%;">
-        Cotización actual en Gs.: {{selectedMoneda?.cambio | number: '1.0-2'}}
-    </div>
-    <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutGap="10px" fxLayoutAlign="start center">
-        <div fxFlex="70%">
-            <mat-form-field style="width: 100%;">
-                <mat-label>Nueva Cotización</mat-label>
-                <input type="number" matInput [formControl]="cotizacionControl" (keyup.enter)="cotizacionControl.valid ? onGuardar() : null">
-            </mat-form-field>
+
+    <div *ngIf="ultimoCambio" fxLayout="row" fxLayoutGap="16px" style="background: rgba(255,255,255,0.05); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: #aaa;">
+        <div fxFlex>
+            <div>Venta actual</div>
+            <div style="color: #fff; font-size: 15px;">{{ ultimoCambio.valorEnGs | number:'1.0-0' }} Gs.</div>
         </div>
-        <div fxFlex="30%">
-            <button color="accent" style="width: 100%;" mat-raised-button (click)="onGuardar()" [disabled]="cotizacionControl.invalid">Guardar</button>
+        <div fxFlex>
+            <div>Venta Mercado</div>
+            <div style="color: #fff; font-size: 15px;">{{ ultimoCambio.valorEnGsVentaMercado ? (ultimoCambio.valorEnGsVentaMercado | number:'1.0-0') + ' Gs.' : '—' }}</div>
         </div>
+        <div fxFlex>
+            <div>Compra Mercado</div>
+            <div style="color: #fff; font-size: 15px;">{{ ultimoCambio.valorEnGsCompraMercado ? (ultimoCambio.valorEnGsCompraMercado | number:'1.0-0') + ' Gs.' : '—' }}</div>
+        </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div fxLayout="row" fxLayoutGap="16px">
+        <mat-form-field fxFlex style="width: 100%;">
+            <mat-label>Cotización Venta</mat-label>
+            <input type="number" matInput [formControl]="cotizacionControl" (keyup.enter)="cotizacionControl.valid ? onGuardar() : null">
+            <span matPrefix>Gs.&nbsp;</span>
+            <mat-hint>Precio interno de venta al público</mat-hint>
+        </mat-form-field>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="16px">
+        <mat-form-field fxFlex="50%">
+            <mat-label>Venta Mercado</mat-label>
+            <input type="number" matInput [formControl]="ventaMercadoControl">
+            <span matPrefix>Gs.&nbsp;</span>
+            <mat-hint>Ref. "Compra" en casa de cambio</mat-hint>
+        </mat-form-field>
+        <mat-form-field fxFlex="50%">
+            <mat-label>Compra Mercado</mat-label>
+            <input type="number" matInput [formControl]="compraMercadoControl" (keyup.enter)="cotizacionControl.valid ? onGuardar() : null">
+            <span matPrefix>Gs.&nbsp;</span>
+            <mat-hint>Ref. "Venta" en casa de cambio — para compras a proveedores</mat-hint>
+        </mat-form-field>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="end center">
+        <button mat-button (click)="onCancelar()">Cancelar</button>
+        <button color="accent" mat-raised-button (click)="onGuardar()" [disabled]="cotizacionControl.invalid">Guardar</button>
     </div>
 </div>
