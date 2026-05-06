@@ -15,6 +15,57 @@ autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
+// Patch: safe AppImage swap (rename-then-move instead of unlink-then-move)
+// Prevents losing the AppImage if the update fails mid-swap.
+if (process.platform === 'linux') {
+  const origDoInstall = (autoUpdater as any).doInstall;
+  if (origDoInstall) {
+    (autoUpdater as any).doInstall = function (options: any) {
+      const appImageFile = process.env['APPIMAGE'];
+      if (appImageFile && fs.existsSync(appImageFile)) {
+        const backupPath = appImageFile + '.old';
+        try {
+          // Step 1: rename current → .old (atomic, never leaves gap)
+          if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+          fs.renameSync(appImageFile, backupPath);
+          log.info(`AppImage backed up: ${backupPath}`);
+        } catch (e) {
+          log.error('Failed to backup AppImage, proceeding with default install:', e);
+          return origDoInstall.call(this, options);
+        }
+        try {
+          // Step 2: move new AppImage to operative path
+          const { execFileSync } = require('child_process');
+          const destination = appImageFile;
+          execFileSync('mv', ['-f', options.installerPath, destination]);
+          execFileSync('chmod', ['+x', destination]);
+          log.info(`New AppImage installed: ${destination}`);
+          // Step 3: clean up backup
+          if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+          // Step 4: relaunch
+          const { spawn } = require('child_process');
+          const env = { ...process.env, APPIMAGE_SILENT_INSTALL: 'true' };
+          if (options.isForceRunAfter) {
+            spawn(destination, [], { detached: true, stdio: 'ignore', env }).unref();
+          }
+          return true;
+        } catch (e) {
+          // Rollback: restore backup
+          log.error('Failed to install new AppImage, restoring backup:', e);
+          try {
+            fs.renameSync(backupPath, appImageFile);
+            log.info('Backup restored successfully');
+          } catch (restoreErr) {
+            log.error('CRITICAL: Failed to restore backup:', restoreErr);
+          }
+          return false;
+        }
+      }
+      return origDoInstall.call(this, options);
+    };
+  }
+}
+
 let updateEnabled = false;
 
 function configureUpdateChannel(): boolean {
