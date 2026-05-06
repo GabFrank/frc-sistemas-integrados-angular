@@ -97,7 +97,6 @@ import {
   ImprimirPedidoDialogData,
   ImprimirPedidoDialogResult,
 } from "./dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component";
-import { TabService } from "../../../../layouts/tab/tab.service";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -413,7 +412,6 @@ export class GestionComprasComponent
     private productoService: ProductoService,
     private tabService: TabService,
     public mainService: MainService,
-    private tabService: TabService,
     private reporteService: ReporteService,
     private configService: ConfiguracionService
   ) {
