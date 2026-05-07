@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 import { CambiosGetAllByDateGQL } from './graphql/cambiosGetByDate';
 import { Cambio } from './cambio.model';
 import { UltimoCambioPorMonedaIdGQL } from './graphql/ultimoCambioPorMonedaId';
+import { ActualizarCotizacionesMercadoGQL } from './graphql/actualizarCotizacionesMercado';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,8 @@ export class CambioService {
     private cambiosByDate: CambiosGetAllByDateGQL,
     private saveCambio: SaveCambioGQL,
     private genericService: GenericCrudService,
-    private ultimoCambioPorMonedaIdGQL: UltimoCambioPorMonedaIdGQL
+    private ultimoCambioPorMonedaIdGQL: UltimoCambioPorMonedaIdGQL,
+    private actualizarCotizacionesMercadoGQL: ActualizarCotizacionesMercadoGQL
   ) { }
 
   getCambiosByDate(inicial, fin): Observable<Cambio[]>{
@@ -29,5 +31,9 @@ export class CambioService {
 
   getUltimoCambioPorMonedaId(monedaId: number): Observable<Cambio> {
     return this.genericService.onCustomQuery(this.ultimoCambioPorMonedaIdGQL, {id: monedaId}, true);
+  }
+
+  onActualizarCotizacionesMercado(): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.actualizarCotizacionesMercadoGQL, {});
   }
 }

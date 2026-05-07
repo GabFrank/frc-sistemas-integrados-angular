@@ -586,12 +586,16 @@ function registerPrinterIpcHandlers() {
         const isNetwork = typeof options.printerName === 'string' && options.printerName.includes('://');
         const isXprinter = typeof options.printerName === 'string' && (options.printerName.toLowerCase().includes('xprinter') || options.printerName.toLowerCase().includes('xp-'));
 
+        // Revertido: El envío directo de PNG a una cola CUPS RAW causa caracteres chinos.
+        // Generaremos el bitmask ESC * en el frontend y lo enviaremos como rawBase64.
+
         if (isLinux && !isNetwork && !isXprinter) {
-          const buildEscPos = (): Buffer => {
+          const buildEscPos = async (): Promise<Buffer> => {
             const chunks: Buffer[] = [];
             const push = (b: number[] | Buffer) => chunks.push(Buffer.isBuffer(b as any) ? (b as Buffer) : Buffer.from(b as number[]));
             const textEnc = (s: string) => Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
             push([0x1B, 0x40]);
+            push(textEnc('\n\n')); // Double feed at top to completely prevent tear bar cutoff
 
             for (const item of (printData as any[])) {
               if (item.type === 'text') {
@@ -600,23 +604,51 @@ function registerPrinterIpcHandlers() {
                 let mode = 0x00;
                 const size = parseInt((item.style && item.style.fontSize || '12px').toString().replace('px', ''), 10);
                 if (item.style && item.style.fontWeight === 'bold') mode |= 0x08;
-                if (size >= 18) mode |= 0x20;
+                
+                if (size >= 14 && size < 18) {
+                  mode |= 0x10; // Double height only
+                } else if (size >= 18) {
+                  mode |= 0x10; // Double height
+                  mode |= 0x20; // Double width
+                }
+                
                 push([0x1B, 0x21, mode]);
                 push(textEnc((item.value || '') + '\n'));
                 push([0x1B, 0x21, 0x00]);
                 push([0x1B, 0x61, 0x00]);
-              } else if (item.type === 'barCode' || item.type === 'barcode') {
-                const value = ((item.value || '').toString().replace(/[^0-9]/g, ''));
-                if (value.length >= 8) {
-                  push([0x1B, 0x61, 0x01]);
-                  push([0x1D, 0x48, 0x02]);
-                  push([0x1D, 0x68, 60]);
-                  push([0x1D, 0x77, 2]);
-                  push([0x1D, 0x6B, 0x43, value.length]);
-                  push(Buffer.from(value, 'ascii'));
-                  push(textEnc('\n\n'));
-                  push([0x1B, 0x61, 0x00]);
-                }
+                } else if (item.type === 'barCode' || item.type === 'barcode') {
+                  let value = (item.value || '').toString().trim();
+                  if (value.length > 0) {
+                    push([0x1B, 0x61, 0x01]);
+                    // Handle position
+                    let hriPos = 0x02; // BELOW
+                    if (item.position === 'OFF') hriPos = 0x00;
+                    else if (item.position === 'ABOVE') hriPos = 0x01;
+                    push([0x1D, 0x48, hriPos]);
+
+                    // Handle height
+                    const height = item.height ? parseInt(item.height) : 60;
+                    push([0x1D, 0x68, height]);
+                    
+                    // Handle width
+                    const width = item.width ? parseInt(item.width) : 2;
+                    push([0x1D, 0x77, width]);
+                  
+                    let m = 0x49; // CODE128 (73)
+                    let printValue = value;
+                    if (item.barcodeType === 'CODE128' || !item.barcodeType) {
+                        m = 0x49; // 0x49 = 73 = CODE128
+                        printValue = value; // Generic printers assume Charset B
+                    } else if (item.barcodeType === 'EAN13') {
+                        m = 0x43; // 0x43 = 67 = EAN13
+                        printValue = value.replace(/[^0-9]/g, '');
+                    }
+                  
+                    push([0x1D, 0x6B, m, printValue.length]);
+                    push(Buffer.from(printValue, 'ascii'));
+                    push(textEnc('\n')); // Only one newline
+                    push([0x1B, 0x61, 0x00]);
+                  }
               } else if (item.type === 'qrCode' || item.type === 'qrcode') {
                 const val = (item.value || '').toString();
                 push([0x1B, 0x61, 0x01]);
@@ -631,6 +663,13 @@ function registerPrinterIpcHandlers() {
                 push([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30]);
                 push(textEnc('\n\n'));
                 push([0x1B, 0x61, 0x00]);
+              } else if (item.type === 'rawBase64' && item.value) {
+                try {
+                  const buf = Buffer.from(item.value, 'base64');
+                  push(buf);
+                } catch (e) {
+                  console.error('Error parsing rawBase64:', e);
+                }
               } else if (item.type === 'cut') {
                 push([0x1D, 0x56, 0x00]);
               }
@@ -640,7 +679,7 @@ function registerPrinterIpcHandlers() {
             return Buffer.concat(chunks);
           };
 
-          const rawBuf = buildEscPos();
+          const rawBuf = await buildEscPos();
           const tmp = path.join(app.getPath('temp'), `escpos-${Date.now()}.bin`);
           fs.writeFileSync(tmp, rawBuf);
           const cmd = `lp -d "${options.printerName}" -o raw ${tmp}`;
