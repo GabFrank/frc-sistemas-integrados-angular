@@ -18,8 +18,27 @@ export interface AdicionarNotaDialogData {
   styleUrls: ['./adicionar-nota-dialog.component.scss']
 })
 export class AdicionarNotaDialogComponent implements OnInit {
-  displayedColumns: string[] = ['select', 'proveedor', 'numero', 'fecha', 'valorTotal'];
+  displayedColumns: string[] = ['select', 'proveedor', 'numero', 'fecha', 'moneda', 'valorTotal'];
   dataSource = new MatTableDataSource<(NotaRecepcion & { proveedorNombreDisplay?: string })>([]);
+
+  /** Símbolo a mostrar para una nota — moneda propia, fallback Gs. */
+  getSimbolo(nota: NotaRecepcion): string {
+    const m: any = (nota as any).moneda;
+    if (m?.simbolo) return m.simbolo;
+    const denom = (m?.denominacion || '').toString().toUpperCase();
+    return denom.includes('GUARANI') || denom === 'GS' ? 'Gs.' : '';
+  }
+
+  /** Formato Angular `number` pipe — Gs sin decimales, otras con dos. */
+  getDecimalFormat(nota: NotaRecepcion): string {
+    const denom = ((nota as any).moneda?.denominacion || '').toString().toUpperCase();
+    return denom.includes('GUARANI') || denom === 'GS' ? '1.0-0' : '1.0-2';
+  }
+
+  /** Denominación a mostrar en columna moneda. */
+  getDenominacion(nota: NotaRecepcion): string {
+    return ((nota as any).moneda?.denominacion || '-').toString().toUpperCase();
+  }
   loading = true;
   filtroTexto = '';
   pageIndex = 0;

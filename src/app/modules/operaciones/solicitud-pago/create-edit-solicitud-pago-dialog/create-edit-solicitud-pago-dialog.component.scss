@@ -93,13 +93,13 @@
       }
 
       .resumen-label {
-        font-size: 0.8rem;
+        font-size: 90%;
         color: rgba(255, 255, 255, 0.65);
         text-transform: uppercase;
       }
 
       .resumen-value {
-        font-size: 1.25rem;
+        font-size: 120%;
         font-weight: 600;
         color: rgba(255, 255, 255, 0.95);
       }
@@ -347,61 +347,156 @@
 
         mat-header-cell,
         mat-cell {
-          padding: 0.75rem 1rem;
+          padding: 0.4rem 1rem;
         }
 
         mat-header-cell {
           font-weight: 600;
           background: rgba(255, 255, 255, 0.06);
           border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+          min-height: 36px;
         }
 
         mat-cell {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
+        mat-row {
+          min-height: 40px;
+        }
       }
     }
 
-    .resumen-moneda-card {
-      margin-top: 1rem;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+  }
 
-      mat-card-header {
-        margin-bottom: 0.5rem;
+  /* Panel de balance unificado — sticky abajo del tab-group */
+  .balance-panel {
+    margin: 0.75rem 0 0;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    flex-shrink: 0;
 
-        mat-card-title {
-          font-size: 1rem;
+    .balance-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+
+      .balance-kpi {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.85rem 1.1rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+
+        .kpi-label {
+          font-size: 90%;
           font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          opacity: 0.75;
+        }
+
+        .kpi-value {
+          font-size: 120%;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+
+          .kpi-icon {
+            font-size: 120%;
+            width: 1.4rem;
+            height: 1.4rem;
+          }
+        }
+
+        .kpi-hint {
+          font-size: 85%;
+          opacity: 0.75;
+        }
+
+        &.balance-kpi-pagar {
+          border-left: 3px solid #64b5f6;
+        }
+
+        &.balance-kpi-cubierto {
+          border-left: 3px solid #ba68c8;
+        }
+
+        &.balance-kpi-diferencia {
+          &.estado-cubre {
+            border-left: 3px solid #66bb6a;
+            .kpi-value, .kpi-icon { color: #66bb6a; }
+          }
+          &.estado-exceso {
+            border-left: 3px solid #ffa726;
+            .kpi-value, .kpi-icon { color: #ffa726; }
+          }
+          &.estado-falta {
+            border-left: 3px solid #ef5350;
+            .kpi-value, .kpi-icon { color: #ef5350; }
+          }
         }
       }
+    }
 
-      mat-card-content {
-        .resumen-moneda-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.35rem 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
 
-          .resumen-moneda-label {
-            font-weight: 500;
-          }
+  .breakdown-cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
 
-          .resumen-moneda-value {
-            font-weight: 500;
-          }
+    .breakdown-card {
+      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      .breakdown-title {
+        font-size: 90%;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        opacity: 0.7;
+        margin-bottom: 0.3rem;
+      }
+
+      .breakdown-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 0.75rem;
+        align-items: center;
+        font-size: 100%;
+        padding: 0.25rem 0;
+
+        &.breakdown-row-2col {
+          grid-template-columns: 1fr auto;
         }
 
-        .resumen-total-gs {
-          margin-top: 0.5rem;
-          padding-top: 0.5rem;
-          border-top: 1px solid rgba(255, 255, 255, 0.15);
-          font-weight: 600;
+        .breakdown-moneda {
+          font-weight: 500;
+          opacity: 0.9;
+        }
 
-          .resumen-moneda-value {
-            font-weight: 700;
-          }
+        .breakdown-valor {
+          font-weight: 600;
+          text-align: right;
+        }
+
+        .breakdown-equiv {
+          font-size: 85%;
+          opacity: 0.75;
+          font-style: italic;
         }
       }
     }
