@@ -725,9 +725,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $stockFiltro: String, 
       $sucursalId: ID, 
       $usuarioId: ID, 
-      $usuario: String,
-      $page: Int,
-      $size: Int
+      $usuario: String
     ) {
       data: exportarReporteConFiltros(
         texto: $texto, 
@@ -741,9 +739,7 @@ export const exportarReporteConFiltrosQuery = gql`
         stockFiltro: $stockFiltro, 
         sucursalId: $sucursalId, 
         usuarioId: $usuarioId, 
-        usuario: $usuario,
-        page: $page,
-        size: $size
+        usuario: $usuario
       )
     }
   `;
