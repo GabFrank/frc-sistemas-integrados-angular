@@ -110,6 +110,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades computadas para items (se actualizan cuando cambia itemsDataSource)
   computedItemsData: any[] = [];
 
+  // Símbolo y formato de la moneda actual de la nota — usados por el HTML para prefix y decimales.
+  get notaSimbolo(): string {
+    return this.notaRecepcionForm?.get('moneda')?.value?.simbolo || '';
+  }
+  get notaDecimalFormat(): string {
+    return this.notaRecepcionForm?.get('moneda')?.value?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+  }
+
   // Propiedades para asignación automática
   assignmentStatusText: string = '';
   assignmentStatusClass: string = '';
@@ -175,10 +183,27 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         next: (monedas: Moneda[]) => {
           this.monedas = monedas;
           this.loadingMonedas = false;
-          
-          // Si no hay moneda seleccionada, usar la primera disponible
+
+          // Si no hay moneda seleccionada (creación), prefilear con la del pedido
+          // (buscamos por id en el array cargado para conservar la misma instancia que usa mat-option).
+          // Fallback: primera moneda disponible.
           if (this.notaRecepcionForm && !this.notaRecepcionForm.get('moneda')?.value && monedas.length > 0) {
-            this.notaRecepcionForm.patchValue({ moneda: monedas[0] });
+            const pedidoMonedaId = this.data.pedido?.moneda?.id;
+            const monedaPedido = pedidoMonedaId ? monedas.find(m => m.id === pedidoMonedaId) : null;
+            const monedaDefault = monedaPedido || monedas[0];
+            this.notaRecepcionForm.patchValue({ moneda: monedaDefault }, { emitEvent: false });
+
+            // Cotización: si la moneda del pedido es no-Gs y tiene cotización fijada, prefilear.
+            if (
+              !this.data.isEdit &&
+              monedaDefault?.denominacion !== 'GUARANI' &&
+              this.data.pedido?.cotizacion
+            ) {
+              this.notaRecepcionForm.patchValue(
+                { cotizacion: this.data.pedido.cotizacion },
+                { emitEvent: false }
+              );
+            }
           }
         },
         error: (error) => {
@@ -198,6 +223,21 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       this.notaRecepcionForm.patchValue({ cotizacion: 1 });
       return;
     }
+
+    // 1. Si el pedido tiene cotización fijada, prefill desde ahí (override editable).
+    //    Solo aplica cuando la moneda de la nota coincide con la del pedido — al cambiarla
+    //    explícitamente, recae en el prefill del mercado.
+    const pedidoCotizacion = this.data.pedido?.cotizacion;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    if (pedidoCotizacion != null && (!monedaId || monedaId === pedidoMonedaId)) {
+      const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+      if (!currentCotizacion || currentCotizacion === 1) {
+        this.notaRecepcionForm.patchValue({ cotizacion: pedidoCotizacion });
+      }
+      return;
+    }
+
+    // 2. Fallback: prefill desde mercado (lógica anterior)
     this.cambioService.getUltimoCambioPorMonedaId(id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({

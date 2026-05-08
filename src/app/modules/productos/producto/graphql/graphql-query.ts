@@ -93,6 +93,13 @@ export const productoSearchPdv = gql`
       activo
       costo {
         ultimoPrecioCompra
+        cotizacion
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
       }
       envase {
         id
@@ -446,6 +453,13 @@ export const productoQuery = gql`
         id
         ultimoPrecioCompra
         costoMedio
+        cotizacion
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
       }
     }
   }

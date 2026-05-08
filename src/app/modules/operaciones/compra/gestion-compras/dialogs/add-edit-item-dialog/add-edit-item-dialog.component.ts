@@ -722,25 +722,20 @@ export class AddEditItemDialogComponent implements OnInit {
 
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
-    // Convertir cross-currency si la moneda del costo difiere de la del pedido
+    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
+    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
+    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
     const costo = producto?.costo;
     const costoMonedaId = costo?.moneda?.id;
     const pedidoMonedaId = this.data.pedido?.moneda?.id;
-    console.log('[MONEDA-DEBUG] costo:', { ultimoPrecioCompra: costo?.ultimoPrecioCompra, cotizacion: costo?.cotizacion, moneda: costo?.moneda });
-    console.log('[MONEDA-DEBUG] pedido.moneda:', this.data.pedido?.moneda);
     if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
-      // Convertir a Gs: precio * cotización guardada (o último cambio conocido)
       const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
-      const pedidoCambio = this.data.pedido?.moneda?.cambio;
-      console.log('[MONEDA-DEBUG] conversion:', { precioInicial, costoEnGs, pedidoCambio });
-      if (pedidoCambio && pedidoCambio > 1) {
-        // Pedido en moneda extranjera: Gs → moneda del pedido
-        precioInicial = Math.round((costoEnGs / pedidoCambio) * 100) / 100;
+      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+      if (pedidoCotizacion > 1) {
+        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
       } else {
-        // Pedido en Gs
         precioInicial = Math.round(costoEnGs);
       }
-      console.log('[MONEDA-DEBUG] precioInicial convertido:', precioInicial);
     }
     
     this.itemForm.patchValue(
