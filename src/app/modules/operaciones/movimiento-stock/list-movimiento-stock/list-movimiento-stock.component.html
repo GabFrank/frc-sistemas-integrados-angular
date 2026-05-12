@@ -545,25 +545,35 @@
                     </div>
 
                     <!-- Información de Stock al final -->
-                    <div *ngIf="movimiento?.data?.stockAnterior !== undefined" fxFlex="5%" class="info-container">
+                    <div fxFlex="5%" class="info-container">
                       <div fxLayout="row" fxLayoutAlign="space-around center" fxLayoutGap="20px">
-                        <div fxLayout="column" fxLayoutAlign="center center">
-                          <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
-                          <div style="color: #2196f3; font-weight: bold;">
-                            {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                        <ng-container *ngIf="movimiento?.data?.stockAnterior !== undefined">
+                          <div fxLayout="column" fxLayoutAlign="center center">
+                            <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
+                            <div style="color: #2196f3; font-weight: bold;">
+                              {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                            </div>
                           </div>
-                        </div>
-                        <div fxLayout="column" fxLayoutAlign="center center">
-                          <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
-                          <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'"
-                            style="font-weight: bold;">
-                            {{ (movimiento?.cantidad >= 0 ? '+' : '') }}{{ movimiento?.cantidad | number : "1.0-2" }}
+                          <div fxLayout="column" fxLayoutAlign="center center">
+                            <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
+                            <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'"
+                              style="font-weight: bold;">
+                              {{ (movimiento?.cantidad >= 0 ? '+' : '') }}{{ movimiento?.cantidad | number : "1.0-2" }}
+                            </div>
                           </div>
-                        </div>
-                        <div fxLayout="column" fxLayoutAlign="center center">
-                          <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
-                          <div class="titulo" style="font-weight: bold;">
-                            {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
+                          <div fxLayout="column" fxLayoutAlign="center center">
+                            <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
+                            <div class="titulo" style="font-weight: bold;">
+                              {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
+                            </div>
+                          </div>
+                        </ng-container>
+                        <div fxFlex="20">
+                          <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
+                            <div class="titulo">Vendido por:</div>
+                            <div>
+                              {{ movimiento?.usuario?.nickname | uppercase }}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -579,7 +589,7 @@
 
                   <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
                     <!-- Información del Producto y Sucursales -->
-                    <div fxFlex="40">
+                    <div fxFlex="35">
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Sucursal Origen:</div>
                         <div>{{ movimiento.data?.transferencia?.sucursalOrigen?.nombre | uppercase }}</div>
@@ -595,7 +605,7 @@
                     </div>
 
                     <!-- Información de Cantidades -->
-                    <div fxFlex="40">
+                    <div fxFlex="30">
                       <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Stock Anterior:</div>
                         <div style="color: #2196f3;">
@@ -613,6 +623,15 @@
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
                           {{ movimiento?.data?.stockFinal | number : '1.0-2' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div fxFlex="30">
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
+                        <div class="titulo">Transferido por:</div>
+                        <div>
+                          {{ movimiento?.usuario?.nickname | uppercase }}
                         </div>
                       </div>
                     </div>
@@ -690,7 +709,7 @@
 
                   <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
                     <!-- Información del Producto y Sucursal -->
-                    <div fxFlex="50">
+                    <div fxFlex="35">
                       <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
                         <div class="titulo">Producto:</div>
                         <div>{{ movimiento?.producto?.descripcion | titlecase }}</div>
@@ -701,7 +720,7 @@
                       </div>
                     </div>
 
-                    <div fxFlex="50">
+                    <div fxFlex="35">
                       <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
                         <div class="titulo">Tipo:</div>
                         <div>{{ movimiento?.tipoMovimiento | titlecase }}</div>
@@ -710,6 +729,17 @@
                         *ngIf="movimiento?.data?.referencia">
                         <div class="titulo">Referencia:</div>
                         <div>{{ movimiento?.data?.referencia }}</div>
+                      </div>
+                    </div>
+
+                    <div fxFlex="30">
+                      <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
+                        <div class="titulo">
+                          {{ movimiento?.tipoMovimiento === 'COMPRA' ? 'Comprado por:' : 'Realizado por:' }}
+                        </div>
+                        <div>
+                          {{ movimiento?.usuario?.nickname | uppercase }}
+                        </div>
                       </div>
                     </div>
                   </div>

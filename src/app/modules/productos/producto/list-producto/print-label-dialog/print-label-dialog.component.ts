@@ -43,9 +43,12 @@ export class PrintLabelDialogComponent implements OnInit {
   cotizacionReal: number = 130;
   cotizacionDolar: number = 7000;
 
-  // Precios calculados para preview
+  // Precios calculados para preview y plantilla vertical
   previewPrecioReal: string = '';
   previewPrecioDolar: string = '';
+  priceGs: string = '';
+  priceReal: string = '';
+  priceDolar: string = '';
 
   constructor(
     public dialogRef: MatDialogRef<PrintLabelDialogComponent>,
@@ -123,6 +126,7 @@ export class PrintLabelDialogComponent implements OnInit {
       selectedPrinter: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
       isLandscape: [false],
+      verticalMode: [false], // Nueva opción para etiquetas de 10cm rotadas
       useImagePrinting: [false],
       selectedLabelType: ['price'],
       barcodeData: [''],
@@ -135,14 +139,14 @@ export class PrintLabelDialogComponent implements OnInit {
     });
   }
 
-  wrapNameToTwoLines(name: string, maxChars: number = 22): string[] {
+  wrapNameToTwoLines(name: string, maxChars: number = 30): string[] {
     const text = (name || '').trim();
     if (!text) return [];
 
     const words = text.split(/\s+/);
     const lines: string[] = [];
     let currentLine = '';
-    const maxLines = maxChars === 17 ? 3 : 2; // 3 líneas para Xprinter (17 chars), 2 para otros
+    const maxLines = 3; // Permitimos hasta 3 líneas para asegurar que entre toda la descripción
 
     for (const word of words) {
       const prospective = currentLine ? `${currentLine} ${word}` : word;
@@ -208,9 +212,10 @@ export class PrintLabelDialogComponent implements OnInit {
   getMaxNameCharsForLabel(labelType: string): number {
     const printerName = this.getSelectedPrinterLower();
     if (printerName.includes('xprinter')) {
-      return 17; // Reducido a 17 para evitar cortes al final
+      return 25; // Aumentado de 17 a 25 para Xprinter
     }
-    return labelType === 'barcode' ? 18 : 22;
+    // Aumentado de 22 a 30 para impresoras estándar de 58mm
+    return labelType === 'barcode' ? 25 : 30;
   }
 
   formatShortDate(isoOrDate: any): string {
@@ -239,6 +244,11 @@ export class PrintLabelDialogComponent implements OnInit {
     this.previewDate = `Fab: ${this.formatShortDate(creationDate)}`;
     this.previewPrecioReal = `R$ ${(priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     this.previewPrecioDolar = `D$ ${(priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
+    // Actualizar propiedades para la plantilla vertical
+    this.priceGs = this.previewPrice;
+    this.priceReal = this.previewPrecioReal;
+    this.priceDolar = this.previewPrecioDolar;
 
     // Generar imagen de código de barras para preview si el tipo seleccionado es barcode
     if (selType === 'barcode' && barcodeVal) {
@@ -393,39 +403,14 @@ export class PrintLabelDialogComponent implements OnInit {
       let printObservable: Observable<PrintResult>;
 
       if (labelType === 'price') {
-        // Forzar texto (convertido a ESC/POS/EPL en el proceso principal)
-        const productName = (this.data.producto?.descripcion || '').toString();
-        const priceNum: number = typeof this.data.producto?.precioPrincipal === 'number'
-          ? this.data.producto?.precioPrincipal
-          : parseFloat(this.data.producto?.precioPrincipal) || 0;
-        const priceText = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-        const data: any[] = [];
-        const maxNameChars = this.getMaxNameCharsForLabel(labelType);
-        const nameLines = this.wrapNameToTwoLines(productName, maxNameChars);
-        const nameStyle = { textAlign: 'center', fontSize: '12px' } as const;
-        if (nameLines.length > 0) {
-          nameLines.forEach(line => data.push({ type: 'text', value: line, style: nameStyle }));
-        } else if (productName) {
-          data.push({ type: 'text', value: productName, style: nameStyle });
+        // Delegamos a método async para poder generar barcode como imagen
+        if (this.printForm.get('verticalMode').value) {
+          this.printThermalVerticalLabel(printerName, quantity);
+        } else {
+          this.printThermalPriceLabel(printerName, quantity);
         }
-        data.push({ type: 'text', value: priceText, style: { textAlign: 'center', fontSize: '14px', fontWeight: 'bold' } });
+        return;
 
-        // Solo incluir fecha si el checkbox está activo
-        if (this.includeCreationDate) {
-          const creationDate = this.printForm.get('creationDate').value || new Date().toISOString().split('T')[0];
-          // Use shorter date format: dd/mm/yy
-          const date = new Date(creationDate);
-          const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const year = String(date.getFullYear()).slice(-2);
-          const formattedDate = `${day}/${month}/${year}`;
-          data.push({ type: 'text', value: `Fab: ${formattedDate}`, style: { textAlign: 'center', fontSize: '10px' } });
-        }
-
-        data.push({ type: 'cut', position: 'full' } as any);
-        const options = { preview: false, width: '58mm', margin: '0 0 0 0', copies: quantity, printerName, timeOutPerLine: 400, silent: true } as any;
-        printObservable = this.thermalPrinterService.electronService.printWithPosPrinter(data, options);
       } else if (labelType === 'barcode') {
         // Barcode printing (name + date + price + barcode)
         const barcodeData = this.printForm.get('barcodeData').value || '0000000000000';
@@ -545,6 +530,259 @@ export class PrintLabelDialogComponent implements OnInit {
     }
   }
 
+  /**
+   * Impresión térmica de etiqueta de precio con barcode como imagen.
+   * Usa barcodeQrService para generar el Code 128 como PNG base64,
+   * evitando el avance de papel automático del comando ESC/POS 'barCode'
+   * y el problema de texto invisible en modo oscuro.
+   */
+  async printThermalPriceLabel(printerName: string, quantity: number): Promise<void> {
+    this.loading = true;
+    try {
+      const productName = (this.data.producto?.descripcion || '').toString();
+      const codigoPrincipal = (this.data.producto?.codigoPrincipal || '').toString().trim();
+      const priceNum: number = typeof this.data.producto?.precioPrincipal === 'number'
+        ? this.data.producto?.precioPrincipal
+        : parseFloat(this.data.producto?.precioPrincipal) || 0;
+
+      const currencyMode: string = this.printForm.get('currencyMode').value || 'guarani';
+      const cotReal: number = this.printForm.get('cotizacionReal').value || this.cotizacionReal;
+      const cotDolar: number = this.printForm.get('cotizacionDolar').value || this.cotizacionDolar;
+
+      const priceGs = `Gs. ${priceNum.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      const priceReal = `R$ ${(priceNum / cotReal).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const priceDolar = `D$ ${(priceNum / cotDolar).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const data: any[] = [];
+      
+      // Añadimos un doble salto de línea al inicio directamente desde el frontend.
+      // Esto asegura que la impresión comience más abajo del cabezal térmico y la guillotina,
+      // evitando que el nombre del producto se imprima "en el aire" o se corte, 
+      // sin depender de que el proceso de Electron haya sido reiniciado.
+      data.push({ type: 'text', value: '\n\n', style: { fontSize: '10px' } });
+
+      const maxNameChars = this.getMaxNameCharsForLabel('price');
+      const nameLines = this.wrapNameToTwoLines(productName, maxNameChars);
+      // Color explícito negro para evitar texto invisible en modo oscuro.
+      // Usamos 14px para una mejor legibilidad, ya que el margen de seguridad superior 
+      // y el umbral de escala x2 en 18px lo permiten.
+      const nameStyle = { textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#000000' } as const;
+
+      // Nombre del producto (multilínea)
+      if (nameLines.length > 0) {
+        nameLines.forEach(line => data.push({ type: 'text', value: line, style: nameStyle }));
+      } else if (productName) {
+        data.push({ type: 'text', value: productName, style: nameStyle });
+      }
+
+      // Barcode CODE128 nativo ESC/POS
+      if (codigoPrincipal) {
+        data.push({
+          type: 'barCode',
+          value: codigoPrincipal,
+          barcodeType: 'CODE128',
+          format: 'CODE128',
+          // Al no enviar width y height, el motor de ESC/POS usará los 
+          // predeterminados (width: 2, height: 60) que es el formato deseado
+          position: 'BELOW',
+          includeParity: true
+        } as any);
+      }
+
+      // Precio(s) en una sola línea
+      let priceLineValue = '';
+
+      let priceFontSize = '14px';
+
+      if (currencyMode === 'todas') {
+        // priceGs, priceReal y priceDolar ya incluyen sus prefijos Gs., R$ y D$
+        priceLineValue = `${priceGs} | ${priceReal} | ${priceDolar}`;
+        priceFontSize = '10px';
+      } else if (currencyMode === 'guarani_real') {
+        priceLineValue = `${priceGs} | ${priceReal}`;
+      } else if (currencyMode === 'real') {
+        priceLineValue = `${priceReal}`;
+      } else {
+        priceLineValue = `${priceGs}`;
+      }
+
+      data.push({ type: 'text', value: priceLineValue, style: { textAlign: 'center', fontSize: priceFontSize, fontWeight: 'bold', color: '#000000' } });
+
+      // Fecha de elaboración (opcional)
+      if (this.includeCreationDate) {
+        const creationDate = this.printForm.get('creationDate').value || new Date().toISOString().split('T')[0];
+        const date = new Date(creationDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        data.push({ type: 'text', value: `Fab: ${day}/${month}/${year}`, style: { textAlign: 'center', fontSize: '10px', color: '#000000' } });
+      }
+
+      // Agregamos la línea de corte. Al eliminar el salto de línea previo, 
+      // ganamos los ~5mm de reducción solicitados.
+      data.push({ type: 'text', value: '------------------------', style: { textAlign: 'center', fontSize: '12px', color: '#000000' } });
+
+      data.push({ type: 'cut', position: 'full' } as any);
+      const options = { preview: false, width: '58mm', margin: '0 0 0 0', copies: quantity, printerName, timeOutPerLine: 400, silent: true } as any;
+
+      this.thermalPrinterService.electronService.printWithPosPrinter(data, options).subscribe(result => {
+        this.loading = false;
+        if (result.success) {
+          this.snackBar.open('Etiqueta enviada a la impresora', 'Cerrar', { duration: 3000 });
+        } else {
+          this.snackBar.open('Error al imprimir: ' + (result.error || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+        }
+      });
+    } catch (err) {
+      this.loading = false;
+      this.snackBar.open('Error al preparar la impresión', 'Cerrar', { duration: 5000 });
+      console.error('[printThermalPriceLabel]', err);
+    }
+  }
+
+  /**
+   * Impresión en modo vertical (rotado 90 grados) para etiquetas de 10cm x 4cm.
+   * Utiliza html2canvas para capturar una plantilla HTML y luego la rota.
+   */
+  async printThermalVerticalLabel(printerName: string, quantity: number): Promise<void> {
+    this.loading = true;
+    try {
+      const template = document.getElementById('thermal-vertical-template');
+      if (!template) throw new Error('Plantilla vertical no encontrada');
+
+      // 1. Generar el código de barras para la plantilla vertical
+      const barcodeVal = this.data.producto?.codigoPrincipal;
+      if (barcodeVal) {
+        const barcodeDataUrl = await this.barcodeQrService.generateBarcode(barcodeVal, 'CODE128', {
+          height: 60,
+          displayValue: true,
+          fontSize: 16,
+          margin: 0,
+          lineColor: '#000000',
+          background: '#ffffff'
+        });
+        const img = document.getElementById('vertical-barcode-img') as HTMLImageElement;
+        if (img) img.src = barcodeDataUrl;
+        
+        // Esperar un momento a que la imagen cargue
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // 2. Capturar la plantilla con html2canvas
+      const canvas = await html2canvas(template, {
+        scale: 1, // Usamos escala 1 para que el ancho de 380px coincida con los puntos de la impresora
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true
+      });
+
+      // 3. Rotar la imagen 90 grados
+      // El papel térmico es de 58mm de ancho. Al rotar, los 100mm de largo 
+      // de la etiqueta se imprimen a lo largo del avance del papel.
+      const rotatedCanvas = document.createElement('canvas');
+      rotatedCanvas.width = canvas.height;
+      rotatedCanvas.height = canvas.width;
+      const ctx = rotatedCanvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+        ctx.rotate(90 * Math.PI / 180);
+        ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+      }
+
+      // 4. Convertir el canvas a un bitmask ESC * de 24-dot double density
+      const imageData = ctx!.getImageData(0, 0, rotatedCanvas.width, rotatedCanvas.height);
+      const width = rotatedCanvas.width;
+      const height = rotatedCanvas.height;
+
+      const bytes: number[] = [];
+      // Configurar interlineado a 24 puntos (necesario para que las bandas se unan sin espacios)
+      bytes.push(0x1B, 0x33, 24);
+
+      // Procesar la imagen en bandas horizontales de 24 píxeles de alto
+      for (let y = 0; y < height; y += 24) {
+        // Comando ESC * (0x1B, 0x2A), m=33 (24-dot double density)
+        bytes.push(0x1B, 0x2A, 33, width % 256, Math.floor(width / 256));
+
+        for (let x = 0; x < width; x++) {
+          for (let b = 0; b < 3; b++) { // 3 bytes por columna (24 bits verticales)
+            let byte = 0;
+            for (let bit = 0; bit < 8; bit++) {
+              const pixelY = y + b * 8 + bit;
+              if (pixelY < height) {
+                const idx = (pixelY * width + x) * 4;
+                const r = imageData.data[idx];
+                const g = imageData.data[idx + 1];
+                const bl = imageData.data[idx + 2];
+                const a = imageData.data[idx + 3];
+                // Umbral para blanco y negro
+                const isBlack = (a > 128) && (r + g + bl < 384);
+                if (isBlack) {
+                  byte |= (1 << (7 - bit));
+                }
+              }
+            }
+            bytes.push(byte);
+          }
+        }
+        // Salto de línea para imprimir la banda y avanzar 24 puntos
+        bytes.push(0x0A);
+      }
+
+      // Restablecer interlineado por defecto
+      bytes.push(0x1B, 0x32);
+
+      // Convertir el array de bytes a Base64 de forma segura
+      let binary = '';
+      const u8 = new Uint8Array(bytes);
+      for (let i = 0; i < u8.length; i++) {
+        binary += String.fromCharCode(u8[i]);
+      }
+      const base64String = btoa(binary);
+
+      // 5. Detectar plataforma para compatibilidad (Linux necesita rawBase64 para evitar caracteres chinos)
+      const isLinux = navigator.platform.toLowerCase().includes('linux');
+      let data: any[];
+
+      if (isLinux) {
+        data = [
+          { type: 'rawBase64', value: base64String },
+          { type: 'cut', position: 'full' }
+        ];
+      } else {
+        // En Windows/Mac el driver gestiona bien las imágenes directamente
+        data = [
+          { type: 'image', path: rotatedCanvas.toDataURL('image/png'), align: 'center' },
+          { type: 'cut', position: 'full' }
+        ];
+      }
+
+      const options = { 
+        preview: false, 
+        width: '58mm', 
+        margin: '0 0 0 0', 
+        copies: quantity, 
+        printerName, 
+        timeOutPerLine: 1000, 
+        silent: true 
+      };
+
+      this.thermalPrinterService.electronService.printWithPosPrinter(data, options).subscribe(result => {
+        this.loading = false;
+        if (result.success) {
+          this.snackBar.open('Etiqueta vertical enviada con éxito', 'Cerrar', { duration: 3000 });
+        } else {
+          this.snackBar.open('Error: ' + result.error, 'Cerrar', { duration: 5000 });
+        }
+      });
+
+    } catch (err) {
+      this.loading = false;
+      console.error('Error en printThermalVerticalLabel:', err);
+      this.snackBar.open('Error al generar etiqueta vertical: ' + err.message, 'Cerrar', { duration: 5000 });
+    }
+  }
+
   togglePreview(): void {
     this.previewVisible = !this.previewVisible;
   }
@@ -602,15 +840,26 @@ export class PrintLabelDialogComponent implements OnInit {
 
     // Construir HTML de una etiqueta individual
     const buildLabel = (): string => {
-      const priceSection = showAllCurrencies
-        ? `<div class="prices-row">
+      let priceSection = '';
+      if (currencyMode === 'todas') {
+        priceSection = `<div class="prices-row">
             <span class="price-gs">Gs. ${priceGs}</span>
             <span class="price-divider">|</span>
             <span class="price-other">R$ ${priceReal}</span>
             <span class="price-divider">|</span>
             <span class="price-other">D$ ${priceDolar}</span>
-           </div>`
-        : `<div class="prices-row"><span class="price-gs-solo">Gs. ${priceGs}</span></div>`;
+           </div>`;
+      } else if (currencyMode === 'guarani_real') {
+        priceSection = `<div class="prices-row">
+            <span class="price-gs" style="font-size: 14px;">Gs. ${priceGs}</span>
+            <span class="price-divider">|</span>
+            <span class="price-other" style="font-size: 14px;">R$ ${priceReal}</span>
+           </div>`;
+      } else if (currencyMode === 'real') {
+        priceSection = `<div class="prices-row"><span class="price-gs-solo" style="font-size: 14px;">R$ ${priceReal}</span></div>`;
+      } else {
+        priceSection = `<div class="prices-row"><span class="price-gs-solo" style="font-size: 14px;">Gs. ${priceGs}</span></div>`;
+      }
 
       return `<div class="etiqueta">
         <div class="product-name">${productName}</div>

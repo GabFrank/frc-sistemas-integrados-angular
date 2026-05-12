@@ -1,5 +1,8 @@
 <app-generic-list
   titulo="Cotización"
+  [isCustom]="true"
+  customName="Actualizar cotizaciones"
+  (customFunction)="onActualizarCotizaciones()"
 >
   <div filtros></div>
   <div table fxLayout="row" style="width: 100%" fxLayoutGap="20px">
@@ -9,61 +12,60 @@
       class="mat-elevation-z8"
       style="width: 100%"
     >
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
-          Id
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let cambio"
-          style="text-align: center; width: 5%"
-        >
-          {{ cambio.id }}
-        </td>
-      </ng-container>
-
-      <!-- Name Column -->
       <ng-container matColumnDef="moneda">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: left; padding-left: 16px;">
           Moneda
         </th>
-        <td
-          mat-cell
-          *matCellDef="let cambio"
-          style="text-align: center; width: 20%"
-        >
-          {{ cambio?.denominacion | uppercase }}
+        <td mat-cell *matCellDef="let row" style="text-align: left; padding-left: 16px; font-weight: 500;">
+          {{ row.moneda?.simbolo }} {{ row.moneda?.denominacion | uppercase }}
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="cambioEnGs">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
-          Cotización
+      <ng-container matColumnDef="cotizacionVenta">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;">
+          Cotización Venta<br><small style="color:#888; font-weight:normal;">Precio interno</small>
         </th>
-        <td
-          mat-cell
-          *matCellDef="let cambio"
-          style="text-align: center; width: 20%"
-        >
-          {{ cambio?.cambio | number: '1.0-2'}}
+        <td mat-cell *matCellDef="let row" style="text-align: right;">
+          {{ row.ultimoCambio?.valorEnGs | number: '1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="ventaMercado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;">
+          Venta Mercado<br><small style="color:#888; font-weight:normal;">"Compra" casa de cambio</small>
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: right;">
+          <span *ngIf="row.ultimoCambio?.valorEnGsVentaMercado">
+            {{ row.ultimoCambio.valorEnGsVentaMercado | number: '1.0-0' }}
+          </span>
+          <span *ngIf="!row.ultimoCambio?.valorEnGsVentaMercado" style="color: #888;">—</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="compraMercado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: right;">
+          Compra Mercado<br><small style="color:#888; font-weight:normal;">"Venta" casa de cambio</small>
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: right;">
+          <span *ngIf="row.ultimoCambio?.valorEnGsCompraMercado">
+            {{ row.ultimoCambio.valorEnGsCompraMercado | number: '1.0-0' }}
+          </span>
+          <span *ngIf="!row.ultimoCambio?.valorEnGsCompraMercado" style="color: #888;">—</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">
+          Última actualización
+        </th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; color: #aaa; font-size: 12px;">
+          {{ row.ultimoCambio?.creadoEn | date: 'dd/MM/yyyy HH:mm' }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="accion">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
-        <td mat-cell *matCellDef="let cambio; let i = index" style="width: 5%; text-align: center">
+        <td mat-cell *matCellDef="let row; let i = index" style="width: 5%; text-align: center">
           <button
             mat-icon-button
             [matMenuTriggerFor]="menu"
@@ -72,16 +74,10 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onEditCambio(cambio, i)">Actualizar</button>
-            <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
-              Imprimir
-            </button> -->
+            <button mat-menu-item (click)="onEditCambio(row, i)">Actualizar</button>
           </mat-menu>
         </td>
       </ng-container>
-
-
-      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
 
       <tr
         mat-header-row

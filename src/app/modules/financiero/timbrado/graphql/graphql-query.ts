@@ -175,7 +175,7 @@ export const timbradoDetalleQuery = gql`
 
 export const findByNumeroQuery = gql`
   query ($numero: String, $page: Int, $size: Int) {
-    data: findByNumero(numero: $numero, page: $page, size: $size) {
+    data: findTimbradoByNumero(numero: $numero, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
