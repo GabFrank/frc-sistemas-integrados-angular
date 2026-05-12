@@ -8,6 +8,8 @@ export interface SucursalRecepcionFisica {
   sucursalNombre: string;
   cantidadItemsRecepcionados: number;
   fechaUltimaRecepcion: string;
+  responsableRecepcionDocumental: string;
+  responsableRecepcionFisica: string;
 }
 
 export interface PedidoRecepcionFisicaResumen {
