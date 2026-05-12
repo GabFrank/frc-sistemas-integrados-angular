@@ -5,6 +5,9 @@ import { CambioInput } from "./cambio-input.model";
 export class Cambio {
     id: number;
     valorEnGs: number;
+    valorEnGsCambio: number;
+    valorEnGsVentaMercado: number;
+    valorEnGsCompraMercado: number;
     moneda: Moneda;
     creadoEn: Date;
     usuario: Usuario;
@@ -12,6 +15,9 @@ export class Cambio {
     toInput(): CambioInput{
         let input = new CambioInput()
         input.valorEnGs = this.valorEnGs;
+        input.valorEnGsCambio = this.valorEnGsCambio;
+        input.valorEnGsVentaMercado = this.valorEnGsVentaMercado;
+        input.valorEnGsCompraMercado = this.valorEnGsCompraMercado;
         input.monedaId = this.moneda?.id;
         input.usuarioId = this.usuario?.id;
         return input;

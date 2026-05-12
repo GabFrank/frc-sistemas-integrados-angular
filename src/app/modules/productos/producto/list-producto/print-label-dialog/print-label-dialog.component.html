@@ -67,6 +67,10 @@
             Orientación Horizontal (Landscape)
           </mat-checkbox>
 
+          <mat-checkbox formControlName="verticalMode">
+            Modo Vertical (10cm x 4cm)
+          </mat-checkbox>
+
           <mat-checkbox formControlName="useImagePrinting">
             Imprimir como Imagen (Recomendado)
           </mat-checkbox>
@@ -110,18 +114,20 @@
         <div class="currency-mode-selection">
           <label class="currency-label">Monedas a mostrar:</label>
           <mat-button-toggle-group formControlName="currencyMode" class="currency-toggle">
-            <mat-button-toggle value="guarani">Solo Gs.</mat-button-toggle>
-            <mat-button-toggle value="todas">Gs. + R$ + D$</mat-button-toggle>
+            <mat-button-toggle value="guarani">Gs</mat-button-toggle>
+            <mat-button-toggle value="real">R$</mat-button-toggle>
+            <mat-button-toggle value="guarani_real">Gs + R$</mat-button-toggle>
+            <mat-button-toggle value="todas">Gs + R$ + D$</mat-button-toggle>
           </mat-button-toggle-group>
         </div>
 
-        <!-- Cotizaciones (solo visible si modo = todas) -->
-        <div class="cotizaciones-row" *ngIf="printForm.get('currencyMode').value === 'todas'">
+        <!-- Cotizaciones (solo visible si incluye reales o dolares) -->
+        <div class="cotizaciones-row" *ngIf="printForm.get('currencyMode').value !== 'guarani'">
           <mat-form-field appearance="outline" class="cot-field">
             <mat-label>Cotización Real (Gs./R$)</mat-label>
             <input matInput type="number" min="1" formControlName="cotizacionReal" readonly>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="cot-field">
+          <mat-form-field appearance="outline" class="cot-field" *ngIf="printForm.get('currencyMode').value === 'todas'">
             <mat-label>Cotización Dólar (Gs./D$)</mat-label>
             <input matInput type="number" min="1" formControlName="cotizacionDolar" readonly>
           </mat-form-field>
@@ -141,6 +147,14 @@
             <div class="afiche-separator"></div>
             <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'guarani'">
               <span class="afiche-price-solo">{{previewPrice}}</span>
+            </div>
+            <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'real'">
+              <span class="afiche-price-solo">{{previewPrecioReal}}</span>
+            </div>
+            <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'guarani_real'">
+              <span class="afiche-price-gs">{{previewPrice}}</span>
+              <span class="afiche-divider">|</span>
+              <span class="afiche-price-other">{{previewPrecioReal}}</span>
             </div>
             <div class="afiche-prices-row" *ngIf="printForm.get('currencyMode').value === 'todas'">
               <span class="afiche-price-gs">{{previewPrice}}</span>
@@ -342,3 +356,38 @@
     Imprimir Afiche A4
   </button>
 </mat-dialog-actions>
+
+<!-- Plantilla Oculta para Impresión Vertical (10cm x 4cm) -->
+<div id="thermal-vertical-template" 
+     style="position: fixed; left: -3000px; top: -3000px; width: 800px; height: 320px; background: white; color: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; font-family: 'Arial', sans-serif; box-sizing: border-box; border: 3px dashed black;">
+  
+  <!-- Nombre del Producto -->
+  <div style="font-size: 36px; font-weight: 900; text-align: center; width: 100%; margin-bottom: 20px; line-height: 1.1; text-transform: uppercase;">
+    {{data.producto?.descripcion}}
+  </div>
+  
+  <!-- Código de Barras -->
+  <div style="width: 100%; display: flex; justify-content: center; margin-bottom: 20px;">
+    <img id="vertical-barcode-img" style="width: 80%; height: 100px; object-fit: contain;">
+  </div>
+  
+  <!-- Precios -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; width: 100%; font-size: 42px; font-weight: 900; letter-spacing: -1px; gap: 15px;">
+    <div>{{priceGs}}</div>
+    
+    <ng-container *ngIf="printForm.get('currencyMode').value !== 'guarani'">
+      <div style="font-weight: bold; opacity: 0.6;">|</div>
+      <div>{{priceReal}}</div>
+    </ng-container>
+
+    <ng-container *ngIf="printForm.get('currencyMode').value === 'todas'">
+      <div style="font-weight: bold; opacity: 0.6;">|</div>
+      <div>{{priceDolar}}</div>
+    </ng-container>
+  </div>
+
+  <!-- Fecha (Opcional) -->
+  <div *ngIf="includeCreationDate" style="margin-top: 15px; font-size: 18px; font-weight: bold; opacity: 0.8;">
+    ELAB: {{formatShortDate(printForm.get('creationDate').value)}}
+  </div>
+</div>

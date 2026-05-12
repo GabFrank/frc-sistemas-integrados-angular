@@ -8,10 +8,12 @@ import { CambioService } from './../cambio.service';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Component, Inject, OnInit } from '@angular/core';
 import { Moneda } from '../../moneda/moneda.model';
+import { Cambio } from '../cambio.model';
 
 
 export class CrearCambioData {
-  moneda: Moneda
+  moneda: Moneda;
+  ultimoCambio?: Cambio;
 }
 
 
@@ -22,35 +24,46 @@ export class CrearCambioData {
   styleUrls: ['./crear-cambio-dialog.component.scss']
 })
 export class CrearCambioDialogComponent implements OnInit {
-  selectedMoneda: Moneda
-  cotizacionControl = new FormControl(null, [Validators.required, Validators.min(1)])
+  selectedMoneda: Moneda;
+  ultimoCambio: Cambio;
+  cotizacionControl = new FormControl(null, [Validators.required, Validators.min(1)]);
+  ventaMercadoControl = new FormControl(null, [Validators.min(1)]);
+  compraMercadoControl = new FormControl(null, [Validators.min(1)]);
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: CrearCambioData, 
-    private cambioService: CambioService, 
+    @Inject(MAT_DIALOG_DATA) public data: CrearCambioData,
+    private cambioService: CambioService,
     private cargandoService: CargandoDialogService,
     private matDialogRef: MatDialogRef<CrearCambioDialogComponent>
     ) { }
 
   ngOnInit(): void {
     this.selectedMoneda = this.data?.moneda;
+    this.ultimoCambio = this.data?.ultimoCambio;
+    if (this.ultimoCambio) {
+      this.cotizacionControl.setValue(this.ultimoCambio.valorEnGs);
+      this.ventaMercadoControl.setValue(this.ultimoCambio.valorEnGsVentaMercado);
+      this.compraMercadoControl.setValue(this.ultimoCambio.valorEnGsCompraMercado);
+    }
   }
 
   onCancelar(){
-    this.matDialogRef.close()
+    this.matDialogRef.close();
   }
 
   onGuardar(){
     let input = new CambioInput();
     input.monedaId = this.selectedMoneda.id;
     input.valorEnGs = this.cotizacionControl.value;
+    input.valorEnGsVentaMercado = this.ventaMercadoControl.value;
+    input.valorEnGsCompraMercado = this.compraMercadoControl.value;
     this.cambioService.onSaveCambio(input)
     .pipe(untilDestroyed(this))
     .subscribe(res => {
-      if(res!=null){
-        this.matDialogRef.close({cambio: res})
-      } 
-    })
+      if(res != null){
+        this.matDialogRef.close({cambio: res});
+      }
+    });
   }
 
 }
