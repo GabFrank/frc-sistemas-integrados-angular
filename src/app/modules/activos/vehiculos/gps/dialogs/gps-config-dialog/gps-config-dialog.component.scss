@@ -1,0 +1,318 @@
+.dialog-container {
+  background: #1e1e24; // Fondo sólido oscuro profundo
+  color: #e2e2e7;
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  font-family: 'Inter', 'Roboto', sans-serif;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  .header {
+    padding: 24px 32px;
+    background: linear-gradient(to right, #25252d, #1e1e24);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    
+    .icon-circle {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 82, 82, 0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff5252;
+      
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .mat-h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #a1a1aa;
+      margin-top: 2px;
+    }
+
+    .close-btn {
+      color: #71717a;
+      transition: all 0.2s;
+      &:hover { 
+        color: #ef4444; 
+        background: rgba(239, 68, 68, 0.1);
+      }
+    }
+  }
+
+  .content-form {
+    padding: 0;
+    max-height: 75vh;
+    overflow-y: auto;
+    
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+  }
+
+  ::ng-deep .mat-tab-header {
+    background: #25252d;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  ::ng-deep .mat-tab-label {
+    height: 64px;
+    padding: 0 32px;
+    opacity: 1;
+    color: #a1a1aa;
+    font-weight: 600;
+    transition: all 0.3s;
+    
+    .tab-icon {
+      margin-right: 12px;
+      font-size: 20px;
+    }
+    
+    &.mat-tab-label-active {
+      color: #ff5252;
+      background: rgba(255, 82, 82, 0.03);
+    }
+    
+    &:hover:not(.mat-tab-label-active) {
+      color: #d4d4d8;
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  ::ng-deep .mat-ink-bar {
+    background-color: #ff5252 !important;
+    height: 2px !important;
+  }
+
+  .tab-body {
+    padding: 32px;
+  }
+
+  /* MOTOR CONTROL SECTION */
+  .card-section.motor-control {
+    background: #27272e;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    .label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .status-desc {
+      font-size: 1rem;
+      color: #ffffff;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    &.motor-cut {
+      background: rgba(239, 68, 68, 0.04);
+      border-color: rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.05);
+      
+      .status-desc {
+        color: #fca5a5;
+      }
+    }
+  }
+
+  /* CONFIG CARDS */
+  .config-card {
+    background: #27272e;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.25s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: #2c2c35;
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      color: #71717a;
+      font-size: 24px;
+      &[color="accent"] { color: #10b981; }
+    }
+
+    .card-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+  }
+
+  /* ALERT CARDS */
+  .alert-card {
+    margin-bottom: 12px;
+    
+    .alert-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .alert-desc {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+    }
+
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: #52525b;
+      
+      &[color="warn"] {
+        color: #ff5252;
+        filter: drop-shadow(0 0 8px rgba(255, 82, 82, 0.3));
+      }
+    }
+  }
+
+  /* INFO BOX */
+  .info-box {
+    padding: 16px 20px;
+    background: rgba(59, 130, 246, 0.08);
+    border-left: 4px solid #3b82f6;
+    color: #93c5fd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+
+    mat-icon {
+      font-size: 20px;
+      color: #3b82f6;
+    }
+  }
+
+  /* APN SELECT */
+  .apn-card {
+    background: #27272e;
+    
+    .apn-send-btn {
+      height: 54px;
+      border-radius: 12px;
+      background: #ff5252;
+      color: white;
+      font-weight: 700;
+      padding: 0 24px;
+      box-shadow: 0 4px 12px rgba(255, 82, 82, 0.2);
+      
+      &:hover:not([disabled]) {
+        background: #ef4444;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(255, 82, 82, 0.3);
+      }
+    }
+  }
+
+  /* BUTTONS & SPINNERS */
+  .update-card-btn {
+    border-radius: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    height: 40px;
+    border-width: 2px !important;
+  }
+
+  .mini-update-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    color: #a1a1aa;
+    
+    &:hover:not([disabled]) {
+      background: rgba(255, 82, 82, 0.1);
+      color: #ff5252;
+    }
+
+    &[color="primary"] {
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      &:hover:not([disabled]) {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+    }
+  }
+
+  .footer-actions {
+    padding: 24px 32px;
+    background: #25252d;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    .secondary-btn {
+      color: #a1a1aa;
+      font-weight: 600;
+      letter-spacing: 1px;
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+::ng-deep .mat-mdc-slider {
+  --mdc-slider-active-track-color: #ff5252;
+  --mdc-slider-handle-color: #ff5252;
+  --mat-mdc-slider-hover-handle-color: #ff5252;
+}
+
+::ng-deep .mat-mdc-slide-toggle {
+  --mdc-switch-selected-focus-state-layer-color: #ff5252;
+  --mdc-switch-selected-handle-color: #ff5252;
+  --mdc-switch-selected-hover-state-layer-color: rgba(255, 82, 82, 0.1);
+  --mdc-switch-selected-pressed-state-layer-color: rgba(255, 82, 82, 0.2);
+  --mdc-switch-selected-track-color: rgba(255, 82, 82, 0.4);
+}
+
+// Global dialog panel override
+::ng-deep .modern-dialog {
+  .mat-mdc-dialog-container,
+  .mat-mdc-dialog-surface {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+}
+

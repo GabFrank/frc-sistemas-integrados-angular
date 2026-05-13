@@ -27,10 +27,6 @@ import { Funcionario } from "../../../personas/funcionarios/funcionario.model";
 import { FuncionarioService } from "../../../personas/funcionarios/funcionario.service";
 import { MonedaService } from "../../moneda/moneda.service";
 import { PdvCaja } from "../../pdv/caja/caja.model";
-import { TipoGasto } from "../../tipo-gastos/list-tipo-gastos/tipo-gasto.model";
-import { TipoGastoService } from "../../tipo-gastos/tipo-gasto.service";
-import { GastoService } from "../gasto.service";
-import { Gasto } from "../gastos.model";
 
 export class AdicionarGastoData {
   caja: PdvCaja;
@@ -41,6 +37,9 @@ import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { CajaService } from "../../pdv/caja/caja.service";
 import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
+import { TipoGasto } from "../models/tipo-gasto.model";
+import { Gasto } from "../models/gastos.model";
+import { GastoService } from "../service/gasto.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -118,7 +117,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private dialogService: DialogosService,
     private gastoService: GastoService,
     private monedaService: MonedaService,
-    private tipoGastoService: TipoGastoService,
+    private tipoGastoService: GastoService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private cajaService: CajaService,
@@ -203,7 +202,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         if (res != null && res.length != 0) {
           this.tipoGastoTimer = setTimeout(() => {
             this.tipoGastoService
-              .onSearch(res, false)
+              .tipoGastoOnSearch(res, false)
               .pipe(untilDestroyed(this))
               .subscribe((response) => {
                 if (response.length == 1) {

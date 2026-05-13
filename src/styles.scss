@@ -2,6 +2,7 @@
 @import url('https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css');
 
 @import 'material-design-icons-iconfont/dist/material-design-icons.css';
+@import 'leaflet/dist/leaflet.css';
 
 @include mat.legacy-core();
 @include mat.core();
@@ -273,6 +274,7 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type=number] {
   -moz-appearance: textfield;
 }
@@ -375,8 +377,12 @@ input {
 }
 
 /* Global warn color configuration */
-.mat-warn, .mat-mdc-button.mat-warn, .mat-mdc-raised-button.mat-warn,
-.mat-mdc-outlined-button.mat-warn, .mat-mdc-fab.mat-warn, .mat-mdc-mini-fab.mat-warn,
+.mat-warn,
+.mat-mdc-button.mat-warn,
+.mat-mdc-raised-button.mat-warn,
+.mat-mdc-outlined-button.mat-warn,
+.mat-mdc-fab.mat-warn,
+.mat-mdc-mini-fab.mat-warn,
 .mat-mdc-icon-button.mat-warn {
   --mdc-filled-button-container-color: #f57c00 !important;
   --mdc-protected-button-container-color: #f57c00 !important;
@@ -413,15 +419,19 @@ input {
 }
 
 /* put this in your global styles.scss (or in your component scss with ::ng-deep) */
-.mat-mdc-table, .mat-table {
+.mat-mdc-table,
+.mat-table {
+
   /* target the header row when it's made sticky */
   .mat-mdc-header-row.mat-table-sticky,
   .mat-header-row.mat-table-sticky {
     position: sticky;
     top: 0;
-    z-index: 10;                      /* sit above table body */
-    background-color: #3c3c3c;        /* solid dark grey */
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+    /* sit above table body */
+    background-color: #3c3c3c;
+    /* solid dark grey */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
   /* ensure each header cell matches the row's background & has your border */
@@ -480,7 +490,7 @@ input {
     background: #1a1a1a;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    
+
     .mat-mdc-dialog-surface {
       background: transparent;
     }
@@ -488,6 +498,7 @@ input {
 }
 
 .gestion-proveedores-producto-dialog-panel {
+
   .mat-mdc-dialog-container,
   .mat-dialog-container {
     display: flex;

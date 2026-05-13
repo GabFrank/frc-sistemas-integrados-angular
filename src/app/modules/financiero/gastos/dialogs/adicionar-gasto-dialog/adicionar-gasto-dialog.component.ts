@@ -1,0 +1,1049 @@
+import {
+  Component,
+  ElementRef,
+  Inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from "@angular/core";
+import { FormControl } from "@angular/forms";
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { MatStepper } from "@angular/material/stepper";
+import { MatTableDataSource } from "@angular/material/table";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
+import { Subscription } from "rxjs";
+import { forkJoin, of } from "rxjs";
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import {
+  orderByIdDesc,
+  replaceObject,
+} from "../../../../../commons/core/utils/arraysUtil";
+import {
+  CurrencyMask,
+  stringToDecimal,
+  stringToInteger,
+} from "../../../../../commons/core/utils/numbersUtils";
+import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
+import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
+import { FuncionarioService } from "../../../../personas/funcionarios/funcionario.service";
+import { MonedaService } from "../../../moneda/moneda.service";
+import { PdvCaja } from "../../../pdv/caja/caja.model";
+import { GastoService } from "../../service/gasto.service";
+import { Gasto } from "../../models/gastos.model";
+
+export class AdicionarGastoData {
+  caja: PdvCaja;
+}
+
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { MainService } from "../../../../../main.service";
+import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
+import { CajaService } from "../../../pdv/caja/caja.service";
+import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
+import { TipoGasto } from "../../models/tipo-gasto.model";
+import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { TipoGastoSearchGQL } from "../../graphql/tipoGastosSearch";
+import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData, SolicitudGastoSimpleResult } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
+import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
+@UntilDestroy({ checkProperties: true })
+@Component({
+  selector: "app-adicionar-gasto-dialog",
+  templateUrl: "./adicionar-gasto-dialog.component.html",
+  styleUrls: ["./adicionar-gasto-dialog.component.scss"],
+})
+export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
+  @ViewChild("responsableInput", { static: false })
+  responsableInput: ElementRef;
+  @ViewChild("tipoGastoInput", { static: false }) tipoGastoInput: ElementRef;
+  @ViewChild("autorizadoPorInput", { static: false })
+  autorizadoPorInput: ElementRef;
+  @ViewChild("guaraniVueltoGs", { static: false })
+  guaraniVueltoGsInput: ElementRef;
+  @ViewChild("stepper", { static: false }) stepper: MatStepper;
+  @ViewChild("responsableInput", { read: MatAutocompleteTrigger, static: false })
+  responsableAutocomplete: MatAutocompleteTrigger;
+
+  isVuelto = false;
+
+  displayedColumns = [
+    "id",
+    "responsable",
+    "tipo",
+    "valorGs",
+    "valorRs",
+    "valorDs",
+    "vuelto",
+    "creadoEn",
+    "acciones",
+  ];
+
+  dataSource = new MatTableDataSource<Gasto>(null);
+  solicitudesProcesadasDataSource = new MatTableDataSource<PreGasto>([]);
+  solicitudesProcesadasOriginal: PreGasto[] = [];
+  filtroSolicitudIdControl = new FormControl("");
+  filtroSolicitudTipoControl = new FormControl("");
+  displayedSolicitudesColumns = [
+    "id",
+    "tipo",
+    "concepto",
+    "monto",
+    "estado",
+    "motivoRechazo",
+    "fecha",
+    "accionDetalle",
+  ];
+  cargandoSolicitudes = false;
+
+  selectedCaja: PdvCaja;
+  selectedResponsable: Funcionario;
+  selectedTipoGasto: TipoGasto;
+  selectedAutorizadoPor: Funcionario;
+  selectedGasto: Gasto;
+
+  responsableControl = new FormControl();
+  tipoGastoControl = new FormControl();
+  autorizadoPorControl = new FormControl();
+  observacionControl = new FormControl();
+  guaraniControl = new FormControl(0);
+  realControl = new FormControl(0);
+  dolarControl = new FormControl(0);
+  guaraniVueltoControl = new FormControl(0);
+  realVueltoControl = new FormControl(0);
+  dolarVueltoControl = new FormControl(0);
+
+  responsableList: Funcionario[];
+  autorizadoPorList: Funcionario[];
+  tipoGastoList: TipoGasto[];
+
+  responsableSub: Subscription;
+  responsableTimer;
+  tipoGastoSub: Subscription;
+  tipoGastoTimer;
+  autorizadoPorTimer;
+  autorizadoPorSub: Subscription;
+
+  currencyMask = new CurrencyMask();
+
+  autorizado = true;
+
+  gastoList: Gasto[] = [];
+
+  preGastoIdAlCompletarDespuesDeGasto: number | null = null;
+  preGastoSucursalIdAlCompletarDespuesDeGasto: number | null = null;
+
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
+    private matDialogRef: MatDialogRef<AdicionarGastoDialogComponent>,
+    public funcionarioService: FuncionarioService,
+    private cargandoDialog: CargandoDialogService,
+    private dialogService: DialogosService,
+    private gastoService: GastoService,
+    private monedaService: MonedaService,
+    private mainService: MainService,
+    private notificacionService: NotificacionSnackbarService,
+    private cajaService: CajaService,
+    private notificationHttpService: NotificationHttpService,
+    private matDialog: MatDialog,
+    private tipoGastoSearchGQL: TipoGastoSearchGQL
+  ) {
+    if (data?.caja != null) {
+      this.selectedCaja = data.caja;
+      gastoService
+        .onGetByCajaId(this.selectedCaja.id, false)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.gastoList = orderByIdDesc<Gasto>(res);
+            this.dataSource.data = this.gastoList;
+          }
+        });
+      this.cajaService
+        .onCajaBalancePorId(this.selectedCaja.id, false)
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedCaja.balance = res;
+          }
+        });
+    }
+  }
+
+  ngOnInit(): void {
+    this.responsableList = [];
+    this.autorizadoPorList = [];
+    this.tipoGastoList = [];
+
+    this.guaraniControl.disable();
+    this.realControl.disable();
+    this.dolarControl.disable();
+    this.tipoGastoControl.disable();
+
+    this.responsableSub = this.responsableControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == "") this.selectedResponsable = null;
+        if (this.responsableTimer != null) {
+          clearTimeout(this.responsableTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.responsableTimer = setTimeout(() => {
+            this.onFuncionarioSearch();
+          }, 1000);
+        } else {
+          this.responsableList = [];
+        }
+      });
+
+    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == "") this.selectedAutorizadoPor = null;
+        if (this.autorizadoPorTimer != null) {
+          clearTimeout(this.autorizadoPorTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.autorizadoPorTimer = setTimeout(() => {
+            this.funcionarioService
+              .onFuncionarioSearch(res, false)
+              .pipe(untilDestroyed(this))
+              .subscribe((response) => {
+                this.autorizadoPorList = response;
+                if (this.autorizadoPorList.length == 1) {
+                  this.onAutorizadoPorSelect(this.autorizadoPorList[0]);
+                } else if (this.autorizadoPorList.length == 0) {
+                  this.onAutorizadoPorSelect(null);
+                  this.onAutorizadoPorAutocompleteClose();
+                }
+              });
+          }, 500);
+        } else {
+          this.autorizadoPorList = [];
+        }
+      });
+
+    this.guaraniVueltoControl.disable();
+    this.realVueltoControl.disable();
+    this.dolarVueltoControl.disable();
+
+    this.filtroSolicitudIdControl.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
+      .subscribe(() => this.cargarSolicitudesProcesadas());
+
+    this.filtroSolicitudTipoControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.aplicarFiltrosSolicitudesProcesadas());
+
+    setTimeout(() => {
+      this.responsableInput.nativeElement.focus();
+    }, 500);
+  }
+
+  onResponsableSelect(e) {
+    if (e?.id != null) {
+      this.selectedResponsable = e;
+      this.tipoGastoControl.enable();
+      this.responsableControl.setValue(
+        this.selectedResponsable?.id +
+        " - " +
+        this.selectedResponsable?.persona?.nombre,
+        { emitEvent: false }
+      );
+
+      if (this.responsableTimer != null) {
+        clearTimeout(this.responsableTimer);
+      }
+      this.responsableList = [];
+      this.responsableAutocomplete?.closePanel();
+
+      setTimeout(() => {
+        this.responsableInput?.nativeElement?.blur();
+        setTimeout(() => {
+          this.responsableInput?.nativeElement?.select();
+        }, 50);
+      }, 0);
+    } else {
+      this.selectedResponsable = null;
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      this.tipoGastoControl.disable();
+    }
+  }
+
+  onFuncionarioSearch() {
+    if (this.responsableControl.valid) {
+      if (isNaN(this.responsableControl.value) == false) {
+        this.funcionarioService
+          .onGetFuncionarioPorPersona(this.responsableControl.value, false)
+          .subscribe((res) => {
+            if (res != null) {
+              this.onResponsableSelect(res);
+            } else {
+              this.onSearchFuncionarioPorNombre();
+            }
+          });
+      } else {
+        this.onSearchFuncionarioPorNombre();
+      }
+    }
+  }
+
+  onSearchFuncionarioPorNombre() {
+    this.funcionarioService
+      .onFuncionarioSearch(this.responsableControl.value, false)
+      .pipe(untilDestroyed(this))
+      .subscribe((response) => {
+        this.responsableList = response;
+        if (this.responsableList.length == 1) {
+          this.onResponsableSelect(response[0]);
+        } else if (this.responsableList.length == 0) {
+          this.onResponsableSelect(null);
+          this.onResponsableAutocompleteClose();
+        }
+      });
+  }
+
+  onSearchTipoGasto() {
+    if (!this.selectedResponsable || this.tipoGastoControl.disabled) {
+      return;
+    }
+
+    const data = new SearchListtDialogData();
+    data.titulo = 'Seleccionar tipo de gasto';
+    data.query = this.tipoGastoSearchGQL;
+    data.isServidor = false;
+    data.searchFieldName = 'texto';
+    data.inicialSearch = true;
+    data.paginator = false;
+    data.tableData = [
+      { id: 'id', nombre: 'ID', width: '70px' },
+      { id: 'descripcion', nombre: 'Descripción', width: 'auto' },
+      { id: 'autorizacion', nombre: 'Requiere autorización', width: '220px', pipe: 'booleanLock' },
+    ];
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      width: '80%',
+      height: '80%'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.onTipoGastoSelect(res);
+      }
+    });
+  }
+
+  onTipoGastoSelect(e) {
+    if (e?.id != null) {
+      this.selectedTipoGasto = e;
+      this.tipoGastoControl.setValue(
+        this.selectedTipoGasto?.id + " - " + this.selectedTipoGasto?.descripcion,
+        { emitEvent: false }
+      );
+
+      if (this.selectedTipoGasto?.autorizacion == true) {
+        this.autorizado = false;
+        this.guaraniControl.disable();
+        this.realControl.disable();
+        this.dolarControl.disable();
+        this.guaraniVueltoControl.disable();
+        this.realVueltoControl.disable();
+        this.dolarVueltoControl.disable();
+        this.matDialog.open(SolicitudGastoSimpleDialogComponent, {
+          data: {
+            tipoGastoId: this.selectedTipoGasto.id,
+            tipoGastoDescripcion: this.selectedTipoGasto.descripcion,
+            requiereAutorizacion: this.selectedTipoGasto?.autorizacion === true,
+            solicitanteId: this.selectedResponsable?.id,
+            solicitanteNombre: this.selectedResponsable?.persona?.nombre
+          } as SolicitudGastoSimpleData,
+          width: '600px',
+          height: 'auto',
+          disableClose: true,
+          panelClass: 'darkMode',
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+          if (res) {
+            this.guardarSolicitudPreGastoSimple(res as SolicitudGastoSimpleResult);
+          } else {
+            this.selectedTipoGasto = null;
+            this.tipoGastoControl.setValue(null);
+          }
+        });
+      } else {
+        this.autorizado = true;
+        this.guaraniControl.enable();
+        this.realControl.enable();
+        this.dolarControl.enable();
+        this.guaraniVueltoControl.enable();
+        this.realVueltoControl.enable();
+        this.dolarVueltoControl.enable();
+      }
+    }
+  }
+
+  private guardarSolicitudPreGastoSimple(res: SolicitudGastoSimpleResult): void {
+    const personaId = this.selectedResponsable?.persona?.id;
+    if (!personaId) {
+      this.notificacionService.openWarn("No se pudo determinar el solicitante.");
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      return;
+    }
+    const sucursalCajaId = res.sucursalRetiroId ?? this.mainService.sucursalActual?.id;
+    if (!sucursalCajaId) {
+      this.notificacionService.openWarn("No se pudo determinar la sucursal de retiro.");
+      this.selectedTipoGasto = null;
+      this.tipoGastoControl.setValue(null);
+      return;
+    }
+    if (!res.proveedorId) {
+      this.notificacionService.openWarn("Debe indicar un beneficiario (proveedor).");
+      return;
+    }
+
+    const montos = res.montos?.filter(m => m.monedaId != null && m.monto != null) ?? [];
+    if (montos.length === 0) {
+      this.notificacionService.openWarn("Debe indicar al menos un monto.");
+      return;
+    }
+
+    const input = new PreGastoInput();
+    const sucursalSolicitudId = Number(
+      this.mainService.sucursalActual?.id ?? this.selectedCaja?.sucursalId ?? this.selectedCaja?.sucursal?.id
+    );
+    if (!Number.isFinite(sucursalSolicitudId) || sucursalSolicitudId <= 0) {
+      this.notificacionService.openWarn("No se pudo determinar la sucursal de la filial para la solicitud.");
+      return;
+    }
+    input.tipoGastoId = res.tipoGastoId;
+    input.descripcion = res.descripcion;
+    input.sucursalId = sucursalSolicitudId;
+    input.funcionarioId = personaId;
+    input.sucursalCajaId = sucursalCajaId;
+    input.cajaId = this.selectedCaja?.id;
+    input.beneficiarioProveedorId = res.proveedorId;
+    input.beneficiarioPersonaId = null;
+    input.nivelUrgencia = "NORMAL";
+    input.observaciones = "";
+
+    const v = new Date(res.vencimiento);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    input.fechaVencimiento = `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}T${pad(v.getHours())}:${pad(v.getMinutes())}:${pad(v.getSeconds())}`;
+
+    input.finanzas = montos.map(m => ({
+      formaPago: "EFECTIVO",
+      monto: m.monto,
+      monedaId: m.monedaId
+    }));
+    input.monedaId = montos[0].monedaId;
+    input.montoSolicitado = montos[0].monto;
+
+    this.cargandoDialog.openDialog();
+    this.gastoService
+      .preGastoGuardar(input)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (guardado) => {
+          this.cargandoDialog.closeDialog();
+          if (guardado != null) {
+            this.notificacionService.openSucess("Solicitud de gasto registrada");
+            this.autorizado = true;
+            this.guaraniControl.enable();
+            this.realControl.enable();
+            this.dolarControl.enable();
+            this.guaraniVueltoControl.enable();
+            this.realVueltoControl.enable();
+            this.dolarVueltoControl.enable();
+            this.selectedTipoGasto = null;
+            this.tipoGastoControl.setValue(null);
+          }
+        },
+        error: () => {
+          this.cargandoDialog.closeDialog();
+          this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
+        }
+      });
+  }
+
+  onResponsableAutocompleteClose() {
+    setTimeout(() => {
+      this.responsableInput.nativeElement.blur();
+      if (!this.selectedResponsable) {
+        setTimeout(() => {
+          this.responsableInput.nativeElement.select();
+        }, 50);
+      }
+    }, 100);
+  }
+
+  onAutorizadoPorSelect(e) {
+    this.autorizado = true;
+    if (e?.id != null) {
+      this.selectedAutorizadoPor = e;
+      this.autorizadoPorControl.setValue(
+        this.selectedAutorizadoPor?.id +
+        " - " +
+        this.selectedAutorizadoPor?.persona?.nombre,
+        { emitEvent: false }
+      );
+
+      setTimeout(() => {
+        this.autorizadoPorInput?.nativeElement?.blur();
+        setTimeout(() => {
+          this.autorizadoPorInput?.nativeElement?.select();
+        }, 50);
+      }, 0);
+    }
+  }
+
+  onAutorizadoPorAutocompleteClose() {
+    setTimeout(() => {
+      this.autorizadoPorInput?.nativeElement?.blur();
+      setTimeout(() => {
+        this.autorizadoPorInput?.nativeElement?.select();
+      }, 50);
+    }, 100);
+  }
+
+  onGuardar() {
+    if (this.isVuelto == false) {
+      if (this.selectedResponsable != null && this.verficarValores()) {
+        this.dialogService
+          .confirm("Confirmar valores de gasto", null, null, [
+            `Guaranies: ${stringToInteger(
+              this.guaraniControl.value.toString()
+            )}`,
+            `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
+            `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
+          ])
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res) {
+              let gasto = new Gasto();
+              if (this.selectedGasto != null) {
+                Object.assign(gasto, this.selectedGasto);
+              }
+              gasto.caja = this.selectedCaja;
+              gasto.sucursalId = this.mainService.sucursalActual?.id;
+              gasto.responsable = this.selectedResponsable;
+              gasto.tipoGasto = this.selectedTipoGasto;
+              gasto.autorizadoPor = this.selectedAutorizadoPor;
+              gasto.observacion = this.observacionControl.value;
+              gasto.retiroGs = this.guaraniControl.value;
+              gasto.retiroRs = this.realControl.value;
+              gasto.retiroDs = this.dolarControl.value;
+              gasto.vueltoGs = this.guaraniVueltoControl.value;
+              gasto.vueltoRs = this.realVueltoControl.value;
+              gasto.vueltoDs = this.dolarVueltoControl.value;
+              const tieneVuelto =
+                Number(gasto.vueltoGs || 0) > 0 ||
+                Number(gasto.vueltoRs || 0) > 0 ||
+                Number(gasto.vueltoDs || 0) > 0;
+              if (tieneVuelto) {
+                gasto.sucursalVuelto = this.mainService.sucursalActual;
+              }
+              gasto.activo = true;
+              if (this.isVuelto) {
+                gasto.finalizado = true;
+              } else {
+                gasto.finalizado = false;
+              }
+              const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
+              const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
+              if (
+                preGastoId != null &&
+                (preGastoSucursalId == null || Number(preGastoSucursalId) <= 0)
+              ) {
+                this.notificacionService.openWarn(
+                  "No se pudo determinar la sucursal de la solicitud. Vuelve a seleccionar la solicitud antes de guardar."
+                );
+                return;
+              }
+              if (preGastoId != null) {
+                gasto.preGastoId = preGastoId;
+                gasto.preGastoSucursalId = preGastoSucursalId;
+              }
+              this.gastoService
+                .onSave(gasto, false)
+                .pipe(untilDestroyed(this))
+                .subscribe((gastoResponse) => {
+                  this.cargandoDialog.closeDialog();
+                  if (gastoResponse != null) {
+                    gasto.id = gastoResponse.id;
+                    if (this.mainService.usuarioActual?.persona?.id) {
+                      this.notificationHttpService.sendGastoNotification(
+                        gasto.id,
+                        this.mainService.sucursalActual.id,
+                        this.mainService.usuarioActual.persona.id,
+                        gasto.retiroGs,
+                        this.mainService.usuarioActual.persona.nombre,
+                        this.mainService.sucursalActual.nombre
+                      ).subscribe();
+                    }
+
+                    this.gastoList.push(gastoResponse as Gasto);
+                    this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
+                    this.goTo("lista-gastos");
+                  }
+                  if (gastoResponse != null && preGastoId != null) {
+                    this.gastoService
+                      .preGastoTramitar(preGastoId, preGastoSucursalId ?? undefined)
+                      .pipe(untilDestroyed(this))
+                      .subscribe({
+                        next: () => {
+                          this.onCancelar();
+                          this.cargarSolicitudesProcesadas();
+                        },
+                        error: () => {
+                          this.notificacionService.openWarn(
+                            "El gasto se guardó, pero no se pudo pasar la solicitud a trámite en el servidor."
+                          );
+                          this.onCancelar();
+                        },
+                      });
+                  } else {
+                    this.onCancelar();
+                  }
+                });
+            }
+          });
+      }
+    } else {
+      this.onSaveVuelto();
+    }
+  }
+
+  onSaveVuelto() {
+    if (
+      this.guaraniVueltoControl.value > this.guaraniControl.value ||
+      this.realVueltoControl.value > this.realControl.value ||
+      this.dolarVueltoControl.value > this.dolarControl.value
+    ) {
+      this.notificacionService.openWarn("Vuelto mayor a retiro");
+      return;
+    }
+    if (
+      this.selectedGasto?.sucursalVuelto == null ||
+      (this.selectedGasto?.sucursalVuelto != null &&
+        this.selectedGasto?.sucursalVuelto?.id ==
+        this.mainService?.sucursalActual?.id)
+    ) {
+      this.dialogService
+        .confirm("Confirmar valores de gasto", null, null, [
+          `Guaranies: ${stringToInteger(
+            this.guaraniControl.value.toString()
+          )} ${this.guaraniVueltoControl.value != null
+            ? " - Vuelto: " +
+            stringToInteger(this.guaraniVueltoControl.value.toString())
+            : ""
+          }`,
+          `Reales: ${stringToDecimal(this.realControl.value.toString())}  ${this.realVueltoControl.value != null
+            ? " - Vuelto: " +
+            stringToDecimal(this.realVueltoControl.value.toString())
+            : ""
+          }`,
+          `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}  ${this.dolarVueltoControl.value != null
+            ? " - Vuelto: " +
+            stringToDecimal(this.dolarVueltoControl.value.toString())
+            : ""
+          }`,
+        ])
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res) {
+            this.gastoService
+              .onSaveVuelto({
+                id: this.selectedGasto.id,
+                valorGs: this.guaraniVueltoControl.value,
+                valorRs: this.realVueltoControl.value,
+                valorDs: this.dolarVueltoControl.value,
+              }, false)
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                if (res != null) {
+                  this.ngOnInit();
+                }
+              });
+          }
+        });
+    } else {
+      this.notificacionService.openWarn("No se puede guardar este gasto");
+    }
+  }
+
+  onCancelar() {
+    this.isVuelto = false;
+    this.preGastoIdAlCompletarDespuesDeGasto = null;
+    this.preGastoSucursalIdAlCompletarDespuesDeGasto = null;
+    this.selectedGasto = null;
+    this.selectedTipoGasto = null;
+    this.selectedAutorizadoPor = null;
+    this.responsableControl.setValue(null);
+    this.tipoGastoControl.setValue(null);
+    this.autorizadoPorControl.setValue(null);
+    this.observacionControl.setValue(null);
+    this.guaraniControl.setValue(0);
+    this.realControl.setValue(0);
+    this.dolarControl.setValue(0);
+    this.guaraniVueltoControl.setValue(0);
+    this.realVueltoControl.setValue(0);
+    this.dolarVueltoControl.setValue(0);
+    this.guaraniVueltoControl.disable();
+    this.realVueltoControl.disable();
+    this.dolarVueltoControl.disable();
+    this.responsableControl.enable();
+    this.autorizadoPorControl.enable();
+    this.tipoGastoControl.disable();
+    this.observacionControl.enable();
+    this.guaraniControl.enable();
+    this.realControl.enable();
+    this.dolarControl.enable();
+    setTimeout(() => {
+      this.responsableInput.nativeElement.focus();
+    }, 0);
+  }
+
+  onFinalizar(gasto: Gasto) {
+    this.cargandoDialog.openDialog();
+    let newGasto = new Gasto();
+    Object.assign(newGasto, gasto);
+    if (newGasto != null && newGasto.finalizado != true) {
+      newGasto.finalizado = true;
+      this.gastoService
+        .onSave(newGasto, false)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoDialog.closeDialog();
+          if (res != null) {
+            this.gastoList = replaceObject<Gasto>(this.gastoList, res);
+            this.dataSource.data = this.gastoList;
+            this.onCancelar();
+            this.goTo("lista-gastos");
+          }
+        });
+    }
+  }
+
+  onVer(gasto: Gasto) {
+    this.isVuelto = false;
+    this.cargarDatos(gasto);
+    this.goTo("informacion");
+  }
+
+  onVuelto(gasto: Gasto) {
+    this.isVuelto = true;
+    this.cargarDatos(gasto);
+    this.goTo("informacion");
+    this.guaraniVueltoControl.enable();
+    this.realVueltoControl.enable();
+    this.dolarVueltoControl.enable();
+  }
+
+  onGastoClick(gasto: Gasto) { }
+
+  verficarValores(): boolean {
+    if (
+      this.guaraniControl.value >
+      this.selectedCaja.balance.diferenciaGs * -1
+    ) {
+      this.notificacionService.openWarn(
+        "El monto en guaraníes es mayor a lo que tiene en caja"
+      );
+      return false;
+    }
+    if (this.realControl.value > this.selectedCaja.balance.diferenciaRs * -1) {
+      this.notificacionService.openWarn(
+        "El monto en reales es mayor a lo que tiene en caja"
+      );
+      return false;
+    }
+    if (this.dolarControl.value > this.selectedCaja.balance.diferenciaDs * -1) {
+      this.notificacionService.openWarn(
+        "El monto en dolares es mayor a lo que tiene en caja"
+      );
+      return false;
+    }
+    return true;
+  }
+  onFinalizarSolicitudAutorizada(solicitud: PreGasto, ev?: Event): void {
+    if (ev) {
+      ev.stopPropagation();
+    }
+    if (!solicitud || solicitud.estado !== "AUTORIZADO") {
+      return;
+    }
+    this.onCancelar();
+    this.isVuelto = false;
+
+    const personaSolicitanteId = Number(solicitud.funcionario?.id);
+    const personaAutorizadorId = Number(solicitud.autorizadoPor?.id);
+
+    const solicitante$ = Number.isFinite(personaSolicitanteId) && personaSolicitanteId > 0
+      ? this.funcionarioService.onGetFuncionarioPorPersona(personaSolicitanteId, false)
+      : null;
+    const autorizador$ = Number.isFinite(personaAutorizadorId) && personaAutorizadorId > 0
+      ? this.funcionarioService.onGetFuncionarioPorPersona(personaAutorizadorId, false)
+      : null;
+
+    forkJoin([
+      solicitante$ ?? of(null),
+      autorizador$ ?? of(null),
+    ])
+      .pipe(untilDestroyed(this))
+      .subscribe(([funcionarioSolicitante, funcionarioAutorizador]) => {
+        const solicitante = funcionarioSolicitante ?? this.mapPersonaToFuncionario(
+          personaSolicitanteId,
+          solicitud.funcionario?.nombre
+        );
+        const autorizador = funcionarioAutorizador ?? this.mapPersonaToFuncionario(
+          personaAutorizadorId,
+          solicitud.autorizadoPor?.nombre
+        );
+
+        this.selectedResponsable = solicitante;
+        this.selectedTipoGasto = solicitud.tipoGasto;
+        this.selectedAutorizadoPor = autorizador;
+
+        this.responsableControl.setValue(
+          `${solicitante?.id ?? "-"} - ${solicitante?.persona?.nombre ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.tipoGastoControl.setValue(
+          `${solicitud.tipoGasto?.id ?? "-"} - ${solicitud.tipoGasto?.descripcion ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.autorizadoPorControl.setValue(
+          `${autorizador?.id ?? "-"} - ${autorizador?.persona?.nombre ?? "-"}`,
+          { emitEvent: false }
+        );
+        this.observacionControl.setValue(solicitud.descripcion ?? "");
+        const montosSolicitud = this.obtenerMontosSolicitudPorMoneda(solicitud);
+        this.guaraniControl.setValue(montosSolicitud.gs);
+        this.realControl.setValue(montosSolicitud.rs);
+        this.dolarControl.setValue(montosSolicitud.ds);
+        this.guaraniVueltoControl.setValue(0);
+        this.realVueltoControl.setValue(0);
+        this.dolarVueltoControl.setValue(0);
+
+        this.responsableControl.disable();
+        this.tipoGastoControl.disable();
+        this.autorizadoPorControl.disable();
+        this.observacionControl.disable();
+        this.guaraniControl.disable();
+        this.realControl.disable();
+        this.dolarControl.disable();
+        this.guaraniVueltoControl.enable();
+        this.realVueltoControl.enable();
+        this.dolarVueltoControl.enable();
+
+        this.stepper.selectedIndex = 0;
+
+        const sucursalPre = Number(
+          solicitud.sucursalId
+        );
+        this.preGastoIdAlCompletarDespuesDeGasto = solicitud.id;
+        this.preGastoSucursalIdAlCompletarDespuesDeGasto =
+          Number.isFinite(sucursalPre) && sucursalPre > 0 ? sucursalPre : null;
+      });
+  }
+
+  private mapPersonaToFuncionario(personaId: number, nombre?: string): Funcionario {
+    const f = new Funcionario();
+    f.id = personaId;
+    f.persona = {
+      id: personaId,
+      nombre: nombre ?? "-",
+    } as any;
+    return f;
+  }
+
+  private obtenerMontosSolicitudPorMoneda(solicitud: PreGasto): { gs: number; rs: number; ds: number } {
+    const montos = { gs: 0, rs: 0, ds: 0 };
+    const finanzas = solicitud?.finanzas ?? [];
+
+    if (finanzas.length > 0) {
+      finanzas.forEach((fin) => {
+        const monto = Number(fin?.monto ?? 0);
+        const simbolo = (fin?.moneda?.simbolo ?? "").trim().toUpperCase();
+        const denominacion = (fin?.moneda?.denominacion ?? "").trim().toUpperCase();
+
+        if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
+          montos.gs += monto;
+          return;
+        }
+        if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
+          montos.rs += monto;
+          return;
+        }
+        if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
+          montos.ds += monto;
+        }
+      });
+
+      return montos;
+    }
+
+    const montoSolicitado = Number(solicitud?.montoSolicitado ?? 0);
+    const simbolo = (solicitud?.moneda?.simbolo ?? "").trim().toUpperCase();
+    const denominacion = (solicitud?.moneda?.denominacion ?? "").trim().toUpperCase();
+    if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
+      montos.gs = montoSolicitado;
+    } else if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
+      montos.rs = montoSolicitado;
+    } else if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
+      montos.ds = montoSolicitado;
+    }
+    return montos;
+  }
+
+  goTo(text) {
+    switch (text) {
+      case "informacion":
+        this.stepper.selectedIndex = 0;
+        break;
+      case "lista-gastos":
+        this.stepper.selectedIndex = 1;
+        break;
+      case "lista-solicitudes":
+        this.stepper.selectedIndex = 2;
+        this.cargarSolicitudesProcesadas();
+        break;
+      case "salir":
+        this.matDialogRef.close();
+        break;
+      default:
+        break;
+    }
+  }
+
+  ngOnDestroy(): void {
+    //Called once, before the instance is destroyed.
+    //Add 'implements OnDestroy' to the class.
+    this.responsableSub.unsubscribe();
+    this.autorizadoPorSub.unsubscribe();
+  }
+
+  cargarDatos(gasto: Gasto) {
+    this.selectedGasto = gasto;
+    this.onResponsableSelect(gasto?.responsable);
+    this.selectedTipoGasto = gasto?.tipoGasto;
+    this.tipoGastoControl.setValue(
+      `${this.selectedTipoGasto?.id ?? "-"} - ${this.selectedTipoGasto?.descripcion ?? "-"}`,
+      { emitEvent: false }
+    );
+    this.selectedAutorizadoPor = gasto?.autorizadoPor;
+    this.autorizadoPorControl.setValue(
+      this.selectedAutorizadoPor?.id != null
+        ? `${this.selectedAutorizadoPor.id} - ${this.selectedAutorizadoPor?.persona?.nombre ?? "-"}`
+        : null,
+      { emitEvent: false }
+    );
+    this.autorizado = true;
+    this.observacionControl.setValue(gasto?.observacion);
+    this.guaraniControl.setValue(gasto?.retiroGs);
+    this.realControl.setValue(gasto?.retiroRs);
+    this.dolarControl.setValue(gasto?.retiroDs);
+    this.guaraniVueltoControl.setValue(gasto?.vueltoGs);
+    this.realVueltoControl.setValue(gasto?.vueltoRs);
+    this.dolarVueltoControl.setValue(gasto?.vueltoDs);
+    this.responsableControl.disable();
+    this.tipoGastoControl.disable();
+    this.autorizadoPorControl.disable();
+    this.observacionControl.disable();
+    this.guaraniControl.disable();
+    this.realControl.disable();
+    this.dolarControl.disable();
+    if (this.isVuelto) {
+      setTimeout(() => {
+        this.guaraniVueltoGsInput.nativeElement.focus();
+      }, 500);
+    } else {
+      this.guaraniVueltoControl.disable();
+      this.realVueltoControl.disable();
+      this.dolarVueltoControl.disable();
+      this.responsableControl.disable();
+      this.autorizadoPorControl.disable();
+      this.tipoGastoControl.disable();
+    }
+  }
+
+  onReimprimir(gasto: Gasto) {
+    this.gastoService.onReimprimir(gasto.id, false).subscribe().unsubscribe();
+  }
+
+  private cargarSolicitudesProcesadas(): void {
+    const filtroIdTexto = (this.filtroSolicitudIdControl.value ?? "").toString().trim();
+    const filtroIdNumero = /^\d+$/.test(filtroIdTexto) ? Number(filtroIdTexto) : undefined;
+    const sucursalesPermitidas = new Set<number>(
+      [
+        this.selectedCaja?.sucursalId,
+        this.selectedCaja?.sucursal?.id,
+        this.mainService.sucursalActual?.id,
+      ]
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0)
+    );
+    this.cargandoSolicitudes = true;
+
+    this.gastoService.preGastoFilter(
+      filtroIdNumero,
+      filtroIdNumero ? undefined : this.selectedCaja?.id,
+      undefined,
+      undefined,
+      undefined,
+      0,
+      1000,
+      ["PENDIENTE", "AUTORIZADO", "RECHAZADO", "ENVIADO_A_TESORERIA"]
+    )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (result) => {
+          const filtradas = (result?.getContent ?? []).filter((s) => {
+            const sucursalSolicitudId = Number(s?.sucursalCaja?.id ?? s?.sucursalId);
+            const coincideSucursal =
+              sucursalesPermitidas.size > 0
+                ? (Number.isFinite(sucursalSolicitudId) &&
+                  sucursalesPermitidas.has(sucursalSolicitudId))
+                : true;
+
+            return coincideSucursal;
+          });
+
+          this.solicitudesProcesadasOriginal = orderByIdDesc<PreGasto>(filtradas);
+          this.aplicarFiltrosSolicitudesProcesadas();
+          if (filtroIdTexto && this.solicitudesProcesadasDataSource.data.length === 1) {
+            const match = this.solicitudesProcesadasDataSource.data[0];
+            if (match.id.toString() === filtroIdTexto && match.estado === 'AUTORIZADO') {
+              this.onFinalizarSolicitudAutorizada(match);
+            }
+          }
+
+          this.cargandoSolicitudes = false;
+        },
+        error: () => {
+          this.solicitudesProcesadasOriginal = [];
+          this.solicitudesProcesadasDataSource.data = [];
+          this.cargandoSolicitudes = false;
+        },
+      });
+  }
+
+  private aplicarFiltrosSolicitudesProcesadas(): void {
+    const filtroId = (this.filtroSolicitudIdControl.value ?? "").toString().trim();
+    const filtroTipo = (this.filtroSolicitudTipoControl.value ?? "")
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    const filtradas = this.solicitudesProcesadasOriginal.filter((s) => {
+      const coincideId = filtroId ? s?.id?.toString().includes(filtroId) : true;
+      const tipo = (s?.tipoGasto?.descripcion ?? "").toLowerCase();
+      const coincideTipo = filtroTipo ? tipo.includes(filtroTipo) : true;
+      return coincideId && coincideTipo;
+    });
+
+    this.solicitudesProcesadasDataSource.data = filtradas;
+  }
+}

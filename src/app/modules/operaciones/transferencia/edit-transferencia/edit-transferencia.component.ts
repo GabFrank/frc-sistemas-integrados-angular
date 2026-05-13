@@ -1,3 +1,4 @@
+import { RutaHojaComponent } from '../ruta-hoja/ruta-hoja.component';
 import { TransferenciaTimelineDialogComponent } from "../../../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component";
 import { TipoEntidad } from "./../../../../generics/tipo-entidad.enum";
 import {
@@ -208,7 +209,7 @@ export class EditTransferenciaComponent implements OnInit {
     private presentacionService: PresentacionService,
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.selectedTransferencia = new Transferencia();
@@ -718,7 +719,7 @@ export class EditTransferenciaComponent implements OnInit {
     this.selection.toggle(row);
   }
 
-  onEditClick(row) {}
+  onEditClick(row) { }
 
   onConfirm(item: TransferenciaItem) {
     let newItem = new TransferenciaItem();
@@ -807,7 +808,7 @@ export class EditTransferenciaComponent implements OnInit {
     this.dataSource.data.find((i) => {
       if (
         this.selectedTransferencia.etapa ==
-          EtapaTransferencia.PREPARACION_MERCADERIA &&
+        EtapaTransferencia.PREPARACION_MERCADERIA &&
         i.cantidadPreparacion == null &&
         i.vencimientoPreparacion == null &&
         i.motivoRechazoPreparacion == null
@@ -815,7 +816,7 @@ export class EditTransferenciaComponent implements OnInit {
         okPreparacion = false;
       } else if (
         this.selectedTransferencia.etapa ==
-          EtapaTransferencia.TRANSPORTE_VERIFICACION &&
+        EtapaTransferencia.TRANSPORTE_VERIFICACION &&
         i.cantidadTransporte == null &&
         i.vencimientoTransporte == null &&
         i.motivoRechazoTransporte == null
@@ -823,7 +824,7 @@ export class EditTransferenciaComponent implements OnInit {
         okTransporte = false;
       } else if (
         this.selectedTransferencia.etapa ==
-          EtapaTransferencia.RECEPCION_EN_VERIFICACION &&
+        EtapaTransferencia.RECEPCION_EN_VERIFICACION &&
         i.cantidadRecepcion == null &&
         i.vencimientoRecepcion == null &&
         i.motivoRechazoRecepcion == null
@@ -907,12 +908,14 @@ export class EditTransferenciaComponent implements OnInit {
       });
   }
 
-  onSelectEstado(etapa: EtapaTransferencia) {}
 
-  onSelectEtapa(e) {}
 
-  onSolicitarModificarItem(item) {}
-  onSolicitarRechazarItem(item) {}
+  onSelectEstado(etapa: EtapaTransferencia) { }
+
+  onSelectEtapa(e) { }
+
+  onSolicitarModificarItem(item) { }
+  onSolicitarRechazarItem(item) { }
 
   onQrClick() {
     let codigo: QrData = {
@@ -1065,10 +1068,10 @@ export class EditTransferenciaComponent implements OnInit {
   onPresentacionSelect() {
     const tienePrecioUnidad = this.precioUnidadControl.value != null && this.precioUnidadControl.value > 0;
     const tienePrecioPresentacion = this.precioPresentacionControl.value != null && this.precioPresentacionControl.value > 0;
-    
+
     if (tienePrecioUnidad || tienePrecioPresentacion) {
       let costoUnidadParaValidar = 0;
-      
+
       if (tienePrecioUnidad) {
         const nuevoPrecioPresentacion = this.precioUnidadControl.value * this.presentacionControl.value?.cantidad;
         this.precioPresentacionControl.setValue(nuevoPrecioPresentacion);
@@ -1077,7 +1080,7 @@ export class EditTransferenciaComponent implements OnInit {
         costoUnidadParaValidar = this.precioPresentacionControl.value / this.presentacionControl.value?.cantidad;
         this.precioUnidadControl.setValue(costoUnidadParaValidar);
       }
-      
+
       this.onValidarCostoConDialogo().then((puedeGuardar) => {
         if (puedeGuardar) {
           this.cantPresentacionInput.nativeElement.select();
@@ -1097,13 +1100,13 @@ export class EditTransferenciaComponent implements OnInit {
   onCantidadPresentacionEnter() {
     this.vencimientoInput.nativeElement.select();
   }
-  onCantidadUnidadEnter() {}
+  onCantidadUnidadEnter() { }
 
   onPrecioUnidadEnter() {
     if (this.precioUnidadControl.value != null) {
       this.precioPresentacionControl.setValue(
         this.precioUnidadControl.value *
-          this.presentacionControl.value?.cantidad
+        this.presentacionControl.value?.cantidad
       );
     }
     this.precioPresentacionInput.nativeElement.select();
@@ -1112,22 +1115,22 @@ export class EditTransferenciaComponent implements OnInit {
   onPrecioPresentacionEnter() {
     if (this.precioPresentacionControl.value != null) {
       const costoUnidadCalculado = this.precioPresentacionControl.value / this.presentacionControl.value?.cantidad;
-      
+
       const costoUnidadOriginal = this.precioUnidadControl.value;
       this.precioUnidadControl.setValue(costoUnidadCalculado);
-      
+
       this.onValidarCostoConDialogo().then((puedeGuardar) => {
         if (!puedeGuardar) {
           this.precioUnidadControl.setValue(costoUnidadOriginal);
           this.precioPresentacionInput.nativeElement.select();
           return;
         }
-        
+
         this.onEjecutarGuardadoItem();
       });
       return;
     }
-    
+
     this.onEjecutarGuardadoItem();
   }
 
@@ -1142,7 +1145,7 @@ export class EditTransferenciaComponent implements OnInit {
         return;
       }
     }
-    
+
     if (
       this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
     ) {
@@ -1229,7 +1232,7 @@ export class EditTransferenciaComponent implements OnInit {
         .confirm(
           "Atención!!",
           "La cantidad ingresada es: " +
-            stringToInteger(this.cantidadPresentacionControl.value?.toString()),
+          stringToInteger(this.cantidadPresentacionControl.value?.toString()),
           "Desea continuar?"
         )
         .subscribe((res) => {
@@ -1289,33 +1292,33 @@ export class EditTransferenciaComponent implements OnInit {
     return new Promise((resolve) => {
       const costoIngresado = this.precioUnidadControl.value;
       const producto = this.selectedProducto;
-      
+
       if (!costoIngresado || !producto?.costo) {
         resolve(true);
         return;
       }
-      
+
       const { costoMedio, ultimoPrecioCompra } = producto.costo;
-      
+
       const variacionVsMedio = this.onCalcularVariacionPorcentual(costoIngresado, costoMedio);
       const variacionVsUltimo = this.onCalcularVariacionPorcentual(costoIngresado, ultimoPrecioCompra);
       const variacionMaxima = Math.max(variacionVsMedio, variacionVsUltimo);
-      
+
       if (variacionMaxima > 75) {
         const referencias = this.onConstruirMensajeReferencias(costoMedio, ultimoPrecioCompra, variacionVsMedio, variacionVsUltimo);
-        
+
         this.dialogoService.confirm(
           "Atención!!",
           `Costo ingresado: ${costoIngresado.toLocaleString()} Gs.`,
           "¿Está seguro de que desea guardar este costo?",
           [referencias],
           true,
-          "Guardar de todas formas", 
+          "Guardar de todas formas",
           "Revisar costo"
         ).subscribe(resolve);
         return;
       }
-      
+
       resolve(true);
     });
   }
@@ -1327,15 +1330,15 @@ export class EditTransferenciaComponent implements OnInit {
 
   private onConstruirMensajeReferencias(costoMedio: number, ultimoPrecioCompra: number, varMedio: number, varUltimo: number): string {
     const referencias = [];
-    
+
     if (costoMedio) {
       referencias.push(`Promedio: ${costoMedio.toLocaleString()} (+${varMedio.toFixed(0)}%)`);
     }
-    
+
     if (ultimoPrecioCompra && ultimoPrecioCompra !== costoMedio) {
       referencias.push(`Última compra: ${ultimoPrecioCompra.toLocaleString()} Gs. (+${varUltimo.toFixed(0)}%)`);
     }
-    
+
     return referencias.join(' | ');
   }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-  import * as JsBarcode from 'jsbarcode';
-  const QRCode = require('qrcode');
+import JsBarcode from 'jsbarcode';
+const QRCode = require('qrcode');
 
 @Injectable({ providedIn: 'root' })
 export class BarcodeQrGeneratorService {

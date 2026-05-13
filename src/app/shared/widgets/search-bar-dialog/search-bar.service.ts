@@ -20,7 +20,7 @@ import { PrecioDelivery } from '../../../modules/operaciones/delivery/precio-del
 import { PrecioDeliveryComponent } from '../../../modules/operaciones/delivery/precio-delivery/precio-delivery.component';
 import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-retiro/list-retiro.component';
-import { ListGastosComponent } from '../../../modules/financiero/gastos/list-gastos/list-gastos.component';
+import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { LucroPorProducto } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.model';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 
