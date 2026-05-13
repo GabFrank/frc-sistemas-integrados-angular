@@ -55,7 +55,7 @@ export class GastosDashboardComponent implements OnInit {
         clickEvent: 'adicionar-pre-gasto',
         icon: 'add_shopping_cart',
         iconSize: 4,
-        expression: false
+        expression: true
       }
     )
   }

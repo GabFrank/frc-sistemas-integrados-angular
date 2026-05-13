@@ -1,5 +1,5 @@
 <app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" (resetFiltro)="onLimpiarFiltro()"
-  [isAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
+  [isAdicionar]="true" [disableAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%" [formGroup]="fechaFormGroup">
       <div fxFlex="10%">
