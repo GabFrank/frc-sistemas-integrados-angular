@@ -85,6 +85,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
   enteSeleccionado: Ente | null = null;
   bienSeleccionadoDescripcion: string | null = null;
   cargandoBien = false;
+  notificacionVencimiento: string | null = null;
 
   tieneDatosBien = false;
   pasoActual = 0;
@@ -207,6 +208,17 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
         }
         if (!this.descripcionControl.value) {
           this.descripcionControl.setValue(`Pago de Activo - ${summary.descripcion}`);
+        }
+
+        if (summary.diasParaVencer != null) {
+          const dias = summary.diasParaVencer;
+          if (dias < 0) {
+            this.notificacionVencimiento = `ATENCIÓN: La cuota está vencida hace ${Math.abs(dias)} días.`;
+          } else if (dias <= 10) {
+            this.notificacionVencimiento = `AVISO: La cuota vence en ${dias} días.`;
+          } else {
+            this.notificacionVencimiento = `INFO: Faltan ${dias} días para el vencimiento.`;
+          }
         }
 
         this.autoSeleccionarTipoGasto();
