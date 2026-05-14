@@ -7,6 +7,7 @@ import { FormControl } from '@angular/forms';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../../pdv/caja/caja.model';
 import { PageEvent } from '@angular/material/paginator';
@@ -80,6 +81,11 @@ export class ListGastosComponent implements OnInit {
     if (this.data?.tabData?.data?.caja?.id) {
       this.idCajaControl.setValue(this.data.tabData.data.caja.id);
     }
+    if (this.data?.tabData?.data?.sucursal?.id) {
+      this.sucursalList$.subscribe(res => {
+        this.sucOrigenControl.setValue(res.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
+      })
+    }
   }
 
   onFiltrar() {
@@ -94,12 +100,12 @@ export class ListGastosComponent implements OnInit {
     this.onFiltrar();
   }
 
-  onIrACaja(cajaSalida: PdvCaja) {
-    if (cajaSalida) {
+  onIrACaja(gasto: Gasto) {
+    if (gasto?.caja) {
       this.tabService.addTab(new Tab(
         ListVentaComponent, 
-        'Ventas de la caja ' + cajaSalida.id, 
-        new TabData(null, cajaSalida), 
+        'Ventas de la caja ' + gasto.caja.id, 
+        new TabData(null, gasto.caja), 
         ListGastosComponent
       ));
     }
