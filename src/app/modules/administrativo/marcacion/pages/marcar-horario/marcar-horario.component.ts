@@ -17,6 +17,7 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../../n
 import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Jornada } from '../../models/jornada.model';
+import { EstadoJornada } from '../../enums/estado-jornada.enum';
 import { TipoMarcacion } from '../../enums/tipo-marcacion.enum';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 
@@ -242,7 +243,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     if (!this.usuarioSeleccionado?.id) return;
 
     this.cargando = true;
-    const { inicio, fin } = this.obtenerRangoHoy();
+    const { inicio, fin } = this.obtenerRangoMarcacion();
 
     this.marcacionService.onGetMarcacionesPorUsuario(
       this.usuarioSeleccionado.id, inicio, fin, 0, 100, true,
@@ -265,18 +266,15 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   private consultarJornadaActual(): void {
     if (!this.usuarioSeleccionado?.id) return;
-    const { inicio, fin } = this.obtenerRangoHoy();
+    const { inicio, fin } = this.obtenerRangoMarcacion();
     this.marcacionService.onGetJornadasPorUsuario(
       this.usuarioSeleccionado.id, inicio, fin, true
     ).pipe(
       untilDestroyed(this)
     ).subscribe({
       next: (jornadas: Jornada[]) => {
-        if (jornadas && jornadas.length > 0) {
-          this.jornadaActual = [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
-        } else {
-          this.jornadaActual = null;
-        }
+        this.jornadaActual = this.seleccionarJornadaRelevante(jornadas || []);
+        this.sincronizarEstadoDesdeJornada();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -285,12 +283,61 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     });
   }
 
-  private obtenerRangoHoy() {
+  /** Incluye ayer para jornadas NOCHE/MADRUGADA que cruzan medianoche. */
+  private obtenerRangoMarcacion() {
     const hoy = new Date();
+    const ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
     return {
-      inicio: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString(),
+      inicio: new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate()).toISOString(),
       fin: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
     };
+  }
+
+  private seleccionarJornadaRelevante(jornadas: Jornada[]): Jornada | null {
+    if (!jornadas.length) {
+      return null;
+    }
+    const abiertas = jornadas.filter(
+      j => j.estado === EstadoJornada.INCOMPLETO && j.marcacionEntrada && !j.marcacionSalida
+    );
+    if (abiertas.length > 0) {
+      const nocturnas = abiertas.filter(j => this.cruzaMedianoche(j));
+      const candidatas = nocturnas.length > 0 ? nocturnas : abiertas;
+      return [...candidatas].sort((a, b) => b.id - a.id)[0];
+    }
+    return [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
+  }
+
+  private cruzaMedianoche(j: Jornada): boolean {
+    const turno = (j.turno || '').toUpperCase();
+    return turno === 'NOCHE' || turno === 'MADRUGADA';
+  }
+
+  private sincronizarEstadoDesdeJornada(): void {
+    const j = this.jornadaActual;
+    if (!j?.marcacionEntrada || j.marcacionSalida) {
+      return;
+    }
+    const hoy = this.fechaLocal(new Date());
+    const fechaJornada = this.fechaLocal(j.fecha);
+    const activa = fechaJornada >= hoy
+      || (this.cruzaMedianoche(j) && j.estado === EstadoJornada.INCOMPLETO);
+    if (activa) {
+      this.marcacionActiva = j.marcacionEntrada;
+      this.horaEntrada = new Date(j.marcacionEntrada.fechaEntrada);
+      this.estaEnJornada = true;
+    }
+  }
+
+  private fechaLocal(valor: Date | string): string {
+    const date = typeof valor === 'string'
+      ? new Date(valor.length <= 10 ? `${valor}T12:00:00` : valor)
+      : valor;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   private procesarMarcaciones(marcaciones: Marcacion[]) {
