@@ -179,6 +179,7 @@ export const searchProductoWithFilters = gql`
     $activo: Boolean
     $stock: Boolean
     $balanza: Boolean
+    $familia: Int
     $subfamilia: Int
     $vencimiento: Boolean
     $costoCero: Boolean
@@ -193,6 +194,7 @@ export const searchProductoWithFilters = gql`
       activo: $activo
       stock: $stock
       balanza: $balanza
+      familia: $familia
       subfamilia: $subfamilia
       vencimiento: $vencimiento
       costoCero: $costoCero
@@ -713,6 +715,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $balanza: Boolean, 
       $vencimiento: Boolean, 
       $costoCero: Boolean, 
+      $familiaId: Int, 
       $subfamiliaId: ID, 
       $stockFiltro: String, 
       $sucursalId: ID, 
@@ -727,6 +730,7 @@ export const exportarReporteConFiltrosQuery = gql`
         balanza: $balanza, 
         vencimiento: $vencimiento, 
         costoCero: $costoCero, 
+        familiaId: $familiaId, 
         subfamiliaId: $subfamiliaId, 
         stockFiltro: $stockFiltro, 
         sucursalId: $sucursalId, 
