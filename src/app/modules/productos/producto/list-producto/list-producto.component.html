@@ -192,12 +192,39 @@
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="42" fxLayout="column">
-        <div fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="25" fxLayout="column">
+        <div fxLayout="row">
+          <mat-form-field style="width: 100%">
+            <mat-label>Familia</mat-label>
+            <input
+              #familiaInput
+              type="text"
+              matInput
+              [formControl]="familiaControl"
+              (keyup.enter)="onBuscarFamilia()"
+            />
+            <span matTextSuffix>
+              <mat-icon
+                (click)="onBuscarFamilia(); $event.stopPropagation()"
+                class="icon"
+                >search</mat-icon
+              >
+              <mat-icon
+                *ngIf="selectedFamilia != null"
+                (click)="onClearFamilia()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </span>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex="25" fxLayout="column">
+        <div fxLayout="row">
           <mat-form-field style="width: 100%">
             <mat-label>Subfamilia</mat-label>
             <input
-              #proveedorInput
+              #subfamiliaInput
               type="text"
               matInput
               [formControl]="subfamiliaControl"
@@ -220,9 +247,9 @@
         </div>
       </div>
       <!-- Mat-selects de Stock y Sucursal -->
-      <div fxFlex="55" fxLayout="row" fxLayoutGap="15px">
+      <div fxFlex="50" fxLayout="row" fxLayoutGap="10px">
         <div fxFlex="50">
-          <mat-form-field style="width: 100%">
+          <mat-form-field style="width: 100%;">
             <mat-label>Stock</mat-label>
             <mat-select 
               [formControl]="stockFiltroControl"
@@ -238,7 +265,7 @@
           </mat-form-field>
         </div>
         <div fxFlex="50">
-          <mat-form-field style="width: 100%" 
+          <mat-form-field style="width: 100%; padding-right: 10px;" 
           [hidden]="!isSucursalSelectEnabled">
             <mat-label>Sucursal</mat-label>
             <mat-select 
@@ -535,6 +562,7 @@
     <mat-paginator
       itemsPerPageLabel="Itens por pagina"
       [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
       (page)="handlePageEvent($event)"
       [length]="selectedPageInfo?.getTotalElements"
       style="width: 100%"

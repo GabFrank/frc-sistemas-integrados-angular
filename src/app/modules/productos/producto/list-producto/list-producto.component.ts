@@ -63,6 +63,8 @@ import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
+import { Familia } from "../../familia/familia.model";
+import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -96,6 +98,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   stockControl = new FormControl(null);
   balanzaControl = new FormControl(null);
   subfamiliaControl = new FormControl(null);
+  familiaControl = new FormControl(null);
   vencimientoControl = new FormControl(null);
   costoCeroControl = new FormControl(null);
   stockFiltroControl = new FormControl("todos");
@@ -125,6 +128,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   //subfamilia
   selectedSubfamilia: Subfamilia;
+  selectedFamilia: Familia;
 
   private service: ProductoService;
 
@@ -152,6 +156,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     public mainService: MainService,
     private codigoService: CodigoService,
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
+    private searchSubfamiliaFiltered: SubfamiliasSearchGQL,
+    private searchFamilia: FamiliasSearchGQL,
     private sucursalService: SucursalService,
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
@@ -199,6 +205,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.activoControl.value,
         this.stockControl.value,
         this.balanzaControl.value,
+        this.selectedFamilia?.id,
         this.selectedSubfamilia?.id,
         this.vencimientoControl.value,
         this.costoCeroControl.value,
@@ -297,10 +304,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onFiltrar();
+    this.onSearchProducto();
   }
 
   onFiltrar() {
+    this.pageIndex = 0;
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
     this.onSearchProducto();
   }
 
@@ -312,11 +323,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.balanzaControl.setValue(null);
     this.subfamiliaControl.setValue(null);
     this.selectedSubfamilia = null;
+    this.familiaControl.setValue(null);
+    this.selectedFamilia = null;
     this.vencimientoControl.setValue(null);
     this.costoCeroControl.setValue(null);
     this.stockFiltroControl.setValue('todos');
     this.sucursalFiltroControl.setValue(null);
     this.isGenerarPdfDisabled = true;
+    this.onFiltrar();
   }
 
   onAddProducto() {
@@ -331,6 +345,42 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     } else {
       formControl.setValue(null);
     }
+  }
+
+   onBuscarFamilia() {
+    let tableData: TableData[] = [
+      {
+        id: "id",
+        nombre: "Id",
+      },
+      {
+        id: "nombre",
+        nombre: "Nombre",
+      }
+    ];
+    let data: SearchListtDialogData = {
+      query: this.searchFamilia,
+      tableData: tableData,
+      titulo: "Buscar Familia",
+      search: true,
+      queryData: { texto: this.familiaControl.value },
+      inicialSearch: true,
+      paginator: true,
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Familia | any) => {
+        if (res != null) {
+          this.selectedFamilia = { id: parseInt(res.id, 10), nombre: res.nombre } as Familia;
+          this.familiaControl.setValue(res.nombre);
+          this.onFiltrar();
+        }
+      });
   }
 
   onBuscarSubfamilia() {
@@ -348,12 +398,22 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         nombre: "Familia",
       },
     ];
+
+    // Si hay familia seleccionada, filtra por ella; si no, busca en todas
+    const querySubfamilia = this.selectedFamilia
+      ? this.searchSubfamiliaFiltered
+      : this.searchSubfamilia;
+
+    const queryData = this.selectedFamilia
+      ? { texto: this.subfamiliaControl.value, familiaId: this.selectedFamilia.id }
+      : { texto: this.subfamiliaControl.value };
+
     let data: SearchListtDialogData = {
-      query: this.searchSubfamilia,
+      query: querySubfamilia,
       tableData: tableData,
       titulo: "Buscar Subfamilia",
       search: true,
-      queryData: { texto: this.subfamiliaControl.value },
+      queryData: queryData,
       inicialSearch: true,
       paginator: true,
     };
@@ -366,8 +426,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       .afterClosed()
       .subscribe((res: Subfamilia | any) => {
         if (res != null) {
-          this.selectedSubfamilia = res;
+          this.selectedSubfamilia = { id: parseInt(res.id, 10), nombre: res.nombre } as Subfamilia;
           this.subfamiliaControl.setValue(res.nombre);
+          this.onFiltrar();
         }
       });
   }
@@ -375,6 +436,13 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onClearSubfamilia() {
     this.subfamiliaControl.setValue(null);
     this.selectedSubfamilia = null;
+    this.onFiltrar();
+  }
+
+  onClearFamilia() {
+    this.familiaControl.setValue(null);
+    this.selectedFamilia = null;
+    this.onFiltrar();
   }
 
   cargarSucursales() {
@@ -499,6 +567,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       vencimiento: this.vencimientoControl.value,
       costoCero: this.costoCeroControl.value,
       subfamiliaId: this.selectedSubfamilia?.id || null,
+      familiaId: this.selectedFamilia?.id || null,
       stockFiltro: this.stockFiltroControl.value !== 'todos' ? this.stockFiltroControl.value : null,
       sucursalId: (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) ? this.sucursalFiltroControl.value : null,
       usuarioId: this.mainService.usuarioActual.id,
