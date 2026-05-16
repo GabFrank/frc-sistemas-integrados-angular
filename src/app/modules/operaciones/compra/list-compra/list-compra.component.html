@@ -305,7 +305,7 @@
             fxLayoutAlign="center center"
           >
             <div
-              fxFlex="50"
+              fxFlex="100"
               style="
                 width: 100%;
                 margin: 10px;
@@ -327,11 +327,13 @@
                       <thead>
                         <tr>
                           <th class="titulo-cell">Sucursal</th>
+                          <th class="titulo-cell">Resp. Documental</th>
+                          <th class="titulo-cell">Resp. Fisico</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr *ngIf="loadingSucursalesRecepcionadasMap[pedido.id]">
-                          <td class="highlight-cell nombre-cell">Cargando...</td>
+                          <td class="highlight-cell nombre-cell" colspan="3">Cargando...</td>
                         </tr>
                         <tr
                           *ngIf="
@@ -340,7 +342,7 @@
                               sucursalesRecepcionadasMap[pedido.id].length === 0)
                           "
                         >
-                          <td class="highlight-cell nombre-cell">
+                          <td class="highlight-cell nombre-cell" colspan="3">
                             Sin sucursales recepcionadas
                           </td>
                         </tr>
@@ -351,6 +353,12 @@
                         >
                           <td class="highlight-cell nombre-cell">
                             {{ sucursal?.sucursalNombre | uppercase }}
+                          </td>
+                          <td class="highlight-cell nombre-cell">
+                            {{ sucursal?.responsableRecepcionDocumental | uppercase }}
+                          </td>
+                          <td class="highlight-cell nombre-cell">
+                            {{ sucursal?.responsableRecepcionFisica | uppercase }}
                           </td>
                         </tr>
                       </tbody>

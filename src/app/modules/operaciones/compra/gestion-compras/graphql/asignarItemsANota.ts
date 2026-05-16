@@ -21,8 +21,8 @@ export interface AsignarItemsANotaResponse {
 }
 
 const ASIGNAR_ITEMS_A_NOTA = gql`
-  mutation asignarItemsANota($notaRecepcionId: ID!, $pedidoItemIds: [ID!]!) {
-    data: asignarItemsANota(notaRecepcionId: $notaRecepcionId, pedidoItemIds: $pedidoItemIds) {
+  mutation asignarItemsANota($notaRecepcionId: ID!, $pedidoItemIds: [ID!]!, $usuarioId: ID) {
+    data: asignarItemsANota(notaRecepcionId: $notaRecepcionId, pedidoItemIds: $pedidoItemIds, usuarioId: $usuarioId) {
       success
       message
       notaRecepcionItems {
@@ -53,12 +53,13 @@ const ASIGNAR_ITEMS_A_NOTA = gql`
 export class AsignarItemsANotaGQL {
   constructor(private apollo: Apollo) {}
 
-  mutate(notaRecepcionId: number, pedidoItemIds: number[]): Observable<AsignacionResult> {
+  mutate(notaRecepcionId: number, pedidoItemIds: number[], usuarioId: number): Observable<AsignacionResult> {
     return this.apollo.mutate<AsignarItemsANotaResponse>({
       mutation: ASIGNAR_ITEMS_A_NOTA,
       variables: {
         notaRecepcionId,
-        pedidoItemIds
+        pedidoItemIds,
+        usuarioId
       },
       context: { clientName: 'servidor' }
     }).pipe(
