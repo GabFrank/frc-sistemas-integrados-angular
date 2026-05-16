@@ -681,6 +681,7 @@ export const lucroPorProductoQuery = gql`
     $usuarioIdList: [ID]
     $productoIdList: [ID]
     $subfamiliaId: ID
+    $familiaId: ID
   ) {
     data: lucroPorProducto(
       fechaInicio: $fechaInicio
@@ -690,6 +691,7 @@ export const lucroPorProductoQuery = gql`
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
       subfamiliaId: $subfamiliaId
+      familiaId: $familiaId
     )
   }
 `;
@@ -750,6 +752,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $subfamiliaId: ID
       $page: Int
       $size: Int
+      $familiaId: ID
     ) {
        data: lucroPorProductoList(
         fechaInicio: $fechaInicio
@@ -760,6 +763,7 @@ export const exportarReporteConFiltrosQuery = gql`
         subfamiliaId: $subfamiliaId
         page: $page
         size: $size
+        familiaId: $familiaId
       ) {
         content {
           productoId
