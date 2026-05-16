@@ -136,13 +136,50 @@
       </div>
     </div>
 
-    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="42" fxLayout="column">
-        <div fxLayout="row" fxLayoutAlign="start center">
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="25" fxLayout="column">
+        <div fxLayout="row">
+          <mat-form-field style="width: 100%">
+            <mat-label>Familia</mat-label>
+            <input
+              #familiaInput
+              type="text"
+              matInput
+              [formControl]="familiaControl"
+              (keyup.enter)="onBuscarFamilia()"
+            />
+            <span matTextSuffix>
+              <mat-icon
+                (click)="onBuscarFamilia(); $event.stopPropagation()"
+                class="icon"
+                >search</mat-icon
+              >
+              <mat-icon
+                *ngIf="selectedFamilia != null"
+                (click)="onClearFamilia()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </span>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex="25" fxLayout="column">
+        <div fxLayout="row">
           <mat-form-field style="width: 100%">
             <mat-label>Subfamilia</mat-label>
-            <input #proveedorInput type="text" matInput [formControl]="subfamiliaControl"
-              (keyup.enter)="onBuscarSubfamilia()" />
+            <input
+              #subfamiliaInput
+              type="text"
+              matInput
+              [formControl]="subfamiliaControl"
+              (keyup.enter)="onBuscarSubfamilia()"
+            />
             <span matTextSuffix>
               <mat-icon (click)="onBuscarSubfamilia(); $event.stopPropagation()" class="icon">search</mat-icon>
               <mat-icon *ngIf="selectedSubfamilia != null" (click)="onClearSubfamilia()"
@@ -151,9 +188,10 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxFlex="55" fxLayout="row" fxLayoutGap="15px">
+      <!-- Mat-selects de Stock y Sucursal -->
+      <div fxFlex="50" fxLayout="row" fxLayoutGap="10px">
         <div fxFlex="50">
-          <mat-form-field style="width: 100%">
+          <mat-form-field style="width: 100%;">
             <mat-label>Stock</mat-label>
             <mat-select [formControl]="stockFiltroControl" (selectionChange)="onStockFiltroChange()">
               <mat-option *ngFor="let option of stockOptions" [value]="option.value">
@@ -163,7 +201,8 @@
           </mat-form-field>
         </div>
         <div fxFlex="50">
-          <mat-form-field style="width: 100%" [hidden]="!isSucursalSelectEnabled">
+          <mat-form-field style="width: 100%; padding-right: 10px;" 
+          [hidden]="!isSucursalSelectEnabled">
             <mat-label>Sucursal</mat-label>
             <mat-select [formControl]="sucursalFiltroControl">
               <mat-option [value]="null">Seleccionar sucursal</mat-option>
@@ -371,8 +410,14 @@
         "></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
-      showFirstLastButtons></mat-paginator>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>
