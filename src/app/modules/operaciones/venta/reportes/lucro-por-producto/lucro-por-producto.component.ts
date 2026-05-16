@@ -34,6 +34,8 @@ import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/
 import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
 import { FuncionarioSearchGQL } from "../../../../personas/funcionarios/graphql/funcionarioSearch";
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
+import { Familia } from "../../../../productos/familia/familia.model";
+import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familiasSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -68,6 +70,8 @@ export class LucroPorProductoComponent implements OnInit {
   buscarCajeroControl = new FormControl();
   selectedUsuario: Usuario;
   selectedSubFamilia: Subfamilia;
+  selectedFamilia: Familia;
+  buscarFamiliaControl = new FormControl();
   cajeroIdList: number[];
 
   displayedColumns: string[] = [
@@ -104,6 +108,8 @@ export class LucroPorProductoComponent implements OnInit {
     private funcionarioSearch: FuncionarioSearchGQL,
     private usuarioService: UsuarioService,
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
+    private searchSubfamiliaFiltered: SubfamiliasSearchGQL,
+    private searchFamilia: FamiliasSearchGQL,
     private matDialog: MatDialog
   ) {}
 
@@ -206,7 +212,8 @@ export class LucroPorProductoComponent implements OnInit {
           productoIdList,
           this.selectedSubFamilia?.id,
           this.page,
-          this.size
+          this.size,
+          this.selectedFamilia?.id
         )
         .subscribe((res) => {
           console.log('Data received:', res);
@@ -250,9 +257,11 @@ export class LucroPorProductoComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.buscarProductoControl.setValue(null);
     this.buscarSubfamiliaControl.setValue(null);
+    this.buscarFamiliaControl.setValue(null);
     this.buscarCajeroControl.setValue(null);
     this.selectedUsuario = null;
     this.selectedSubFamilia = null;
+    this.selectedFamilia = null;
     this.productoList = [];
     this.dataSource.data = [];
     this.totalElements = 0;
@@ -298,7 +307,9 @@ export class LucroPorProductoComponent implements OnInit {
       this.toSucursalesId(this.sucursalControl.value),
       this.cajeroIdList,
       productoIdList,
-      this.selectedSubFamilia?.id
+      this.selectedSubFamilia?.id,
+      true,
+      this.selectedFamilia?.id
     );
   }
 
@@ -438,43 +449,78 @@ export class LucroPorProductoComponent implements OnInit {
       });
   }
 
+  onBuscarFamilia() {
+    let tableData: TableData[] = [
+      { id: "id", nombre: "Id" },
+      { id: "nombre", nombre: "Nombre" }
+    ];
+    let data: SearchListtDialogData = {
+      query: this.searchFamilia,
+      tableData: tableData,
+      titulo: "Buscar Familia",
+      search: true,
+      queryData: { texto: this.buscarFamiliaControl.value },
+      inicialSearch: true,
+      paginator: true,
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Familia | any) => {
+        if (res != null) {
+          this.selectedFamilia = { id: parseInt(res.id, 10), nombre: res.nombre } as Familia;
+          this.buscarFamiliaControl.setValue(res.nombre);
+        }
+      });
+  }
+
+  onClearFamilia() {
+    this.selectedFamilia = null;
+    this.buscarFamiliaControl.setValue(null);
+  }
+
   onBuscarSubFamilia() {
     let tableData: TableData[] = [
-          {
-            id: "id",
-            nombre: "Id",
-          },
-          {
-            id: "nombre",
-            nombre: "Nombre",
-          },
-          {
-            id: "familia.nombre",
-            nombre: "Familia",
-          },
-        ];
-        let data: SearchListtDialogData = {
-          query: this.searchSubfamilia,
-          tableData: tableData,
-          titulo: "Buscar Subfamilia",
-          search: true,
-          queryData: { texto: this.buscarSubfamiliaControl.value },
-          inicialSearch: true,
-          paginator: true,
-        };
-        this.matDialog
-          .open(SearchListDialogComponent, {
-            data: data,
-            width: "60%",
-            height: "80%",
-          })
-          .afterClosed()
-          .subscribe((res: Subfamilia | any) => {
-            if (res != null) {
-              this.selectedSubFamilia = res;
-              this.buscarSubfamiliaControl.setValue(res.nombre);
-            }
-          });
+      { id: "id", nombre: "Id" },
+      { id: "nombre", nombre: "Nombre" },
+      { id: "familia.nombre", nombre: "Familia" },
+    ];
+
+    // Si hay familia seleccionada, filtra por ella; si no, busca en todas
+    const querySubfamilia = this.selectedFamilia
+      ? this.searchSubfamiliaFiltered
+      : this.searchSubfamilia;
+
+    const queryData = this.selectedFamilia
+      ? { texto: this.buscarSubfamiliaControl.value, familiaId: this.selectedFamilia.id }
+      : { texto: this.buscarSubfamiliaControl.value };
+
+    let data: SearchListtDialogData = {
+      query: querySubfamilia,
+      tableData: tableData,
+      titulo: "Buscar Subfamilia",
+      search: true,
+      queryData: queryData,
+      inicialSearch: true,
+      paginator: true,
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Subfamilia | any) => {
+        if (res != null) {
+          this.selectedSubFamilia = { id: parseInt(res.id, 10), nombre: res.nombre } as Subfamilia;
+          this.buscarSubfamiliaControl.setValue(res.nombre);
+        }
+      });
   }
 
   onClearSubFamilia() {
