@@ -186,6 +186,7 @@ export const searchProductoWithFilters = gql`
     $activo: Boolean
     $stock: Boolean
     $balanza: Boolean
+    $familia: Int
     $subfamilia: Int
     $vencimiento: Boolean
     $costoCero: Boolean
@@ -200,6 +201,7 @@ export const searchProductoWithFilters = gql`
       activo: $activo
       stock: $stock
       balanza: $balanza
+      familia: $familia
       subfamilia: $subfamilia
       vencimiento: $vencimiento
       costoCero: $costoCero
@@ -701,6 +703,7 @@ export const lucroPorProductoQuery = gql`
     $usuarioIdList: [ID]
     $productoIdList: [ID]
     $subfamiliaId: ID
+    $familiaId: ID
   ) {
     data: lucroPorProducto(
       fechaInicio: $fechaInicio
@@ -710,6 +713,7 @@ export const lucroPorProductoQuery = gql`
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
       subfamiliaId: $subfamiliaId
+      familiaId: $familiaId
     )
   }
 `;
@@ -735,6 +739,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $balanza: Boolean, 
       $vencimiento: Boolean, 
       $costoCero: Boolean, 
+      $familiaId: Int, 
       $subfamiliaId: ID, 
       $stockFiltro: String, 
       $sucursalId: ID, 
@@ -749,6 +754,7 @@ export const exportarReporteConFiltrosQuery = gql`
         balanza: $balanza, 
         vencimiento: $vencimiento, 
         costoCero: $costoCero, 
+        familiaId: $familiaId, 
         subfamiliaId: $subfamiliaId, 
         stockFiltro: $stockFiltro, 
         sucursalId: $sucursalId, 
@@ -768,6 +774,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $subfamiliaId: ID
       $page: Int
       $size: Int
+      $familiaId: ID
     ) {
        data: lucroPorProductoList(
         fechaInicio: $fechaInicio
@@ -778,6 +785,7 @@ export const exportarReporteConFiltrosQuery = gql`
         subfamiliaId: $subfamiliaId
         page: $page
         size: $size
+        familiaId: $familiaId
       ) {
         content {
           productoId

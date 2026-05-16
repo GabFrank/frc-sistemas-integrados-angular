@@ -44,22 +44,6 @@ export const familiasSearch = gql`
         activo
         icono
         posicion
-        creadoEn
-        usuario {
-          id
-        }
-        subfamilias {
-          id
-          descripcion
-          activo
-          icono
-          subfamiliaList {
-            id
-            descripcion
-            activo
-            icono
-          }
-        }
       }
     }
   }
