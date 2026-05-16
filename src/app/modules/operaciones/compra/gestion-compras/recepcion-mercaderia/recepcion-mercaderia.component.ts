@@ -929,7 +929,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                 productoId: item.producto?.id,
                 presentacionRecibidaId: item.presentacionEnNota?.id || null,
                 sucursalEntregaId: sucursalSeleccionada.id,
-                usuarioId: this.mainService.usuarioActual?.id || 1,
+                usuarioId: this.mainService.usuarioActual?.id,
                 cantidadRecibida: cantidadARecibir,
                 cantidadRechazada: 0,
                 esBonificacion: item.esBonificacion || false
@@ -1018,7 +1018,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
               productoId: item.producto?.id,
               presentacionRecibidaId: item.presentacionEnNota?.id || null,
               sucursalEntregaId: sucursalSeleccionada.id,
-              usuarioId: this.mainService.usuarioActual?.id || 1,
+              usuarioId: this.mainService.usuarioActual?.id,
               cantidadRecibida: cantidadARecibir,
               cantidadRechazada: 0,
               esBonificacion: item.esBonificacion || false
@@ -1725,7 +1725,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
               productoId: item.producto?.id,
               presentacionRecibidaId: result.presentacionId || item.presentacionEnNota?.id,
               sucursalEntregaId: distDialogo.sucursalId,
-              usuarioId: this.mainService.usuarioActual?.id || 1,
+              usuarioId: this.mainService.usuarioActual?.id,
               cantidadRecibida: distDialogo.cantidadRecibida, // Ya convertido a unidades base por el diálogo
               cantidadRechazada: 0,
               esBonificacion: item.esBonificacion || false
@@ -1803,7 +1803,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         motivoRechazo: rechazo.motivoRechazo,
         observaciones: rechazo.observaciones || ''
       })),
-      usuarioId: this.mainService.usuarioActual?.id || 1
+      usuarioId: this.mainService.usuarioActual?.id
     };
 
     console.log('Enviando rechazo al backend:', rechazarItemInput);
@@ -1909,7 +1909,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                 productoId: item.producto?.id,
                 presentacionRecibidaId: result.presentacionId || item.presentacionEnNota?.id,
                 sucursalEntregaId: sucursalId,
-                usuarioId: this.mainService.usuarioActual?.id || 1,
+                usuarioId: this.mainService.usuarioActual?.id,
                 cantidadRecibida: cantidadRestanteDistribucion, // Cantidad restante automáticamente recibida para esta distribución específica
                 cantidadRechazada: 0,
                 esBonificacion: item.esBonificacion || false,
@@ -2712,7 +2712,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     this.pedidoService.onRecepcionarTodoPorNota(
       this.notaSeleccionada.id,
       sucursalesIds,
-      1 // TODO: Obtener usuario actual
+      this.mainService.usuarioActual?.id
     ).subscribe({
       next: (success) => {
         console.log('Recepción masiva completada:', success);
@@ -2779,7 +2779,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     this.pedidoService.onRecepcionarTodoPorNota(
       this.notaSeleccionada.id,
       sucursalesIds,
-      1, // TODO: Obtener usuario actual
+      this.mainService.usuarioActual?.id,
       itemIds
     ).subscribe({
       next: (success) => {
@@ -2872,7 +2872,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     this.pedidoService.onDeshacerVerificacionTodoPorNota(
       this.notaSeleccionada.id,
       sucursalesIds,
-      1 // TODO: obtener usuario actual
+      this.mainService.usuarioActual?.id
     ).subscribe({
       next: () => {
         // Recargar items después de un breve delay para que el backend procese
