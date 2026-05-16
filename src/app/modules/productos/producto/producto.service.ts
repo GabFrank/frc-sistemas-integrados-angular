@@ -206,7 +206,8 @@ export class ProductoService {
     usuarioIdList?,
     productoIdList?,
     subfamiliaId?: number,
-    servidor = true
+    servidor = true,
+    familiaId?: number
   ) {
     this.genericService
       .onCustomQuery(
@@ -218,7 +219,8 @@ export class ProductoService {
           usuarioId: this.mainService.usuarioActual.id,
           usuarioIdList,
           productoIdList,
-          subfamiliaId
+          subfamiliaId,
+          familiaId
         },
         servidor
       )
@@ -245,6 +247,7 @@ export class ProductoService {
     subfamiliaId?: number,
     page?: number,
     size?: number,
+    familiaId?: number,
     servidor = true
   ): Observable<any> {
     return this.genericService.onCustomQuery(this.lucroPorProductoList, {
@@ -255,7 +258,8 @@ export class ProductoService {
       productoIdList,
       subfamiliaId,
       page,
-      size
+      size,
+      familiaId
     }, servidor);
   }
 }
