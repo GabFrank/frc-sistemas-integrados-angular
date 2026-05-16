@@ -124,16 +124,18 @@
           Caja
         </th>
         <td mat-cell *matCellDef="let gasto" style="text-align: center">
-          <span>{{ gasto?.caja?.id }}</span>
+         <div style="display: flex; align-items: center; justify-content: center;">
+           <span>{{ gasto?.caja?.id }}</span>
           <button
             mat-icon-button
             matTooltip="Ir a caja"
-            (click)="onIrACaja(gasto.cajaSalida)"
+            (click)="onIrACaja(gasto)"
           >
             <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
               >launch</mat-icon
             >
           </button>
+         </div>
         </td>
       </ng-container>
 

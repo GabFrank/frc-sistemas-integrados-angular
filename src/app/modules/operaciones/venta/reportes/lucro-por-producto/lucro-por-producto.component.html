@@ -146,7 +146,8 @@
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
+      <!-- Columna Producto -->
+      <div fxFlex="33%" fxLayout="column" fxLayoutGap="10px">
         <div fxFlex fxLayoutAlign="start center">
           <div fxFlex="80%">
             <mat-form-field style="width: 100%">
@@ -187,27 +188,64 @@
           </div>
         </div>
       </div>
-      <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
-         <div fxFlex fxLayoutAlign="start center">
-          <div fxFlex="63%" style="margin-left: 20px;">
+
+      <!-- Columna Familia -->
+      <div fxFlex="25%" fxLayout="column">
+        <div fxFlex fxLayoutAlign="start center">
+          <div fxFlex="80%">
             <mat-form-field style="width: 100%">
-            <mat-label>Buscar subfamilia</mat-label>
-            <input
-              #subfamiliaInput
-              type="text"
-              matInput
-              [formControl]="buscarSubfamiliaControl"
-              (keyup.enter)="onBuscarSubFamilia()"
-            />
-          </mat-form-field>
+              <mat-label>Buscar familia</mat-label>
+              <input
+                #familiaInput
+                type="text"
+                matInput
+                [formControl]="buscarFamiliaControl"
+                (keyup.enter)="onBuscarFamilia()"
+              />
+            </mat-form-field>
           </div>
-           <div fxFlex="10%" style="text-align: center">
-            <mat-icon class="icon" 
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon
+              class="icon"
+              (click)="onBuscarFamilia(); $event.stopPropagation()"
+              >search</mat-icon
+            >
+          </div>
+          <div style="text-align: center">
+            <mat-icon
+              style="font-size: 2em"
+              (click)="onClearFamilia()"
+              *ngIf="selectedFamilia != null"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna Subfamilia -->
+      <div fxFlex="25%" fxLayout="column">
+        <div fxFlex fxLayoutAlign="start center">
+          <div fxFlex="80%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Buscar subfamilia</mat-label>
+              <input
+                #subfamiliaInput
+                type="text"
+                matInput
+                [formControl]="buscarSubfamiliaControl"
+                (keyup.enter)="onBuscarSubFamilia()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon
+              class="icon"
               (click)="onBuscarSubFamilia(); $event.stopPropagation()"
               >search</mat-icon
             >
           </div>
-           <div style="text-align: center">
+          <div style="text-align: center">
             <mat-icon
               style="font-size: 2em"
               (click)="onClearSubFamilia()"
