@@ -6,6 +6,7 @@ import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { SolicitudPagoDetalleInput } from '../../compra/gestion-compras/solicitud-pago.model';
 import { SolicitudPagoService } from '../../compra/gestion-compras/solicitud-pago.service';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { CambioService } from '../../../financiero/cambio/cambio.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -43,8 +44,12 @@ export class AdicionarFormaPagoDialogComponent {
   isModoEdicion = false;
   /** Valor equivalente en Guaraníes (actualizado al cambiar moneda/valor/cotización). */
   valorEnGuaraniesDisplay = 0;
-  /** Saldo restante en Guaraníes (montoSugerido - valorEnGuaraniesDisplay). */
-  saldoDisplay = 0;
+  /** Diferencia en Guaraníes (valorEnGuaraniesDisplay - montoSugerido). Positiva = exceso, negativa = falta. */
+  diferenciaGsDisplay = 0;
+  /** "cubre" | "exceso" | "falta" — para color/icono del card. */
+  diferenciaEstado: 'cubre' | 'exceso' | 'falta' = 'falta';
+  /** Origen actual del campo cotización: "mercado" | "manual" | "none". */
+  cotizacionOrigen: 'mercado' | 'manual' | 'none' = 'none';
   /** Opciones ngx-currency para el campo Valor según moneda seleccionada (Guarani: sin decimales, punto miles; otras: decimales). */
   valorCurrencyOptions: any;
   /** Opciones ngx-currency para Cotización (siempre con decimales). */
@@ -57,7 +62,8 @@ export class AdicionarFormaPagoDialogComponent {
     private solicitudPagoService: SolicitudPagoService,
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private cambioService: CambioService
   ) {
     this.monedaList = data?.monedaList || [];
     this.formaPagoList = data?.formaPagoList || [];
@@ -106,26 +112,17 @@ export class AdicionarFormaPagoDialogComponent {
       this.valorCurrencyOptions = m ? this.monedaService.currencyOptionsByMoneda(m) : this.monedaService.currencyOptionsGuarani;
       const denom = (m?.denominacion || '').toUpperCase();
       this.mostrarCotizacion = denom !== 'GUARANI' && denom !== 'GS' && denom !== '';
-      if (this.mostrarCotizacion && m?.cambio != null && m.cambio > 0) {
-        this.form.patchValue(
-          { cotizacion: m.cambio },
-          { emitEvent: false }
-        );
-        const montoGs = this.data?.montoSugerido;
-        if (montoGs != null && montoGs > 0 && !this.isModoEdicion) {
-          const valorEnMoneda = montoGs / m.cambio;
-          this.form.patchValue(
-            { valor: Math.round(valorEnMoneda * 100) / 100 },
-            { emitEvent: false }
-          );
-        }
+      if (this.mostrarCotizacion && m) {
+        // Prefill cotización mercado siempre (compra > venta > último Cambio > moneda.cambio).
+        this.prefillCotizacionMercado(m);
       } else if (!this.mostrarCotizacion && this.data?.montoSugerido != null && !this.isModoEdicion) {
+        this.cotizacionOrigen = 'none';
         this.form.patchValue(
           { valor: this.data.montoSugerido },
           { emitEvent: false }
         );
+        this.updateValorEnGuaraniesDisplay();
       }
-      this.updateValorEnGuaraniesDisplay();
     });
     this.cotizacionCurrencyOptions = this.monedaService.currencyOptionsNoGuarani;
     this.valorCurrencyOptions = this.monedaService.currencyOptionsGuarani;
@@ -159,6 +156,49 @@ export class AdicionarFormaPagoDialogComponent {
     this.updateValorEnGuaraniesDisplay();
   }
 
+  /**
+   * Trae la última cotización de mercado para la moneda y la setea como prefill editable.
+   * Prioridad: valorEnGsCompraMercado → valorEnGsVentaMercado → valorEnGs → moneda.cambio.
+   */
+  private prefillCotizacionMercado(moneda: Moneda): void {
+    const aplicarTasa = (tasa: number, origen: 'mercado' | 'manual' | 'none') => {
+      this.cotizacionOrigen = origen;
+      this.form.patchValue({ cotizacion: tasa }, { emitEvent: false });
+      const montoGs = this.data?.montoSugerido;
+      if (tasa > 0 && montoGs != null && montoGs > 0 && !this.isModoEdicion) {
+        const valorEnMoneda = montoGs / tasa;
+        this.form.patchValue(
+          { valor: Math.round(valorEnMoneda * 100) / 100 },
+          { emitEvent: false }
+        );
+      }
+      this.updateValorEnGuaraniesDisplay();
+    };
+    this.cambioService.getUltimoCambioPorMonedaId(moneda.id).subscribe({
+      next: (cambio: any) => {
+        const tasaMercado = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado;
+        if (tasaMercado != null && tasaMercado > 0) {
+          aplicarTasa(tasaMercado, 'mercado');
+          return;
+        }
+        const tasaManual = cambio?.valorEnGs ?? moneda.cambio ?? 0;
+        if (tasaManual > 0) aplicarTasa(tasaManual, 'manual');
+        else aplicarTasa(moneda.cambio || 0, 'none');
+      },
+      error: () => {
+        // Sin cambio registrado → fallback moneda.cambio
+        aplicarTasa(moneda.cambio || 0, 'none');
+      }
+    });
+  }
+
+  /** Si el user edita la cotización manualmente, marcar origen para hint UI. */
+  onCotizacionManualInput(): void {
+    if (this.cotizacionOrigen === 'mercado') {
+      this.cotizacionOrigen = 'manual';
+    }
+  }
+
   private updateValorEnGuaraniesDisplay(): void {
     const monedaId = this.form.get('monedaId').value;
     const valor = Number(this.form.get('valor').value);
@@ -172,7 +212,15 @@ export class AdicionarFormaPagoDialogComponent {
       const tasa = cotizacion != null && !isNaN(cotizacion) && cotizacion > 0 ? cotizacion : moneda?.cambio ?? 0;
       this.valorEnGuaraniesDisplay = tasa > 0 ? Math.round((valor * tasa)) : 0;
     }
-    this.saldoDisplay = (this.data?.montoSugerido ?? 0) - this.valorEnGuaraniesDisplay;
+    const sugerido = this.data?.montoSugerido ?? 0;
+    this.diferenciaGsDisplay = this.valorEnGuaraniesDisplay - sugerido;
+    if (Math.abs(this.diferenciaGsDisplay) <= 1) {
+      this.diferenciaEstado = 'cubre';
+    } else if (this.diferenciaGsDisplay > 0) {
+      this.diferenciaEstado = 'exceso';
+    } else {
+      this.diferenciaEstado = 'falta';
+    }
   }
 
   /** Unidad mínima de redondeo según moneda: Guarani 500, USD 1, Real 0.5, resto 1. */

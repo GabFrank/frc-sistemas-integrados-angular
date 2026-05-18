@@ -18,7 +18,16 @@
         </mat-form-field>
         <mat-form-field *ngIf="mostrarCotizacion" appearance="outline" class="cotizacion-field">
           <mat-label>Cotización</mat-label>
-          <input matInput type="text" formControlName="cotizacion" currencyMask [options]="cotizacionCurrencyOptions" />
+          <input
+            matInput
+            type="text"
+            formControlName="cotizacion"
+            currencyMask
+            [options]="cotizacionCurrencyOptions"
+            (input)="onCotizacionManualInput()"
+          />
+          <mat-hint *ngIf="cotizacionOrigen === 'mercado'">Cotización mercado (nortecambios)</mat-hint>
+          <mat-hint *ngIf="cotizacionOrigen === 'manual'">Modificada manualmente</mat-hint>
         </mat-form-field>
         <div class="valor-with-menu">
           <mat-form-field appearance="outline" class="valor-field">
@@ -80,17 +89,31 @@
           <input matInput formControlName="observacion" />
         </mat-form-field>
       </div>
-      <mat-card class="total-gs-card">
-        <mat-card-content>
-          <div class="total-gs-row">
-            <span class="total-gs-label">Total en Guaraníes</span>
-            <span class="total-gs-value">{{ valorEnGuaraniesDisplay | currency:'' : '' : '1.0-0' }} Gs</span>
+      <mat-card class="balance-pago-card">
+        <div class="balance-pago-kpis">
+          <div class="balance-pago-kpi balance-kpi-monto">
+            <span class="kpi-label">A pagar</span>
+            <span class="kpi-value">Gs {{ (data?.montoSugerido ?? 0) | number:'1.0-0' }}</span>
           </div>
-          <div class="total-gs-row">
-            <span class="total-gs-label">Saldo</span>
-            <span class="total-gs-value">{{ saldoDisplay | currency:'' : '' : '1.0-0' }} Gs</span>
+          <div class="balance-pago-kpi balance-kpi-equiv">
+            <span class="kpi-label">Equivalente Gs</span>
+            <span class="kpi-value">Gs {{ valorEnGuaraniesDisplay | number:'1.0-0' }}</span>
           </div>
-        </mat-card-content>
+          <div class="balance-pago-kpi balance-kpi-diferencia" [ngClass]="'estado-' + diferenciaEstado">
+            <span class="kpi-label">Diferencia</span>
+            <span class="kpi-value">
+              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'cubre'">check_circle</mat-icon>
+              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'exceso'">north</mat-icon>
+              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'falta'">south</mat-icon>
+              Gs {{ diferenciaGsDisplay | number:'1.0-0' }}
+            </span>
+            <span class="kpi-hint">
+              <ng-container *ngIf="diferenciaEstado === 'cubre'">Cubre exacto</ng-container>
+              <ng-container *ngIf="diferenciaEstado === 'exceso'">Exceso</ng-container>
+              <ng-container *ngIf="diferenciaEstado === 'falta'">Falta cubrir</ng-container>
+            </span>
+          </div>
+        </div>
       </mat-card>
     </form>
   </mat-dialog-content>

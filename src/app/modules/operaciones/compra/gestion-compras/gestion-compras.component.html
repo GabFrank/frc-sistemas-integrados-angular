@@ -66,7 +66,13 @@
               <div class="info-label">Moneda</div>
               <div class="info-content">
                 <div class="info-value">
-                  {{ headerDataComputed?.moneda?.denominacion }}
+                  {{ headerDataComputed?.moneda?.denominacion | titlecase }}<ng-container
+                    *ngIf="
+                      headerDataComputed?.moneda?.denominacion &&
+                      headerDataComputed?.moneda?.denominacion !== 'GUARANI' &&
+                      headerDataComputed?.cotizacion
+                    "
+                    >: {{ headerDataComputed.cotizacion | number : '1.0-0' }}</ng-container>
                 </div>
               </div>
             </div>
@@ -86,8 +92,7 @@
               <div class="info-label">Monto Total</div>
               <div class="info-content">
                 <div class="info-value">
-                  <!-- {{headerDataComputed.moneda.simbolo}}  -->
-                  {{ headerDataComputed.montoTotal | number : "1.0-2" }}
+                  {{ pedidoMonedaSimbolo }} {{ headerDataComputed.montoTotal | number : pedidoMonedaDecimalFormat }}
                 </div>
               </div>
             </div>
@@ -367,6 +372,53 @@
                     "
                   >
                     La moneda es requerida
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Cotización (solo si moneda ≠ Guaraní) -->
+                <mat-form-field
+                  appearance="outline"
+                  *ngIf="
+                    datosGeneralesForm.get('moneda')?.value &&
+                    datosGeneralesForm.get('moneda')?.value?.denominacion !== 'GUARANI'
+                  "
+                >
+                  <mat-label>Cotización</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="cotizacion"
+                    min="0"
+                    step="any"
+                    placeholder="Cotización del pedido"
+                  />
+                  <button
+                    mat-icon-button
+                    matSuffix
+                    type="button"
+                    (click)="onRefreshCotizacionMercado()"
+                    [disabled]="cotizacionRefreshing"
+                    matTooltip="Actualizar cotización del mercado"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                  <mat-hint *ngIf="cotizacionFromMercado">
+                    Cotización mercado (nortecambios)
+                  </mat-hint>
+                  <mat-hint
+                    *ngIf="!cotizacionFromMercado && datosGeneralesForm.get('cotizacion')?.value"
+                  >
+                    Cotización manual / PDV
+                  </mat-hint>
+                  <mat-error
+                    *ngIf="datosGeneralesForm.get('cotizacion')?.hasError('required')"
+                  >
+                    La cotización es requerida
+                  </mat-error>
+                  <mat-error
+                    *ngIf="datosGeneralesForm.get('cotizacion')?.hasError('min')"
+                  >
+                    La cotización debe ser mayor a 0
                   </mat-error>
                 </mat-form-field>
 
@@ -891,7 +943,7 @@
                     class="text-center"
                     copiarAClipboard="item.precioUnitarioSolicitado"
                   >
-                    {{ item.precioUnitarioSolicitado | number : "1.0-2" }}
+                    {{ pedidoMonedaSimbolo }} {{ item.precioUnitarioSolicitado | number : pedidoMonedaDecimalFormat }}
                   </td>
                 </ng-container>
 
@@ -906,7 +958,7 @@
                     class="text-center"
                     copiarAClipboard="item.subtotalComputed"
                   >
-                    {{ item.subtotalComputed | number : "1.0-2" }}
+                    {{ pedidoMonedaSimbolo }} {{ item.subtotalComputed | number : pedidoMonedaDecimalFormat }}
                   </td>
                 </ng-container>
 
@@ -1277,7 +1329,7 @@
                     <ng-container matColumnDef="monto">
                       <th mat-header-cell *matHeaderCellDef style="width: 20%; text-align: center;">Monto</th>
                       <td mat-cell *matCellDef="let nota" style="width: 20%; text-align: center;">
-                        {{ nota.montoComputed | number:'1.0-2' }}
+                        {{ nota.moneda?.simbolo || pedidoMonedaSimbolo }} {{ nota.montoComputed | number:'1.0-2' }}
                       </td>
                     </ng-container>
 
