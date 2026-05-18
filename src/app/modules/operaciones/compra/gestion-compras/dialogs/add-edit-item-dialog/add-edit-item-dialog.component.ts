@@ -322,6 +322,7 @@ export class AddEditItemDialogComponent implements OnInit {
       this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
       
       const item = this.data.item;
+      const vencimientoEsperadoDate = this.normalizeDateValue(item.vencimientoEsperado);
       this.selectedProducto = item.producto;
       this.presentacionesDisponibles = item.producto?.presentaciones || [];
 
@@ -348,7 +349,7 @@ export class AddEditItemDialogComponent implements OnInit {
         precioUnitarioSolicitado: item.precioUnitarioSolicitado,
         precioUnitarioPorPresentacion: precioUnitarioPorPresentacion,
         esBonificacion: item.esBonificacion,
-        vencimientoEsperado: item.vencimientoEsperado,
+        vencimientoEsperado: vencimientoEsperadoDate,
         observacion: item.observacion,
       });
 
@@ -365,6 +366,25 @@ export class AddEditItemDialogComponent implements OnInit {
         this.isLoadingInitialData = false;
       }, 100);
     }
+  }
+
+  /**
+   * Normaliza valores de fecha recibidos del backend para que sean compatibles con MatDatepicker.
+   * Acepta Date/string y devuelve Date o null.
+   */
+  private normalizeDateValue(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    // El backend suele devolver "yyyy-MM-dd HH:mm". Convertimos a ISO básico para parse seguro.
+    const normalizedString = value.includes(" ") ? value.replace(" ", "T") : value;
+    const parsed = new Date(normalizedString);
+    return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private setInitialFocus(): void {
