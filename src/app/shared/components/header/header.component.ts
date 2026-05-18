@@ -8,7 +8,8 @@ import {
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription, timer } from "rxjs";
+import { map } from "rxjs/operators";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
@@ -30,6 +31,7 @@ import { UsuarioService } from "../../../modules/personas/usuarios/usuario.servi
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
 import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
+import { CotizacionHeaderService } from "../../services/cotizacion-header.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -56,6 +58,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
   unreadCount$ = this.notificacionesTableroService.unreadCount$;
+  cotizaciones$ = this.cotizacionHeaderService.cotizaciones$;
+  now$ = timer(0, 1000).pipe(map(() => new Date()));
+  userMainRole = '';
+  isRefreshingCotiz = false;
 
   constructor(
     public mainService: MainService,
@@ -70,8 +76,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private dialogoService: DialogosService,
     private usuarioService: UsuarioService,
     private loginDialogService: LoginDialogService,
-    private notificacionesTableroService: NotificacionesTableroService
-  ) { 
+    private notificacionesTableroService: NotificacionesTableroService,
+    private cotizacionHeaderService: CotizacionHeaderService
+  ) {
     setTimeout(() => {
       console.log(this.mainService.usuarioActual);
     }, 2000);
@@ -117,8 +124,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
           if (tokenFcm) {
             this.notificacionesTableroService.setTokenFcm(tokenFcm);
           }
+          this.refreshUserChip();
+        } else {
+          this.userMainRole = '';
         }
       });
+    this.refreshUserChip();
+  }
+
+  private refreshUserChip(): void {
+    const roles = this.mainService?.usuarioActual?.roles || [];
+    this.userMainRole = roles.length ? String(roles[0]).toUpperCase() : '';
   }
   private updateServerWarning(): void {
     if (this.cloudStatus != null) {
@@ -170,6 +186,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (this.configChangedSub) {
       this.configChangedSub.unsubscribe();
     }
+  }
+
+  onRefreshCotizacion() {
+    if (this.isRefreshingCotiz) return;
+    this.isRefreshingCotiz = true;
+    this.cotizacionHeaderService.refresh();
+    setTimeout(() => (this.isRefreshingCotiz = false), 1500);
   }
 
   onSearch() {
