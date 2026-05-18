@@ -157,7 +157,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private dialog: MatDialog,
-    private cambioService: CambioService
+    private cambioService: CambioService,
     private mainService: MainService
   ) {
     this.readOnly = !!data.readOnly;
