@@ -508,8 +508,8 @@ export class PedidoService {
    * @param pedidoItemIds - Array de IDs de ítems de pedido a asignar
    * @returns Observable<AsignacionResult>
    */
-  onAsignarItemsANota(notaRecepcionId: number, pedidoItemIds: number[]): Observable<AsignacionResult> {
-    return this.asignarItemsANotaGQL.mutate(notaRecepcionId, pedidoItemIds);
+  onAsignarItemsANota(notaRecepcionId: number, pedidoItemIds: number[], usuarioId: number): Observable<AsignacionResult> {
+    return this.asignarItemsANotaGQL.mutate(notaRecepcionId, pedidoItemIds, usuarioId);
   }
 
   // ===============================================

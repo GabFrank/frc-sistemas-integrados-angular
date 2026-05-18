@@ -110,8 +110,17 @@ export class ListGastosComponent implements OnInit {
     this.dataSource.data = []
   }
 
-  onIrACaja(cajaSalida: PdvCaja) {
-    this.tabService.addTab(new Tab(ListVentaComponent, 'Ventas de la caja ' + this.selectedGasto.caja.id, new TabData(null, this.selectedGasto.caja), ListGastosComponent))
+  onIrACaja(gasto: Gasto) {
+    if (gasto?.caja != null) {
+      this.tabService.addTab(
+        new Tab(
+          ListVentaComponent,
+          "Ventas de la caja " + gasto.caja.id,
+          new TabData(null, gasto.caja),
+          ListGastosComponent
+        )
+      );
+    }
   }
 
   onAdd(gasto, i){

@@ -63,6 +63,7 @@ import { PedidoResumen } from "./graphql/getPedidoResumen";
 
 // Services
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
+import { CambioService } from "../../../financiero/cambio/cambio.service";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import {
@@ -108,6 +109,7 @@ interface PedidoHeader {
   estado: string;
   montoTotal: number;
   moneda: Moneda;
+  cotizacion?: number;
   plazoCredito: number;
 }
 
@@ -274,6 +276,14 @@ export class GestionComprasComponent
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
   canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
+  // Moneda display properties
+  pedidoMonedaSimbolo = '';
+  pedidoMonedaDecimalFormat = '1.0-0';
+
+  // Cotización del pedido — fuente del prefill (mercado / manual / pedido guardado)
+  cotizacionFromMercado = false;
+  cotizacionRefreshing = false;
+
   // Forms
   datosGeneralesForm: FormGroup;
   itemsForm: FormGroup;
@@ -397,6 +407,7 @@ export class GestionComprasComponent
     private fb: FormBuilder,
     private dialog: MatDialog,
     private monedaService: MonedaService,
+    private cambioService: CambioService,
     private formaPagoService: FormaPagoService,
     private sucursalService: SucursalService,
     private proveedorSearchGQL: ProveedoresSearchByPersonaGQL,
@@ -494,6 +505,7 @@ export class GestionComprasComponent
       proveedor: ["", Validators.required],
       vendedor: [""],
       moneda: ["", Validators.required],
+      cotizacion: [null],
       formaPago: ["", Validators.required],
       plazoCredito: [0],
       observacionFormaPago: [''],
@@ -559,6 +571,13 @@ export class GestionComprasComponent
           this.ultimasComprasPageIndex = 0;
           this.selectedProductoProveedor = null;
         }
+      });
+
+    this.datosGeneralesForm
+      .get("moneda")
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((moneda: Moneda | null) => {
+        this.onMonedaChanged(moneda);
       });
   }
 
@@ -924,10 +943,14 @@ export class GestionComprasComponent
       this.sucursalesInfluenciaFiltradas.every(s => sucursalesInfluenciaSeleccionadas.some(si => si.id === s.id));
 
     // Llenar el formulario con los datos del pedido
+    // Importante: cotizacion se respeta del pedido guardado, NO se redispara prefill mercado.
+    // Por eso primero seteamos moneda con emitEvent:false y luego cotizacion explícito.
+    const monedaPedido = pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null;
+    this.datosGeneralesForm.get("moneda")?.setValue(monedaPedido, { emitEvent: false });
     this.datosGeneralesForm.patchValue({
       proveedor: pedido.proveedor,
       vendedor: pedido.vendedor,
-      moneda: pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null,
+      cotizacion: pedido.cotizacion ?? null,
       formaPago: pedido.formaPago != null ? this.formasPago.find((f) => f.id === pedido.formaPago.id) : null,
       plazoCredito: pedido.plazoCredito || 0,
       observacionFormaPago: pedido.observacionFormaPago ?? '',
@@ -935,6 +958,14 @@ export class GestionComprasComponent
       sucursalesEntrega: todasSucursalesEntrega ? [this.sucursalTodos] : sucursalesEntregaSeleccionadas,
       sucursalesInfluencia: todasSucursalesInfluencia ? [this.sucursalTodos] : sucursalesInfluenciaSeleccionadas,
     });
+    // Aplicar validators según moneda cargada
+    const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
+    if (monedaPedido && monedaPedido.denominacion !== 'GUARANI') {
+      cotizacionCtrl?.setValidators([Validators.required, Validators.min(0.0001)]);
+    } else {
+      cotizacionCtrl?.clearValidators();
+    }
+    cotizacionCtrl?.updateValueAndValidity({ emitEvent: false });
 
     // Establecer proveedor seleccionado para mostrar la tarjeta
     this.selectedProveedorComputed = pedido.proveedor;
@@ -1040,10 +1071,11 @@ export class GestionComprasComponent
       proveedorId: formValue.proveedor?.id,
       vendedorId: formValue.vendedor?.id,
       monedaId: formValue.moneda?.id,
+      cotizacion: formValue.cotizacion ?? undefined,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1, // Mantener el usuario original
+      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id, // Mantener el usuario original
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
 
@@ -1062,7 +1094,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1
+        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id
       )
       .subscribe({
         next: (result) => {
@@ -1125,10 +1157,11 @@ export class GestionComprasComponent
       proveedorId: formValue.proveedor?.id,
       vendedorId: formValue.vendedor?.id,
       monedaId: formValue.moneda?.id,
+      cotizacion: formValue.cotizacion ?? undefined,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+      usuarioId: this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1146,7 +1179,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+        this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
       )
       .subscribe({
         next: (result) => {
@@ -1221,6 +1254,7 @@ export class GestionComprasComponent
                 : this.getEstadoGeneral(),
         montoTotal: this.calculateMontoTotalEditMode(),
         moneda: this.currentPedido?.moneda || null,
+        cotizacion: this.currentPedido?.cotizacion ?? formValue.cotizacion ?? undefined,
         plazoCredito: this.currentPedido?.plazoCredito || 0,
       };
     } else {
@@ -1234,6 +1268,7 @@ export class GestionComprasComponent
         estado: "EN PLANIFICACIÓN", // Estado inicial para nueva compra
         montoTotal: this.calculateMontoTotal(),
         moneda: formValue.moneda || null,
+        cotizacion: formValue.cotizacion ?? undefined,
         plazoCredito: formValue.plazoCredito || 0,
       };
     }
@@ -1245,7 +1280,12 @@ export class GestionComprasComponent
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
     
-    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties 
+    // Moneda display
+    const moneda = this.headerDataComputed?.moneda;
+    this.pedidoMonedaSimbolo = moneda?.simbolo || '';
+    this.pedidoMonedaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+
+    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties
     // ahora se llaman de forma selectiva solo cuando los datos de items cambian
   }
 
@@ -1939,6 +1979,91 @@ export class GestionComprasComponent
     setTimeout(() => {
       this.focusFormaPago();
     }, 100);
+  }
+
+  /**
+   * Manejador de cambio de moneda del pedido.
+   * - Gs / null: limpia cotización, oculta input.
+   * - Otra moneda: prefilea cotización mercado (fallback PDV) y warning si hay items.
+   */
+  private onMonedaChanged(moneda: Moneda | null): void {
+    const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
+    if (!cotizacionCtrl) return;
+
+    if (!moneda || moneda.denominacion === 'GUARANI') {
+      cotizacionCtrl.setValue(null, { emitEvent: false });
+      cotizacionCtrl.clearValidators();
+      cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
+      this.cotizacionFromMercado = false;
+      return;
+    }
+
+    cotizacionCtrl.setValidators([Validators.required, Validators.min(0.0001)]);
+    cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
+
+    const hadItems = this.itemsDataSource.data.length > 0;
+    this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+      if (hadItems) {
+        this.notificacionService.openSucess(
+          "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
+        );
+      }
+    });
+  }
+
+  /**
+   * Llama al backend y prefilea el control cotización con el mejor valor disponible:
+   * mercado compra → mercado venta → manual PDV → moneda.cambio → null.
+   */
+  private prefillCotizacionFromMercado(moneda: Moneda): Observable<number | null> {
+    return new Observable<number | null>((observer) => {
+      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (cambio: any) => {
+            const valor = cambio?.valorEnGsCompraMercado
+              ?? cambio?.valorEnGsVentaMercado
+              ?? cambio?.valorEnGs
+              ?? moneda?.cambio
+              ?? null;
+            const fromMercado = !!(cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado);
+            this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
+            this.cotizacionFromMercado = fromMercado;
+            observer.next(valor);
+            observer.complete();
+          },
+          error: () => {
+            const fallback = moneda?.cambio ?? null;
+            this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
+            this.cotizacionFromMercado = false;
+            observer.next(fallback);
+            observer.complete();
+          }
+        });
+    });
+  }
+
+  /**
+   * Botón refresh: dispara scraping mercado en backend y re-prefilea.
+   */
+  onRefreshCotizacionMercado(): void {
+    const moneda: Moneda = this.datosGeneralesForm.get("moneda")?.value;
+    if (!moneda || moneda.denominacion === 'GUARANI') return;
+    this.cotizacionRefreshing = true;
+    this.cambioService.onActualizarCotizacionesMercado()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+            this.cotizacionRefreshing = false;
+            this.notificacionService.openSucess("Cotización de mercado actualizada");
+          });
+        },
+        error: () => {
+          this.cotizacionRefreshing = false;
+          this.notificacionService.openAlgoSalioMal("No se pudo actualizar la cotización del mercado");
+        }
+      });
   }
 
   onFormaPagoClosed(): void {
@@ -3108,8 +3233,8 @@ export class GestionComprasComponent
     }
 
     const pedidoItemIds = this.selectedItemsPendientes.map(item => item.id);
-
-    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds)
+    const usuarioId = this.mainService.usuarioActual?.id;
+    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds, usuarioId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
@@ -3884,7 +4009,7 @@ export class GestionComprasComponent
                 ? this.formatDate(new Date(compra.creadoEn))
                 : 'Sin fecha',
               proveedorDisplayComputed: compra.pedido?.proveedor?.persona?.nombre || 'N/A',
-              precioDisplayComputed: this.formatNumber(compra.precio),
+              precioDisplayComputed: (compra.moneda?.simbolo ? compra.moneda.simbolo + ' ' : '') + this.formatNumber(compra.precio),
               cantidadDisplayComputed: cantidadDisplay
             };
             return item;
