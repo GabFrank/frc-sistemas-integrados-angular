@@ -6,39 +6,63 @@ export interface DescriptorConScore {
     score: number;
 }
 
+/** Ruta local servida por angular.json → assets/tfjs-wasm/ (requiere @tensorflow/tfjs-backend-wasm instalado). */
+function wasmAssetsPath(): string {
+    const base = document.querySelector('base')?.getAttribute('href') ?? '/';
+    return new URL('assets/tfjs-wasm/', new URL(base, window.location.href)).href;
+}
+
 @Injectable({
     providedIn: 'root'
 })
 export class FaceRecognitionService {
     private human: Human | null = null;
-    private config: Partial<Config> = {
-        backend: 'humangl',
-        modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/',
-        filter: { enabled: true, equalization: false },
-        face: {
-            enabled: true,
-            detector: { rotation: false },
-            mesh: { enabled: true },
-            attention: { enabled: false },
-            iris: { enabled: true },
-            description: { enabled: true },
-            emotion: { enabled: false },
-            antispoof: { enabled: true },
-            liveness: { enabled: true }
-        },
-        body: { enabled: false },
-        hand: { enabled: false },
-        object: { enabled: false },
-        gesture: { enabled: true }
-    };
+    private initPromise: Promise<void> | null = null;
+
+    private buildConfig(): Partial<Config> {
+        return {
+            backend: 'wasm',
+            wasmPath: wasmAssetsPath(),
+            modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/',
+            filter: { enabled: true, equalization: false },
+            face: {
+                enabled: true,
+                detector: { rotation: false },
+                mesh: { enabled: true },
+                attention: { enabled: false },
+                iris: { enabled: true },
+                description: { enabled: true },
+                emotion: { enabled: false },
+                antispoof: { enabled: true },
+                liveness: { enabled: true }
+            },
+            body: { enabled: false },
+            hand: { enabled: false },
+            object: { enabled: false },
+            gesture: { enabled: true }
+        };
+    }
 
     async init(): Promise<void> {
-        if (!this.human) {
-            this.human = new Human(this.config);
-            await this.human.tf.ready();
+        if (this.human) {
+            return;
+        }
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+
+        this.initPromise = (async () => {
+            this.human = new Human(this.buildConfig());
+            await this.human.init();
             await this.human.load();
             await this.human.warmup();
-        }
+        })().catch((err) => {
+            this.human = null;
+            this.initPromise = null;
+            throw err;
+        });
+
+        return this.initPromise;
     }
 
     async detect(input: HTMLImageElement | HTMLVideoElement): Promise<Result> {

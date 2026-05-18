@@ -54,7 +54,8 @@
 
                 <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
                     <button mat-stroked-button color="warn" (click)="iniciarReconocimiento.emit()">
-                        <mat-icon>face</mat-icon> Verificar para Salir
+                        <mat-icon>face</mat-icon>
+                        {{ accionPendiente === AccionMarcacionPendiente.RETORNO_ALMUERZO ? 'Verificar para Retorno' : 'Verificar para Salir' }}
                     </button>
                 </div>
 
@@ -65,7 +66,14 @@
                     <div class="success-message">
                         <mat-icon>check_circle</mat-icon> Identidad Verificada
                     </div>
-                    <button mat-raised-button class="btn-salida" (click)="registrarSalida.emit()">
+                    <button *ngIf="accionPendiente === AccionMarcacionPendiente.RETORNO_ALMUERZO"
+                        mat-raised-button class="btn-retorno-almuerzo" (click)="registrarRetornoAlmuerzo.emit()">
+                        <mat-icon>restaurant</mat-icon>
+                        REGISTRAR RETORNO ALMUERZO
+                    </button>
+                    <button *ngIf="accionPendiente === AccionMarcacionPendiente.SALIDA
+                        || accionPendiente === AccionMarcacionPendiente.SALIDA_DEFINITIVA"
+                        mat-raised-button class="btn-salida" (click)="registrarSalida.emit()">
                         <mat-icon>logout</mat-icon>
                         REGISTRAR SALIDA
                     </button>

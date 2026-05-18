@@ -33,6 +33,11 @@
               "src/favicon.ico",
               "src/assets",
               {
+                "glob": "**/*.wasm",
+                "input": "node_modules/@tensorflow/tfjs-backend-wasm/dist/",
+                "output": "/assets/tfjs-wasm/"
+              },
+              {
                 "glob": "**/*",
                 "input": "node_modules/ngx-extended-pdf-viewer/assets/",
                 "output": "/assets/"
