@@ -10,6 +10,7 @@ import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
 import { PedidoService } from '../../../pedido.service';
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
+import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
@@ -80,7 +81,8 @@ export class RechazarItemDialogComponent implements OnInit {
     private pedidoService: PedidoService,
     private presentacionService: PresentacionService,
     private notificacionService: NotificacionSnackbarService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private cambioService: CambioService
   ) {
     this.cantidadPendiente = this.data.pedidoItem.cantidadPendiente || 0;
     this.notaPreseleccionada = !!this.data.notaPreseleccionada;
@@ -404,22 +406,39 @@ export class RechazarItemDialogComponent implements OnInit {
     nuevaNota.pedido = this.data.pedidoItem.pedido;
     nuevaNota.numero = esNotaRechazo ? this.generarNumeroNotaRechazo() : this.generarNumeroNota();
     nuevaNota.fecha = new Date();
-    
+
     // Asegurar que la moneda no sea null - usar moneda del pedido o una por defecto
     if (this.data.pedidoItem.pedido?.moneda) {
       nuevaNota.moneda = this.data.pedidoItem.pedido.moneda;
     } else {
-      // Si no hay moneda en el pedido, usar una moneda por defecto (Guaraní)
       nuevaNota.moneda = { id: 1, denominacion: 'Guaraní', cambio: 1 } as any;
     }
-    
-    nuevaNota.cotizacion = 1; // Valor por defecto
+
     nuevaNota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
     nuevaNota.esNotaRechazo = esNotaRechazo;
-    
-    // Para notas de rechazo, el tipoBoleta puede quedar null o usar un valor genérico
-    // ya que el campo esNotaRechazo es suficiente para identificarlas
 
+    // Cargar cotización real para monedas no-Guaraní, luego guardar
+    const moneda = nuevaNota.moneda;
+    if (moneda && moneda.denominacion !== 'GUARANI' && moneda.id) {
+      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (cambio) => {
+            nuevaNota.cotizacion = cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado ?? cambio?.valorEnGs ?? 1;
+            this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
+          },
+          error: () => {
+            nuevaNota.cotizacion = 1;
+            this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
+          }
+        });
+    } else {
+      nuevaNota.cotizacion = 1;
+      this.saveNotaYGuardarItem(nuevaNota, notaRecepcionItem);
+    }
+  }
+
+  private saveNotaYGuardarItem(nuevaNota: NotaRecepcion, notaRecepcionItem: NotaRecepcionItem): void {
     this.pedidoService.onSaveNotaRecepcion(nuevaNota.toInput())
       .pipe(untilDestroyed(this))
       .subscribe({

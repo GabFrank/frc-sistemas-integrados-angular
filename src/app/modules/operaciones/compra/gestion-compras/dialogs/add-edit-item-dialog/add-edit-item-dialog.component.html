@@ -63,7 +63,7 @@
             </div>
             <div class="sidebar-info-row" *ngIf="selectedProducto?.costo?.costoMedio">
               <span class="sidebar-label">Costo Medio:</span>
-              <span>{{ selectedProducto?.costo?.costoMedio | number:'1.0-0' }} {{ selectedCurrencyPrefix }}</span>
+              <span>{{ selectedProducto?.costo?.costoMedio | number:'1.0-0' }} Gs.</span>
             </div>
             <div class="sidebar-precios-section" *ngIf="presentacionesDisponibles.length > 0">
               <div class="sidebar-section-title">Precios de Venta</div>
@@ -461,8 +461,8 @@
                 <mat-card-content>
                   <div class="subtotal-content">
                     <span class="subtotal-label">Subtotal:</span>
-                    <span class="subtotal-value">{{
-                      subtotalComputed | currency : "Gs." : "symbol" : "1.0-2"
+                    <span class="subtotal-value">{{ selectedCurrencyPrefix }} {{
+                      subtotalComputed | number : selectedCurrencyDecimalFormat
                     }}</span>
                   </div>
                 </mat-card-content>
