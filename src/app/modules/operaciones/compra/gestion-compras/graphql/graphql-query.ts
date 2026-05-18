@@ -28,7 +28,9 @@ export const pedidoQuery = gql`
         id
         denominacion
         simbolo
+        cambio
       }
+      cotizacion
       plazoCredito
       observacionFormaPago
 
@@ -93,8 +95,11 @@ export const pedidosQuery = gql`
       }
       moneda {
         id
-          denominacion
+        denominacion
+        simbolo
+        cambio
       }
+      cotizacion
       plazoCredito
       observacionFormaPago
 
@@ -156,7 +161,10 @@ export const savePedidoMutation = gql`
       moneda {
         id
         denominacion
+        simbolo
+        cambio
       }
+      cotizacion
       plazoCredito
       observacionFormaPago
 
@@ -208,7 +216,10 @@ export const savePedidoFullMutation = gql`
       moneda {
         id
         denominacion
+        simbolo
+        cambio
       }
+      cotizacion
       plazoCredito
       observacionFormaPago
 
@@ -1656,9 +1667,11 @@ export const solicitudPagoQuery = gql`
           fecha
           estado
           valorTotal
+          cotizacion
+          moneda { id denominacion simbolo cambio }
           pedido {
             id
-            moneda { id denominacion simbolo }
+            moneda { id denominacion simbolo cambio }
             formaPago { id descripcion }
             plazoCredito
             observacionFormaPago
@@ -1762,6 +1775,8 @@ export const saveSolicitudPagoMutation = gql`
           fecha
           estado
           valorTotal
+          cotizacion
+          moneda { id denominacion simbolo cambio }
         }
       }
     }
@@ -1783,7 +1798,19 @@ export const actualizarSolicitudPagoMutation = gql`
       moneda { id denominacion simbolo }
       formaPago { id descripcion }
       usuario { id persona { nombre } }
-      notasRecepcion { id montoIncluido notaRecepcion { id numero fecha valorTotal estado } }
+      notasRecepcion {
+        id
+        montoIncluido
+        notaRecepcion {
+          id
+          numero
+          fecha
+          valorTotal
+          estado
+          cotizacion
+          moneda { id denominacion simbolo cambio }
+        }
+      }
     }
   }
 `;
@@ -1806,7 +1833,15 @@ export const agregarNotaASolicitudPagoMutation = gql`
       id
       montoIncluido
       creadoEn
-      notaRecepcion { id numero fecha valorTotal estado }
+      notaRecepcion {
+        id
+        numero
+        fecha
+        valorTotal
+        estado
+        cotizacion
+        moneda { id denominacion simbolo cambio }
+      }
     }
   }
 `;
@@ -1934,10 +1969,12 @@ export const notasDisponiblesParaPagoPorProveedorPaginatedQuery = gql`
         fecha
         estado
         valorTotal
+        cotizacion
+        moneda { id denominacion simbolo cambio }
         pedido {
           id
           proveedor { id persona { nombre } }
-          moneda { id denominacion simbolo }
+          moneda { id denominacion simbolo cambio }
           formaPago { id descripcion }
           plazoCredito
           observacionFormaPago

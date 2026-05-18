@@ -185,6 +185,7 @@ export class AddEditItemDialogComponent implements OnInit {
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
+  selectedCurrencyDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -561,11 +562,13 @@ export class AddEditItemDialogComponent implements OnInit {
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
+      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
+      this.selectedCurrencyDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -737,7 +740,23 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null);
 
-    const precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+    let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+
+    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
+    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
+    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    const costo = producto?.costo;
+    const costoMonedaId = costo?.moneda?.id;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
+      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
+      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+      if (pedidoCotizacion > 1) {
+        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
+      } else {
+        precioInicial = Math.round(costoEnGs);
+      }
+    }
     
     this.itemForm.patchValue(
       {
