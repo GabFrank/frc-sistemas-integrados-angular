@@ -93,6 +93,14 @@ import { DesvincularProductoProveedorGQL } from "../../../productos/producto-pro
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 import { MainService } from "../../../../main.service";
+import {
+  ImprimirPedidoDialogComponent,
+  ImprimirPedidoDialogData,
+  ImprimirPedidoDialogResult,
+} from "./dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 interface PedidoHeader {
   id?: number;
@@ -414,7 +422,9 @@ export class GestionComprasComponent
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
     private tabService: TabService,
-    public mainService: MainService
+    public mainService: MainService,
+    private reporteService: ReporteService,
+    private configService: ConfiguracionService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -781,6 +791,112 @@ export class GestionComprasComponent
           this.notificacionService.openAlgoSalioMal("Error al recargar los datos del pedido");
           this.loadingPedido = false;
         },
+      });
+  }
+
+  // ===== IMPRIMIR PEDIDO =====
+
+  onImprimirPedido(): void {
+    if (!this.pedidoId || !this.currentPedido) return;
+
+    const dialogData: ImprimirPedidoDialogData = {
+      pedidoId: this.pedidoId,
+      pedidoNro: this.headerDataComputed.id,
+    };
+
+    const dialogRef = this.dialog.open(ImprimirPedidoDialogComponent, {
+      data: dialogData,
+      width: "420px",
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((result: ImprimirPedidoDialogResult | undefined) => {
+        if (!result) return;
+
+        switch (result.accion) {
+          case "ticket":
+            this.imprimirPedidoTicket();
+            break;
+          case "pdf-inapp":
+            this.imprimirPedidoPDFInApp();
+            break;
+          case "pdf-guardar":
+            this.imprimirPedidoPDFGuardar();
+            break;
+        }
+      });
+  }
+
+  private imprimirPedidoTicket(): void {
+    const printerName = this.configService?.getConfig()?.printers?.ticket;
+    this.pedidoService
+      .onImprimirPedidoTicket(this.pedidoId!, printerName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () =>
+          this.notificacionService.openSucess("Ticket enviado a impresora"),
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al imprimir ticket: " + (err?.message || err)
+          ),
+      });
+  }
+
+  private imprimirPedidoPDFInApp(): void {
+    this.pedidoService
+      .onImprimirPedidoPDF(this.pedidoId!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pdfBase64) => {
+          if (pdfBase64) {
+            this.reporteService.onAdd(
+              `Pedido ${this.pedidoId}`,
+              pdfBase64
+            );
+            this.tabService.addTab(
+              new Tab(ReportesComponent, "Reportes", null, null)
+            );
+            this.notificacionService.openSucess(
+              "Reporte generado exitosamente"
+            );
+          }
+        },
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al generar PDF: " + (err?.message || err)
+          ),
+      });
+  }
+
+  private imprimirPedidoPDFGuardar(): void {
+    this.pedidoService
+      .onImprimirPedidoPDF(this.pedidoId!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pdfBase64) => {
+          if (pdfBase64) {
+            const byteCharacters = atob(pdfBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: "application/pdf" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `pedido-${this.pedidoId}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            this.notificacionService.openSucess("PDF guardado exitosamente");
+          }
+        },
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al guardar PDF: " + (err?.message || err)
+          ),
       });
   }
 

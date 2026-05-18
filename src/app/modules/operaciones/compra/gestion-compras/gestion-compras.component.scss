@@ -45,6 +45,13 @@
             gap: 16px;
             flex: 1;
           }
+
+          .title-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+          }
         }
 
         mat-chip-list {

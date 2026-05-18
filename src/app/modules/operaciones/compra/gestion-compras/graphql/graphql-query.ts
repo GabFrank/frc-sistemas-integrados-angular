@@ -1983,3 +1983,17 @@ export const notasDisponiblesParaPagoPorProveedorPaginatedQuery = gql`
     }
   }
 `;
+
+// ===== IMPRIMIR PEDIDO =====
+
+export const imprimirPedidoPDFMutation = gql`
+  mutation ($pedidoId: ID!) {
+    data: imprimirPedidoPDF(pedidoId: $pedidoId)
+  }
+`;
+
+export const imprimirPedidoTicketMutation = gql`
+  mutation ($pedidoId: ID!, $printerName: String) {
+    data: imprimirPedidoTicket(pedidoId: $pedidoId, printerName: $printerName)
+  }
+`;
