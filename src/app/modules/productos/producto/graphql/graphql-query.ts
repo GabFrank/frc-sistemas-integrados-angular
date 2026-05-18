@@ -186,12 +186,12 @@ export const searchProductoWithFilters = gql`
     $activo: Boolean
     $stock: Boolean
     $balanza: Boolean
-    $familia: Int
-    $subfamilia: Int
+    $familia: ID
+    $subfamilia: ID
     $vencimiento: Boolean
     $costoCero: Boolean
     $stockFiltro: String
-    $sucursalId: Int
+    $sucursalId: ID
     $page: Int
     $size: Int
   ) {
@@ -698,7 +698,7 @@ export const lucroPorProductoQuery = gql`
   query lucroPorProducto(
     $fechaInicio: String
     $fechaFin: String
-    $sucursalIdList: [Int]
+    $sucursalIdList: [ID]
     $usuarioId: ID!
     $usuarioIdList: [ID]
     $productoIdList: [ID]
@@ -719,7 +719,7 @@ export const lucroPorProductoQuery = gql`
 `;
 
 export const imprimirCodigoBarraQuery = gql`
-  query imprimirCodigoBarra($codigoId: Int) {
+  query imprimirCodigoBarra($codigoId: ID) {
     data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;
@@ -739,7 +739,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $balanza: Boolean, 
       $vencimiento: Boolean, 
       $costoCero: Boolean, 
-      $familiaId: Int, 
+      $familiaId: ID, 
       $subfamiliaId: ID, 
       $stockFiltro: String, 
       $sucursalId: ID, 

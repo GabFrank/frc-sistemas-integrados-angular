@@ -1391,6 +1391,8 @@ export const getPedidoRecepcionFisicaResumenQuery = gql`
         sucursalNombre
         cantidadItemsRecepcionados
         fechaUltimaRecepcion
+        responsableRecepcionDocumental
+        responsableRecepcionFisica
       }
     }
   }

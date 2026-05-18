@@ -19,6 +19,7 @@ import { DialogosService } from '../../../../../../shared/components/dialogos/di
 import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
 import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
+import { MainService } from '../../../../../../main.service';
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
@@ -157,6 +158,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private dialogosService: DialogosService,
     private dialog: MatDialog,
     private cambioService: CambioService
+    private mainService: MainService
   ) {
     this.readOnly = !!data.readOnly;
     this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
@@ -1044,6 +1046,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         nota.cotizacion = Number(cleanFormValue.cotizacion);
         nota.pedido = this.data.pedido!;
         nota.creadoEn = new Date();
+        nota.usuario = this.mainService.usuarioActual;
         nota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
         nota.pagado = false;
         
@@ -1137,7 +1140,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
     const pedidoItemIds = this.selectedItemsToAssign.map(item => item.id);
 
-    this.pedidoService.onAsignarItemsANota(this.data.nota.id, pedidoItemIds)
+    const usuarioId = this.mainService.usuarioActual?.id;
+    this.pedidoService.onAsignarItemsANota(this.data.nota.id, pedidoItemIds, usuarioId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {

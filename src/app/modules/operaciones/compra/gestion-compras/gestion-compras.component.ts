@@ -959,7 +959,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1, // Mantener el usuario original
+      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id, // Mantener el usuario original
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
 
@@ -978,7 +978,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1
+        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id
       )
       .subscribe({
         next: (result) => {
@@ -1045,7 +1045,7 @@ export class GestionComprasComponent
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+      usuarioId: this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1063,7 +1063,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+        this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
       )
       .subscribe({
         next: (result) => {
@@ -3117,8 +3117,8 @@ export class GestionComprasComponent
     }
 
     const pedidoItemIds = this.selectedItemsPendientes.map(item => item.id);
-
-    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds)
+    const usuarioId = this.mainService.usuarioActual?.id;
+    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds, usuarioId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
