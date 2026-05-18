@@ -23,7 +23,8 @@
             <mat-icon>payments</mat-icon>
           </div>
           <div class="card-info">
-            <div class="card-value">{{ totalMontoSolicitudesComputed | currency:'':'':'1.0-0' }}</div>
+            <div class="card-value" *ngIf="totalMontoSolicitudesComputed !== null">{{ totalMonedaSimbolo }} {{ totalMontoSolicitudesComputed | number:'1.0-0' }}</div>
+            <div class="card-value" *ngIf="totalMontoSolicitudesComputed === null">{{ totalMonedaSimbolo }}</div>
             <div class="card-label">Total Solicitado</div>
           </div>
         </mat-card-content>

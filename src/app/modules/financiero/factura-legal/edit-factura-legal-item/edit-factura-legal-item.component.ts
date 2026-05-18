@@ -167,7 +167,7 @@ export class EditFacturaLegalItemComponent implements OnInit {
   }
 
   onSave() {
-    this.selectedFacturaLegalItem.descripcion = this.descripcionControl.value
+    this.selectedFacturaLegalItem.descripcion = this.descripcionControl.value?.toUpperCase()
     this.selectedFacturaLegalItem.cantidad = this.cantidadControl.value
     // Siempre guardar el precio en GUARANI (moneda principal)
     this.selectedFacturaLegalItem.precioUnitario = this.precioUnitario.value;

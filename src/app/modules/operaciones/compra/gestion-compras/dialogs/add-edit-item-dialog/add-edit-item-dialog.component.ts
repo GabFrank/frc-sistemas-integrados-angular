@@ -185,6 +185,7 @@ export class AddEditItemDialogComponent implements OnInit {
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
+  selectedCurrencyDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -321,6 +322,7 @@ export class AddEditItemDialogComponent implements OnInit {
       this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
       
       const item = this.data.item;
+      const vencimientoEsperadoDate = this.normalizeDateValue(item.vencimientoEsperado);
       this.selectedProducto = item.producto;
       this.presentacionesDisponibles = item.producto?.presentaciones || [];
 
@@ -347,7 +349,7 @@ export class AddEditItemDialogComponent implements OnInit {
         precioUnitarioSolicitado: item.precioUnitarioSolicitado,
         precioUnitarioPorPresentacion: precioUnitarioPorPresentacion,
         esBonificacion: item.esBonificacion,
-        vencimientoEsperado: item.vencimientoEsperado,
+        vencimientoEsperado: vencimientoEsperadoDate,
         observacion: item.observacion,
       });
 
@@ -364,6 +366,25 @@ export class AddEditItemDialogComponent implements OnInit {
         this.isLoadingInitialData = false;
       }, 100);
     }
+  }
+
+  /**
+   * Normaliza valores de fecha recibidos del backend para que sean compatibles con MatDatepicker.
+   * Acepta Date/string y devuelve Date o null.
+   */
+  private normalizeDateValue(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    // El backend suele devolver "yyyy-MM-dd HH:mm". Convertimos a ISO básico para parse seguro.
+    const normalizedString = value.includes(" ") ? value.replace(" ", "T") : value;
+    const parsed = new Date(normalizedString);
+    return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private setInitialFocus(): void {
@@ -541,11 +562,13 @@ export class AddEditItemDialogComponent implements OnInit {
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
+      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
+      this.selectedCurrencyDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -717,7 +740,23 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null);
 
-    const precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+    let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+
+    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
+    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
+    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    const costo = producto?.costo;
+    const costoMonedaId = costo?.moneda?.id;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
+      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
+      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+      if (pedidoCotizacion > 1) {
+        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
+      } else {
+        precioInicial = Math.round(costoEnGs);
+      }
+    }
     
     this.itemForm.patchValue(
       {

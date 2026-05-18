@@ -40,7 +40,8 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
   solicitudesPagoComputed: SolicitudPago[] = [];
   notasDisponiblesComputed: NotaRecepcion[] = [];
   totalSolicitudesComputed = 0;
-  totalMontoSolicitudesComputed = 0;
+  totalMontoSolicitudesComputed: number | null = 0;
+  totalMonedaSimbolo = '';
   canCreateSolicitudComputed = false;
 
   // Table configuration
@@ -136,7 +137,15 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
     // Process solicitudes
     this.solicitudesPagoComputed = this.solicitudesPago;
     this.totalSolicitudesComputed = this.solicitudesPago.length;
-    this.totalMontoSolicitudesComputed = this.solicitudesPago.reduce((total, s) => total + (s.montoTotal || 0), 0);
+    // Sum totals only if all solicitudes share the same currency
+    const monedaIds = new Set(this.solicitudesPago.map(s => s.moneda?.id).filter(Boolean));
+    if (monedaIds.size <= 1) {
+      this.totalMontoSolicitudesComputed = this.solicitudesPago.reduce((total, s) => total + (s.montoTotal || 0), 0);
+      this.totalMonedaSimbolo = this.solicitudesPago[0]?.moneda?.simbolo || this.pedido?.moneda?.simbolo || '';
+    } else {
+      this.totalMontoSolicitudesComputed = null;
+      this.totalMonedaSimbolo = 'Mixto';
+    }
 
     // Process notas disponibles
     this.notasDisponiblesComputed = this.notasDisponibles;
