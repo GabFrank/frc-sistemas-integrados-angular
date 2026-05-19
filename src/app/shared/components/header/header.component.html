@@ -64,8 +64,8 @@
 
     <!-- ZONA 3: fecha y hora -->
     <div class="frc-header__zone frc-header__zone--clock" *ngIf="(now$ | async) as now">
-      <span class="frc-header__clock-time">{{ now | date:'HH:mm:ss' }}</span>
-      <span class="frc-header__clock-date">{{ now | date:'EEE dd MMM' | titlecase }}</span>
+      <span class="frc-header__clock-time">{{ now.time }}</span>
+      <span class="frc-header__clock-date">{{ now.date }}</span>
     </div>
 
     <div class="frc-header__divider"></div>
