@@ -1,0 +1,51 @@
+.dark-outline-input {
+    width: 100%;
+
+    ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+            background-color: #2e2e2e !important;
+            border-radius: 4px !important;
+        }
+
+        .mat-mdc-input-element {
+            color: white !important;
+            caret-color: white !important;
+        }
+
+        .mdc-floating-label,
+        .mat-mdc-floating-label {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .mat-mdc-form-field.mat-focused {
+
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+                border-color: #4caf50 !important;
+            }
+
+            .mdc-floating-label {
+                color: #4caf50 !important;
+            }
+        }
+
+        .mat-icon {
+            color: white !important;
+        }
+
+        .mat-mdc-icon-button {
+            color: white !important;
+        }
+
+        .mat-datepicker-toggle {
+            color: white !important;
+        }
+    }
+}

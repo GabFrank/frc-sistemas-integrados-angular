@@ -1,0 +1,103 @@
+<div class="bien-resumen-card">
+  <div class="bien-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px"
+    style="margin-bottom: 20px;">
+    <mat-icon class="bien-icono"
+      style="font-size: 20px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); padding: 5px;">{{
+      iconoDisplay }}</mat-icon>
+    <span class="bien-nombre" style="font-size: 16px; margin-left: 8px;">{{ data.bienDescripcion }}</span>
+  </div>
+
+  <div class="vencimiento-notificacion" *ngIf="notificacionVencimiento"
+    [style.background-color]="colorDisplay + '15'" [style.border-left-color]="colorDisplay">
+    <mat-icon [style.color]="colorDisplay">info</mat-icon>
+    <span [style.color]="colorDisplay">{{ notificacionVencimiento }}</span>
+  </div>
+
+  <div class="bien-financiero-grid">
+    <div class="financiero-item">
+      <span class="financiero-label">Monto Total</span>
+      <span class="financiero-valor principal">{{ data.moneda }} {{ data.montoTotal | number:precisionDisplay
+        }}</span>
+    </div>
+    <div class="financiero-item">
+      <span class="financiero-label">Ya Pagado</span>
+      <span class="financiero-valor success">{{ data.moneda }} {{ data.montoYaPagado | number:precisionDisplay
+        }}</span>
+    </div>
+    <div class="financiero-item">
+      <span class="financiero-label">Pendiente</span>
+      <span class="financiero-valor peligro">{{ data.moneda }} {{ data.montoPendiente | number:precisionDisplay
+        }}</span>
+    </div>
+    <div class="financiero-item" *ngIf="data.diaVencimiento">
+      <span class="financiero-label">Siguiente Vencimiento</span>
+      <span class="financiero-valor">Día {{ data.diaVencimiento }} (en {{ data.diasParaVencer }} días)</span>
+    </div>
+  </div>
+
+  <div class="progreso-pago">
+    <div fxLayout="row" fxLayoutAlign="space-between center" class="progreso-header">
+      <span class="progreso-label">Progreso de pago</span>
+      <span class="progreso-porcentaje">{{ porcentajeDisplay }}%</span>
+    </div>
+    <div class="progreso-barra">
+      <div class="progreso-relleno" [style.width.%]="porcentajeDisplay"></div>
+    </div>
+  </div>
+
+  <div class="cuotas-seccion" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+    <span class="seccion-mini-titulo">
+      <mat-icon class="seccion-mini-icono">event_note</mat-icon>
+      Plan de Cuotas
+    </span>
+    <div class="cuotas-grid">
+      <div class="cuota-info">
+        <span class="cuota-etiqueta">Cuotas Totales</span>
+        <span class="cuota-valor">{{ data.cuotasTotales }}</span>
+      </div>
+      <div class="cuota-info">
+        <span class="cuota-etiqueta">Cuotas Pagadas</span>
+        <span class="cuota-valor success">{{ data.cuotasPagadas }}</span>
+      </div>
+      <div class="cuota-info">
+        <span class="cuota-etiqueta">Cuotas Faltantes</span>
+        <span class="cuota-valor peligro">{{ data.cuotasFaltantes }}</span>
+      </div>
+      <div class="cuota-info">
+        <span class="cuota-etiqueta">Monto por Cuota</span>
+        <span class="cuota-valor">{{ data.moneda }} {{ montoCuotaDisplay | number:'1.0-0' }}</span>
+      </div>
+      <div class="cuota-info">
+        <span class="cuota-etiqueta">Cuota a Pagar Ahora</span>
+        <span class="cuota-valor resaltado">Cuota {{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales
+          }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div fxLayout="row" fxLayoutGap="15px" style="margin-top: 15px;">
+    <div class="proveedor-seccion" fxFlex *ngIf="data.proveedor">
+      <span class="seccion-mini-titulo">
+        <mat-icon class="seccion-mini-icono">store</mat-icon>
+        Proveedor
+      </span>
+      <span class="proveedor-nombre">{{ data.proveedor }}</span>
+    </div>
+    <div class="situacion-seccion" fxFlex *ngIf="data.situacionPago">
+      <span class="seccion-mini-titulo">
+        <mat-icon class="seccion-mini-icono">info</mat-icon>
+        Situación
+      </span>
+      <span class="situacion-valor" [class.situacion-pagando]="data.situacionPago === 'PAGANDO'"
+        [class.situacion-pagado]="data.situacionPago === 'PAGADO'">{{ data.situacionPago }}</span>
+    </div>
+  </div>
+
+  <div class="sucursal-info-seccion" *ngIf="data.sucursalNombre" style="margin-top: 15px;">
+    <span class="seccion-mini-titulo">
+      <mat-icon class="seccion-mini-icono">location_on</mat-icon>
+      Sucursal Asignada
+    </span>
+    <span class="sucursal-nombre-info" style="font-size: 16px; color: rgba(255, 255, 255, 0.87);">{{ data.sucursalNombre }}</span>
+  </div>
+</div>

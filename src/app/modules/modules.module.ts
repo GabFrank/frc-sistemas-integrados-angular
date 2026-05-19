@@ -15,6 +15,9 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { GraficosModule } from './grafico/graficos.module';
 import { AdministrativoModule } from './administrativo/administrativo.module';
+import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
+import { DashboardActivosModule } from './activos/dashboard/dashboard-activos.module';
+import { GastosModule } from './financiero/gastos/gastos.module';
 
 
 @NgModule({
@@ -35,7 +38,10 @@ import { AdministrativoModule } from './administrativo/administrativo.module';
     ConfiguracionModule,
     NotificacionesModule,
     GraficosModule,
+    VehiculosModule,
+    DashboardActivosModule,
     AdministrativoModule,
+    GastosModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

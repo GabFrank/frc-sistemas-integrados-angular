@@ -1,0 +1,22 @@
+.icon-circle {
+    background: #e64a19;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+mat-dialog-content {
+    background-color: var(--dialog-bg, #303030);
+    color: white;
+}
+
+.mat-tab-body-content {
+    padding-top: 15px;
+}
+
+mat-form-field {
+    width: 100%;
+}

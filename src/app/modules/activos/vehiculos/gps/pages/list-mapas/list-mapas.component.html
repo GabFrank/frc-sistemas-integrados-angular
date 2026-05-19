@@ -1,0 +1,33 @@
+<div class="main-container">
+    <div class="header-controls">
+        <div class="search-wrapper">
+            <mat-form-field appearance="fill" class="vehiculo-select">
+                <mat-label>Buscar vehículo por chapa o modelo...</mat-label>
+                <input matInput [value]="vehiculoDescripcion" readonly (click)="onBuscarVehiculo()" 
+                    placeholder="Mostrar Todos" style="cursor: pointer;">
+                <button mat-icon-button matSuffix (click)="onBuscarVehiculo()" *ngIf="!vehiculoSelected">
+                    <mat-icon>search</mat-icon>
+                </button>
+                <button mat-icon-button matSuffix *ngIf="vehiculoSelected" (click)="onLimpiarVehiculo($event)">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </mat-form-field>
+        </div>
+        <div class="ws-status">
+            <div class="ws-indicator" [class.connected]="wsConnected" [class.disconnected]="!wsConnected">
+                <span class="ws-dot"></span>
+                <span class="ws-text">{{ wsConnected ? 'En Vivo' : 'Desconectado' }}</span>
+            </div>
+            <button *ngIf="!wsConnected" mat-icon-button (click)="reconnectWebSocket()" matTooltip="Reconectar">
+                <mat-icon>refresh</mat-icon>
+            </button>
+            <span *ngIf="lastUpdate" class="last-update">
+                Última actualización: {{ lastUpdate | date:'HH:mm:ss' }}
+            </span>
+        </div>
+    </div>
+
+    <div class="map-wrapper">
+        <div class="map-container" id="map" #mapContainer></div>
+    </div>
+</div>

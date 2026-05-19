@@ -1,0 +1,24 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 80%"
+  fxLayoutAlign="center center"
+>
+  <div fxFlex="60" fxLayout="column">
+    <div
+      fxFlex
+      fxLayout="row wrap"
+      fxLayoutAlign="start start"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="30%" style="height: 250px" *ngFor="let item of botonesList">
+        <app-boton
+          [nombre]="item.nombre"
+          [icon]="item.icon"
+          [iconSize]="item.iconSize"
+          (clickEvent)="goTo(item.clickEvent)"
+          [disableExpression]="item.expression"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
+</div>
