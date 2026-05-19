@@ -315,11 +315,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'directions_car',
       isExpanded: false,
       requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN],
       items: [
         {
           name: 'Vehículo',
           icon: 'commute',
-          action: 'list-vehiculo'
+          action: 'list-vehiculo',
+          visibilityRoles: [ROLES.ADMIN]
         }
       ]
     },
@@ -328,11 +330,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'forest',
       isExpanded: false,
       requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN],
       items: [
         {
           name: 'Bien',
           icon: 'check_circle',
-          action: 'bienes-dashboard'
+          action: 'bienes-dashboard',
+          visibilityRoles: [ROLES.ADMIN]
         }
       ]
     },
@@ -735,11 +739,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "graficos":
         this.openTabIfAuthorized(ROLES.ADMIN, GraficosComponent, "Gráficos");
+        break;
       case "list-vehiculo":
-        this.tabService.addTab(new Tab(VehiculosDashboardComponent, "Vehículos", null, null));
+        this.openTabIfAuthorized(ROLES.ADMIN, VehiculosDashboardComponent, "Vehículos");
         break;
       case "bienes-dashboard":
-        this.tabService.addTab(new Tab(BienesDashboardComponent, "Bien", null, null));
+        this.openTabIfAuthorized(ROLES.ADMIN, BienesDashboardComponent, "Bien");
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));
