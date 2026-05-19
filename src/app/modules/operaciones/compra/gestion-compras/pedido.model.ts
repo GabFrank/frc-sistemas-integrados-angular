@@ -17,6 +17,7 @@ export class Pedido {
   formaPago: FormaPago;
   tipoBoleta: string;
   moneda: Moneda;
+  cotizacion?: number;
   plazoCredito: number;
   observacionFormaPago?: string;
 
@@ -36,6 +37,7 @@ export class Pedido {
     input.formaPagoId = this?.formaPago?.id;
     input.tipoBoleta = this?.tipoBoleta;
     input.monedaId = this?.moneda?.id;
+    input.cotizacion = this?.cotizacion;
     input.plazoCredito = this?.plazoCredito;
     input.observacionFormaPago = this?.observacionFormaPago;
 
@@ -52,6 +54,7 @@ export class PedidoInput {
   formaPagoId?: number;
   tipoBoleta?: string;
   monedaId?: number;
+  cotizacion?: number;
   plazoCredito?: number;
   observacionFormaPago?: string;
 

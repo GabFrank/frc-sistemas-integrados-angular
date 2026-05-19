@@ -77,6 +77,8 @@ import {
   GetPedidoRecepcionFisicaResumenGQL,
   PedidoRecepcionFisicaResumen
 } from './gestion-compras/graphql/getPedidoRecepcionFisicaResumen';
+import { ImprimirPedidoPDFGQL } from './gestion-compras/graphql/imprimirPedidoPDF';
+import { ImprimirPedidoTicketGQL } from './gestion-compras/graphql/imprimirPedidoTicket';
 
 @Injectable({
   providedIn: 'root'
@@ -136,7 +138,9 @@ export class PedidoService {
     private recepcionarTodoPorNotaGQL: RecepcionarTodoPorNotaGQL,
     private deshacerVerificacionTodoPorNotaGQL: DeshacerVerificacionTodoPorNotaGQL,
     private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL,
-    private getPedidoRecepcionFisicaResumenGQL: GetPedidoRecepcionFisicaResumenGQL
+    private getPedidoRecepcionFisicaResumenGQL: GetPedidoRecepcionFisicaResumenGQL,
+    private imprimirPedidoPDFGQL: ImprimirPedidoPDFGQL,
+    private imprimirPedidoTicketGQL: ImprimirPedidoTicketGQL
   ) {}
 
   /**
@@ -504,8 +508,8 @@ export class PedidoService {
    * @param pedidoItemIds - Array de IDs de ítems de pedido a asignar
    * @returns Observable<AsignacionResult>
    */
-  onAsignarItemsANota(notaRecepcionId: number, pedidoItemIds: number[]): Observable<AsignacionResult> {
-    return this.asignarItemsANotaGQL.mutate(notaRecepcionId, pedidoItemIds);
+  onAsignarItemsANota(notaRecepcionId: number, pedidoItemIds: number[], usuarioId: number): Observable<AsignacionResult> {
+    return this.asignarItemsANotaGQL.mutate(notaRecepcionId, pedidoItemIds, usuarioId);
   }
 
   // ===============================================
@@ -777,17 +781,11 @@ export class PedidoService {
     );
   }
 
-  /**
-   * Imprime un pedido
-   * @param id - ID del pedido a imprimir
-   * @returns Observable<string> - Base64 del PDF
-   */
-  onImprimirPedido(id: number): Observable<string> {
-    // TODO: Implementar cuando se cree el método de impresión en el backend
-    // Por ahora retornar un observable vacío
-    return new Observable<string>(observer => {
-      observer.error('Método de impresión no implementado aún');
-      observer.complete();
-    });
+  onImprimirPedidoPDF(pedidoId: number): Observable<string> {
+    return this.genericCrudService.onCustomMutation(this.imprimirPedidoPDFGQL, { pedidoId });
+  }
+
+  onImprimirPedidoTicket(pedidoId: number, printerName?: string): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(this.imprimirPedidoTicketGQL, { pedidoId, printerName });
   }
 } 

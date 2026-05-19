@@ -1,0 +1,38 @@
+<h2 mat-dialog-title>
+  <mat-icon>print</mat-icon>
+  Imprimir Pedido Nro {{ data.pedidoNro }}
+</h2>
+
+<mat-dialog-content>
+  <p class="dialog-subtitle">Seleccione el formato de impresión:</p>
+
+  <div class="opciones-container">
+    <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('ticket')">
+      <mat-icon>receipt</mat-icon>
+      <div class="opcion-label">
+        <span class="opcion-title">Imprimir en Ticket</span>
+        <span class="opcion-desc">Enviar a impresora térmica 58mm</span>
+      </div>
+    </button>
+
+    <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('pdf-inapp')">
+      <mat-icon>picture_as_pdf</mat-icon>
+      <div class="opcion-label">
+        <span class="opcion-title">Ver PDF en la app</span>
+        <span class="opcion-desc">Abrir reporte PDF en nueva pestaña</span>
+      </div>
+    </button>
+
+    <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('pdf-guardar')">
+      <mat-icon>download</mat-icon>
+      <div class="opcion-label">
+        <span class="opcion-title">Guardar PDF</span>
+        <span class="opcion-desc">Descargar PDF a disco local</span>
+      </div>
+    </button>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+</mat-dialog-actions>

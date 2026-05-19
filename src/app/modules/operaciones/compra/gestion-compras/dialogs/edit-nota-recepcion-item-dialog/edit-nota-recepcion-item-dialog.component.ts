@@ -334,8 +334,13 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       discrepancias.push(`Cantidad: ${cantidadOriginal} → ${cantidadActual}`);
     }
 
-    // Comparar precio (solo si no es bonificación)
-    if (!formValue.esBonificacion) {
+    // Comparar precio (solo si no es bonificación y misma moneda)
+    // Si la nota tiene moneda distinta al pedido, la comparación numérica no tiene sentido
+    const notaMonedaId = this.originalItem?.notaRecepcion?.moneda?.id;
+    const pedidoMonedaId = this.originalItem?.pedidoItem?.pedido?.moneda?.id;
+    const mismaCurrency = !notaMonedaId || !pedidoMonedaId || notaMonedaId === pedidoMonedaId;
+
+    if (!formValue.esBonificacion && mismaCurrency) {
       const precioOriginal = this.pedidoItemOriginal.precioUnitarioSolicitado;
       const precioActual = formValue.precioUnitario;
       if (Math.abs(precioActual - precioOriginal) > 0.001) {
