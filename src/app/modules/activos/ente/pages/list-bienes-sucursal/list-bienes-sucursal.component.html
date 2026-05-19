@@ -1,0 +1,209 @@
+<app-generic-list [data]="(filteredRows$ | async) || []" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onAdicionar()" [isAdicionar]="true">
+  <div filtros>
+    <div class="dashboard-grid header-kpis" *ngIf="resumen$ | async as res">
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Total de bienes (filtro actual)</div>
+        <div class="metric-value">{{ res.totalBienes }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Pagados</div>
+        <div class="metric-value success">{{ res.pagados }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">En pago</div>
+        <div class="metric-value warning">{{ res.enPago }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Gasto ya ejecutado</div>
+        <div class="metric-value">{{ monedaPrincipal }} {{ res.totalGastado | number:'1.0-0' }}</div>
+      </mat-card>
+      <mat-card class="metric-card compact-card">
+        <div class="metric-label">Pendiente por pagar</div>
+        <div class="metric-value danger">{{ monedaPrincipal }} {{ res.totalPendiente | number:'1.0-0' }}</div>
+      </mat-card>
+    </div>
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px" style="width: 100%; margin-bottom: 5px;">
+      <div fxFlex="45">
+        <mat-form-field style="width: 100%">
+          <mat-label>Buscador Global (Descripción, Sucursal, Responsable, ID...)</mat-label>
+          <input matInput #searchInput placeholder="Buscar en todo el inventario..." 
+                 (keyup.enter)="onFiltrar(); $event.stopPropagation()"
+                 (keyup)="onSearchKeyUp(searchInput.value)">
+          <mat-icon matPrefix>search</mat-icon>
+          <button mat-icon-button matSuffix *ngIf="searchInput.value" (click)="searchInput.value = ''; resetFiltro()">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todas las sucursales</mat-option>
+            <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Tipo</mat-label>
+          <mat-select [formControl]="tipoControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of tiposDisponibles" [value]="t">{{ t }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Pago</mat-label>
+          <mat-select [formControl]="estadoPagoControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let e of estadosPagoDisponibles" [value]="e">{{ e }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="12">
+        <mat-form-field style="width: 100%">
+          <mat-label>Cuota</mat-label>
+          <mat-select [formControl]="estadoCuotaControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let e of estadosCuotaDisponibles" [value]="e">{{ e }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <div table style="height: 100%; background-color: transparent" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="(filteredRows$ | async) || []" multiTemplateDataRows class="mat-elevation-z8 bienes-table" style="width: 100%">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">Id</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoEnte">
+        <th mat-header-cell *matHeaderCellDef>Tipo de Bien</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge">{{ row.tipoEnte }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="descripcion-bien">{{ row.descripcion }}</div>
+          <div class="subtext">Ref. #{{ row.referenciaId }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+        <td mat-cell *matCellDef="let row">{{ row.sucursal }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="situacionPago">
+        <th mat-header-cell *matHeaderCellDef>Situación de pago</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class.badge-success]="row.situacionPago === 'PAGADO'"
+            [class.badge-warning]="row.situacionPago !== 'PAGADO'">
+            {{ row.situacionPago }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cuotas">
+        <th mat-header-cell *matHeaderCellDef>Cuotas</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.cuotasPagadas }} / {{ row.cuotasTotales }}
+          <div class="subtext">
+            Faltan: {{ row.cuotasFaltantes }} - Vence en: {{ row.diasParaVencer }} día(s)
+          </div>
+          <span class="badge cuota-badge" [ngClass]="row.estadoCuotaClass">{{ row.estadoCuota }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoYaPagado">
+        <th mat-header-cell *matHeaderCellDef>Pagado</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.moneda }} {{ row.montoYaPagado | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="montoPendiente">
+        <th mat-header-cell *matHeaderCellDef>Pendiente</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.moneda }} {{ row.montoPendiente | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Estado</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center">
+            <mat-icon [style.color]="row.activo ? '#4CAF50' : '#F44336'">
+                {{ row.activo ? 'check_circle' : 'cancel' }}
+            </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditar(row)">
+               <mat-icon color="primary">edit</mat-icon>
+               <span>Editar</span>
+            </button>
+            <button mat-menu-item (click)="onRetirarDeSucursal(row)" *ngIf="sucursalControl.value">
+              <mat-icon color="warn">remove_circle</mat-icon>
+              <span>Retirar de Sucursal</span>
+            </button>
+            <button mat-menu-item>Historial de Movimientos</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="displayedColumns.length" class="expanded-detail-cell">
+          <div class="expanded-content" [@detailExpand]="expandedRow?.id === row.id ? 'expanded' : 'collapsed'">
+            <div class="detail-grid" *ngIf="expandedRow?.id === row.id">
+              <mat-card class="detail-card">
+                <h4>Detalle del bien</h4>
+                <p><strong>Descripción:</strong> {{ row.descripcion }}</p>
+                <p><strong>Sucursal:</strong> {{ row.sucursal }}</p>
+                <p><strong>Proveedor:</strong> {{ row.proveedor }}</p>
+                <p><strong>Día vencimiento:</strong> {{ row.diaVencimiento || '-' }}</p>
+              </mat-card>
+              <mat-card class="detail-card">
+                <h4>Detalle de gastos</h4>
+                <table class="gastos-table">
+                  <tr *ngFor="let gasto of row.detalleGastos">
+                    <td>{{ gasto.concepto }}</td>
+                    <td class="align-right">{{ gasto.moneda }} {{ gasto.monto | number:'1.0-0' }}</td>
+                  </tr>
+                </table>
+              </mat-card>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+        [ngClass]="[row.estadoCuotaClass, expandedRow?.id === row.id ? 'selected-row' : '']"
+        (click)="toggleExpand(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+    </table>
+    
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="(enteService.totalElements$ | async) || 0"
+      [pageIndex]="(enteService.paginationState$ | async)?.pageIndex || 0"
+      [pageSize]="(enteService.paginationState$ | async)?.pageSize || 15" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

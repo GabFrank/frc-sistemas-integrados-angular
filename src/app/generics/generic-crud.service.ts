@@ -12,26 +12,6 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { Apollo } from "apollo-angular";
-
-/**
- * Interfaz para gestionar el manejo de errores en una solicitud GraphQL.
- * Esta interfaz permite configurar cómo se deben mostrar y propagar
- * los errores tanto a nivel de GraphQL como de red.
- *
- * Propiedades:
- *
- * - graphError:
- *   - Configuración para manejar los errores relacionados con GraphQL.
- *   - show: Indica si se debe mostrar el error (booleano).
- *   - color: Define el color de la notificación cuando se muestra el error (NotificacionColor).
- *   - propagate: Indica si se debe propagar el error para su manejo en otros niveles (booleano).
- *
- * - networkError:
- *   - Configuración para manejar los errores de red.
- *   - show: Indica si se debe mostrar el error de red (booleano).
- *   - color: Define el color de la notificación para errores de red (NotificacionColor).
- *   - propagate: Indica si se debe propagar el error de red (booleano).
- */
 export interface QueryError {
   graphError?: {
     show?: boolean;

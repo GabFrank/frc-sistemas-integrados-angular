@@ -1,0 +1,82 @@
+.pasos-indicador {
+  padding: 24px 32px;
+  background: #1e1e1e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.paso-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  min-width: 140px;
+  opacity: 0.6;
+}
+
+.paso-activo {
+  opacity: 1;
+
+  .paso-circulo {
+    background: #3f51b5;
+    color: #ffffff;
+  }
+
+  .paso-etiqueta {
+    color: rgba(255, 255, 255, 0.87);
+    font-weight: 500;
+  }
+}
+
+.paso-completado {
+  opacity: 1;
+
+  .paso-circulo {
+    background: transparent;
+    color: #4caf50;
+    border: none;
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .paso-etiqueta {
+    color: rgba(255, 255, 255, 0.87);
+  }
+}
+
+.paso-circulo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.87);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.paso-etiqueta {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.87);
+  letter-spacing: 0.25px;
+}
+
+.paso-linea {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  flex: 1;
+  max-width: 100px;
+  margin: 0 16px;
+  transition: all 0.3s ease;
+}
+
+.linea-activa {
+  background: #3f51b5;
+}

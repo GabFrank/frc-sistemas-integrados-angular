@@ -1,0 +1,48 @@
+.tab-activa {
+  color: #ff9800 !important;
+  border-bottom-color: #ff9800 !important;
+  font-weight: 500;
+}
+
+.example-element-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.example-element-row:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+tr.example-element-row:not(.example-expanded-row):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+tr.example-element-row:not(.example-expanded-row):active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mat-column-id {
+  font-weight: bold;
+  color: #888;
+}
+
+.mat-column-descripcion {
+  font-weight: 500;
+}
+
+.mat-table {
+  background: transparent;
+}
+
+.mat-header-cell {
+  color: #aaa;
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.mat-cell {
+  font-size: 0.9em;
+}
+
+::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}

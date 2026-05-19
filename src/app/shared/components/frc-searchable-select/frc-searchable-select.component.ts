@@ -51,6 +51,8 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
   @Input() currentData: any; //valor actual
   @Input() isFilter: boolean = true; //si el filtro sera realizado en el componte, si es un campo de busqueda en el servidor, desactivar filtro
   @Input() disabled = false; //desactivar el componente si es true
+  @Input() showSearch: boolean = true; //mostrar el campo de busqueda
+  @Input() nullOption: string; //texto para la opcion nula (vacia)
 
   filteredList: any[];
   isLoading: boolean = true;
@@ -75,20 +77,19 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
     if (changes.list && changes.list.currentValue) {
       this.isLoading = false;
       this.filteredList = this.list;
-      if (this.initialValue) {
+      if (this.initialValue && this.filteredList.length > 0) {
         this.control.setValue(this.filteredList[0]);
         this.selectionChanged.emit(this.filteredList[0]);
       }
       // this.filterList();
     }
 
-    if(changes['currentData'] && !changes['currentData'].firstChange){
+    if (changes['currentData'] && !changes['currentData'].firstChange) {
       this.control.setValue(this.currentData);
-      this.selectionChanged.emit(this.currentData);
     }
 
-    if(changes['disabled'] && !changes['disabled'].firstChange){
-      if(this.disabled){
+    if (changes['disabled'] && !changes['disabled'].firstChange) {
+      if (this.disabled) {
         this.control.disable();
         this.filterControl.disable();
       } else {
@@ -145,5 +146,12 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
 
   setFocus() {
     this.matSelect.focus()
+  }
+
+  compareBy(a: any, b: any): boolean {
+    if (a && b && a.id && b.id) {
+      return a.id === b.id;
+    }
+    return a === b;
   }
 }

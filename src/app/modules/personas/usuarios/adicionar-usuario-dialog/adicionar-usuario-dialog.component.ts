@@ -141,7 +141,6 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
         return this.usuarioRoleList.data.find(ur => ur.role.id == r.id) == null;
       }),
     };
-    // data.
     return new Observable(obs => {
       this.matDialog
         .open(SearchListDialogComponent, {

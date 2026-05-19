@@ -1,0 +1,142 @@
+@import 'src/styles.scss';
+
+$primary-color: #38853c;
+$text-secondary: #aaaaaa;
+
+:host {
+    ::ng-deep {
+
+        .mat-column-id,
+        .mat-column-acciones {
+            width: 5% !important;
+            text-align: center !important;
+        }
+
+        .mat-mdc-table {
+            background-color: transparent !important;
+        }
+
+        .mat-mdc-row,
+        .mat-mdc-header-row {
+            background-color: #464646 !important;
+            color: white !important;
+        }
+
+        .mat-mdc-row.detail-row {
+            background-color: transparent !important;
+
+            .mat-mdc-cell {
+                background-color: transparent !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+        }
+
+        .mat-mdc-header-cell {
+            color: white !important;
+            background-color: #464646 !important;
+        }
+
+        .mat-mdc-cell {
+            color: white !important;
+        }
+
+        .mat-mdc-paginator {
+            background-color: transparent !important;
+            color: white !important;
+        }
+
+        .mat-mdc-icon-button {
+            color: white !important;
+        }
+    }
+}
+
+
+table {
+    width: 100%;
+}
+
+tr.detail-row {
+    height: 0 !important;
+    min-height: 0 !important;
+    background-color: transparent !important;
+
+    td {
+        padding: 0 !important;
+        border: none !important;
+        background-color: transparent !important;
+    }
+}
+
+.expanded-cell {
+    padding: 0 !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+
+.element-row {
+    &:hover {
+        background: whitesmoke;
+        cursor: pointer;
+    }
+
+    &.expanded-row {
+        background: $primary-color;
+    }
+}
+
+.element-row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+}
+
+.expanded-row {
+    background-color: $primary-color !important;
+}
+
+.element-detail {
+    overflow: hidden;
+    display: flex;
+    background-color: rgb(50, 50, 50);
+}
+
+.detail-container {
+    padding: 16px;
+    width: 100%;
+}
+
+
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+
+    th,
+    td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+    }
+
+    th {
+        font-weight: bold;
+        color: $text-secondary;
+    }
+}
+
+.loading-detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: $text-secondary;
+}
+
+.no-data-detail {
+    padding: 10px;
+    font-style: italic;
+    color: $text-secondary;
+}

@@ -67,11 +67,24 @@
     appearance="outlined"
     fxFlex="50%"
     fxLayout="column"
+    class="acciones-laterales-card"
     style="width: 100%; height: 100%; padding: 10px;"
     (click)="isDialogOpen ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="85%">
       <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>
+    </div>
+    <div
+      *ngIf="tieneSolicitudesProcesadas"
+      class="solicitudes-notificacion-card solicitudes-notificacion-overlay"
+    >
+      <mat-icon>notifications_active</mat-icon>
+      <div class="solicitudes-notificacion-content">
+        <div class="solicitudes-notificacion-title">Solicitudes de gasto</div>
+        <div class="solicitudes-notificacion-detail">
+          {{ solicitudesAutorizadas }} autorizada(s) / {{ solicitudesRechazadas }} rechazada(s)
+        </div>
+      </div>
     </div>
     <div
       fxFlex="15%"
