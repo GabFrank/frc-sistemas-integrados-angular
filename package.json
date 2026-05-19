@@ -65,6 +65,7 @@
     "@superhuman/electron-push-receiver": "^2.1.7",
     "@swimlane/ngx-charts": "^20.5.0",
     "@techiediaries/ngx-qrcode": "9.1.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "@types/sockjs-client": "^1.5.4",
     "@vladmandic/human": "^3.3.6",
     "angular-bootstrap-md": "15.0.0",

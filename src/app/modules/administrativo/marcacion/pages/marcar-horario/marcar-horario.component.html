@@ -15,10 +15,12 @@
             <div fxFlex fxLayout="column" [fxLayoutAlign]="usuarioSeleccionado ? 'start stretch' : 'start center'">
 
                 <estado-marcacion #estadoRef *ngIf="usuarioSeleccionado" [estaEnJornada]="estaEnJornada"
-                    [cargando]="cargando" [reconocimientoExitoso]="reconocimientoExitoso"
+                    [accionPendiente]="accionPendiente" [cargando]="cargando"
+                    [reconocimientoExitoso]="reconocimientoExitoso"
                     [mensajeErrorFoto]="mensajeErrorFoto" [mostrandoCamara]="mostrandoCamara" [modoCamara]="modoCamara"
                     [referenciaDescriptor]="referenciaDescriptor" [usuarioSeleccionado]="usuarioSeleccionado"
                     (registrarEntrada)="registrarEntrada()" (registrarSalida)="registrarSalida()"
+                    (registrarRetornoAlmuerzo)="registrarRetornoAlmuerzo()"
                     (iniciarReconocimiento)="onIniciarReconocimiento()"
                     (identidadVerificada)="onIdentidadVerificada($event)" (fotoPerfilGuardada)="onFotoPerfilGuardada()"
                     (similitudInsuficiente)="similitudInsuficiente = $event">
