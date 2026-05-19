@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of, throwError, firstValueFrom } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { Observable, firstValueFrom } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { PersonaService } from '../../../personas/persona/persona.service';
@@ -24,10 +24,6 @@ export class UsuarioHelperService {
     buscarUsuarioPorId(id: number): Observable<Usuario | null> {
         return this.usuarioService.onGetUsuarioPorPersonaId(id, true, { networkError: { propagate: true, show: false } })
             .pipe(
-                catchError(err => {
-                    console.warn('Error fetching usuario from central, trying local...', err);
-                    return this.usuarioService.onGetUsuarioPorPersonaId(id, false);
-                }),
                 tap(usuario => {
                     if (!usuario) {
                         this.manejarErrorPersonaNoEncontrada(id);
@@ -86,22 +82,9 @@ export class UsuarioHelperService {
 
                 if (images && images.length > 0) {
                     return images[0];
-                } else {
-                    const localImages = await firstValueFrom(this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', false));
-                    if (localImages && localImages.length > 0) {
-                        return localImages[0];
-                    }
                 }
             } catch (e) {
-                console.warn('Error fetching image from central, trying local...', e);
-                try {
-                    const localImages = await firstValueFrom(this.usuarioService.onGetUsuarioImages(usuario.id, 'perfil', false));
-                    if (localImages && localImages.length > 0) {
-                        return localImages[0];
-                    }
-                } catch (e2) {
-                    console.error('Error fetching image from local', e2);
-                }
+                console.error('Error obteniendo foto de perfil del servidor central', e);
             }
         }
 

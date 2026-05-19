@@ -145,7 +145,6 @@ export class MarcacionService {
     const input = new MarcacionInput();
     input.usuarioId = contexto.usuarioId;
     input.tipo = TipoMarcacion.SALIDA;
-    input.sucursalEntradaId = contexto.sucursalId;
     input.sucursalSalidaId = contexto.sucursalId;
     input.sucursalId = contexto.sucursalId;
     input.fechaSalida = this.toLocalIsoString(this.horaServidorService.obtenerHoraActual());

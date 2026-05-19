@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { CamaraReconocimientoComponent, ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.component';
+import { AccionMarcacionPendiente } from '../../enums/accion-marcacion-pendiente.enum';
 
 @Component({
     selector: 'estado-marcacion',
@@ -19,6 +20,7 @@ import { CamaraReconocimientoComponent, ModoCamara } from '../camara-reconocimie
 export class EstadoMarcacionComponent {
 
     @Input() estaEnJornada = false;
+    @Input() accionPendiente: AccionMarcacionPendiente = AccionMarcacionPendiente.ENTRADA;
     @Input() cargando = false;
     @Input() reconocimientoExitoso = false;
     @Input() mensajeErrorFoto = '';
@@ -29,6 +31,9 @@ export class EstadoMarcacionComponent {
 
     @Output() registrarEntrada = new EventEmitter<void>();
     @Output() registrarSalida = new EventEmitter<void>();
+    @Output() registrarRetornoAlmuerzo = new EventEmitter<void>();
+
+    readonly AccionMarcacionPendiente = AccionMarcacionPendiente;
     @Output() iniciarReconocimiento = new EventEmitter<void>();
     @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string }>();
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
