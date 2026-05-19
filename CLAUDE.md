@@ -173,6 +173,14 @@ El desktop consume GraphQL del `frc-comercial/central`. Si el backend cambia el 
 9. Saltear el CI con `--no-verify` — si commitlint o tests fallan, corregir
 10. Llamar funciones desde HTML o usar getters/setters en bindings — performance issues garantizados
 
+## Header de la app
+
+`app-header` en `src/app/shared/components/header/` — refactor v2 (mayo 2026). Layout en 5 zonas: brand (izq), cotizaciones USD/REAL con polling 10 min, reloj con tick 1s, status servers como dots verticales, acciones + usuario (der). Bloque central (cotiz/reloj/status) centrado horizontalmente entre brand y user.
+
+Servicio de cotizaciones: `src/app/shared/services/cotizacion-header.service.ts`. BehaviorSubject reactivo, refresh manual desde botón del header, polling automático cada 10 min, bootstrap al login. Consume `ultimoCambioPorMonedaId` ya existente — sin cambios backend.
+
+Detalle completo + cómo extender: [docs/refactor/HEADER_REFACTOR_v2.md](docs/refactor/HEADER_REFACTOR_v2.md).
+
 ## Estructura de módulos (`src/app/modules/`)
 
 19 módulos por dominio funcional: `administrativo`, `configuracion`, `dashboard`, `empresarial`, `financiero`, `general`, `login`, `notificaciones`, `operaciones`, `pdv`, `personas`, `print`, `productos`, `reportes`, `sistema`, `transferencias`. Cada uno sigue el patrón list/edit/graphql descripto arriba.

@@ -45,6 +45,8 @@ export class CellFormatPipe implements PipeTransform {
         return this.decimalPipe.transform(value, info.pipeArgs);
       case 'currency':
         return this.currencyPipe.transform(value, info.pipeArgs);
+      case 'booleanYesNo':
+        return value ? 'SI' : 'NO';
       default:
         return value;
     }

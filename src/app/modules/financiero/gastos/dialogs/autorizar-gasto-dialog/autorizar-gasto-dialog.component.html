@@ -1,0 +1,112 @@
+<div class="dialogo-contenedor">
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">gavel</mat-icon>
+    <h3 class="dialogo-titulo">Gestionar Solicitud #{{ preGasto.id }}</h3>
+  </div>
+
+  <div class="resumen-solicitud">
+    <div class="resumen-campo">
+      <span class="resumen-label">Solicitante</span>
+      <span class="resumen-valor">{{ preGasto.funcionario?.nombre }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Tipo de Gasto</span>
+      <span class="resumen-valor">{{ preGasto.tipoGasto?.descripcion }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Concepto</span>
+      <span class="resumen-valor resumen-descripcion">{{ preGasto.descripcion }}</span>
+    </div>
+    <div class="resumen-campo">
+      <span class="resumen-label">Sucursal Retiro</span>
+      <span class="resumen-valor">{{ preGasto.sucursalCaja?.nombre }}</span>
+    </div>
+  </div>
+
+  <div class="monto-destacado" *ngIf="resumenMontosPorMoneda.length === 1">
+    <span class="monto-etiqueta">MONTO SOLICITADO</span>
+    <span class="monto-cantidad">
+      {{ resumenMontosPorMoneda[0].simboloMoneda }} {{ formatMonto(resumenMontosPorMoneda[0].solicitado) }}
+    </span>
+  </div>
+
+  <div class="resumen-solicitud" *ngIf="resumenMontosPorMoneda.length > 0">
+    <div class="resumen-campo" *ngFor="let m of resumenMontosPorMoneda">
+      <span class="resumen-label">{{ m.etiquetaMoneda }} ({{ m.simboloMoneda || '-' }})</span>
+      <span class="resumen-valor">
+        Solicitado: {{ m.simboloMoneda }} {{ formatMonto(m.solicitado) }} |
+        Retirado: {{ m.simboloMoneda }} {{ formatMonto(m.retirado) }} |
+        Rendido: {{ m.simboloMoneda }} {{ formatMonto(m.rendido) }} |
+        Vuelto: {{ m.simboloMoneda }} {{ formatMonto(m.vuelto) }}
+      </span>
+    </div>
+  </div>
+  <div *ngIf="mostrarMotivoRechazo" class="rechazo-seccion">
+    <mat-form-field appearance="outline" style="width: 100%;">
+      <mat-label>Motivo del Rechazo</mat-label>
+      <textarea matInput [formControl]="motivoRechazoControl"
+        placeholder="Indique el motivo por el cual se rechaza esta solicitud" rows="3"></textarea>
+      <mat-icon matSuffix color="warn">warning</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <div class="rendicion-seccion" *ngIf="esTramite()">
+    <div class="rendicion-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (Gs.)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsGuarani" [formControl]="montoRendidoGsControl" />
+        <span matSuffix>Gs.</span>
+        <mat-error *ngIf="montoRendidoGsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (R$)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="montoRendidoRsControl" />
+        <span matSuffix>R$</span>
+        <mat-error *ngIf="montoRendidoRsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Monto rendido real (USD)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="montoRendidoDsControl" />
+        <span matSuffix>USD</span>
+        <mat-error *ngIf="montoRendidoDsControl.hasError('min')">
+          El monto no puede ser negativo.
+        </mat-error>
+      </mat-form-field>
+    </div>
+    <small>Ingrese lo rendido real por moneda; el backend recalcula vuelto, estado y porcentajes.</small>
+  </div>
+
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
+    <button mat-stroked-button (click)="cancelar()" type="button">
+      Volver
+    </button>
+
+    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="esTramite()" type="button">
+      <mat-icon>cancel</mat-icon>
+      {{ mostrarMotivoRechazo ? 'Confirmar Rechazo' : 'Rechazar' }}
+    </button>
+
+    <button
+      mat-raised-button
+      class="boton-autorizar"
+      (click)="autorizar()"
+      *ngIf="!mostrarMotivoRechazo"
+      [disabled]="esTramite()"
+      type="button"
+    >
+      <mat-icon>check_circle</mat-icon>
+      Autorizar
+    </button>
+
+    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite()" type="button">
+      <mat-icon>task_alt</mat-icon>
+      Finalizar
+    </button>
+  </div>
+</div>

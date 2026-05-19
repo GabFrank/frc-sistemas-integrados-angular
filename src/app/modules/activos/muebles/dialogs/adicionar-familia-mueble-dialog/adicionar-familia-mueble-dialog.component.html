@@ -1,0 +1,26 @@
+<div mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="start center">
+        <span class="titulo">REGISTRAR NUEVA FAMILIA DE MUEBLE</span>
+    </div>
+</div>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-content style="min-width: 500px; padding-top: 20px;">
+    <div fxLayout="column" fxLayoutGap="20px">
+        <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
+            <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Descripción de la Familia</mat-label>
+                <input matInput formControlName="descripcion" placeholder="Ej: OFICINA"
+                    (keyup.enter)="onGuardar()" cdkFocusInitial>
+            </mat-form-field>
+        </form>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" style="padding: 15px 24px;">
+    <button mat-button (click)="onCancelar()" style="margin-right: 10px;">CANCELAR</button>
+    <button mat-raised-button color="accent" [disabled]="form.invalid" (click)="onGuardar()">
+        <mat-icon>save</mat-icon> GUARDAR Y SELECCIONAR
+    </button>
+</mat-dialog-actions>

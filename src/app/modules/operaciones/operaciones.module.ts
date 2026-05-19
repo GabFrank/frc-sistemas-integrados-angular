@@ -42,6 +42,9 @@ import { ListPagoComponent } from './pago/list-pago/list-pago.component';
 import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
+import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante.component';
+import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
+import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
 
 
@@ -105,6 +108,9 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
     EditPagoComponent,
     PagoDetalleDialogComponent,
     ModificarSucursalPagoDetalleComponent,
+    AcompanhanteComponent,
+    RutaHojaComponent,
+    EntregadoresComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
     SelectSucursalesDialogComponent,
@@ -140,12 +146,12 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
     InventarioModule,
     EmpresarialModule,
     ModificacionesModuleModule,
-    
+
   ],
   exports: [
   ],
-  providers:[
-    { provide: LOCALE_ID, useValue: 'es-PY' } ,
+  providers: [
+    { provide: LOCALE_ID, useValue: 'es-PY' },
   ]
 })
 export class OperacionesModule { }

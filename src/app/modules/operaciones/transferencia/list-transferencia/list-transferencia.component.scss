@@ -30,3 +30,43 @@ tr.example-detail-row {
 .example-element-row:hover {
   background-color: rgb(34, 34, 34);
 }
+
+::ng-deep .checkbox-ruta-asignada.mat-checkbox-disabled,
+::ng-deep .checkbox-ruta-asignada.mat-mdc-checkbox-disabled {
+  opacity: 1 !important;
+
+  /* Legacy Styles */
+  .mat-checkbox-frame {
+    border-color: #000 !important;
+    background-color: #000 !important;
+    border-width: 2px !important;
+  }
+
+  .mat-checkbox-background {
+    background-color: #000 !important;
+  }
+
+  .mat-checkbox-inner-container {
+    background-color: #000 !important;
+  }
+
+  .mat-checkbox-checkmark-path {
+    stroke: #fff !important;
+  }
+
+  /* MDC Styles */
+  .mdc-checkbox {
+    .mdc-checkbox__background {
+      background-color: #000 !important;
+      border-color: #000 !important;
+    }
+
+    .mdc-checkbox__checkmark {
+      color: #fff !important;
+    }
+
+    .mdc-checkbox__checkmark-path {
+      stroke: #fff !important;
+    }
+  }
+}

@@ -12,7 +12,7 @@ import { MainService } from "../../../main.service";
 import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
-import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component";
 import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';

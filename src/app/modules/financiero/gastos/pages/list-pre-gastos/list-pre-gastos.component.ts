@@ -1,0 +1,390 @@
+import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject } from '@angular/core';
+import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
+import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
+import { MatDialog } from '@angular/material/dialog';
+import { WindowInfoService } from '../../../../../shared/services/window-info.service';
+import { MainService } from '../../../../../main.service';
+import { GastoService } from '../../service/gasto.service';
+import { PreGasto } from '../../models/pre-gasto.model';
+import { AutorizarGastoDialogComponent } from '../../dialogs/autorizar-gasto-dialog/autorizar-gasto-dialog.component';
+import { UntilDestroy } from '@ngneat/until-destroy';
+import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { PageEvent } from '@angular/material/paginator';
+import { FormControl, FormGroup } from '@angular/forms';
+import { ReporteService } from '../../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { CajaService } from '../../../pdv/caja/caja.service';
+
+@UntilDestroy()
+@Component({
+  selector: 'app-list-pre-gastos',
+  templateUrl: './list-pre-gastos.component.html',
+  styleUrls: ['./list-pre-gastos.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ListPreGastosComponent implements OnInit, DoCheck {
+  private gastoService = inject(GastoService);
+  private windowInfoService = inject(WindowInfoService);
+  private matDialog = inject(MatDialog);
+  private tabService = inject(TabService);
+  private mainService = inject(MainService);
+  private reporteService = inject(ReporteService);
+  private dialogosService = inject(DialogosService);
+  private notificacionService = inject(NotificacionSnackbarService);
+  private cajaService = inject(CajaService);
+
+  alturaContenedor = this.windowInfoService.innerTabHeight;
+  alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
+
+  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'RECHAZADO', 'COMPLETADO', null];
+  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Rechazados', 'Completados', 'Todos'];
+
+  columnasVisibles = [
+    'id', 'funcionario', 'tipoGasto', 'descripcion',
+    'monto', 'moneda', 'sucursal', 'estado', 'fecha', 'acciones'
+  ];
+
+  private tabActivaSubject = new BehaviorSubject<number>(6); // Todos por defecto
+  public tabActiva$ = this.tabActivaSubject.asObservable();
+
+  private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
+  public pagination$ = this.paginationSubject.asObservable();
+
+  private refetchSubject = new BehaviorSubject<void>(void 0);
+
+  public totalElements$ = new BehaviorSubject<number>(0);
+
+  public cargandoSubject = new BehaviorSubject<boolean>(false);
+  public cargando$ = this.cargandoSubject.asObservable();
+
+  public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
+  public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
+  fechaFormGroup = new FormGroup({
+    inicio: new FormControl<Date | null>(ListPreGastosComponent.fechaInicioRangoPorDefecto()),
+    fin: new FormControl<Date | null>(new Date()),
+    buscarId: new FormControl<number | null>(null)
+  });
+
+  private lastAppliedBuscarId: number | null = null;
+
+  ngOnInit(): void {
+    this.aplicarFiltroDesdeTabData();
+  }
+
+  ngDoCheck(): void {
+    this.aplicarFiltroDesdeTabData();
+  }
+
+  private aplicarFiltroDesdeTabData(): void {
+    const tabActual = this.tabService.currentTab();
+    if (tabActual?.component !== ListPreGastosComponent) return;
+
+    const tabData: TabData | undefined = this.tabService.currentTab()?.tabData;
+    const buscarId = Number(tabData?.data?.buscarId);
+    if (!Number.isFinite(buscarId) || buscarId <= 0) {
+      return;
+    }
+    if (this.lastAppliedBuscarId === buscarId) {
+      return;
+    }
+
+    this.lastAppliedBuscarId = buscarId;
+    this.fechaFormGroup.controls.buscarId.setValue(buscarId);
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.refetchSubject.next();
+  }
+
+  /** Rango por defecto: desde hace 3 días hasta hoy (inclusive). */
+  private static fechaInicioRangoPorDefecto(): Date {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    inicio.setDate(inicio.getDate() - 3);
+    return inicio;
+  }
+
+  public listaFiltrada$: Observable<PreGasto[]> = combineLatest([
+    this.tabActiva$,
+    this.refetchSubject,
+    this.pagination$
+  ]).pipe(
+    tap(() => this.cargandoSubject.next(true)),
+    switchMap(([tabIndex, _, pag]) => {
+      const estado = this.tabEstados[tabIndex];
+      const inicioStr = this.toDayBoundary(this.fechaFormGroup.controls.inicio.value, false);
+      const finStr = this.toDayBoundary(this.fechaFormGroup.controls.fin.value, true);
+
+      return this.gastoService.preGastoFilter(
+        this.fechaFormGroup.controls.buscarId.value,
+        undefined,
+        estado,
+        inicioStr,
+        finStr,
+        pag.pageIndex,
+        pag.pageSize
+      ).pipe(
+        catchError(err => {
+          console.error('Error fetching pre_gastos:', err);
+          return of(null);
+        })
+      );
+    }),
+    tap(res => {
+      this.cargandoSubject.next(false);
+      if (res) {
+        this.totalElements$.next(res.getTotalElements || 0);
+      }
+    }),
+    map(res => res?.getContent || []),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  cambiarTab(indice: number): void {
+    this.tabActivaSubject.next(indice);
+    this.preGastoSeleccionadoSubject.next(null);
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+  }
+
+  seleccionarPreGasto(preGasto: PreGasto): void {
+    this.preGastoSeleccionadoSubject.next(preGasto);
+  }
+
+  autorizarGasto(preGasto: PreGasto): void {
+    this.matDialog
+      .open(AutorizarGastoDialogComponent, {
+        data: { preGasto },
+        width: '50%',
+        disableClose: true,
+        restoreFocus: true,
+        autoFocus: true,
+      })
+      .afterClosed()
+      .subscribe(res => {
+        if (res != null) {
+          this.refetchSubject.next();
+          const actual = this.preGastoSeleccionadoSubject.value;
+          if (actual?.id === preGasto.id) {
+            this.preGastoSeleccionadoSubject.next(res);
+          }
+        }
+      });
+  }
+
+  onEnviarATesoreria(preGasto: PreGasto): void {
+    if (!preGasto || !preGasto.id) return;
+
+    this.cargandoSubject.next(true);
+    this.gastoService.preGastoEnviarATesoreria(
+      Number(preGasto.id),
+      Number(preGasto.sucursalId),
+      Number(this.mainService.usuarioActual?.id)
+    ).subscribe({
+      next: (res) => {
+        this.cargandoSubject.next(false);
+        if (res) {
+          this.refetchSubject.next();
+          this.preGastoSeleccionadoSubject.next(res);
+        }
+      },
+      error: (err) => {
+        this.cargandoSubject.next(false);
+        console.error('Error al enviar a tesorería:', err);
+      }
+    });
+  }
+
+  onEnviarASucursalRetiro(preGasto: PreGasto): void {
+    if (!preGasto?.id) return;
+
+    this.dialogosService.confirm(
+      'Confirmar envío',
+      null,
+      null,
+      [`Solicitud #${preGasto.id}`, `Sucursal retiro: ${preGasto?.sucursalCaja?.nombre || 'Sin sucursal'}`]
+    ).subscribe(confirmado => {
+      if (!confirmado) return;
+      this.notificacionService.openSucess('Solicitud enviada a sucursal de retiro');
+      this.refetchSubject.next();
+    });
+  }
+
+  onImprimirSolicitud(solicitudPagoId: number): void {
+    this.cargandoSubject.next(true);
+    this.gastoService.imprimirSolicitudPago(solicitudPagoId).subscribe({
+      next: (res) => {
+        this.cargandoSubject.next(false);
+        if (res) {
+          this.reporteService.onAdd(`Solicitud de Pago ${solicitudPagoId}`, res);
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
+        }
+      },
+      error: (err) => {
+        this.cargandoSubject.next(false);
+        console.error('Error al imprimir solicitud:', err);
+      }
+    });
+  }
+
+  irAAgregarPreGasto(): void {
+    this.tabService.addTab(new Tab(AdicionarPreGastoComponent, "Nuevo Pre-Gasto", null, ListPreGastosComponent));
+  }
+
+  onRefrescar(): void {
+    this.refetchSubject.next();
+  }
+
+  onLimpiarFiltro(): void {
+    this.fechaFormGroup.reset({
+      inicio: ListPreGastosComponent.fechaInicioRangoPorDefecto(),
+      fin: new Date(),
+      buscarId: null
+    });
+    this.onRefrescar();
+  }
+
+  onFiltrarFechas(): void {
+    this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
+    this.refetchSubject.next();
+  }
+
+  handlePageEvent(e: PageEvent): void {
+    this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
+  }
+
+  colorEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return '#9e9e9e';
+    }
+    return preGastoOrEstado?.estadoColor || '#9e9e9e';
+  }
+
+  iconoEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return 'help_outline';
+    }
+    return preGastoOrEstado?.estadoIcono || 'help_outline';
+  }
+
+  etiquetaEstado(preGastoOrEstado: PreGasto | string): string {
+    if (typeof preGastoOrEstado === 'string') {
+      return preGastoOrEstado;
+    }
+    return preGastoOrEstado?.estadoEtiqueta || preGastoOrEstado?.estado || '-';
+  }
+
+  resumenMontos(preGasto: PreGasto): string {
+    const finanzas = preGasto?.finanzas || [];
+    if (finanzas.length === 0) {
+      return preGasto?.montoSolicitado != null ? `${preGasto.montoSolicitado}` : '0';
+    }
+    return finanzas
+      .filter(f => f?.monto != null)
+      .map(f => `${f.monto}`)
+      .join(' + ');
+  }
+
+  resumenMonedas(preGasto: PreGasto): string {
+    const finanzas = preGasto?.finanzas || [];
+    if (finanzas.length === 0) {
+      return preGasto?.moneda?.simbolo || preGasto?.moneda?.denominacion || '-';
+    }
+    const etiquetas = Array.from(
+      new Set(
+        finanzas
+          .map(f => f?.moneda?.simbolo || f?.moneda?.denominacion)
+          .filter(v => !!v)
+      )
+    );
+    return etiquetas.join(' / ');
+  }
+
+  porcentajeRendidoPorMoneda(preGasto: PreGasto): string {
+    const requested = this.getSolicitadoPorMoneda(preGasto);
+    const rendido = this.getRendidoPorMoneda(preGasto);
+    const parts = Object.keys(requested).map((currencyKey) => {
+      const solicitado = requested[currencyKey] ?? 0;
+      if (solicitado <= 0) {
+        return null;
+      }
+      const porcentaje = ((rendido[currencyKey] ?? 0) * 100) / solicitado;
+      return `${currencyKey}: ${porcentaje.toFixed(2)}%`;
+    }).filter((value): value is string => !!value);
+    return parts.length > 0 ? parts.join(' | ') : '0.00%';
+  }
+
+  montoNoRendidoPorMoneda(preGasto: PreGasto): string {
+    const requested = this.getSolicitadoPorMoneda(preGasto);
+    const rendido = this.getRendidoPorMoneda(preGasto);
+    const parts = Object.keys(requested).map((currencyKey) => {
+      const solicitado = requested[currencyKey] ?? 0;
+      if (solicitado <= 0) {
+        return null;
+      }
+      const montoNoRendido = Math.max(solicitado - (rendido[currencyKey] ?? 0), 0);
+      return `${currencyKey}: ${this.formatMontoPorMoneda(currencyKey, montoNoRendido)}`;
+    }).filter((value): value is string => !!value);
+    return parts.length > 0 ? parts.join(' | ') : 'GS: 0';
+  }
+
+  private formatMontoPorMoneda(currencyKey: string, amount: number): string {
+    const minFractionDigits = currencyKey === 'GS' ? 0 : 2;
+    const maxFractionDigits = currencyKey === 'GS' ? 0 : 2;
+    return new Intl.NumberFormat('es-PY', {
+      minimumFractionDigits: minFractionDigits,
+      maximumFractionDigits: maxFractionDigits,
+    }).format(amount);
+  }
+
+  private getSolicitadoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    const finanzas = preGasto?.finanzas || [];
+    const requested: Record<string, number> = {};
+    finanzas.forEach((f) => {
+      const key = this.resolveMonedaKey(f?.moneda?.simbolo, f?.moneda?.denominacion);
+      if (!key) return;
+      requested[key] = Number(f?.monto ?? 0);
+    });
+    if (Object.keys(requested).length === 0) {
+      const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';
+      requested[key] = Number(preGasto?.montoSolicitado ?? 0);
+    }
+    return requested;
+  }
+
+  private getRendidoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    const gasto = preGasto?.gasto;
+    return {
+      GS: Math.max(Number(gasto?.retiroGs ?? 0) - Number(gasto?.vueltoGs ?? 0), 0),
+      RS: Math.max(Number(gasto?.retiroRs ?? 0) - Number(gasto?.vueltoRs ?? 0), 0),
+      DS: Math.max(Number(gasto?.retiroDs ?? 0) - Number(gasto?.vueltoDs ?? 0), 0),
+    };
+  }
+
+  private resolveMonedaKey(simbolo?: string, denominacion?: string): 'GS' | 'RS' | 'DS' | null {
+    const normalized = (simbolo ?? '').trim().toUpperCase();
+    const normalizedDen = (denominacion ?? '').trim().toUpperCase();
+    if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) return 'GS';
+    if (normalized.includes('R$') || normalized.includes('RS') || normalizedDen.includes('REAL')) return 'RS';
+    if (normalized.includes('USD') || normalized.includes('US$') || normalized === '$' || normalizedDen.includes('DOLAR')) return 'DS';
+    return null;
+  }
+
+  private formatDate(d: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  private toDayBoundary(date: Date | null, endOfDay: boolean): string | null {
+    if (!date) return null;
+    const d = new Date(date);
+    if (endOfDay) {
+      d.setHours(23, 59, 59, 0);
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    return this.formatDate(d);
+  }
+}
