@@ -71,7 +71,7 @@ export const productosExistenciaCostoSearch = gql`
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int, $sucursalId: Int, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean) {
+  query ($texto: String, $offset: Int, $sucursalId: ID, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean) {
     data: productoSearch(
       texto: $texto
       offset: $offset
