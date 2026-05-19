@@ -1,0 +1,6 @@
+export enum AccionMarcacionPendiente {
+  ENTRADA = 'ENTRADA',
+  SALIDA = 'SALIDA',
+  RETORNO_ALMUERZO = 'RETORNO_ALMUERZO',
+  SALIDA_DEFINITIVA = 'SALIDA_DEFINITIVA'
+}
