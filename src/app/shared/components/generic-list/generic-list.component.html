@@ -18,7 +18,7 @@
           <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
         </div>
         <div *ngIf="isAdicionar" class="boton">
-          <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
+          <app-boton (clickEvent)="onAdd()" [disableExpression]="disableAdicionar" nombre="+ Adicionar"></app-boton>
         </div>
         <div *ngIf="isCustom" class="boton">
           <app-boton 
