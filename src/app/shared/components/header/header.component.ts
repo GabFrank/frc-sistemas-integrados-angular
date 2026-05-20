@@ -32,6 +32,13 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
 import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 import { CotizacionHeaderService } from "../../services/cotizacion-header.service";
+
+/** Hora/fecha del reloj del header: siempre reloj local del SO (no servidor). */
+export interface HeaderClockNow {
+  time: string;
+  date: string;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -59,7 +66,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   appVersion = null;
   unreadCount$ = this.notificacionesTableroService.unreadCount$;
   cotizaciones$ = this.cotizacionHeaderService.cotizaciones$;
-  now$ = timer(0, 1000).pipe(map(() => new Date()));
+  /** Reloj local: útil para detectar si la zona horaria del equipo cambió. */
+  now$ = timer(0, 1000).pipe(map(() => HeaderComponent.formatRelojLocal(new Date())));
   userMainRole = '';
   isRefreshingCotiz = false;
 
@@ -82,6 +90,40 @@ export class HeaderComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       console.log(this.mainService.usuarioActual);
     }, 2000);
+  }
+
+  /**
+   * Electron 24 embebe ICU con DST obsoleto en `America/Asuncion` (UTC−4 en mayo).
+   * El SO y `date` en terminal usan UTC−3 fijo; `getHours()` en el renderer queda 1 h atrás.
+   */
+  private static readonly DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  private static readonly MESES_CORTOS = [
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+  ];
+
+  /** Minutos al este de UTC según el SO; corrige el bug UTC−4 de Electron en Paraguay. */
+  private static offsetMinutosLocalCorregido(d: Date): number {
+    let offsetMinEste = -d.getTimezoneOffset();
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz === "America/Asuncion" && offsetMinEste === -240) {
+      offsetMinEste = -180;
+    }
+    return offsetMinEste;
+  }
+
+  private static formatRelojLocal(d: Date): HeaderClockNow {
+    const offsetMinEste = HeaderComponent.offsetMinutosLocalCorregido(d);
+    const local = new Date(d.getTime() + offsetMinEste * 60 * 1000);
+    const time = [local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds()]
+      .map((n) => String(n).padStart(2, "0"))
+      .join(":");
+
+    const date = `${HeaderComponent.DIAS_CORTOS[local.getUTCDay()]} ${local.getUTCDate()} ${
+      HeaderComponent.MESES_CORTOS[local.getUTCMonth()]
+    }.`;
+
+    return { time, date };
   }
 
   ngOnInit(): void {
