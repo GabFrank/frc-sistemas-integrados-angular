@@ -1185,11 +1185,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private startSolicitudesProcesadasPolling(): void {
-    interval(60000)
+    const POLL_INTERVAL_MS = 3 * 60 * 1000;
+    interval(POLL_INTERVAL_MS)
       .pipe(
         startWith(0),
         switchMap(() => {
           const cajaId = this.cajaService?.selectedCaja?.id;
+          if (cajaId == null) {
+            return of(null);
+          }
           return this.gastoService
             .preGastoFilter(
               undefined,
@@ -1199,7 +1203,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               undefined,
               0,
               200,
-              ["AUTORIZADO", "RECHAZADO"]
+              ["AUTORIZADO", "RECHAZADO"],
+              true
             )
             .pipe(catchError(() => of(null)));
         }),
