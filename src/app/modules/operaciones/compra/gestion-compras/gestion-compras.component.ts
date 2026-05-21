@@ -71,7 +71,11 @@ import {
   SearchListtDialogData,
   TableData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { PdvSearchProductoDialogComponent } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+import {
+  PdvSearchProductoData,
+  PdvSearchProductoDialogComponent,
+  PdvSearchProductoResponseData,
+} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
@@ -2223,92 +2227,117 @@ export class GestionComprasComponent
   }
 
   onAddItem(): void {
-    const dialogData: AddEditItemDialogData = {
-      pedido: this.currentPedido as Pedido,
-      isEdit: false,
-      title: "Añadir Nuevo Ítem al Pedido",
-      lastSearchText: this.lastItemSearchText,
+    const searchData: PdvSearchProductoData = {
+      texto: this.lastItemSearchText || "",
+      cantidad: 1,
+      mostrarStock: true,
+      mostrarOpciones: false,
+      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "65%",
-      height: "70%",
-      data: dialogData,
-      disableClose: true,
+    const searchDialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+      height: "80%",
+      data: searchData,
     });
 
-    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-      if (result?.lastSearchText !== undefined) {
-        this.lastItemSearchText = result.lastSearchText;
-      }
-      if (result && result.action === "save") {
-        // Actualizar localmente el monto total del pedido
-        if (this.isEditMode && result.item) {
-          this.updateMontoTotalLocalOnAdd(result.item);
+    searchDialogRef.afterClosed().subscribe((searchResult: PdvSearchProductoResponseData) => {
+      if (searchResult && searchResult.producto) {
+        if (searchResult.presentacion?.codigoPrincipal?.codigo) {
+          this.lastItemSearchText = searchResult.presentacion.codigoPrincipal.codigo;
+        } else if (searchResult.producto.descripcion) {
+          this.lastItemSearchText = searchResult.producto.descripcion;
         }
-        
-        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-        if (result.item?.producto?.id) {
-          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-        }
-        
-        // Marcar tab de ítems como no cargado para recargar en próxima visita
-        this.markTabAsUnloaded(1);
-        
-        // Si estamos en el tab de ítems, recargar inmediatamente
-        if (this.selectedTabIndex === 1) {
-          // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-        } else {
-          // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
-          // Si estamos en el tab de ítems, recargar inmediatamente con paginación
-          if (this.selectedTabIndex === 1) {
-            // Resetear a primera página y recargar
-            this.itemsPageIndex = 0;
-            this.loadItemsData();
-          } else {
-            // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
-            // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
-            this.updateItemsComputedProperties();
+
+        const dialogData: AddEditItemDialogData = {
+          pedido: this.currentPedido as Pedido,
+          isEdit: false,
+          title: "Añadir Nuevo Ítem al Pedido",
+          lastSearchText: this.lastItemSearchText,
+          producto: searchResult.producto,
+          presentacion: searchResult.presentacion
+        };
+
+        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+          width: "65%",
+          height: "70%",
+          data: dialogData,
+          disableClose: true,
+        });
+
+        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result?.lastSearchText !== undefined) {
+            this.lastItemSearchText = result.lastSearchText;
           }
-        }
-        
-        // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
-        this.markTabAsUnloaded(2);
-        
-        // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
-        if (this.isEditMode) {
-          // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
-          setTimeout(() => {
-            this.loadPedidoResumen();
-          }, 500);
-        }
-        
-        // Recargar pedido completo para obtener procesoEtapas actualizado
-        if (this.currentPedido?.id) {
-          this.pedidoService.onGetPedidoById(this.currentPedido.id)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (pedidoCompleto) => {
-                this.currentPedido = pedidoCompleto;
-                this.updateComputedProperties();
-                // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
-                if (this.selectedTabIndex !== 1) {
-                  this.updateItemsComputedProperties();
-                }
-              },
-              error: (error) => {
-                console.error("Error recargando pedido después de agregar item:", error);
-                this.updateComputedProperties();
-                if (this.selectedTabIndex !== 1) {
-                  this.updateItemsComputedProperties();
-                }
+          if (result && result.action === "save") {
+            // Actualizar localmente el monto total del pedido
+            if (this.isEditMode && result.item) {
+              this.updateMontoTotalLocalOnAdd(result.item);
+            }
+            
+            // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
+            if (result.item?.producto?.id) {
+              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+            }
+            
+            // Marcar tab de ítems como no cargado para recargar en próxima visita
+            this.markTabAsUnloaded(1);
+            
+            // Si estamos en el tab de ítems, recargar inmediatamente
+            if (this.selectedTabIndex === 1) {
+              // Resetear a primera página y recargar
+              this.itemsPageIndex = 0;
+              this.loadItemsData();
+            } else {
+              // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
+              // Si estamos en el tab de ítems, recargar inmediatamente con paginación
+              if (this.selectedTabIndex === 1) {
+                // Resetear a primera página y recargar
+                this.itemsPageIndex = 0;
+                this.loadItemsData();
+              } else {
+                // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
+                // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
+                this.updateItemsComputedProperties();
               }
-            });
-        } else {
-          this.updateComputedProperties();
-        }
+            }
+            
+            // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
+            this.markTabAsUnloaded(2);
+            
+            // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
+            if (this.isEditMode) {
+              // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+              setTimeout(() => {
+                this.loadPedidoResumen();
+              }, 500);
+            }
+            
+            // Recargar pedido completo para obtener procesoEtapas actualizado
+            if (this.currentPedido?.id) {
+              this.pedidoService.onGetPedidoById(this.currentPedido.id)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (pedidoCompleto) => {
+                    this.currentPedido = pedidoCompleto;
+                    this.updateComputedProperties();
+                    // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
+                    if (this.selectedTabIndex !== 1) {
+                      this.updateItemsComputedProperties();
+                    }
+                  },
+                  error: (error) => {
+                    console.error("Error recargando pedido después de agregar item:", error);
+                    this.updateComputedProperties();
+                    if (this.selectedTabIndex !== 1) {
+                      this.updateItemsComputedProperties();
+                    }
+                  }
+                });
+            } else {
+              this.updateComputedProperties();
+            }
+          }
+        });
       }
     });
   }
