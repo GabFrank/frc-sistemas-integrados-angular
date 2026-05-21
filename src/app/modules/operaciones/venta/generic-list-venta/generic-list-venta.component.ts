@@ -308,6 +308,9 @@ export class GenericListVentaComponent implements OnInit {
   }
 
   onGetBalance() {
+    if (this.selectedCaja?.id == null) {
+      return;
+    }
     this.isLoading = true;
     this.cajaService
       .onCajaBalancePorIdAndSucursalId(
