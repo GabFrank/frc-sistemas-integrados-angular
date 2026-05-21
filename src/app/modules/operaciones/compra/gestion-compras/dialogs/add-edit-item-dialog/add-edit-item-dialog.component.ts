@@ -82,6 +82,7 @@ export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("precioPorPresentacionInput")
   precioPorPresentacionInput!: ElementRef;
   @ViewChild("vencimientoInput") vencimientoInput!: ElementRef;
+  @ViewChild("vencimientoPicker") vencimientoPicker!: any;
   @ViewChild("observacionInput") observacionInput!: ElementRef;
   @ViewChild("guardarBtn", { read: MatButton }) guardarBtn!: MatButton;
   @ViewChild("cancelarBtn", { read: MatButton }) cancelarBtn!: MatButton;
@@ -1159,69 +1160,75 @@ export class AddEditItemDialogComponent implements OnInit {
    * Se ejecuta cuando el input pierde el foco
    */
   onVencimientoBlur(): void {
-    const vencimiento = this.itemForm.get("vencimientoEsperado")?.value;
-    
-    if (!vencimiento) {
-      return; // Vencimiento vacío: nada (por ahora)
-    }
+    setTimeout(() => {
+      if (this.vencimientoPicker?.opened) {
+        return; // No validar si el calendario está abierto o abriéndose
+      }
 
-    const fechaVencimiento = typeof vencimiento === 'string' 
-      ? new Date(vencimiento) 
-      : vencimiento instanceof Date 
-        ? vencimiento 
-        : new Date(vencimiento);
-    
-    if (isNaN(fechaVencimiento.getTime())) {
-      return; // Fecha inválida
-    }
+      const vencimiento = this.itemForm.get("vencimientoEsperado")?.value;
+      
+      if (!vencimiento) {
+        return; // Vencimiento vacío: nada (por ahora)
+      }
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fechaVencimientoNormalizada = new Date(fechaVencimiento);
-    fechaVencimientoNormalizada.setHours(0, 0, 0, 0);
+      const fechaVencimiento = typeof vencimiento === 'string' 
+        ? new Date(vencimiento) 
+        : vencimiento instanceof Date 
+          ? vencimiento 
+          : new Date(vencimiento);
+      
+      if (isNaN(fechaVencimiento.getTime())) {
+        return; // Fecha inválida
+      }
 
-    // Calcular diferencia en meses
-    const diffTime = fechaVencimientoNormalizada.getTime() - hoy.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffMonths = diffDays / 30.44; // Promedio de días por mes
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const fechaVencimientoNormalizada = new Date(fechaVencimiento);
+      fechaVencimientoNormalizada.setHours(0, 0, 0, 0);
 
-    let mensaje = "";
-    let titulo = "Atención - Vencimiento";
+      // Calcular diferencia en meses
+      const diffTime = fechaVencimientoNormalizada.getTime() - hoy.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffMonths = diffDays / 30.44; // Promedio de días por mes
 
-    // Vencimiento muy corto (< 3 meses)
-    if (diffMonths < 3 && diffMonths > 0) {
-      const mesesRestantes = Math.round(diffMonths * 10) / 10;
-      mensaje = `El vencimiento es muy corto (${mesesRestantes} meses). ¿Está seguro de que es correcto?`;
-    }
-    // Vencimiento muy largo (> 2 años)
-    else if (diffMonths > 24) {
-      const añosRestantes = Math.round((diffMonths / 12) * 10) / 10;
-      mensaje = `El vencimiento es muy largo (${añosRestantes} años). ¿Está seguro de que es correcto?`;
-    }
-    // Vencimiento pasado
-    else if (diffDays < 0) {
-      mensaje = `La fecha de vencimiento está en el pasado. ¿Está seguro de que es correcta?`;
-    }
+      let mensaje = "";
+      let titulo = "Atención - Vencimiento";
 
-    // Mostrar diálogo solo si hay un mensaje de advertencia
-    if (mensaje) {
-      this.dialogosService.confirm(
-        titulo,
-        mensaje,
-        null,
-        [],
-        true,
-        "Sí, es correcto",
-        "Corregir"
-      ).subscribe((confirmed) => {
-        // Si el usuario elige "Corregir", hacer focus de nuevo en el input
-        if (!confirmed) {
-          setTimeout(() => {
-            this.vencimientoInput?.nativeElement.focus();
-          }, 100);
-        }
-      });
-    }
+      // Vencimiento muy corto (< 3 meses)
+      if (diffMonths < 3 && diffMonths > 0) {
+        const mesesRestantes = Math.round(diffMonths * 10) / 10;
+        mensaje = `El vencimiento es muy corto (${mesesRestantes} meses). ¿Está seguro de que es correcto?`;
+      }
+      // Vencimiento muy largo (> 2 años)
+      else if (diffMonths > 24) {
+        const añosRestantes = Math.round((diffMonths / 12) * 10) / 10;
+        mensaje = `El vencimiento es muy largo (${añosRestantes} años). ¿Está seguro de que es correcto?`;
+      }
+      // Vencimiento pasado
+      else if (diffDays < 0) {
+        mensaje = `La fecha de vencimiento está en el pasado. ¿Está seguro de que es correcta?`;
+      }
+
+      // Mostrar diálogo solo si hay un mensaje de advertencia
+      if (mensaje) {
+        this.dialogosService.confirm(
+          titulo,
+          mensaje,
+          null,
+          [],
+          true,
+          "Sí, es correcto",
+          "Corregir"
+        ).subscribe((confirmed) => {
+          // Si el usuario elige "Corregir", hacer focus de nuevo en el input
+          if (!confirmed) {
+            setTimeout(() => {
+              this.vencimientoInput?.nativeElement.focus();
+            }, 100);
+          }
+        });
+      }
+    }, 150);
   }
 
   /**
