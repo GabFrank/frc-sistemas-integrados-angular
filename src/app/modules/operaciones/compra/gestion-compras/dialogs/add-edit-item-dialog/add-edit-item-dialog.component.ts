@@ -48,6 +48,8 @@ export interface AddEditItemDialogData {
   pedido: Pedido;
   item?: PedidoItem;
   lastSearchText?: string;
+  producto?: Producto;
+  presentacion?: Presentacion;
 }
 
 export interface AddEditItemDialogResult {
@@ -240,6 +242,11 @@ export class AddEditItemDialogComponent implements OnInit {
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
+
+    if (!this.data.isEdit && this.data.producto) {
+      this.onProductoSelected(this.data.producto, this.data.presentacion);
+    }
+
     this.setInitialFocus();
   }
 
