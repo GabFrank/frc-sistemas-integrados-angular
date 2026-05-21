@@ -568,12 +568,43 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       }
     }
   }
+  collapseSiblings(targetSection: any): void {
+    const isFirstLevel = this.navigationItems.some(item => item === targetSection);
+    if (isFirstLevel) {
+      this.navigationItems.forEach(item => {
+        if (item !== targetSection && 'isExpanded' in item) {
+          item.isExpanded = false;
+        }
+      });
+      return;
+    }
+
+    for (const parent of this.navigationItems) {
+      if ('items' in parent && parent.items) {
+        const isChild = parent.items.some(child => child === targetSection);
+        if (isChild) {
+          parent.items.forEach(child => {
+            if (child !== targetSection && 'isExpanded' in child) {
+              child.isExpanded = false;
+            }
+          });
+          break;
+        }
+      }
+    }
+  }
+
   toggleMenuSection(section: any, event: Event): void {
     event.stopPropagation();
     if (this.isExpanded) {
-      section.isExpanded = !section.isExpanded;
+      const willExpand = !section.isExpanded;
+      if (willExpand) {
+        this.collapseSiblings(section);
+      }
+      section.isExpanded = willExpand;
     } else {
       this.toggleSidenav(true);
+      this.collapseSiblings(section);
       section.isExpanded = true;
     }
   }
