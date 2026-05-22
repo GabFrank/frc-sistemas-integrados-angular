@@ -6,10 +6,12 @@ import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { NgxEchartsModule } from 'ngx-echarts';
 import { GraficosRoutingModule } from './graficos-routing.module';
+import { ProductoModule } from '../productos/productos.module';
 
 import { VentaFuncionarioComponent } from './venta-funcionario/venta-funcionario.component';
 import { FormaPagoComponent } from './forma-pago/forma-pago.component';
 import { ProductoVendidoComponent } from './producto-vendido/producto-vendido.component';
+import { AnalisisProductoComponent } from './analisis-producto/analisis-producto.component';
 import { VentasDiasComponent } from './ventas-dias/ventas-dias.component';
 import { GastoCategoriaComponent } from './gasto-categoria/gasto-categoria.component';
 import { IngresoGastoComponent } from './ingreso-gasto/ingreso-gasto.component';
@@ -45,6 +47,7 @@ export function loadEcharts() {
         VentaFuncionarioComponent,
         FormaPagoComponent,
         ProductoVendidoComponent,
+        AnalisisProductoComponent,
         VentasDiasComponent,
         GastoCategoriaComponent,
         IngresoGastoComponent,
@@ -56,6 +59,7 @@ export function loadEcharts() {
         ReactiveFormsModule,
         MaterialModule,
         SharedModule,
+        ProductoModule,
         GraficosRoutingModule,
         NgxEchartsModule.forRoot({
             echarts: loadEcharts
