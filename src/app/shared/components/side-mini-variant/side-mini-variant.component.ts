@@ -560,10 +560,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
     const sidenavElement = document.querySelector('.side-nav-container');
-    if (this.isExpanded && sidenavElement && !sidenavElement.contains(event.target as Node)) {
-      const isHeaderMenuButton = (event.target as HTMLElement).closest('[class*="header-menu-toggle"], .frc-header__burger');
-      if (!isHeaderMenuButton) {
+
+    const isHeaderInteraction = target.closest('.frc-header');
+    const isNotificationsPanel = target.closest('.notifications-overlay');
+
+    if (this.isExpanded && sidenavElement && !sidenavElement.contains(target)) {
+      if (!isHeaderInteraction && !isNotificationsPanel) {
         this.toggleSidenav(false);
       }
     }
