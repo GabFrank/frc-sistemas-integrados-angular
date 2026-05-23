@@ -65,6 +65,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
+import { BuscadorTextoService } from "../../../../shared/services/buscador-texto.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -162,7 +163,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private buscadorTextoService: BuscadorTextoService
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
@@ -176,6 +178,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.stockFiltroControl.valueChanges.subscribe(() => {
       this.updateSucursalSelectEnabled();
     });
+
+    this.buscadorTextoService
+      .observarTexto(
+        this.filtroProductoControl,
+        () => this.filtroCodigoControl.value === true
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.onFiltrar());
   }
 
   ngAfterViewInit(): void {

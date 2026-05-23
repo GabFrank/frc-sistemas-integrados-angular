@@ -10,8 +10,15 @@
               <div>
                 <mat-form-field style="width: 100%">
                   <mat-label>Buscar producto</mat-label>
-                  <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
-                    (keyup.enter)="onFiltrar()" (focusin)="filtroProductoInput.select()" />
+                  <input
+                    #filtroProductoInput
+                    matInput
+                    type="text"
+                    [formControl]="filtroProductoControl"
+                    (keyup.enter)="onFiltrar()"
+                    (focusin)="filtroProductoInput.select()"
+                    autocomplete="off"
+                  />
                 </mat-form-field>
               </div>
             </span>
