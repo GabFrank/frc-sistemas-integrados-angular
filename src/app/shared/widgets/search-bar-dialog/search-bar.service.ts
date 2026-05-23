@@ -6,6 +6,8 @@ import { Tab } from './../../../layouts/tab/tab.model';
 import { TabData, TabService } from './../../../layouts/tab/tab.service';
 import { ListProductoComponent } from './../../../modules/productos/producto/list-producto/list-producto.component';
 import { Injectable, Type } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { comparatorLike } from '../../../commons/core/utils/string-utils';
 import { Producto } from '../../../modules/productos/producto/producto.model';
 import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
@@ -16,12 +18,10 @@ import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caj
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
-import { PrecioDelivery } from '../../../modules/operaciones/delivery/precio-delivery.model';
 import { PrecioDeliveryComponent } from '../../../modules/operaciones/delivery/precio-delivery/precio-delivery.component';
 import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-retiro/list-retiro.component';
 import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
-import { LucroPorProducto } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.model';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 
 export enum TIPO_SEARCH {
@@ -70,38 +70,35 @@ export class SearchBarService {
 
   searchDataList: SearchData[] = []
 
-  timer;
-
-  constructor(private tabService: TabService,
-    private productoService: ProductoService,
+  constructor(
+    private tabService: TabService,
+    private productoService: ProductoService
   ) { }
 
-  onSearch(texto): Promise<SearchDataResult> {
-    if (this.timer != null) {
-      clearTimeout(this.timer);
-    }
-    return new Promise((resolve, rejects) => {
-      let result = new SearchDataResult;
-      let componentes = componenteList.filter(e => comparatorLike(texto, e.title))
-      result.componentes = componentes;
-      let productoList: Producto[];
-      this.timer = setTimeout(() => {
-        this.productoService.onSearch(texto)
-          .pipe()
-          .subscribe(res => {
-            if (res != null) {
-              productoList = res;
-              result.productos = []
-              productoList.forEach(p => {
-                let item: SearchData = { title: p.descripcion, component: ProductoComponent, data: p }
-                result.productos.push(item)
-              })
-            }
-            return resolve(result);
-          })
-      }, 1000);
-    })
+  onSearch(texto: string): Observable<SearchDataResult> {
+    const result = new SearchDataResult();
+    result.productos = [];
 
+    if (!texto?.trim()) {
+      return of(result);
+    }
+
+    return this.productoService.onSearch(texto).pipe(
+      map((productoList) => {
+        if (productoList != null) {
+          result.productos = productoList.map((p) => ({
+            title: p.descripcion,
+            component: ProductoComponent,
+            data: p,
+          }));
+        }
+        return result;
+      })
+    );
+  }
+
+  filtrarComponentes(texto: string): SearchData[] {
+    return componenteList.filter((e) => comparatorLike(texto ?? '', e.title));
   }
 
   openTab(data: SearchData) {

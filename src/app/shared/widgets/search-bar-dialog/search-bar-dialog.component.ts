@@ -5,7 +5,11 @@ import { MainService } from '../../../main.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { MatDialogRef } from '@angular/material/dialog';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { BuscadorTextoService } from '../../services/buscador-texto.service';
+import { filter, switchMap, tap } from 'rxjs/operators';
 
+@UntilDestroy()
 @Component({
   selector: 'app-search-bar-dialog',
   templateUrl: './search-bar-dialog.component.html',
@@ -21,16 +25,50 @@ export class SearchBarDialogComponent implements OnInit {
     private searchBarService: SearchBarService,
     private matDialogRef: MatDialogRef<SearchBarDialogComponent>,
     private injector: Injector,
-    private notificacionService: NotificacionSnackbarService
-  ) {
-    setTimeout(() => this.mainService = injector.get(MainService));
-  }
+    private notificacionService: NotificacionSnackbarService,
+    private buscadorTextoService: BuscadorTextoService
+  ) {}
 
   ngOnInit(): void {
+    this.mainService = this.injector.get(MainService);
+
+    this.buscadorTextoService
+      .observarTexto(this.buscarControl, () => false)
+      .pipe(
+        tap(() => this.actualizarMenu()),
+        filter(() => !!this.buscarControl.value?.trim()),
+        switchMap(() =>
+          this.searchBarService.onSearch(this.buscarControl.value ?? '')
+        ),
+        untilDestroyed(this)
+      )
+      .subscribe((result) => {
+        this.searchDataList = {
+          componentes: this.searchBarService.filtrarComponentes(
+            this.buscarControl.value ?? ''
+          ),
+          productos: result.productos ?? [],
+        };
+      });
+
+    this.buscarControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((texto) => {
+        if (!texto?.trim()) {
+          this.searchDataList = { componentes: [], productos: [] };
+        } else {
+          this.actualizarMenu();
+        }
+      });
   }
 
-  async onBuscar() {
-    this.searchDataList = await this.searchBarService.onSearch(this.buscarControl.value)
+  private actualizarMenu(): void {
+    const texto = this.buscarControl.value ?? '';
+    const componentes = this.searchBarService.filtrarComponentes(texto);
+    this.searchDataList = {
+      componentes,
+      productos: this.searchDataList?.productos ?? [],
+    };
   }
 
   hasPermissionToAccess(item: SearchData): boolean {
