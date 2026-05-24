@@ -107,7 +107,8 @@ export class ProductoService {
     sucursalId, 
     page, 
     size, 
-    servidor = true
+    servidor = true,
+    silentLoad = false
   ): Observable<PageInfo<Producto>>{
     return this.genericService.onCustomQuery(this.searchWithFilters, {
       texto, 
@@ -124,7 +125,9 @@ export class ProductoService {
       page, 
       size
     }, 
-    servidor);
+    servidor,
+    undefined,
+    silentLoad);
   }
 
   onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true){
