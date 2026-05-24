@@ -15,7 +15,7 @@
                     matInput
                     type="text"
                     [formControl]="filtroProductoControl"
-                    (keyup.enter)="onFiltrar()"
+                    (keyup.enter)="onFiltrar(true)"
                     (focusin)="filtroProductoInput.select()"
                     autocomplete="off"
                   />

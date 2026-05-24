@@ -65,7 +65,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
-import { BuscadorTextoService } from "../../../../shared/services/buscador-texto.service";
+import { distinctUntilChanged, filter } from "rxjs/operators";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -110,7 +110,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   selectedRowIndex;
   menuState: string = "out";
   isSearching = false;
-  onSearchTimer;
   imagenPrincipal = null;
   displayedColumns: string[] = [
     "id",
@@ -163,8 +162,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
-    private notificacionService: NotificacionSnackbarService,
-    private buscadorTextoService: BuscadorTextoService
+    private notificacionService: NotificacionSnackbarService
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
@@ -179,13 +177,13 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.updateSucursalSelectEnabled();
     });
 
-    this.buscadorTextoService
-      .observarTexto(
-        this.filtroProductoControl,
-        () => this.filtroCodigoControl.value === true
+    this.filtroProductoControl.valueChanges
+      .pipe(
+        distinctUntilChanged(),
+        filter(() => this.filtroCodigoControl.value !== true),
+        untilDestroyed(this)
       )
-      .pipe(untilDestroyed(this))
-      .subscribe(() => this.onFiltrar());
+      .subscribe(() => this.onFiltrar(false, true));
   }
 
   ngAfterViewInit(): void {
@@ -199,7 +197,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   createForm() {}
 
-  onSearchProducto() {
+  onSearchProducto(mostrarAvisoSinResultados = false, silentLoad = false) {
     this.isSearching = true;
     this.expandedProducto = null;
     this.selectedProducto = new Producto();
@@ -223,7 +221,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.sucursalFiltroControl.value,
         this.pageIndex,
         this.pageSize,
-        true
+        true,
+        silentLoad
       )
       .subscribe((res) => {
         this.selectedPageInfo = res;
@@ -231,7 +230,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.isSearching = false;
         this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
 
-        if (res.getContent && res.getContent.length === 0) {
+        if (
+          mostrarAvisoSinResultados &&
+          res.getContent &&
+          res.getContent.length === 0
+        ) {
           this.notificacionService.openWarn('Producto no encontrado');
         }
       });
@@ -314,15 +317,15 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
-    this.onSearchProducto();
+    this.onSearchProducto(false, true);
   }
 
-  onFiltrar() {
+  onFiltrar(mostrarAvisoSinResultados = true, silentLoad = false) {
     this.pageIndex = 0;
     if (this.paginator) {
       this.paginator.pageIndex = 0;
     }
-    this.onSearchProducto();
+    this.onSearchProducto(mostrarAvisoSinResultados, silentLoad);
   }
 
   resetFiltro() {
