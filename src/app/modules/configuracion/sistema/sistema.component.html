@@ -1,0 +1,104 @@
+<div class="sistema-container">
+  <h2>CONFIGURACIÓN DEL SISTEMA</h2>
+
+  <mat-tab-group>
+    <!-- Tab Empresa -->
+    <mat-tab label="EMPRESA">
+      <div class="tab-content">
+        <p class="hint">Datos cosméticos para impresiones (distinto de los datos fiscales SIFEN).</p>
+        <form [formGroup]="empresaForm" class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre comercial (impresión)</mat-label>
+            <input matInput formControlName="nombre" placeholder="Ej: Farmacia Central">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Subtítulo / Lema</mat-label>
+            <input matInput formControlName="subtitulo">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Dirección</mat-label>
+            <input matInput formControlName="direccion">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="telefono">
+          </mat-form-field>
+
+          <div class="logo-section">
+            <label>Logo de la empresa</label>
+            <div class="logo-preview" *ngIf="logoPreview">
+              <img [src]="logoPreview" alt="Logo preview">
+            </div>
+            <div class="logo-actions">
+              <input #logoInput type="file" accept="image/*" hidden (change)="onLogoSelected($event)">
+              <button mat-stroked-button type="button" (click)="logoInput.click()">
+                <mat-icon>upload</mat-icon> SELECCIONAR LOGO
+              </button>
+              <button mat-stroked-button color="warn" type="button" *ngIf="logoPreview" (click)="borrarLogo()">
+                <mat-icon>delete</mat-icon> QUITAR
+              </button>
+            </div>
+            <p class="hint-small">PNG o JPG. Máximo 500KB. Se almacena en base de datos.</p>
+          </div>
+        </form>
+
+        <div class="actions">
+          <button mat-raised-button color="primary" (click)="guardarEmpresa()" [disabled]="cargando">
+            GUARDAR DATOS EMPRESA
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab IA -->
+    <mat-tab label="INTELIGENCIA ARTIFICIAL">
+      <div class="tab-content">
+        <p class="hint">Configuración de OpenAI para importación automática de facturas (imagen/PDF).</p>
+        <form [formGroup]="iaForm" class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>API Key OpenAI</mat-label>
+            <input matInput
+                   type="password"
+                   formControlName="apiKey"
+                   [readonly]="apiKeyEnmascarada"
+                   placeholder="sk-...">
+            <button mat-icon-button matSuffix type="button" *ngIf="apiKeyEnmascarada"
+                    (click)="permitirEditarApiKey()" matTooltip="Editar (reemplazar)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <mat-hint *ngIf="apiKeyEnmascarada">Clave configurada (oculta). Click en lápiz para reemplazar.</mat-hint>
+            <mat-hint *ngIf="!apiKeyEnmascarada">Ingrese su API key de OpenAI. Se almacena encriptada.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Modelo</mat-label>
+            <mat-select formControlName="modelo">
+              <mat-option value="gpt-4o">gpt-4o (recomendado)</mat-option>
+              <mat-option value="gpt-4o-mini">gpt-4o-mini (más rápido y económico)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Prompt adicional</mat-label>
+            <textarea matInput formControlName="promptAdicional" rows="4"
+                      placeholder="Instrucciones extra concatenadas al prompt base"></textarea>
+            <mat-hint>Opcional. Se agrega al final del prompt base de extracción.</mat-hint>
+          </mat-form-field>
+        </form>
+
+        <div class="actions">
+          <button mat-stroked-button (click)="testearConexionIa()" [disabled]="testeando || cargando">
+            <mat-icon>wifi_tethering</mat-icon>
+            {{ testeando ? 'PROBANDO...' : 'PROBAR CONEXIÓN' }}
+          </button>
+          <button mat-raised-button color="primary" (click)="guardarIa()" [disabled]="cargando">
+            GUARDAR IA
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

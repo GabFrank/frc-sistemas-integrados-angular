@@ -23,6 +23,7 @@ import { EditReplicationTableDialogComponent } from './logical-replication/edit-
 import { SetupReplicationDialogComponent } from './logical-replication/setup-replication-dialog/setup-replication-dialog.component';
 import { RemoveReplicationDialogComponent } from './logical-replication/remove-replication-dialog/remove-replication-dialog.component';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
+import { SistemaComponent } from './sistema/sistema.component';
 
 @NgModule({
   declarations: [
@@ -40,7 +41,8 @@ import { EmpresarialModule } from '../empresarial/empresarial.module';
     ListReplicationTablesComponent,
     EditReplicationTableDialogComponent,
     SetupReplicationDialogComponent,
-    RemoveReplicationDialogComponent
+    RemoveReplicationDialogComponent,
+    SistemaComponent
   ],
   imports: [
     CommonModule,
