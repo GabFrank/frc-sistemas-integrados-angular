@@ -1,0 +1,80 @@
+<div class="pre-registro-container" fxLayout="column" style="padding: 15px; overflow-y: auto; height: 100%;">
+    <div fxLayout="row" fxLayoutAlign="space-between center" class="header-section">
+        <div>
+            <h3 class="titulo">CONFIGURACIÓN DE VEHÍCULO</h3>
+            <p class="sub-descripcion">REGISTRE LOS DATOS FALTANTES</p>
+        </div>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <div fxLayout="column" fxLayoutGap="15px">
+        <div fxLayout="row" fxLayoutGap="20px">
+            <div fxFlex="50" fxLayout="column" [class.saved-section]="tipoSaved">
+                <form [formGroup]="tipoForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                    <mat-form-field fxFlex>
+                        <mat-label class="required-field">Tipo de Vehículo</mat-label>
+                        <input matInput formControlName="descripcion" placeholder="Ej: CAMION"
+                            (keyup.enter)="onGuardarTipo()">
+                    </mat-form-field>
+                    <button mat-mini-fab color="accent" [disabled]="tipoForm.invalid || tipoSaved"
+                        (click)="onGuardarTipo()">
+                        <mat-icon>{{ tipoSaved ? 'check' : 'save' }}</mat-icon>
+                    </button>
+                </form>
+            </div>
+
+            <div fxFlex="50" fxLayout="column" [class.saved-section]="marcaSaved">
+                <form [formGroup]="marcaForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                    <mat-form-field fxFlex>
+                        <mat-label class="required-field">Marca</mat-label>
+                        <input matInput formControlName="descripcion" placeholder="Ej: TOYOTA"
+                            (keyup.enter)="onGuardarMarca()">
+                    </mat-form-field>
+                    <button mat-mini-fab color="accent" [disabled]="marcaForm.invalid || marcaSaved"
+                        (click)="onGuardarMarca()">
+                        <mat-icon>{{ marcaSaved ? 'check' : 'save' }}</mat-icon>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <mat-divider style="opacity: 0.1;"></mat-divider>
+        <div fxLayout="column" fxLayoutGap="10px" [class.saved-section]="modeloSaved">
+            <h4 class="titulo" style="font-size: 14px;">NUEVO MODELO</h4>
+            <div fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="start center">
+                <div fxFlex="40">
+                    <frc-searchable-select [list]="marcas$ | async" [titulo]="'Seleccione Marca'"
+                        [compareFields]="['descripcion']" [initialValue]="false"
+                        (selectionChanged)="onSelectMarca($event)" (inputChanged)="onFiltrarMarcas($event)">
+                    </frc-searchable-select>
+                </div>
+                <div fxFlex="40">
+                    <form [formGroup]="modeloForm" fxLayout="column">
+                        <mat-form-field>
+                            <mat-label class="required-field">Nombre del Modelo</mat-label>
+                            <input matInput formControlName="descripcion" placeholder="Ej: HILUX"
+                                (keyup.enter)="onGuardarModelo()">
+                        </mat-form-field>
+                    </form>
+                </div>
+                <div fxFlex="20">
+                    <button mat-raised-button color="accent" style="width: 100%;"
+                        [disabled]="modeloForm.invalid || modeloSaved" (click)="onGuardarModelo()">
+                        <mat-icon>save</mat-icon> GUARDAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="20px" style="margin-top: 25px;">
+        <button mat-raised-button color="primary" (click)="onCancelar()" style="width: 150px;">
+            CANCELAR
+        </button>
+        <button mat-raised-button color="accent" (click)="onContinuar()" style="width: 200px;">
+            CONTINUAR <mat-icon>arrow_forward</mat-icon>
+        </button>
+    </div>
+</div>

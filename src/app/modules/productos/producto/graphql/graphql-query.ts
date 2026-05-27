@@ -71,7 +71,7 @@ export const productosExistenciaCostoSearch = gql`
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int, $sucursalId: Int, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean) {
+  query ($texto: String, $offset: Int, $sucursalId: ID, $conStock: Boolean, $isEnvase: Boolean, $activo: Boolean) {
     data: productoSearch(
       texto: $texto
       offset: $offset
@@ -93,6 +93,13 @@ export const productoSearchPdv = gql`
       activo
       costo {
         ultimoPrecioCompra
+        cotizacion
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
       }
       envase {
         id
@@ -179,11 +186,12 @@ export const searchProductoWithFilters = gql`
     $activo: Boolean
     $stock: Boolean
     $balanza: Boolean
-    $subfamilia: Int
+    $familia: ID
+    $subfamilia: ID
     $vencimiento: Boolean
     $costoCero: Boolean
     $stockFiltro: String
-    $sucursalId: Int
+    $sucursalId: ID
     $page: Int
     $size: Int
   ) {
@@ -193,6 +201,7 @@ export const searchProductoWithFilters = gql`
       activo: $activo
       stock: $stock
       balanza: $balanza
+      familia: $familia
       subfamilia: $subfamilia
       vencimiento: $vencimiento
       costoCero: $costoCero
@@ -446,6 +455,13 @@ export const productoQuery = gql`
         id
         ultimoPrecioCompra
         costoMedio
+        cotizacion
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
       }
     }
   }
@@ -460,6 +476,12 @@ export const productoUltimasComprasQuery = gql`
         cantidad
         precio
         creadoEn
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        cotizacion
         presentacionEnNota {
           id
           cantidad
@@ -596,9 +618,11 @@ export const productoParaPedidoQuery = gql`
         ultimoPrecioCompra
         ultimoPrecioVenta
         costoMedio
+        cotizacion
         moneda {
           id
           denominacion
+          simbolo
           cambio
         }
         existencia
@@ -674,11 +698,12 @@ export const lucroPorProductoQuery = gql`
   query lucroPorProducto(
     $fechaInicio: String
     $fechaFin: String
-    $sucursalIdList: [Int]
+    $sucursalIdList: [ID]
     $usuarioId: ID!
     $usuarioIdList: [ID]
     $productoIdList: [ID]
     $subfamiliaId: ID
+    $familiaId: ID
   ) {
     data: lucroPorProducto(
       fechaInicio: $fechaInicio
@@ -688,12 +713,13 @@ export const lucroPorProductoQuery = gql`
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
       subfamiliaId: $subfamiliaId
+      familiaId: $familiaId
     )
   }
 `;
 
 export const imprimirCodigoBarraQuery = gql`
-  query imprimirCodigoBarra($codigoId: Int) {
+  query imprimirCodigoBarra($codigoId: ID) {
     data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;
@@ -713,6 +739,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $balanza: Boolean, 
       $vencimiento: Boolean, 
       $costoCero: Boolean, 
+      $familiaId: ID, 
       $subfamiliaId: ID, 
       $stockFiltro: String, 
       $sucursalId: ID, 
@@ -727,6 +754,7 @@ export const exportarReporteConFiltrosQuery = gql`
         balanza: $balanza, 
         vencimiento: $vencimiento, 
         costoCero: $costoCero, 
+        familiaId: $familiaId, 
         subfamiliaId: $subfamiliaId, 
         stockFiltro: $stockFiltro, 
         sucursalId: $sucursalId, 
@@ -746,6 +774,7 @@ export const exportarReporteConFiltrosQuery = gql`
       $subfamiliaId: ID
       $page: Int
       $size: Int
+      $familiaId: ID
     ) {
        data: lucroPorProductoList(
         fechaInicio: $fechaInicio
@@ -756,6 +785,7 @@ export const exportarReporteConFiltrosQuery = gql`
         subfamiliaId: $subfamiliaId
         page: $page
         size: $size
+        familiaId: $familiaId
       ) {
         content {
           productoId

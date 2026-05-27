@@ -10,7 +10,7 @@ import { MainService } from "../../../main.service";
 import { ROLES } from "../../personas/roles/roles.enum";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import { ListRetiroComponent } from "../retiro/list-retiro/list-retiro.component";
-import { ListGastosComponent } from "../gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../gastos/pages/list-gastos/list-gastos.component";
 import { PagoDetalleCuota, PagoDetalleCuotaEstado } from "../../operaciones/pago/pago-detalle-cuota/pago-detalle-cuota.model";
 import { PagoDetalleCuotaService } from "../../operaciones/pago/pago-detalle-cuota/pago-detalle-cuota.service";
 import { MatPaginator } from "@angular/material/paginator";
@@ -50,24 +50,24 @@ export class FinancieroDashboardComponent implements OnInit {
   filtroFechaDesde = new FormControl(null);
   filtroFechaHasta = new FormControl(null);
   filtrarPorCreacion = new FormControl(false);
-  
+
   estados = [
     { value: 'TODOS', label: 'TODOS' },
     { value: PagoDetalleCuotaEstado.PENDIENTE, label: 'PENDIENTE' },
     { value: PagoDetalleCuotaEstado.PAGO_PARCIAL, label: 'PAGO PARCIAL' }
   ];
-  
+
   sucursales: Sucursal[] = [];
-  
+
   // Pagination vars
   currentPage = 0;
   pageSize = 10;
   totalElements = 0;
-  
+
   // Moneda vars
   monedasDataSource = new MatTableDataSource<Moneda>([]);
   monedasDisplayedColumns = ["denominacion", "simbolo", "cambio", "accion"];
-  
+
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
@@ -88,21 +88,21 @@ export class FinancieroDashboardComponent implements OnInit {
     private cambioService: CambioService,
     private sucursalService: SucursalService,
     private matDialog: MatDialog
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     // Cargar configuración guardada si existe
     this.cargarConfiguracion();
-    
+
     this.cargarCuotasPendientes();
     this.cargarMonedas();
     this.cargarSucursales();
   }
-  
+
   ngAfterViewInit() {
     this.cuotasPendientesDataSource.paginator = this.paginator;
     this.cuotasPendientesDataSource.sort = this.sort;
-    
+
     // Subscribe to paginator events
     this.paginator.page.pipe(untilDestroyed(this)).subscribe(() => {
       this.currentPage = this.paginator.pageIndex;
@@ -110,7 +110,7 @@ export class FinancieroDashboardComponent implements OnInit {
       this.aplicarFiltros();
     });
   }
-  
+
   cargarSucursales(): void {
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
       if (res) {
@@ -118,26 +118,26 @@ export class FinancieroDashboardComponent implements OnInit {
       }
     });
   }
-  
+
   cargarCuotasPendientes(): void {
     this.pagoDetalleCuotaService.onFiltrarPagoDetalleCuotas(
-      undefined, undefined, undefined, undefined, 
+      undefined, undefined, undefined, undefined,
       this.currentPage, this.pageSize
     )
-    .pipe(untilDestroyed(this))
-    .subscribe(result => {
-      if (result) {
-        this.cuotasPendientesDataSource.data = result.getContent || [];
-        this.totalElements = result.getTotalElements || 0;
-        
-        // Update paginator without triggering an event
-        if (this.paginator) {
-          this.paginator.length = this.totalElements;
+      .pipe(untilDestroyed(this))
+      .subscribe(result => {
+        if (result) {
+          this.cuotasPendientesDataSource.data = result.getContent || [];
+          this.totalElements = result.getTotalElements || 0;
+
+          // Update paginator without triggering an event
+          if (this.paginator) {
+            this.paginator.length = this.totalElements;
+          }
         }
-      }
-    });
+      });
   }
-  
+
   cargarMonedas(): void {
     this.monedaService.onGetAll()
       .pipe(untilDestroyed(this))
@@ -147,56 +147,56 @@ export class FinancieroDashboardComponent implements OnInit {
         }
       });
   }
-  
+
   aplicarFiltros(): void {
     const estadoSeleccionado = this.filtroEstado.value;
     const sucursalId = this.filtroSucursal.value?.id;
     const fechaDesde = this.filtroFechaDesde.value;
     const fechaHasta = this.filtroFechaHasta.value;
     const filtrarPorCreacion = this.filtrarPorCreacion.value;
-    
+
     // If filtering by creation date rather than due date, we need to pass this to the backend
     // or handle it in the frontend depending on your backend capabilities
-    
+
     this.pagoDetalleCuotaService.onFiltrarPagoDetalleCuotas(
-      estadoSeleccionado, 
+      estadoSeleccionado,
       sucursalId,
-      fechaDesde, 
+      fechaDesde,
       fechaHasta,
       this.currentPage,
       this.pageSize,
       filtrarPorCreacion
     )
-    .pipe(untilDestroyed(this))
-    .subscribe(result => {
-      if (result) {
-        this.cuotasPendientesDataSource.data = result.getContent || [];
-        this.totalElements = result.getTotalElements || 0;
-        
-        // Update paginator without triggering an event
-        if (this.paginator) {
-          this.paginator.length = this.totalElements;
+      .pipe(untilDestroyed(this))
+      .subscribe(result => {
+        if (result) {
+          this.cuotasPendientesDataSource.data = result.getContent || [];
+          this.totalElements = result.getTotalElements || 0;
+
+          // Update paginator without triggering an event
+          if (this.paginator) {
+            this.paginator.length = this.totalElements;
+          }
         }
-      }
-    });
+      });
   }
-  
+
   abrirModuloGastos(): void {
     this.tabService.addTab(new Tab(ListGastosComponent, "Gastos"));
   }
-  
+
   abrirModuloRetiros(): void {
     this.tabService.addTab(new Tab(ListRetiroComponent, "Retiros"));
   }
-  
+
   abrirModuloSolicitudPago(): void {
     // this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitudes de Pago"));
   }
-  
+
   abrirModuloCambio(): void {
     this.tabService.addTab(new Tab(CambioComponent, "Cambio"));
   }
-  
+
   actualizarCambio(moneda: Moneda): void {
     this.matDialog.open(CrearCambioDialogComponent, {
       data: {
@@ -208,13 +208,13 @@ export class FinancieroDashboardComponent implements OnInit {
       }
     });
   }
-  
+
   actualizarDatos(): void {
     this.cargarCuotasPendientes();
     this.cargarMonedas();
     this.notificacionService.openSucess("Datos actualizados correctamente");
   }
-  
+
   limpiarFiltros(): void {
     this.filtroEstado.setValue('TODOS');
     this.filtroSucursal.setValue(null);
@@ -225,7 +225,7 @@ export class FinancieroDashboardComponent implements OnInit {
   }
 
   // Métodos para las acciones del menú
-  
+
   /**
    * Método para realizar pago de una cuota
    * @param cuota La cuota a pagar
@@ -234,7 +234,7 @@ export class FinancieroDashboardComponent implements OnInit {
     // Por implementar
     console.log('Realizar pago para cuota:', cuota);
   }
-  
+
   /**
    * Método para ver o editar un pago
    * @param cuota La cuota para ver/editar
@@ -243,7 +243,7 @@ export class FinancieroDashboardComponent implements OnInit {
     // Por implementar
     console.log('Ver/Editar pago para cuota:', cuota);
   }
-  
+
   /**
    * Actualiza la sucursal y caja de un PagoDetalle
    * @param pagoDetalleCuota Cuota cuyo PagoDetalle se actualizará
@@ -321,17 +321,17 @@ export class FinancieroDashboardComponent implements OnInit {
       if (result) {
         // Actualizar la configuración local
         this.configuracion = result;
-        
+
         // Guardar configuración en localStorage
         this.guardarConfiguracion();
-        
+
         // Aplicar cambios de configuración
         if (this.paginator) {
           this.paginator.pageSize = this.configuracion.paginacionTamano;
           this.pageSize = this.configuracion.paginacionTamano;
           this.aplicarFiltros();
         }
-        
+
         this.notificacionService.openSucess('Configuración actualizada');
       }
     });
@@ -352,7 +352,7 @@ export class FinancieroDashboardComponent implements OnInit {
       }
     }
   }
-  
+
   /**
    * Guarda la configuración actual en localStorage
    */

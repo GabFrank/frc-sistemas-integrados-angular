@@ -12,12 +12,14 @@ import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion
 import { Pedido } from '../../pedido.model';
 import { Moneda } from '../../../../../financiero/moneda/moneda.model';
 import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
+import { CambioService } from '../../../../../financiero/cambio/cambio.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
 import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
+import { MainService } from '../../../../../../main.service';
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
@@ -109,6 +111,14 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades computadas para items (se actualizan cuando cambia itemsDataSource)
   computedItemsData: any[] = [];
 
+  // Símbolo y formato de la moneda actual de la nota — usados por el HTML para prefix y decimales.
+  get notaSimbolo(): string {
+    return this.notaRecepcionForm?.get('moneda')?.value?.simbolo || '';
+  }
+  get notaDecimalFormat(): string {
+    return this.notaRecepcionForm?.get('moneda')?.value?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+  }
+
   // Propiedades para asignación automática
   assignmentStatusText: string = '';
   assignmentStatusClass: string = '';
@@ -146,7 +156,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private cambioService: CambioService,
+    private mainService: MainService
   ) {
     this.readOnly = !!data.readOnly;
     this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
@@ -173,10 +185,27 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         next: (monedas: Moneda[]) => {
           this.monedas = monedas;
           this.loadingMonedas = false;
-          
-          // Si no hay moneda seleccionada, usar la primera disponible
+
+          // Si no hay moneda seleccionada (creación), prefilear con la del pedido
+          // (buscamos por id en el array cargado para conservar la misma instancia que usa mat-option).
+          // Fallback: primera moneda disponible.
           if (this.notaRecepcionForm && !this.notaRecepcionForm.get('moneda')?.value && monedas.length > 0) {
-            this.notaRecepcionForm.patchValue({ moneda: monedas[0] });
+            const pedidoMonedaId = this.data.pedido?.moneda?.id;
+            const monedaPedido = pedidoMonedaId ? monedas.find(m => m.id === pedidoMonedaId) : null;
+            const monedaDefault = monedaPedido || monedas[0];
+            this.notaRecepcionForm.patchValue({ moneda: monedaDefault }, { emitEvent: false });
+
+            // Cotización: si la moneda del pedido es no-Gs y tiene cotización fijada, prefilear.
+            if (
+              !this.data.isEdit &&
+              monedaDefault?.denominacion !== 'GUARANI' &&
+              this.data.pedido?.cotizacion
+            ) {
+              this.notaRecepcionForm.patchValue(
+                { cotizacion: this.data.pedido.cotizacion },
+                { emitEvent: false }
+              );
+            }
           }
         },
         error: (error) => {
@@ -187,12 +216,59 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       });
   }
 
+  private loadCotizacionFromCambio(monedaId?: number): void {
+    const id = monedaId || this.data.pedido?.moneda?.id;
+    const denominacion = this.data.pedido?.moneda?.denominacion;
+    if (!id || denominacion === 'GUARANI') {
+      if (!monedaId) return; // Initial call — skip for Guarani
+      // Explicit moneda change to Guarani — reset to 1
+      this.notaRecepcionForm.patchValue({ cotizacion: 1 });
+      return;
+    }
+
+    // 1. Si el pedido tiene cotización fijada, prefill desde ahí (override editable).
+    //    Solo aplica cuando la moneda de la nota coincide con la del pedido — al cambiarla
+    //    explícitamente, recae en el prefill del mercado.
+    const pedidoCotizacion = this.data.pedido?.cotizacion;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    if (pedidoCotizacion != null && (!monedaId || monedaId === pedidoMonedaId)) {
+      const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+      if (!currentCotizacion || currentCotizacion === 1) {
+        this.notaRecepcionForm.patchValue({ cotizacion: pedidoCotizacion });
+      }
+      return;
+    }
+
+    // 2. Fallback: prefill desde mercado (lógica anterior)
+    this.cambioService.getUltimoCambioPorMonedaId(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (cambio) => {
+          if (cambio) {
+            const tasa = cambio.valorEnGsCompraMercado ?? cambio.valorEnGsVentaMercado ?? cambio.valorEnGs;
+            if (tasa && tasa > 0) {
+              const currentCotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+              // Only auto-fill if still at default (1) or empty
+              if (!currentCotizacion || currentCotizacion === 1) {
+                this.notaRecepcionForm.patchValue({ cotizacion: tasa });
+              }
+            }
+          }
+        }
+      });
+  }
+
   ngOnInit(): void {
     this.loadMonedas();
     this.initializeForm();
     this.setupKeyboardNavigation();
     this.loadItems();
     this.updateComputedProperties();
+
+    // Auto-fill cotización desde último Cambio (solo al crear, no al editar)
+    if (!this.data.isEdit) {
+      this.loadCotizacionFromCambio();
+    }
 
     // Modo solo lectura o nota de rechazo: deshabilitar el formulario
     if (this.readOnly || this.data.nota?.esNotaRechazo) {
@@ -263,6 +339,21 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.notaRecepcionForm.valueChanges.subscribe(() => {
       this.updateComputedProperties();
     });
+
+    // Auto-fill cotización cuando cambia la moneda
+    this.notaRecepcionForm.get('moneda')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((moneda: Moneda) => {
+        if (!this.data.isEdit && moneda) {
+          if (moneda.denominacion === 'GUARANI') {
+            this.notaRecepcionForm.patchValue({ cotizacion: 1 });
+          } else {
+            // Reset cotizacion to trigger auto-fill
+            this.notaRecepcionForm.patchValue({ cotizacion: 1 }, { emitEvent: false });
+            this.loadCotizacionFromCambio(moneda.id);
+          }
+        }
+      });
   }
 
   private loadItems(): void {
@@ -955,6 +1046,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         nota.cotizacion = Number(cleanFormValue.cotizacion);
         nota.pedido = this.data.pedido!;
         nota.creadoEn = new Date();
+        nota.usuario = this.mainService.usuarioActual;
         nota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
         nota.pagado = false;
         
@@ -1048,7 +1140,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
     const pedidoItemIds = this.selectedItemsToAssign.map(item => item.id);
 
-    this.pedidoService.onAsignarItemsANota(this.data.nota.id, pedidoItemIds)
+    const usuarioId = this.mainService.usuarioActual?.id;
+    this.pedidoService.onAsignarItemsANota(this.data.nota.id, pedidoItemIds, usuarioId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {

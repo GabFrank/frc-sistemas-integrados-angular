@@ -17,7 +17,9 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../../n
 import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Jornada } from '../../models/jornada.model';
+import { EstadoJornada } from '../../enums/estado-jornada.enum';
 import { TipoMarcacion } from '../../enums/tipo-marcacion.enum';
+import { AccionMarcacionPendiente } from '../../enums/accion-marcacion-pendiente.enum';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 
 import { DispositivoService } from '../../../../../shared/services/dispositivo.service';
@@ -59,6 +61,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   marcacionesHoy: Marcacion[] = [];
   jornadaActual: Jornada = null;
+  accionPendiente: AccionMarcacionPendiente = AccionMarcacionPendiente.ENTRADA;
   similitudInsuficiente = false;
   centralOnline: boolean = false;
 
@@ -141,6 +144,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.estaEnJornada = false;
     this.marcacionesHoy = [];
     this.jornadaActual = null;
+    this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
     this.cdr.markForCheck();
   }
 
@@ -241,8 +245,10 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   verificarMarcacionActiva(): void {
     if (!this.usuarioSeleccionado?.id) return;
 
+    this.jornadaActual = null;
+    this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
     this.cargando = true;
-    const { inicio, fin } = this.obtenerRangoHoy();
+    const { inicio, fin } = this.obtenerRangoMarcacion();
 
     this.marcacionService.onGetMarcacionesPorUsuario(
       this.usuarioSeleccionado.id, inicio, fin, 0, 100, true,
@@ -265,18 +271,16 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   private consultarJornadaActual(): void {
     if (!this.usuarioSeleccionado?.id) return;
-    const { inicio, fin } = this.obtenerRangoHoy();
+    const { inicio, fin } = this.obtenerRangoMarcacion();
     this.marcacionService.onGetJornadasPorUsuario(
       this.usuarioSeleccionado.id, inicio, fin, true
     ).pipe(
       untilDestroyed(this)
     ).subscribe({
       next: (jornadas: Jornada[]) => {
-        if (jornadas && jornadas.length > 0) {
-          this.jornadaActual = [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
-        } else {
-          this.jornadaActual = null;
-        }
+        this.jornadaActual = this.seleccionarJornadaRelevante(jornadas || []);
+        this.sincronizarEstadoDesdeJornada();
+        this.actualizarAccionPendiente();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -285,12 +289,104 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     });
   }
 
-  private obtenerRangoHoy() {
+  /** Incluye ayer para jornadas NOCHE/MADRUGADA que cruzan medianoche. */
+  private obtenerRangoMarcacion() {
     const hoy = new Date();
+    const ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
     return {
-      inicio: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString(),
+      inicio: new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate()).toISOString(),
       fin: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
     };
+  }
+
+  private seleccionarJornadaRelevante(jornadas: Jornada[]): Jornada | null {
+    if (!jornadas.length) {
+      return null;
+    }
+    const abiertas = jornadas.filter(
+      j => j.estado === EstadoJornada.INCOMPLETO && j.marcacionEntrada && !j.marcacionSalida
+    );
+    if (abiertas.length > 0) {
+      const nocturnas = abiertas.filter(j => this.cruzaMedianoche(j));
+      const candidatas = nocturnas.length > 0 ? nocturnas : abiertas;
+      return [...candidatas].sort((a, b) => b.id - a.id)[0];
+    }
+    return [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
+  }
+
+  private cruzaMedianoche(j: Jornada): boolean {
+    const turno = (j.turno || '').toUpperCase();
+    return turno === 'NOCHE' || turno === 'MADRUGADA';
+  }
+
+  private sincronizarEstadoDesdeJornada(): void {
+    const j = this.jornadaActual;
+    if (!j?.marcacionEntrada || j.marcacionSalida) {
+      return;
+    }
+    const hoy = this.fechaLocal(new Date());
+    const fechaJornada = this.fechaLocal(j.fecha);
+    const activa = fechaJornada >= hoy
+      || (this.cruzaMedianoche(j) && j.estado === EstadoJornada.INCOMPLETO);
+    if (activa) {
+      this.marcacionActiva = j.marcacionEntrada;
+      this.horaEntrada = new Date(j.marcacionEntrada.fechaEntrada);
+      this.estaEnJornada = true;
+    }
+  }
+
+  /** Determina el siguiente paso según el estado de la jornada (entrada, almuerzo, retorno, salida). */
+  private actualizarAccionPendiente(): void {
+    const j = this.jornadaActual;
+    if (!j || !this.esJornadaActiva(j) || j.estado === EstadoJornada.NORMAL || j.marcacionSalida) {
+      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
+      this.estaEnJornada = false;
+      return;
+    }
+
+    if (!j.marcacionEntrada) {
+      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
+      this.estaEnJornada = false;
+      return;
+    }
+
+    if (!j.marcacionSalidaAlmuerzo) {
+      this.accionPendiente = AccionMarcacionPendiente.SALIDA;
+      this.estaEnJornada = true;
+      return;
+    }
+
+    if (!j.marcacionEntradaAlmuerzo) {
+      this.accionPendiente = AccionMarcacionPendiente.RETORNO_ALMUERZO;
+      this.estaEnJornada = true;
+      return;
+    }
+
+    this.accionPendiente = AccionMarcacionPendiente.SALIDA_DEFINITIVA;
+    this.estaEnJornada = true;
+  }
+
+  private esJornadaActiva(j: Jornada): boolean {
+    const hoy = this.fechaLocal(new Date());
+    const fechaJornada = this.fechaLocal(j.fecha);
+    if (fechaJornada >= hoy) {
+      return true;
+    }
+    return this.cruzaMedianoche(j)
+      && j.estado === EstadoJornada.INCOMPLETO
+      && !j.marcacionSalida
+      && !!j.marcacionEntrada;
+  }
+
+  private fechaLocal(valor: Date | string): string {
+    const date = typeof valor === 'string'
+      ? new Date(valor.length <= 10 ? `${valor}T12:00:00` : valor)
+      : valor;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   private procesarMarcaciones(marcaciones: Marcacion[]) {
@@ -326,14 +422,18 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     // Invertimos nuevamente para que el frontend muestre la última arriba
     this.marcacionesHoy = visualList.reverse();
 
-    if (currentRaw) {
-      this.marcacionActiva = currentRaw;
-      this.horaEntrada = new Date(currentRaw.fechaEntrada);
-      this.estaEnJornada = true;
-    } else {
-      this.marcacionActiva = null;
-      this.horaEntrada = null;
-      this.estaEnJornada = false;
+    if (!this.jornadaActual) {
+      if (currentRaw) {
+        this.marcacionActiva = currentRaw;
+        this.horaEntrada = new Date(currentRaw.fechaEntrada);
+        this.estaEnJornada = true;
+        this.accionPendiente = AccionMarcacionPendiente.SALIDA;
+      } else {
+        this.marcacionActiva = null;
+        this.horaEntrada = null;
+        this.estaEnJornada = false;
+        this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
+      }
     }
     this.cdr.markForCheck();
   }
@@ -343,13 +443,15 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.ejecutarRegistro(true);
   }
 
+  registrarRetornoAlmuerzo(): void {
+    if (!this.validarRegistro()) return;
+    this.ejecutarRegistro(true);
+  }
+
   registrarSalida(): void {
     if (!this.validarRegistro(true)) return;
-    const almuerzoCompleto = this.jornadaActual
-      && this.jornadaActual.marcacionSalidaAlmuerzo
-      && this.jornadaActual.marcacionEntradaAlmuerzo;
 
-    if (almuerzoCompleto) {
+    if (this.accionPendiente === AccionMarcacionPendiente.SALIDA_DEFINITIVA) {
       this.ejecutarRegistro(false, false);
       return;
     }
@@ -431,7 +533,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       this.notificarError('Debe seleccionar su usuario primero');
       return false;
     }
-    if (!this.sucursalActualId) {
+    if (this.sucursalActualId == null) {
       this.notificarError('No se pudo determinar la sucursal actual', NotificacionColor.danger);
       return false;
     }

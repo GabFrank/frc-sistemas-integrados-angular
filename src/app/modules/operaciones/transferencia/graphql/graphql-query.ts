@@ -48,6 +48,9 @@ export const transferenciaQuery = gql`
       etapa
       observacion
       creadoEn
+      hojaRuta {
+        id
+      }
       usuarioPreTransferencia {
         id
         persona {
@@ -367,6 +370,9 @@ export const transferenciaWithFiltersQuery = gql`
         etapa
         observacion
         creadoEn
+        hojaRuta {
+          id
+        }
       }
     }
   }
@@ -625,7 +631,7 @@ export const saveTransferenciaItemDetalle = gql`
 `;
 
 export const deleteTransferenciaItemDetalleQuery = gql`
-  mutation deleteTransferenciaItemDetalle($id: ID!) {
+  mutation deleteTransferenciaItemDetalle($id: Int!) {
     data: deleteTransferenciaItemDetalle(id: $id)
   }
 `;
@@ -865,7 +871,7 @@ export const transferenciaItemQuery = gql`
 
 
 export const transferenciaItensPorTransferenciaIdWithFilter = gql`
-  query ($id: ID, $name: String, $page:Int = 0, $size:Int = 10) {
+  query ($id: Int, $name: String, $page:Int = 0, $size:Int = 10) {
     data: transferenciaItensPorTransferenciaIdWithFilter(
       id: $id
       name: $name
@@ -981,6 +987,286 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
         activo
         poseeVencimiento
         creadoEn
+      }
+    }
+  }
+`;
+
+export const hojaRutaQuery = gql`
+  query ($id: Int!) {
+    data: hojaRuta(id: $id) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+      acompanantes {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const hojaRutaListQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: hojaRutaList(page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaPorVehiculoQuery = gql`
+  query ($vehiculoId: Int!, $page: Int, $size: Int) {
+    data: hojaRutaPorVehiculo(vehiculoId: $vehiculoId, page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaPorChoferQuery = gql`
+  query ($choferId: Int!, $page: Int, $size: Int) {
+    data: hojaRutaPorChofer(choferId: $choferId, page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaActivaPorVehiculoQuery = gql`
+  query ($vehiculoId: Int!) {
+    data: hojaRutaActivaPorVehiculo(vehiculoId: $vehiculoId) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const saveHojaRuta = gql`
+  mutation saveHojaRuta($entity: HojaRutaInput!) {
+    data: saveHojaRuta(input: $entity) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+      acompanantes {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const deleteHojaRuta = gql`
+  mutation deleteHojaRuta($id: Int!) {
+    data: deleteHojaRuta(id: $id)
+  }
+`;
+
+export const acompanhantesPorHojaRutaQuery = gql`
+  query ($hojaRutaId: Int!) {
+    data: acompanhantesPorHojaRuta(hojaRutaId: $hojaRutaId) {
+        id {
+            hojaRutaId
+            personaId
+        }
+        persona {
+            id
+            nombre
+        }
+    }
+  }
+`;
+
+export const saveAcompanhante = gql`
+  mutation saveAcompanhante($entity: AcompanhanteInput!) {
+    data: saveAcompanhante(input: $entity) {
+        id {
+            hojaRutaId
+            personaId
+        }
+        persona {
+            id
+            nombre
+        }
+    }
+  }
+`;
+
+export const deleteAcompanhante = gql`
+  mutation deleteAcompanhante($hojaRutaId: Int!, $personaId: Int!) {
+    data: deleteAcompanhante(hojaRutaId: $hojaRutaId, personaId: $personaId)
+  }
+`;
+
+export const hojasRutaConEntregasQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: hojasRutaConEntregas(page: $page, size: $size) {
+      id
+      chofer {
+        id
+        nombre
+      }
+      vehiculo {
+        id
+        chapa
+        modelo {
+          descripcion
+        }
+      }
+      fechaSalida
+    }
+  }
+`;
+
+export const transferenciasPorHojaRutaQuery = gql`
+  query ($hojaRutaId: ID!, $page: Int!, $size: Int!) {
+    data: transferenciasPorHojaRuta(hojaRutaId: $hojaRutaId, page: $page, size: $size) {
+      id
+      sucursalOrigen {
+        id
+        nombre
+        localizacion
+      }
+      sucursalDestino {
+        id
+        nombre
+        localizacion
+      }
+      estado
+      fecha: creadoEn
+      hojaRuta {
+        id
+        vehiculo {
+          chapa
+          modelo {
+            descripcion
+          }
+        }
+      }
+    }
+  }
+`;
+
+
+
+export const hojaRutaPorFechaQuery = gql`
+  query ($inicio: String, $fin: String) {
+    data: hojaRutaPorFecha(inicio: $inicio, fin: $fin) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+      acompanantes {
+        id
+        nombre
       }
     }
   }

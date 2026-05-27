@@ -6,12 +6,12 @@
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 24,
+  "pdvId": null,
   "isConfigured": true,
-  "isLocal": true,
+  "isLocal": false,
   "updateChannel": "dev",
   "printers": {
-    "ticket": "ultron22",
+    "ticket": "ultron",
     "factura": ""
   }
 }

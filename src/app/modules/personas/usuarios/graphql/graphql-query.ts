@@ -227,3 +227,28 @@ export const getUsuarioImagesQuery = gql`
     data: getUsuarioImages(id: $id, type: $type)
   }
 `;
+
+export const usuariosSearchPaginated = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: usuarioSearchPaginated(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nickname
+        activo
+        persona {
+          id
+          nombre
+          documento
+          imagenes
+        }
+      }
+    }
+  }
+`;

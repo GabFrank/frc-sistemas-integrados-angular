@@ -53,13 +53,16 @@ export interface PdvSearchProductoData {
   costo?: boolean;
   transferencia?: Transferencia;
   servidor?: boolean;
+  modoSeleccionMultiple?: boolean;
+  productosSeleccionados?: Producto[];
 }
 
 export interface PdvSearchProductoResponseData {
-  producto: Producto;
-  presentacion: Presentacion;
+  producto?: Producto;
+  presentacion?: Presentacion;
   precio?: PrecioPorSucursal;
   cantidad?: number;
+  productos?: Producto[];
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -121,6 +124,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   isTransferencia: boolean = false;
   existenciaOrigen: number = 0;
   existenciaDestino: number = 0;
+  modoSeleccionMultiple = false;
+  productosSeleccionadosMap = new Map<number, Producto>();
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PdvSearchProductoData,
@@ -154,6 +159,15 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     console.log('Iniciando dialogo de busqueda de producto');
     this.dataSource = new MatTableDataSource<Producto>([]);
+    this.modoSeleccionMultiple = !!this.data?.modoSeleccionMultiple;
+
+    if (this.modoSeleccionMultiple) {
+      this.displayedColumns = ['seleccion', ...this.displayedColumns.filter(c => c !== 'acciones')];
+      (this.data.productosSeleccionados || []).forEach(p => {
+        if (p?.id) this.productosSeleccionadosMap.set(p.id, p);
+      });
+    }
+
     this.createForm();
 
     this.productoDetailList = [];
@@ -262,9 +276,42 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   highlight(index: number) {
     if (index >= 0 && index <= this.dataSource.data.length - 1) {
       this.selectedRowIndex = index;
-      // this.expandedProducto = this.dataSource.data[index];
-      // this.getProductoDetail(this.expandedProducto, index);
     }
+  }
+
+  toggleSeleccion(producto: Producto, event?: Event): void {
+    event?.stopPropagation();
+    if (!producto?.id) return;
+    if (this.productosSeleccionadosMap.has(producto.id)) {
+      this.productosSeleccionadosMap.delete(producto.id);
+    } else {
+      this.productosSeleccionadosMap.set(producto.id, producto);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isSeleccionado(producto: Producto): boolean {
+    return producto?.id != null && this.productosSeleccionadosMap.has(producto.id);
+  }
+
+  cantidadSeleccionados(): number {
+    return this.productosSeleccionadosMap.size;
+  }
+
+  aplicarSeleccionMultiple(): void {
+    const productos = Array.from(this.productosSeleccionadosMap.values());
+    this.dialogRef.close({ productos } as PdvSearchProductoResponseData);
+  }
+
+  onFilaClick(producto: Producto, index: number): void {
+    if (this.modoSeleccionMultiple) {
+      this.toggleSeleccion(producto);
+      this.highlight(index);
+      return;
+    }
+    this.expandedProducto = null;
+    this.highlight(index);
+    this.tableKeyDownEvent('Enter', index);
   }
 
   highlightPresentacion(index: number) {

@@ -1,7 +1,6 @@
 import { Component, Inject, Injector, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
-import { UsuarioInput } from '../usuario-input.model';
 import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
 
@@ -141,7 +140,6 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
         return this.usuarioRoleList.data.find(ur => ur.role.id == r.id) == null;
       }),
     };
-    // data.
     return new Observable(obs => {
       this.matDialog
         .open(SearchListDialogComponent, {

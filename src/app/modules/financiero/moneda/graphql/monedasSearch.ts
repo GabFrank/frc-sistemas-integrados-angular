@@ -4,7 +4,7 @@ import { Moneda } from '../moneda.model';
 import { monedasSearch } from './graphql-query';
 
 export interface Response {
-  monedas: Moneda[];
+  data: Moneda[];
 }
 
 

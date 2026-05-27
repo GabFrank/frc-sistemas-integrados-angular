@@ -75,6 +75,13 @@ export const productoProveedorPorProveedorId = gql`
           }
           costo {
             ultimoPrecioCompra
+            cotizacion
+            moneda {
+              id
+              denominacion
+              simbolo
+              cambio
+            }
           }
         }
         proveedor {

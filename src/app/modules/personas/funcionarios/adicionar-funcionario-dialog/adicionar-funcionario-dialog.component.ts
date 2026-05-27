@@ -69,6 +69,15 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   marcacionesDataSource = new MatTableDataSource<Marcacion>([])
 
   currencyMask = new CurrencyMask();
+  fotoAmpliada = false;
+
+  get fotoPerfilUrl(): string {
+    return this.selectedFuncionario?.imagenPrincipal ?? 'assets/avatar-3x4.png';
+  }
+
+  get tieneFotoPerfil(): boolean {
+    return !!this.selectedFuncionario?.imagenPrincipal;
+  }
 
   constructor(
     private sucursalService: SucursalService,
@@ -293,6 +302,17 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
   onCancel() {
     this.matDialogRef.close()
+  }
+
+  onVerFotoPerfil(event: Event): void {
+    event.stopPropagation();
+    if (this.tieneFotoPerfil) {
+      this.fotoAmpliada = true;
+    }
+  }
+
+  cerrarFotoAmpliada(): void {
+    this.fotoAmpliada = false;
   }
 
   onEditarPersona() {

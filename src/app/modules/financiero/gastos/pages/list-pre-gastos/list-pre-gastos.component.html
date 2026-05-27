@@ -1,0 +1,240 @@
+<app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onRefrescar()" (resetFiltro)="onLimpiarFiltro()"
+  [isAdicionar]="true" [disableAdicionar]="true" (adicionar)="irAAgregarPreGasto()">
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%" [formGroup]="fechaFormGroup">
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%">
+          <mat-label>ID</mat-label>
+          <input matInput type="number" formControlName="buscarId" placeholder="ID" (keyup.enter)="onRefrescar()">
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" />
+            <input matEndDate formControlName="fin" placeholder="Fin" />
+          </mat-date-range-input>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div fxLayout="row" fxLayoutAlign="start end" style="width: 100%; margin-top: 10px;">
+      <button *ngFor="let etiqueta of tabEtiquetas; let i = index" mat-button
+        [class.tab-activa]="(tabActiva$ | async) === i" (click)="cambiarTab(i)"
+        [ngStyle]="{'border-bottom': ((tabActiva$ | async) === i) ? '2px solid #ff9800': 'none', 'color': ((tabActiva$ | async) === i) ? '#ff9800' : 'inherit' }">
+        {{ etiqueta | uppercase }}
+      </button>
+    </div>
+  </div>
+
+  <div table style="height: 100%; background-color: rgb(40, 40, 40)" fxLayout="row" fxLayoutAlign="start start"
+    fxLayoutGap="10px">
+    <div fxFlex="65%" fxLayout="column" fxLayoutAlign="space-between start" style="height: 100%;">
+      <table mat-table [dataSource]="(listaFiltrada$ | async) || []" class="mat-elevation-z8" style="width: 100%;">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 5%">ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 5%">{{ item.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="funcionario">
+          <th mat-header-cell *matHeaderCellDef>Solicitante</th>
+          <td mat-cell *matCellDef="let item">{{ item.funcionario?.nombre | titlecase }}</td>
+        </ng-container>
+        <ng-container matColumnDef="tipoGasto">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let item">{{ item.tipoGasto?.descripcion | uppercase }}</td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Concepto</th>
+          <td mat-cell *matCellDef="let item">{{ item.descripcion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef>Monto</th>
+          <td mat-cell *matCellDef="let item" style="font-weight: 500;">
+            <ng-container *ngIf="item.finanzas?.length; else montoPrincipal">
+              {{ resumenMontos(item) }}
+            </ng-container>
+            <ng-template #montoPrincipal>
+              {{ item.montoSolicitado | number:'1.0-0' }}
+            </ng-template>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="moneda">
+          <th mat-header-cell *matHeaderCellDef>Mon.</th>
+          <td mat-cell *matCellDef="let item">{{ resumenMonedas(item) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="sucursal">
+          <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+          <td mat-cell *matCellDef="let item">{{ item.sucursalCaja?.nombre | titlecase }}</td>
+        </ng-container>
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let item">
+            <span class="estado-badge" [style.background-color]="colorEstado(item) + '22'"
+              [style.color]="colorEstado(item)"
+              style="padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 500;">
+              <mat-icon
+                style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">{{ iconoEstado(item) }}</mat-icon>
+              {{ etiquetaEstado(item) }}
+            </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let item" style="color: #bbb;">{{ item.creadoEn | date:'short' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">...</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            <button *ngIf="item.estado === 'PENDIENTE' || item.estado === 'TRAMITE'" mat-icon-button
+              (click)="seleccionarPreGasto(item); autorizarGasto(item)">
+              <mat-icon>remove_red_eye</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnasVisibles; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasVisibles;" class="example-element-row" style="cursor: pointer"
+          [ngStyle]="{'background-color': (preGastoSeleccionado$ | async)?.id === row.id ? 'rgb(60, 60, 60)' : 'transparent'}"
+          (click)="seleccionarPreGasto(row)"></tr>
+      </table>
+
+      <mat-paginator itemsPerPageLabel="Items por página" [pageSizeOptions]="[15, 30, 50, 100]"
+        (page)="handlePageEvent($event)" [length]="(totalElements$ | async) || 0"
+        [pageIndex]="(pagination$ | async)?.pageIndex" [pageSize]="(pagination$ | async)?.pageSize"
+        style="width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);" showFirstLastButtons>
+      </mat-paginator>
+    </div>
+    <div fxFlex="35%" style="height: 100%; background-color: rgb(52, 52, 52); padding: 16px; border-radius: 4px;">
+      <div *ngIf="(preGastoSeleccionado$ | async) as seleccionado; else sinSeleccion" fxLayout="column"
+        fxLayoutGap="16px">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+          <mat-icon [style.color]="colorEstado(seleccionado)"
+            style="font-size: 32px; height: 32px; width: 32px;">{{ iconoEstado(seleccionado) }}</mat-icon>
+          <div fxLayout="column">
+            <span style="font-size: 1.2em; font-weight: bold;">Solicitud #{{ seleccionado.id }}</span>
+            <span style="color: #aaa">{{ seleccionado.creadoEn | date:'medium' }}</span>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div fxLayout="column" fxLayoutGap="8px">
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Solicitante:</span>
+            <span>{{ seleccionado.funcionario?.nombre }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Tipo:</span>
+            <span>{{ seleccionado.tipoGasto?.descripcion }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Concepto:</span>
+            <span>{{ seleccionado.descripcion }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start"
+            style="font-weight: bold; font-size: 1.1em; color: #4CAF50; margin-top: 8px;">
+            <span>Monto Solicitado:</span>
+            <span *ngIf="seleccionado.finanzas?.length; else montoSeleccionadoPrincipal">
+              <ng-container *ngFor="let fin of seleccionado.finanzas; let last = last">
+                {{ fin.monto | number:'1.0-2' }} {{ fin.moneda?.simbolo || fin.moneda?.denominacion }}<span *ngIf="!last"> + </span>
+              </ng-container>
+            </span>
+            <ng-template #montoSeleccionadoPrincipal>
+              <span>{{ seleccionado.montoSolicitado | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+            </ng-template>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Estado:</span>
+            <span [style.color]="colorEstado(seleccionado)">{{ etiquetaEstado(seleccionado) }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Rendición:</span>
+            <span [style.color]="seleccionado.estadoRendicion === 'RENDIDO_COMPLETO' ? '#66bb6a' : (seleccionado.estadoRendicion === 'RENDIDO_PARCIAL' ? '#ffa726' : '#ef5350')">
+              {{
+                seleccionado.estadoRendicion === 'RENDIDO_COMPLETO'
+                  ? 'Completo'
+                  : (seleccionado.estadoRendicion === 'RENDIDO_PARCIAL' ? 'Parcial' : 'No rindió')
+              }}
+            </span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">% rendido:</span>
+            <span>{{ (seleccionado.porcentajeRendicion || 0) | number:'1.0-2' }}%</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">% rendido por moneda:</span>
+            <span>{{ porcentajeRendidoPorMoneda(seleccionado) }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Monto no rendido:</span>
+            <span [style.color]="'#ffb74d'">
+              {{ montoNoRendidoPorMoneda(seleccionado) }}
+            </span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Fecha rendición:</span>
+            <span>{{ seleccionado.fechaRendicion ? (seleccionado.fechaRendicion | date:'short') : '-' }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Tuvo vuelto:</span>
+            <span>{{ (seleccionado.saldoDevolver || 0) > 0 ? 'Sí' : 'No' }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">Monto vuelto:</span>
+            <span>{{ (seleccionado.saldoDevolver || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+          </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start">
+            <span style="color: #aaa">¿Rindió?</span>
+            <span>
+              {{ seleccionado.rindioGasto ? 'Sí' : 'No' }}
+            </span>
+          </div>
+        </div>
+
+        <div *ngIf="seleccionado.estado === 'PENDIENTE' || seleccionado.estado === 'TRAMITE'" style="margin-top: 16px;">
+          <button mat-raised-button color="primary" style="width: 100%;" (click)="autorizarGasto(seleccionado)">
+            GESTIONAR
+          </button>
+        </div>
+
+        <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;" fxLayout="row" fxLayoutGap="8px">
+          <button mat-raised-button color="accent"
+            style="flex: 1 1 50%; min-height: 36px; padding: 0 10px; font-size: 12px; line-height: 1;"
+            (click)="onEnviarATesoreria(seleccionado)">
+            <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">send</mat-icon>
+            ENVIAR A TESORERÍA
+          </button>
+          <button mat-raised-button color="primary"
+            style="flex: 1 1 50%; min-height: 36px; padding: 0 10px; font-size: 12px; line-height: 1;"
+            (click)="onEnviarASucursalRetiro(seleccionado)">
+            <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">store</mat-icon>
+            ENVIAR A SUCURSAL DE RETIRO
+          </button>
+        </div>
+
+        <div *ngIf="seleccionado.estado === 'ENVIADO_A_TESORERIA'" style="margin-top: 16px;" fxLayout="column"
+          fxLayoutGap="8px">
+          <div
+            style="background-color: rgba(38, 166, 154, 0.1); color: #26a69a; padding: 12px; border-radius: 4px; border: 1px solid #26a69a;"
+            fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+            <mat-icon>info</mat-icon>
+            <span>Enviado a Tesorería para Pago</span>
+          </div>
+        </div>
+
+      </div>
+
+      <ng-template #sinSeleccion>
+        <div fxLayout="column" fxLayoutAlign="center center" style="height: 100%; color: #888;">
+          <mat-icon
+            style="font-size: 48px; height: 48px; width: 48px; margin-bottom: 16px; opacity: 0.5;">receipt_long</mat-icon>
+          <span>Seleccione una solicitud para ver el detalle</span>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</app-generic-list>

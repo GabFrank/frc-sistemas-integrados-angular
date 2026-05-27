@@ -25,7 +25,7 @@ import { ListMovimientoStockComponent } from '../../../operaciones/movimiento-st
 import { ListProductoComponent } from '../../../productos/producto/list-producto/list-producto.component';
 import { ProductoComponent } from '../../../productos/producto/edit-producto/producto.component';
 import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
-import { ListGastosComponent } from '../../../financiero/gastos/list-gastos/list-gastos.component';
+import { ListGastosComponent } from '../../../financiero/gastos/pages/list-gastos/list-gastos.component';
 import { ListRetiroComponent } from '../../../financiero/retiro/list-retiro/list-retiro.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';

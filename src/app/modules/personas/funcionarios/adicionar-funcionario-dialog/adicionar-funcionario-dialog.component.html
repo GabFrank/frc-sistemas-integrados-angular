@@ -206,11 +206,10 @@
         <div fxFlex="30" fxLayout="column" fxLayoutAlign="center center">
           <img
             fxFlex="90"
-            [src]="
-              selectedFuncionario?.imagenPrincipal != null
-                ? selectedFuncionario.imagenPrincipal
-                : 'assets/avatar-3x4.png'
-            "
+            [src]="fotoPerfilUrl"
+            [class.foto-clickeable]="tieneFotoPerfil"
+            [matTooltip]="tieneFotoPerfil ? 'Ver foto ampliada' : ''"
+            (click)="onVerFotoPerfil($event)"
             style="height: 100%; object-fit: contain"
           />
           <div
@@ -299,4 +298,28 @@
       (clickEvent)="onSave()"
     ></app-boton>
   </div>
+</div>
+
+<div
+  *ngIf="fotoAmpliada"
+  class="foto-overlay"
+  (click)="cerrarFotoAmpliada()"
+  role="dialog"
+  aria-label="Foto de perfil ampliada"
+>
+  <button
+    type="button"
+    class="foto-overlay-cerrar"
+    mat-icon-button
+    aria-label="Cerrar"
+    (click)="cerrarFotoAmpliada(); $event.stopPropagation()"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+  <img
+    class="foto-overlay-imagen"
+    [src]="fotoPerfilUrl"
+    [alt]="'Foto de perfil de ' + (selectedPersona?.nombre || 'funcionario')"
+    (click)="$event.stopPropagation()"
+  />
 </div>

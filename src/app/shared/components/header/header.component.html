@@ -1,134 +1,177 @@
-<mat-toolbar color="primary">
-  <mat-toolbar-row style="padding-right: 0" fxLayout="row" fxLayoutAlign="space-between center">
-    <div fxFlex="25" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
-      <button fxFlex="20" mat-icon-button (click)="toogleSideBar()"
-        [disabled]="!cloudStatus && (!isLocal || !localStatus)" class="header-menu-toggle">
+<mat-toolbar color="primary" class="frc-header">
+  <mat-toolbar-row class="frc-header__row">
+
+    <!-- ZONA 1: burger + sucursal -->
+    <div class="frc-header__zone frc-header__zone--brand">
+      <button mat-icon-button (click)="toogleSideBar()"
+        [disabled]="!cloudStatus && (!isLocal || !localStatus)" class="frc-header__burger header-menu-toggle">
         <mat-icon>menu</mat-icon>
       </button>
-      <div style="position: relative; text-align: center">
-        <span style="padding-left: 20px; display: inline-block">
-          <ng-container *ngIf="isLocal; else cloudTitle">
-            BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
-            {{ isDev && isLocalhost ? "DEV" : null }}
-          </ng-container>
-          <ng-template #cloudTitle>
-            <ng-container *ngIf="mainService?.sucursalActual?.id != null && mainService?.sucursalActual?.id != 0; else defaultCloudTitle">
+
+      <div class="frc-header__brand">
+        <span class="frc-header__brand-stack">
+          <span class="frc-header__brand-title">
+            <ng-container *ngIf="isLocal; else cloudTitle">
               BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
-              {{ isDev ? "DEV" : null }}
+              <span *ngIf="isDev && isLocalhost" class="frc-header__tag">DEV</span>
             </ng-container>
-            <ng-template #defaultCloudTitle>
-              BODEGA FRANCO CLOUD {{ isDev ? "DEV" : null }}
+            <ng-template #cloudTitle>
+              <ng-container
+                *ngIf="mainService?.sucursalActual?.id != null && mainService?.sucursalActual?.id != 0; else defaultCloudTitle">
+                BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+                <span *ngIf="isDev" class="frc-header__tag">DEV</span>
+              </ng-container>
+              <ng-template #defaultCloudTitle>
+                BODEGA FRANCO CLOUD <span *ngIf="isDev" class="frc-header__tag">DEV</span>
+              </ng-template>
             </ng-template>
+          </span>
+          <span class="frc-header__brand-sub">FRC Sistemas v{{ appVersion }}</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="frc-header__spacer"></div>
+    <div class="frc-header__divider"></div>
+
+    <!-- ZONA 2: cotizaciones -->
+    <div class="frc-header__zone frc-header__zone--cotiz"
+      *ngIf="(cotizaciones$ | async) as cotizaciones">
+      <button mat-icon-button class="frc-header__cotiz-refresh"
+        (click)="onRefreshCotizacion()" matTooltip="Actualizar cotización"
+        [disabled]="isRefreshingCotiz">
+        <mat-icon [class.frc-header__spin]="isRefreshingCotiz">refresh</mat-icon>
+      </button>
+      <div class="frc-header__cotiz-stack">
+        <ng-container *ngIf="cotizaciones.length; else cotizPlaceholder">
+          <div class="frc-header__cotiz-row" *ngFor="let c of cotizaciones"
+            [matTooltip]="'Actualizado: ' + (c.fecha | date:'dd/MM HH:mm')">
+            <span class="frc-header__cotiz-label">{{ c.moneda.denominacion | slice:0:3 | uppercase }}</span>
+            <span class="frc-header__cotiz-values">
+              <span class="frc-header__cotiz-num">{{ c.compraMercado | number:'1.0-0' }}</span>
+              <span class="frc-header__cotiz-sep">/</span>
+              <span class="frc-header__cotiz-num">{{ c.ventaMercado | number:'1.0-0' }}</span>
+            </span>
+          </div>
+        </ng-container>
+        <ng-template #cotizPlaceholder>
+          <span class="frc-header__cotiz-empty">Sin cotización</span>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="frc-header__divider"></div>
+
+    <!-- ZONA 3: fecha y hora -->
+    <div class="frc-header__zone frc-header__zone--clock" *ngIf="(now$ | async) as now">
+      <span class="frc-header__clock-time">{{ now.time }}</span>
+      <span class="frc-header__clock-date">{{ now.date }}</span>
+    </div>
+
+    <div class="frc-header__divider"></div>
+
+    <!-- ZONA 4: status servers -->
+    <div class="frc-header__zone frc-header__zone--status">
+      <div *ngIf="isLocal" class="frc-header__status-row"
+        [matTooltip]="localStatus === true ? 'Servidor local online' : (localStatus === false ? 'Servidor local offline' : 'Conectando...')">
+        <mat-spinner *ngIf="localStatus == null" diameter="10"></mat-spinner>
+        <span *ngIf="localStatus != null" class="frc-header__status-dot"
+          [class.frc-header__status-dot--on]="localStatus === true"
+          [class.frc-header__status-dot--off]="localStatus === false"
+          [class.blink]="serverWarning && cloudStatus && !localStatus"></span>
+        <span class="frc-header__status-label">LOCAL</span>
+      </div>
+      <div class="frc-header__status-row"
+        [matTooltip]="cloudStatus === true ? 'Central online' : (cloudStatus === false ? 'Central offline' : 'Conectando...')">
+        <mat-spinner *ngIf="cloudStatus == null" diameter="10"></mat-spinner>
+        <span *ngIf="cloudStatus != null" class="frc-header__status-dot"
+          [class.frc-header__status-dot--on]="cloudStatus === true"
+          [class.frc-header__status-dot--off]="cloudStatus === false"
+          [class.blink]="serverWarning && isLocal && localStatus && !cloudStatus"></span>
+        <span class="frc-header__status-label">CENTRAL</span>
+      </div>
+    </div>
+
+    <div class="frc-header__divider"></div>
+    <div class="frc-header__spacer"></div>
+
+    <!-- ZONA 5: acciones + usuario -->
+    <div class="frc-header__zone frc-header__zone--actions">
+      <button mat-icon-button [disabled]="!cloudStatus && (!isLocal || !localStatus)" (click)="onSearch()"
+        matTooltip="Buscar">
+        <mat-icon>search</mat-icon>
+      </button>
+
+      <button mat-icon-button [matMenuTriggerFor]="menuServerIp" matTooltip="Configuración">
+        <mat-icon>settings</mat-icon>
+      </button>
+
+      <button mat-icon-button class="frc-header__notif" (click)="onOpenNotifications()"
+        [disabled]="!cloudStatus && (!isLocal || !localStatus)" matTooltip="Notificaciones">
+        <mat-icon>mail</mat-icon>
+        <ng-container *ngIf="(unreadCount$ | async) as count">
+          <span *ngIf="count > 0" class="notification-badge">
+            {{ count > 99 ? '99+' : count }}
+          </span>
+        </ng-container>
+      </button>
+
+      <button mat-button class="frc-header__user" [matMenuTriggerFor]="menu"
+        [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+        <span class="frc-header__user-inner">
+          <ng-container *ngIf="mainService?.usuarioActual?.persona as persona; else anonUser">
+            <span class="frc-header__user-avatar">
+              <mat-icon>person</mat-icon>
+            </span>
+            <span class="frc-header__user-stack">
+              <span class="frc-header__user-name">{{ persona.nombre | titlecase }}</span>
+              <span class="frc-header__user-role">{{ userMainRole }}</span>
+            </span>
+            <mat-icon class="frc-header__user-caret">arrow_drop_down</mat-icon>
+          </ng-container>
+          <ng-template #anonUser>
+            <mat-icon>person_outline</mat-icon>
           </ng-template>
         </span>
-        <span style="
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            width: 100%;
-            font-size: small;
-          ">
-          FRC Sistemas Informáticos v{{ appVersion }}
-        </span>
-      </div>
+      </button>
     </div>
 
-    <div fxFlex="50" fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="end center" style="width: 100%">
-      <div fxFlex="10">
-        <button fxFlex mat-icon-button [matMenuTriggerFor]="menuServerIp">
-          <mat-icon>settings</mat-icon>
-        </button>
-        <mat-menu #menuServerIp="matMenu">
-          <div style="padding: 5px">
-            <button mat-flat-button color="success" (click)="createQrCode()"
-              [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-              QR de la sucursal
-            </button>
-          </div>
-          <div *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)" style="padding: 5px">
-            <button mat-flat-button color="success" (click)="onGetConfiguracion()"
-              [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-              Configuración del Sistema
-            </button>
-          </div>
-          <button mat-menu-item [matMenuTriggerFor]="sucursales">
-            Cambiar sucursal
-          </button>
-        </mat-menu>
-      </div>
-
-      <div fxFlex="10">
-        <button mat-icon-button [disabled]="!cloudStatus && (!isLocal || !localStatus)" (click)="onSearch()">
-          <mat-icon>search</mat-icon>
-        </button>
-      </div>
-      <div fxFlex="50">
-        <button mat-button [matMenuTriggerFor]="menu" [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-          <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex>person_outline</mat-icon>
-          <div style="text-overflow: ellipsis; font-size: medium" *ngIf="mainService?.usuarioActual?.persona != null">
-            Usuario: {{ mainService.usuarioActual.persona.nombre | titlecase }}
-          </div>
-        </button>
-        <mat-menu #menu="matMenu">
-          <button mat-menu-item (click)="onLogout()" *ngIf="mainService?.usuarioActual?.persona != null"
-            [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-            Salir
-          </button>
-          <button mat-menu-item (click)="onLogin()" *ngIf="mainService?.usuarioActual?.persona == null"
-            [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-            Entrar
-          </button>
-        </mat-menu>
-      </div>
-      <div fxFlex="10" style="position: relative;">
-        <button mat-icon-button class="header-menu-toggle" (click)="onOpenNotifications()"
-          [disabled]="!cloudStatus && (!isLocal || !localStatus)">
-          <mat-icon>mail</mat-icon>
-          <ng-container *ngIf="(unreadCount$ | async) as count">
-            <span *ngIf="count > 0" class="notification-badge">
-              {{ count > 99 ? '99+' : count }}
-            </span>
-          </ng-container>
-        </button>
-      </div>
-    </div>
-    <div [fxFlex]="isLocal ? '15' : '10'" fxLayout="column" fxLayoutAlign="center center"
-      [class.server-warning]="serverWarning" style="background-color: rgb(32, 32, 32)">
-      <div fxFlex fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%; padding: 0 5px">
-        <div *ngIf="isLocal" fxFlex="50" fxLayout="column" fxLayoutAlign="center center">
-          <div style="font-size: 0.5em">LOCAL</div>
-          <div *ngIf="localStatus == true" style="font-size: 0.6em; color: #43a047">
-            Online
-          </div>
-          <div *ngIf="localStatus == false" [class.blink]="serverWarning && cloudStatus"
-            style="font-size: 0.6em; color: #f44336">
-            Offline
-          </div>
-          <div *ngIf="localStatus == null" style="font-size: 0.6em; color: #f44336">
-            <mat-spinner diameter="15"></mat-spinner>
-          </div>
-        </div>
-        <div [fxFlex]="isLocal ? '50' : '100'" fxLayout="column" fxLayoutAlign="center center">
-          <div style="font-size: 0.5em">CENTRAL</div>
-          <div *ngIf="cloudStatus == true" style="font-size: 0.6em; color: #43a047">
-            Online
-          </div>
-          <div *ngIf="cloudStatus == false" [class.blink]="serverWarning && isLocal && localStatus"
-            style="font-size: 0.6em; color: #f44336">
-            Offline
-          </div>
-          <div *ngIf="cloudStatus == null" style="font-size: 0.6em; color: #f44336">
-            <mat-spinner diameter="15"></mat-spinner>
-          </div>
-        </div>
-      </div>
-    </div>
   </mat-toolbar-row>
 </mat-toolbar>
 
+<mat-menu #menuServerIp="matMenu">
+  <div style="padding: 5px">
+    <button mat-flat-button color="success" (click)="createQrCode()"
+      [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+      QR de la sucursal
+    </button>
+  </div>
+  <div *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)" style="padding: 5px">
+    <button mat-flat-button color="success" (click)="onGetConfiguracion()"
+      [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+      Configuración del Sistema
+    </button>
+  </div>
+  <button mat-menu-item [matMenuTriggerFor]="sucursales" *ngIf="sucursalList?.length">
+    <mat-icon>swap_horiz</mat-icon>
+    <span>Cambiar sucursal</span>
+  </button>
+</mat-menu>
+
+<mat-menu #menu="matMenu">
+  <button mat-menu-item (click)="onLogout()" *ngIf="mainService?.usuarioActual?.persona != null"
+    [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+    <mat-icon>logout</mat-icon>
+    <span>Salir</span>
+  </button>
+  <button mat-menu-item (click)="onLogin()" *ngIf="mainService?.usuarioActual?.persona == null"
+    [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+    <mat-icon>login</mat-icon>
+    <span>Entrar</span>
+  </button>
+</mat-menu>
+
 <mat-menu #sucursales="matMenu">
-  <a mat-menu-item *ngIf="isDev" (click)="onDevMode(true)">Dev server</a>
-  <a mat-menu-item *ngIf="isDev" (click)="onDevMode(false)">Dev sucursal</a>
   <a *ngFor="let sucursal of sucursalList" [class.selected]="sucursal?.id == this.mainService?.sucursalActual?.id"
     mat-menu-item (click)="
       sucursal?.id != this.mainService?.sucursalActual?.id || isDev

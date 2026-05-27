@@ -63,6 +63,7 @@ import { PedidoResumen } from "./graphql/getPedidoResumen";
 
 // Services
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
+import { CambioService } from "../../../financiero/cambio/cambio.service";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import {
@@ -70,7 +71,11 @@ import {
   SearchListtDialogData,
   TableData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { PdvSearchProductoDialogComponent } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+import {
+  PdvSearchProductoData,
+  PdvSearchProductoDialogComponent,
+  PdvSearchProductoResponseData,
+} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
@@ -92,6 +97,14 @@ import { DesvincularProductoProveedorGQL } from "../../../productos/producto-pro
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 import { MainService } from "../../../../main.service";
+import {
+  ImprimirPedidoDialogComponent,
+  ImprimirPedidoDialogData,
+  ImprimirPedidoDialogResult,
+} from "./dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 interface PedidoHeader {
   id?: number;
@@ -100,6 +113,7 @@ interface PedidoHeader {
   estado: string;
   montoTotal: number;
   moneda: Moneda;
+  cotizacion?: number;
   plazoCredito: number;
 }
 
@@ -266,6 +280,14 @@ export class GestionComprasComponent
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
   canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
+  // Moneda display properties
+  pedidoMonedaSimbolo = '';
+  pedidoMonedaDecimalFormat = '1.0-0';
+
+  // Cotización del pedido — fuente del prefill (mercado / manual / pedido guardado)
+  cotizacionFromMercado = false;
+  cotizacionRefreshing = false;
+
   // Forms
   datosGeneralesForm: FormGroup;
   itemsForm: FormGroup;
@@ -389,6 +411,7 @@ export class GestionComprasComponent
     private fb: FormBuilder,
     private dialog: MatDialog,
     private monedaService: MonedaService,
+    private cambioService: CambioService,
     private formaPagoService: FormaPagoService,
     private sucursalService: SucursalService,
     private proveedorSearchGQL: ProveedoresSearchByPersonaGQL,
@@ -403,7 +426,9 @@ export class GestionComprasComponent
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
     private tabService: TabService,
-    public mainService: MainService
+    public mainService: MainService,
+    private reporteService: ReporteService,
+    private configService: ConfiguracionService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -484,6 +509,7 @@ export class GestionComprasComponent
       proveedor: ["", Validators.required],
       vendedor: [""],
       moneda: ["", Validators.required],
+      cotizacion: [null],
       formaPago: ["", Validators.required],
       plazoCredito: [0],
       observacionFormaPago: [''],
@@ -549,6 +575,13 @@ export class GestionComprasComponent
           this.ultimasComprasPageIndex = 0;
           this.selectedProductoProveedor = null;
         }
+      });
+
+    this.datosGeneralesForm
+      .get("moneda")
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((moneda: Moneda | null) => {
+        this.onMonedaChanged(moneda);
       });
   }
 
@@ -765,6 +798,112 @@ export class GestionComprasComponent
       });
   }
 
+  // ===== IMPRIMIR PEDIDO =====
+
+  onImprimirPedido(): void {
+    if (!this.pedidoId || !this.currentPedido) return;
+
+    const dialogData: ImprimirPedidoDialogData = {
+      pedidoId: this.pedidoId,
+      pedidoNro: this.headerDataComputed.id,
+    };
+
+    const dialogRef = this.dialog.open(ImprimirPedidoDialogComponent, {
+      data: dialogData,
+      width: "420px",
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((result: ImprimirPedidoDialogResult | undefined) => {
+        if (!result) return;
+
+        switch (result.accion) {
+          case "ticket":
+            this.imprimirPedidoTicket();
+            break;
+          case "pdf-inapp":
+            this.imprimirPedidoPDFInApp();
+            break;
+          case "pdf-guardar":
+            this.imprimirPedidoPDFGuardar();
+            break;
+        }
+      });
+  }
+
+  private imprimirPedidoTicket(): void {
+    const printerName = this.configService?.getConfig()?.printers?.ticket;
+    this.pedidoService
+      .onImprimirPedidoTicket(this.pedidoId!, printerName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () =>
+          this.notificacionService.openSucess("Ticket enviado a impresora"),
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al imprimir ticket: " + (err?.message || err)
+          ),
+      });
+  }
+
+  private imprimirPedidoPDFInApp(): void {
+    this.pedidoService
+      .onImprimirPedidoPDF(this.pedidoId!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pdfBase64) => {
+          if (pdfBase64) {
+            this.reporteService.onAdd(
+              `Pedido ${this.pedidoId}`,
+              pdfBase64
+            );
+            this.tabService.addTab(
+              new Tab(ReportesComponent, "Reportes", null, null)
+            );
+            this.notificacionService.openSucess(
+              "Reporte generado exitosamente"
+            );
+          }
+        },
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al generar PDF: " + (err?.message || err)
+          ),
+      });
+  }
+
+  private imprimirPedidoPDFGuardar(): void {
+    this.pedidoService
+      .onImprimirPedidoPDF(this.pedidoId!)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (pdfBase64) => {
+          if (pdfBase64) {
+            const byteCharacters = atob(pdfBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: "application/pdf" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `pedido-${this.pedidoId}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            this.notificacionService.openSucess("PDF guardado exitosamente");
+          }
+        },
+        error: (err) =>
+          this.notificacionService.openWarn(
+            "Error al guardar PDF: " + (err?.message || err)
+          ),
+      });
+  }
+
   /**
    * Carga solo la información básica del pedido para el header
    * Sin cargar datos de ítems que pueden no ser necesarios inicialmente
@@ -808,10 +947,14 @@ export class GestionComprasComponent
       this.sucursalesInfluenciaFiltradas.every(s => sucursalesInfluenciaSeleccionadas.some(si => si.id === s.id));
 
     // Llenar el formulario con los datos del pedido
+    // Importante: cotizacion se respeta del pedido guardado, NO se redispara prefill mercado.
+    // Por eso primero seteamos moneda con emitEvent:false y luego cotizacion explícito.
+    const monedaPedido = pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null;
+    this.datosGeneralesForm.get("moneda")?.setValue(monedaPedido, { emitEvent: false });
     this.datosGeneralesForm.patchValue({
       proveedor: pedido.proveedor,
       vendedor: pedido.vendedor,
-      moneda: pedido.moneda != null ? this.monedas.find((m) => m.id === pedido.moneda.id) : null,
+      cotizacion: pedido.cotizacion ?? null,
       formaPago: pedido.formaPago != null ? this.formasPago.find((f) => f.id === pedido.formaPago.id) : null,
       plazoCredito: pedido.plazoCredito || 0,
       observacionFormaPago: pedido.observacionFormaPago ?? '',
@@ -819,6 +962,14 @@ export class GestionComprasComponent
       sucursalesEntrega: todasSucursalesEntrega ? [this.sucursalTodos] : sucursalesEntregaSeleccionadas,
       sucursalesInfluencia: todasSucursalesInfluencia ? [this.sucursalTodos] : sucursalesInfluenciaSeleccionadas,
     });
+    // Aplicar validators según moneda cargada
+    const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
+    if (monedaPedido && monedaPedido.denominacion !== 'GUARANI') {
+      cotizacionCtrl?.setValidators([Validators.required, Validators.min(0.0001)]);
+    } else {
+      cotizacionCtrl?.clearValidators();
+    }
+    cotizacionCtrl?.updateValueAndValidity({ emitEvent: false });
 
     // Establecer proveedor seleccionado para mostrar la tarjeta
     this.selectedProveedorComputed = pedido.proveedor;
@@ -924,10 +1075,11 @@ export class GestionComprasComponent
       proveedorId: formValue.proveedor?.id,
       vendedorId: formValue.vendedor?.id,
       monedaId: formValue.moneda?.id,
+      cotizacion: formValue.cotizacion ?? undefined,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1, // Mantener el usuario original
+      usuarioId: this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id, // Mantener el usuario original
       creadoEn: this.currentPedido!.creadoEn ? dateToString(this.currentPedido!.creadoEn) : undefined, // Preservar creadoEn del pedido actual
     };
 
@@ -946,7 +1098,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id || 1
+        this.currentPedido!.usuario?.id || this.mainService.usuarioActual?.id
       )
       .subscribe({
         next: (result) => {
@@ -1009,10 +1161,11 @@ export class GestionComprasComponent
       proveedorId: formValue.proveedor?.id,
       vendedorId: formValue.vendedor?.id,
       monedaId: formValue.moneda?.id,
+      cotizacion: formValue.cotizacion ?? undefined,
       formaPagoId: formValue.formaPago?.id,
       plazoCredito: formValue.plazoCredito,
       observacionFormaPago: (formValue.observacionFormaPago ?? '').toString().trim() ? (formValue.observacionFormaPago ?? '').toString().toUpperCase() : undefined,
-      usuarioId: this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+      usuarioId: this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
     };
 
     // Extract sucursal IDs - si "Todos" está seleccionado (id -1), enviar [-1]
@@ -1030,7 +1183,7 @@ export class GestionComprasComponent
         [], // fechaEntregaList - Empty for now, can be added later
         sucursalEntregaList,
         sucursalInfluenciaList,
-        this.mainService.usuarioActual?.id || 1, // Obtener usuario actual del sistema de autenticación
+        this.mainService.usuarioActual?.id, // Obtener usuario actual del sistema de autenticación
       )
       .subscribe({
         next: (result) => {
@@ -1105,6 +1258,7 @@ export class GestionComprasComponent
                 : this.getEstadoGeneral(),
         montoTotal: this.calculateMontoTotalEditMode(),
         moneda: this.currentPedido?.moneda || null,
+        cotizacion: this.currentPedido?.cotizacion ?? formValue.cotizacion ?? undefined,
         plazoCredito: this.currentPedido?.plazoCredito || 0,
       };
     } else {
@@ -1118,6 +1272,7 @@ export class GestionComprasComponent
         estado: "EN PLANIFICACIÓN", // Estado inicial para nueva compra
         montoTotal: this.calculateMontoTotal(),
         moneda: formValue.moneda || null,
+        cotizacion: formValue.cotizacion ?? undefined,
         plazoCredito: formValue.plazoCredito || 0,
       };
     }
@@ -1129,7 +1284,12 @@ export class GestionComprasComponent
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
     
-    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties 
+    // Moneda display
+    const moneda = this.headerDataComputed?.moneda;
+    this.pedidoMonedaSimbolo = moneda?.simbolo || '';
+    this.pedidoMonedaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+
+    // NOTA: updateItemsComputedProperties y updateStep3ComputedProperties
     // ahora se llaman de forma selectiva solo cuando los datos de items cambian
   }
 
@@ -1825,6 +1985,91 @@ export class GestionComprasComponent
     }, 100);
   }
 
+  /**
+   * Manejador de cambio de moneda del pedido.
+   * - Gs / null: limpia cotización, oculta input.
+   * - Otra moneda: prefilea cotización mercado (fallback PDV) y warning si hay items.
+   */
+  private onMonedaChanged(moneda: Moneda | null): void {
+    const cotizacionCtrl = this.datosGeneralesForm.get("cotizacion");
+    if (!cotizacionCtrl) return;
+
+    if (!moneda || moneda.denominacion === 'GUARANI') {
+      cotizacionCtrl.setValue(null, { emitEvent: false });
+      cotizacionCtrl.clearValidators();
+      cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
+      this.cotizacionFromMercado = false;
+      return;
+    }
+
+    cotizacionCtrl.setValidators([Validators.required, Validators.min(0.0001)]);
+    cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
+
+    const hadItems = this.itemsDataSource.data.length > 0;
+    this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+      if (hadItems) {
+        this.notificacionService.openSucess(
+          "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
+        );
+      }
+    });
+  }
+
+  /**
+   * Llama al backend y prefilea el control cotización con el mejor valor disponible:
+   * mercado compra → mercado venta → manual PDV → moneda.cambio → null.
+   */
+  private prefillCotizacionFromMercado(moneda: Moneda): Observable<number | null> {
+    return new Observable<number | null>((observer) => {
+      this.cambioService.getUltimoCambioPorMonedaId(moneda.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (cambio: any) => {
+            const valor = cambio?.valorEnGsCompraMercado
+              ?? cambio?.valorEnGsVentaMercado
+              ?? cambio?.valorEnGs
+              ?? moneda?.cambio
+              ?? null;
+            const fromMercado = !!(cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado);
+            this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
+            this.cotizacionFromMercado = fromMercado;
+            observer.next(valor);
+            observer.complete();
+          },
+          error: () => {
+            const fallback = moneda?.cambio ?? null;
+            this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
+            this.cotizacionFromMercado = false;
+            observer.next(fallback);
+            observer.complete();
+          }
+        });
+    });
+  }
+
+  /**
+   * Botón refresh: dispara scraping mercado en backend y re-prefilea.
+   */
+  onRefreshCotizacionMercado(): void {
+    const moneda: Moneda = this.datosGeneralesForm.get("moneda")?.value;
+    if (!moneda || moneda.denominacion === 'GUARANI') return;
+    this.cotizacionRefreshing = true;
+    this.cambioService.onActualizarCotizacionesMercado()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.prefillCotizacionFromMercado(moneda).subscribe(() => {
+            this.cotizacionRefreshing = false;
+            this.notificacionService.openSucess("Cotización de mercado actualizada");
+          });
+        },
+        error: () => {
+          this.cotizacionRefreshing = false;
+          this.notificacionService.openAlgoSalioMal("No se pudo actualizar la cotización del mercado");
+        }
+      });
+  }
+
   onFormaPagoClosed(): void {
     // Llamar al método existente para actualizar validaciones
     this.onFormaPagoChange();
@@ -1982,92 +2227,117 @@ export class GestionComprasComponent
   }
 
   onAddItem(): void {
-    const dialogData: AddEditItemDialogData = {
-      pedido: this.currentPedido as Pedido,
-      isEdit: false,
-      title: "Añadir Nuevo Ítem al Pedido",
-      lastSearchText: this.lastItemSearchText,
+    const searchData: PdvSearchProductoData = {
+      texto: this.lastItemSearchText || "",
+      cantidad: 1,
+      mostrarStock: true,
+      mostrarOpciones: false,
+      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "65%",
-      height: "70%",
-      data: dialogData,
-      disableClose: true,
+    const searchDialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+      height: "80%",
+      data: searchData,
     });
 
-    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-      if (result?.lastSearchText !== undefined) {
-        this.lastItemSearchText = result.lastSearchText;
-      }
-      if (result && result.action === "save") {
-        // Actualizar localmente el monto total del pedido
-        if (this.isEditMode && result.item) {
-          this.updateMontoTotalLocalOnAdd(result.item);
+    searchDialogRef.afterClosed().subscribe((searchResult: PdvSearchProductoResponseData) => {
+      if (searchResult && searchResult.producto) {
+        if (searchResult.presentacion?.codigoPrincipal?.codigo) {
+          this.lastItemSearchText = searchResult.presentacion.codigoPrincipal.codigo;
+        } else if (searchResult.producto.descripcion) {
+          this.lastItemSearchText = searchResult.producto.descripcion;
         }
-        
-        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-        if (result.item?.producto?.id) {
-          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-        }
-        
-        // Marcar tab de ítems como no cargado para recargar en próxima visita
-        this.markTabAsUnloaded(1);
-        
-        // Si estamos en el tab de ítems, recargar inmediatamente
-        if (this.selectedTabIndex === 1) {
-          // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-        } else {
-          // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
-          // Si estamos en el tab de ítems, recargar inmediatamente con paginación
-          if (this.selectedTabIndex === 1) {
-            // Resetear a primera página y recargar
-            this.itemsPageIndex = 0;
-            this.loadItemsData();
-          } else {
-            // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
-            // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
-            this.updateItemsComputedProperties();
+
+        const dialogData: AddEditItemDialogData = {
+          pedido: this.currentPedido as Pedido,
+          isEdit: false,
+          title: "Añadir Nuevo Ítem al Pedido",
+          lastSearchText: this.lastItemSearchText,
+          producto: searchResult.producto,
+          presentacion: searchResult.presentacion
+        };
+
+        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+          width: "65%",
+          height: "70%",
+          data: dialogData,
+          disableClose: true,
+        });
+
+        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result?.lastSearchText !== undefined) {
+            this.lastItemSearchText = result.lastSearchText;
           }
-        }
-        
-        // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
-        this.markTabAsUnloaded(2);
-        
-        // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
-        if (this.isEditMode) {
-          // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
-          setTimeout(() => {
-            this.loadPedidoResumen();
-          }, 500);
-        }
-        
-        // Recargar pedido completo para obtener procesoEtapas actualizado
-        if (this.currentPedido?.id) {
-          this.pedidoService.onGetPedidoById(this.currentPedido.id)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (pedidoCompleto) => {
-                this.currentPedido = pedidoCompleto;
-                this.updateComputedProperties();
-                // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
-                if (this.selectedTabIndex !== 1) {
-                  this.updateItemsComputedProperties();
-                }
-              },
-              error: (error) => {
-                console.error("Error recargando pedido después de agregar item:", error);
-                this.updateComputedProperties();
-                if (this.selectedTabIndex !== 1) {
-                  this.updateItemsComputedProperties();
-                }
+          if (result && result.action === "save") {
+            // Actualizar localmente el monto total del pedido
+            if (this.isEditMode && result.item) {
+              this.updateMontoTotalLocalOnAdd(result.item);
+            }
+            
+            // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
+            if (result.item?.producto?.id) {
+              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+            }
+            
+            // Marcar tab de ítems como no cargado para recargar en próxima visita
+            this.markTabAsUnloaded(1);
+            
+            // Si estamos en el tab de ítems, recargar inmediatamente
+            if (this.selectedTabIndex === 1) {
+              // Resetear a primera página y recargar
+              this.itemsPageIndex = 0;
+              this.loadItemsData();
+            } else {
+              // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
+              // Si estamos en el tab de ítems, recargar inmediatamente con paginación
+              if (this.selectedTabIndex === 1) {
+                // Resetear a primera página y recargar
+                this.itemsPageIndex = 0;
+                this.loadItemsData();
+              } else {
+                // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
+                // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
+                this.updateItemsComputedProperties();
               }
-            });
-        } else {
-          this.updateComputedProperties();
-        }
+            }
+            
+            // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
+            this.markTabAsUnloaded(2);
+            
+            // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
+            if (this.isEditMode) {
+              // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+              setTimeout(() => {
+                this.loadPedidoResumen();
+              }, 500);
+            }
+            
+            // Recargar pedido completo para obtener procesoEtapas actualizado
+            if (this.currentPedido?.id) {
+              this.pedidoService.onGetPedidoById(this.currentPedido.id)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: (pedidoCompleto) => {
+                    this.currentPedido = pedidoCompleto;
+                    this.updateComputedProperties();
+                    // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
+                    if (this.selectedTabIndex !== 1) {
+                      this.updateItemsComputedProperties();
+                    }
+                  },
+                  error: (error) => {
+                    console.error("Error recargando pedido después de agregar item:", error);
+                    this.updateComputedProperties();
+                    if (this.selectedTabIndex !== 1) {
+                      this.updateItemsComputedProperties();
+                    }
+                  }
+                });
+            } else {
+              this.updateComputedProperties();
+            }
+          }
+        });
       }
     });
   }
@@ -2992,8 +3262,8 @@ export class GestionComprasComponent
     }
 
     const pedidoItemIds = this.selectedItemsPendientes.map(item => item.id);
-
-    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds)
+    const usuarioId = this.mainService.usuarioActual?.id;
+    this.pedidoService.onAsignarItemsANota(nota.id, pedidoItemIds, usuarioId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
@@ -3768,7 +4038,7 @@ export class GestionComprasComponent
                 ? this.formatDate(new Date(compra.creadoEn))
                 : 'Sin fecha',
               proveedorDisplayComputed: compra.pedido?.proveedor?.persona?.nombre || 'N/A',
-              precioDisplayComputed: this.formatNumber(compra.precio),
+              precioDisplayComputed: (compra.moneda?.simbolo ? compra.moneda.simbolo + ' ' : '') + this.formatNumber(compra.precio),
               cantidadDisplayComputed: cantidadDisplay
             };
             return item;

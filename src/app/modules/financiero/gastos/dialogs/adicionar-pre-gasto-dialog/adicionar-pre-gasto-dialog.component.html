@@ -1,0 +1,336 @@
+<div class="dialogo-contenedor">
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">request_quote</mat-icon>
+    <div fxLayout="column">
+      <h3 class="dialogo-titulo">Nueva Solicitud de Gasto</h3>
+      <span class="dialogo-subtitulo" *ngIf="tieneDatosBien">
+        Solicitud vinculada a {{ data.tipoBien | uppercase }} - {{ data.bienDescripcion }}
+      </span>
+    </div>
+  </div>
+
+  <div class="pasos-indicador" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="0">
+    <div class="paso-item" [class.paso-activo]="pasoActual === 0" [class.paso-completado]="pasoActual > 0"
+      (click)="irAPaso(0)">
+      <div class="paso-circulo">
+        <mat-icon *ngIf="pasoActual > 0">check</mat-icon>
+        <span *ngIf="pasoActual <= 0">1</span>
+      </div>
+      <span class="paso-etiqueta">Bien / Activo</span>
+    </div>
+    <div class="paso-linea" [class.linea-activa]="pasoActual > 0"></div>
+    <div class="paso-item" [class.paso-activo]="pasoActual === 1" [class.paso-completado]="pasoActual > 1"
+      (click)="irAPaso(1)">
+      <div class="paso-circulo">
+        <mat-icon *ngIf="pasoActual > 1">check</mat-icon>
+        <span *ngIf="pasoActual <= 1">2</span>
+      </div>
+      <span class="paso-etiqueta">Datos del Gasto</span>
+    </div>
+    <div class="paso-linea" [class.linea-activa]="pasoActual > 1"></div>
+    <div class="paso-item" [class.paso-activo]="pasoActual === 2">
+      <div class="paso-circulo">
+        <span>3</span>
+      </div>
+      <span class="paso-etiqueta">Confirmación</span>
+    </div>
+  </div>
+
+  <div class="paso-contenido" *ngIf="pasoActual === 0">
+    <app-bien-financiero-card *ngIf="tieneDatosBien" [data]="data" [notificacionVencimiento]="notificacionVencimiento"></app-bien-financiero-card>
+
+    <div class="sin-bien-info" *ngIf="!tieneDatosBien">
+      <mat-icon class="sin-bien-icono">info</mat-icon>
+      <p class="sin-bien-texto">Esta solicitud de gasto no está vinculada a un bien específico.</p>
+      <p class="sin-bien-subtexto">Buscar un bien o seleccionar por tipo:</p>
+      <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="12px" style="margin-top: 20px; width: 100%;">
+        <button mat-flat-button color="primary" (click)="abrirBuscadorBienGenerico()" type="button" style="width: 80%;">
+          <mat-icon>search</mat-icon>
+          Buscar Bien (Todos los tipos)
+        </button>
+        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="15px" style="margin-top: 8px;">
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('INMUEBLE')" type="button">
+            <mat-icon>domain</mat-icon>
+            Inmueble
+          </button>
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('VEHICULO')" type="button">
+            <mat-icon>directions_car</mat-icon>
+            Vehículo
+          </button>
+          <button mat-stroked-button color="accent" (click)="abrirBuscadorBien('MUEBLE')" type="button">
+            <mat-icon>chair</mat-icon>
+            Mueble
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="paso-contenido" *ngIf="pasoActual === 1">
+    <div fxLayout="column" fxLayoutGap="14px" class="dialogo-formulario">
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">receipt_long</mat-icon>
+          Tipo de Gasto
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;" (click)="abrirBuscadorTipoGasto()">
+          <mat-label>Seleccionar tipo de gasto</mat-label>
+          <input matInput [value]="getDescripcionTipoGastoSeleccionado()" readonly placeholder="Buscar tipo de gasto..." />
+          <button mat-icon-button matSuffix type="button"
+            (click)="$event.stopPropagation(); abrirBuscadorTipoGasto()">
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">person</mat-icon>
+          Solicitante
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%; cursor: pointer;" (click)="abrirBuscadorSolicitante()">
+          <mat-label>Seleccionar Solicitante</mat-label>
+          <input matInput [value]="solicitanteControl.value?.persona?.nombre" readonly
+            placeholder="Buscar solicitante..." />
+          <button mat-icon-button matSuffix type="button"
+            (click)="$event.stopPropagation(); abrirBuscadorSolicitante()">
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">description</mat-icon>
+          Descripción del Gasto
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Descripción / Concepto del gasto</mat-label>
+          <textarea matInput [formControl]="descripcionControl"
+            placeholder="Ej: Pago cuota 3/12 de Inmueble Oficina Central" rows="3" maxlength="500"></textarea>
+          <mat-icon matSuffix>description</mat-icon>
+          <mat-hint align="end">{{ descripcionControl.value?.length || 0 }} / 500</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">payments</mat-icon>
+          Información Financiera
+        </span>
+        <div fxLayout="row" fxLayoutGap="12px">
+          <mat-form-field appearance="outline" fxFlex="35%">
+            <mat-label>Moneda</mat-label>
+            <mat-select [formControl]="monedaControl">
+              <mat-option *ngFor="let moneda of listaMonedas" [value]="moneda.id">
+                {{ moneda.denominacion }} ({{ moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex>
+            <mat-label>Monto Solicitado</mat-label>
+            <input matInput type="text" currencyMask [options]="selectedCurrencyOptions" [formControl]="montoControl"
+              placeholder="0" />
+            <mat-icon matSuffix>payments</mat-icon>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%;" *ngIf="tieneDatosBien && data.cuotasTotales > 0">
+          <mat-label>Número de Cuota que se paga</mat-label>
+          <input matInput type="number" [formControl]="numeroCuotaControl" />
+          <mat-hint>Cuota {{ numeroCuotaControl.value || '-' }} de {{ data.cuotasTotales }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">store</mat-icon>
+          Sucursal de Retiro
+        </span>
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Sucursal de Retiro</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option *ngFor="let sucursal of listaSucursales" [value]="sucursal.id">
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix>store</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div class="dialogo-seccion">
+        <span class="dialogo-seccion-titulo">
+          <mat-icon class="seccion-mini-icono">tune</mat-icon>
+          Opciones Adicionales
+        </span>
+        <div fxLayout="row" fxLayoutGap="12px">
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Forma de Pago Sugerida</mat-label>
+            <mat-select [formControl]="formaPagoControl">
+              <mat-option *ngFor="let fp of formasPago" [value]="fp.valor">
+                <mat-icon>{{ fp.icono }}</mat-icon>
+                {{ fp.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Nivel de Urgencia</mat-label>
+            <mat-select [formControl]="urgenciaControl">
+              <mat-option *ngFor="let nivel of nivelesUrgencia" [value]="nivel.valor">
+                <span [style.color]="nivel.color">●</span>
+                {{ nivel.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="dialogo-seccion" style="margin-top: 8px;">
+          <span class="dialogo-seccion-titulo">
+            <mat-icon class="seccion-mini-icono">category</mat-icon>
+            Bien / Activo Vinculado
+          </span>
+          <div *ngIf="!enteSeleccionado" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+            <mat-form-field appearance="outline" fxFlex="35%">
+              <mat-label>Tipo</mat-label>
+              <mat-select [formControl]="tipoBienControl">
+                <mat-option *ngFor="let tipo of tiposEnte" [value]="tipo">
+                  {{ tipo }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" fxFlex style="cursor: pointer;" (click)="abrirBuscadorBienGenerico()"
+              [class.field-disabled]="!tipoBienControl.value">
+              <mat-label>Bien *</mat-label>
+              <input matInput readonly placeholder="Click para buscar" [disabled]="!tipoBienControl.value" />
+              <button mat-icon-button matSuffix type="button" [disabled]="!tipoBienControl.value"
+                (click)="$event.stopPropagation(); abrirBuscadorBienGenerico()">
+                <mat-icon>search</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+          <div *ngIf="enteSeleccionado" class="bien-seleccionado-chip" fxLayout="row" fxLayoutAlign="start center"
+            fxLayoutGap="10px">
+            <mat-icon class="bien-chip-icono">{{ iconoTipoBien() }}</mat-icon>
+            <div fxLayout="column" fxFlex>
+              <span class="bien-chip-tipo">{{ enteSeleccionado.tipoEnte | uppercase }}</span>
+              <span class="bien-chip-desc">{{ bienSeleccionadoDescripcion || data?.bienDescripcion || ('Bien #' +
+                enteSeleccionado.id) }}</span>
+            </div>
+            <mat-spinner *ngIf="cargandoBien" diameter="20"></mat-spinner>
+            <button mat-icon-button (click)="limpiarBienSeleccionado()" type="button" matTooltip="Quitar bien">
+              <mat-icon>close</mat-icon>
+            </button>
+            <button mat-icon-button (click)="abrirBuscadorBienGenerico()" type="button" matTooltip="Cambiar bien">
+              <mat-icon>swap_horiz</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Beneficiario del Pago (si aplica)</mat-label>
+          <input matInput [formControl]="beneficiarioControl" placeholder="Se auto-completa al seleccionar un bien" />
+          <mat-icon matSuffix *ngIf="!beneficiarioControl.value">person</mat-icon>
+          <mat-icon matSuffix *ngIf="beneficiarioControl.value" style="color: #4CAF50">check_circle</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Observaciones Internas</mat-label>
+          <textarea matInput [formControl]="observacionesControl" placeholder="Notas adicionales para la aprobación..."
+            rows="2" maxlength="300"></textarea>
+          <mat-hint align="end">{{ observacionesControl.value?.length || 0 }} / 300</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div class="paso-contenido" *ngIf="pasoActual === 2">
+    <div class="confirmacion-contenedor">
+      <div class="confirmacion-header">
+        <mat-icon class="confirmacion-icono">fact_check</mat-icon>
+        <h4 class="confirmacion-titulo">Resumen de la Solicitud</h4>
+      </div>
+      <div class="confirmacion-seccion" *ngIf="tieneDatosBien">
+        <span class="confirmacion-seccion-titulo">Bien Vinculado</span>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Tipo</span>
+          <span class="confirmacion-valor">{{ data.tipoBien | uppercase }}</span>
+        </div>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Descripción</span>
+          <span class="confirmacion-valor">{{ data.bienDescripcion }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="data.proveedor">
+          <span class="confirmacion-label">Proveedor</span>
+          <span class="confirmacion-valor">{{ data.proveedor }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="data.cuotasTotales && data.cuotasTotales > 0">
+          <span class="confirmacion-label">Cuota</span>
+          <span class="confirmacion-valor">{{ (data.cuotasPagadas || 0) + 1 }} / {{ data.cuotasTotales }}</span>
+        </div>
+      </div>
+
+      <div class="confirmacion-seccion">
+        <span class="confirmacion-seccion-titulo">Datos del Gasto</span>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Concepto</span>
+          <span class="confirmacion-valor">{{ descripcionControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila resaltado">
+          <span class="confirmacion-label">Monto Solicitado</span>
+          <span class="confirmacion-valor monto-grande">{{ montoControl.value | number:precisionDisplay }}</span>
+        </div>
+        <div class="confirmacion-fila">
+          <span class="confirmacion-label">Forma de Pago</span>
+          <span class="confirmacion-valor">{{ formaPagoControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="urgenciaControl.value !== 'NORMAL'">
+          <span class="confirmacion-label">Urgencia</span>
+          <span class="confirmacion-valor"
+            [style.color]="urgenciaControl.value === 'URGENTE' ? '#ef5350' : urgenciaControl.value === 'ALTA' ? '#ffa726' : '#42a5f5'">{{
+            urgenciaControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="beneficiarioControl.value">
+          <span class="confirmacion-label">Beneficiario</span>
+          <span class="confirmacion-valor">{{ beneficiarioControl.value }}</span>
+        </div>
+        <div class="confirmacion-fila" *ngIf="observacionesControl.value">
+          <span class="confirmacion-label">Observaciones</span>
+          <span class="confirmacion-valor obs-texto">{{ observacionesControl.value }}</span>
+        </div>
+      </div>
+
+      <div class="confirmacion-alerta"
+        *ngIf="tieneDatosBien && data.montoPendiente > 0 && montoControl.value > data.montoPendiente">
+        <mat-icon class="alerta-icono">warning</mat-icon>
+        <span>El monto solicitado ({{ montoControl.value | number:precisionDisplay }}) supera el monto pendiente del
+          bien ({{
+          data.montoPendiente | number:precisionDisplay }}).</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="space-between center">
+    <div>
+      <button mat-stroked-button (click)="cancelar()" type="button">
+        Cancelar
+      </button>
+    </div>
+    <div fxLayout="row" fxLayoutGap="8px">
+      <button mat-stroked-button (click)="pasoAnterior()" *ngIf="pasoActual > 0" type="button">
+        <mat-icon>arrow_back</mat-icon>
+        Anterior
+      </button>
+      <button mat-raised-button color="primary" (click)="pasoSiguiente()" *ngIf="pasoActual < 2" type="button">
+        Siguiente
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+      <button mat-raised-button color="accent" [disabled]="!formularioValido()" (click)="guardar()"
+        *ngIf="pasoActual === 2" type="button">
+        <mat-icon>send</mat-icon>
+        Enviar Solicitud
+      </button>
+    </div>
+  </div>
+</div>

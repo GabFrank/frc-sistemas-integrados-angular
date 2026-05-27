@@ -16,6 +16,12 @@ import { GastosPorCategoriaGQL } from './graphql/gastos-por-categoria.gql';
 import { VentasPorMesGQL } from './graphql/ventas-por-mes.gql';
 import { GastosPorMesGQL } from './graphql/gastos-por-mes.gql';
 import { VentasPorSucursalGQL } from './graphql/ventas-por-sucursal.gql';
+import { VentasProductoPorDiaGQL } from './graphql/ventas-producto-por-dia.gql';
+import { VentasProductoPorMesGQL } from './graphql/ventas-producto-por-mes.gql';
+import { ComprasProductoPorDiaGQL } from './graphql/compras-producto-por-dia.gql';
+import { ComprasProductoPorMesGQL } from './graphql/compras-producto-por-mes.gql';
+import { ProductoVentaPorPeriodo } from './models/producto-venta-periodo.model';
+import { ProductoCompraPorPeriodo } from './models/producto-compra-periodo.model';
 
 @Injectable({
   providedIn: 'root'
@@ -34,6 +40,10 @@ export class GraficoService {
   private ventasPorMesGQL = inject(VentasPorMesGQL);
   private gastosPorMesGQL = inject(GastosPorMesGQL);
   private ventasPorSucursalGQL = inject(VentasPorSucursalGQL);
+  private ventasProductoPorDiaGQL = inject(VentasProductoPorDiaGQL);
+  private ventasProductoPorMesGQL = inject(VentasProductoPorMesGQL);
+  private comprasProductoPorDiaGQL = inject(ComprasProductoPorDiaGQL);
+  private comprasProductoPorMesGQL = inject(ComprasProductoPorMesGQL);
 
   obtenerSucursales(): Observable<Sucursal[]> {
     return this.sucursalService.onGetAllSucursales(true);
@@ -63,13 +73,16 @@ export class GraficoService {
     );
   }
 
-  obtenerProductosMasVendidos(inicio: string, fin: string, sucId?: number, familiaId?: number, limit: number = 10): Observable<any[]> {
+  obtenerProductosMasVendidos(inicio: string, fin: string, sucId?: number, familiaId?: number, limit: number = 10, ascendente: boolean = false, productoId?: number, productoIds?: number[]): Observable<any[]> {
+    const ids = productoIds?.length ? productoIds.map(id => String(id)) : null;
     return this.genericService.onCustomQuery(
       this.productosMasVendidosGQL,
       {
-        inicio, fin, limit,
+        inicio, fin, limit, ascendente,
         sucursalId: sucId ? String(sucId) : null,
-        familiaId: familiaId ? String(familiaId) : null
+        familiaId: familiaId ? String(familiaId) : null,
+        productoId: productoId ? String(productoId) : null,
+        productoIds: ids
       },
       true,
       null,
@@ -126,6 +139,62 @@ export class GraficoService {
     return this.genericService.onCustomQuery(
       this.gastosPorMesGQL,
       { anio, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasProductoPorDia(inicio: string, fin: string, productoId: number, sucId?: number): Observable<ProductoVentaPorPeriodo[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasProductoPorDiaGQL,
+      {
+        inicio, fin,
+        productoId: String(productoId),
+        sucursalId: sucId ? String(sucId) : null
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasProductoPorMes(inicio: string, fin: string, productoId: number, sucId?: number): Observable<ProductoVentaPorPeriodo[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasProductoPorMesGQL,
+      {
+        inicio, fin,
+        productoId: String(productoId),
+        sucursalId: sucId ? String(sucId) : null
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerComprasProductoPorDia(inicio: string, fin: string, productoId: number, sucId?: number): Observable<ProductoCompraPorPeriodo[]> {
+    return this.genericService.onCustomQuery(
+      this.comprasProductoPorDiaGQL,
+      {
+        inicio, fin,
+        productoId: String(productoId),
+        sucursalId: sucId ? String(sucId) : null
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerComprasProductoPorMes(inicio: string, fin: string, productoId: number, sucId?: number): Observable<ProductoCompraPorPeriodo[]> {
+    return this.genericService.onCustomQuery(
+      this.comprasProductoPorMesGQL,
+      {
+        inicio, fin,
+        productoId: String(productoId),
+        sucursalId: sucId ? String(sucId) : null
+      },
       true,
       null,
       true
