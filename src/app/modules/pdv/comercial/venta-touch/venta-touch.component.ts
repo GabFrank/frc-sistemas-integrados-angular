@@ -109,7 +109,10 @@ import { catchError, startWith, switchMap } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
-import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
+import {
+  NotificationHttpService,
+  VentaStockCriticoItemPayload,
+} from "../../../../shared/services/notification-http.service";
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 
 @UntilDestroy({ checkProperties: true })
@@ -1043,6 +1046,32 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               }
             }
 
+            const sucursalId =
+              this.cajaService.selectedCaja?.sucursalId ||
+              this.mainService.sucursalActual?.id;
+            const stockCriticoItems = this.getStockCriticoItems();
+            if (res.id && sucursalId && stockCriticoItems.length > 0) {
+              this.notificationHttpService
+                .sendVentaStockCriticoNotification({
+                  ventaId: res.id,
+                  sucursalId,
+                  usuarioNombre: this.mainService.usuarioActual?.persona?.nombre,
+                  sucursalNombre: this.mainService.sucursalActual?.nombre,
+                  items: stockCriticoItems,
+                })
+                .subscribe({
+                  next: () =>
+                    console.log(
+                      "Notificación de stock crítico enviada exitosamente"
+                    ),
+                  error: (err) =>
+                    console.error(
+                      "Error al enviar notificación de stock crítico:",
+                      err
+                    ),
+                });
+            }
+
             this.resetForm();
             obs.next(res);
           } else {
@@ -1182,6 +1211,57 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   updateCantidad(cantidad: number) {
     this.cantidadControl.setValue(cantidad);
+  }
+
+  private getStockCriticoItems(): VentaStockCriticoItemPayload[] {
+    const aggregate: Record<
+      string,
+      { productoId: number; descripcion: string; stockActual: number; vendido: number }
+    > = {};
+
+    this.selectedItemList.forEach((item) => {
+      const productoId = item?.producto?.id;
+      const cantidad = Number(item?.cantidad);
+      const stockDesdeProducto = Number(item?.producto?.stockPorProducto);
+      const stockDesdePresentacion = Number(item?.presentacion?.cantidad);
+      const usaStockPresentacion =
+        Number.isNaN(stockDesdeProducto) && !Number.isNaN(stockDesdePresentacion);
+      const stockActual = usaStockPresentacion
+        ? stockDesdePresentacion
+        : stockDesdeProducto;
+      const factorPresentacion = Number(item?.presentacion?.cantidad || 1);
+
+      if (!productoId || Number.isNaN(stockActual) || Number.isNaN(cantidad)) {
+        return;
+      }
+
+      const vendido = usaStockPresentacion ? cantidad : cantidad * factorPresentacion;
+      const key = String(productoId);
+
+      if (!aggregate[key]) {
+        aggregate[key] = {
+          productoId,
+          descripcion: item?.producto?.descripcion || `Producto ${productoId}`,
+          stockActual,
+          vendido: 0,
+        };
+      }
+
+      aggregate[key].vendido += vendido;
+    });
+
+    return Object.values(aggregate)
+      .map((it) => {
+        const stockResultante = it.stockActual - it.vendido;
+        return {
+          productoId: it.productoId,
+          productoDescripcion: it.descripcion,
+          stockActual: it.stockActual,
+          cantidadVendida: it.vendido,
+          stockResultante,
+        };
+      })
+      .filter((it) => it.stockResultante <= 0);
   }
 
   private startSolicitudesProcesadasPolling(): void {
