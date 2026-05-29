@@ -442,10 +442,9 @@ export class AnalisisProductoComponent implements OnInit {
     rango: RangoFechas
   ): VistaAnalisis {
     const validas = (estadisticas || []).filter(e => e.cantidad > 0);
-    const maxCantidad = validas.length > 0 ? Math.max(...validas.map(e => e.cantidad)) : 0;
 
     const productos: ProductoDetalle[] = validas.map((e, i) => {
-      const nivel = this.calcularNivel(e.cantidad, maxCantidad);
+      const nivel = this.calcularNivelRotacion(e.indiceRotacion);
       return {
         productoId: String(e.productoId),
         descripcion: e.descripcion,
@@ -474,9 +473,9 @@ export class AnalisisProductoComponent implements OnInit {
     };
   }
 
-  private calcularNivel(cantidad: number, max: number): NivelVenta {
-    if (max <= 0) return 'bajo';
-    const ratio = cantidad / max;
+  /** Rotación según movimiento_stock: ventas / (compras + transferencias entrantes). */
+  private calcularNivelRotacion(indiceRotacion?: number): NivelVenta {
+    const ratio = indiceRotacion ?? 0;
     if (ratio >= 0.66) return 'alto';
     if (ratio >= 0.33) return 'medio';
     return 'bajo';
@@ -554,13 +553,13 @@ export class AnalisisProductoComponent implements OnInit {
             Ventas: ${ventas.toLocaleString('es-PY')} uds<br/>
             Monto ventas: ₲ ${(montos[idx] || 0).toLocaleString('es-PY')}`;
           if (compras > 0 || nCompras > 0) {
-            html += `<br/>Compras: ${compras.toLocaleString('es-PY')} uds`;
-            html += `<br/>Recepciones: ${nCompras}`;
+            html += `<br/>Entradas (compra + transf.): ${compras.toLocaleString('es-PY')} uds`;
+            html += `<br/>Movimientos de entrada: ${nCompras}`;
           }
           return html;
         }
       },
-      legend: { data: ['Ventas', 'Compras', 'Promedio ventas'], bottom: 0, textStyle: { color: this.colores.textSecondary, fontSize: 10 } },
+      legend: { data: ['Ventas', 'Entradas', 'Promedio ventas'], bottom: 0, textStyle: { color: this.colores.textSecondary, fontSize: 10 } },
       grid: { left: '3%', right: '4%', bottom: rotar ? '22%' : '14%', top: '20%', containLabel: true },
       xAxis: {
         type: 'category',
@@ -596,7 +595,7 @@ export class AnalisisProductoComponent implements OnInit {
           })
         },
         {
-          name: 'Compras',
+          name: 'Entradas',
           type: 'bar',
           data: comprasCantidades,
           itemStyle: { color: '#FF9800', borderRadius: [4, 4, 0, 0] }
