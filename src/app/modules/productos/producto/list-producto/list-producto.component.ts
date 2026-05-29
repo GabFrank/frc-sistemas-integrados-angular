@@ -146,6 +146,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   isAdicionarEnabled: boolean = false;
   isGenerarPdfDisabled: boolean = true;
   puedeVerStockCompras: boolean = false;
+  puedeVerCostos: boolean = false;
 
   constructor(
     private injector: Injector,
@@ -484,6 +485,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.puedeVerStockCompras =
       this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
       this.mainService.usuarioActual?.roles?.includes(ROLES.VER_STOCK_COMPRAS) ||
+      false;
+    this.puedeVerCostos =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
       false;
   }
 
