@@ -13,7 +13,7 @@ import {
   MatDialog,
   MatDialogRef,
 } from "@angular/material/dialog";
-import { Observable, Subject, Subscription, interval, of } from "rxjs";
+import { Observable, Subject, Subscription, forkJoin, interval, of } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -105,7 +105,7 @@ import {
   DescuentoDialogData,
 } from "./pago-touch/descuento-dialog/descuento-dialog.component";
 import { FormControl } from "@angular/forms";
-import { catchError, startWith, switchMap } from "rxjs/operators";
+import { catchError, map, startWith, switchMap } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -114,6 +114,7 @@ import {
   VentaStockCriticoItemPayload,
 } from "../../../../shared/services/notification-http.service";
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
+import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -184,7 +185,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private ventaService: VentaService, //ok
     private configService: ConfiguracionService,
     private notificationHttpService: NotificationHttpService,
-    private gastoService: GastoService
+    private gastoService: GastoService,
+    private movimientoStockService: MovimientoStockService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -1049,26 +1051,33 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             const sucursalId =
               this.cajaService.selectedCaja?.sucursalId ||
               this.mainService.sucursalActual?.id;
-            const stockCriticoItems = this.getStockCriticoItems();
-            if (res.id && sucursalId && stockCriticoItems.length > 0) {
-              this.notificationHttpService
-                .sendVentaStockCriticoNotification({
-                  ventaId: res.id,
-                  sucursalId,
-                  usuarioNombre: this.mainService.usuarioActual?.persona?.nombre,
-                  sucursalNombre: this.mainService.sucursalActual?.nombre,
-                  items: stockCriticoItems,
-                })
-                .subscribe({
-                  next: () =>
-                    console.log(
-                      "Notificación de stock crítico enviada exitosamente"
-                    ),
-                  error: (err) =>
-                    console.error(
-                      "Error al enviar notificación de stock crítico:",
-                      err
-                    ),
+            if (res.id && sucursalId) {
+              this.getStockCriticoItems$(sucursalId)
+                .pipe(untilDestroyed(this))
+                .subscribe((stockCriticoItems) => {
+                  if (stockCriticoItems.length === 0) {
+                    return;
+                  }
+                  this.notificationHttpService
+                    .sendVentaStockCriticoNotification({
+                      ventaId: res.id,
+                      sucursalId,
+                      usuarioNombre:
+                        this.mainService.usuarioActual?.persona?.nombre,
+                      sucursalNombre: this.mainService.sucursalActual?.nombre,
+                      items: stockCriticoItems,
+                    })
+                    .subscribe({
+                      next: () =>
+                        console.log(
+                          "Notificación de stock crítico enviada exitosamente"
+                        ),
+                      error: (err) =>
+                        console.error(
+                          "Error al enviar notificación de stock crítico:",
+                          err
+                        ),
+                    });
                 });
             }
 
@@ -1213,36 +1222,31 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cantidadControl.setValue(cantidad);
   }
 
-  private getStockCriticoItems(): VentaStockCriticoItemPayload[] {
+  private buildStockCriticoAggregate(): Record<
+    string,
+    { productoId: number; descripcion: string; vendido: number }
+  > {
     const aggregate: Record<
       string,
-      { productoId: number; descripcion: string; stockActual: number; vendido: number }
+      { productoId: number; descripcion: string; vendido: number }
     > = {};
 
     this.selectedItemList.forEach((item) => {
       const productoId = item?.producto?.id;
       const cantidad = Number(item?.cantidad);
-      const stockDesdeProducto = Number(item?.producto?.stockPorProducto);
-      const stockDesdePresentacion = Number(item?.presentacion?.cantidad);
-      const usaStockPresentacion =
-        Number.isNaN(stockDesdeProducto) && !Number.isNaN(stockDesdePresentacion);
-      const stockActual = usaStockPresentacion
-        ? stockDesdePresentacion
-        : stockDesdeProducto;
       const factorPresentacion = Number(item?.presentacion?.cantidad || 1);
 
-      if (!productoId || Number.isNaN(stockActual) || Number.isNaN(cantidad)) {
+      if (!productoId || Number.isNaN(cantidad)) {
         return;
       }
 
-      const vendido = usaStockPresentacion ? cantidad : cantidad * factorPresentacion;
+      const vendido = cantidad * factorPresentacion;
       const key = String(productoId);
 
       if (!aggregate[key]) {
         aggregate[key] = {
           productoId,
           descripcion: item?.producto?.descripcion || `Producto ${productoId}`,
-          stockActual,
           vendido: 0,
         };
       }
@@ -1250,18 +1254,46 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       aggregate[key].vendido += vendido;
     });
 
-    return Object.values(aggregate)
-      .map((it) => {
-        const stockResultante = it.stockActual - it.vendido;
-        return {
-          productoId: it.productoId,
-          productoDescripcion: it.descripcion,
-          stockActual: it.stockActual,
-          cantidadVendida: it.vendido,
-          stockResultante,
-        };
-      })
-      .filter((it) => it.stockResultante <= 0);
+    return aggregate;
+  }
+
+  private getStockCriticoItems$(
+    sucursalId: number
+  ): Observable<VentaStockCriticoItemPayload[]> {
+    const entries = Object.values(this.buildStockCriticoAggregate());
+    if (entries.length === 0) {
+      return of([]);
+    }
+
+    return forkJoin(
+      entries.map((entry) =>
+        this.movimientoStockService
+          .onGetStockPorProducto(entry.productoId, sucursalId, false)
+          .pipe(
+            catchError(() => of(null)),
+            map((stock) => ({ entry, stock }))
+          )
+      )
+    ).pipe(
+      map((results) =>
+        results
+          .filter(
+            (r) => r.stock != null && !Number.isNaN(Number(r.stock))
+          )
+          .map(({ entry, stock }) => {
+            const stockActual = Number(stock);
+            const stockResultante = stockActual - entry.vendido;
+            return {
+              productoId: entry.productoId,
+              productoDescripcion: entry.descripcion,
+              stockActual,
+              cantidadVendida: entry.vendido,
+              stockResultante,
+            };
+          })
+          .filter((it) => it.stockResultante <= 0)
+      )
+    );
   }
 
   private startSolicitudesProcesadasPolling(): void {
