@@ -204,6 +204,10 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         facturaItem.total = v.cantidad * v.precio;
         facturaItem.presentacion = v.presentacion;
         facturaItem.producto = v.producto;
+        // Copiar iva del producto (o de la presentacion) al item.
+        // Antes se omitia y el dialog de item defaulteaba a 10, generando
+        // facturas con iva incorrecto cuando el producto era exento.
+        facturaItem.iva = v.producto?.iva ?? v.presentacion?.producto?.iva ?? null;
         facturaItemList.push(facturaItem);
       });
       this.cantidadHojas = Math.floor(facturaItemList.length / 7) + 1;

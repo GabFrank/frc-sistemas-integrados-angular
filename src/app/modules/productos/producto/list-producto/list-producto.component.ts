@@ -146,6 +146,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   isAdicionarEnabled: boolean = false;
   isGenerarPdfDisabled: boolean = true;
   puedeVerStockCompras: boolean = false;
+  puedeVerCostos: boolean = false;
 
   constructor(
     private injector: Injector,
@@ -245,7 +246,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     if (!isCurrentlyExpanded) {
       this.selectedProducto = row;
 
-      if (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) {
+      if (this.sucursalFiltroControl.value) {
+        // Hay sucursal seleccionada (ya sea con filtro positivo, negativo o todos)
         const sucursalSeleccionada = this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
         if (sucursalSeleccionada) {
           const existencia = new ExistenciaCostoPorSucursal();
@@ -461,15 +463,15 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   cargarSucursales() {
     this.sucursalService.onGetAllSucursales(true).subscribe(res => {
-      this.sucursales = res?.filter(sucursal => 
-        sucursal.nombre != "SERVIDOR");
-    })
+      this.sucursales = res?.filter(sucursal => {
+        if (sucursal.nombre === 'SERVIDOR') return false;
+        if (sucursal.nombre === 'COMPRAS' && !this.puedeVerStockCompras) return false;
+        return true;
+      });
+    });
   }
 
   onStockFiltroChange() {
-    if (this.stockFiltroControl.value === 'todos') {
-      this.sucursalFiltroControl.setValue(null);
-    }
     this.updateSucursalSelectEnabled();
   }
 
@@ -483,6 +485,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.puedeVerStockCompras =
       this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
       this.mainService.usuarioActual?.roles?.includes(ROLES.VER_STOCK_COMPRAS) ||
+      false;
+    this.puedeVerCostos =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
       false;
   }
 
@@ -512,8 +518,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   getSucursalPreseleccionada(): Sucursal | undefined {
-    if ((this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo') 
-        && this.sucursalFiltroControl.value) {
+    if (this.sucursalFiltroControl.value) {
       return this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
     }
     return undefined;
@@ -587,7 +592,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       subfamiliaId: this.selectedSubfamilia?.id || null,
       familiaId: this.selectedFamilia?.id || null,
       stockFiltro: this.stockFiltroControl.value !== 'todos' ? this.stockFiltroControl.value : null,
-      sucursalId: (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) ? this.sucursalFiltroControl.value : null,
+      sucursalId: this.sucursalFiltroControl.value ? this.sucursalFiltroControl.value : null,
       usuarioId: this.mainService.usuarioActual.id,
       usuario: this.mainService.usuarioActual.nickname || this.mainService.usuarioActual.persona?.nombre || 'Usuario'
     };

@@ -25,7 +25,11 @@ export class EditFacturaLegalItemComponent implements OnInit {
   cantidadControl = new FormControl(1, Validators.required)
   precioUnitario = new FormControl(null, Validators.required)
   precioUnitarioExtranjero = new FormControl(null)
-  ivaControl = new FormControl(10, Validators.required)
+  // iva sin default: el usuario debe seleccionar explicitamente (0, 5 o 10).
+  // Validators.required + el botón Save ya esta deshabilitado cuando el form
+  // es invalido. Evita que el frontend envie iva=null al backend, lo que
+  // antes provocaba que items huerfanos cayeran al default 10 (sobre-declarando IVA).
+  ivaControl = new FormControl(null, Validators.required)
   unidadMedidaControl = new FormControl("Unidad", Validators.required)
   formGroup: FormGroup;
   isEditting = false;
@@ -151,7 +155,8 @@ export class EditFacturaLegalItemComponent implements OnInit {
     }
     this.actualizandoPrecioExtranjero = false;
     
-    this.ivaControl.setValue(this.selectedFacturaLegalItem.iva != null ? this.selectedFacturaLegalItem.iva : 10)
+    // Sin fallback a 10 — si el item viene sin iva, el usuario debe seleccionar.
+    this.ivaControl.setValue(this.selectedFacturaLegalItem.iva != null ? this.selectedFacturaLegalItem.iva : null)
     this.unidadMedidaControl.setValue(this.selectedFacturaLegalItem.unidadMedida || "Unidad")
     this.calcularTotales();
     this.formGroup.disable()
