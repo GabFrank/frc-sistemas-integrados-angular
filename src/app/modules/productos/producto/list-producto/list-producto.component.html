@@ -381,19 +381,21 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr *ngFor="let sucursal of producto?.sucursales">
-                          <td class="highlight-cell nombre-cell" id="nombre">
-                            {{ sucursal.sucursal.nombre | uppercase }}
-                          </td>
-                          <td class="highlight-cell stock-cell" id="stock">
-                            <ng-container *ngIf="sucursal.existencia != null; else loadingTemplate">
-                              {{ sucursal.existencia | number:'1.0-2' }}
-                            </ng-container>
-                            <ng-template #loadingTemplate>
-                              <mat-spinner diameter="24" style="margin: 0 auto;"></mat-spinner>
-                            </ng-template>
-                          </td>
-                        </tr>
+                        <ng-container *ngFor="let sucursal of producto?.sucursales">
+                          <tr *ngIf="sucursal.sucursal.nombre !== 'COMPRAS' || puedeVerStockCompras">
+                           <td class="highlight-cell nombre-cell" id="nombre">
+                             {{ sucursal.sucursal.nombre | uppercase }}
+                           </td>
+                           <td class="highlight-cell stock-cell" id="stock">
+                             <ng-container *ngIf="sucursal.existencia != null; else loadingTemplate">
+                               {{ sucursal.existencia | number:'1.0-2' }}
+                             </ng-container>
+                             <ng-template #loadingTemplate>
+                               <mat-spinner diameter="24" style="margin: 0 auto;"></mat-spinner>
+                             </ng-template>
+                           </td>
+                          </tr>
+                        </ng-container>
                         <tr *ngIf="!producto?.sucursales?.length">
                           <td colspan="2" style="text-align: center; padding: 16px;">
                             No hay sucursales disponibles
