@@ -145,6 +145,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   isAdicionarEnabled: boolean = false;
   isGenerarPdfDisabled: boolean = true;
+  puedeVerStockCompras: boolean = false;
 
   constructor(
     private injector: Injector,
@@ -479,6 +480,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   updatePermisos() {
     this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) || false;
+    this.puedeVerStockCompras =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.VER_STOCK_COMPRAS) ||
+      false;
   }
 
   onAjustarStock(producto: Producto) {
