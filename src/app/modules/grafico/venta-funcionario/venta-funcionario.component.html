@@ -1,5 +1,5 @@
 <div class="venta-funcionario-host">
-    <div class="header-filters">
+    <div class="header-filters" *ngIf="!modoExterno">
         <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Sucursal</mat-label>
             <mat-select [formControl]="sucursalControl">
