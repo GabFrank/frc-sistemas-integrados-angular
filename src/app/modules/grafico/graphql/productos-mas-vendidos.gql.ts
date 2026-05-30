@@ -15,6 +15,9 @@ const productosMasVendidosQuery = gql`
       cantidad
       totalMonto
       porcentaje
+      cantidadEntrada
+      cantidadVentaMovimiento
+      indiceRotacion
     }
   }
 `;

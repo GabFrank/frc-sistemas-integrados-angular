@@ -24,6 +24,10 @@ export class VentasDiasComponent implements OnInit {
   echartsOption: EChartsOption;
   cargando = false;
 
+  private readonly horasDelDia = Array.from({ length: 24 }, (_, i) =>
+    i.toString().padStart(2, '0')
+  );
+
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true);
     this.cargarDatos();
@@ -55,19 +59,20 @@ export class VentasDiasComponent implements OnInit {
   }
 
   configurarGrafico(dataHoy: any[], dataAyer: any[]) {
-    const hours = Array.from({ length: 15 }, (_, i) => (i + 7).toString());
+    const hours = this.horasDelDia;
+    const totalHoras = hours.length;
 
-    const valuesHoy = new Array(15).fill(0);
-    const valuesAyer = new Array(15).fill(0);
+    const valuesHoy = new Array(totalHoras).fill(0);
+    const valuesAyer = new Array(totalHoras).fill(0);
 
     dataHoy.forEach((item: any) => {
-      const idx = item.hora - 7;
-      if (idx >= 0 && idx < 15) valuesHoy[idx] = item.total;
+      const idx = this.obtenerIndiceHora(item.hora);
+      if (idx >= 0) valuesHoy[idx] = item.total;
     });
 
     dataAyer.forEach((item: any) => {
-      const idx = item.hora - 7;
-      if (idx >= 0 && idx < 15) valuesAyer[idx] = item.total;
+      const idx = this.obtenerIndiceHora(item.hora);
+      if (idx >= 0) valuesAyer[idx] = item.total;
     });
 
     this.echartsOption = {
@@ -151,5 +156,12 @@ export class VentasDiasComponent implements OnInit {
         }
       ]
     };
+  }
+
+  private obtenerIndiceHora(hora: number): number {
+    if (hora >= 0 && hora <= 23) {
+      return hora;
+    }
+    return -1;
   }
 }
