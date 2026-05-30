@@ -12,33 +12,11 @@ import { EditProveedorComponent, EditProveedorResult } from '../../../../persona
 import { EnteService } from '../../../../activos/ente/service/ente.service';
 import { Ente } from '../../../../activos/ente/models/ente.model';
 import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
-
-export interface SolicitudGastoSimpleData {
-  tipoGastoId: number;
-  tipoGastoDescripcion: string;
-  moduloPadre?: string;
-  requiereAutorizacion?: boolean;
-  solicitanteId: number;
-  solicitanteNombre: string;
-}
-
-export interface SolicitudGastoSimpleMontoLinea {
-  monedaId: number;
-  monto: number;
-}
-
-export interface SolicitudGastoSimpleResult {
-  tipoGastoId: number;
-  solicitanteId: number;
-  descripcion: string;
-  vencimiento: Date;
-  montos: SolicitudGastoSimpleMontoLinea[];
-  monedaId?: number;
-  monto?: number;
-  sucursalRetiroId?: number;
-  proveedorId: number | null;
-  enteId?: number | null;
-}
+import { FilaMontoErrores } from '../../interface/fila-monto-errores.interface';
+import { FilaMontoVista } from '../../interface/fila-monto-vista.interface';
+import { SolicitudGastoSimpleData } from '../../interface/solicitud-gasto-simple-data.interface';
+import { SolicitudGastoSimpleMontoLinea } from '../../interface/solicitud-gasto-simple-monto-linea.interface';
+import { SolicitudGastoSimpleResult } from '../../interface/solicitud-gasto-simple-result.interface';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -61,6 +39,20 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
 
   listaMonedas: Moneda[] = [];
   selectedEnte: Ente | null = null;
+  filasMontoView: FilaMontoVista[] = [];
+
+  requiereEnteActivo = false;
+  etiquetaEnteActivo = 'Activo';
+  etiquetaEnteActivoMinuscula = 'activo';
+  iconoEnteActivo = 'directions_car';
+  placeholderEnteActivo = 'Seleccione activo';
+  mensajeErrorEnteActivo = 'Debe seleccionar activo';
+  textoBuscarEnteActivo = 'Buscar Activo';
+  formularioValido = false;
+  descripcionRequerida = false;
+  vencimientoRequerido = false;
+  enteRequerido = false;
+  proveedorRequerido = false;
 
   constructor(
     private matDialogRef: MatDialogRef<SolicitudGastoSimpleDialogComponent>,
@@ -79,7 +71,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       this.solicitanteNombreControl.setValue(this.data.solicitanteNombre);
     }
 
+    this.inicializarPropiedadesEnteActivo();
     this.actualizarValidadoresEnte();
+    this.suscribirEstadoFormulario();
 
     if (this.mainService.sucursalActual) {
       this.sucursalRetiroControl.setValue(this.mainService.sucursalActual.nombre);
@@ -90,6 +84,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
         this.listaMonedas = res;
         if (this.filasMonto.length === 0) {
           this.agregarFilaMonto(false);
+        } else {
+          this.actualizarVistasFilasMonto();
         }
         this.cdr.markForCheck();
       }
@@ -104,7 +100,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     return this.listaMonedas.find(m => this.esMonedaGuarani(m));
   }
 
-  currencyMaskOptionsForMonedaId(monedaId: number | null | undefined): object {
+  private opcionesCurrencyPorMonedaId(monedaId: number | null | undefined): object {
     const m = this.listaMonedas.find(x => x.id === monedaId);
     return m ? this.monedaService.currencyOptionsByMoneda(m) : this.monedaService.currencyOptionsGuarani;
   }
@@ -136,11 +132,35 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       .subscribe(() => {
         this.aplicarValidadoresMontoPorMoneda(grupo);
         this.actualizarErroresMonedasDuplicadas();
+        this.actualizarVistasFilasMonto();
+        this.cdr.markForCheck();
+      });
+
+    grupo
+      .get('monedaId')!
+      .statusChanges.pipe(startWith(grupo.get('monedaId')!.status), untilDestroyed(this))
+      .subscribe(() => {
+        this.actualizarErroresVistaFilasMonto();
+        this.cdr.markForCheck();
+      });
+
+    grupo
+      .get('monto')!
+      .statusChanges.pipe(startWith(grupo.get('monto')!.status), untilDestroyed(this))
+      .subscribe(() => {
+        this.actualizarErroresVistaFilasMonto();
         this.cdr.markForCheck();
       });
 
     this.filasMonto.push(grupo);
+    this.filasMontoView.push({
+      grupo,
+      opcionesCurrency: this.opcionesCurrencyPorMonedaId(grupo.get('monedaId')?.value),
+      opcionesMoneda: [],
+      errores: this.erroresInicialesFilaMonto(),
+    });
     this.actualizarErroresMonedasDuplicadas();
+    this.actualizarVistasFilasMonto();
     if (markForCheck) {
       this.cdr.markForCheck();
     }
@@ -151,11 +171,13 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       return;
     }
     this.filasMonto.removeAt(index);
+    this.filasMontoView.splice(index, 1);
     this.actualizarErroresMonedasDuplicadas();
+    this.actualizarVistasFilasMonto();
     this.cdr.markForCheck();
   }
 
-  esMonedaOcupada(monedaId: number | null | undefined, filaIndex: number): boolean {
+  private monedaOcupadaEnOtraFila(monedaId: number | null | undefined, filaIndex: number): boolean {
     if (monedaId == null) {
       return false;
     }
@@ -167,32 +189,111 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     });
   }
 
-  get requiereEnteActivo(): boolean {
-    return this.tipoEnteDesdeModuloPadre() != null;
+  private actualizarVistasFilasMonto(): void {
+    this.filasMontoView.forEach((vista, filaIndex) => {
+      const monedaId = vista.grupo.get('monedaId')?.value as number | null | undefined;
+      vista.opcionesCurrency = this.opcionesCurrencyPorMonedaId(monedaId);
+      vista.opcionesMoneda = this.listaMonedas.map(moneda => ({
+        moneda,
+        deshabilitada: this.monedaOcupadaEnOtraFila(moneda.id, filaIndex),
+      }));
+    });
+    this.actualizarErroresVistaFilasMonto();
   }
 
-  get etiquetaEnteActivo(): string {
-    switch (this.data?.moduloPadre) {
+  private erroresInicialesFilaMonto(): FilaMontoErrores {
+    return {
+      monedaRequerida: false,
+      monedaDuplicada: false,
+      montoRequerido: false,
+      montoMinimo: false,
+    };
+  }
+
+  private actualizarErroresVistaFilasMonto(): void {
+    this.filasMontoView.forEach(vista => {
+      const monedaCtrl = vista.grupo.get('monedaId');
+      const montoCtrl = vista.grupo.get('monto');
+      vista.errores = {
+        monedaRequerida: !!monedaCtrl?.hasError('required'),
+        monedaDuplicada: !!monedaCtrl?.hasError('monedaDuplicada'),
+        montoRequerido: !!montoCtrl?.hasError('required'),
+        montoMinimo: !!montoCtrl?.hasError('min'),
+      };
+    });
+  }
+
+  private actualizarErroresFormulario(): void {
+    this.descripcionRequerida = this.descripcionControl.hasError('required');
+    this.vencimientoRequerido = this.vencimientoControl.hasError('required');
+    this.enteRequerido = this.enteIdControl.hasError('required');
+    this.proveedorRequerido = this.proveedorIdControl.hasError('required');
+  }
+
+  private inicializarPropiedadesEnteActivo(): void {
+    const modulo = this.data?.moduloPadre;
+    this.requiereEnteActivo = this.tipoEnteDesdeModuloPadre() != null;
+
+    switch (modulo) {
       case 'VEHICULO':
-        return 'Vehículo';
+        this.etiquetaEnteActivo = 'Vehículo';
+        break;
       case 'MUEBLE':
-        return 'Mueble';
+        this.etiquetaEnteActivo = 'Mueble';
+        break;
       case 'INMUEBLE':
-        return 'Inmueble';
+        this.etiquetaEnteActivo = 'Inmueble';
+        break;
       default:
-        return 'Activo';
+        this.etiquetaEnteActivo = 'Activo';
     }
+
+    switch (modulo) {
+      case 'MUEBLE':
+        this.iconoEnteActivo = 'chair';
+        break;
+      case 'INMUEBLE':
+        this.iconoEnteActivo = 'domain';
+        break;
+      default:
+        this.iconoEnteActivo = 'directions_car';
+    }
+
+    this.etiquetaEnteActivoMinuscula = this.etiquetaEnteActivo.toLowerCase();
+    this.placeholderEnteActivo = `Seleccione ${this.etiquetaEnteActivoMinuscula}`;
+    this.mensajeErrorEnteActivo = `Debe seleccionar ${this.etiquetaEnteActivoMinuscula}`;
+    this.textoBuscarEnteActivo = `Buscar ${this.etiquetaEnteActivo}`;
   }
 
-  get iconoEnteActivo(): string {
-    switch (this.data?.moduloPadre) {
-      case 'MUEBLE':
-        return 'chair';
-      case 'INMUEBLE':
-        return 'domain';
-      default:
-        return 'directions_car';
-    }
+  private suscribirEstadoFormulario(): void {
+    const controles = [
+      this.descripcionControl,
+      this.vencimientoControl,
+      this.proveedorIdControl,
+      this.enteIdControl,
+    ];
+
+    controles.forEach(control => {
+      control.statusChanges
+        .pipe(startWith(control.status), untilDestroyed(this))
+        .subscribe(() => this.actualizarFormularioValido());
+    });
+
+    this.filasMonto.statusChanges
+      .pipe(startWith(this.filasMonto.status), untilDestroyed(this))
+      .subscribe(() => this.actualizarFormularioValido());
+  }
+
+  private actualizarFormularioValido(): void {
+    this.formularioValido =
+      this.descripcionControl.valid &&
+      this.vencimientoControl.valid &&
+      this.filasMonto.valid &&
+      this.proveedorIdControl.valid &&
+      this.enteIdControl.valid;
+    this.actualizarErroresFormulario();
+    this.actualizarErroresVistaFilasMonto();
+    this.cdr.markForCheck();
   }
 
   private tipoEnteDesdeModuloPadre(): TipoEnte | null {
@@ -285,44 +386,28 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   }
 
   onSolicitar(): void {
-    if (
-      this.descripcionControl.valid &&
-      this.vencimientoControl.valid &&
-      this.filasMonto.valid &&
-      this.proveedorIdControl.valid &&
-      this.enteIdControl.valid
-    ) {
-      const lineas: SolicitudGastoSimpleMontoLinea[] = this.filasMonto.controls
-        .map(c => (c as FormGroup).value as { monedaId: number; monto: number })
-        .filter(v => v.monedaId != null && v.monto != null);
-
-      const primera = lineas[0];
-      const resultado: SolicitudGastoSimpleResult = {
-        tipoGastoId: this.data.tipoGastoId,
-        solicitanteId: this.data.solicitanteId,
-        descripcion: this.descripcionControl.value,
-        vencimiento: this.vencimientoControl.value,
-        montos: lineas,
-        monedaId: primera?.monedaId,
-        monto: primera?.monto,
-        sucursalRetiroId: this.mainService.sucursalActual?.id,
-        proveedorId: this.proveedorIdControl.value,
-        enteId: this.enteIdControl.value ?? null,
-      };
-      this.matDialogRef.close(resultado);
+    if (!this.formularioValido) {
+      return;
     }
-  }
 
-  esFormularioValido(): boolean {
-    return this.descripcionControl.valid &&
-           this.vencimientoControl.valid &&
-           this.filasMonto.valid &&
-           this.proveedorIdControl.valid &&
-           this.enteIdControl.valid;
-  }
+    const lineas: SolicitudGastoSimpleMontoLinea[] = this.filasMonto.controls
+      .map(c => (c as FormGroup).value as { monedaId: number; monto: number })
+      .filter(v => v.monedaId != null && v.monto != null);
 
-  trackByFilaMonto(index: number, fila: FormGroup): FormGroup {
-    return fila;
+    const primera = lineas[0];
+    const resultado: SolicitudGastoSimpleResult = {
+      tipoGastoId: this.data.tipoGastoId,
+      solicitanteId: this.data.solicitanteId,
+      descripcion: this.descripcionControl.value,
+      vencimiento: this.vencimientoControl.value,
+      montos: lineas,
+      monedaId: primera?.monedaId,
+      monto: primera?.monto,
+      sucursalRetiroId: this.mainService.sucursalActual?.id,
+      proveedorId: this.proveedorIdControl.value,
+      enteId: this.enteIdControl.value ?? null,
+    };
+    this.matDialogRef.close(resultado);
   }
 
   private actualizarErroresMonedasDuplicadas(): void {
@@ -344,6 +429,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       const duplicada = monedaId != null && (cantidadPorMoneda.get(monedaId) ?? 0) > 1;
       this.setControlError(monedaIdControl, 'monedaDuplicada', duplicada);
     });
+    this.actualizarErroresVistaFilasMonto();
   }
 
   private setControlError(control: AbstractControl, key: string, enabled: boolean): void {

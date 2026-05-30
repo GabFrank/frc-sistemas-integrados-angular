@@ -31,18 +31,18 @@
               [formControl]="enteDisplayControl"
               readonly
               tabindex="-1"
-              [placeholder]="'Seleccione ' + (etiquetaEnteActivo | lowercase)"
+              [placeholder]="placeholderEnteActivo"
               required
             />
             <mat-icon matSuffix>{{ iconoEnteActivo }}</mat-icon>
-            <mat-error *ngIf="enteIdControl.hasError('required')">
-              Debe seleccionar {{ etiquetaEnteActivo | lowercase }}
+            <mat-error *ngIf="enteRequerido">
+              {{ mensajeErrorEnteActivo }}
             </mat-error>
           </mat-form-field>
         </div>
         <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" class="beneficiario-acciones">
           <button mat-stroked-button color="primary" type="button" (click)="abrirBuscadorEnteActivo()">
-            Buscar {{ etiquetaEnteActivo }}
+            {{ textoBuscarEnteActivo }}
           </button>
         </div>
       </ng-container>
@@ -52,7 +52,7 @@
         <mat-form-field fxFlex="100%">
           <mat-label>Descripción del Gasto</mat-label>
           <input matInput [formControl]="descripcionControl" placeholder="Ingrese una descripción" required />
-          <mat-error *ngIf="descripcionControl.hasError('required')">
+          <mat-error *ngIf="descripcionRequerida">
             La descripción es requerida
           </mat-error>
         </mat-form-field>
@@ -65,30 +65,30 @@
           <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" required />
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="vencimientoControl.hasError('required')">
+          <mat-error *ngIf="vencimientoRequerido">
             El vencimiento es requerido
           </mat-error>
         </mat-form-field>
       </div>
 
       <!-- Filas Moneda / Monto (múltiples) -->
-      <ng-container *ngFor="let fila of filasMonto.controls; let i = index; trackBy: trackByFilaMonto">
-        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start" [formGroup]="$any(fila)">
+      <ng-container *ngFor="let fila of filasMontoView; let i = index">
+        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start" [formGroup]="fila.grupo">
           <mat-form-field fxFlex="38%">
             <mat-label>Moneda</mat-label>
             <mat-select formControlName="monedaId" [attr.name]="'moneda-' + i" required>
               <mat-option
-                *ngFor="let moneda of listaMonedas"
-                [value]="moneda.id"
-                [disabled]="esMonedaOcupada(moneda.id, i)"
+                *ngFor="let opcion of fila.opcionesMoneda"
+                [value]="opcion.moneda.id"
+                [disabled]="opcion.deshabilitada"
               >
-                {{ moneda.denominacion }} ({{ moneda.simbolo }})
+                {{ opcion.moneda.denominacion }} ({{ opcion.moneda.simbolo }})
               </mat-option>
             </mat-select>
-            <mat-error *ngIf="fila.get('monedaId')?.hasError('required')">
+            <mat-error *ngIf="fila.errores.monedaRequerida">
               La moneda es requerida
             </mat-error>
-            <mat-error *ngIf="fila.get('monedaId')?.hasError('monedaDuplicada')">
+            <mat-error *ngIf="fila.errores.monedaDuplicada">
               Esta moneda ya fue seleccionada en otra línea
             </mat-error>
           </mat-form-field>
@@ -99,21 +99,21 @@
               matInput
               currencyMask
               [attr.name]="'monto-' + i"
-              [options]="currencyMaskOptionsForMonedaId(fila.get('monedaId')?.value)"
+              [options]="fila.opcionesCurrency"
               formControlName="monto"
               required
             />
-            <mat-error *ngIf="fila.get('monto')?.hasError('required')">
+            <mat-error *ngIf="fila.errores.montoRequerido">
               El monto es requerido
             </mat-error>
-            <mat-error *ngIf="fila.get('monto')?.hasError('min')">
+            <mat-error *ngIf="fila.errores.montoMinimo">
               El monto debe ser mayor a 0
             </mat-error>
           </mat-form-field>
 
           <div fxFlex="24%" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="4px" class="fila-monto-acciones">
             <button
-              *ngIf="i === filasMonto.length - 1"
+              *ngIf="i === filasMontoView.length - 1"
               type="button"
               mat-mini-fab
               class="btn-add-monto-linea"
@@ -123,7 +123,7 @@
               <mat-icon>add</mat-icon>
             </button>
             <button
-              *ngIf="filasMonto.length > 1"
+              *ngIf="filasMontoView.length > 1"
               type="button"
               mat-icon-button
               (click)="quitarFilaMonto(i)"
@@ -149,7 +149,7 @@
           <mat-label>Beneficiario (Proveedor)</mat-label>
           <input matInput [formControl]="beneficiarioControl" readonly tabindex="-1" placeholder="Seleccione un proveedor" required />
           <mat-icon matSuffix>search</mat-icon>
-          <mat-error *ngIf="proveedorIdControl.hasError('required')">
+          <mat-error *ngIf="proveedorRequerido">
             El beneficiario es requerido
           </mat-error>
         </mat-form-field>
@@ -167,7 +167,7 @@
 
   <mat-dialog-actions align="end" class="solicitud-gasto-simple-actions">
     <button mat-button type="button" (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" type="button" [disabled]="!esFormularioValido()" (click)="onSolicitar()">
+    <button mat-raised-button color="primary" type="button" [disabled]="!formularioValido" (click)="onSolicitar()">
       Solicitar
     </button>
   </mat-dialog-actions>
