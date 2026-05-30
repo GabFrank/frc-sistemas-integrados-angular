@@ -476,3 +476,78 @@ export const reporteGenericVentasQuery = gql`
     )
   }
 `;
+
+export const lucroPorFuncionarioQuery = gql`
+  query lucroPorFuncionario(
+    $fechaInicio: String
+    $fechaFin: String
+    $sucursalIdList: [ID]
+    $usuarioId: ID!
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $subfamiliaId: ID
+    $familiaId: ID
+  ) {
+    data: lucroPorFuncionario(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalIdList: $sucursalIdList
+      usuarioId: $usuarioId
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      subfamiliaId: $subfamiliaId
+      familiaId: $familiaId
+    )
+  }
+`;
+
+export const lucroPorFuncionarioListQuery = gql`
+  query lucroPorFuncionarioList(
+    $fechaInicio: String
+    $fechaFin: String
+    $sucursalIdList: [ID]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $subfamiliaId: ID
+    $page: Int
+    $size: Int
+    $familiaId: ID
+  ) {
+    data: lucroPorFuncionarioList(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalIdList: $sucursalIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      subfamiliaId: $subfamiliaId
+      page: $page
+      size: $size
+      familiaId: $familiaId
+    ) {
+      content {
+        usuarioId
+        nombreFuncionario
+        cantidad
+        costoTotal
+        costoUnitario
+        totalVenta
+        lucro
+        percent
+        ventaMedia
+        margen
+        totalDescuento
+        totalAumento
+      }
+      totalElements
+      summary {
+        cantidad
+        costoTotal
+        totalVenta
+        lucro
+        margen
+        totalDescuento
+        totalAumento
+      }
+    }
+  }
+`;
