@@ -110,33 +110,51 @@
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="30%" fxLayout="row" fxLayoutAlign="start center">
-        <div fxFlex="80%">
-          <mat-form-field style="width: 100%">
-            <mat-label>Buscar funcionario</mat-label>
-            <input
-              #funcionarioInput
-              type="text"
-              matInput
-              [formControl]="buscarFuncionarioControl"
-              (keyup.enter)="onBuscarFuncionario()"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10%" style="text-align: center">
-          <mat-icon class="icon" (click)="onBuscarFuncionario()"
-            >search</mat-icon
+      <div fxFlex="30%" fxLayout="column" fxLayoutGap="5px">
+        <div fxLayout="row" fxLayoutAlign="start center">
+          <div fxFlex="80%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Buscar funcionario</mat-label>
+              <input
+                #funcionarioInput
+                type="text"
+                matInput
+                [formControl]="buscarFuncionarioControl"
+                (keyup.enter)="onBuscarFuncionario()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon class="icon" (click)="onBuscarFuncionario()"
+              >search</mat-icon
+            >
+          </div>
+          <div
+            fxFlex="10%"
+            style="text-align: center"
+            *ngIf="funcionarioList.length > 0"
           >
+            <mat-icon style="font-size: 2em" (click)="onClearFuncionario()"
+            class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
         </div>
         <div
-          fxFlex="10%"
-          style="text-align: center"
-          *ngIf="selectedUsuario != null"
+          fxLayout="row"
+          *ngFor="let funcionario of funcionarioList; let index = index"
         >
-          <mat-icon style="font-size: 2em" (click)="onClearFuncionario()"
-          class="highlight-hover-danger"
-            >clear</mat-icon
-          >
+          <div fxFlex="80%">
+            {{ funcionario.id }} - {{ getFuncionarioDisplayName(funcionario) }}
+          </div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon
+              style="font-size: 2em"
+              (click)="onClearFuncionario(index)"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
         </div>
       </div>
     </div>

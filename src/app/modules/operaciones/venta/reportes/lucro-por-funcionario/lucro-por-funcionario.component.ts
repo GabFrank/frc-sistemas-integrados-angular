@@ -3,7 +3,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { LucroPorFuncionario } from "./lucro-por-funcionario.model";
 import { FormControl, FormGroup } from "@angular/forms";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Observable, of } from "rxjs";
+import { Observable, forkJoin, of } from "rxjs";
 import { map, switchMap } from "rxjs/operators";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
@@ -27,7 +27,6 @@ import {
   TableData,
 } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { UsuarioService } from "../../../../personas/usuarios/usuario.service";
-import { Usuario } from "../../../../personas/usuarios/usuario.model";
 import { Subfamilia } from "../../../../productos/sub-familia/sub-familia.model";
 import { SubfamiliasSearchGQL } from "../../../../productos/sub-familia/graphql/subfamiliasSearch";
 import { SearchSubfamiliaByDescripcionGQL } from "../../../../productos/sub-familia/graphql/searchByDescripcion";
@@ -35,7 +34,6 @@ import { FuncionariosWithPageGQL } from "../../../../personas/funcionarios/graph
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { Familia } from "../../../../productos/familia/familia.model";
 import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familiasSearch";
-import { FuncionarioService } from "../../../../personas/funcionarios/funcionario.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -65,12 +63,10 @@ export class LucroPorFuncionarioComponent implements OnInit {
   selectedProducto: Producto;
   productoList: Producto[] = [];
   buscarFuncionarioControl = new FormControl();
-  selectedUsuario: Usuario;
-  selectedFuncionario: Funcionario;
+  funcionarioList: Funcionario[] = [];
   selectedSubFamilia: Subfamilia;
   selectedFamilia: Familia;
   buscarFamiliaControl = new FormControl();
-  funcionarioIdList: number[];
 
   displayedColumns: string[] = [
     "id",
@@ -110,8 +106,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
     private searchSubfamiliaFiltered: SubfamiliasSearchGQL,
     private searchFamilia: FamiliasSearchGQL,
-    private matDialog: MatDialog,
-    private funcionarioService: FuncionarioService
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -201,7 +196,6 @@ export class LucroPorFuncionarioComponent implements OnInit {
       this.resolveUsuarioIdList()
         .pipe(
           switchMap((usuarioIdList) => {
-            this.funcionarioIdList = usuarioIdList;
             return this.ventaService.onGetLucroPorFuncionario(
               fechaInicio,
               fechaFin,
@@ -229,59 +223,43 @@ export class LucroPorFuncionarioComponent implements OnInit {
   }
 
   private resolveUsuarioIdList(): Observable<number[]> {
-    if (this.selectedUsuario?.id != null) {
-      return of([this.selectedUsuario.id]);
-    }
-
-    const text = this.buscarFuncionarioControl.value?.trim();
-    if (!text) {
+    if (this.funcionarioList.length === 0) {
       return of([]);
     }
 
-    const match = text.match(/^(\d+)\s*-/);
-    if (!match) {
-      this.notificacionService.openWarn(
-        "Seleccione un funcionario de la lista para aplicar el filtro"
-      );
-      return of([]);
-    }
-
-    const funcionarioId = parseInt(match[1], 10);
-    return this.funcionarioService.onGetFuncionarioById(funcionarioId).pipe(
-      switchMap((funcionario) => this.resolveUsuarioFromFuncionario(funcionario))
+    return forkJoin(
+      this.funcionarioList.map((funcionario) =>
+        this.resolveUsuarioIdFromFuncionario(funcionario)
+      )
+    ).pipe(
+      map((usuarioIds) => {
+        const validIds = usuarioIds.filter((id) => id != null) as number[];
+        if (validIds.length < this.funcionarioList.length) {
+          this.notificacionService.openWarn(
+            "Algunos funcionarios seleccionados no tienen un usuario asociado"
+          );
+        }
+        return validIds;
+      })
     );
   }
 
-  private resolveUsuarioFromFuncionario(
+  private resolveUsuarioIdFromFuncionario(
     funcionario: Funcionario
-  ): Observable<number[]> {
+  ): Observable<number | null> {
     if (funcionario?.persona?.id) {
       return this.usuarioService
         .onGetUsuarioPorPersonaId(funcionario.persona.id)
         .pipe(
           map((usuario) => {
             if (usuario?.id) {
-              this.selectedFuncionario = funcionario;
-              this.selectedUsuario = usuario;
-              return [usuario.id];
+              return usuario.id;
             }
-            return this.applyFuncionarioUsuarioFallback(funcionario);
+            return funcionario?.usuario?.id ?? null;
           })
         );
     }
-    return of(this.applyFuncionarioUsuarioFallback(funcionario));
-  }
-
-  private applyFuncionarioUsuarioFallback(funcionario: Funcionario): number[] {
-    if (funcionario?.usuario?.id) {
-      this.selectedFuncionario = funcionario;
-      this.selectedUsuario = { id: funcionario.usuario.id } as Usuario;
-      return [funcionario.usuario.id];
-    }
-    this.notificacionService.openWarn(
-      "El funcionario seleccionado no tiene un usuario asociado"
-    );
-    return [];
+    return of(funcionario?.usuario?.id ?? null);
   }
 
   handlePageEvent(e: any) {
@@ -317,8 +295,7 @@ export class LucroPorFuncionarioComponent implements OnInit {
     this.buscarSubfamiliaControl.setValue(null);
     this.buscarFamiliaControl.setValue(null);
     this.buscarFuncionarioControl.setValue(null);
-    this.selectedUsuario = null;
-    this.selectedFuncionario = null;
+    this.funcionarioList = [];
     this.selectedSubFamilia = null;
     this.selectedFamilia = null;
     this.productoList = [];
@@ -460,6 +437,8 @@ export class LucroPorFuncionarioComponent implements OnInit {
       queryData: { nombre: this.buscarFuncionarioControl.value },
       inicialSearch: true,
       paginator: true,
+      multiple: true,
+      seleccionadosIniciales: [...this.funcionarioList],
     };
     this.dialog
       .open(SearchListDialogComponent, {
@@ -469,38 +448,22 @@ export class LucroPorFuncionarioComponent implements OnInit {
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario) => {
-        if (res != null) {
-          this.selectedFuncionario = res;
-          this.selectedUsuario = null;
-          const nombre = res.persona?.nombre || res.nickname || "";
-          this.buscarFuncionarioControl.setValue(res.id + " - " + nombre);
-
-          if (res.persona?.id) {
-            this.usuarioService
-              .onGetUsuarioPorPersonaId(res.persona.id)
-              .pipe(untilDestroyed(this))
-              .subscribe((resUsuario) => {
-                if (resUsuario?.id) {
-                  this.selectedUsuario = resUsuario;
-                } else if (res.usuario?.id) {
-                  this.selectedUsuario = { id: res.usuario.id } as Usuario;
-                } else {
-                  this.notificacionService.openWarn(
-                    "Nombre de usuario no encontrado"
-                  );
-                  this.buscadorFuncionarioInput.nativeElement.select();
-                }
-              });
-          } else if (res.usuario?.id) {
-            this.selectedUsuario = { id: res.usuario.id } as Usuario;
-          } else {
-            this.notificacionService.openWarn(
-              "El funcionario seleccionado no tiene un usuario asociado"
-            );
-          }
+      .subscribe((res: Funcionario[] | Funcionario) => {
+        if (Array.isArray(res)) {
+          this.aplicarFuncionariosFiltro(res);
+        } else if (res != null) {
+          this.aplicarFuncionariosFiltro([res]);
         }
       });
+  }
+
+  aplicarFuncionariosFiltro(funcionarios: Funcionario[]) {
+    this.funcionarioList = funcionarios || [];
+    this.buscarFuncionarioControl.setValue(null);
+  }
+
+  getFuncionarioDisplayName(funcionario: Funcionario): string {
+    return funcionario?.persona?.nombre || funcionario?.nickname || "";
   }
 
   onBuscarFamilia() {
@@ -581,9 +544,12 @@ export class LucroPorFuncionarioComponent implements OnInit {
     this.buscarSubfamiliaControl.setValue(null);
   }
 
-  onClearFuncionario() {
-    this.selectedUsuario = null;
-    this.selectedFuncionario = null;
+  onClearFuncionario(index?: number) {
+    if (index != null) {
+      this.funcionarioList.splice(index, 1);
+      return;
+    }
+    this.funcionarioList = [];
     this.buscarFuncionarioControl.setValue(null);
     this.buscadorFuncionarioInput.nativeElement.focus();
   }
