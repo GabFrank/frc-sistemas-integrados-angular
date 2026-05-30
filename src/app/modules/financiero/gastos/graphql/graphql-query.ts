@@ -265,6 +265,7 @@ export const tipoGastosSearch = gql`
       autorizacion
       activo
       activoEnSucursales
+      moduloPadre
     }
   }
 `;
@@ -406,6 +407,13 @@ export const filterPreGastosQuery = gql`
         }
         tipoGasto {
           id
+          descripcion
+          moduloPadre
+        }
+        ente {
+          id
+          tipoEnte
+          referenciaId
           descripcion
         }
         descripcion

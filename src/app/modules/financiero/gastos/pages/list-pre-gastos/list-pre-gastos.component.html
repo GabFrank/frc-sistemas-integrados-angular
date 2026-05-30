@@ -131,6 +131,10 @@
             <span style="color: #aaa">Tipo:</span>
             <span>{{ seleccionado.tipoGasto?.descripcion }}</span>
           </div>
+          <div fxLayout="row" fxLayoutAlign="space-between start" *ngIf="seleccionado.ente">
+            <span style="color: #aaa">Activo:</span>
+            <span>{{ seleccionado.ente?.descripcion || (seleccionado.ente?.tipoEnte + ' #' + seleccionado.ente?.referenciaId) }}</span>
+          </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Concepto:</span>
             <span>{{ seleccionado.descripcion }}</span>

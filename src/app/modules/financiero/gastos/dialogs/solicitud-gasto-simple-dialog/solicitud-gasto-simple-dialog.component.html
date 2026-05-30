@@ -21,6 +21,32 @@
         </mat-form-field>
       </div>
 
+      <!-- Activo vinculado (vehículo, mueble o inmueble según módulo padre del tipo de gasto) -->
+      <ng-container *ngIf="requiereEnteActivo">
+        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+          <mat-form-field fxFlex="100%" class="beneficiario-bloqueado">
+            <mat-label>{{ etiquetaEnteActivo }}</mat-label>
+            <input
+              matInput
+              [formControl]="enteDisplayControl"
+              readonly
+              tabindex="-1"
+              [placeholder]="'Seleccione ' + (etiquetaEnteActivo | lowercase)"
+              required
+            />
+            <mat-icon matSuffix>{{ iconoEnteActivo }}</mat-icon>
+            <mat-error *ngIf="enteIdControl.hasError('required')">
+              Debe seleccionar {{ etiquetaEnteActivo | lowercase }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" class="beneficiario-acciones">
+          <button mat-stroked-button color="primary" type="button" (click)="abrirBuscadorEnteActivo()">
+            Buscar {{ etiquetaEnteActivo }}
+          </button>
+        </div>
+      </ng-container>
+
       <!-- Fila 2: Descripción -->
       <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
         <mat-form-field fxFlex="100%">

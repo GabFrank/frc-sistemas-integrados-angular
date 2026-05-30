@@ -9,10 +9,14 @@ import { Moneda } from '../../../moneda/moneda.model';
 import { MonedaService } from '../../../moneda/moneda.service';
 import { ProveedoresSearchByPersonaPageGQL } from '../../../../personas/proveedor/graphql/proveedorSearchByPersonaPage';
 import { EditProveedorComponent, EditProveedorResult } from '../../../../personas/proveedor/edit-proveedor/edit-proveedor.component';
+import { EnteService } from '../../../../activos/ente/service/ente.service';
+import { Ente } from '../../../../activos/ente/models/ente.model';
+import { TipoEnte } from '../../../../activos/ente/enums/tipo-ente.enum';
 
 export interface SolicitudGastoSimpleData {
   tipoGastoId: number;
   tipoGastoDescripcion: string;
+  moduloPadre?: string;
   requiereAutorizacion?: boolean;
   solicitanteId: number;
   solicitanteNombre: string;
@@ -33,6 +37,7 @@ export interface SolicitudGastoSimpleResult {
   monto?: number;
   sucursalRetiroId?: number;
   proveedorId: number | null;
+  enteId?: number | null;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -51,8 +56,11 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   sucursalRetiroControl = new FormControl({ value: '', disabled: true });
   beneficiarioControl = new FormControl('', Validators.required);
   proveedorIdControl = new FormControl<number | null>(null, Validators.required);
+  enteDisplayControl = new FormControl('');
+  enteIdControl = new FormControl<number | null>(null);
 
   listaMonedas: Moneda[] = [];
+  selectedEnte: Ente | null = null;
 
   constructor(
     private matDialogRef: MatDialogRef<SolicitudGastoSimpleDialogComponent>,
@@ -61,6 +69,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     private mainService: MainService,
     private matDialog: MatDialog,
     private proveedoresSearchByPersonaPageGQL: ProveedoresSearchByPersonaPageGQL,
+    private enteService: EnteService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -68,7 +77,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     if (this.data) {
       this.tipoGastoDescripcionControl.setValue(this.data.tipoGastoDescripcion);
       this.solicitanteNombreControl.setValue(this.data.solicitanteNombre);
-    }  
+    }
+
+    this.actualizarValidadoresEnte();
 
     if (this.mainService.sucursalActual) {
       this.sucursalRetiroControl.setValue(this.mainService.sucursalActual.nombre);
@@ -156,6 +167,76 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     });
   }
 
+  get requiereEnteActivo(): boolean {
+    return this.tipoEnteDesdeModuloPadre() != null;
+  }
+
+  get etiquetaEnteActivo(): string {
+    switch (this.data?.moduloPadre) {
+      case 'VEHICULO':
+        return 'Vehículo';
+      case 'MUEBLE':
+        return 'Mueble';
+      case 'INMUEBLE':
+        return 'Inmueble';
+      default:
+        return 'Activo';
+    }
+  }
+
+  get iconoEnteActivo(): string {
+    switch (this.data?.moduloPadre) {
+      case 'MUEBLE':
+        return 'chair';
+      case 'INMUEBLE':
+        return 'domain';
+      default:
+        return 'directions_car';
+    }
+  }
+
+  private tipoEnteDesdeModuloPadre(): TipoEnte | null {
+    const modulo = this.data?.moduloPadre;
+    if (modulo === 'VEHICULO' || modulo === 'MUEBLE' || modulo === 'INMUEBLE') {
+      return modulo as TipoEnte;
+    }
+    return null;
+  }
+
+  private actualizarValidadoresEnte(): void {
+    const tipo = this.tipoEnteDesdeModuloPadre();
+    this.enteIdControl.clearValidators();
+    if (tipo != null) {
+      this.enteIdControl.addValidators(Validators.required);
+    }
+    this.enteIdControl.updateValueAndValidity();
+  }
+
+  abrirBuscadorEnteActivo(): void {
+    const tipo = this.tipoEnteDesdeModuloPadre();
+    if (!tipo) {
+      return;
+    }
+    this.enteService.abrirBuscadorEnte(tipo).pipe(untilDestroyed(this)).subscribe(ente => {
+      if (ente?.id) {
+        this.selectedEnte = ente;
+        this.enteIdControl.setValue(ente.id);
+        this.enteDisplayControl.setValue(this.descripcionEnte(ente));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private descripcionEnte(ente: Ente): string {
+    const tipo = ente.tipoEnte ?? this.data?.moduloPadre ?? '';
+    const ref = ente.referenciaId != null ? `#${ente.referenciaId}` : '';
+    const desc = ente.descripcion?.trim();
+    if (desc) {
+      return `[${tipo}] ${desc}`;
+    }
+    return `[${tipo}] Ente ${ente.id}${ref ? ' — Ref. ' + ref : ''}`;
+  }
+
   abrirBuscadorProveedor(): void {
     const data = new SearchListtDialogData();
     data.titulo = 'Seleccionar Proveedor';
@@ -208,7 +289,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       this.descripcionControl.valid &&
       this.vencimientoControl.valid &&
       this.filasMonto.valid &&
-      this.proveedorIdControl.valid
+      this.proveedorIdControl.valid &&
+      this.enteIdControl.valid
     ) {
       const lineas: SolicitudGastoSimpleMontoLinea[] = this.filasMonto.controls
         .map(c => (c as FormGroup).value as { monedaId: number; monto: number })
@@ -224,7 +306,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
         monedaId: primera?.monedaId,
         monto: primera?.monto,
         sucursalRetiroId: this.mainService.sucursalActual?.id,
-        proveedorId: this.proveedorIdControl.value
+        proveedorId: this.proveedorIdControl.value,
+        enteId: this.enteIdControl.value ?? null,
       };
       this.matDialogRef.close(resultado);
     }
@@ -234,7 +317,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     return this.descripcionControl.valid &&
            this.vencimientoControl.valid &&
            this.filasMonto.valid &&
-           this.proveedorIdControl.valid;
+           this.proveedorIdControl.valid &&
+           this.enteIdControl.valid;
   }
 
   trackByFilaMonto(index: number, fila: FormGroup): FormGroup {
