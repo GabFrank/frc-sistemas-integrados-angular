@@ -22,8 +22,8 @@ import { AllTipoGastosGQL } from '../graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from '../graphql/deleleTipoGasto';
 import { FilterPreGastosGQL } from '../graphql/filterPreGastos';
 import { SaveTipoGastoGQL } from '../graphql/saveTipoGasto';
-import { TipoGastoSearchGQL } from '../graphql/tipoGastosSearch';
 import { FilterTipoGastosGQL } from '../graphql/filterTipoGastos';
+import { TipoGastoSearchGQL } from '../graphql/tipoGastosSearch';
 import { TipoGasto } from '../models/tipo-gasto.model';
 
 @Injectable({

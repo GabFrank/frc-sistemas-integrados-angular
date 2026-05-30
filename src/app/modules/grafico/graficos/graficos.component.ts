@@ -273,14 +273,13 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         const hoyStr = datePipe.transform(today, 'yyyy-MM-dd') || '';
 
         this.graficoService.obtenerVentasPorHora(hoyStr).subscribe(res => {
-            const horas = Array.from({ length: 15 }, (_, i) => (i + 7).toString()); // 7 to 21
-            const data = new Array(15).fill(0);
+            const horas = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+            const data = new Array(horas.length).fill(0);
 
             if (res) {
                 res.forEach((item: any) => {
-                    const idx = item.hora - 7;
-                    if (idx >= 0 && idx < 15) {
-                        data[idx] = item.total;
+                    if (item.hora >= 0 && item.hora <= 23) {
+                        data[item.hora] = item.total;
                     }
                 });
             }
