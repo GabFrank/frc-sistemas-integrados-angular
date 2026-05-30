@@ -44,7 +44,9 @@ import { NotificationHttpService } from "../../../../../shared/services/notifica
 import { TipoGasto } from "../../models/tipo-gasto.model";
 import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { TipoGastoSearchGQL } from "../../graphql/tipoGastosSearch";
-import { SolicitudGastoSimpleDialogComponent, SolicitudGastoSimpleData, SolicitudGastoSimpleResult } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
+import { SolicitudGastoSimpleDialogComponent } from "../solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component";
+import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple-data.interface";
+import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -355,6 +357,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           data: {
             tipoGastoId: this.selectedTipoGasto.id,
             tipoGastoDescripcion: this.selectedTipoGasto.descripcion,
+            moduloPadre: this.selectedTipoGasto?.moduloPadre,
             requiereAutorizacion: this.selectedTipoGasto?.autorizacion === true,
             solicitanteId: this.selectedResponsable?.id,
             solicitanteNombre: this.selectedResponsable?.persona?.nombre
@@ -418,6 +421,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       return;
     }
     input.tipoGastoId = res.tipoGastoId;
+    input.enteId = res.enteId ?? null;
     input.descripcion = res.descripcion;
     input.sucursalId = sucursalSolicitudId;
     input.funcionarioId = personaId;
