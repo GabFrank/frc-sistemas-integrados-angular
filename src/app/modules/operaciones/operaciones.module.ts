@@ -46,6 +46,7 @@ import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
+import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 
 
 import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
@@ -112,6 +113,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     AcompanhanteComponent,
     RutaHojaComponent,
     EntregadoresComponent,
+    ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
     SelectSucursalesDialogComponent,
