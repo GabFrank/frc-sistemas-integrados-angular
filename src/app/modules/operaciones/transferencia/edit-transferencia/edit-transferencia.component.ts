@@ -72,6 +72,7 @@ import {
   validarFecha,
 } from "../../../../commons/core/utils/dateUtils";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { ConfiguracionTransferenciaService } from '../configuracion-transferencia-dialog/configuracion-transferencia.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -208,7 +209,8 @@ export class EditTransferenciaComponent implements OnInit {
     private tabService: TabService,
     private presentacionService: PresentacionService,
     private dialogoService: DialogosService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private configuracionTransferenciaService: ConfiguracionTransferenciaService
   ) { }
 
   ngOnInit(): void {
@@ -1353,15 +1355,31 @@ export class EditTransferenciaComponent implements OnInit {
       this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
         .subscribe({
           next: (stock) => {
-            this.cargandoService.closeDialog();
             if (stock != null && stock < 0) {
-              this.notificacionService.openWarn(
-                `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
-              );
-              this.onClear();
-              return;
+              this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
+                next: (config) => {
+                  this.cargandoService.closeDialog();
+                  if (!config?.permitirStockNegativo) {
+                    this.notificacionService.openWarn(
+                      `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                    );
+                    this.onClear();
+                    return;
+                  }
+                  this.procederConGuardadoItem();
+                },
+                error: () => {
+                  this.cargandoService.closeDialog();
+                  this.notificacionService.openWarn(
+                    `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                  );
+                  this.onClear();
+                }
+              });
+            } else {
+              this.cargandoService.closeDialog();
+              this.procederConGuardadoItem();
             }
-            this.procederConGuardadoItem();
           },
           error: (err) => {
             this.cargandoService.closeDialog();

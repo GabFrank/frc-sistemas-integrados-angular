@@ -1271,3 +1271,38 @@ export const hojaRutaPorFechaQuery = gql`
     }
   }
 `;
+
+export const configuracionTransferenciaQuery = gql`
+  {
+    data: configuracionTransferencia {
+      id
+      permitirStockNegativo
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const saveConfiguracionTransferencia = gql`
+  mutation saveConfiguracionTransferencia($entity: ConfiguracionTransferenciaInput!) {
+    data: saveConfiguracionTransferencia(input: $entity) {
+      id
+      permitirStockNegativo
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
