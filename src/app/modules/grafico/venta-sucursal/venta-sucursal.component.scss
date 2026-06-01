@@ -1,5 +1,27 @@
 :host {
-    display: block;
-    height: 100%;
-    width: 100%;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.venta-sucursal-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+  background-color: #303030;
+  box-sizing: border-box;
+
+  &__filtros {
+    flex-wrap: wrap;
+    padding: 16px;
+    background: #424242;
+    border-radius: 8px;
+  }
+
+  &__grafico {
+    flex: 1;
+    min-height: 0;
+  }
 }

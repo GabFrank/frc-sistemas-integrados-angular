@@ -1,161 +1,232 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { GraficoService } from '../grafico.service';
-import { DatePipe } from '@angular/common';
-import { EChartsOption } from 'echarts';
-import { FormControl } from '@angular/forms';
-import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
-import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
-import { Observable } from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  inject,
+} from "@angular/core";
+import { EChartsOption } from "echarts";
+import { FormControl } from "@angular/forms";
+import {
+  BehaviorSubject,
+  Observable,
+  combineLatest,
+  distinctUntilChanged,
+  finalize,
+  forkJoin,
+  map,
+  startWith,
+  switchMap,
+  tap,
+} from "rxjs";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { GraficoService } from "../grafico.service";
+import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
+import { formatearFechaGrafico } from "../../../commons/core/utils/dateUtils";
+import { VentasPorHoraItem } from "../interfaces/ventas-por-hora-item.model";
+import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
+import {
+  GRAFICO_COLORES,
+  formatoEjeCompacto,
+  formatoMonedaPy,
+  tituloGraficoCentrado,
+} from "../../../shared/utils/grafico-echarts.theme";
 
+@UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'ventas-dias',
-  templateUrl: './ventas-dias.component.html',
-  styleUrls: ['./ventas-dias.component.scss']
+  selector: "ventas-dias",
+  templateUrl: "./ventas-dias.component.html",
+  styleUrls: ["./ventas-dias.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: "ventas-dias-host",
+  },
 })
 export class VentasDiasComponent implements OnInit {
-
   private graficoService = inject(GraficoService);
   private sucursalService = inject(SucursalService);
-  private datePipe = new DatePipe('en-US');
+  private cdr = inject(ChangeDetectorRef);
 
-  sucursalControl = new FormControl(null);
+  sucursalControl = new FormControl<number | null>(null);
   sucursales$: Observable<Sucursal[]>;
 
-  echartsOption: EChartsOption;
-  cargando = false;
+  private readonly opcionesSubject = new BehaviorSubject<EChartsOption | null>(
+    null
+  );
+  private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly hayDatosSubject = new BehaviorSubject<boolean>(false);
 
   private readonly horasDelDia = Array.from({ length: 24 }, (_, i) =>
-    i.toString().padStart(2, '0')
+    i.toString().padStart(2, "0")
+  );
+
+  readonly vista$: Observable<VistaGraficoShell> = combineLatest([
+    this.opcionesSubject,
+    this.cargandoSubject,
+    this.hayDatosSubject,
+  ]).pipe(
+    map(([opciones, cargando, hayDatos]) => ({
+      opciones,
+      hayDatos,
+      cargando,
+      datosListos: opciones !== null,
+    }))
   );
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true);
-    this.cargarDatos();
-
-    this.sucursalControl.valueChanges.subscribe(() => {
-      this.cargarDatos();
-    });
+    this.configurarDataStream();
   }
 
-  cargarDatos() {
-    this.cargando = true;
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  private configurarDataStream(): void {
+    this.sucursalControl.valueChanges
+      .pipe(
+        startWith(this.sucursalControl.value),
+        distinctUntilChanged(),
+        tap(() => this.cargandoSubject.next(true)),
+        switchMap((sucId) => {
+          const hoy = new Date();
+          const ayer = new Date(hoy);
+          ayer.setDate(ayer.getDate() - 1);
+          const hoyStr = formatearFechaGrafico(hoy);
+          const ayerStr = formatearFechaGrafico(ayer);
 
-    const todayStr = this.datePipe.transform(today, 'yyyy-MM-dd') || '';
-    const yesterdayStr = this.datePipe.transform(yesterday, 'yyyy-MM-dd') || '';
-
-    const sucId = this.sucursalControl.value;
-
-    const reqHoy = this.graficoService.obtenerVentasPorHora(todayStr, sucId);
-    const reqAyer = this.graficoService.obtenerVentasPorHora(yesterdayStr, sucId);
-    import('rxjs').then(({ forkJoin }) => {
-      forkJoin([reqHoy, reqAyer]).subscribe(([dataHoy, dataAyer]) => {
-        this.configurarGrafico(dataHoy, dataAyer);
-        this.cargando = false;
+          return forkJoin({
+            hoy: this.graficoService.obtenerVentasPorHora(
+              hoyStr,
+              sucId ?? undefined
+            ),
+            ayer: this.graficoService.obtenerVentasPorHora(
+              ayerStr,
+              sucId ?? undefined
+            ),
+          }).pipe(finalize(() => this.cargandoSubject.next(false)));
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe(({ hoy, ayer }) => {
+        this.configurarGrafico(hoy || [], ayer || []);
+        this.cdr.markForCheck();
       });
-    });
   }
 
-  configurarGrafico(dataHoy: any[], dataAyer: any[]) {
-    const hours = this.horasDelDia;
-    const totalHoras = hours.length;
+  private configurarGrafico(
+    dataHoy: VentasPorHoraItem[],
+    dataAyer: VentasPorHoraItem[]
+  ): void {
+    const valuesHoy = new Array(24).fill(0);
+    const valuesAyer = new Array(24).fill(0);
 
-    const valuesHoy = new Array(totalHoras).fill(0);
-    const valuesAyer = new Array(totalHoras).fill(0);
-
-    dataHoy.forEach((item: any) => {
+    dataHoy.forEach((item) => {
       const idx = this.obtenerIndiceHora(item.hora);
-      if (idx >= 0) valuesHoy[idx] = item.total;
+      if (idx >= 0) {
+        valuesHoy[idx] = item.total;
+      }
     });
 
-    dataAyer.forEach((item: any) => {
+    dataAyer.forEach((item) => {
       const idx = this.obtenerIndiceHora(item.hora);
-      if (idx >= 0) valuesAyer[idx] = item.total;
+      if (idx >= 0) {
+        valuesAyer[idx] = item.total;
+      }
     });
 
-    this.echartsOption = {
-      title: {
-        text: 'Comparativo de Ventas por Hora (Ayer vs Hoy)',
-        left: 'center',
-        textStyle: { color: '#E0E0E0' }
-      },
+    const hayDatos =
+      valuesHoy.some((v) => v > 0) || valuesAyer.some((v) => v > 0);
+    this.hayDatosSubject.next(hayDatos);
+
+    this.opcionesSubject.next({
+      title: tituloGraficoCentrado(
+        "Comparativo de Ventas por Hora (Ayer vs Hoy)"
+      ),
       tooltip: {
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let res = `Hora: ${params[0].name}:00<br/>`;
-          params.forEach((p: any) => {
-            res += `${p.marker} ${p.seriesName}: ₲ ${p.value.toLocaleString('es-PY')}<br/>`;
-          });
+        trigger: "axis",
+        formatter: (params: unknown) => {
+          const filas = Array.isArray(params) ? params : [];
+          if (!filas.length) {
+            return "";
+          }
+          const primera = filas[0] as { name: string };
+          let res = `Hora: ${primera.name}:00<br/>`;
+          filas.forEach(
+            (p: { seriesName: string; value: number; marker: string }) => {
+              res += `${p.marker} ${p.seriesName}: ${formatoMonedaPy(Number(p.value))}<br/>`;
+            }
+          );
           return res;
-        }
+        },
       },
       legend: {
-        data: ['Ayer', 'Hoy'],
+        data: ["Ayer", "Hoy"],
         bottom: 10,
-        textStyle: { color: '#E0E0E0' }
+        textStyle: { color: GRAFICO_COLORES.text },
       },
       grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '10%',
-        containLabel: true
+        left: "3%",
+        right: "4%",
+        bottom: "10%",
+        containLabel: true,
       },
       xAxis: {
-        type: 'category',
+        type: "category",
         boundaryGap: false,
-        data: hours,
-        axisLabel: { color: '#9E9E9E' }
+        data: this.horasDelDia,
+        axisLabel: { color: GRAFICO_COLORES.textSecondary },
       },
       yAxis: {
-        type: 'value',
+        type: "value",
         axisLabel: {
-          color: '#9E9E9E',
-          formatter: (value: number) => {
-            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-            return value.toString();
-          }
+          color: GRAFICO_COLORES.textSecondary,
+          formatter: (value: number) => formatoEjeCompacto(value),
         },
-        splitLine: {
-          lineStyle: {
-            color: '#444'
-          }
-        }
+        splitLine: { lineStyle: { color: GRAFICO_COLORES.splitLine } },
       },
       series: [
         {
-          name: 'Ayer',
-          type: 'line',
+          name: "Ayer",
+          type: "line",
           data: valuesAyer,
           smooth: true,
-          lineStyle: { width: 3, color: '#FF9800' }, // Orange for yesterday
-          itemStyle: { color: '#FF9800' },
+          lineStyle: { width: 3, color: GRAFICO_COLORES.warning },
+          itemStyle: { color: GRAFICO_COLORES.warning },
           areaStyle: {
             color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [{ offset: 0, color: 'rgba(255, 152, 0, 0.3)' }, { offset: 1, color: 'rgba(255, 152, 0, 0)' }]
-            }
-          }
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(255, 152, 0, 0.3)" },
+                { offset: 1, color: "rgba(255, 152, 0, 0)" },
+              ],
+            },
+          },
         },
         {
-          name: 'Hoy',
-          type: 'line',
+          name: "Hoy",
+          type: "line",
           data: valuesHoy,
           smooth: true,
-          lineStyle: { width: 4, color: '#009688' }, // Teal/Green for today
-          itemStyle: { color: '#009688' },
+          lineStyle: { width: 4, color: GRAFICO_COLORES.accent },
+          itemStyle: { color: GRAFICO_COLORES.accent },
           areaStyle: {
             color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [{ offset: 0, color: 'rgba(0, 150, 136, 0.5)' }, { offset: 1, color: 'rgba(0, 150, 136, 0)' }]
-            }
-          }
-        }
-      ]
-    };
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(0, 150, 136, 0.5)" },
+                { offset: 1, color: "rgba(0, 150, 136, 0)" },
+              ],
+            },
+          },
+        },
+      ],
+    });
   }
 
   private obtenerIndiceHora(hora: number): number {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { FormaPagoEstadistica } from '../models/forma-pago-estadistica.model';
+import { FormaPagoEstadistica } from '../interfaces/forma-pago-estadistica.model';
 import { formaPagoEstadisticasConFiltrosQuery } from './forma-pago-estadisticas-query';
 
 export interface Response {

@@ -1,0 +1,25 @@
+import { EChartsOption } from "echarts";
+
+export interface GraficosDashboardVista {
+  cargando: boolean;
+  ventasPorSucursal: EChartsOption | null;
+  formasPago: EChartsOption | null;
+  gastosCategoria: EChartsOption | null;
+  ingresosGastos: EChartsOption | null;
+  ventasHora: EChartsOption | null;
+  ventasFuncionario: EChartsOption | null;
+  productosMasVendidos: EChartsOption | null;
+  analisisProducto: EChartsOption | null;
+}
+
+export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
+  cargando: false,
+  ventasPorSucursal: null,
+  formasPago: null,
+  gastosCategoria: null,
+  ingresosGastos: null,
+  ventasHora: null,
+  ventasFuncionario: null,
+  productosMasVendidos: null,
+  analisisProducto: null,
+};

@@ -8,7 +8,7 @@ import { VentasPorFuncionarioGQL } from './graphql/ventas-por-funcionario.gql';
 import { SucursalService } from '../empresarial/sucursal/sucursal.service';
 import { FamiliaService } from '../productos/familia/familia.service';
 import { Observable } from 'rxjs';
-import { VentaPorPeriodo } from './models/venta-por-periodo.model';
+import { VentaPorPeriodo } from './interfaces/venta-por-periodo.model';
 import { Sucursal } from '../empresarial/sucursal/sucursal.model';
 import { Familia } from '../productos/familia/familia.model';
 import { VentasPorHoraGQL } from './graphql/ventas-por-hora.gql';
@@ -20,8 +20,15 @@ import { VentasProductoPorDiaGQL } from './graphql/ventas-producto-por-dia.gql';
 import { VentasProductoPorMesGQL } from './graphql/ventas-producto-por-mes.gql';
 import { ComprasProductoPorDiaGQL } from './graphql/compras-producto-por-dia.gql';
 import { ComprasProductoPorMesGQL } from './graphql/compras-producto-por-mes.gql';
-import { ProductoVentaPorPeriodo } from './models/producto-venta-periodo.model';
-import { ProductoCompraPorPeriodo } from './models/producto-compra-periodo.model';
+import { ProductoVentaPorPeriodo } from './interfaces/producto-venta-periodo.model';
+import { ProductoCompraPorPeriodo } from './interfaces/producto-compra-periodo.model';
+import { FormaPagoEstadistica } from './interfaces/forma-pago-estadistica.model';
+import { ProductoVendidoEstadistica } from './interfaces/producto-vendido-estadistica.model';
+import { VentaFuncionarioItem } from './interfaces/venta-funcionario-item.model';
+import { VentasPorHoraItem } from './interfaces/ventas-por-hora-item.model';
+import { GastoCategoriaItem } from './interfaces/gasto-categoria-item.model';
+import { IngresoGastoMesAcumulado } from './interfaces/ingreso-gasto-mes-acumulado.model';
+import { VentaSucursalItem } from './interfaces/venta-sucursal-item.model';
 
 @Injectable({
   providedIn: 'root'
@@ -63,7 +70,7 @@ export class GraficoService {
     );
   }
 
-  obtenerEstadisticasFormaPago(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+  obtenerEstadisticasFormaPago(inicio: string, fin: string, sucId?: number): Observable<FormaPagoEstadistica[]> {
     return this.genericService.onCustomQuery(
       this.formaPagoGQL,
       { inicio, fin, sucursalId: sucId ? String(sucId) : null },
@@ -73,7 +80,7 @@ export class GraficoService {
     );
   }
 
-  obtenerProductosMasVendidos(inicio: string, fin: string, sucId?: number, familiaId?: number, limit: number = 10, ascendente: boolean = false, productoId?: number, productoIds?: number[]): Observable<any[]> {
+  obtenerProductosMasVendidos(inicio: string, fin: string, sucId?: number, familiaId?: number, limit: number = 10, ascendente: boolean = false, productoId?: number, productoIds?: number[]): Observable<ProductoVendidoEstadistica[]> {
     const ids = productoIds?.length ? productoIds.map(id => String(id)) : null;
     return this.genericService.onCustomQuery(
       this.productosMasVendidosGQL,
@@ -91,7 +98,7 @@ export class GraficoService {
     );
   }
 
-  obtenerVentasPorFuncionario(inicio: string, fin: string, sucId?: number, usuarioId?: number): Observable<any[]> {
+  obtenerVentasPorFuncionario(inicio: string, fin: string, sucId?: number, usuarioId?: number): Observable<VentaFuncionarioItem[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorFuncionarioGQL,
       {
@@ -105,7 +112,7 @@ export class GraficoService {
     );
   }
 
-  obtenerVentasPorHora(fecha: string, sucId?: number): Observable<any[]> {
+  obtenerVentasPorHora(fecha: string, sucId?: number): Observable<VentasPorHoraItem[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorHoraGQL,
       { fecha, sucId: sucId ? String(sucId) : null },
@@ -115,7 +122,7 @@ export class GraficoService {
     );
   }
 
-  obtenerGastosPorCategoria(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+  obtenerGastosPorCategoria(inicio: string, fin: string, sucId?: number): Observable<GastoCategoriaItem[]> {
     return this.genericService.onCustomQuery(
       this.gastosPorCategoriaGQL,
       { inicio, fin, sucId: sucId ? String(sucId) : null },
@@ -125,7 +132,7 @@ export class GraficoService {
     );
   }
 
-  obtenerVentasPorMes(anio: number, sucId?: number): Observable<any[]> {
+  obtenerVentasPorMes(anio: number, sucId?: number): Observable<IngresoGastoMesAcumulado[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorMesGQL,
       { anio, sucId: sucId ? String(sucId) : null },
@@ -135,7 +142,7 @@ export class GraficoService {
     );
   }
 
-  obtenerGastosPorMes(anio: number, sucId?: number): Observable<any[]> {
+  obtenerGastosPorMes(anio: number, sucId?: number): Observable<IngresoGastoMesAcumulado[]> {
     return this.genericService.onCustomQuery(
       this.gastosPorMesGQL,
       { anio, sucId: sucId ? String(sucId) : null },
@@ -201,7 +208,7 @@ export class GraficoService {
     );
   }
 
-  obtenerVentasPorSucursal(inicio: string, fin: string): Observable<any[]> {
+  obtenerVentasPorSucursal(inicio: string, fin: string): Observable<VentaSucursalItem[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorSucursalGQL,
       { inicio, fin },

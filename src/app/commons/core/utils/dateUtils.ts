@@ -76,6 +76,62 @@ export const mask = {
   mask: [/\d/, /\d/, "/", /\d/, /\d/, "/", /\d/, /\d/, /\d/, /\d/],
 };
 
+export interface RangoFechaPeriodo {
+  inicio: string;
+  fin: string;
+}
+
+/**
+ * Formato yyyy-MM-dd para rangos de gráficos (alineado con backend DateUtils PATTERN).
+ */
+export function formatearFechaGrafico(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Genera inicio/fin en formato yyyy-MM-dd HH:mm para queries GraphQL de estadísticas.
+ * Día: [00:00 del día, 00:00 del día siguiente). Mes/año: fin inclusive 23:59.
+ */
+export function generarRangoFechaGrafico(
+  anho: number,
+  mes: number | null,
+  fechaDia: Date | null = null
+): RangoFechaPeriodo {
+  if (fechaDia) {
+    const inicio = `${formatearFechaGrafico(fechaDia)} 00:00`;
+    const diaSiguiente = new Date(fechaDia);
+    diaSiguiente.setDate(fechaDia.getDate() + 1);
+    return {
+      inicio,
+      fin: `${formatearFechaGrafico(diaSiguiente)} 00:00`,
+    };
+  }
+
+  if (mes) {
+    const mesStr = String(mes).padStart(2, "0");
+    const ultimoDiaMes = new Date(anho, mes, 0);
+    const finMes = String(ultimoDiaMes.getMonth() + 1).padStart(2, "0");
+    const finDia = String(ultimoDiaMes.getDate()).padStart(2, "0");
+    return {
+      inicio: `${anho}-${mesStr}-01 00:00`,
+      fin: `${ultimoDiaMes.getFullYear()}-${finMes}-${finDia} 23:59`,
+    };
+  }
+
+  return {
+    inicio: `${anho}-01-01 00:00`,
+    fin: `${anho}-12-31 23:59`,
+  };
+}
+
+export function listarAnhosGrafico(cantidad = 5): number[] {
+  const anhoActual = new Date().getFullYear();
+  return Array.from({ length: cantidad }, (_, i) => anhoActual - i);
+}
+
 export function combineDateTime(date: Date, time: string): Date {
   const timeParts = time.split(":");
   const hours = parseInt(timeParts[0]);
