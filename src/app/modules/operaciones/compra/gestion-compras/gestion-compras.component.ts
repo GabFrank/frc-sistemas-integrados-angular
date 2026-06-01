@@ -4,7 +4,6 @@ import {
   OnDestroy,
   ViewChild,
   Input,
-  AfterViewInit,
 } from "@angular/core";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
@@ -213,7 +212,7 @@ type TabState = "disabled" | "readonly" | "editable";
   styleUrls: ["./gestion-compras.component.scss"],
 })
 export class GestionComprasComponent
-  implements OnInit, OnDestroy, AfterViewInit
+  implements OnInit, OnDestroy
 {
   @ViewChild("monedaSelect", { read: MatSelect }) monedaSelect!: MatSelect;
   @ViewChild("proveedorInput") proveedorInput!: any;
@@ -479,22 +478,6 @@ export class GestionComprasComponent
 
     // Configurar navegación con teclado para productos del proveedor
     this.setupKeyboardNavigation();
-  }
-
-  ngAfterViewInit() {
-    this.itemsDataSource.paginator = this.paginator;
-    
-    // Configurar paginador para ítems pendientes
-    if (this.itemsPendientesPaginator) {
-      this.itemsPendientesDataSource.paginator = this.itemsPendientesPaginator;
-    }
-
-    // Configurar paginador para notas de recepción
-    if (this.notasRecepcionPaginator) {
-      this.notasRecepcionDataSource.paginator = this.notasRecepcionPaginator;
-    }
-
-    // Estado de tabs configurado
   }
 
   ngOnDestroy(): void {

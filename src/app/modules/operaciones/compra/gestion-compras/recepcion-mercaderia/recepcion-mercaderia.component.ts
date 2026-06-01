@@ -1,4 +1,4 @@
-import { Component, Input, Output, OnInit, OnDestroy, ViewChild, EventEmitter } from '@angular/core';
+import { Component, Input, Output, OnInit, OnDestroy, AfterViewInit, ViewChild, EventEmitter } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -65,7 +65,7 @@ export interface RecepcionMercaderiaNota {
   templateUrl: './recepcion-mercaderia.component.html',
   styleUrls: ['./recepcion-mercaderia.component.scss']
 })
-export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
+export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() pedidoId: number;
   @Input() pedido: Pedido;
   @Output() recepcionFinalizada = new EventEmitter<void>();
@@ -203,6 +203,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     this.loadNotasRecepcion(); // Cargar datos directamente
     this.loadEtapaActual(); // Cargar etapa actual del proceso
     this.updateComputedProperties();
+  }
+
+  ngAfterViewInit(): void {
+    this.notasDataSource.paginator = this.notasPaginator;
   }
 
   ngOnDestroy(): void {
