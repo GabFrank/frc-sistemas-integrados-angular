@@ -175,6 +175,7 @@
           </div>
 
           <div *ngIf="notaSeleccionada" class="items-container">
+            <div class="table-content-wrapper">
             <table mat-table [dataSource]="itemsDataSource" class="items-table">
               <!-- Checkbox Column -->
               <ng-container matColumnDef="seleccionar">
@@ -427,6 +428,7 @@
               <mat-icon>inventory_2</mat-icon>
               <span>No hay ítems en esta nota de recepción</span>
             </div>
+            </div>
 
             <!-- Paginador para ítems -->
             <mat-paginator
@@ -446,7 +448,7 @@
       </mat-card>
 
       <!-- Panel Derecho: Lista de Notas -->
-      <div style="flex: 1; display: flex; flex-direction: column">
+      <div class="right-panel-column">
         <mat-card class="panel right-panel">
           <mat-card-header>
             <mat-card-title>
@@ -458,8 +460,9 @@
             </mat-card-subtitle>
           </mat-card-header>
 
-          <mat-card-content>
-            <div style="flex: 1">
+          <mat-card-content class="notas-panel-content">
+            <div class="table-container">
+              <div class="table-content-wrapper">
               <table
                 mat-table
                 [dataSource]="notasDataSource"
@@ -530,7 +533,7 @@
                   [class.selected-row]="notaSeleccionada?.id === row.id"
                 ></tr>
               </table>
-            </div>
+              </div>
 
             <!-- Indicador de carga -->
             <div *ngIf="loadingNotas" class="loading-indicator">
@@ -551,15 +554,13 @@
             <mat-paginator
               #notasPaginator
               [pageSizeOptions]="[5, 10, 25, 50]"
-              [pageSize]="notasPageSize"
-              [pageIndex]="notasPageIndex"
-              [length]="notasTotalElements"
+              [pageSize]="10"
               [disabled]="loadingNotas"
               showFirstLastButtons
               aria-label="Seleccionar página de notas"
-              (page)="onNotasPageChange($event)"
             >
             </mat-paginator>
+            </div>
           </mat-card-content>
         </mat-card>
         <div style="text-align: right">
