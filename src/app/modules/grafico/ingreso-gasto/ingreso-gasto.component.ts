@@ -31,7 +31,7 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { IngresoGastoMesAcumulado } from "../interfaces/ingreso-gasto-mes-acumulado.model";
+import { IngresoGastoMesAcumulado } from "../venta-mes/interfaces/ingreso-gasto-mes-acumulado.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({

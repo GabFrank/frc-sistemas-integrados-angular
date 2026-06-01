@@ -3,11 +3,11 @@ import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
 import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, forkJoin, switchMap, finalize, distinctUntilChanged } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { VentaPorPeriodo } from '../interfaces/venta-por-periodo.model';
+import { VentaPorPeriodo } from '../venta-sucursal/venta-por-periodo.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { GraficoService } from '../grafico.service';
-import { VentaMesDatosGraficoProcesados } from '../interfaces/venta-mes-datos-grafico-procesados.model';
-import { VentaMesResumenAnho } from '../interfaces/venta-mes-resumen-anho.model';
+import { VentaMesDatosGraficoProcesados } from './interfaces/venta-mes-datos-grafico-procesados.model';
+import { VentaMesResumenAnho } from './interfaces/venta-mes-resumen-anho.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({

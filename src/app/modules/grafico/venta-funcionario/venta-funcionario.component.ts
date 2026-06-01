@@ -42,9 +42,9 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { VentaFuncionarioDesdeLucroTabData } from "../interfaces/venta-funcionario-desde-lucro-tab-data.model";
-import { VentaFuncionarioItem } from "../interfaces/venta-funcionario-item.model";
-import { VentaFuncionarioDatosGraficoProcesados } from "../interfaces/venta-funcionario-datos-grafico-procesados.model";
+import { VentaFuncionarioDesdeLucroTabData } from "./interfaces/venta-funcionario-desde-lucro-tab-data.model";
+import { VentaFuncionarioItem } from "./interfaces/venta-funcionario-item.model";
+import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funcionario-datos-grafico-procesados.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({

@@ -33,7 +33,7 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { GastoCategoriaItem } from "../interfaces/gasto-categoria-item.model";
+import { GastoCategoriaItem } from "./interfaces/gasto-categoria-item.model";
 
 const PALETA_GASTO_CATEGORIA = [
   "#F44336",

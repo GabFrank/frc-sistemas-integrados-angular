@@ -6,9 +6,9 @@ import {
   switchMap, distinctUntilChanged, tap, map, of, catchError, forkJoin
 } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { ProductoVendidoEstadistica } from '../interfaces/producto-vendido-estadistica.model';
-import { ProductoVentaPorPeriodo } from '../interfaces/producto-venta-periodo.model';
-import { ProductoCompraPorPeriodo } from '../interfaces/producto-compra-periodo.model';
+import { ProductoVendidoEstadistica } from '../producto-vendido/interfaces/producto-vendido-estadistica.model';
+import { ProductoVentaPorPeriodo } from '../producto-vendido/interfaces/producto-venta-periodo.model';
+import { ProductoCompraPorPeriodo } from '../producto-vendido/interfaces/producto-compra-periodo.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { Familia } from '../../productos/familia/familia.model';
 import { MatDialog } from '@angular/material/dialog';
@@ -20,12 +20,12 @@ import {
   PdvSearchProductoResponseData
 } from '../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
 import { dateToString } from '../../../commons/core/utils/dateUtils';
-import { AnalisisProductoModoRanking } from '../interfaces/analisis-producto-modo-ranking.type';
-import { AnalisisProductoNivelVenta } from '../interfaces/analisis-producto-nivel-venta.type';
-import { AnalisisProductoVistaTemporal } from '../interfaces/analisis-producto-vista-temporal.type';
-import { AnalisisProductoProductoDetalle } from '../interfaces/analisis-producto-producto-detalle.model';
-import { AnalisisProductoVista } from '../interfaces/analisis-producto-vista.model';
-import { AnalisisProductoRangoFechas } from '../interfaces/analisis-producto-rango-fechas.model';
+import { AnalisisProductoModoRanking } from './interfaces/analisis-producto-modo-ranking.type';
+import { AnalisisProductoNivelVenta } from './interfaces/analisis-producto-nivel-venta.type';
+import { AnalisisProductoVistaTemporal } from './interfaces/analisis-producto-vista-temporal.type';
+import { AnalisisProductoProductoDetalle } from './interfaces/analisis-producto-producto-detalle.model';
+import { AnalisisProductoVista } from './interfaces/analisis-producto-vista.model';
+import { AnalisisProductoRangoFechas } from './interfaces/analisis-producto-rango-fechas.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({

@@ -21,7 +21,7 @@ import {
   tap,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { FormaPagoEstadistica } from "../interfaces/forma-pago-estadistica.model";
+import { FormaPagoEstadistica } from "./interfaces/forma-pago-estadistica.model";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { GraficoService } from "../grafico.service";
 import { GraficoFiltrosFechaComponent } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.component";
@@ -32,9 +32,9 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { FormaPagoDatosGraficoProcesados } from "../interfaces/forma-pago-datos-grafico-procesados.model";
-import { FormaPagoDetalleProcesado } from "../interfaces/forma-pago-detalle-procesado.model";
-import { FormaPagoPantalla } from "../interfaces/forma-pago-pantalla.model";
+import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-grafico-procesados.model";
+import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
+import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
 import { formatearRangoFechaGraficoParaApi } from "../utils/grafico-fecha-api.utils";
 
 @UntilDestroy({ checkProperties: true })

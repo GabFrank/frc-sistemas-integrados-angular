@@ -10,7 +10,7 @@ import { VentasDiasComponent } from "../ventas-dias/ventas-dias.component";
 import { GastoCategoriaComponent } from "../gasto-categoria/gasto-categoria.component";
 import { IngresoGastoComponent } from "../ingreso-gasto/ingreso-gasto.component";
 import { VentaSucursalComponent } from "../venta-sucursal/venta-sucursal.component";
-import { GraficosDashboardVista } from "../interfaces/graficos-dashboard-vista.model";
+import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import { construirVistaDashboardMock } from "./graficos-dashboard-opciones.util";
 
 type TipoGraficoDashboard =

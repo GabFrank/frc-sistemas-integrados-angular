@@ -24,7 +24,7 @@ import { GraficoService } from "../grafico.service";
 import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { formatearFechaGrafico } from "../../../commons/core/utils/dateUtils";
-import { VentasPorHoraItem } from "../interfaces/ventas-por-hora-item.model";
+import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
 import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
 import {
   GRAFICO_COLORES,

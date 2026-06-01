@@ -8,7 +8,7 @@ import { VentasPorFuncionarioGQL } from './graphql/ventas-por-funcionario.gql';
 import { SucursalService } from '../empresarial/sucursal/sucursal.service';
 import { FamiliaService } from '../productos/familia/familia.service';
 import { Observable } from 'rxjs';
-import { VentaPorPeriodo } from './interfaces/venta-por-periodo.model';
+import { VentaPorPeriodo } from './venta-sucursal/venta-por-periodo.model';
 import { Sucursal } from '../empresarial/sucursal/sucursal.model';
 import { Familia } from '../productos/familia/familia.model';
 import { VentasPorHoraGQL } from './graphql/ventas-por-hora.gql';
@@ -20,15 +20,15 @@ import { VentasProductoPorDiaGQL } from './graphql/ventas-producto-por-dia.gql';
 import { VentasProductoPorMesGQL } from './graphql/ventas-producto-por-mes.gql';
 import { ComprasProductoPorDiaGQL } from './graphql/compras-producto-por-dia.gql';
 import { ComprasProductoPorMesGQL } from './graphql/compras-producto-por-mes.gql';
-import { ProductoVentaPorPeriodo } from './interfaces/producto-venta-periodo.model';
-import { ProductoCompraPorPeriodo } from './interfaces/producto-compra-periodo.model';
-import { FormaPagoEstadistica } from './interfaces/forma-pago-estadistica.model';
-import { ProductoVendidoEstadistica } from './interfaces/producto-vendido-estadistica.model';
-import { VentaFuncionarioItem } from './interfaces/venta-funcionario-item.model';
-import { VentasPorHoraItem } from './interfaces/ventas-por-hora-item.model';
-import { GastoCategoriaItem } from './interfaces/gasto-categoria-item.model';
-import { IngresoGastoMesAcumulado } from './interfaces/ingreso-gasto-mes-acumulado.model';
-import { VentaSucursalItem } from './interfaces/venta-sucursal-item.model';
+import { ProductoVentaPorPeriodo } from './producto-vendido/interfaces/producto-venta-periodo.model';
+import { ProductoCompraPorPeriodo } from './producto-vendido/interfaces/producto-compra-periodo.model';
+import { FormaPagoEstadistica } from './forma-pago/interfaces/forma-pago-estadistica.model';
+import { ProductoVendidoEstadistica } from './producto-vendido/interfaces/producto-vendido-estadistica.model';
+import { VentaFuncionarioItem } from './venta-funcionario/interfaces/venta-funcionario-item.model';
+import { VentasPorHoraItem } from './venta-sucursal/ventas-por-hora-item.model';
+import { GastoCategoriaItem } from './gasto-categoria/interfaces/gasto-categoria-item.model';
+import { IngresoGastoMesAcumulado } from './venta-mes/interfaces/ingreso-gasto-mes-acumulado.model';
+import { VentaSucursalItem } from './venta-sucursal/venta-sucursal-item.model';
 
 @Injectable({
   providedIn: 'root'

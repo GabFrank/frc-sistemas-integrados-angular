@@ -37,7 +37,7 @@ import { FamiliasSearchGQL } from "../../../../productos/familia/graphql/familia
 import { TabService, TabData } from "../../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../../layouts/tab/tab.model";
 import { VentaFuncionarioComponent } from "../../../../grafico/venta-funcionario/venta-funcionario.component";
-import { VentaFuncionarioDesdeLucroTabData } from "../../../../grafico/interfaces/venta-funcionario-desde-lucro-tab-data.model";
+import { VentaFuncionarioDesdeLucroTabData } from "../../../../grafico/venta-funcionario/interfaces/venta-funcionario-desde-lucro-tab-data.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({

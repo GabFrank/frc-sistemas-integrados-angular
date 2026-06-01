@@ -22,7 +22,7 @@ import {
   tap,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { ProductoVendidoEstadistica } from "../interfaces/producto-vendido-estadistica.model";
+import { ProductoVendidoEstadistica } from "./interfaces/producto-vendido-estadistica.model";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Familia } from "../../productos/familia/familia.model";
 import { GraficoService } from "../grafico.service";
@@ -34,9 +34,9 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { ProductoVendidoDatosGraficoProcesados } from "../interfaces/producto-vendido-datos-grafico-procesados.model";
-import { ProductoVendidoDetalleProcesado } from "../interfaces/producto-vendido-detalle-procesado.model";
-import { ProductoVendidoPantalla } from "../interfaces/producto-vendido-pantalla.model";
+import { ProductoVendidoDatosGraficoProcesados } from "./interfaces/producto-vendido-datos-grafico-procesados.model";
+import { ProductoVendidoDetalleProcesado } from "./interfaces/producto-vendido-detalle-procesado.model";
+import { ProductoVendidoPantalla } from "./interfaces/producto-vendido-pantalla.model";
 import { formatearRangoFechaGraficoParaApi } from "../utils/grafico-fecha-api.utils";
 
 @UntilDestroy({ checkProperties: true })

@@ -12,14 +12,14 @@ import {
   tituloGraficoCentrado,
   tooltipEjeMoneda,
 } from "../../../shared/utils/grafico-echarts.theme";
-import { FormaPagoEstadistica } from "../interfaces/forma-pago-estadistica.model";
-import { GastoCategoriaItem } from "../interfaces/gasto-categoria-item.model";
-import { IngresoGastoMesAcumulado } from "../interfaces/ingreso-gasto-mes-acumulado.model";
-import { ProductoVendidoEstadistica } from "../interfaces/producto-vendido-estadistica.model";
-import { VentaFuncionarioItem } from "../interfaces/venta-funcionario-item.model";
-import { VentaSucursalItem } from "../interfaces/venta-sucursal-item.model";
-import { VentasPorHoraItem } from "../interfaces/ventas-por-hora-item.model";
-import { GraficosDashboardVista } from "../interfaces/graficos-dashboard-vista.model";
+import { FormaPagoEstadistica } from "../forma-pago/interfaces/forma-pago-estadistica.model";
+import { GastoCategoriaItem } from "../gasto-categoria/interfaces/gasto-categoria-item.model";
+import { IngresoGastoMesAcumulado } from "../venta-mes/interfaces/ingreso-gasto-mes-acumulado.model";
+import { ProductoVendidoEstadistica } from "../producto-vendido/interfaces/producto-vendido-estadistica.model";
+import { VentaFuncionarioItem } from "../venta-funcionario/interfaces/venta-funcionario-item.model";
+import { VentaSucursalItem } from "../venta-sucursal/venta-sucursal-item.model";
+import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
+import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import {
   MOCK_FORMAS_PAGO,
   MOCK_GASTOS_CATEGORIA,

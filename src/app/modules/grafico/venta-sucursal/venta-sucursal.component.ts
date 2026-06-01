@@ -30,8 +30,8 @@ import {
   tooltipEjeMoneda,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GraficoService } from "../grafico.service";
-import { VentaSucursalItem } from "../interfaces/venta-sucursal-item.model";
-import { VentaSucursalDatosGraficoProcesados } from "../interfaces/venta-sucursal-datos-grafico-procesados.model";
+import { VentaSucursalItem } from "./venta-sucursal-item.model";
+import { VentaSucursalDatosGraficoProcesados } from "./venta-sucursal-datos-grafico-procesados.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
