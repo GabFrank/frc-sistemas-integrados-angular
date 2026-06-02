@@ -13,6 +13,7 @@ import {
   finalize,
   forkJoin,
   map,
+  shareReplay,
   startWith,
   switchMap,
   tap,
@@ -79,11 +80,13 @@ export class IngresoGastoComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
+    const sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
       map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
-      tap((sucs) => (this.sucursalesLista = sucs))
+      tap((sucs) => (this.sucursalesLista = sucs)),
+      shareReplay(1)
     );
-    this.configurarDataStream();
+    this.sucursales$ = sucursales$;
+    this.configurarDataStream(sucursales$);
   }
 
   limpiarFiltros(): void {
@@ -91,8 +94,9 @@ export class IngresoGastoComponent implements OnInit {
     this.yearControl.setValue([new Date().getFullYear()]);
   }
 
-  private configurarDataStream(): void {
+  private configurarDataStream(sucursales$: Observable<Sucursal[]>): void {
     combineLatest([
+      sucursales$,
       this.filtroSucursales.control.valueChanges.pipe(
         startWith(this.filtroSucursales.control.value)
       ),
@@ -102,12 +106,13 @@ export class IngresoGastoComponent implements OnInit {
     ])
       .pipe(
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([sucIds, years]) =>
-          this.consultarDatos(
+        switchMap(([sucursales, sucIds, years]) => {
+          this.sucursalesLista = sucursales;
+          return this.consultarDatos(
             this.filtroSucursales.normalizarIds(sucIds),
             years
-          )
-        ),
+          );
+        }),
         untilDestroyed(this)
       )
       .subscribe((combinados) => {
@@ -172,8 +177,10 @@ export class IngresoGastoComponent implements OnInit {
     if (!sucId) {
       return "Todas";
     }
-    const encontrada = this.sucursalesLista.find((s) => s.id === sucId);
-    return encontrada?.nombre || `Suc. ${sucId}`;
+    const encontrada = this.sucursalesLista.find(
+      (s) => Number(s.id) === Number(sucId)
+    );
+    return encontrada?.nombre?.trim() || `Suc. ${sucId}`;
   }
 
   private configurarGrafico(datos: IngresoGastoCombinado[]): void {
