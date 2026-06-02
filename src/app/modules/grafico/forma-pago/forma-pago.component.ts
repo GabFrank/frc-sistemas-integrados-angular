@@ -5,7 +5,6 @@ import {
   OnInit,
   inject,
 } from "@angular/core";
-import { FormControl } from "@angular/forms";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -34,6 +33,7 @@ import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-g
 import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
 import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -49,7 +49,7 @@ export class FormaPagoComponent implements OnInit {
   private graficoService = inject(GraficoService);
   private cdr = inject(ChangeDetectorRef);
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
@@ -94,7 +94,7 @@ export class FormaPagoComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
     this.cdr.markForCheck();
   }
@@ -123,7 +123,9 @@ export class FormaPagoComponent implements OnInit {
         startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(() => this.consultarDatos(this.sucursalControl.value || [])),
+        switchMap(() =>
+          this.consultarDatos(this.filtroSucursales.normalizarIds())
+        ),
         untilDestroyed(this)
       )
       .subscribe((datos) => {
@@ -139,7 +141,8 @@ export class FormaPagoComponent implements OnInit {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
     const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
-    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const sucursalesFinal =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<FormaPagoEstadistica[]>> = {};
 
     for (const sucId of sucursalesFinal) {

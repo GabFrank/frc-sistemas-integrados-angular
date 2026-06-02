@@ -36,6 +36,7 @@ import {
   PALETA_INGRESOS_MULTI,
   PALETA_GASTOS_MULTI,
 } from "./constants/ingreso-gasto.constants";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -51,7 +52,7 @@ export class IngresoGastoComponent implements OnInit {
   private graficoService = inject(GraficoService);
   private sucursalService = inject(SucursalService);
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   yearControl = new FormControl<number[]>([new Date().getFullYear()]);
 
   sucursales$: Observable<Sucursal[]>;
@@ -86,14 +87,14 @@ export class IngresoGastoComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
     this.yearControl.setValue([new Date().getFullYear()]);
   }
 
   private configurarDataStream(): void {
     combineLatest([
-      this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value)
+      this.filtroSucursales.control.valueChanges.pipe(
+        startWith(this.filtroSucursales.control.value)
       ),
       this.yearControl.valueChanges.pipe(
         startWith(this.yearControl.value)
@@ -101,7 +102,12 @@ export class IngresoGastoComponent implements OnInit {
     ])
       .pipe(
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([sucIds, years]) => this.consultarDatos(sucIds, years)),
+        switchMap(([sucIds, years]) =>
+          this.consultarDatos(
+            this.filtroSucursales.normalizarIds(sucIds),
+            years
+          )
+        ),
         untilDestroyed(this)
       )
       .subscribe((combinados) => {
@@ -114,7 +120,8 @@ export class IngresoGastoComponent implements OnInit {
     years: number[]
   ): Observable<IngresoGastoCombinado[]> {
     const anhosSeleccionados = years?.length ? years : [new Date().getFullYear()];
-    const sucursalesSeleccionadas: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const sucursalesSeleccionadas =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
 
     const queries: Record<string, Observable<{
       ingresos: IngresoGastoMesAcumulado[];

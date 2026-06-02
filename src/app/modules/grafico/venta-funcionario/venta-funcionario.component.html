@@ -13,10 +13,12 @@
     >
       <mat-label>Sucursales</mat-label>
       <mat-select
-        [formControl]="sucursalControl"
+        [formControl]="filtroSucursales.control"
         multiple
         placeholder="Todas"
+        (selectionChange)="filtroSucursales.onSeleccionChange($event.value)"
       >
+        <mat-option [value]="filtroSucursales.todosValor">Todos</mat-option>
         <mat-option
           *ngFor="let s of sucursales$ | async"
           [value]="s.id"

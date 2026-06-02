@@ -6,7 +6,6 @@ import {
   inject,
 } from "@angular/core";
 import { EChartsOption } from "echarts";
-import { FormControl } from "@angular/forms";
 import {
   BehaviorSubject,
   Observable,
@@ -32,6 +31,7 @@ import {
   formatoMonedaPy,
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 
 /** Paleta de colores para líneas de múltiples sucursales */
 const PALETA_LINEAS = [
@@ -65,7 +65,7 @@ export class VentasDiasComponent implements OnInit {
   private sucursalService = inject(SucursalService);
   private cdr = inject(ChangeDetectorRef);
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   sucursales$: Observable<Sucursal[]>;
 
   private sucursalesLista: Sucursal[] = [];
@@ -100,15 +100,17 @@ export class VentasDiasComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
   }
 
   private configurarDataStream(): void {
-    this.sucursalControl.valueChanges
+    this.filtroSucursales.control.valueChanges
       .pipe(
-        startWith(this.sucursalControl.value),
+        startWith(this.filtroSucursales.control.value),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap((sucIds) => this.consultarDatos(sucIds)),
+        switchMap((sucIds) =>
+          this.consultarDatos(this.filtroSucursales.normalizarIds(sucIds))
+        ),
         untilDestroyed(this)
       )
       .subscribe((datosSucursales) => {
@@ -124,7 +126,8 @@ export class VentasDiasComponent implements OnInit {
     const hoyStr = formatearFechaGrafico(hoy);
     const ayerStr = formatearFechaGrafico(ayer);
 
-    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const sucursalesFinal =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
 
     const queries: Record<string, Observable<{
       hoy: VentasPorHoraItem[];

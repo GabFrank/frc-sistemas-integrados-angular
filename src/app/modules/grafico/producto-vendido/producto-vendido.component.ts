@@ -7,6 +7,7 @@ import {
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -61,7 +62,7 @@ export class ProductoVendidoComponent implements OnInit {
   private dialog = inject(MatDialog);
   private productoSearchGQL = inject(ProductoForPdvGQL);
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   familiaControl = new FormControl<number | null>(null);
   limitControl = new FormControl<number>(10);
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
@@ -184,7 +185,7 @@ export class ProductoVendidoComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
     this.familiaControl.setValue(null);
     this.limitControl.setValue(10);
     this.filtroPeriodo.limpiar();
@@ -226,7 +227,7 @@ export class ProductoVendidoComponent implements OnInit {
         }),
         switchMap(() =>
           this.consultarDatos(
-            this.sucursalControl.value || [],
+            this.filtroSucursales.normalizarIds(),
             this.familiaControl.value,
             this.limitControl.value || 10,
             this.productosIdsBusquedaSubject.value
@@ -266,12 +267,8 @@ export class ProductoVendidoComponent implements OnInit {
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
     const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
 
-    const sucursalesNormalizadas = (sucIds || [])
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id) && id > 0);
-    const sucursalesFinal: Array<number | null> = sucursalesNormalizadas.length
-      ? Array.from(new Set(sucursalesNormalizadas))
-      : [null];
+    const sucursalesFinal =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
 
     const queries: Record<string, Observable<ProductoVendidoEstadistica[]>> = {};
     for (const sucId of sucursalesFinal) {

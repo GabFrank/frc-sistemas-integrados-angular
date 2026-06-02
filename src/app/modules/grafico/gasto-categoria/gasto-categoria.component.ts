@@ -5,7 +5,6 @@ import {
   OnInit,
   inject,
 } from "@angular/core";
-import { FormControl } from "@angular/forms";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -33,6 +32,7 @@ import {
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GastoCategoriaItem } from "./interfaces/gasto-categoria-item.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 
 const PALETA_GASTO_CATEGORIA = [
   "#F44336", "#E91E63", "#9C27B0", "#673AB7",
@@ -56,7 +56,7 @@ export class GastoCategoriaComponent implements OnInit {
   private sucursalService = inject(SucursalService);
   private cdr = inject(ChangeDetectorRef);
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
@@ -92,7 +92,7 @@ export class GastoCategoriaComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
     this.cdr.markForCheck();
   }
@@ -108,7 +108,7 @@ export class GastoCategoriaComponent implements OnInit {
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
         switchMap(() =>
-          this.consultarDatos(this.sucursalControl.value || [])
+          this.consultarDatos(this.filtroSucursales.normalizarIds())
         ),
         untilDestroyed(this)
       )
@@ -123,7 +123,8 @@ export class GastoCategoriaComponent implements OnInit {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
     const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
-    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const sucursalesFinal =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<GastoCategoriaItem[]>> = {};
 
     for (const sucId of sucursalesFinal) {

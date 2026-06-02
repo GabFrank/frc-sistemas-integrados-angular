@@ -6,7 +6,6 @@ import {
   OnInit,
   inject,
 } from "@angular/core";
-import { FormControl } from "@angular/forms";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -43,6 +42,7 @@ import { VentaFuncionarioDesdeLucroTabData } from "./interfaces/venta-funcionari
 import { VentaFuncionarioItem } from "./interfaces/venta-funcionario-item.model";
 import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funcionario-datos-grafico-procesados.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -62,7 +62,7 @@ export class VentaFuncionarioComponent implements OnInit {
   mostrarBotonQuitarFuncionario = false;
   colorBotonBuscarFuncionario: "" | "primary" = "";
 
-  sucursalControl = new FormControl<number[]>([]);
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
@@ -168,7 +168,7 @@ export class VentaFuncionarioComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue([]);
+    this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
     this.funcionarioSeleccionadoSubject.next(null);
     this.cdr.markForCheck();
@@ -198,7 +198,7 @@ export class VentaFuncionarioComponent implements OnInit {
         tap(() => this.cargandoSubject.next(true)),
         switchMap(() =>
           this.consultarDatos(
-            this.sucursalControl.value || [],
+            this.filtroSucursales.normalizarIds(),
             this.funcionarioSeleccionadoSubject.value
           )
         ),
@@ -218,7 +218,8 @@ export class VentaFuncionarioComponent implements OnInit {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
     const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
-    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const sucursalesFinal =
+      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};
 
     for (const sucId of sucursalesFinal) {
