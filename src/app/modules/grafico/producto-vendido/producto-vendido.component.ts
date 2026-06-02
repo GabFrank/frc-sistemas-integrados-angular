@@ -264,10 +264,7 @@ export class ProductoVendidoComponent implements OnInit {
   ): Observable<ProductoVendidoEstadistica[]> {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const mesesFinal = this.filtroPeriodo.normalizarMesesSeleccionados(
-      this.filtroPeriodo.mesControl.value
-    );
-    const rangoDias = this.filtroPeriodo.obtenerRangoDiasSiAplica();
+    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
 
     const sucursalesNormalizadas = (sucIds || [])
       .map((id) => Number(id))
@@ -278,10 +275,8 @@ export class ProductoVendidoComponent implements OnInit {
 
     const queries: Record<string, Observable<ProductoVendidoEstadistica[]>> = {};
     for (const sucId of sucursalesFinal) {
-      for (const mes of mesesFinal) {
-        const rango =
-          rangoDias ?? this.filtroPeriodo.calcularRangoMes(anhoFinal, mes);
-        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
+      rangos.forEach((rango, indice) => {
+        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
         queries[clave] = this.consultarProductosPorSucursal(
           rango.inicio,
           rango.fin,
@@ -290,7 +285,7 @@ export class ProductoVendidoComponent implements OnInit {
           limit,
           productoIds
         );
-      }
+      });
     }
 
     const keys = Object.keys(queries);

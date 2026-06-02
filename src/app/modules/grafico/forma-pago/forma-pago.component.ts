@@ -5,7 +5,7 @@ import {
   OnInit,
   inject,
 } from "@angular/core";
-import { FormControl, FormGroup } from "@angular/forms";
+import { FormControl } from "@angular/forms";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -33,18 +33,7 @@ import {
 import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-grafico-procesados.model";
 import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
 import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
-import {
-  generarRangoFechaGraficoDesdeRango,
-  listarAnhosGrafico,
-  RangoFechaPeriodo,
-} from "../../../commons/core/utils/dateUtils";
-import {
-  MESES_GRAFICO,
-  MesGraficoOption,
-} from "../../../shared/constants/grafico.constants";
-
-const MES_TODOS_VALOR = 0;
-const MESES_DEL_ANHO = Array.from({ length: 12 }, (_, i) => i + 1);
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -61,25 +50,9 @@ export class FormaPagoComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   sucursalControl = new FormControl<number[]>([]);
-  anhoControl = new FormControl<number>(new Date().getFullYear());
-  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
-  private ultimaSeleccionMeses: number[] = [new Date().getMonth() + 1];
-  
-  fechaRangoGroup = new FormGroup({
-    inicio: new FormControl<Date | null>(null),
-    fin: new FormControl<Date | null>(null),
-  });
-
-  minFecha: Date | null = null;
-  maxFecha: Date | null = null;
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
-  anhos: number[] = listarAnhosGrafico();
-  meses: MesGraficoOption[] = [
-    { valor: MES_TODOS_VALOR, nombre: "Todas" },
-    ...MESES_GRAFICO,
-  ];
-  diasDisponibles: number[] = [];
 
   detallesConDesglose: FormaPagoDetalleProcesado[] = [];
 
@@ -107,8 +80,11 @@ export class FormaPagoComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarSucursales();
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
+    );
     this.configurarDataStream();
-    this.configurarDiasDisponibles();
   }
 
   alternarDesglose(indice: number): void {
@@ -119,28 +95,8 @@ export class FormaPagoComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.sucursalControl.setValue([]);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue([new Date().getMonth() + 1]);
-    this.ultimaSeleccionMeses = [new Date().getMonth() + 1];
-    this.fechaRangoGroup.setValue({ inicio: null, fin: null });
-  }
-
-  onMesesChange(mesesSel: number[] | null): void {
-    const meses = mesesSel || [];
-    const teniaTodas = this.ultimaSeleccionMeses.includes(MES_TODOS_VALOR);
-    const tieneTodas = meses.includes(MES_TODOS_VALOR);
-
-    if (tieneTodas && meses.length > 1) {
-      const nuevaSeleccion = teniaTodas
-        ? meses.filter((m) => m !== MES_TODOS_VALOR)
-        : [MES_TODOS_VALOR];
-      this.mesControl.setValue(nuevaSeleccion, { emitEvent: false });
-      this.ultimaSeleccionMeses = nuevaSeleccion;
-      this.mesControl.updateValueAndValidity({ emitEvent: true });
-      return;
-    }
-
-    this.ultimaSeleccionMeses = meses;
+    this.filtroPeriodo.limpiar();
+    this.cdr.markForCheck();
   }
 
   filtrar(): void {
@@ -161,49 +117,13 @@ export class FormaPagoComponent implements OnInit {
     this.sucursales$ = this.sucursalesSubject.asObservable();
   }
 
-  private configurarDiasDisponibles(): void {
-    combineLatest([
-      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value)),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value)),
-    ])
-      .pipe(untilDestroyed(this))
-      .subscribe(([anho, mesesSel]) => {
-        const anhoFinal = anho || new Date().getFullYear();
-        const mesesFinal = this.normalizarMesesSeleccionados(mesesSel);
-
-        if (mesesFinal.length === 1) {
-          const mes = mesesFinal[0];
-          this.minFecha = new Date(anhoFinal, mes - 1, 1);
-          this.maxFecha = new Date(anhoFinal, mes, 0);
-
-          const ultimoDia = this.maxFecha.getDate();
-          this.diasDisponibles = Array.from({ length: ultimoDia }, (_, i) => i + 1);
-          const actualInicio = this.fechaRangoGroup.value.inicio;
-          if (actualInicio && (actualInicio.getFullYear() !== anhoFinal || actualInicio.getMonth() !== mes - 1)) {
-            this.fechaRangoGroup.setValue({ inicio: null, fin: null }, { emitEvent: false });
-          }
-        } else {
-          this.diasDisponibles = [];
-          this.minFecha = null;
-          this.maxFecha = null;
-          this.fechaRangoGroup.setValue({ inicio: null, fin: null }, { emitEvent: false });
-        }
-        this.cdr.markForCheck();
-      });
-  }
-
   private configurarDataStream(): void {
     this.filtrarSubject
       .pipe(
         startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(() => {
-          const sucIds = this.sucursalControl.value || [];
-          const anho = this.anhoControl.value || new Date().getFullYear();
-          const mesesSel = this.mesControl.value || [];
-          return this.consultarDatos(sucIds, anho, mesesSel);
-        }),
+        switchMap(() => this.consultarDatos(this.sucursalControl.value || [])),
         untilDestroyed(this)
       )
       .subscribe((datos) => {
@@ -214,25 +134,23 @@ export class FormaPagoComponent implements OnInit {
   }
 
   private consultarDatos(
-    sucIds: number[],
-    anho: number,
-    mesesSel: number[]
+    sucIds: number[]
   ): Observable<FormaPagoDatosGraficoProcesados> {
-    const anhoFinal = anho || new Date().getFullYear();
-    const mesesFinal = this.normalizarMesesSeleccionados(mesesSel);
-    const rangoDias =
-      mesesFinal.length === 1 ? this.obtenerRangoDiasSeleccionado() : null;
+    const anhoFinal =
+      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
+    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
     const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
     const queries: Record<string, Observable<FormaPagoEstadistica[]>> = {};
 
     for (const sucId of sucursalesFinal) {
-      for (const mes of mesesFinal) {
-        const rango =
-          rangoDias ?? this.calcularRangoMes(anhoFinal, mes);
-        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
-        queries[clave] = this.graficoService
-          .obtenerEstadisticasFormaPago(rango.inicio, rango.fin, sucId || undefined);
-      }
+      rangos.forEach((rango, indice) => {
+        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
+        queries[clave] = this.graficoService.obtenerEstadisticasFormaPago(
+          rango.inicio,
+          rango.fin,
+          sucId || undefined
+        );
+      });
     }
 
     const keys = Object.keys(queries);
@@ -250,42 +168,6 @@ export class FormaPagoComponent implements OnInit {
       }),
       finalize(() => this.cargandoSubject.next(false))
     );
-  }
-
-  private obtenerRangoDiasSeleccionado(): RangoFechaPeriodo | null {
-    const { inicio, fin } = this.fechaRangoGroup.value;
-    if (!inicio || !fin) {
-      return null;
-    }
-    return generarRangoFechaGraficoDesdeRango(inicio, fin);
-  }
-
-  private calcularRangoMes(
-    anho: number,
-    mes: number
-  ): RangoFechaPeriodo {
-    const mesStr = String(mes).padStart(2, "0");
-
-    const ultimoDia = new Date(anho, mes, 0);
-    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
-    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
-
-    return {
-      inicio: `${anho}-${mesStr}-01 00:00:00`,
-      fin: `${anho}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
-    };
-  }
-
-  private normalizarMesesSeleccionados(
-    mesesSel: number[] | null | undefined
-  ): number[] {
-    if (!mesesSel?.length) {
-      return [new Date().getMonth() + 1];
-    }
-    if (mesesSel.includes(MES_TODOS_VALOR)) {
-      return MESES_DEL_ANHO;
-    }
-    return mesesSel;
   }
 
   private combinarEstadisticas(
@@ -306,7 +188,6 @@ export class FormaPagoComponent implements OnInit {
       }
     }
 
-    // Recalcular porcentajes
     const total = Array.from(mapa.values()).reduce((s, e) => s + e.totalMonto, 0);
     for (const item of mapa.values()) {
       item.porcentaje = total > 0 ? (item.totalMonto / total) * 100 : 0;

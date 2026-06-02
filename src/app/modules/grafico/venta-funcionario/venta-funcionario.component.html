@@ -64,10 +64,10 @@
     </mat-form-field>
 
     <mat-form-field
-      *ngIf="filtroPeriodo.mostrarRangoDias"
       fxFlex="24%"
       appearance="outline"
       class="filter-rango"
+      [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
     >
       <mat-label>Rango de días</mat-label>
       <mat-date-range-input

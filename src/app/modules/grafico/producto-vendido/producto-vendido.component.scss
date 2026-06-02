@@ -70,6 +70,10 @@ $border: #555;
         min-width: 260px;
         max-width: 340px;
         flex: 1.4;
+
+        &.filter-rango--inactivo {
+            opacity: 0.55;
+        }
     }
 }
 

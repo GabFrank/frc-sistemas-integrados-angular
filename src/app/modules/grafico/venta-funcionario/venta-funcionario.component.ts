@@ -217,25 +217,20 @@ export class VentaFuncionarioComponent implements OnInit {
   ): Observable<VentaFuncionarioItem[]> {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const mesesFinal = this.filtroPeriodo.normalizarMesesSeleccionados(
-      this.filtroPeriodo.mesControl.value
-    );
-    const rangoDias = this.filtroPeriodo.obtenerRangoDiasSiAplica();
+    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
     const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
     const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};
 
     for (const sucId of sucursalesFinal) {
-      for (const mes of mesesFinal) {
-        const rango =
-          rangoDias ?? this.filtroPeriodo.calcularRangoMes(anhoFinal, mes);
-        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
+      rangos.forEach((rango, indice) => {
+        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
         queries[clave] = this.graficoService.obtenerVentasPorFuncionario(
           rango.inicio,
           rango.fin,
           sucId || undefined,
           funcionario?.id
         );
-      }
+      });
     }
 
     const keys = Object.keys(queries);

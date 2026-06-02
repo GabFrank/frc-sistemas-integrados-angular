@@ -86,6 +86,10 @@ $border: #555;
     &.filter-rango {
         min-width: 200px;
         max-width: 280px;
+
+        &.filter-rango--inactivo {
+            opacity: 0.55;
+        }
     }
 
     ::ng-deep {

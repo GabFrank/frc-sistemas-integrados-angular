@@ -43,9 +43,9 @@
       class="filter-field"
     >
       <mat-label>Año</mat-label>
-      <mat-select [formControl]="anhoControl">
+      <mat-select [formControl]="filtroPeriodo.anhoControl">
         <mat-option
-          *ngFor="let y of anhos"
+          *ngFor="let y of filtroPeriodo.anhos"
           [value]="y"
         >
           {{ y }}
@@ -61,12 +61,12 @@
     >
       <mat-label>Meses</mat-label>
       <mat-select
-        [formControl]="mesControl"
+        [formControl]="filtroPeriodo.mesControl"
         multiple
-        (selectionChange)="onMesesChange($event.value)"
+        (selectionChange)="filtroPeriodo.onMesesChange($event.value)"
       >
         <mat-option
-          *ngFor="let m of meses"
+          *ngFor="let m of filtroPeriodo.meses"
           [value]="m.valor"
         >
           {{ m.nombre }}
@@ -75,17 +75,31 @@
       <mat-icon matPrefix>date_range</mat-icon>
     </mat-form-field>
 
-    <!-- Rango de días (datepicker) -->
     <mat-form-field
-      *ngIf="diasDisponibles.length > 0"
       fxFlex="22%"
       appearance="outline"
       class="filter-field filter-rango"
+      [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
     >
       <mat-label>Rango de días</mat-label>
-      <mat-date-range-input [formGroup]="fechaRangoGroup" [rangePicker]="pickerRango">
-        <input matStartDate formControlName="inicio" placeholder="Desde" [min]="minFecha" [max]="maxFecha">
-        <input matEndDate formControlName="fin" placeholder="Hasta" [min]="minFecha" [max]="maxFecha">
+      <mat-date-range-input
+        [formGroup]="filtroPeriodo.fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
       </mat-date-range-input>
       <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
       <mat-date-range-picker #pickerRango></mat-date-range-picker>
