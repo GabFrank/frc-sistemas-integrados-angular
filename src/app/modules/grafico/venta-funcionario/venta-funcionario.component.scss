@@ -37,3 +37,41 @@
     min-height: 0;
   }
 }
+
+.btn-buscar-funcionario {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.funcionario-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.funcionario-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.35);
+  border-radius: 16px;
+  color: #e0e0e0;
+  font-size: 0.8rem;
+  white-space: nowrap;
+
+  .chip-remove {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    opacity: 0.85;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}

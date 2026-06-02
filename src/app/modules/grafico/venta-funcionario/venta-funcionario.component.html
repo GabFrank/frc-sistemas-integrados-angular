@@ -96,6 +96,38 @@
     </mat-form-field>
 
     <button
+      mat-stroked-button
+      type="button"
+      class="btn-buscar-funcionario"
+      (click)="buscarFuncionario()"
+      matTooltip="Buscar funcionario"
+      aria-label="Buscar funcionario"
+    >
+      <mat-icon>person_search</mat-icon>
+      Buscar Funcionario
+    </button>
+
+    <div
+      *ngIf="funcionariosSeleccionados.length > 0"
+      class="funcionario-chips"
+      fxFlex="grow"
+    >
+      <span
+        *ngFor="let usuario of funcionariosSeleccionados; let i = index"
+        class="funcionario-chip"
+      >
+        {{ nombreFuncionario(usuario) }}
+        <mat-icon
+          class="chip-remove"
+          (click)="quitarFuncionario(i)"
+          matTooltip="Quitar funcionario"
+        >
+          close
+        </mat-icon>
+      </span>
+    </div>
+
+    <button
       mat-raised-button
       color="primary"
       type="button"
@@ -114,29 +146,6 @@
       aria-label="Limpiar filtros generales"
     >
       <mat-icon>filter_alt_off</mat-icon>
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
-      (click)="buscarFuncionario()"
-      matTooltip="Buscar Funcionario específico"
-      aria-label="Buscar Funcionario específico"
-      [color]="colorBotonBuscarFuncionario"
-    >
-      <mat-icon>person_search</mat-icon>
-    </button>
-
-    <button
-      *ngIf="mostrarBotonQuitarFuncionario"
-      mat-icon-button
-      type="button"
-      (click)="limpiarFuncionario()"
-      matTooltip="Quitar filtro de funcionario"
-      aria-label="Quitar filtro de funcionario"
-      color="warn"
-    >
-      <mat-icon>person_off</mat-icon>
     </button>
   </div>
 

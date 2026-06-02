@@ -58,9 +58,7 @@ export class VentaFuncionarioComponent implements OnInit {
   @Input() data: Tab;
 
   modoExterno = false;
-  funcionarioSeleccionado: Usuario | null = null;
-  mostrarBotonQuitarFuncionario = false;
-  colorBotonBuscarFuncionario: "" | "primary" = "";
+  funcionariosSeleccionados: Usuario[] = [];
 
   readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
@@ -80,8 +78,9 @@ export class VentaFuncionarioComponent implements OnInit {
     new BehaviorSubject<VentaFuncionarioDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
-  private readonly funcionarioSeleccionadoSubject =
-    new BehaviorSubject<Usuario | null>(null);
+  private readonly funcionariosSeleccionadosSubject = new BehaviorSubject<
+    Usuario[]
+  >([]);
   private readonly filtrarSubject = new Subject<void>();
 
   private datosCrudos: VentaFuncionarioItem[] = [];
@@ -102,12 +101,10 @@ export class VentaFuncionarioComponent implements OnInit {
   ngOnInit(): void {
     this.sucursales$ = this.sucursalesSubject.asObservable();
 
-    this.funcionarioSeleccionadoSubject
+    this.funcionariosSeleccionadosSubject
       .pipe(untilDestroyed(this))
-      .subscribe((usuario) => {
-        this.funcionarioSeleccionado = usuario;
-        this.mostrarBotonQuitarFuncionario = usuario !== null;
-        this.colorBotonBuscarFuncionario = usuario ? "primary" : "";
+      .subscribe((usuarios) => {
+        this.funcionariosSeleccionados = usuarios;
         this.cdr.markForCheck();
       });
 
@@ -147,6 +144,8 @@ export class VentaFuncionarioComponent implements OnInit {
         { id: "nickname", nombre: "Usuario" },
       ],
       inicialSearch: true,
+      multiple: true,
+      seleccionadosIniciales: [...this.funcionariosSeleccionados],
     };
 
     this.dialog
@@ -156,21 +155,34 @@ export class VentaFuncionarioComponent implements OnInit {
         height: "600px",
       })
       .afterClosed()
-      .subscribe((selected: Usuario) => {
-        if (selected) {
-          this.funcionarioSeleccionadoSubject.next(selected);
+      .subscribe((selected: Usuario | Usuario[]) => {
+        if (Array.isArray(selected)) {
+          this.aplicarFuncionariosFiltro(selected);
+        } else if (selected) {
+          this.aplicarFuncionariosFiltro([selected]);
         }
       });
   }
 
-  limpiarFuncionario(): void {
-    this.funcionarioSeleccionadoSubject.next(null);
+  aplicarFuncionariosFiltro(usuarios: Usuario[]): void {
+    this.funcionariosSeleccionadosSubject.next(usuarios || []);
+  }
+
+  nombreFuncionario(usuario: Usuario): string {
+    return usuario?.persona?.nombre || usuario?.nickname || "";
+  }
+
+  quitarFuncionario(indice: number): void {
+    const actualizados = this.funcionariosSeleccionados.filter(
+      (_, i) => i !== indice
+    );
+    this.funcionariosSeleccionadosSubject.next(actualizados);
   }
 
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
-    this.funcionarioSeleccionadoSubject.next(null);
+    this.funcionariosSeleccionadosSubject.next([]);
     this.cdr.markForCheck();
   }
 
@@ -199,7 +211,7 @@ export class VentaFuncionarioComponent implements OnInit {
         switchMap(() =>
           this.consultarDatos(
             this.filtroSucursales.normalizarIds(),
-            this.funcionarioSeleccionadoSubject.value
+            this.funcionariosSeleccionadosSubject.value
           )
         ),
         untilDestroyed(this)
@@ -213,7 +225,7 @@ export class VentaFuncionarioComponent implements OnInit {
 
   private consultarDatos(
     sucIds: number[],
-    funcionario: Usuario | null
+    funcionarios: Usuario[]
   ): Observable<VentaFuncionarioItem[]> {
     const anhoFinal =
       this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
@@ -225,11 +237,11 @@ export class VentaFuncionarioComponent implements OnInit {
     for (const sucId of sucursalesFinal) {
       rangos.forEach((rango, indice) => {
         const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
-        queries[clave] = this.graficoService.obtenerVentasPorFuncionario(
+        queries[clave] = this.consultarVentasPorRango(
           rango.inicio,
           rango.fin,
           sucId || undefined,
-          funcionario?.id
+          funcionarios
         );
       });
     }
@@ -242,6 +254,48 @@ export class VentaFuncionarioComponent implements OnInit {
     return forkJoin(queries).pipe(
       map((resultados) => this.combinarFuncionarios(resultados)),
       finalize(() => this.cargandoSubject.next(false))
+    );
+  }
+
+  private consultarVentasPorRango(
+    inicio: string,
+    fin: string,
+    sucId: number | undefined,
+    funcionarios: Usuario[]
+  ): Observable<VentaFuncionarioItem[]> {
+    if (funcionarios.length === 0) {
+      return this.graficoService.obtenerVentasPorFuncionario(
+        inicio,
+        fin,
+        sucId,
+        undefined
+      );
+    }
+
+    if (funcionarios.length === 1) {
+      return this.graficoService.obtenerVentasPorFuncionario(
+        inicio,
+        fin,
+        sucId,
+        funcionarios[0].id
+      );
+    }
+
+    return forkJoin(
+      funcionarios.map((f) =>
+        this.graficoService.obtenerVentasPorFuncionario(
+          inicio,
+          fin,
+          sucId,
+          f.id
+        )
+      )
+    ).pipe(
+      map((listas) =>
+        this.combinarFuncionarios(
+          Object.fromEntries(listas.map((items, i) => [String(i), items]))
+        )
+      )
     );
   }
 
@@ -270,26 +324,23 @@ export class VentaFuncionarioComponent implements OnInit {
       (a, b) => (b.total || 0) - (a.total || 0)
     );
 
-    if (this.funcionarioSeleccionado) {
-      const seleccionado = validas.find(
-        (v) => v.id == this.funcionarioSeleccionado?.id
+    if (this.funcionariosSeleccionados.length > 0) {
+      const ids = new Set(this.funcionariosSeleccionados.map((u) => u.id));
+      const encontrados = validas.filter((v) => ids.has(v.id));
+      const idsEncontrados = new Set(encontrados.map((v) => v.id));
+      const faltantes = this.funcionariosSeleccionados
+        .filter((u) => !idsEncontrados.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          funcionario: this.nombreFuncionario(u),
+          total: 0,
+          cantidad: 0,
+          productoMasVendido: "Sin datos",
+          sucursales: "-",
+        }));
+      validas = [...encontrados, ...faltantes].sort(
+        (a, b) => (b.total || 0) - (a.total || 0)
       );
-      if (seleccionado) {
-        validas = [seleccionado];
-      } else {
-        validas = [
-          {
-            id: this.funcionarioSeleccionado.id,
-            funcionario:
-              this.funcionarioSeleccionado.persona?.nombre ||
-              this.funcionarioSeleccionado.nickname,
-            total: 0,
-            cantidad: 0,
-            productoMasVendido: "Sin datos",
-            sucursales: "-",
-          },
-        ];
-      }
     } else if (!this.mostrarTodosExterno) {
       validas = validas.slice(0, 15);
     }
@@ -299,13 +350,7 @@ export class VentaFuncionarioComponent implements OnInit {
       0
     );
     const titulo =
-      this.tituloExterno ??
-      (this.funcionarioSeleccionado
-        ? `Ventas de: ${
-            this.funcionarioSeleccionado.persona?.nombre ||
-            this.funcionarioSeleccionado.nickname
-          }`
-        : "Ventas por Funcionario (Top 15)");
+      this.tituloExterno ?? this.resolverTituloGrafico();
     const subtext = this.subtituloExterno
       ? `${this.subtituloExterno} · Total: ${formatoMonedaPy(totalGeneral)}`
       : `Total Mostrado: ${formatoMonedaPy(totalGeneral)}`;
@@ -377,5 +422,20 @@ export class VentaFuncionarioComponent implements OnInit {
     };
 
     return { opciones, hayDatos: validas.length > 0 };
+  }
+
+  private resolverTituloGrafico(): string {
+    const seleccionados = this.funcionariosSeleccionados;
+    if (seleccionados.length === 0) {
+      return "Ventas por Funcionario (Top 15)";
+    }
+    if (seleccionados.length === 1) {
+      return `Ventas de: ${this.nombreFuncionario(seleccionados[0])}`;
+    }
+    const nombres = seleccionados.map((u) => this.nombreFuncionario(u));
+    if (nombres.length <= 3) {
+      return `Ventas de: ${nombres.join(", ")}`;
+    }
+    return `Ventas de: ${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
   }
 }
