@@ -51,6 +51,7 @@ $border: #555;
     border-radius: 12px;
     border: 1px solid $border;
     margin-bottom: 20px;
+    row-gap: 8px;
 }
 
 .filters-row {
@@ -64,6 +65,12 @@ $border: #555;
     flex: 1;
     min-width: 140px;
     max-width: 200px;
+
+    &.filter-rango {
+        min-width: 260px;
+        max-width: 340px;
+        flex: 1.4;
+    }
 }
 
 .sucursal-filter,
@@ -398,5 +405,12 @@ $border: #555;
 }
 
 .filter-field--limit {
-    max-width: 100px;
+    width: 88px;
+    min-width: 88px;
+    max-width: 88px;
+}
+
+.btn-buscar-producto {
+    flex-shrink: 0;
+    white-space: nowrap;
 }

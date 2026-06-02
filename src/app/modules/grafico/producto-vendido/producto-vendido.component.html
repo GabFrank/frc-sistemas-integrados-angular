@@ -1,13 +1,13 @@
 <div class="producto-vendido-container">
-  <!-- Primera fila: Sucursales + Familia + Año -->
   <div
     class="filters-section"
-    fxLayout="row"
+    fxLayout="row wrap"
     fxLayoutGap="12px"
     fxLayoutAlign="start center"
   >
     <mat-form-field
-      fxFlex="25%"
+      fxFlex="18%"
+      fxFlex.lt-lg="22%"
       appearance="outline"
       class="filter-field"
     >
@@ -28,7 +28,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="20%"
+      fxFlex="14%"
+      fxFlex.lt-lg="18%"
       appearance="outline"
       class="filter-field"
     >
@@ -45,14 +46,15 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="15%"
+      fxFlex="10%"
+      fxFlex.lt-lg="12%"
       appearance="outline"
       class="filter-field"
     >
       <mat-label>Año</mat-label>
-      <mat-select [formControl]="anhoControl">
+      <mat-select [formControl]="filtroPeriodo.anhoControl">
         <mat-option
-          *ngFor="let y of anhos"
+          *ngFor="let y of filtroPeriodo.anhos"
           [value]="y"
         >
           {{ y }}
@@ -62,17 +64,19 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="20%"
+      fxFlex="14%"
+      fxFlex.lt-lg="18%"
       appearance="outline"
       class="filter-field"
     >
       <mat-label>Meses</mat-label>
       <mat-select
-        [formControl]="mesControl"
+        [formControl]="filtroPeriodo.mesControl"
         multiple
+        (selectionChange)="filtroPeriodo.onMesesChange($event.value)"
       >
         <mat-option
-          *ngFor="let m of meses"
+          *ngFor="let m of filtroPeriodo.meses"
           [value]="m.valor"
         >
           {{ m.nombre }}
@@ -80,19 +84,41 @@
       </mat-select>
       <mat-icon matPrefix>date_range</mat-icon>
     </mat-form-field>
-  </div>
 
-  <!-- Segunda fila: Cantidad + Búsqueda producto + Limpiar -->
-  <div
-    class="filters-section"
-    fxLayout="row"
-    fxLayoutGap="12px"
-    fxLayoutAlign="start center"
-  >
     <mat-form-field
-      fxFlex="15%"
+      *ngIf="filtroPeriodo.mostrarRangoDias"
+      fxFlex="20%"
+      fxFlex.lt-lg="26%"
       appearance="outline"
-      class="filter-field"
+      class="filter-field filter-rango"
+    >
+      <mat-label>Rango de días</mat-label>
+      <mat-date-range-input
+        [formGroup]="filtroPeriodo.fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="filter-field filter-field--limit"
     >
       <mat-label>Cant.</mat-label>
       <mat-select [formControl]="limitControl">
@@ -108,6 +134,7 @@
     <button
       mat-stroked-button
       type="button"
+      class="btn-buscar-producto"
       (click)="buscarProductoEspecifico()"
       matTooltip="Buscar producto específico"
       aria-label="Buscar producto específico"
@@ -116,10 +143,10 @@
       Buscar Producto
     </button>
 
-    <!-- Chips de productos seleccionados -->
     <div
       *ngIf="productosSeleccionadosNombres.length > 0"
       class="product-chips"
+      fxFlex="grow"
     >
       <span
         *ngFor="let nombre of productosSeleccionadosNombres; let i = index"
@@ -137,6 +164,17 @@
     </div>
 
     <span fxFlex></span>
+
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="filtrar()"
+      [disabled]="cargando$ | async"
+      aria-label="Aplicar filtros"
+    >
+      Filtrar
+    </button>
 
     <button
       mat-icon-button

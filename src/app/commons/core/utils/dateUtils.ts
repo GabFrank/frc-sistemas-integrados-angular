@@ -91,6 +91,30 @@ export function formatearFechaGrafico(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Fecha de calendario local (evita desfase por zona horaria del datepicker). */
+export function fechaCalendarioLocal(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * Rango entre dos fechas del datepicker (inclusive, fin 23:59:59).
+ * Formato alineado con backend: yyyy-MM-dd HH:mm:ss
+ */
+export function generarRangoFechaGraficoDesdeRango(
+  inicio: Date,
+  fin: Date
+): RangoFechaPeriodo | null {
+  const dInicio = fechaCalendarioLocal(inicio);
+  const dFin = fechaCalendarioLocal(fin);
+  if (dFin < dInicio) {
+    return null;
+  }
+  return {
+    inicio: `${formatearFechaGrafico(dInicio)} 00:00:00`,
+    fin: `${formatearFechaGrafico(dFin)} 23:59:59`,
+  };
+}
+
 /**
  * Genera inicio/fin en formato yyyy-MM-dd HH:mm para queries GraphQL de estadísticas.
  * Día: [00:00 del día, 00:00 del día siguiente). Mes/año: fin inclusive 23:59.

@@ -6,18 +6,23 @@ import {
   inject,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
   Observable,
+  catchError,
   combineLatest,
   debounceTime,
   finalize,
   forkJoin,
   map,
+  of,
+  Subject,
   startWith,
   switchMap,
   tap,
+  timeout,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MatDialog } from "@angular/material/dialog";
@@ -35,13 +40,6 @@ import {
 import { ProductoVendidoDatosGraficoProcesados } from "./interfaces/producto-vendido-datos-grafico-procesados.model";
 import { ProductoVendidoDetalleProcesado } from "./interfaces/producto-vendido-detalle-procesado.model";
 import { ProductoVendidoPantalla } from "./interfaces/producto-vendido-pantalla.model";
-import {
-  listarAnhosGrafico,
-} from "../../../commons/core/utils/dateUtils";
-import {
-  MESES_GRAFICO,
-  MesGraficoOption,
-} from "../../../shared/constants/grafico.constants";
 import {
   SearchListDialogComponent,
   SearchListtDialogData,
@@ -66,16 +64,13 @@ export class ProductoVendidoComponent implements OnInit {
   sucursalControl = new FormControl<number[]>([]);
   familiaControl = new FormControl<number | null>(null);
   limitControl = new FormControl<number>(10);
-  anhoControl = new FormControl<number>(new Date().getFullYear());
-  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   /** IDs de productos específicos para búsqueda */
   productosSeleccionadosIds: number[] = [];
   productosSeleccionadosNombres: string[] = [];
 
   limits = [10, 30, 50, 100];
-  anhos: number[] = listarAnhosGrafico();
-  meses: MesGraficoOption[] = MESES_GRAFICO;
 
   private readonly datosSubject =
     new BehaviorSubject<ProductoVendidoDatosGraficoProcesados | null>(null);
@@ -89,6 +84,7 @@ export class ProductoVendidoComponent implements OnInit {
     ProductoVendidoEstadistica[]
   >([]);
   private readonly productosIdsBusquedaSubject = new BehaviorSubject<number[]>([]);
+  private readonly filtrarSubject = new Subject<void>();
 
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
   familias$: Observable<Familia[]> = this.familiasSubject.asObservable();
@@ -106,8 +102,13 @@ export class ProductoVendidoComponent implements OnInit {
       totalMonto: datos?.totalMonto ?? "",
     }))
   );
+  readonly cargando$ = this.cargandoSubject.asObservable();
 
   ngOnInit(): void {
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
+    );
     this.cargarMetadata();
     this.configurarDataStream();
   }
@@ -186,12 +187,15 @@ export class ProductoVendidoComponent implements OnInit {
     this.sucursalControl.setValue([]);
     this.familiaControl.setValue(null);
     this.limitControl.setValue(10);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue([new Date().getMonth() + 1]);
+    this.filtroPeriodo.limpiar();
     this.productosSeleccionadosIds = [];
     this.productosSeleccionadosNombres = [];
     this.productosIdsBusquedaSubject.next([]);
     this.cdr.markForCheck();
+  }
+
+  filtrar(): void {
+    this.filtrarSubject.next();
   }
 
   private cargarMetadata(): void {
@@ -212,38 +216,28 @@ export class ProductoVendidoComponent implements OnInit {
   }
 
   private configurarDataStream(): void {
-    const filtros$ = combineLatest([
-      this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value)
-      ),
-      this.familiaControl.valueChanges.pipe(
-        startWith(this.familiaControl.value)
-      ),
-      this.limitControl.valueChanges.pipe(
-        startWith(this.limitControl.value)
-      ),
-      this.anhoControl.valueChanges.pipe(
-        startWith(this.anhoControl.value)
-      ),
-      this.mesControl.valueChanges.pipe(
-        startWith(this.mesControl.value)
-      ),
-      this.productosIdsBusquedaSubject.asObservable(),
-    ]).pipe(debounceTime(300));
-
-    filtros$
+    this.filtrarSubject
       .pipe(
+        startWith(void 0),
+        debounceTime(300),
         tap(() => {
           this.cargandoSubject.next(true);
           this.indicesOcultosSubject.next(new Set());
         }),
-        switchMap(([sucIds, famId, limit, anho, mesesSel, productoIds]) =>
-          this.consultarDatos(sucIds, famId, limit, anho, mesesSel, productoIds)
+        switchMap(() =>
+          this.consultarDatos(
+            this.sucursalControl.value || [],
+            this.familiaControl.value,
+            this.limitControl.value || 10,
+            this.productosIdsBusquedaSubject.value
+          )
         ),
         untilDestroyed(this)
       )
       .subscribe((estadisticas) => {
-        this.estadisticasSubject.next(estadisticas || []);
+        this.estadisticasSubject.next(
+          this.normalizarEstadisticas(estadisticas || [])
+        );
       });
 
     combineLatest([
@@ -266,43 +260,42 @@ export class ProductoVendidoComponent implements OnInit {
     sucIds: number[],
     famId: number | null,
     limit: number,
-    anho: number,
-    mesesSel: number[],
     productoIds: number[]
   ): Observable<ProductoVendidoEstadistica[]> {
-    const rango = this.calcularRangoFechas(anho, mesesSel);
-    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const anhoFinal =
+      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
+    const mesesFinal = this.filtroPeriodo.normalizarMesesSeleccionados(
+      this.filtroPeriodo.mesControl.value
+    );
+    const rangoDias = this.filtroPeriodo.obtenerRangoDiasSiAplica();
 
-    if (sucursalesFinal.length === 1) {
-      return this.graficoService
-        .obtenerProductosMasVendidos(
-          rango.inicio,
-          rango.fin,
-          sucursalesFinal[0] || undefined,
-          famId || undefined,
-          limit || 10,
-          false,
-          undefined,
-          productoIds?.length ? productoIds : undefined
-        )
-        .pipe(finalize(() => this.cargandoSubject.next(false)));
-    }
+    const sucursalesNormalizadas = (sucIds || [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const sucursalesFinal: Array<number | null> = sucursalesNormalizadas.length
+      ? Array.from(new Set(sucursalesNormalizadas))
+      : [null];
 
-    // Multi-sucursal
     const queries: Record<string, Observable<ProductoVendidoEstadistica[]>> = {};
     for (const sucId of sucursalesFinal) {
-      const clave = `suc_${sucId ?? "todas"}`;
-      queries[clave] = this.graficoService
-        .obtenerProductosMasVendidos(
+      for (const mes of mesesFinal) {
+        const rango =
+          rangoDias ?? this.filtroPeriodo.calcularRangoMes(anhoFinal, mes);
+        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
+        queries[clave] = this.consultarProductosPorSucursal(
           rango.inicio,
           rango.fin,
           sucId || undefined,
-          famId || undefined,
-          limit || 10,
-          false,
-          undefined,
-          productoIds?.length ? productoIds : undefined
+          famId,
+          limit,
+          productoIds
         );
+      }
+    }
+
+    const keys = Object.keys(queries);
+    if (keys.length === 1) {
+      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
     }
 
     return forkJoin(queries).pipe(
@@ -311,23 +304,29 @@ export class ProductoVendidoComponent implements OnInit {
     );
   }
 
-  private calcularRangoFechas(
-    anho: number,
-    mesesSel: number[]
-  ): { inicio: string; fin: string } {
-    const anhoFinal = anho || new Date().getFullYear();
-    const mesesFinal = mesesSel?.length ? mesesSel : [new Date().getMonth() + 1];
-    const mesMin = Math.min(...mesesFinal);
-    const mesMax = Math.max(...mesesFinal);
-    const mesMinStr = String(mesMin).padStart(2, "0");
-    const ultimoDia = new Date(anhoFinal, mesMax, 0);
-    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
-    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
-
-    return {
-      inicio: `${anhoFinal}-${mesMinStr}-01 00:00:00`,
-      fin: `${anhoFinal}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
-    };
+  private consultarProductosPorSucursal(
+    inicio: string,
+    fin: string,
+    sucId: number | undefined,
+    famId: number | null,
+    limit: number,
+    productoIds: number[]
+  ): Observable<ProductoVendidoEstadistica[]> {
+    return this.graficoService
+      .obtenerProductosMasVendidos(
+        inicio,
+        fin,
+        sucId,
+        famId || undefined,
+        limit || 10,
+        false,
+        undefined,
+        productoIds?.length ? productoIds : undefined
+      )
+      .pipe(
+        timeout(20000),
+        catchError(() => of([]))
+      );
   }
 
   private combinarProductos(
@@ -353,7 +352,25 @@ export class ProductoVendidoComponent implements OnInit {
       item.porcentaje = total > 0 ? (item.totalMonto / total) * 100 : 0;
     }
 
-    return Array.from(mapa.values()).sort((a, b) => b.totalMonto - a.totalMonto);
+    return this.normalizarEstadisticas(Array.from(mapa.values())).sort(
+      (a, b) => b.totalMonto - a.totalMonto
+    );
+  }
+
+  private normalizarEstadisticas(
+    items: ProductoVendidoEstadistica[]
+  ): ProductoVendidoEstadistica[] {
+    return (items || []).map((item) => ({
+      ...item,
+      productoId: String(item?.productoId ?? ""),
+      descripcion: item?.descripcion ?? "Sin descripción",
+      cantidad: Number(item?.cantidad ?? 0),
+      totalMonto: Number(item?.totalMonto ?? 0),
+      porcentaje: Number(item?.porcentaje ?? 0),
+      cantidadEntrada: Number(item?.cantidadEntrada ?? 0),
+      cantidadVentaMovimiento: Number(item?.cantidadVentaMovimiento ?? 0),
+      indiceRotacion: Number(item?.indiceRotacion ?? 0),
+    }));
   }
 
   private procesarDatos(

@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   OnInit,
   inject,
@@ -14,6 +15,7 @@ import {
   finalize,
   forkJoin,
   map,
+  Subject,
   startWith,
   switchMap,
   tap,
@@ -30,13 +32,7 @@ import {
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GastoCategoriaItem } from "./interfaces/gasto-categoria-item.model";
-import {
-  listarAnhosGrafico,
-} from "../../../commons/core/utils/dateUtils";
-import {
-  MESES_GRAFICO,
-  MesGraficoOption,
-} from "../../../shared/constants/grafico.constants";
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 
 const PALETA_GASTO_CATEGORIA = [
   "#F44336", "#E91E63", "#9C27B0", "#673AB7",
@@ -58,18 +54,17 @@ const PALETA_GASTO_CATEGORIA = [
 export class GastoCategoriaComponent implements OnInit {
   private graficoService = inject(GraficoService);
   private sucursalService = inject(SucursalService);
+  private cdr = inject(ChangeDetectorRef);
 
   sucursalControl = new FormControl<number[]>([]);
-  anhoControl = new FormControl<number>(new Date().getFullYear());
-  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
-  anhos: number[] = listarAnhosGrafico();
-  meses: MesGraficoOption[] = MESES_GRAFICO;
 
   private readonly opcionesSubject = new BehaviorSubject<EChartsOption | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
   private readonly hayDatosSubject = new BehaviorSubject<boolean>(false);
+  private readonly filtrarSubject = new Subject<void>();
 
   readonly vista$: Observable<VistaGraficoShell> = combineLatest([
     this.opcionesSubject,
@@ -83,37 +78,37 @@ export class GastoCategoriaComponent implements OnInit {
       datosListos: opciones !== null,
     }))
   );
+  readonly cargando$ = this.cargandoSubject.asObservable();
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
       map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999))
+    );
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
     );
     this.configurarDataStream();
   }
 
   limpiarFiltros(): void {
     this.sucursalControl.setValue([]);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue([new Date().getMonth() + 1]);
+    this.filtroPeriodo.limpiar();
+    this.cdr.markForCheck();
+  }
+
+  filtrar(): void {
+    this.filtrarSubject.next();
   }
 
   private configurarDataStream(): void {
-    combineLatest([
-      this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value)
-      ),
-      this.anhoControl.valueChanges.pipe(
-        startWith(this.anhoControl.value)
-      ),
-      this.mesControl.valueChanges.pipe(
-        startWith(this.mesControl.value)
-      ),
-    ])
+    this.filtrarSubject
       .pipe(
+        startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([sucIds, anho, mesesSel]) =>
-          this.consultarDatos(sucIds, anho, mesesSel)
+        switchMap(() =>
+          this.consultarDatos(this.sucursalControl.value || [])
         ),
         untilDestroyed(this)
       )
@@ -123,51 +118,39 @@ export class GastoCategoriaComponent implements OnInit {
   }
 
   private consultarDatos(
-    sucIds: number[],
-    anho: number,
-    mesesSel: number[]
+    sucIds: number[]
   ): Observable<GastoCategoriaItem[]> {
-    const anhoFinal = anho || new Date().getFullYear();
-    const mesesFinal = mesesSel?.length ? mesesSel : [new Date().getMonth() + 1];
+    const anhoFinal =
+      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
+    const mesesFinal = this.filtroPeriodo.normalizarMesesSeleccionados(
+      this.filtroPeriodo.mesControl.value
+    );
+    const rangoDias = this.filtroPeriodo.obtenerRangoDiasSiAplica();
     const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+    const queries: Record<string, Observable<GastoCategoriaItem[]>> = {};
 
-    const rango = this.calcularRangoFechas(anhoFinal, mesesFinal);
-
-    if (sucursalesFinal.length === 1) {
-      return this.graficoService
-        .obtenerGastosPorCategoria(rango.inicio, rango.fin, sucursalesFinal[0] || undefined)
-        .pipe(finalize(() => this.cargandoSubject.next(false)));
+    for (const sucId of sucursalesFinal) {
+      for (const mes of mesesFinal) {
+        const rango =
+          rangoDias ?? this.filtroPeriodo.calcularRangoMes(anhoFinal, mes);
+        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
+        queries[clave] = this.graficoService.obtenerGastosPorCategoria(
+          rango.inicio,
+          rango.fin,
+          sucId || undefined
+        );
+      }
     }
 
-    // Multi-sucursal: combinar resultados
-    const queries: Record<string, Observable<GastoCategoriaItem[]>> = {};
-    for (const sucId of sucursalesFinal) {
-      const clave = `suc_${sucId ?? "todas"}`;
-      queries[clave] = this.graficoService
-        .obtenerGastosPorCategoria(rango.inicio, rango.fin, sucId || undefined);
+    const keys = Object.keys(queries);
+    if (keys.length === 1) {
+      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
     }
 
     return forkJoin(queries).pipe(
       map((resultados) => this.combinarGastosCategorias(resultados)),
       finalize(() => this.cargandoSubject.next(false))
     );
-  }
-
-  private calcularRangoFechas(
-    anho: number,
-    meses: number[]
-  ): { inicio: string; fin: string } {
-    const mesMin = Math.min(...meses);
-    const mesMax = Math.max(...meses);
-    const mesMinStr = String(mesMin).padStart(2, "0");
-    const ultimoDia = new Date(anho, mesMax, 0);
-    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
-    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
-
-    return {
-      inicio: `${anho}-${mesMinStr}-01 00:00:00`,
-      fin: `${anho}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
-    };
   }
 
   private combinarGastosCategorias(

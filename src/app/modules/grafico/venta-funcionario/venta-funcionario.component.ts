@@ -16,6 +16,7 @@ import {
   finalize,
   forkJoin,
   map,
+  Subject,
   startWith,
   switchMap,
   tap,
@@ -41,13 +42,7 @@ import {
 import { VentaFuncionarioDesdeLucroTabData } from "./interfaces/venta-funcionario-desde-lucro-tab-data.model";
 import { VentaFuncionarioItem } from "./interfaces/venta-funcionario-item.model";
 import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funcionario-datos-grafico-procesados.model";
-import {
-  listarAnhosGrafico,
-} from "../../../commons/core/utils/dateUtils";
-import {
-  MESES_GRAFICO,
-  MesGraficoOption,
-} from "../../../shared/constants/grafico.constants";
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -68,12 +63,9 @@ export class VentaFuncionarioComponent implements OnInit {
   colorBotonBuscarFuncionario: "" | "primary" = "";
 
   sucursalControl = new FormControl<number[]>([]);
-  anhoControl = new FormControl<number>(new Date().getFullYear());
-  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   sucursales$: Observable<Sucursal[]>;
-  anhos: number[] = listarAnhosGrafico();
-  meses: MesGraficoOption[] = MESES_GRAFICO;
 
   private tituloExterno: string | null = null;
   private subtituloExterno: string | null = null;
@@ -90,6 +82,7 @@ export class VentaFuncionarioComponent implements OnInit {
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly funcionarioSeleccionadoSubject =
     new BehaviorSubject<Usuario | null>(null);
+  private readonly filtrarSubject = new Subject<void>();
 
   private datosCrudos: VentaFuncionarioItem[] = [];
 
@@ -104,6 +97,7 @@ export class VentaFuncionarioComponent implements OnInit {
       datosListos: datos !== null,
     }))
   );
+  readonly cargando$ = this.cargandoSubject.asObservable();
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalesSubject.asObservable();
@@ -135,6 +129,10 @@ export class VentaFuncionarioComponent implements OnInit {
       return;
     }
 
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
+    );
     this.cargarMetadata();
     this.configurarDataStream();
   }
@@ -171,9 +169,13 @@ export class VentaFuncionarioComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.sucursalControl.setValue([]);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue([new Date().getMonth() + 1]);
+    this.filtroPeriodo.limpiar();
     this.funcionarioSeleccionadoSubject.next(null);
+    this.cdr.markForCheck();
+  }
+
+  filtrar(): void {
+    this.filtrarSubject.next();
   }
 
   private cargarMetadata(): void {
@@ -189,23 +191,16 @@ export class VentaFuncionarioComponent implements OnInit {
   }
 
   private configurarDataStream(): void {
-    combineLatest([
-      this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value)
-      ),
-      this.anhoControl.valueChanges.pipe(
-        startWith(this.anhoControl.value)
-      ),
-      this.mesControl.valueChanges.pipe(
-        startWith(this.mesControl.value)
-      ),
-      this.funcionarioSeleccionadoSubject.asObservable(),
-    ])
+    this.filtrarSubject
       .pipe(
+        startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([sucIds, anho, mesesSel, funcionario]) =>
-          this.consultarDatos(sucIds, anho, mesesSel, funcionario)
+        switchMap(() =>
+          this.consultarDatos(
+            this.sucursalControl.value || [],
+            this.funcionarioSeleccionadoSubject.value
+          )
         ),
         untilDestroyed(this)
       )
@@ -218,60 +213,40 @@ export class VentaFuncionarioComponent implements OnInit {
 
   private consultarDatos(
     sucIds: number[],
-    anho: number,
-    mesesSel: number[],
     funcionario: Usuario | null
   ): Observable<VentaFuncionarioItem[]> {
-    const rango = this.calcularRangoFechas(anho, mesesSel);
+    const anhoFinal =
+      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
+    const mesesFinal = this.filtroPeriodo.normalizarMesesSeleccionados(
+      this.filtroPeriodo.mesControl.value
+    );
+    const rangoDias = this.filtroPeriodo.obtenerRangoDiasSiAplica();
     const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
-
-    if (sucursalesFinal.length === 1) {
-      return this.graficoService
-        .obtenerVentasPorFuncionario(
-          rango.inicio,
-          rango.fin,
-          sucursalesFinal[0] || undefined,
-          funcionario?.id
-        )
-        .pipe(finalize(() => this.cargandoSubject.next(false)));
-    }
-
-    // Multi-sucursal
     const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};
+
     for (const sucId of sucursalesFinal) {
-      const clave = `suc_${sucId ?? "todas"}`;
-      queries[clave] = this.graficoService
-        .obtenerVentasPorFuncionario(
+      for (const mes of mesesFinal) {
+        const rango =
+          rangoDias ?? this.filtroPeriodo.calcularRangoMes(anhoFinal, mes);
+        const clave = `suc_${sucId ?? "todas"}_mes_${mes}`;
+        queries[clave] = this.graficoService.obtenerVentasPorFuncionario(
           rango.inicio,
           rango.fin,
           sucId || undefined,
           funcionario?.id
         );
+      }
+    }
+
+    const keys = Object.keys(queries);
+    if (keys.length === 1) {
+      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
     }
 
     return forkJoin(queries).pipe(
       map((resultados) => this.combinarFuncionarios(resultados)),
       finalize(() => this.cargandoSubject.next(false))
     );
-  }
-
-  private calcularRangoFechas(
-    anho: number,
-    mesesSel: number[]
-  ): { inicio: string; fin: string } {
-    const anhoFinal = anho || new Date().getFullYear();
-    const mesesFinal = mesesSel?.length ? mesesSel : [new Date().getMonth() + 1];
-    const mesMin = Math.min(...mesesFinal);
-    const mesMax = Math.max(...mesesFinal);
-    const mesMinStr = String(mesMin).padStart(2, "0");
-    const ultimoDia = new Date(anhoFinal, mesMax, 0);
-    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
-    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
-
-    return {
-      inicio: `${anhoFinal}-${mesMinStr}-01 00:00:00`,
-      fin: `${anhoFinal}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
-    };
   }
 
   private combinarFuncionarios(

@@ -63,6 +63,7 @@
       <mat-select
         [formControl]="mesControl"
         multiple
+        (selectionChange)="onMesesChange($event.value)"
       >
         <mat-option
           *ngFor="let m of meses"
@@ -89,6 +90,17 @@
       <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
       <mat-date-range-picker #pickerRango></mat-date-range-picker>
     </mat-form-field>
+
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="filtrar()"
+      [disabled]="cargando$ | async"
+      aria-label="Aplicar filtros"
+    >
+      Filtrar
+    </button>
 
     <button
       mat-icon-button
