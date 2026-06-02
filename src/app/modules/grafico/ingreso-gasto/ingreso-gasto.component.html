@@ -5,22 +5,57 @@
     fxLayoutGap="12px"
     fxLayoutAlign="start center"
   >
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Sucursal</mat-label>
-      <mat-select [formControl]="sucursalControl">
-        <mat-option [value]="null">Todas</mat-option>
-        <mat-option *ngFor="let s of sucursales$ | async" [value]="s.id">
+    <mat-form-field
+      fxFlex="35%"
+      appearance="outline"
+      class="filter-field"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="sucursalControl"
+        multiple
+        placeholder="Todas las sucursales"
+      >
+        <mat-option
+          *ngFor="let s of sucursales$ | async"
+          [value]="s.id"
+        >
           {{ s.nombre }}
         </mat-option>
       </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="filter-field filter-field--anho">
-      <mat-label>Año</mat-label>
-      <mat-select [formControl]="yearControl">
-        <mat-option *ngFor="let y of anhos" [value]="y">{{ y }}</mat-option>
+    <mat-form-field
+      fxFlex="25%"
+      appearance="outline"
+      class="filter-field"
+    >
+      <mat-label>Años</mat-label>
+      <mat-select
+        [formControl]="yearControl"
+        multiple
+      >
+        <mat-option
+          *ngFor="let y of anhos"
+          [value]="y"
+        >
+          {{ y }}
+        </mat-option>
       </mat-select>
+      <mat-icon matPrefix>calendar_today</mat-icon>
     </mat-form-field>
+
+    <button
+      mat-icon-button
+      type="button"
+      (click)="limpiarFiltros()"
+      matTooltip="Limpiar filtros"
+      aria-label="Limpiar filtros"
+      class="clear-btn"
+    >
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
   </div>
 
   <ng-container *ngIf="vista$ | async as vista">

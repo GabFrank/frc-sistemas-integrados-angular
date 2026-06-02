@@ -5,15 +5,35 @@
     fxLayoutGap="12px"
     fxLayoutAlign="start center"
   >
-    <mat-form-field appearance="outline">
-      <mat-label>Sucursal</mat-label>
-      <mat-select [formControl]="sucursalControl">
-        <mat-option [value]="null">Todas las Sucursales</mat-option>
-        <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
+    <mat-form-field
+      fxFlex="35%"
+      appearance="outline"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="sucursalControl"
+        multiple
+        placeholder="Todas las sucursales"
+      >
+        <mat-option
+          *ngFor="let sucursal of sucursales$ | async"
+          [value]="sucursal.id"
+        >
           {{ sucursal.nombre }}
         </mat-option>
       </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
     </mat-form-field>
+
+    <button
+      mat-icon-button
+      type="button"
+      (click)="limpiarFiltros()"
+      matTooltip="Limpiar filtros"
+      aria-label="Limpiar filtros"
+    >
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
   </div>
 
   <ng-container *ngIf="vista$ | async as vista">

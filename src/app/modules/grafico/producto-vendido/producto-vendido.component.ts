@@ -3,7 +3,6 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
-  ViewChild,
   inject,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
@@ -13,21 +12,20 @@ import {
   Observable,
   combineLatest,
   debounceTime,
-  distinctUntilChanged,
-  filter,
   finalize,
+  forkJoin,
   map,
   startWith,
   switchMap,
   tap,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { MatDialog } from "@angular/material/dialog";
+import { ProductoForPdvGQL } from "../../productos/producto/graphql/productoSearchForPdv";
 import { ProductoVendidoEstadistica } from "./interfaces/producto-vendido-estadistica.model";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Familia } from "../../productos/familia/familia.model";
 import { GraficoService } from "../grafico.service";
-import { GraficoFiltrosFechaComponent } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.component";
-import { RangoFechaGrafico } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.model";
 import {
   GRAFICO_COLORES,
   GRAFICO_PALETA_BARRAS,
@@ -37,7 +35,17 @@ import {
 import { ProductoVendidoDatosGraficoProcesados } from "./interfaces/producto-vendido-datos-grafico-procesados.model";
 import { ProductoVendidoDetalleProcesado } from "./interfaces/producto-vendido-detalle-procesado.model";
 import { ProductoVendidoPantalla } from "./interfaces/producto-vendido-pantalla.model";
-import { formatearRangoFechaGraficoParaApi } from "../utils/grafico-fecha-api.utils";
+import {
+  listarAnhosGrafico,
+} from "../../../commons/core/utils/dateUtils";
+import {
+  MESES_GRAFICO,
+  MesGraficoOption,
+} from "../../../shared/constants/grafico.constants";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+} from "../../../shared/components/search-list-dialog/search-list-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -50,18 +58,28 @@ import { formatearRangoFechaGraficoParaApi } from "../utils/grafico-fecha-api.ut
   },
 })
 export class ProductoVendidoComponent implements OnInit {
-  @ViewChild(GraficoFiltrosFechaComponent)
-  filtrosFechaRef: GraficoFiltrosFechaComponent;
-
   private graficoService = inject(GraficoService);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
+  private productoSearchGQL = inject(ProductoForPdvGQL);
+
+  sucursalControl = new FormControl<number[]>([]);
+  familiaControl = new FormControl<number | null>(null);
+  limitControl = new FormControl<number>(10);
+  anhoControl = new FormControl<number>(new Date().getFullYear());
+  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
+
+  /** IDs de productos específicos para búsqueda */
+  productosSeleccionadosIds: number[] = [];
+  productosSeleccionadosNombres: string[] = [];
+
+  limits = [10, 30, 50, 100];
+  anhos: number[] = listarAnhosGrafico();
+  meses: MesGraficoOption[] = MESES_GRAFICO;
 
   private readonly datosSubject =
     new BehaviorSubject<ProductoVendidoDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
-  private readonly rangoSubject = new BehaviorSubject<RangoFechaGrafico | null>(
-    null
-  );
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly familiasSubject = new BehaviorSubject<Familia[]>([]);
   private readonly indicesOcultosSubject = new BehaviorSubject<Set<string>>(
@@ -70,12 +88,7 @@ export class ProductoVendidoComponent implements OnInit {
   private readonly estadisticasSubject = new BehaviorSubject<
     ProductoVendidoEstadistica[]
   >([]);
-
-  sucursalControl = new FormControl<number | null>(null);
-  familiaControl = new FormControl<number | null>(null);
-  limitControl = new FormControl<number>(10);
-
-  limits = [10, 30, 50, 100];
+  private readonly productosIdsBusquedaSubject = new BehaviorSubject<number[]>([]);
 
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
   familias$: Observable<Familia[]> = this.familiasSubject.asObservable();
@@ -97,10 +110,6 @@ export class ProductoVendidoComponent implements OnInit {
   ngOnInit(): void {
     this.cargarMetadata();
     this.configurarDataStream();
-  }
-
-  onRangoFechaChange(rango: RangoFechaGrafico): void {
-    this.rangoSubject.next(rango);
   }
 
   alternarItem(id: string | number): void {
@@ -132,11 +141,57 @@ export class ProductoVendidoComponent implements OnInit {
     return item.productoId;
   }
 
+  buscarProductoEspecifico(): void {
+    const dialogData: SearchListtDialogData = {
+      titulo: "Buscar Producto",
+      query: this.productoSearchGQL,
+      tableData: [
+        { id: "id", nombre: "Código", width: "80px" },
+        { id: "descripcion", nombre: "Descripción" },
+      ],
+      inicialSearch: true,
+    };
+
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data: dialogData,
+        width: "600px",
+        height: "600px",
+      })
+      .afterClosed()
+      .subscribe((selected: { id: number; descripcion: string }) => {
+        if (selected) {
+          this.agregarProductoBusqueda(selected.id, selected.descripcion);
+        }
+      });
+  }
+
+  agregarProductoBusqueda(id: number, nombre: string): void {
+    if (!this.productosSeleccionadosIds.includes(id)) {
+      this.productosSeleccionadosIds = [...this.productosSeleccionadosIds, id];
+      this.productosSeleccionadosNombres = [...this.productosSeleccionadosNombres, nombre];
+      this.productosIdsBusquedaSubject.next(this.productosSeleccionadosIds);
+      this.cdr.markForCheck();
+    }
+  }
+
+  quitarProductoBusqueda(indice: number): void {
+    this.productosSeleccionadosIds = this.productosSeleccionadosIds.filter((_, i) => i !== indice);
+    this.productosSeleccionadosNombres = this.productosSeleccionadosNombres.filter((_, i) => i !== indice);
+    this.productosIdsBusquedaSubject.next(this.productosSeleccionadosIds);
+    this.cdr.markForCheck();
+  }
+
   limpiarFiltros(): void {
-    this.sucursalControl.setValue(null);
+    this.sucursalControl.setValue([]);
     this.familiaControl.setValue(null);
     this.limitControl.setValue(10);
-    this.filtrosFechaRef?.limpiarFiltros();
+    this.anhoControl.setValue(new Date().getFullYear());
+    this.mesControl.setValue([new Date().getMonth() + 1]);
+    this.productosSeleccionadosIds = [];
+    this.productosSeleccionadosNombres = [];
+    this.productosIdsBusquedaSubject.next([]);
+    this.cdr.markForCheck();
   }
 
   private cargarMetadata(): void {
@@ -158,21 +213,22 @@ export class ProductoVendidoComponent implements OnInit {
 
   private configurarDataStream(): void {
     const filtros$ = combineLatest([
-      this.rangoSubject.pipe(
-        filter((rango): rango is RangoFechaGrafico => rango !== null)
-      ),
       this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value),
-        distinctUntilChanged()
+        startWith(this.sucursalControl.value)
       ),
       this.familiaControl.valueChanges.pipe(
-        startWith(this.familiaControl.value),
-        distinctUntilChanged()
+        startWith(this.familiaControl.value)
       ),
       this.limitControl.valueChanges.pipe(
-        startWith(this.limitControl.value),
-        distinctUntilChanged()
+        startWith(this.limitControl.value)
       ),
+      this.anhoControl.valueChanges.pipe(
+        startWith(this.anhoControl.value)
+      ),
+      this.mesControl.valueChanges.pipe(
+        startWith(this.mesControl.value)
+      ),
+      this.productosIdsBusquedaSubject.asObservable(),
     ]).pipe(debounceTime(300));
 
     filtros$
@@ -181,18 +237,9 @@ export class ProductoVendidoComponent implements OnInit {
           this.cargandoSubject.next(true);
           this.indicesOcultosSubject.next(new Set());
         }),
-        switchMap(([rango, sucId, famId, limit]) => {
-          const { inicio, fin } = formatearRangoFechaGraficoParaApi(rango);
-          return this.graficoService
-            .obtenerProductosMasVendidos(
-              inicio,
-              fin,
-              sucId || undefined,
-              famId || undefined,
-              limit || 10
-            )
-            .pipe(finalize(() => this.cargandoSubject.next(false)));
-        }),
+        switchMap(([sucIds, famId, limit, anho, mesesSel, productoIds]) =>
+          this.consultarDatos(sucIds, famId, limit, anho, mesesSel, productoIds)
+        ),
         untilDestroyed(this)
       )
       .subscribe((estadisticas) => {
@@ -213,6 +260,100 @@ export class ProductoVendidoComponent implements OnInit {
         this.datosSubject.next(datos);
         this.cdr.markForCheck();
       });
+  }
+
+  private consultarDatos(
+    sucIds: number[],
+    famId: number | null,
+    limit: number,
+    anho: number,
+    mesesSel: number[],
+    productoIds: number[]
+  ): Observable<ProductoVendidoEstadistica[]> {
+    const rango = this.calcularRangoFechas(anho, mesesSel);
+    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+
+    if (sucursalesFinal.length === 1) {
+      return this.graficoService
+        .obtenerProductosMasVendidos(
+          rango.inicio,
+          rango.fin,
+          sucursalesFinal[0] || undefined,
+          famId || undefined,
+          limit || 10,
+          false,
+          undefined,
+          productoIds?.length ? productoIds : undefined
+        )
+        .pipe(finalize(() => this.cargandoSubject.next(false)));
+    }
+
+    // Multi-sucursal
+    const queries: Record<string, Observable<ProductoVendidoEstadistica[]>> = {};
+    for (const sucId of sucursalesFinal) {
+      const clave = `suc_${sucId ?? "todas"}`;
+      queries[clave] = this.graficoService
+        .obtenerProductosMasVendidos(
+          rango.inicio,
+          rango.fin,
+          sucId || undefined,
+          famId || undefined,
+          limit || 10,
+          false,
+          undefined,
+          productoIds?.length ? productoIds : undefined
+        );
+    }
+
+    return forkJoin(queries).pipe(
+      map((resultados) => this.combinarProductos(resultados)),
+      finalize(() => this.cargandoSubject.next(false))
+    );
+  }
+
+  private calcularRangoFechas(
+    anho: number,
+    mesesSel: number[]
+  ): { inicio: string; fin: string } {
+    const anhoFinal = anho || new Date().getFullYear();
+    const mesesFinal = mesesSel?.length ? mesesSel : [new Date().getMonth() + 1];
+    const mesMin = Math.min(...mesesFinal);
+    const mesMax = Math.max(...mesesFinal);
+    const mesMinStr = String(mesMin).padStart(2, "0");
+    const ultimoDia = new Date(anhoFinal, mesMax, 0);
+    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
+    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
+
+    return {
+      inicio: `${anhoFinal}-${mesMinStr}-01 00:00:00`,
+      fin: `${anhoFinal}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
+    };
+  }
+
+  private combinarProductos(
+    resultados: Record<string, ProductoVendidoEstadistica[]>
+  ): ProductoVendidoEstadistica[] {
+    const mapa = new Map<string, ProductoVendidoEstadistica>();
+
+    for (const items of Object.values(resultados)) {
+      for (const item of items || []) {
+        const existente = mapa.get(item.productoId);
+        if (existente) {
+          existente.cantidad += item.cantidad || 0;
+          existente.totalMonto += item.totalMonto || 0;
+        } else {
+          mapa.set(item.productoId, { ...item });
+        }
+      }
+    }
+
+    // Recalcular porcentajes
+    const total = Array.from(mapa.values()).reduce((s, e) => s + e.totalMonto, 0);
+    for (const item of mapa.values()) {
+      item.porcentaje = total > 0 ? (item.totalMonto / total) * 100 : 0;
+    }
+
+    return Array.from(mapa.values()).sort((a, b) => b.totalMonto - a.totalMonto);
   }
 
   private procesarDatos(

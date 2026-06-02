@@ -4,30 +4,91 @@
       <mat-icon class="title-icon">pie_chart</mat-icon>
       <h2 class="title">Análisis de Formas de Pago</h2>
     </div>
-    <p class="subtitle">Distribución detallada de las transacciones por método de pago</p>
+    <p class="subtitle">
+      Distribución detallada de las transacciones por método de pago
+    </p>
   </div>
 
+  <!-- Primera fila: Sucursales + Año + Meses + Limpiar -->
   <div
     class="filters-section"
     fxLayout="row"
     fxLayoutGap="12px"
     fxLayoutAlign="start center"
   >
-    <mat-form-field appearance="outline" class="filter-field sucursal-filter">
-      <mat-label>Sucursal</mat-label>
-      <mat-select [formControl]="sucursalControl" placeholder="Todas las sucursales">
-        <mat-option [value]="null">Todas las sucursales</mat-option>
-        <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
+    <mat-form-field
+      fxFlex="30%"
+      appearance="outline"
+      class="filter-field"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="sucursalControl"
+        multiple
+        placeholder="Todas las sucursales"
+      >
+        <mat-option
+          *ngFor="let sucursal of sucursales$ | async"
+          [value]="sucursal.id"
+        >
           {{ sucursal.nombre }}
         </mat-option>
       </mat-select>
       <mat-icon matPrefix>store</mat-icon>
     </mat-form-field>
 
-    <frc-grafico-filtros-fecha
-      [mostrarDia]="false"
-      (rangoChange)="onRangoFechaChange($event)"
-    ></frc-grafico-filtros-fecha>
+    <mat-form-field
+      fxFlex="15%"
+      appearance="outline"
+      class="filter-field"
+    >
+      <mat-label>Año</mat-label>
+      <mat-select [formControl]="anhoControl">
+        <mat-option
+          *ngFor="let y of anhos"
+          [value]="y"
+        >
+          {{ y }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>calendar_today</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field
+      fxFlex="25%"
+      appearance="outline"
+      class="filter-field"
+    >
+      <mat-label>Meses</mat-label>
+      <mat-select
+        [formControl]="mesControl"
+        multiple
+      >
+        <mat-option
+          *ngFor="let m of meses"
+          [value]="m.valor"
+        >
+          {{ m.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>date_range</mat-icon>
+    </mat-form-field>
+
+    <!-- Rango de días (datepicker) -->
+    <mat-form-field
+      *ngIf="diasDisponibles.length > 0"
+      fxFlex="22%"
+      appearance="outline"
+      class="filter-field filter-rango"
+    >
+      <mat-label>Rango de días</mat-label>
+      <mat-date-range-input [formGroup]="fechaRangoGroup" [rangePicker]="pickerRango">
+        <input matStartDate formControlName="inicio" placeholder="Desde" [min]="minFecha" [max]="maxFecha">
+        <input matEndDate formControlName="fin" placeholder="Hasta" [min]="minFecha" [max]="maxFecha">
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
 
     <button
       mat-icon-button
@@ -42,7 +103,10 @@
   </div>
 
   <ng-container *ngIf="pantalla$ | async as pantalla">
-    <div class="main-grid" [class.loading]="pantalla.cargando">
+    <div
+      class="main-grid"
+      [class.loading]="pantalla.cargando"
+    >
       <div class="chart-section">
         <frc-grafico-shell
           class="chart-card"
@@ -55,7 +119,10 @@
         ></frc-grafico-shell>
       </div>
 
-      <div class="details-section" *ngIf="pantalla.datosListos">
+      <div
+        class="details-section"
+        *ngIf="pantalla.datosListos"
+      >
         <div class="summary-cards">
           <div class="summary-card total-monto">
             <mat-icon>account_balance_wallet</mat-icon>
@@ -77,30 +144,68 @@
           <h3 class="list-title">Desglose por Forma de Pago</h3>
           <div class="list-container">
             <div
-              *ngFor="let item of pantalla.detalles"
-              class="detail-item"
-              [class.no-data]="item.porcentaje === 0"
+              *ngFor="let item of detallesConDesglose; let i = index"
+              class="detail-item-wrapper"
             >
-              <div class="item-indicator" [style.background-color]="item.color"></div>
-              <div class="item-icon">
-                <mat-icon>{{ item.icono }}</mat-icon>
-              </div>
-              <div class="item-info">
-                <span class="item-name">{{ item.descripcion }}</span>
-                <span class="item-transactions">{{ item.cantidadFormateada }}</span>
-              </div>
-              <div class="item-values">
-                <span class="item-amount">{{ item.montoFormateado }}</span>
-                <span class="item-percentage" [class.zero]="item.porcentaje === 0">
-                  {{ item.porcentaje | number: "1.2-2" }}%
-                </span>
-              </div>
-              <div class="progress-bar-container">
+              <div
+                class="detail-item"
+                [class.no-data]="item.porcentaje === 0"
+                [class.expanded]="item.expandido"
+                (click)="alternarDesglose(i)"
+                role="button"
+                [attr.aria-expanded]="item.expandido"
+                tabindex="0"
+                (keydown.enter)="alternarDesglose(i)"
+                (keydown.space)="alternarDesglose(i)"
+              >
                 <div
-                  class="progress-bar"
-                  [style.width.%]="item.porcentaje"
+                  class="item-indicator"
                   [style.background-color]="item.color"
                 ></div>
+                <div class="item-icon">
+                  <mat-icon>{{ item.icono }}</mat-icon>
+                </div>
+                <div class="item-info">
+                  <span class="item-name">{{ item.descripcion }}</span>
+                  <span class="item-transactions">
+                    {{ item.cantidadFormateada }}
+                  </span>
+                </div>
+                <div class="item-values">
+                  <span class="item-amount">{{ item.montoFormateado }}</span>
+                  <span
+                    class="item-percentage"
+                    [class.zero]="item.porcentaje === 0"
+                  >
+                    {{ item.porcentaje | number: "1.2-2" }}%
+                  </span>
+                </div>
+                <div class="item-expand-icon">
+                  <mat-icon>
+                    {{ item.expandido ? 'expand_less' : 'expand_more' }}
+                  </mat-icon>
+                </div>
+                <div class="progress-bar-container">
+                  <div
+                    class="progress-bar"
+                    [style.width.%]="item.porcentaje"
+                    [style.background-color]="item.color"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Zona de desglose expandible (preparada para datos de moneda del backend) -->
+              <div
+                *ngIf="item.expandido"
+                class="desglose-section"
+              >
+                <div class="desglose-placeholder">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>
+                    Desglose por moneda disponible próximamente.
+                    El detalle se mostrará aquí cuando el backend provea la información.
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -108,7 +213,10 @@
       </div>
     </div>
 
-    <div class="no-data-message" *ngIf="pantalla.datosListos && !pantalla.hayDatos">
+    <div
+      class="no-data-message"
+      *ngIf="pantalla.datosListos && !pantalla.hayDatos"
+    >
       <mat-icon>info</mat-icon>
       <span>No hay datos para el período seleccionado</span>
     </div>

@@ -1,4 +1,5 @@
 <div class="venta-funcionario-layout">
+  <!-- Filtros (ocultos en modo externo) -->
   <div
     *ngIf="!modoExterno"
     class="venta-funcionario-layout__filtros"
@@ -6,20 +7,60 @@
     fxLayoutGap="12px"
     fxLayoutAlign="start center"
   >
-    <mat-form-field appearance="outline" class="venta-funcionario-layout__sucursal">
-      <mat-label>Sucursal</mat-label>
-      <mat-select [formControl]="sucursalControl">
-        <mat-option [value]="null">Todas</mat-option>
-        <mat-option *ngFor="let s of sucursales$ | async" [value]="s.id">
+    <mat-form-field
+      fxFlex="25%"
+      appearance="outline"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="sucursalControl"
+        multiple
+        placeholder="Todas"
+      >
+        <mat-option
+          *ngFor="let s of sucursales$ | async"
+          [value]="s.id"
+        >
           {{ s.nombre }}
         </mat-option>
       </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
     </mat-form-field>
 
-    <frc-grafico-filtros-fecha
-      [mostrarBotonLimpiar]="false"
-      (rangoChange)="onRangoFechaChange($event)"
-    ></frc-grafico-filtros-fecha>
+    <mat-form-field
+      fxFlex="15%"
+      appearance="outline"
+    >
+      <mat-label>Año</mat-label>
+      <mat-select [formControl]="anhoControl">
+        <mat-option
+          *ngFor="let y of anhos"
+          [value]="y"
+        >
+          {{ y }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>calendar_today</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field
+      fxFlex="25%"
+      appearance="outline"
+    >
+      <mat-label>Meses</mat-label>
+      <mat-select
+        [formControl]="mesControl"
+        multiple
+      >
+        <mat-option
+          *ngFor="let m of meses"
+          [value]="m.valor"
+        >
+          {{ m.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>date_range</mat-icon>
+    </mat-form-field>
 
     <button
       mat-icon-button

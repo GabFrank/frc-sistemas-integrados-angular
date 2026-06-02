@@ -5,4 +5,5 @@ export interface FormaPagoDetalleProcesado {
   porcentaje: number;
   color: string;
   icono: string;
+  expandido: boolean;
 }

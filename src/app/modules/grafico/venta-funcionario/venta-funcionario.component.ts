@@ -4,7 +4,6 @@ import {
   Component,
   Input,
   OnInit,
-  ViewChild,
   inject,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
@@ -14,9 +13,8 @@ import {
   Observable,
   combineLatest,
   debounceTime,
-  distinctUntilChanged,
-  filter,
   finalize,
+  forkJoin,
   map,
   startWith,
   switchMap,
@@ -33,8 +31,6 @@ import {
 import { UsuarioSearchGQL } from "../../personas/usuarios/graphql/usuarioSearch";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Tab } from "../../../layouts/tab/tab.model";
-import { GraficoFiltrosFechaComponent } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.component";
-import { RangoFechaGrafico } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.model";
 import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
 import {
   GRAFICO_COLORES,
@@ -45,6 +41,13 @@ import {
 import { VentaFuncionarioDesdeLucroTabData } from "./interfaces/venta-funcionario-desde-lucro-tab-data.model";
 import { VentaFuncionarioItem } from "./interfaces/venta-funcionario-item.model";
 import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funcionario-datos-grafico-procesados.model";
+import {
+  listarAnhosGrafico,
+} from "../../../commons/core/utils/dateUtils";
+import {
+  MESES_GRAFICO,
+  MesGraficoOption,
+} from "../../../shared/constants/grafico.constants";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -59,16 +62,18 @@ import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funci
 export class VentaFuncionarioComponent implements OnInit {
   @Input() data: Tab;
 
-  @ViewChild(GraficoFiltrosFechaComponent)
-  filtrosFechaRef: GraficoFiltrosFechaComponent;
-
   modoExterno = false;
   funcionarioSeleccionado: Usuario | null = null;
   mostrarBotonQuitarFuncionario = false;
   colorBotonBuscarFuncionario: "" | "primary" = "";
 
-  sucursalControl = new FormControl<number | null>(null);
+  sucursalControl = new FormControl<number[]>([]);
+  anhoControl = new FormControl<number>(new Date().getFullYear());
+  mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
+
   sucursales$: Observable<Sucursal[]>;
+  anhos: number[] = listarAnhosGrafico();
+  meses: MesGraficoOption[] = MESES_GRAFICO;
 
   private tituloExterno: string | null = null;
   private subtituloExterno: string | null = null;
@@ -82,9 +87,6 @@ export class VentaFuncionarioComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<VentaFuncionarioDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
-  private readonly rangoSubject = new BehaviorSubject<RangoFechaGrafico | null>(
-    null
-  );
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly funcionarioSeleccionadoSubject =
     new BehaviorSubject<Usuario | null>(null);
@@ -137,10 +139,6 @@ export class VentaFuncionarioComponent implements OnInit {
     this.configurarDataStream();
   }
 
-  onRangoFechaChange(rango: RangoFechaGrafico): void {
-    this.rangoSubject.next(rango);
-  }
-
   buscarFuncionario(): void {
     const dialogData: SearchListtDialogData = {
       titulo: "Buscar Funcionario",
@@ -172,9 +170,10 @@ export class VentaFuncionarioComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue(null);
+    this.sucursalControl.setValue([]);
+    this.anhoControl.setValue(new Date().getFullYear());
+    this.mesControl.setValue([new Date().getMonth() + 1]);
     this.funcionarioSeleccionadoSubject.next(null);
-    this.filtrosFechaRef?.limpiarFiltros();
   }
 
   private cargarMetadata(): void {
@@ -191,27 +190,22 @@ export class VentaFuncionarioComponent implements OnInit {
 
   private configurarDataStream(): void {
     combineLatest([
-      this.rangoSubject.pipe(
-        filter((rango): rango is RangoFechaGrafico => rango !== null)
-      ),
       this.sucursalControl.valueChanges.pipe(
-        startWith(this.sucursalControl.value),
-        distinctUntilChanged()
+        startWith(this.sucursalControl.value)
       ),
-      this.funcionarioSeleccionadoSubject.pipe(distinctUntilChanged()),
+      this.anhoControl.valueChanges.pipe(
+        startWith(this.anhoControl.value)
+      ),
+      this.mesControl.valueChanges.pipe(
+        startWith(this.mesControl.value)
+      ),
+      this.funcionarioSeleccionadoSubject.asObservable(),
     ])
       .pipe(
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(([rango, sucId, funcionario]) =>
-          this.graficoService
-            .obtenerVentasPorFuncionario(
-              rango.inicio,
-              rango.fin,
-              sucId || undefined,
-              funcionario?.id
-            )
-            .pipe(finalize(() => this.cargandoSubject.next(false)))
+        switchMap(([sucIds, anho, mesesSel, funcionario]) =>
+          this.consultarDatos(sucIds, anho, mesesSel, funcionario)
         ),
         untilDestroyed(this)
       )
@@ -220,6 +214,84 @@ export class VentaFuncionarioComponent implements OnInit {
         this.datosSubject.next(this.procesarDatos(this.datosCrudos));
         this.cdr.markForCheck();
       });
+  }
+
+  private consultarDatos(
+    sucIds: number[],
+    anho: number,
+    mesesSel: number[],
+    funcionario: Usuario | null
+  ): Observable<VentaFuncionarioItem[]> {
+    const rango = this.calcularRangoFechas(anho, mesesSel);
+    const sucursalesFinal: Array<number | null> = sucIds?.length ? sucIds : [null];
+
+    if (sucursalesFinal.length === 1) {
+      return this.graficoService
+        .obtenerVentasPorFuncionario(
+          rango.inicio,
+          rango.fin,
+          sucursalesFinal[0] || undefined,
+          funcionario?.id
+        )
+        .pipe(finalize(() => this.cargandoSubject.next(false)));
+    }
+
+    // Multi-sucursal
+    const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};
+    for (const sucId of sucursalesFinal) {
+      const clave = `suc_${sucId ?? "todas"}`;
+      queries[clave] = this.graficoService
+        .obtenerVentasPorFuncionario(
+          rango.inicio,
+          rango.fin,
+          sucId || undefined,
+          funcionario?.id
+        );
+    }
+
+    return forkJoin(queries).pipe(
+      map((resultados) => this.combinarFuncionarios(resultados)),
+      finalize(() => this.cargandoSubject.next(false))
+    );
+  }
+
+  private calcularRangoFechas(
+    anho: number,
+    mesesSel: number[]
+  ): { inicio: string; fin: string } {
+    const anhoFinal = anho || new Date().getFullYear();
+    const mesesFinal = mesesSel?.length ? mesesSel : [new Date().getMonth() + 1];
+    const mesMin = Math.min(...mesesFinal);
+    const mesMax = Math.max(...mesesFinal);
+    const mesMinStr = String(mesMin).padStart(2, "0");
+    const ultimoDia = new Date(anhoFinal, mesMax, 0);
+    const mesMaxStr = String(ultimoDia.getMonth() + 1).padStart(2, "0");
+    const diaMaxStr = String(ultimoDia.getDate()).padStart(2, "0");
+
+    return {
+      inicio: `${anhoFinal}-${mesMinStr}-01 00:00:00`,
+      fin: `${anhoFinal}-${mesMaxStr}-${diaMaxStr} 23:59:59`,
+    };
+  }
+
+  private combinarFuncionarios(
+    resultados: Record<string, VentaFuncionarioItem[]>
+  ): VentaFuncionarioItem[] {
+    const mapa = new Map<number, VentaFuncionarioItem>();
+
+    for (const items of Object.values(resultados)) {
+      for (const item of items || []) {
+        const existente = mapa.get(item.id);
+        if (existente) {
+          existente.total += item.total || 0;
+          existente.cantidad += item.cantidad || 0;
+        } else {
+          mapa.set(item.id, { ...item });
+        }
+      }
+    }
+
+    return Array.from(mapa.values());
   }
 
   private procesarDatos(data: VentaFuncionarioItem[]): VentaFuncionarioDatosGraficoProcesados {

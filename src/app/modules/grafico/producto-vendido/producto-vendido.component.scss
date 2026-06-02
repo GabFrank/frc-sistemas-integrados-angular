@@ -291,3 +291,112 @@ $border: #555;
     color: $primary-light;
     white-space: nowrap;
 }
+
+// Chips de productos buscados
+.product-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.product-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba($primary, 0.15);
+    border: 1px solid rgba($primary, 0.3);
+    border-radius: 16px;
+    color: $text;
+    font-size: 0.8rem;
+    white-space: nowrap;
+
+    .chip-remove {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        color: $text-secondary;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: #F44336;
+        }
+    }
+}
+
+// Botón limpiar filtros
+.clear-filters-btn {
+    color: $text-secondary;
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: #F44336;
+        background: rgba(#F44336, 0.1);
+    }
+}
+
+// Mensaje sin datos
+.no-data-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    background: $background;
+    border: 1px dashed $border;
+    border-radius: 12px;
+    margin-top: 20px;
+
+    mat-icon {
+        font-size: 24px;
+        color: #FF9800;
+    }
+
+    span {
+        color: $text-secondary;
+        font-size: 1rem;
+    }
+}
+
+// Card de detalles
+.details-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid $border;
+    margin-bottom: 16px;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: $primary-light;
+}
+
+.details-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text;
+    margin: 0 0 12px 0;
+}
+
+.filter-field--limit {
+    max-width: 100px;
+}

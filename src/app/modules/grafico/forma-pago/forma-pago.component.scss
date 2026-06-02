@@ -83,6 +83,11 @@ $border: #555;
         max-width: 300px;
     }
 
+    &.filter-rango {
+        min-width: 200px;
+        max-width: 280px;
+    }
+
     ::ng-deep {
         .mat-mdc-form-field-subscript-wrapper {
             display: none;
@@ -289,9 +294,14 @@ $border: #555;
     overflow-y: auto;
 }
 
+.detail-item-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
 .detail-item {
     display: grid;
-    grid-template-columns: 6px 40px 1fr auto;
+    grid-template-columns: 6px 40px 1fr auto auto;
     grid-template-rows: auto auto;
     gap: 0 12px;
     padding: 12px;
@@ -299,14 +309,27 @@ $border: #555;
     border-radius: 8px;
     border: 1px solid transparent;
     transition: all 0.2s ease;
+    cursor: pointer;
+    outline: none;
 
     &:hover {
         border-color: $primary;
         background: lighten($background-dark, 3%);
     }
 
+    &:focus-visible {
+        border-color: $accent;
+        box-shadow: 0 0 0 2px rgba($accent, 0.3);
+    }
+
     &.no-data {
         opacity: 0.5;
+    }
+
+    &.expanded {
+        border-color: $primary;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
     }
 }
 
@@ -382,8 +405,23 @@ $border: #555;
     }
 }
 
+.item-expand-icon {
+    grid-row: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: $text-secondary;
+        transition: transform 0.2s ease;
+    }
+}
+
 .progress-bar-container {
-    grid-column: 3 / 5;
+    grid-column: 3 / 6;
     height: 4px;
     background: rgba($text-secondary, 0.2);
     border-radius: 2px;
@@ -396,6 +434,47 @@ $border: #555;
     border-radius: 2px;
     transition: width 0.3s ease;
 }
+
+// Sección de desglose expandible
+.desglose-section {
+    background: lighten($background-dark, 2%);
+    border: 1px solid $border;
+    border-top: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    padding: 16px 20px;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 200px;
+    }
+}
+
+.desglose-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: $text-secondary;
+    font-size: 0.85rem;
+    font-style: italic;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: $warning;
+        flex-shrink: 0;
+    }
+}
+
+// Rango de días (obsoleto - movido a datepicker)
 
 // Mensaje sin datos
 .no-data-message {
