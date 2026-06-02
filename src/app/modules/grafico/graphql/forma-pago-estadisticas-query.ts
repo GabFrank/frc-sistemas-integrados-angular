@@ -11,6 +11,13 @@ export const formaPagoEstadisticasQuery = gql`
       cantidadTransacciones
       totalMonto
       porcentaje
+      desgloseMoneda {
+        monedaId
+        denominacion
+        simbolo
+        cantidadTransacciones
+        totalMonto
+      }
     }
   }
 `;
@@ -26,6 +33,13 @@ export const formaPagoEstadisticasPorSucursalQuery = gql`
       cantidadTransacciones
       totalMonto
       porcentaje
+      desgloseMoneda {
+        monedaId
+        denominacion
+        simbolo
+        cantidadTransacciones
+        totalMonto
+      }
     }
   }
 `;
@@ -44,6 +58,13 @@ export const formaPagoEstadisticasConFiltrosQuery = gql`
       cantidadTransacciones
       totalMonto
       porcentaje
+      desgloseMoneda {
+        monedaId
+        denominacion
+        simbolo
+        cantidadTransacciones
+        totalMonto
+      }
     }
   }
 `;

@@ -32,8 +32,13 @@ import {
 import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-grafico-procesados.model";
 import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
 import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
+import { FormaPagoMonedaDesglose } from "./interfaces/forma-pago-moneda-desglose.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import {
+  etiquetaMoneda,
+  formatoMontoMoneda,
+} from "./utils/forma-pago-moneda-format.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -185,8 +190,12 @@ export class FormaPagoComponent implements OnInit {
         if (existente) {
           existente.totalMonto += item.totalMonto;
           existente.cantidadTransacciones += item.cantidadTransacciones;
+          this.combinarDesgloseMoneda(existente, item.desgloseMoneda);
         } else {
-          mapa.set(clave, { ...item });
+          mapa.set(clave, {
+            ...item,
+            desgloseMoneda: (item.desgloseMoneda || []).map((d) => ({ ...d })),
+          });
         }
       }
     }
@@ -223,6 +232,7 @@ export class FormaPagoComponent implements OnInit {
         color: GRAFICO_PALETA_BARRAS[i % GRAFICO_PALETA_BARRAS.length],
         icono: this.resolverIconoFormaPago(e.descripcion),
         expandido: false,
+        desglose: this.procesarDesgloseMoneda(e.desgloseMoneda),
       })
     );
 
@@ -281,6 +291,47 @@ export class FormaPagoComponent implements OnInit {
       totalTransacciones: totalTransNum.toLocaleString("es-PY"),
       hayDatos: totalTransNum > 0,
     };
+  }
+
+  private combinarDesgloseMoneda(
+    destino: FormaPagoEstadistica,
+    origen?: FormaPagoMonedaDesglose[]
+  ): void {
+    if (!origen?.length) {
+      return;
+    }
+    if (!destino.desgloseMoneda) {
+      destino.desgloseMoneda = [];
+    }
+    for (const item of origen) {
+      const existente = destino.desgloseMoneda.find(
+        (d) => d.monedaId === item.monedaId
+      );
+      if (existente) {
+        existente.totalMonto += item.totalMonto;
+        existente.cantidadTransacciones += item.cantidadTransacciones;
+      } else {
+        destino.desgloseMoneda.push({ ...item });
+      }
+    }
+  }
+
+  private procesarDesgloseMoneda(
+    desglose?: FormaPagoMonedaDesglose[]
+  ): FormaPagoDetalleProcesado["desglose"] {
+    return (desglose || [])
+      .filter((d) => d.totalMonto > 0)
+      .sort((a, b) => b.totalMonto - a.totalMonto)
+      .map((d) => ({
+        moneda: etiquetaMoneda(d.denominacion),
+        monto: d.totalMonto,
+        montoFormateado: formatoMontoMoneda(
+          d.totalMonto,
+          d.simbolo,
+          d.denominacion
+        ),
+        cantidad: d.cantidadTransacciones,
+      }));
   }
 
   private resolverIconoFormaPago(desc: string): string {

@@ -222,18 +222,36 @@
                 </div>
               </div>
 
-              <!-- Zona de desglose expandible (preparada para datos de moneda del backend) -->
               <div
                 *ngIf="item.expandido"
                 class="desglose-section"
               >
-                <div class="desglose-placeholder">
-                  <mat-icon>info_outline</mat-icon>
-                  <span>
-                    Desglose por moneda disponible próximamente.
-                    El detalle se mostrará aquí cuando el backend provea la información.
-                  </span>
-                </div>
+                <ng-container *ngIf="item.desglose?.length; else sinDesgloseMoneda">
+                  <div class="desglose-header">
+                    <mat-icon>currency_exchange</mat-icon>
+                    <span>Desglose por moneda</span>
+                  </div>
+                  <div class="desglose-list">
+                    <div
+                      *ngFor="let moneda of item.desglose"
+                      class="desglose-row"
+                    >
+                      <div class="desglose-moneda">
+                        <span class="desglose-moneda-nombre">{{ moneda.moneda }}</span>
+                        <span class="desglose-moneda-cantidad">
+                          {{ moneda.cantidad | number: "1.0-0" }} transacciones
+                        </span>
+                      </div>
+                      <span class="desglose-monto">{{ moneda.montoFormateado }}</span>
+                    </div>
+                  </div>
+                </ng-container>
+                <ng-template #sinDesgloseMoneda>
+                  <div class="desglose-placeholder">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>No hay desglose por moneda para este método de pago.</span>
+                  </div>
+                </ng-template>
               </div>
             </div>
           </div>

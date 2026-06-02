@@ -1,3 +1,5 @@
+import { FormaPagoDesgloseMoneda } from "./forma-pago-desglose.model";
+
 export interface FormaPagoDetalleProcesado {
   descripcion: string;
   montoFormateado: string;
@@ -6,4 +8,5 @@ export interface FormaPagoDetalleProcesado {
   color: string;
   icono: string;
   expandido: boolean;
+  desglose: FormaPagoDesgloseMoneda[];
 }
