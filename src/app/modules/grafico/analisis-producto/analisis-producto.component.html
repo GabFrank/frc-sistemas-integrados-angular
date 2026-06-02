@@ -5,8 +5,8 @@
         </mat-button-toggle-group>
 
         <mat-form-field appearance="outline" class="filter-field filter-small">
-            <mat-label>Año</mat-label>
-            <mat-select [formControl]="anhoControl">
+            <mat-label>Años</mat-label>
+            <mat-select [formControl]="anhoControl" multiple>
                 <mat-option *ngFor="let anho of anhos" [value]="anho">{{ anho }}</mat-option>
             </mat-select>
         </mat-form-field>

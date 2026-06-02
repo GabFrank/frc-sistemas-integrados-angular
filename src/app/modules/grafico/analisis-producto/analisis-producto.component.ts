@@ -19,7 +19,7 @@ import {
   PdvSearchProductoDialogComponent,
   PdvSearchProductoResponseData
 } from '../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
-import { dateToString } from '../../../commons/core/utils/dateUtils';
+import { dateToString, listarAnhosGrafico } from '../../../commons/core/utils/dateUtils';
 import { AnalisisProductoModoRanking } from './interfaces/analisis-producto-modo-ranking.type';
 import { AnalisisProductoNivelVenta } from './interfaces/analisis-producto-nivel-venta.type';
 import { AnalisisProductoVistaTemporal } from './interfaces/analisis-producto-vista-temporal.type';
@@ -60,10 +60,10 @@ export class AnalisisProductoComponent implements OnInit {
   limitControl = new FormControl<number>(15);
   modoControl = new FormControl<AnalisisProductoModoRanking>('mas');
   vistaTemporalControl = new FormControl<AnalisisProductoVistaTemporal>('dia');
-  anhoControl = new FormControl<number>(new Date().getFullYear());
+  anhoControl = new FormControl<number[]>([new Date().getFullYear()]);
   productosFiltro: Producto[] = [];
 
-  anhos: number[] = [];
+  anhos: number[] = listarAnhosGrafico();
   minFechaAnho = new Date(new Date().getFullYear(), 0, 1);
   maxFechaAnho = new Date();
 
@@ -103,33 +103,41 @@ export class AnalisisProductoComponent implements OnInit {
   private paleta = ['#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4'];
 
   ngOnInit(): void {
-    this.inicializarAnhos();
     this.inicializarRangoPorDefecto();
     this.configurarSincronizacionAnho();
     this.cargarMetadata();
     this.configurarDataStream();
   }
 
-  private inicializarAnhos(): void {
-    const anhoActual = new Date().getFullYear();
-    this.anhos = Array.from({ length: 5 }, (_, i) => anhoActual - i);
-  }
-
   private inicializarRangoPorDefecto(): void {
     const hoy = new Date();
     const anho = hoy.getFullYear();
-    this.anhoControl.setValue(anho, { emitEvent: false });
-    this.actualizarLimitesAnho(anho);
+    this.anhoControl.setValue([anho], { emitEvent: false });
+    this.actualizarLimitesAnhos([anho]);
     const inicioMes = new Date(anho, hoy.getMonth(), 1);
     this.ajustandoRango = true;
     this.fechaRangoGroup.setValue({ inicio: inicioMes, fin: hoy }, { emitEvent: false });
     this.ajustandoRango = false;
   }
 
+  private normalizarAnhosSeleccionados(anhosSel?: number[] | null): number[] {
+    const anhos = anhosSel ?? this.anhoControl.value ?? [];
+    if (!anhos.length) {
+      return [new Date().getFullYear()];
+    }
+    return Array.from(
+      new Set(
+        anhos
+          .map((a) => Number(a))
+          .filter((a) => Number.isFinite(a))
+      )
+    ).sort((a, b) => a - b);
+  }
+
   private configurarSincronizacionAnho(): void {
-    this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(anho => {
-      if (this.ajustandoRango || anho == null) return;
-      this.ajustarRangoPorAnho(anho);
+    this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((anhos) => {
+      if (this.ajustandoRango) return;
+      this.ajustarRangoPorAnhos(this.normalizarAnhosSeleccionados(anhos));
     });
 
     this.fechaRangoGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
@@ -138,18 +146,23 @@ export class AnalisisProductoComponent implements OnInit {
     });
   }
 
-  private actualizarLimitesAnho(anho: number): void {
+  private actualizarLimitesAnhos(anhos: number[]): void {
     const hoy = new Date();
     hoy.setHours(23, 59, 59, 999);
-    this.minFechaAnho = new Date(anho, 0, 1);
-    this.maxFechaAnho = anho === hoy.getFullYear() ? hoy : new Date(anho, 11, 31);
+    const anhoMin = Math.min(...anhos);
+    const anhoMax = Math.max(...anhos);
+    this.minFechaAnho = new Date(anhoMin, 0, 1);
+    this.maxFechaAnho =
+      anhoMax === hoy.getFullYear() ? hoy : new Date(anhoMax, 11, 31);
   }
 
-  private ajustarRangoPorAnho(anho: number): void {
+  private ajustarRangoPorAnhos(anhos: number[]): void {
     const hoy = new Date();
-    const inicio = new Date(anho, 0, 1);
-    const fin = anho === hoy.getFullYear() ? hoy : new Date(anho, 11, 31);
-    this.actualizarLimitesAnho(anho);
+    const anhoMin = Math.min(...anhos);
+    const anhoMax = Math.max(...anhos);
+    const inicio = new Date(anhoMin, 0, 1);
+    const fin = anhoMax === hoy.getFullYear() ? hoy : new Date(anhoMax, 11, 31);
+    this.actualizarLimitesAnhos(anhos);
     this.ajustandoRango = true;
     this.fechaRangoGroup.setValue({ inicio, fin });
     this.ajustandoRango = false;
@@ -157,15 +170,28 @@ export class AnalisisProductoComponent implements OnInit {
 
   private syncAnhoDesdeRango(): void {
     const inicio = this.fechaRangoGroup.value.inicio;
-    if (!inicio) return;
-    const anho = inicio.getFullYear();
-    if (this.anhoControl.value === anho) {
-      this.actualizarLimitesAnho(anho);
+    const fin = this.fechaRangoGroup.value.fin;
+    if (!inicio || !fin) return;
+
+    const anhoIni = inicio.getFullYear();
+    const anhoFin = fin.getFullYear();
+    const anhosEnRango: number[] = [];
+    for (let y = anhoIni; y <= anhoFin; y++) {
+      anhosEnRango.push(y);
+    }
+
+    const actuales = this.normalizarAnhosSeleccionados();
+    const mismos =
+      actuales.length === anhosEnRango.length &&
+      actuales.every((a, i) => a === anhosEnRango[i]);
+
+    this.actualizarLimitesAnhos(anhosEnRango);
+    if (mismos) {
       return;
     }
+
     this.ajustandoRango = true;
-    this.anhoControl.setValue(anho, { emitEvent: false });
-    this.actualizarLimitesAnho(anho);
+    this.anhoControl.setValue(anhosEnRango, { emitEvent: false });
     this.ajustandoRango = false;
   }
 

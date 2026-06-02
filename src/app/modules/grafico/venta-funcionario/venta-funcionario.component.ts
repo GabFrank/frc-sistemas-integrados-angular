@@ -183,6 +183,7 @@ export class VentaFuncionarioComponent implements OnInit {
     this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
     this.funcionariosSeleccionadosSubject.next([]);
+    this.filtrar();
     this.cdr.markForCheck();
   }
 
@@ -227,9 +228,7 @@ export class VentaFuncionarioComponent implements OnInit {
     sucIds: number[],
     funcionarios: Usuario[]
   ): Observable<VentaFuncionarioItem[]> {
-    const anhoFinal =
-      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
+    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
     const sucursalesFinal =
       this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};

@@ -20,7 +20,7 @@ const MESES_DEL_ANHO = Array.from({ length: 12 }, (_, i) => i + 1);
  * (puede abarcar más de un mes).
  */
 export class GraficoFiltrosPeriodo {
-  anhoControl = new FormControl<number>(new Date().getFullYear());
+  anhoControl = new FormControl<number[]>([new Date().getFullYear()]);
   mesControl = new FormControl<number[]>([new Date().getMonth() + 1]);
   fechaRangoGroup = new FormGroup({
     inicio: new FormControl<Date | null>(null),
@@ -41,7 +41,7 @@ export class GraficoFiltrosPeriodo {
   private ultimaSeleccionMeses: number[] = [new Date().getMonth() + 1];
 
   limpiar(): void {
-    this.anhoControl.setValue(new Date().getFullYear());
+    this.anhoControl.setValue([new Date().getFullYear()]);
     this.mesControl.setValue([new Date().getMonth() + 1]);
     this.ultimaSeleccionMeses = [new Date().getMonth() + 1];
     this.fechaRangoGroup.setValue({ inicio: null, fin: null });
@@ -118,6 +118,22 @@ export class GraficoFiltrosPeriodo {
     };
   }
 
+  normalizarAnhosSeleccionados(
+    anhosSel?: number[] | null
+  ): number[] {
+    const anhos = anhosSel ?? this.anhoControl.value ?? [];
+    if (!anhos.length) {
+      return [new Date().getFullYear()];
+    }
+    return Array.from(
+      new Set(
+        anhos
+          .map((a) => Number(a))
+          .filter((a) => Number.isFinite(a))
+      )
+    ).sort((a, b) => a - b);
+  }
+
   resolverRangosConsulta(anho: number): RangoFechaPeriodo[] {
     const mesesSel = this.mesControl.value;
 
@@ -130,8 +146,17 @@ export class GraficoFiltrosPeriodo {
     return meses.map((mes) => this.calcularRangoMes(anho, mes));
   }
 
+  /** Rangos para todos los años seleccionados (cada año × meses/rango activo). */
+  resolverRangosConsultaMulti(): RangoFechaPeriodo[] {
+    const anhos = this.normalizarAnhosSeleccionados();
+    return anhos.flatMap((anho) => this.resolverRangosConsulta(anho));
+  }
+
   actualizarEstadoRangoDias(): void {
-    const anho = this.anhoControl.value || new Date().getFullYear();
+    const anhos = this.normalizarAnhosSeleccionados();
+    const anhoMin = Math.min(...anhos);
+    const anhoMax = Math.max(...anhos);
+    const hoy = new Date();
     const tieneMeses = this.tieneMesesSeleccionados();
 
     if (tieneMeses) {
@@ -145,16 +170,19 @@ export class GraficoFiltrosPeriodo {
       this.fechaRangoGroup.disable({ emitEvent: false });
     } else {
       this.rangoDiasActivo = true;
-      this.minFechaRango = new Date(anho, 0, 1);
-      this.maxFechaRango = new Date(anho, 11, 31);
+      this.minFechaRango = new Date(anhoMin, 0, 1);
+      this.maxFechaRango =
+        anhoMax === hoy.getFullYear()
+          ? new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+          : new Date(anhoMax, 11, 31);
       this.fechaRangoGroup.enable({ emitEvent: false });
     }
   }
 
   configurarLimitesRangoDias(
     untilDestroyedPipe: (
-      source: Observable<[number | null, number[] | null]>
-    ) => Observable<[number | null, number[] | null]>,
+      source: Observable<[number[] | null, number[] | null]>
+    ) => Observable<[number[] | null, number[] | null]>,
     onChange: () => void
   ): void {
     combineLatest([

@@ -192,6 +192,7 @@ export class ProductoVendidoComponent implements OnInit {
     this.productosSeleccionadosIds = [];
     this.productosSeleccionadosNombres = [];
     this.productosIdsBusquedaSubject.next([]);
+    this.filtrar();
     this.cdr.markForCheck();
   }
 
@@ -263,9 +264,7 @@ export class ProductoVendidoComponent implements OnInit {
     limit: number,
     productoIds: number[]
   ): Observable<ProductoVendidoEstadistica[]> {
-    const anhoFinal =
-      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
+    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
 
     const sucursalesFinal =
       this.filtroSucursales.resolverParaConsultaMulti(sucIds);

@@ -101,6 +101,7 @@ export class FormaPagoComponent implements OnInit {
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
+    this.filtrar();
     this.cdr.markForCheck();
   }
 
@@ -143,9 +144,7 @@ export class FormaPagoComponent implements OnInit {
   private consultarDatos(
     sucIds: number[]
   ): Observable<FormaPagoDatosGraficoProcesados> {
-    const anhoFinal =
-      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
+    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
     const sucursalesFinal =
       this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<FormaPagoEstadistica[]>> = {};

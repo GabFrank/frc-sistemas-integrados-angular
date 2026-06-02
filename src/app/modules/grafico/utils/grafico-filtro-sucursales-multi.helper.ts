@@ -13,7 +13,10 @@ export class GraficoFiltroSucursalesMulti {
 
   private ultimaSeleccion: number[] = [];
 
-  onSeleccionChange(sucursalesSel: number[] | null): void {
+  onSeleccionChange(
+    sucursalesSel: number[] | null,
+    alFinalizar?: () => void
+  ): void {
     const sucursales = sucursalesSel || [];
     const teniaTodos = this.ultimaSeleccion.includes(this.todosValor);
     const tieneTodos = sucursales.includes(this.todosValor);
@@ -25,10 +28,12 @@ export class GraficoFiltroSucursalesMulti {
       this.control.setValue(nuevaSeleccion, { emitEvent: false });
       this.ultimaSeleccion = nuevaSeleccion;
       this.control.updateValueAndValidity({ emitEvent: true });
+      alFinalizar?.();
       return;
     }
 
     this.ultimaSeleccion = sucursales;
+    alFinalizar?.();
   }
 
   limpiar(): void {

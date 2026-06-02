@@ -94,6 +94,7 @@ export class GastoCategoriaComponent implements OnInit {
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
     this.filtroPeriodo.limpiar();
+    this.filtrar();
     this.cdr.markForCheck();
   }
 
@@ -120,9 +121,7 @@ export class GastoCategoriaComponent implements OnInit {
   private consultarDatos(
     sucIds: number[]
   ): Observable<GastoCategoriaItem[]> {
-    const anhoFinal =
-      this.filtroPeriodo.anhoControl.value || new Date().getFullYear();
-    const rangos = this.filtroPeriodo.resolverRangosConsulta(anhoFinal);
+    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
     const sucursalesFinal =
       this.filtroSucursales.resolverParaConsultaMulti(sucIds);
     const queries: Record<string, Observable<GastoCategoriaItem[]>> = {};

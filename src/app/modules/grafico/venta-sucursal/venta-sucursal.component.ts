@@ -12,6 +12,7 @@ import {
   debounceTime,
   filter,
   finalize,
+  forkJoin,
   map,
   switchMap,
   tap,
@@ -49,9 +50,9 @@ export class VentaSucursalComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<VentaSucursalDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
-  private readonly rangoSubject = new BehaviorSubject<RangoFechaGrafico | null>(
-    null
-  );
+  private readonly rangoSubject = new BehaviorSubject<
+    RangoFechaGrafico | RangoFechaGrafico[] | null
+  >(null);
 
   private datosCrudos: VentaSucursalItem[] = [];
 
@@ -71,27 +72,65 @@ export class VentaSucursalComponent implements OnInit {
     this.configurarDataStream();
   }
 
-  onRangoFechaChange(rango: RangoFechaGrafico): void {
+  onRangoFechaChange(rango: RangoFechaGrafico | RangoFechaGrafico[]): void {
     this.rangoSubject.next(rango);
   }
 
   private configurarDataStream(): void {
     this.rangoSubject
       .pipe(
-        filter((rango): rango is RangoFechaGrafico => rango !== null),
+        filter((rango) => rango !== null),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap(({ inicio, fin }) =>
-          this.graficoService.obtenerVentasPorSucursal(inicio, fin).pipe(
-            finalize(() => this.cargandoSubject.next(false))
-          )
-        ),
+        switchMap((rango) => this.consultarVentasPorRangos(rango)),
         untilDestroyed(this)
       )
       .subscribe((datos) => {
         this.datosCrudos = datos || [];
         this.datosSubject.next(this.procesarDatos(this.datosCrudos));
       });
+  }
+
+  private consultarVentasPorRangos(
+    rango: RangoFechaGrafico | RangoFechaGrafico[]
+  ): Observable<VentaSucursalItem[]> {
+    const rangos = Array.isArray(rango) ? rango : [rango];
+
+    if (rangos.length === 1) {
+      const { inicio, fin } = rangos[0];
+      return this.graficoService.obtenerVentasPorSucursal(inicio, fin).pipe(
+        finalize(() => this.cargandoSubject.next(false))
+      );
+    }
+
+    const queries = rangos.map((r) =>
+      this.graficoService.obtenerVentasPorSucursal(r.inicio, r.fin)
+    );
+
+    return forkJoin(queries).pipe(
+      map((listas) => this.combinarVentasPorSucursal(listas)),
+      finalize(() => this.cargandoSubject.next(false))
+    );
+  }
+
+  private combinarVentasPorSucursal(
+    listas: VentaSucursalItem[][]
+  ): VentaSucursalItem[] {
+    const mapa = new Map<string, VentaSucursalItem>();
+
+    for (const items of listas) {
+      for (const item of items || []) {
+        const clave = String(item.sucId ?? item.nombre ?? "");
+        const existente = mapa.get(clave);
+        if (existente) {
+          existente.total = (existente.total || 0) + (item.total || 0);
+        } else {
+          mapa.set(clave, { ...item });
+        }
+      }
+    }
+
+    return Array.from(mapa.values());
   }
 
   private procesarDatos(data: VentaSucursalItem[]): VentaSucursalDatosGraficoProcesados {

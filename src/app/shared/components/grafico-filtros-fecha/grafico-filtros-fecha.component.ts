@@ -32,9 +32,9 @@ export class GraficoFiltrosFechaComponent implements OnInit {
   @Input() etiquetaDia = "Día Específico";
   @Input() mostrarBotonLimpiar = true;
 
-  @Output() rangoChange = new EventEmitter<RangoFechaGrafico>();
+  @Output() rangoChange = new EventEmitter<RangoFechaGrafico | RangoFechaGrafico[]>();
 
-  anhoControl = new FormControl<number>(new Date().getFullYear());
+  anhoControl = new FormControl<number[]>([new Date().getFullYear()]);
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
   fechaControl = new FormControl<Date | null>(null);
 
@@ -83,22 +83,59 @@ export class GraficoFiltrosFechaComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.anhoControl.setValue(new Date().getFullYear());
+    this.anhoControl.setValue([new Date().getFullYear()]);
     this.mesControl.setValue(new Date().getMonth() + 1);
     this.fechaControl.setValue(null);
   }
 
+  private normalizarAnhos(anhosSel?: number[] | null): number[] {
+    const anhos = anhosSel ?? this.anhoControl.value ?? [];
+    if (!anhos.length) {
+      return [new Date().getFullYear()];
+    }
+    return Array.from(
+      new Set(
+        anhos
+          .map((a) => Number(a))
+          .filter((a) => Number.isFinite(a))
+      )
+    ).sort((a, b) => a - b);
+  }
+
   private emitirRangoActual(): void {
-    const anho = this.anhoControl.value ?? new Date().getFullYear();
+    const anhos = this.normalizarAnhos();
     const mes = this.mesControl.value;
     const fechaDia = this.fechaControl.value;
-    const periodo = generarRangoFechaGrafico(anho, mes, fechaDia);
 
-    this.rangoChange.emit({
-      ...periodo,
-      anho,
-      mes,
-      fechaDia,
+    if (fechaDia) {
+      const anho = fechaDia.getFullYear();
+      const periodo = generarRangoFechaGrafico(anho, mes, fechaDia);
+      this.rangoChange.emit({
+        ...periodo,
+        anho,
+        anhos: [anho],
+        mes,
+        fechaDia,
+      });
+      return;
+    }
+
+    const rangos: RangoFechaGrafico[] = anhos.map((anho) => {
+      const periodo = generarRangoFechaGrafico(anho, mes, null);
+      return {
+        ...periodo,
+        anho,
+        anhos,
+        mes,
+        fechaDia: null,
+      };
     });
+
+    if (rangos.length === 1) {
+      this.rangoChange.emit(rangos[0]);
+      return;
+    }
+
+    this.rangoChange.emit(rangos);
   }
 }

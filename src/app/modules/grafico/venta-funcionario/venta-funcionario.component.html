@@ -16,7 +16,7 @@
         [formControl]="filtroSucursales.control"
         multiple
         placeholder="Todas"
-        (selectionChange)="filtroSucursales.onSeleccionChange($event.value)"
+        (selectionChange)="filtroSucursales.onSeleccionChange($event.value, filtrar.bind(this))"
       >
         <mat-option [value]="filtroSucursales.todosValor">Todos</mat-option>
         <mat-option
@@ -33,8 +33,8 @@
       fxFlex="12%"
       appearance="outline"
     >
-      <mat-label>Año</mat-label>
-      <mat-select [formControl]="filtroPeriodo.anhoControl">
+      <mat-label>Años</mat-label>
+      <mat-select [formControl]="filtroPeriodo.anhoControl" multiple>
         <mat-option
           *ngFor="let y of filtroPeriodo.anhos"
           [value]="y"
