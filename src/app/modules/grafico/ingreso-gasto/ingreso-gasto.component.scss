@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 :host {
   display: block;
   height: 100%;
@@ -5,26 +7,6 @@
 }
 
 .ingreso-gasto-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 16px;
-  background-color: #303030;
-  box-sizing: border-box;
-
-  &__filtros {
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-
-  .filter-field {
-    font-size: 14px;
-
-    &--anho {
-      width: 120px;
-    }
-  }
-
   &__grafico {
     flex: 1;
     min-height: 0;

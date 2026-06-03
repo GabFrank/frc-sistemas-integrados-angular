@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 $primary: #689F38;
 $primary-light: #8BC34A;
 $accent: #009688;
@@ -8,10 +10,6 @@ $text-secondary: #9E9E9E;
 $border: #555;
 
 .producto-vendido-container {
-    padding: 16px;
-    background: $background-dark;
-    color: $text;
-    position: relative;
     max-height: 100%;
 }
 
@@ -43,43 +41,6 @@ $border: #555;
 .subtitle {
     color: $text-secondary;
     font-size: 0.9rem;
-}
-
-.filters-section {
-    background: $background;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid $border;
-    margin-bottom: 20px;
-    row-gap: 8px;
-}
-
-.filters-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.filter-field {
-    flex: 1;
-    min-width: 140px;
-    max-width: 200px;
-
-    &.filter-rango {
-        min-width: 260px;
-        max-width: 340px;
-        flex: 1.4;
-
-        &.filter-rango--inactivo {
-            opacity: 0.55;
-        }
-    }
-}
-
-.sucursal-filter,
-.familia-filter {
-    max-width: 250px;
 }
 
 .loading-overlay {
@@ -301,74 +262,6 @@ $border: #555;
     font-size: 1.05rem;
     color: $primary-light;
     white-space: nowrap;
-}
-
-// Chips de productos buscados
-.product-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-}
-
-.product-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: rgba($primary, 0.15);
-    border: 1px solid rgba($primary, 0.3);
-    border-radius: 16px;
-    color: $text;
-    font-size: 0.8rem;
-    white-space: nowrap;
-
-    .chip-remove {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-        cursor: pointer;
-        color: $text-secondary;
-        transition: color 0.2s ease;
-
-        &:hover {
-            color: #F44336;
-        }
-    }
-}
-
-// Botón limpiar filtros
-.clear-filters-btn {
-    color: $text-secondary;
-    transition: all 0.2s ease;
-
-    &:hover {
-        color: #F44336;
-        background: rgba(#F44336, 0.1);
-    }
-}
-
-// Mensaje sin datos
-.no-data-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px;
-    background: $background;
-    border: 1px dashed $border;
-    border-radius: 12px;
-    margin-top: 20px;
-
-    mat-icon {
-        font-size: 24px;
-        color: #FF9800;
-    }
-
-    span {
-        color: $text-secondary;
-        font-size: 1rem;
-    }
 }
 
 // Card de detalles

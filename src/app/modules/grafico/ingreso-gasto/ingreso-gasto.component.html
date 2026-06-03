@@ -1,14 +1,8 @@
-<div class="ingreso-gasto-layout">
-  <div
-    class="ingreso-gasto-layout__filtros"
-    fxLayout="row"
-    fxLayoutGap="12px"
-    fxLayoutAlign="start center"
-  >
+<div class="ingreso-gasto-layout grafico-pantalla">
+  <div class="grafico-filtros">
     <mat-form-field
-      fxFlex="35%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
     >
       <mat-label>Sucursales</mat-label>
       <mat-select
@@ -29,9 +23,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="25%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--anho"
     >
       <mat-label>Años</mat-label>
       <mat-select
@@ -48,16 +41,18 @@
       <mat-icon matPrefix>calendar_today</mat-icon>
     </mat-form-field>
 
-    <button
-      mat-icon-button
-      type="button"
-      (click)="limpiarFiltros()"
-      matTooltip="Limpiar filtros"
-      aria-label="Limpiar filtros"
-      class="clear-btn"
-    >
-      <mat-icon>filter_alt_off</mat-icon>
-    </button>
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
   </div>
 
   <ng-container *ngIf="vista$ | async as vista">

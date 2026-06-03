@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 // Colores del sistema
 $primary: #689F38;
 $primary-light: #8BC34A;
@@ -13,139 +15,17 @@ $text: #E0E0E0;
 $text-secondary: #9E9E9E;
 $border: #555;
 
-// Contenedor principal
+// Contenedor principal: ocupa alto del tab y reparte espacio al gráfico
 .forma-pago-container {
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
     min-height: calc(100vh - 120px);
-    background: $background-dark;
-    overflow-y: auto;
-    color: $text;
-    position: relative;
-}
+    height: 100%;
+    overflow: hidden;
 
-// Encabezado
-.header-section {
-    margin-bottom: 16px;
-    text-align: center;
-}
-
-.title-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
-.title-icon {
-    font-size: 28px;
-    width: 28px;
-    height: 28px;
-    color: $primary;
-}
-
-.title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: $text;
-    margin: 0;
-}
-
-.subtitle {
-    color: $text-secondary;
-    font-size: 0.85rem;
-    margin: 0;
-}
-
-// Sección de Filtros
-.filters-section {
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: $background;
-    border-radius: 10px;
-    border: 1px solid $border;
-}
-
-.filters-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.filter-field {
-    flex: 1;
-    min-width: 150px;
-    max-width: 250px;
-
-    &.sucursal-filter {
-        min-width: 200px;
-        max-width: 300px;
-    }
-
-    &.filter-rango {
-        min-width: 200px;
-        max-width: 280px;
-
-        &.filter-rango--inactivo {
-            opacity: 0.55;
-        }
-    }
-
-    ::ng-deep {
-        .mat-mdc-form-field-subscript-wrapper {
-            display: none;
-        }
-
-        .mat-mdc-text-field-wrapper {
-            background: $background-dark;
-        }
-
-        .mat-mdc-form-field-flex {
-            height: 40px;
-        }
-
-        .mdc-notched-outline__leading,
-        .mdc-notched-outline__notch,
-        .mdc-notched-outline__trailing {
-            border-color: $border;
-        }
-
-        .mat-mdc-form-field:hover .mdc-notched-outline__leading,
-        .mat-mdc-form-field:hover .mdc-notched-outline__notch,
-        .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
-            border-color: $primary;
-        }
-
-        .mat-mdc-select-value,
-        .mat-mdc-floating-label {
-            color: $text-secondary;
-        }
-
-        .mat-mdc-select-arrow {
-            color: $text-secondary;
-        }
-
-        .mat-icon {
-            color: $text-secondary;
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-        }
-    }
-}
-
-.clear-filters-btn {
-    color: $text-secondary;
-    transition: all 0.2s ease;
-
-    &:hover {
-        color: $warn;
-        background: rgba($warn, 0.1);
-    }
-
-    mat-icon {
-        font-size: 22px;
+    .grafico-filtros {
+        flex-shrink: 0;
+        margin-bottom: 16px;
     }
 }
 
@@ -164,10 +44,12 @@ $border: #555;
 // Grid principal
 .main-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    grid-template-columns: minmax(0, 1.15fr) minmax(340px, 1fr);
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    align-items: stretch;
     transition: opacity 0.2s ease;
 
     &.loading {
@@ -180,32 +62,55 @@ $border: #555;
 .chart-section {
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    min-width: 0;
 }
 
 .chart-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
     background: $background;
     border: 1px solid $border;
-    border-radius: 12px;
-    padding: 16px;
-    height: 100%;
-    min-height: 450px;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 8px;
+    box-sizing: border-box;
 
-    &:hover {
-        border-color: $primary;
+    ::ng-deep {
+        .frc-grafico-shell-host,
+        .grafico-shell {
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .grafico-shell__chart-area {
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            padding: 4px;
+            background: transparent;
+            border-radius: 0;
+        }
+
+        .grafico-shell__chart-instance {
+            width: 100%;
+            height: 100%;
+            min-height: 0 !important;
+        }
     }
-}
-
-.pie-chart {
-    width: 100%;
-    height: 420px;
 }
 
 // Sección de detalles
 .details-section {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 // Tarjetas de resumen
@@ -218,24 +123,22 @@ $border: #555;
 .summary-card {
     background: $background;
     border: 1px solid $border;
-    border-radius: 12px;
-    padding: 24px;
+    border-radius: 8px;
+    padding: 14px 16px;
     display: flex;
     align-items: center;
-    gap: 20px;
-    transition: all 0.2s ease;
-    min-height: 100px;
+    gap: 12px;
+    transition: border-color 0.2s ease;
+    min-height: 72px;
 
     &:hover {
         border-color: $primary;
-        transform: translateY(-4px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     }
 
     mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
     }
 
     &.total-monto {
@@ -266,19 +169,24 @@ $border: #555;
 }
 
 .card-value {
-    font-size: 1.6rem;
-    font-weight: 800;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: $text;
-    white-space: nowrap;
+    line-height: 1.2;
+    word-break: break-word;
 }
 
 // Lista de detalles
 .details-list {
     background: $background;
     border: 1px solid $border;
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 12px 16px;
     flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .list-title {
@@ -291,11 +199,12 @@ $border: #555;
 }
 
 .list-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: 350px;
-    overflow-y: auto;
 }
 
 .detail-item-wrapper {
@@ -542,29 +451,6 @@ $border: #555;
 
 // Rango de días (obsoleto - movido a datepicker)
 
-// Mensaje sin datos
-.no-data-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px;
-    background: $background;
-    border: 1px dashed $border;
-    border-radius: 12px;
-    margin-top: 20px;
-
-    mat-icon {
-        font-size: 24px;
-        color: $warning;
-    }
-
-    span {
-        color: $text-secondary;
-        font-size: 1rem;
-    }
-}
-
 // Estado de carga
 .loading-state {
     display: flex;
@@ -582,16 +468,21 @@ $border: #555;
 
 // Responsive
 @media (max-width: 1200px) {
+    .forma-pago-container {
+        overflow-y: auto;
+    }
+
     .main-grid {
         grid-template-columns: 1fr;
+        flex: none;
+    }
+
+    .chart-section {
+        min-height: 420px;
     }
 
     .chart-card {
         min-height: 400px;
-    }
-
-    .pie-chart {
-        height: 360px;
     }
 }
 
@@ -600,21 +491,15 @@ $border: #555;
         padding: 12px;
     }
 
-    .filters-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .filter-field {
+    .grafico-filtros__campo {
+        width: 100%;
         max-width: none;
-
-        &.sucursal-filter {
-            max-width: none;
-        }
     }
 
-    .clear-filters-btn {
-        align-self: flex-end;
+    .grafico-filtros__acciones {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-end;
     }
 
     .summary-cards {
@@ -640,17 +525,14 @@ $border: #555;
 }
 
 // Scrollbar personalizado
-.forma-pago-container::-webkit-scrollbar,
 .list-container::-webkit-scrollbar {
     width: 6px;
 }
 
-.forma-pago-container::-webkit-scrollbar-track,
 .list-container::-webkit-scrollbar-track {
     background: $background-dark;
 }
 
-.forma-pago-container::-webkit-scrollbar-thumb,
 .list-container::-webkit-scrollbar-thumb {
     background: $border;
     border-radius: 3px;

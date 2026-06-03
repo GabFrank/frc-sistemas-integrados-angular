@@ -1,11 +1,4 @@
-.filter-rango {
-  min-width: 260px;
-  max-width: 340px;
-
-  &--inactivo {
-    opacity: 0.55;
-  }
-}
+@import '../styles/grafico-filtros';
 
 :host {
   display: block;
@@ -14,20 +7,7 @@
 }
 
 .venta-sucursal-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-  padding: 16px;
-  background-color: #303030;
-  box-sizing: border-box;
-
-  &__filtros {
-    flex-wrap: wrap;
-    padding: 16px;
-    background: #424242;
-    border-radius: 8px;
-  }
+  gap: 0;
 
   &__grafico {
     flex: 1;

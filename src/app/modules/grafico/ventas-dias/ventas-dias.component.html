@@ -1,13 +1,8 @@
-<div class="ventas-dias-container">
-  <div
-    class="filtros-container"
-    fxLayout="row"
-    fxLayoutGap="12px"
-    fxLayoutAlign="start center"
-  >
+<div class="ventas-dias-container grafico-pantalla">
+  <div class="grafico-filtros">
     <mat-form-field
-      fxFlex="35%"
       appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
     >
       <mat-label>Sucursales</mat-label>
       <mat-select
@@ -27,15 +22,18 @@
       <mat-icon matPrefix>store</mat-icon>
     </mat-form-field>
 
-    <button
-      mat-icon-button
-      type="button"
-      (click)="limpiarFiltros()"
-      matTooltip="Limpiar filtros"
-      aria-label="Limpiar filtros"
-    >
-      <mat-icon>filter_alt_off</mat-icon>
-    </button>
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
   </div>
 
   <ng-container *ngIf="vista$ | async as vista">

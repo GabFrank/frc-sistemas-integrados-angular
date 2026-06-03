@@ -1,15 +1,8 @@
-<div class="producto-vendido-container">
-  <div
-    class="filters-section"
-    fxLayout="row wrap"
-    fxLayoutGap="12px"
-    fxLayoutAlign="start center"
-  >
+<div class="producto-vendido-container grafico-pantalla">
+  <div class="grafico-filtros">
     <mat-form-field
-      fxFlex="18%"
-      fxFlex.lt-lg="22%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
     >
       <mat-label>Sucursales</mat-label>
       <mat-select
@@ -30,10 +23,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="14%"
-      fxFlex.lt-lg="18%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--familia"
     >
       <mat-label>Familia</mat-label>
       <mat-select [formControl]="familiaControl">
@@ -48,10 +39,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="10%"
-      fxFlex.lt-lg="12%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--anho"
     >
       <mat-label>Años</mat-label>
       <mat-select [formControl]="filtroPeriodo.anhoControl" multiple>
@@ -66,10 +55,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="14%"
-      fxFlex.lt-lg="18%"
       appearance="outline"
-      class="filter-field"
+      class="grafico-filtros__campo grafico-filtros__campo--mes"
     >
       <mat-label>Meses</mat-label>
       <mat-select
@@ -88,10 +75,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="20%"
-      fxFlex.lt-lg="26%"
       appearance="outline"
-      class="filter-field filter-rango"
+      class="grafico-filtros__campo grafico-filtros__campo--rango filter-rango"
       [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
     >
       <mat-label>Rango de días</mat-label>
@@ -120,7 +105,7 @@
 
     <mat-form-field
       appearance="outline"
-      class="filter-field filter-field--limit"
+      class="grafico-filtros__campo grafico-filtros__campo--limit"
     >
       <mat-label>Cant.</mat-label>
       <mat-select [formControl]="limitControl">
@@ -136,7 +121,7 @@
     <button
       mat-stroked-button
       type="button"
-      class="btn-buscar-producto"
+      class="grafico-filtros__btn-secundario"
       (click)="buscarProductoEspecifico()"
       matTooltip="Buscar producto específico"
       aria-label="Buscar producto específico"
@@ -147,12 +132,11 @@
 
     <div
       *ngIf="productosSeleccionadosNombres.length > 0"
-      class="product-chips"
-      fxFlex="grow"
+      class="grafico-filtros__chips-row"
     >
       <span
         *ngFor="let nombre of productosSeleccionadosNombres; let i = index"
-        class="product-chip"
+        class="grafico-filtros__chip"
       >
         {{ nombre }}
         <mat-icon
@@ -165,29 +149,29 @@
       </span>
     </div>
 
-    <span fxFlex></span>
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+        [disabled]="cargando$ | async"
+        aria-label="Aplicar filtros"
+      >
+        Filtrar
+      </button>
 
-    <button
-      mat-raised-button
-      color="primary"
-      type="button"
-      (click)="filtrar()"
-      [disabled]="cargando$ | async"
-      aria-label="Aplicar filtros"
-    >
-      Filtrar
-    </button>
-
-    <button
-      mat-icon-button
-      type="button"
-      class="clear-filters-btn"
-      (click)="limpiarFiltros()"
-      matTooltip="Limpiar filtros"
-      aria-label="Limpiar filtros"
-    >
-      <mat-icon>filter_alt_off</mat-icon>
-    </button>
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
   </div>
 
   <ng-container *ngIf="pantalla$ | async as pantalla">
@@ -248,14 +232,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div
-      class="no-data-message"
-      *ngIf="pantalla.datosListos && !pantalla.hayDatos"
-    >
-      <mat-icon>sentiment_dissatisfied</mat-icon>
-      <span>No hay datos para esta combinación de filtros</span>
     </div>
   </ng-container>
 </div>

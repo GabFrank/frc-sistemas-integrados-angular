@@ -26,7 +26,6 @@ import {
   GRAFICO_COLORES,
   GRAFICO_PALETA_BARRAS,
   formatoMonedaPy,
-  tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-grafico-procesados.model";
 import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
@@ -185,10 +184,6 @@ export class FormaPagoComponent implements OnInit {
     );
 
     const opciones: EChartsOption = {
-      title: tituloGraficoCentrado(
-        "Distribución de Formas de Pago",
-        `Total: ${formatoMonedaPy(totalMontoNum)}`
-      ),
       tooltip: {
         trigger: "item",
         backgroundColor: GRAFICO_COLORES.background,
@@ -207,26 +202,34 @@ export class FormaPagoComponent implements OnInit {
         },
       },
       legend: {
-        orient: "vertical",
-        right: "5%",
-        top: "center",
-        textStyle: { color: GRAFICO_COLORES.textSecondary },
+        orient: "horizontal",
+        bottom: 0,
+        left: "center",
+        itemGap: 16,
+        textStyle: { color: GRAFICO_COLORES.textSecondary, fontSize: 12 },
       },
       series: [
         {
           name: "Forma de Pago",
           type: "pie",
-          radius: ["40%", "70%"],
-          center: ["40%", "55%"],
+          radius: ["48%", "78%"],
+          center: ["50%", "46%"],
           itemStyle: {
             borderRadius: 8,
             borderColor: GRAFICO_COLORES.backgroundDark,
             borderWidth: 2,
           },
           label: {
-            show: true,
-            formatter: "{b}: {d}%",
-            color: GRAFICO_COLORES.textSecondary,
+            show: false,
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 13,
+              fontWeight: "bold",
+              color: GRAFICO_COLORES.text,
+              formatter: "{b}\n{d}%",
+            },
           },
           data: validas.map((e, i) => ({
             value: e.totalMonto,

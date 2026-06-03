@@ -1,15 +1,11 @@
-<div class="venta-funcionario-layout">
-  <!-- Filtros (ocultos en modo externo) -->
+<div class="venta-funcionario-layout grafico-pantalla">
   <div
     *ngIf="!modoExterno"
-    class="venta-funcionario-layout__filtros"
-    fxLayout="row"
-    fxLayoutGap="12px"
-    fxLayoutAlign="start center"
+    class="grafico-filtros"
   >
     <mat-form-field
-      fxFlex="25%"
       appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
     >
       <mat-label>Sucursales</mat-label>
       <mat-select
@@ -30,8 +26,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="12%"
       appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--anho"
     >
       <mat-label>Años</mat-label>
       <mat-select [formControl]="filtroPeriodo.anhoControl" multiple>
@@ -46,8 +42,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="22%"
       appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--mes"
     >
       <mat-label>Meses</mat-label>
       <mat-select
@@ -66,9 +62,8 @@
     </mat-form-field>
 
     <mat-form-field
-      fxFlex="24%"
       appearance="outline"
-      class="filter-rango"
+      class="grafico-filtros__campo grafico-filtros__campo--rango filter-rango"
       [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
     >
       <mat-label>Rango de días</mat-label>
@@ -98,7 +93,7 @@
     <button
       mat-stroked-button
       type="button"
-      class="btn-buscar-funcionario"
+      class="grafico-filtros__btn-secundario"
       (click)="buscarFuncionario()"
       matTooltip="Buscar funcionario"
       aria-label="Buscar funcionario"
@@ -109,12 +104,11 @@
 
     <div
       *ngIf="funcionariosSeleccionados.length > 0"
-      class="funcionario-chips"
-      fxFlex="grow"
+      class="grafico-filtros__chips-row"
     >
       <span
         *ngFor="let usuario of funcionariosSeleccionados; let i = index"
-        class="funcionario-chip"
+        class="grafico-filtros__chip grafico-filtros__chip--accent"
       >
         {{ nombreFuncionario(usuario) }}
         <mat-icon
@@ -127,26 +121,29 @@
       </span>
     </div>
 
-    <button
-      mat-raised-button
-      color="primary"
-      type="button"
-      (click)="filtrar()"
-      [disabled]="cargando$ | async"
-      aria-label="Aplicar filtros"
-    >
-      Filtrar
-    </button>
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+        [disabled]="cargando$ | async"
+        aria-label="Aplicar filtros"
+      >
+        Filtrar
+      </button>
 
-    <button
-      mat-icon-button
-      type="button"
-      (click)="limpiarFiltros()"
-      matTooltip="Limpiar filtros generales"
-      aria-label="Limpiar filtros generales"
-    >
-      <mat-icon>filter_alt_off</mat-icon>
-    </button>
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros generales"
+        aria-label="Limpiar filtros generales"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
   </div>
 
   <ng-container *ngIf="vista$ | async as vista">
