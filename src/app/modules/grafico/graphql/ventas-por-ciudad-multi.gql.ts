@@ -11,6 +11,7 @@ export class VentasPorCiudadMultiGQL extends Query<any> {
         ciudadId
         nombre
         total
+        cantidadVentas
         ${GRAFICO_MULTI_FRAGMENTS.DESGLOSE_PERIODO}
       }
     }

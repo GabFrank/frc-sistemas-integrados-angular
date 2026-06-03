@@ -4,4 +4,5 @@ export interface VentaCiudadItem extends ConDesglosePeriodoGrafico {
   ciudadId?: number;
   nombre?: string;
   total?: number;
+  cantidadVentas?: number;
 }

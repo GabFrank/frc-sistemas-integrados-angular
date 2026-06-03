@@ -36,6 +36,11 @@ import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
 import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import { VentaSucursalItem } from "./venta-sucursal-item.model";
 import { VentaSucursalDatosGraficoProcesados } from "./venta-sucursal-datos-grafico-procesados.model";
+import {
+  descargarExcelBase64,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -56,6 +61,7 @@ export class VentaSucursalComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<VentaSucursalDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly filtrarSubject = new Subject<void>();
 
   private datosCrudos: VentaSucursalItem[] = [];
@@ -72,6 +78,10 @@ export class VentaSucursalComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
     this.filtroPeriodo.configurarLimitesRangoDias(
@@ -89,6 +99,29 @@ export class VentaSucursalComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    if (!this.datosCrudos.length || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    this.graficoService
+      .exportarGraficoExcel("VENTA_SUCURSAL", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        ...filtros,
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("VENTA_SUCURSAL"));
+      });
   }
 
   private configurarDataStream(): void {

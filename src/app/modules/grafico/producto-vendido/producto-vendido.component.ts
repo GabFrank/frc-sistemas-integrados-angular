@@ -46,6 +46,12 @@ import {
   SearchListDialogComponent,
   SearchListtDialogData,
 } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -77,6 +83,7 @@ export class ProductoVendidoComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<ProductoVendidoDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly familiasSubject = new BehaviorSubject<Familia[]>([]);
   private readonly indicesOcultosSubject = new BehaviorSubject<Set<string>>(
@@ -105,6 +112,10 @@ export class ProductoVendidoComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
     this.filtroPeriodo.configurarLimitesRangoDias(
@@ -199,6 +210,61 @@ export class ProductoVendidoComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    const datos = this.datosSubject.value;
+    if (!datos?.hayDatos || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    const familiaId = this.familiaControl.value;
+    const familias = this.familiasSubject.value;
+    const familiaNombre =
+      familiaId != null
+        ? familias.find((f) => f.id === familiaId)?.nombre ?? String(familiaId)
+        : null;
+    const partesExtra: string[] = [];
+    if (familiaNombre) {
+      partesExtra.push(`Familia: ${familiaNombre}`);
+    }
+    if (this.productosSeleccionadosNombres.length) {
+      partesExtra.push(
+        `Productos: ${this.productosSeleccionadosNombres.join(", ")}`
+      );
+    }
+    partesExtra.push(`Top: ${this.limitControl.value ?? 10}`);
+    this.graficoService
+      .exportarGraficoExcel("PRODUCTOS_VENDIDOS", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        sucIds,
+        limit: this.limitControl.value ?? 10,
+        familiaId,
+        productoIds: this.productosSeleccionadosIds.length
+          ? this.productosSeleccionadosIds
+          : null,
+        ...filtros,
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesSubject.value,
+          sucIds
+        ),
+        filtroExtra: partesExtra.length ? partesExtra.join(" · ") : undefined,
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(
+          base64,
+          nombreArchivoGraficoExcel("PRODUCTOS_VENDIDOS")
+        );
+      });
   }
 
   private cargarMetadata(): void {

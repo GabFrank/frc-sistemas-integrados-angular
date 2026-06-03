@@ -36,6 +36,11 @@ import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
 import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import { VentaCiudadItem } from "./venta-ciudad-item.model";
 import { VentaCiudadDatosGraficoProcesados } from "./venta-ciudad-datos-grafico-procesados.model";
+import {
+  descargarExcelBase64,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -56,6 +61,7 @@ export class VentaCiudadComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<VentaCiudadDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly filtrarSubject = new Subject<void>();
 
   private datosCrudos: VentaCiudadItem[] = [];
@@ -72,6 +78,10 @@ export class VentaCiudadComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
     this.filtroPeriodo.configurarLimitesRangoDias(
@@ -89,6 +99,29 @@ export class VentaCiudadComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    if (!this.datosCrudos.length || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    this.graficoService
+      .exportarGraficoExcel("VENTA_CIUDAD", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        ...filtros,
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("VENTA_CIUDAD"));
+      });
   }
 
   private configurarDataStream(): void {
@@ -186,11 +219,17 @@ export class VentaCiudadComponent implements OnInit {
     if (!item) {
       return "";
     }
+    const lineasExtra =
+      item.cantidadVentas != null && item.cantidadVentas > 0
+        ? [`Cant. ventas: ${item.cantidadVentas.toLocaleString("es-PY")}`]
+        : undefined;
+
     return formatearTooltipGraficoPeriodo({
       titulo: this.nombreCiudad(item),
       total: item.total ?? 0,
       desglosePeriodos: item.desglosePeriodos,
       desgloseAnhos: item.desgloseAnhos,
+      lineasExtra,
     });
   }
 

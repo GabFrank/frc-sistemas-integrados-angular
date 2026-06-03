@@ -13,6 +13,11 @@ import { FormaPagoEstadisticasMultiGQL } from './graphql/forma-pago-estadisticas
 import { GastosPorCategoriaMultiGQL } from './graphql/gastos-por-categoria-multi.gql';
 import { VentasPorSucursalMultiGQL } from './graphql/ventas-por-sucursal-multi.gql';
 import { VentasPorCiudadMultiGQL } from './graphql/ventas-por-ciudad-multi.gql';
+import { ExportarGraficoExcelGQL } from './graphql/exportar-grafico-excel.gql';
+import {
+  GraficoExcelExportInput,
+  GraficoExcelTipo,
+} from './utils/grafico-excel-export.model';
 import { ProductosMasVendidosMultiGQL } from './graphql/productos-mas-vendidos-multi.gql';
 import { IngresosGastosPorMesMultiGQL } from './graphql/ingresos-gastos-por-mes-multi.gql';
 import { VentasPorHoraMultiGQL } from './graphql/ventas-por-hora-multi.gql';
@@ -46,6 +51,7 @@ export class GraficoService {
   private gastosPorCategoriaMultiGQL = inject(GastosPorCategoriaMultiGQL);
   private ventasPorSucursalMultiGQL = inject(VentasPorSucursalMultiGQL);
   private ventasPorCiudadMultiGQL = inject(VentasPorCiudadMultiGQL);
+  private exportarGraficoExcelGQL = inject(ExportarGraficoExcelGQL);
   private productosMasVendidosMultiGQL = inject(ProductosMasVendidosMultiGQL);
   private ingresosGastosPorMesMultiGQL = inject(IngresosGastosPorMesMultiGQL);
   private ventasPorHoraMultiGQL = inject(VentasPorHoraMultiGQL);
@@ -222,6 +228,19 @@ export class GraficoService {
     return this.genericService.onCustomQuery(
       this.ventasPorCiudadMultiGQL,
       { periodos },
+      true,
+      null,
+      true
+    );
+  }
+
+  exportarGraficoExcel(
+    tipo: GraficoExcelTipo,
+    input: GraficoExcelExportInput
+  ): Observable<string> {
+    return this.genericService.onCustomQuery(
+      this.exportarGraficoExcelGQL,
+      ExportarGraficoExcelGQL.variables(tipo, input),
       true,
       null,
       true

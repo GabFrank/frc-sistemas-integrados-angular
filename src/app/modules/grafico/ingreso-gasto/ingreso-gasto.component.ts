@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   OnInit,
   inject,
@@ -37,6 +38,11 @@ import {
   PALETA_GASTOS_MULTI,
 } from "./constants/ingreso-gasto.constants";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -51,6 +57,7 @@ import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales
 export class IngresoGastoComponent implements OnInit {
   private graficoService = inject(GraficoService);
   private sucursalService = inject(SucursalService);
+  private cdr = inject(ChangeDetectorRef);
 
   readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   yearControl = new FormControl<number[]>([new Date().getFullYear()]);
@@ -63,7 +70,12 @@ export class IngresoGastoComponent implements OnInit {
 
   private readonly opcionesSubject = new BehaviorSubject<EChartsOption | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly hayDatosSubject = new BehaviorSubject<boolean>(false);
+
+  readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.hayDatosSubject.asObservable();
 
   readonly vista$: Observable<VistaGraficoShell> = combineLatest([
     this.opcionesSubject,
@@ -91,6 +103,39 @@ export class IngresoGastoComponent implements OnInit {
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
     this.yearControl.setValue([new Date().getFullYear()]);
+  }
+
+  exportarExcel(): void {
+    if (!this.hayDatosSubject.value || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const anios = (this.yearControl.value ?? []).filter(
+      (y): y is number => y != null
+    );
+    const sucIds = this.filtroSucursales.normalizarIds();
+    this.graficoService
+      .exportarGraficoExcel("INGRESO_GASTO", {
+        anios,
+        sucIds,
+        filtroAnhos: anios.length ? anios.join(", ") : "—",
+        filtroMeses: "Todos los meses",
+        filtroRangoDias: "—",
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesLista,
+          sucIds
+        ),
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("INGRESO_GASTO"));
+      });
   }
 
   private configurarDataStream(sucursales$: Observable<Sucursal[]>): void {

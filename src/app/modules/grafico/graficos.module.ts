@@ -17,8 +17,7 @@ import { GastoCategoriaComponent } from './gasto-categoria/gasto-categoria.compo
 import { IngresoGastoComponent } from './ingreso-gasto/ingreso-gasto.component';
 import { VentaSucursalComponent } from './venta-sucursal/venta-sucursal.component';
 import { VentaCiudadComponent } from './venta-ciudad/venta-ciudad.component';
-// DESHABILITADO: Componente de ventas mensuales no se utiliza
-// import { VentaMesComponent } from './venta-mes/venta-mes.component';
+import { VentaMesComponent } from './venta-mes/venta-mes.component';
 
 export function loadEcharts() {
     return import('echarts/core').then(echarts => {
@@ -54,7 +53,7 @@ export function loadEcharts() {
         IngresoGastoComponent,
         VentaSucursalComponent,
         VentaCiudadComponent,
-        // VentaMesComponent // DESHABILITADO
+        VentaMesComponent,
     ],
     imports: [
         CommonModule,

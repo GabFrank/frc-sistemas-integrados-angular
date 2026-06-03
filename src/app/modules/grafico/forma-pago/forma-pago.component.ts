@@ -39,6 +39,12 @@ import {
   etiquetaMoneda,
   formatoMontoMoneda,
 } from "./utils/forma-pago-moneda-format.util";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -64,6 +70,7 @@ export class FormaPagoComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<FormaPagoDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly filtrarSubject = new Subject<void>();
 
@@ -82,6 +89,10 @@ export class FormaPagoComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
     this.cargarSucursales();
@@ -107,6 +118,36 @@ export class FormaPagoComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    const datos = this.datosSubject.value;
+    if (!datos?.hayDatos || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    this.graficoService
+      .exportarGraficoExcel("FORMA_PAGO", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        sucIds,
+        ...filtros,
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesSubject.value,
+          sucIds
+        ),
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("FORMA_PAGO"));
+      });
   }
 
   private cargarSucursales(): void {

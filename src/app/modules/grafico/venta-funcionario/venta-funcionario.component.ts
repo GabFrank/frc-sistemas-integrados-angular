@@ -44,6 +44,12 @@ import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.help
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
 import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -78,6 +84,7 @@ export class VentaFuncionarioComponent implements OnInit {
   private readonly datosSubject =
     new BehaviorSubject<VentaFuncionarioDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly funcionariosSeleccionadosSubject = new BehaviorSubject<
     Usuario[]
@@ -98,6 +105,10 @@ export class VentaFuncionarioComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalesSubject.asObservable();
@@ -190,6 +201,45 @@ export class VentaFuncionarioComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    if (!this.datosCrudos.length || this.exportandoSubject.value || this.modoExterno) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    const funcionarios = this.funcionariosSeleccionados;
+    const filtroExtra =
+      funcionarios.length > 0
+        ? funcionarios.map((u) => this.nombreFuncionario(u)).join(", ")
+        : undefined;
+    this.graficoService
+      .exportarGraficoExcel("VENTA_FUNCIONARIO", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        sucIds,
+        usuarioIds: funcionarios.map((u) => u.id),
+        ...filtros,
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesSubject.value,
+          sucIds
+        ),
+        filtroExtra,
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(
+          base64,
+          nombreArchivoGraficoExcel("VENTA_FUNCIONARIO")
+        );
+      });
   }
 
   private cargarMetadata(): void {

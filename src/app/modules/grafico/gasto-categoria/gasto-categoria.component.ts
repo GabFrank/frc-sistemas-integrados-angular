@@ -34,6 +34,12 @@ import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.help
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
 import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
 import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 const PALETA_GASTO_CATEGORIA = [
   "#F44336", "#E91E63", "#9C27B0", "#673AB7",
@@ -62,8 +68,11 @@ export class GastoCategoriaComponent implements OnInit {
 
   sucursales$: Observable<Sucursal[]>;
 
+  private sucursalesLista: Sucursal[] = [];
+
   private readonly opcionesSubject = new BehaviorSubject<EChartsOption | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly hayDatosSubject = new BehaviorSubject<boolean>(false);
   private readonly filtrarSubject = new Subject<void>();
 
@@ -80,10 +89,13 @@ export class GastoCategoriaComponent implements OnInit {
     }))
   );
   readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.hayDatosSubject.asObservable();
 
   ngOnInit(): void {
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
-      map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999))
+      map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
+      tap((sucs) => (this.sucursalesLista = sucs))
     );
     this.filtroPeriodo.configurarLimitesRangoDias(
       (source) => source.pipe(untilDestroyed(this)),
@@ -101,6 +113,38 @@ export class GastoCategoriaComponent implements OnInit {
 
   filtrar(): void {
     this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    if (!this.hayDatosSubject.value || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    this.graficoService
+      .exportarGraficoExcel("GASTO_CATEGORIA", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        sucIds,
+        ...filtros,
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesLista,
+          sucIds
+        ),
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(
+          base64,
+          nombreArchivoGraficoExcel("GASTO_CATEGORIA")
+        );
+      });
   }
 
   private configurarDataStream(): void {

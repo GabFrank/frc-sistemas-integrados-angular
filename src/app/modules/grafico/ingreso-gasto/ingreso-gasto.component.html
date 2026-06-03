@@ -43,6 +43,19 @@
 
     <div class="grafico-filtros__acciones">
       <button
+        mat-stroked-button
+        type="button"
+        class="grafico-filtros__btn-secundario"
+        (click)="exportarExcel()"
+        [disabled]="(cargando$ | async) || (exportando$ | async) || !(puedeExportar$ | async)"
+        matTooltip="Exportar gráfico y detalle a Excel"
+        aria-label="Exportar a Excel"
+      >
+        <mat-icon>download</mat-icon>
+        Excel
+      </button>
+
+      <button
         mat-icon-button
         type="button"
         class="grafico-filtros__limpiar"

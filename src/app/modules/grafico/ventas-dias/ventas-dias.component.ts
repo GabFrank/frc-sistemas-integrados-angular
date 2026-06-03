@@ -33,6 +33,12 @@ import {
   tituloGraficoCentrado,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  nombreArchivoGraficoExcel,
+  periodosComparacionHoyAyer,
+} from "../utils/grafico-excel-export.util";
 
 /** Paleta de colores para líneas de múltiples sucursales */
 const PALETA_LINEAS = [
@@ -73,7 +79,12 @@ export class VentasDiasComponent implements OnInit {
 
   private readonly opcionesSubject = new BehaviorSubject<EChartsOption | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly hayDatosSubject = new BehaviorSubject<boolean>(false);
+
+  readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.hayDatosSubject.asObservable();
 
   private readonly horasDelDia = Array.from({ length: 24 }, (_, i) =>
     i.toString().padStart(2, "0")
@@ -102,6 +113,36 @@ export class VentasDiasComponent implements OnInit {
 
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
+  }
+
+  exportarExcel(): void {
+    if (!this.hayDatosSubject.value || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    this.graficoService
+      .exportarGraficoExcel("VENTAS_HORA", {
+        periodos: periodosComparacionHoyAyer(),
+        sucIds,
+        filtroAnhos: "—",
+        filtroMeses: "—",
+        filtroRangoDias: "Hoy y Ayer",
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesLista,
+          sucIds
+        ),
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("VENTAS_HORA"));
+      });
   }
 
   private configurarDataStream(): void {
