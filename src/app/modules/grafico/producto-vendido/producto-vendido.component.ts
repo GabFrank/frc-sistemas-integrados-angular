@@ -351,6 +351,7 @@ export class ProductoVendidoComponent implements OnInit {
             titulo: p.name,
             total: Number(p.value),
             desglosePeriodos: item?.desglosePeriodos,
+            desgloseAnhos: item?.desgloseAnhos,
             lineasExtra: [
               `Cantidad: ${(item?.cantidad ?? 0).toLocaleString("es-PY")} unidades`,
               `Porcentaje: ${p.percent.toFixed(2)}%`,

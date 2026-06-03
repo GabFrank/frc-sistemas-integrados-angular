@@ -4,6 +4,11 @@ const DESGLOSE_PERIODO = `
     total
     cantidad
   }
+  desgloseAnhos {
+    anio
+    total
+    cantidad
+  }
 `;
 
 export const GRAFICO_MULTI_FRAGMENTS = { DESGLOSE_PERIODO };

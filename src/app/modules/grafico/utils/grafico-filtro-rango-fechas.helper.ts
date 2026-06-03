@@ -181,10 +181,6 @@ export class GraficoFiltrosPeriodo {
     }));
   }
 
-  tieneVariosPeriodosConsulta(): boolean {
-    return this.resolverRangosConsultaEtiquetados().length > 1;
-  }
-
   private etiquetaParaRango(
     rango: RangoFechaPeriodo,
     ctx: {

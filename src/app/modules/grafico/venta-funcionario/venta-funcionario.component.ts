@@ -294,6 +294,7 @@ export class VentaFuncionarioComponent implements OnInit {
             titulo: el.name,
             total: Number(el.value),
             desglosePeriodos: item?.desglosePeriodos,
+            desgloseAnhos: item?.desgloseAnhos,
             lineasExtra: [
               `Cantidad de Ventas: ${(item?.cantidad ?? 0).toLocaleString("es-PY")}`,
               `<span style="font-size: 0.9em; color: #aaa">Producto Top:</span> ${item?.productoMasVendido || "N/A"}`,

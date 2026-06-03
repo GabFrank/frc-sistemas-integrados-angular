@@ -5,6 +5,14 @@ export interface GraficoDesglosePeriodo {
   cantidad?: number;
 }
 
+/** Total agregado de una entidad en un año calendario. */
+export interface GraficoDesgloseAnho {
+  anio: number;
+  total: number;
+  cantidad?: number;
+}
+
 export interface ConDesglosePeriodoGrafico {
   desglosePeriodos?: GraficoDesglosePeriodo[];
+  desgloseAnhos?: GraficoDesgloseAnho[];
 }

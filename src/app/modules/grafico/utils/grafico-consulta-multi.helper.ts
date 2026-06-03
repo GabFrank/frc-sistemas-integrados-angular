@@ -10,10 +10,3 @@ export function periodosDesdeFiltro(
     fin: rango.fin,
   }));
 }
-
-export function idsGraficoComoString(ids?: number[] | null): string[] | null {
-  if (!ids?.length) {
-    return null;
-  }
-  return ids.map((id) => String(id));
-}

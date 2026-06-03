@@ -136,6 +136,7 @@ export class VentaSucursalComponent implements OnInit {
             titulo: p.name,
             total: Number(p.value),
             desglosePeriodos: item?.desglosePeriodos,
+            desgloseAnhos: item?.desgloseAnhos,
           });
         },
       },
