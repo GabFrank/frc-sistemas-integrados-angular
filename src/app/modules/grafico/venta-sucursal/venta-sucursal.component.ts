@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   OnInit,
   inject,
@@ -10,14 +11,14 @@ import {
   Observable,
   combineLatest,
   debounceTime,
-  filter,
   finalize,
   map,
+  Subject,
+  startWith,
   switchMap,
   tap,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { RangoFechaGrafico } from "../../../shared/components/grafico-filtros-fecha/grafico-filtros-fecha.model";
 import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
 import {
   degradadoBarraVertical,
@@ -26,11 +27,12 @@ import {
   formatoMonedaPy,
   gridGraficoOscuro,
   GRAFICO_COLORES,
+  GRAFICO_PALETA_BARRAS,
   tituloGraficoCentrado,
-  tooltipEjeMoneda,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GraficoService } from "../grafico.service";
-import { PeriodoGraficoInput } from "../utils/grafico-periodo.model";
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
 import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import { VentaSucursalItem } from "./venta-sucursal-item.model";
 import { VentaSucursalDatosGraficoProcesados } from "./venta-sucursal-datos-grafico-procesados.model";
@@ -47,13 +49,14 @@ import { VentaSucursalDatosGraficoProcesados } from "./venta-sucursal-datos-graf
 })
 export class VentaSucursalComponent implements OnInit {
   private graficoService = inject(GraficoService);
+  private cdr = inject(ChangeDetectorRef);
+
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
   private readonly datosSubject =
     new BehaviorSubject<VentaSucursalDatosGraficoProcesados | null>(null);
   private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
-  private readonly rangoSubject = new BehaviorSubject<
-    RangoFechaGrafico | RangoFechaGrafico[] | null
-  >(null);
+  private readonly filtrarSubject = new Subject<void>();
 
   private datosCrudos: VentaSucursalItem[] = [];
 
@@ -68,43 +71,46 @@ export class VentaSucursalComponent implements OnInit {
       datosListos: datos !== null,
     }))
   );
+  readonly cargando$ = this.cargandoSubject.asObservable();
 
   ngOnInit(): void {
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
+    );
     this.configurarDataStream();
   }
 
-  onRangoFechaChange(rango: RangoFechaGrafico | RangoFechaGrafico[]): void {
-    this.rangoSubject.next(rango);
+  limpiarFiltros(): void {
+    this.filtroPeriodo.limpiar();
+    this.filtrar();
+    this.cdr.markForCheck();
+  }
+
+  filtrar(): void {
+    this.filtrarSubject.next();
   }
 
   private configurarDataStream(): void {
-    this.rangoSubject
+    this.filtrarSubject
       .pipe(
-        filter((rango) => rango !== null),
+        startWith(void 0),
         debounceTime(300),
         tap(() => this.cargandoSubject.next(true)),
-        switchMap((rango) => this.consultarVentasPorRangos(rango)),
+        switchMap(() => this.consultarVentas()),
         untilDestroyed(this)
       )
       .subscribe((datos) => {
         this.datosCrudos = datos || [];
         this.datosSubject.next(this.procesarDatos(this.datosCrudos));
+        this.cdr.markForCheck();
       });
   }
 
-  private consultarVentasPorRangos(
-    rango: RangoFechaGrafico | RangoFechaGrafico[]
-  ): Observable<VentaSucursalItem[]> {
-    const rangosEntrada = Array.isArray(rango) ? rango : [rango];
-    const periodos: PeriodoGraficoInput[] = rangosEntrada.map((r, i) => ({
-      inicio: r.inicio,
-      fin: r.fin,
-      etiqueta: r.etiqueta ?? String(r.anho),
-    }));
-
-    return this.graficoService.obtenerVentasPorSucursalMulti(periodos).pipe(
-      finalize(() => this.cargandoSubject.next(false))
-    );
+  private consultarVentas(): Observable<VentaSucursalItem[]> {
+    return this.graficoService
+      .obtenerVentasPorSucursalMulti(periodosDesdeFiltro(this.filtroPeriodo))
+      .pipe(finalize(() => this.cargandoSubject.next(false)));
   }
 
   private procesarDatos(data: VentaSucursalItem[]): VentaSucursalDatosGraficoProcesados {
@@ -115,36 +121,102 @@ export class VentaSucursalComponent implements OnInit {
       (sum, item) => sum + (item.total || 0),
       0
     );
+    const anhosComparativa = this.extraerAnhosComparativa(validas);
+    const opciones =
+      anhosComparativa.length > 1
+        ? this.construirOpcionesComparativaAnhos(
+            validas,
+            anhosComparativa,
+            totalGeneral
+          )
+        : this.construirOpcionesSimple(validas, totalGeneral);
 
-    const opciones: EChartsOption = {
+    return { opciones, hayDatos: validas.length > 0 };
+  }
+
+  private extraerAnhosComparativa(items: VentaSucursalItem[]): number[] {
+    const anhosFiltro = this.filtroPeriodo.normalizarAnhosSeleccionados();
+    if (anhosFiltro.length > 1) {
+      return anhosFiltro;
+    }
+
+    const anhos = new Set<number>();
+    for (const item of items) {
+      for (const d of item.desgloseAnhos ?? []) {
+        if (d.total !== 0 || (d.cantidad ?? 0) > 0) {
+          anhos.add(d.anio);
+        }
+      }
+    }
+    return Array.from(anhos).sort((a, b) => a - b);
+  }
+
+  private nombreSucursal(item: VentaSucursalItem): string {
+    return item.nombre || `Suc ${item.sucId}`;
+  }
+
+  private totalPorAnho(item: VentaSucursalItem, anio: number): number {
+    return (
+      item.desgloseAnhos?.find((d) => d.anio === anio)?.total ?? 0
+    );
+  }
+
+  private etiquetaValorBarra(valor: number): string {
+    if (valor >= 1_000_000) {
+      return (valor / 1_000_000).toFixed(1) + "M";
+    }
+    return valor.toLocaleString("es-PY");
+  }
+
+  private labelBarraSuperior() {
+    return {
+      show: true,
+      position: "top" as const,
+      color: GRAFICO_COLORES.text,
+      formatter: (p: { value?: unknown }) =>
+        this.etiquetaValorBarra(Number(p.value)),
+    };
+  }
+
+  private formatearTooltipSucursal(
+    validas: VentaSucursalItem[],
+    dataIndex: number
+  ): string {
+    const item = validas[dataIndex];
+    if (!item) {
+      return "";
+    }
+    return formatearTooltipGraficoPeriodo({
+      titulo: this.nombreSucursal(item),
+      total: item.total ?? 0,
+      desglosePeriodos: item.desglosePeriodos,
+      desgloseAnhos: item.desgloseAnhos,
+    });
+  }
+
+  private construirOpcionesSimple(
+    validas: VentaSucursalItem[],
+    totalGeneral: number
+  ): EChartsOption {
+    return {
       title: tituloGraficoCentrado(
         "Ventas por Sucursal",
         `Total Período: ${formatoMonedaPy(totalGeneral)}`
       ),
       tooltip: {
-        ...tooltipEjeMoneda("Ventas"),
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
         formatter: (params: unknown) => {
           const fila = Array.isArray(params) ? params[0] : params;
           if (!fila || typeof fila !== "object") {
             return "";
           }
-          const p = fila as { name: string; value: number };
-          const item = validas.find(
-            (v) => (v.nombre || `Suc ${v.sucId}`) === p.name
-          );
-          return formatearTooltipGraficoPeriodo({
-            titulo: p.name,
-            total: Number(p.value),
-            desglosePeriodos: item?.desglosePeriodos,
-            desgloseAnhos: item?.desgloseAnhos,
-          });
+          const p = fila as { dataIndex: number };
+          return this.formatearTooltipSucursal(validas, p.dataIndex);
         },
       },
       grid: gridGraficoOscuro(),
-      xAxis: ejeCategoriaOscuro(
-        validas.map((v) => v.nombre || `Suc ${v.sucId}`),
-        30
-      ),
+      xAxis: ejeCategoriaOscuro(validas.map((v) => this.nombreSucursal(v)), 30),
       yAxis: ejeValorOscuro(),
       series: [
         {
@@ -155,22 +227,58 @@ export class VentaSucursalComponent implements OnInit {
             color: degradadoBarraVertical(),
             borderRadius: [4, 4, 0, 0],
           },
-          label: {
-            show: true,
-            position: "top",
-            color: GRAFICO_COLORES.text,
-            formatter: (p) => {
-              const val = Number(p.value);
-              if (val >= 1_000_000) {
-                return (val / 1_000_000).toFixed(1) + "M";
-              }
-              return val.toLocaleString("es-PY");
-            },
-          },
+          label: this.labelBarraSuperior(),
         },
       ],
     };
+  }
 
-    return { opciones, hayDatos: validas.length > 0 };
+  private construirOpcionesComparativaAnhos(
+    validas: VentaSucursalItem[],
+    anhos: number[],
+    totalGeneral: number
+  ): EChartsOption {
+    const etiquetaAnhos = anhos.join(" · ");
+
+    return {
+      title: tituloGraficoCentrado(
+        "Ventas por Sucursal",
+        `Comparando ${etiquetaAnhos} · Total: ${formatoMonedaPy(totalGeneral)}`
+      ),
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params: unknown) => {
+          const filas = Array.isArray(params) ? params : [params];
+          const primera = filas[0];
+          if (!primera || typeof primera !== "object") {
+            return "";
+          }
+          return this.formatearTooltipSucursal(
+            validas,
+            (primera as { dataIndex: number }).dataIndex
+          );
+        },
+      },
+      legend: {
+        data: anhos.map(String),
+        bottom: 0,
+        textStyle: { color: GRAFICO_COLORES.textSecondary },
+      },
+      grid: gridGraficoOscuro("18%"),
+      xAxis: ejeCategoriaOscuro(validas.map((v) => this.nombreSucursal(v)), 30),
+      yAxis: ejeValorOscuro(),
+      series: anhos.map((anio, idx) => ({
+        name: String(anio),
+        type: "bar" as const,
+        data: validas.map((v) => this.totalPorAnho(v, anio)),
+        barGap: "10%",
+        itemStyle: {
+          color: GRAFICO_PALETA_BARRAS[idx % GRAFICO_PALETA_BARRAS.length],
+          borderRadius: [4, 4, 0, 0],
+        },
+        label: this.labelBarraSuperior(),
+      })),
+    };
   }
 }

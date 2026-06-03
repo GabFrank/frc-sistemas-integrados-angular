@@ -117,7 +117,7 @@ export function generarRangoFechaGraficoDesdeRango(
 
 /**
  * Genera inicio/fin en formato yyyy-MM-dd HH:mm para queries GraphQL de estadísticas.
- * Día: [00:00 del día, 00:00 del día siguiente). Mes/año: fin inclusive 23:59.
+ * Día: [00:00 del día, 00:00 del día siguiente). Mes/año: fin inclusive 23:59:59.
  */
 export function generarRangoFechaGrafico(
   anho: number,
@@ -125,12 +125,12 @@ export function generarRangoFechaGrafico(
   fechaDia: Date | null = null
 ): RangoFechaPeriodo {
   if (fechaDia) {
-    const inicio = `${formatearFechaGrafico(fechaDia)} 00:00`;
+    const inicio = `${formatearFechaGrafico(fechaDia)} 00:00:00`;
     const diaSiguiente = new Date(fechaDia);
     diaSiguiente.setDate(fechaDia.getDate() + 1);
     return {
       inicio,
-      fin: `${formatearFechaGrafico(diaSiguiente)} 00:00`,
+      fin: `${formatearFechaGrafico(diaSiguiente)} 00:00:00`,
     };
   }
 
@@ -140,14 +140,14 @@ export function generarRangoFechaGrafico(
     const finMes = String(ultimoDiaMes.getMonth() + 1).padStart(2, "0");
     const finDia = String(ultimoDiaMes.getDate()).padStart(2, "0");
     return {
-      inicio: `${anho}-${mesStr}-01 00:00`,
-      fin: `${ultimoDiaMes.getFullYear()}-${finMes}-${finDia} 23:59`,
+      inicio: `${anho}-${mesStr}-01 00:00:00`,
+      fin: `${ultimoDiaMes.getFullYear()}-${finMes}-${finDia} 23:59:59`,
     };
   }
 
   return {
-    inicio: `${anho}-01-01 00:00`,
-    fin: `${anho}-12-31 23:59`,
+    inicio: `${anho}-01-01 00:00:00`,
+    fin: `${anho}-12-31 23:59:59`,
   };
 }
 

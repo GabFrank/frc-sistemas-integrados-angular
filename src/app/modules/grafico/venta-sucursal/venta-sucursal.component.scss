@@ -1,3 +1,12 @@
+.filter-rango {
+  min-width: 260px;
+  max-width: 340px;
+
+  &--inactivo {
+    opacity: 0.55;
+  }
+}
+
 :host {
   display: block;
   height: 100%;
