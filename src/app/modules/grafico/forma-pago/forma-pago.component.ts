@@ -12,7 +12,6 @@ import {
   combineLatest,
   debounceTime,
   finalize,
-  forkJoin,
   map,
   Subject,
   startWith,
@@ -35,6 +34,8 @@ import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
 import { FormaPagoMonedaDesglose } from "./interfaces/forma-pago-moneda-desglose.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import {
   etiquetaMoneda,
   formatoMontoMoneda,
@@ -144,67 +145,15 @@ export class FormaPagoComponent implements OnInit {
   private consultarDatos(
     sucIds: number[]
   ): Observable<FormaPagoDatosGraficoProcesados> {
-    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
-    const sucursalesFinal =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
-    const queries: Record<string, Observable<FormaPagoEstadistica[]>> = {};
-
-    for (const sucId of sucursalesFinal) {
-      rangos.forEach((rango, indice) => {
-        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
-        queries[clave] = this.graficoService.obtenerEstadisticasFormaPago(
-          rango.inicio,
-          rango.fin,
-          sucId || undefined
-        );
-      });
-    }
-
-    const keys = Object.keys(queries);
-    if (keys.length === 1) {
-      return queries[keys[0]].pipe(
+    return this.graficoService
+      .obtenerEstadisticasFormaPagoMulti(
+        periodosDesdeFiltro(this.filtroPeriodo),
+        this.filtroSucursales.normalizarIds(sucIds)
+      )
+      .pipe(
         map((estadisticas) => this.procesarDatos(estadisticas)),
         finalize(() => this.cargandoSubject.next(false))
       );
-    }
-
-    return forkJoin(queries).pipe(
-      map((resultados) => {
-        const combinadas = this.combinarEstadisticas(resultados);
-        return this.procesarDatos(combinadas);
-      }),
-      finalize(() => this.cargandoSubject.next(false))
-    );
-  }
-
-  private combinarEstadisticas(
-    resultados: Record<string, FormaPagoEstadistica[]>
-  ): FormaPagoEstadistica[] {
-    const mapa = new Map<string, FormaPagoEstadistica>();
-
-    for (const items of Object.values(resultados)) {
-      for (const item of items || []) {
-        const clave = item.descripcion;
-        const existente = mapa.get(clave);
-        if (existente) {
-          existente.totalMonto += item.totalMonto;
-          existente.cantidadTransacciones += item.cantidadTransacciones;
-          this.combinarDesgloseMoneda(existente, item.desgloseMoneda);
-        } else {
-          mapa.set(clave, {
-            ...item,
-            desgloseMoneda: (item.desgloseMoneda || []).map((d) => ({ ...d })),
-          });
-        }
-      }
-    }
-
-    const total = Array.from(mapa.values()).reduce((s, e) => s + e.totalMonto, 0);
-    for (const item of mapa.values()) {
-      item.porcentaje = total > 0 ? (item.totalMonto / total) * 100 : 0;
-    }
-
-    return Array.from(mapa.values());
   }
 
   private procesarDatos(
@@ -247,7 +196,13 @@ export class FormaPagoComponent implements OnInit {
         textStyle: { color: GRAFICO_COLORES.text },
         formatter: (params: unknown) => {
           const p = params as { name: string; value: number; percent: number };
-          return `<strong>${p.name}</strong><br/>Monto: ${formatoMonedaPy(Number(p.value))}<br/>Porcentaje: ${p.percent.toFixed(2)}%`;
+          const item = (estadisticas || []).find((e) => e.descripcion === p.name);
+          return formatearTooltipGraficoPeriodo({
+            titulo: p.name,
+            total: Number(p.value),
+            desglosePeriodos: item?.desglosePeriodos,
+            lineasExtra: [`Porcentaje: ${p.percent.toFixed(2)}%`],
+          });
         },
       },
       legend: {
@@ -290,29 +245,6 @@ export class FormaPagoComponent implements OnInit {
       totalTransacciones: totalTransNum.toLocaleString("es-PY"),
       hayDatos: totalTransNum > 0,
     };
-  }
-
-  private combinarDesgloseMoneda(
-    destino: FormaPagoEstadistica,
-    origen?: FormaPagoMonedaDesglose[]
-  ): void {
-    if (!origen?.length) {
-      return;
-    }
-    if (!destino.desgloseMoneda) {
-      destino.desgloseMoneda = [];
-    }
-    for (const item of origen) {
-      const existente = destino.desgloseMoneda.find(
-        (d) => d.monedaId === item.monedaId
-      );
-      if (existente) {
-        existente.totalMonto += item.totalMonto;
-        existente.cantidadTransacciones += item.cantidadTransacciones;
-      } else {
-        destino.desgloseMoneda.push({ ...item });
-      }
-    }
   }
 
   private procesarDesgloseMoneda(

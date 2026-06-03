@@ -14,6 +14,7 @@ import {
   listarAnhosGrafico,
 } from "../../../commons/core/utils/dateUtils";
 import {
+  MESES_ETIQUETAS_CORTAS,
   MESES_GRAFICO,
   MesGraficoOption,
 } from "../../constants/grafico.constants";
@@ -120,7 +121,8 @@ export class GraficoFiltrosFechaComponent implements OnInit {
       return;
     }
 
-    const rangos: RangoFechaGrafico[] = anhos.map((anho) => {
+    const variosAnhos = anhos.length > 1;
+    const rangos: RangoFechaGrafico[] = anhos.map((anho, indice) => {
       const periodo = generarRangoFechaGrafico(anho, mes, null);
       return {
         ...periodo,
@@ -128,6 +130,8 @@ export class GraficoFiltrosFechaComponent implements OnInit {
         anhos,
         mes,
         fechaDia: null,
+        indice,
+        etiqueta: this.etiquetaPeriodo(anho, mes, variosAnhos, false),
       };
     });
 
@@ -137,5 +141,24 @@ export class GraficoFiltrosFechaComponent implements OnInit {
     }
 
     this.rangoChange.emit(rangos);
+  }
+
+  private etiquetaPeriodo(
+    anho: number,
+    mes: number | null,
+    variosAnhos: boolean,
+    esDia: boolean
+  ): string {
+    if (esDia) {
+      return String(anho);
+    }
+    if (mes) {
+      const mesNombre =
+        MESES_GRAFICO.find((m) => m.valor === mes)?.nombre ??
+        MESES_ETIQUETAS_CORTAS[mes - 1] ??
+        `Mes ${mes}`;
+      return variosAnhos ? `${mesNombre} ${anho}` : mesNombre;
+    }
+    return String(anho);
   }
 }

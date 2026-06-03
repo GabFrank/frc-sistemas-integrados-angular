@@ -5,4 +5,6 @@ export interface RangoFechaGrafico extends RangoFechaPeriodo {
   anhos?: number[];
   mes: number | null;
   fechaDia: Date | null;
+  indice?: number;
+  etiqueta?: string;
 }

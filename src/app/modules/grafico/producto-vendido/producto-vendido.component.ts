@@ -8,6 +8,8 @@ import {
 import { FormControl } from "@angular/forms";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
@@ -16,7 +18,6 @@ import {
   combineLatest,
   debounceTime,
   finalize,
-  forkJoin,
   map,
   of,
   Subject,
@@ -264,88 +265,25 @@ export class ProductoVendidoComponent implements OnInit {
     limit: number,
     productoIds: number[]
   ): Observable<ProductoVendidoEstadistica[]> {
-    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
-
-    const sucursalesFinal =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
-
-    const queries: Record<string, Observable<ProductoVendidoEstadistica[]>> = {};
-    for (const sucId of sucursalesFinal) {
-      rangos.forEach((rango, indice) => {
-        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
-        queries[clave] = this.consultarProductosPorSucursal(
-          rango.inicio,
-          rango.fin,
-          sucId || undefined,
-          famId,
-          limit,
-          productoIds
-        );
-      });
-    }
-
-    const keys = Object.keys(queries);
-    if (keys.length === 1) {
-      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
-    }
-
-    return forkJoin(queries).pipe(
-      map((resultados) => this.combinarProductos(resultados)),
-      finalize(() => this.cargandoSubject.next(false))
-    );
-  }
-
-  private consultarProductosPorSucursal(
-    inicio: string,
-    fin: string,
-    sucId: number | undefined,
-    famId: number | null,
-    limit: number,
-    productoIds: number[]
-  ): Observable<ProductoVendidoEstadistica[]> {
     return this.graficoService
-      .obtenerProductosMasVendidos(
-        inicio,
-        fin,
-        sucId,
+      .obtenerProductosMasVendidosMulti(
+        periodosDesdeFiltro(this.filtroPeriodo),
+        this.filtroSucursales.normalizarIds(sucIds),
         famId || undefined,
         limit || 10,
         false,
-        undefined,
         productoIds?.length ? productoIds : undefined
       )
       .pipe(
         timeout(20000),
-        catchError(() => of([]))
+        map((items) =>
+          this.normalizarEstadisticas(items).sort(
+            (a, b) => b.totalMonto - a.totalMonto
+          )
+        ),
+        catchError(() => of([])),
+        finalize(() => this.cargandoSubject.next(false))
       );
-  }
-
-  private combinarProductos(
-    resultados: Record<string, ProductoVendidoEstadistica[]>
-  ): ProductoVendidoEstadistica[] {
-    const mapa = new Map<string, ProductoVendidoEstadistica>();
-
-    for (const items of Object.values(resultados)) {
-      for (const item of items || []) {
-        const existente = mapa.get(item.productoId);
-        if (existente) {
-          existente.cantidad += item.cantidad || 0;
-          existente.totalMonto += item.totalMonto || 0;
-        } else {
-          mapa.set(item.productoId, { ...item });
-        }
-      }
-    }
-
-    // Recalcular porcentajes
-    const total = Array.from(mapa.values()).reduce((s, e) => s + e.totalMonto, 0);
-    for (const item of mapa.values()) {
-      item.porcentaje = total > 0 ? (item.totalMonto / total) * 100 : 0;
-    }
-
-    return this.normalizarEstadisticas(Array.from(mapa.values())).sort(
-      (a, b) => b.totalMonto - a.totalMonto
-    );
   }
 
   private normalizarEstadisticas(
@@ -408,7 +346,16 @@ export class ProductoVendidoComponent implements OnInit {
             value: number;
             percent: number;
           };
-          return `<strong>${p.name}</strong><br/>Monto: ${formatoMonedaPy(Number(p.value))}<br/>Porcentaje: ${p.percent.toFixed(2)}%`;
+          const item = estadisticas.find((e) => e.descripcion === p.name);
+          return formatearTooltipGraficoPeriodo({
+            titulo: p.name,
+            total: Number(p.value),
+            desglosePeriodos: item?.desglosePeriodos,
+            lineasExtra: [
+              `Cantidad: ${(item?.cantidad ?? 0).toLocaleString("es-PY")} unidades`,
+              `Porcentaje: ${p.percent.toFixed(2)}%`,
+            ],
+          });
         },
       },
       legend: { show: false },

@@ -16,6 +16,16 @@ import { GastosPorCategoriaGQL } from './graphql/gastos-por-categoria.gql';
 import { VentasPorMesGQL } from './graphql/ventas-por-mes.gql';
 import { GastosPorMesGQL } from './graphql/gastos-por-mes.gql';
 import { VentasPorSucursalGQL } from './graphql/ventas-por-sucursal.gql';
+import { VentasPorFuncionarioMultiGQL } from './graphql/ventas-por-funcionario-multi.gql';
+import { FormaPagoEstadisticasMultiGQL } from './graphql/forma-pago-estadisticas-multi.gql';
+import { GastosPorCategoriaMultiGQL } from './graphql/gastos-por-categoria-multi.gql';
+import { VentasPorSucursalMultiGQL } from './graphql/ventas-por-sucursal-multi.gql';
+import { ProductosMasVendidosMultiGQL } from './graphql/productos-mas-vendidos-multi.gql';
+import { IngresosGastosPorMesMultiGQL } from './graphql/ingresos-gastos-por-mes-multi.gql';
+import { VentasPorHoraMultiGQL } from './graphql/ventas-por-hora-multi.gql';
+import { PeriodoGraficoInput } from './utils/grafico-periodo.model';
+import { IngresoGastoSerieGrafico } from './ingreso-gasto/interfaces/ingreso-gasto-serie-grafico.model';
+import { VentasPorHoraSerieGrafico } from './ventas-dias/interfaces/ventas-por-hora-serie-grafico.model';
 import { VentasProductoPorDiaGQL } from './graphql/ventas-producto-por-dia.gql';
 import { VentasProductoPorMesGQL } from './graphql/ventas-producto-por-mes.gql';
 import { ComprasProductoPorDiaGQL } from './graphql/compras-producto-por-dia.gql';
@@ -47,6 +57,13 @@ export class GraficoService {
   private ventasPorMesGQL = inject(VentasPorMesGQL);
   private gastosPorMesGQL = inject(GastosPorMesGQL);
   private ventasPorSucursalGQL = inject(VentasPorSucursalGQL);
+  private ventasPorFuncionarioMultiGQL = inject(VentasPorFuncionarioMultiGQL);
+  private formaPagoMultiGQL = inject(FormaPagoEstadisticasMultiGQL);
+  private gastosPorCategoriaMultiGQL = inject(GastosPorCategoriaMultiGQL);
+  private ventasPorSucursalMultiGQL = inject(VentasPorSucursalMultiGQL);
+  private productosMasVendidosMultiGQL = inject(ProductosMasVendidosMultiGQL);
+  private ingresosGastosPorMesMultiGQL = inject(IngresosGastosPorMesMultiGQL);
+  private ventasPorHoraMultiGQL = inject(VentasPorHoraMultiGQL);
   private ventasProductoPorDiaGQL = inject(VentasProductoPorDiaGQL);
   private ventasProductoPorMesGQL = inject(VentasProductoPorMesGQL);
   private comprasProductoPorDiaGQL = inject(ComprasProductoPorDiaGQL);
@@ -212,6 +229,124 @@ export class GraficoService {
     return this.genericService.onCustomQuery(
       this.ventasPorSucursalGQL,
       { inicio, fin },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorFuncionarioMulti(
+    periodos: PeriodoGraficoInput[],
+    sucIds?: number[],
+    usuarioIds?: number[]
+  ): Observable<VentaFuncionarioItem[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorFuncionarioMultiGQL,
+      {
+        periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+        usuarioIds: usuarioIds?.length ? usuarioIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerEstadisticasFormaPagoMulti(
+    periodos: PeriodoGraficoInput[],
+    sucIds?: number[]
+  ): Observable<FormaPagoEstadistica[]> {
+    return this.genericService.onCustomQuery(
+      this.formaPagoMultiGQL,
+      {
+        periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerGastosPorCategoriaMulti(
+    periodos: PeriodoGraficoInput[],
+    sucIds?: number[]
+  ): Observable<GastoCategoriaItem[]> {
+    return this.genericService.onCustomQuery(
+      this.gastosPorCategoriaMultiGQL,
+      {
+        periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorSucursalMulti(
+    periodos: PeriodoGraficoInput[]
+  ): Observable<VentaSucursalItem[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorSucursalMultiGQL,
+      { periodos },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerProductosMasVendidosMulti(
+    periodos: PeriodoGraficoInput[],
+    sucIds?: number[],
+    familiaId?: number,
+    limit = 10,
+    ascendente = false,
+    productoIds?: number[]
+  ): Observable<ProductoVendidoEstadistica[]> {
+    return this.genericService.onCustomQuery(
+      this.productosMasVendidosMultiGQL,
+      {
+        periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+        limit,
+        ascendente,
+        familiaId: familiaId ? String(familiaId) : null,
+        productoIds: productoIds?.length ? productoIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerIngresosGastosPorMesMulti(
+    anios: number[],
+    sucIds?: number[]
+  ): Observable<IngresoGastoSerieGrafico[]> {
+    return this.genericService.onCustomQuery(
+      this.ingresosGastosPorMesMultiGQL,
+      {
+        anios,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorHoraMulti(
+    periodos: PeriodoGraficoInput[],
+    sucIds?: number[]
+  ): Observable<VentasPorHoraSerieGrafico[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorHoraMultiGQL,
+      {
+        periodos,
+        sucIds: sucIds?.length ? sucIds.map(String) : null,
+      },
       true,
       null,
       true

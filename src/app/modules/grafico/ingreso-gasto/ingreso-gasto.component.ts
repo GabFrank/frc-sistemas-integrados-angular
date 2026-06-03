@@ -11,7 +11,6 @@ import {
   Observable,
   combineLatest,
   finalize,
-  forkJoin,
   map,
   shareReplay,
   startWith,
@@ -125,52 +124,25 @@ export class IngresoGastoComponent implements OnInit {
     years: number[]
   ): Observable<IngresoGastoCombinado[]> {
     const anhosSeleccionados = years?.length ? years : [new Date().getFullYear()];
-    const sucursalesSeleccionadas =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
-
-    const queries: Record<string, Observable<{
-      ingresos: IngresoGastoMesAcumulado[];
-      gastos: IngresoGastoMesAcumulado[];
-    }>> = {};
-
-    for (const anho of anhosSeleccionados) {
-      for (const sucId of sucursalesSeleccionadas) {
-        const clave = `${anho}_${sucId ?? "todas"}`;
-        queries[clave] = forkJoin({
-          ingresos: this.graficoService.obtenerVentasPorMes(anho, sucId || undefined),
-          gastos: this.graficoService.obtenerGastosPorMes(anho, sucId || undefined),
-        });
-      }
-    }
-
-    return forkJoin(queries).pipe(
-      map((resultados) => this.transformarResultados(resultados)),
-      finalize(() => this.cargandoSubject.next(false))
-    );
-  }
-
-  private transformarResultados(
-    resultados: Record<string, {
-      ingresos: IngresoGastoMesAcumulado[];
-      gastos: IngresoGastoMesAcumulado[];
-    }>
-  ): IngresoGastoCombinado[] {
-    const combinados: IngresoGastoCombinado[] = [];
-
-    for (const [clave, val] of Object.entries(resultados)) {
-      const [anhoStr, sucIdStr] = clave.split("_");
-      const sucId = sucIdStr === "todas" ? null : Number(sucIdStr);
-      const sucNombre = this.resolverNombreSucursal(sucId);
-      combinados.push({
-        sucursalId: sucId,
-        sucursalNombre: sucNombre,
-        anho: Number(anhoStr),
-        ingresos: val.ingresos || [],
-        gastos: val.gastos || [],
-      });
-    }
-
-    return combinados;
+    return this.graficoService
+      .obtenerIngresosGastosPorMesMulti(
+        anhosSeleccionados,
+        this.filtroSucursales.normalizarIds(sucIds)
+      )
+      .pipe(
+        map((series) =>
+          series.map((serie) => ({
+            sucursalId: serie.sucId != null ? Number(serie.sucId) : null,
+            sucursalNombre: serie.sucursalNombre || this.resolverNombreSucursal(
+              serie.sucId != null ? Number(serie.sucId) : null
+            ),
+            anho: serie.anio,
+            ingresos: serie.ingresos || [],
+            gastos: serie.gastos || [],
+          }))
+        ),
+        finalize(() => this.cargandoSubject.next(false))
+      );
   }
 
   private resolverNombreSucursal(sucId: number | null): string {

@@ -7,9 +7,15 @@ import {
   RangoFechaPeriodo,
 } from "../../../commons/core/utils/dateUtils";
 import {
+  MESES_ETIQUETAS_CORTAS,
   MESES_GRAFICO,
   MesGraficoOption,
 } from "../../../shared/constants/grafico.constants";
+
+export interface RangoConsultaGrafico extends RangoFechaPeriodo {
+  indice: number;
+  etiqueta: string;
+}
 
 const MES_TODOS_VALOR = 0;
 const MESES_DEL_ANHO = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -150,6 +156,67 @@ export class GraficoFiltrosPeriodo {
   resolverRangosConsultaMulti(): RangoFechaPeriodo[] {
     const anhos = this.normalizarAnhosSeleccionados();
     return anhos.flatMap((anho) => this.resolverRangosConsulta(anho));
+  }
+
+  resolverRangosConsultaEtiquetados(): RangoConsultaGrafico[] {
+    const anhos = this.normalizarAnhosSeleccionados();
+    const mesesSel = this.mesControl.value;
+    const meses = this.normalizarMesesSeleccionados(mesesSel);
+    const tieneMeses = this.tieneMesesSeleccionados(mesesSel);
+    const rangoDias = this.obtenerRangoDiasSeleccionado();
+    const variosAnhos = anhos.length > 1;
+    const variosMeses =
+      tieneMeses && (meses.length > 1 || mesesSel?.includes(MES_TODOS_VALOR));
+
+    const rangos = this.resolverRangosConsultaMulti();
+    return rangos.map((rango, indice) => ({
+      ...rango,
+      indice,
+      etiqueta: this.etiquetaParaRango(rango, {
+        variosAnhos,
+        variosMeses,
+        tieneMeses,
+        rangoDias: !!rangoDias && !tieneMeses,
+      }),
+    }));
+  }
+
+  tieneVariosPeriodosConsulta(): boolean {
+    return this.resolverRangosConsultaEtiquetados().length > 1;
+  }
+
+  private etiquetaParaRango(
+    rango: RangoFechaPeriodo,
+    ctx: {
+      variosAnhos: boolean;
+      variosMeses: boolean;
+      tieneMeses: boolean;
+      rangoDias: boolean;
+    }
+  ): string {
+    if (ctx.rangoDias) {
+      const ini = rango.inicio.slice(0, 10);
+      const fin = rango.fin.slice(0, 10);
+      return ini === fin ? ini : `${ini} – ${fin}`;
+    }
+
+    const match = rango.inicio.match(/^(\d{4})-(\d{2})/);
+    if (!match) {
+      return "Período";
+    }
+
+    const anho = Number(match[1]);
+    const mes = Number(match[2]);
+    const mesNombre =
+      MESES_GRAFICO.find((m) => m.valor === mes)?.nombre ??
+      MESES_ETIQUETAS_CORTAS[mes - 1] ??
+      `Mes ${mes}`;
+
+    if (ctx.tieneMeses) {
+      return ctx.variosAnhos ? `${mesNombre} ${anho}` : mesNombre;
+    }
+
+    return String(anho);
   }
 
   actualizarEstadoRangoDias(): void {

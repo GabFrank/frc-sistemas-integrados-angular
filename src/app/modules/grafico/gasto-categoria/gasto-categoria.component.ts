@@ -12,7 +12,6 @@ import {
   combineLatest,
   debounceTime,
   finalize,
-  forkJoin,
   map,
   Subject,
   startWith,
@@ -33,6 +32,8 @@ import {
 import { GastoCategoriaItem } from "./interfaces/gasto-categoria-item.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 
 const PALETA_GASTO_CATEGORIA = [
   "#F44336", "#E91E63", "#9C27B0", "#673AB7",
@@ -121,52 +122,12 @@ export class GastoCategoriaComponent implements OnInit {
   private consultarDatos(
     sucIds: number[]
   ): Observable<GastoCategoriaItem[]> {
-    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
-    const sucursalesFinal =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
-    const queries: Record<string, Observable<GastoCategoriaItem[]>> = {};
-
-    for (const sucId of sucursalesFinal) {
-      rangos.forEach((rango, indice) => {
-        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
-        queries[clave] = this.graficoService.obtenerGastosPorCategoria(
-          rango.inicio,
-          rango.fin,
-          sucId || undefined
-        );
-      });
-    }
-
-    const keys = Object.keys(queries);
-    if (keys.length === 1) {
-      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
-    }
-
-    return forkJoin(queries).pipe(
-      map((resultados) => this.combinarGastosCategorias(resultados)),
-      finalize(() => this.cargandoSubject.next(false))
-    );
-  }
-
-  private combinarGastosCategorias(
-    resultados: Record<string, GastoCategoriaItem[]>
-  ): GastoCategoriaItem[] {
-    const mapaCategoria = new Map<string, GastoCategoriaItem>();
-
-    for (const items of Object.values(resultados)) {
-      for (const item of items || []) {
-        const clave = item.categoria || "Sin Categoría";
-        const existente = mapaCategoria.get(clave);
-        if (existente) {
-          existente.total += item.total;
-          existente.cantidad = (existente.cantidad || 0) + (item.cantidad || 0);
-        } else {
-          mapaCategoria.set(clave, { ...item, cantidad: item.cantidad || 0 });
-        }
-      }
-    }
-
-    return Array.from(mapaCategoria.values());
+    return this.graficoService
+      .obtenerGastosPorCategoriaMulti(
+        periodosDesdeFiltro(this.filtroPeriodo),
+        this.filtroSucursales.normalizarIds(sucIds)
+      )
+      .pipe(finalize(() => this.cargandoSubject.next(false)));
   }
 
   private configurarGrafico(data: GastoCategoriaItem[]): void {
@@ -186,8 +147,13 @@ export class GastoCategoriaComponent implements OnInit {
           if (!fila || typeof fila !== "object") {
             return "";
           }
-          const p = fila as { name: string; value: number };
-          return `${p.name}<br/>Monto: ${formatoMonedaPy(p.value)}`;
+          const p = fila as { name: string; value: number; dataIndex: number };
+          const item = datosOrdenados[p.dataIndex];
+          return formatearTooltipGraficoPeriodo({
+            titulo: p.name,
+            total: Number(p.value),
+            desglosePeriodos: item?.desglosePeriodos,
+          });
         },
       },
       grid: {

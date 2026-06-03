@@ -13,7 +13,6 @@ import {
   combineLatest,
   debounceTime,
   finalize,
-  forkJoin,
   map,
   Subject,
   startWith,
@@ -43,6 +42,8 @@ import { VentaFuncionarioItem } from "./interfaces/venta-funcionario-item.model"
 import { VentaFuncionarioDatosGraficoProcesados } from "./interfaces/venta-funcionario-datos-grafico-procesados.model";
 import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
 import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -228,94 +229,13 @@ export class VentaFuncionarioComponent implements OnInit {
     sucIds: number[],
     funcionarios: Usuario[]
   ): Observable<VentaFuncionarioItem[]> {
-    const rangos = this.filtroPeriodo.resolverRangosConsultaMulti();
-    const sucursalesFinal =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
-    const queries: Record<string, Observable<VentaFuncionarioItem[]>> = {};
-
-    for (const sucId of sucursalesFinal) {
-      rangos.forEach((rango, indice) => {
-        const clave = `suc_${sucId ?? "todas"}_rango_${indice}`;
-        queries[clave] = this.consultarVentasPorRango(
-          rango.inicio,
-          rango.fin,
-          sucId || undefined,
-          funcionarios
-        );
-      });
-    }
-
-    const keys = Object.keys(queries);
-    if (keys.length === 1) {
-      return queries[keys[0]].pipe(finalize(() => this.cargandoSubject.next(false)));
-    }
-
-    return forkJoin(queries).pipe(
-      map((resultados) => this.combinarFuncionarios(resultados)),
-      finalize(() => this.cargandoSubject.next(false))
-    );
-  }
-
-  private consultarVentasPorRango(
-    inicio: string,
-    fin: string,
-    sucId: number | undefined,
-    funcionarios: Usuario[]
-  ): Observable<VentaFuncionarioItem[]> {
-    if (funcionarios.length === 0) {
-      return this.graficoService.obtenerVentasPorFuncionario(
-        inicio,
-        fin,
-        sucId,
-        undefined
-      );
-    }
-
-    if (funcionarios.length === 1) {
-      return this.graficoService.obtenerVentasPorFuncionario(
-        inicio,
-        fin,
-        sucId,
-        funcionarios[0].id
-      );
-    }
-
-    return forkJoin(
-      funcionarios.map((f) =>
-        this.graficoService.obtenerVentasPorFuncionario(
-          inicio,
-          fin,
-          sucId,
-          f.id
-        )
+    return this.graficoService
+      .obtenerVentasPorFuncionarioMulti(
+        periodosDesdeFiltro(this.filtroPeriodo),
+        this.filtroSucursales.normalizarIds(sucIds),
+        funcionarios.map((f) => f.id)
       )
-    ).pipe(
-      map((listas) =>
-        this.combinarFuncionarios(
-          Object.fromEntries(listas.map((items, i) => [String(i), items]))
-        )
-      )
-    );
-  }
-
-  private combinarFuncionarios(
-    resultados: Record<string, VentaFuncionarioItem[]>
-  ): VentaFuncionarioItem[] {
-    const mapa = new Map<number, VentaFuncionarioItem>();
-
-    for (const items of Object.values(resultados)) {
-      for (const item of items || []) {
-        const existente = mapa.get(item.id);
-        if (existente) {
-          existente.total += item.total || 0;
-          existente.cantidad += item.cantidad || 0;
-        } else {
-          mapa.set(item.id, { ...item });
-        }
-      }
-    }
-
-    return Array.from(mapa.values());
+      .pipe(finalize(() => this.cargandoSubject.next(false)));
   }
 
   private procesarDatos(data: VentaFuncionarioItem[]): VentaFuncionarioDatosGraficoProcesados {
@@ -370,11 +290,16 @@ export class VentaFuncionarioComponent implements OnInit {
             dataIndex: number;
           };
           const item = validas[el.dataIndex];
-          return `<strong>${el.name}</strong><br/>
-                    Total: ${formatoMonedaPy(Number(el.value))}<br/>
-                    Cantidad de Ventas: ${item?.cantidad ?? 0}<br/>
-                    <span style="font-size: 0.9em; color: #aaa">Producto Top:</span> ${item?.productoMasVendido || "N/A"}<br/>
-                    <span style="font-size: 0.9em; color: #aaa">Sucursales:</span> ${item?.sucursales || "N/A"}`;
+          return formatearTooltipGraficoPeriodo({
+            titulo: el.name,
+            total: Number(el.value),
+            desglosePeriodos: item?.desglosePeriodos,
+            lineasExtra: [
+              `Cantidad de Ventas: ${(item?.cantidad ?? 0).toLocaleString("es-PY")}`,
+              `<span style="font-size: 0.9em; color: #aaa">Producto Top:</span> ${item?.productoMasVendido || "N/A"}`,
+              `<span style="font-size: 0.9em; color: #aaa">Sucursales:</span> ${item?.sucursales || "N/A"}`,
+            ],
+          });
         },
       },
       grid: {

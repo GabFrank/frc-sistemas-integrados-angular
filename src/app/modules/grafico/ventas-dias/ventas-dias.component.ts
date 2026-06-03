@@ -11,7 +11,6 @@ import {
   Observable,
   combineLatest,
   finalize,
-  forkJoin,
   map,
   startWith,
   switchMap,
@@ -22,7 +21,9 @@ import { GraficoService } from "../grafico.service";
 import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { formatearFechaGrafico } from "../../../commons/core/utils/dateUtils";
+import { PeriodoGraficoInput } from "../utils/grafico-periodo.model";
 import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
+import { VentasPorHoraSerieGrafico } from "./interfaces/ventas-por-hora-serie-grafico.model";
 import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
 import {
   GRAFICO_COLORES,
@@ -123,42 +124,48 @@ export class VentasDiasComponent implements OnInit {
     const hoy = new Date();
     const ayer = new Date(hoy);
     ayer.setDate(ayer.getDate() - 1);
-    const hoyStr = formatearFechaGrafico(hoy);
-    const ayerStr = formatearFechaGrafico(ayer);
+    const periodos: PeriodoGraficoInput[] = [
+      { etiqueta: "Ayer", inicio: formatearFechaGrafico(ayer), fin: formatearFechaGrafico(ayer) },
+      { etiqueta: "Hoy", inicio: formatearFechaGrafico(hoy), fin: formatearFechaGrafico(hoy) },
+    ];
 
-    const sucursalesFinal =
-      this.filtroSucursales.resolverParaConsultaMulti(sucIds);
+    return this.graficoService
+      .obtenerVentasPorHoraMulti(
+        periodos,
+        this.filtroSucursales.normalizarIds(sucIds)
+      )
+      .pipe(
+        map((series) => this.agruparSeriesPorSucursal(series)),
+        finalize(() => this.cargandoSubject.next(false))
+      );
+  }
 
-    const queries: Record<string, Observable<{
-      hoy: VentasPorHoraItem[];
-      ayer: VentasPorHoraItem[];
-    }>> = {};
+  private agruparSeriesPorSucursal(series: VentasPorHoraSerieGrafico[]): DatosSucursalHora[] {
+    const mapa = new Map<string, DatosSucursalHora>();
 
-    for (const sucId of sucursalesFinal) {
-      const clave = `suc_${sucId ?? "todas"}`;
-      queries[clave] = forkJoin({
-        hoy: this.graficoService.obtenerVentasPorHora(hoyStr, sucId ?? undefined),
-        ayer: this.graficoService.obtenerVentasPorHora(ayerStr, sucId ?? undefined),
-      });
+    for (const serie of series) {
+      const sucId =
+        serie.sucId != null && serie.sucId !== "" ? Number(serie.sucId) : null;
+      const clave = sucId != null ? String(sucId) : "todas";
+      let item = mapa.get(clave);
+      if (!item) {
+        item = {
+          sucursalId: sucId,
+          sucursalNombre:
+            serie.sucursalNombre || this.resolverNombreSucursal(sucId),
+          hoy: [],
+          ayer: [],
+        };
+        mapa.set(clave, item);
+      }
+      if (serie.etiqueta === "Hoy") {
+        item.hoy = serie.datos || [];
+      } else if (serie.etiqueta === "Ayer") {
+        item.ayer = serie.datos || [];
+      }
     }
 
-    return forkJoin(queries).pipe(
-      map((resultados) => {
-        const lista: DatosSucursalHora[] = [];
-        for (const [clave, val] of Object.entries(resultados)) {
-          const sucIdStr = clave.replace("suc_", "");
-          const sucId = sucIdStr === "todas" ? null : Number(sucIdStr);
-          lista.push({
-            sucursalId: sucId,
-            sucursalNombre: this.resolverNombreSucursal(sucId),
-            hoy: val.hoy || [],
-            ayer: val.ayer || [],
-          });
-        }
-        return lista;
-      }),
-      finalize(() => this.cargandoSubject.next(false))
-    );
+    return Array.from(mapa.values());
   }
 
   private resolverNombreSucursal(sucId: number | null): string {

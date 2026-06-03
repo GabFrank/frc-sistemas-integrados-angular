@@ -12,7 +12,6 @@ import {
   debounceTime,
   filter,
   finalize,
-  forkJoin,
   map,
   switchMap,
   tap,
@@ -31,6 +30,8 @@ import {
   tooltipEjeMoneda,
 } from "../../../shared/utils/grafico-echarts.theme";
 import { GraficoService } from "../grafico.service";
+import { PeriodoGraficoInput } from "../utils/grafico-periodo.model";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
 import { VentaSucursalItem } from "./venta-sucursal-item.model";
 import { VentaSucursalDatosGraficoProcesados } from "./venta-sucursal-datos-grafico-procesados.model";
 
@@ -94,43 +95,16 @@ export class VentaSucursalComponent implements OnInit {
   private consultarVentasPorRangos(
     rango: RangoFechaGrafico | RangoFechaGrafico[]
   ): Observable<VentaSucursalItem[]> {
-    const rangos = Array.isArray(rango) ? rango : [rango];
+    const rangosEntrada = Array.isArray(rango) ? rango : [rango];
+    const periodos: PeriodoGraficoInput[] = rangosEntrada.map((r, i) => ({
+      inicio: r.inicio,
+      fin: r.fin,
+      etiqueta: r.etiqueta ?? String(r.anho),
+    }));
 
-    if (rangos.length === 1) {
-      const { inicio, fin } = rangos[0];
-      return this.graficoService.obtenerVentasPorSucursal(inicio, fin).pipe(
-        finalize(() => this.cargandoSubject.next(false))
-      );
-    }
-
-    const queries = rangos.map((r) =>
-      this.graficoService.obtenerVentasPorSucursal(r.inicio, r.fin)
-    );
-
-    return forkJoin(queries).pipe(
-      map((listas) => this.combinarVentasPorSucursal(listas)),
+    return this.graficoService.obtenerVentasPorSucursalMulti(periodos).pipe(
       finalize(() => this.cargandoSubject.next(false))
     );
-  }
-
-  private combinarVentasPorSucursal(
-    listas: VentaSucursalItem[][]
-  ): VentaSucursalItem[] {
-    const mapa = new Map<string, VentaSucursalItem>();
-
-    for (const items of listas) {
-      for (const item of items || []) {
-        const clave = String(item.sucId ?? item.nombre ?? "");
-        const existente = mapa.get(clave);
-        if (existente) {
-          existente.total = (existente.total || 0) + (item.total || 0);
-        } else {
-          mapa.set(clave, { ...item });
-        }
-      }
-    }
-
-    return Array.from(mapa.values());
   }
 
   private procesarDatos(data: VentaSucursalItem[]): VentaSucursalDatosGraficoProcesados {
@@ -147,7 +121,24 @@ export class VentaSucursalComponent implements OnInit {
         "Ventas por Sucursal",
         `Total Período: ${formatoMonedaPy(totalGeneral)}`
       ),
-      tooltip: tooltipEjeMoneda("Ventas"),
+      tooltip: {
+        ...tooltipEjeMoneda("Ventas"),
+        formatter: (params: unknown) => {
+          const fila = Array.isArray(params) ? params[0] : params;
+          if (!fila || typeof fila !== "object") {
+            return "";
+          }
+          const p = fila as { name: string; value: number };
+          const item = validas.find(
+            (v) => (v.nombre || `Suc ${v.sucId}`) === p.name
+          );
+          return formatearTooltipGraficoPeriodo({
+            titulo: p.name,
+            total: Number(p.value),
+            desglosePeriodos: item?.desglosePeriodos,
+          });
+        },
+      },
       grid: gridGraficoOscuro(),
       xAxis: ejeCategoriaOscuro(
         validas.map((v) => v.nombre || `Suc ${v.sucId}`),
