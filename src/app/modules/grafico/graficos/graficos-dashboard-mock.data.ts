@@ -4,6 +4,7 @@ import { IngresoGastoMesAcumulado } from "../venta-mes/interfaces/ingreso-gasto-
 import { ProductoVendidoEstadistica } from "../producto-vendido/interfaces/producto-vendido-estadistica.model";
 import { VentaFuncionarioItem } from "../venta-funcionario/interfaces/venta-funcionario-item.model";
 import { VentaSucursalItem } from "../venta-sucursal/venta-sucursal-item.model";
+import { VentaCiudadItem } from "../venta-ciudad/venta-ciudad-item.model";
 import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
 
 /** Datos de ejemplo solo para el dashboard de inicio (vista previa). */
@@ -17,6 +18,14 @@ export const MOCK_VENTAS_POR_SUCURSAL: VentaSucursalItem[] = [
   { sucId: 4, nombre: "Renacer", total: 91_000_000 },
   { sucId: 5, nombre: "KM2", total: 54_000_000 },
   { sucId: 6, nombre: "Fiesta", total: 78_000_000 },
+];
+
+export const MOCK_VENTAS_POR_CIUDAD: VentaCiudadItem[] = [
+  { ciudadId: 1, nombre: "Katuete", total: 157_000_000 },
+  { ciudadId: 2, nombre: "Curuguaty", total: 72_000_000 },
+  { ciudadId: 3, nombre: "Paloma", total: 68_000_000 },
+  { ciudadId: 4, nombre: "Renacer", total: 91_000_000 },
+  { ciudadId: 5, nombre: "Ciudad del Este", total: 132_000_000 },
 ];
 
 export const MOCK_FORMAS_PAGO: FormaPagoEstadistica[] = [

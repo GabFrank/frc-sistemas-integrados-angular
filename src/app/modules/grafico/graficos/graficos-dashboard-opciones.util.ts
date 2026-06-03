@@ -18,6 +18,7 @@ import { IngresoGastoMesAcumulado } from "../venta-mes/interfaces/ingreso-gasto-
 import { ProductoVendidoEstadistica } from "../producto-vendido/interfaces/producto-vendido-estadistica.model";
 import { VentaFuncionarioItem } from "../venta-funcionario/interfaces/venta-funcionario-item.model";
 import { VentaSucursalItem } from "../venta-sucursal/venta-sucursal-item.model";
+import { VentaCiudadItem } from "../venta-ciudad/venta-ciudad-item.model";
 import { VentasPorHoraItem } from "../venta-sucursal/ventas-por-hora-item.model";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import {
@@ -30,6 +31,7 @@ import {
   MOCK_VENTAS_FUNCIONARIO,
   MOCK_VENTAS_POR_HORA,
   MOCK_VENTAS_POR_SUCURSAL,
+  MOCK_VENTAS_POR_CIUDAD,
   SUBTITULO_VISTA_PREVIA,
 } from "./graficos-dashboard-mock.data";
 
@@ -60,6 +62,38 @@ export function opcionesVentasPorSucursalMock(
     grid: gridGraficoOscuro(),
     xAxis: ejeCategoriaOscuro(
       validas.map((v) => v.nombre || `Suc ${v.sucId}`),
+      30
+    ),
+    yAxis: ejeValorOscuro(),
+    series: [
+      {
+        name: "Ventas",
+        type: "bar",
+        data: validas.map((v) => v.total),
+        itemStyle: {
+          color: degradadoBarraVertical(),
+          borderRadius: [4, 4, 0, 0],
+        },
+      },
+    ],
+  };
+}
+
+export function opcionesVentasPorCiudadMock(
+  datos: VentaCiudadItem[]
+): EChartsOption {
+  const validas = [...datos].sort((a, b) => (b.total || 0) - (a.total || 0));
+  const totalGeneral = validas.reduce((sum, item) => sum + (item.total || 0), 0);
+
+  return {
+    title: tituloGraficoCentrado(
+      "Ventas por Ciudad",
+      `${SUBTITULO_VISTA_PREVIA} · ${formatoMonedaPy(totalGeneral)}`
+    ),
+    tooltip: tooltipEjeMoneda("Ventas"),
+    grid: gridGraficoOscuro(),
+    xAxis: ejeCategoriaOscuro(
+      validas.map((v) => v.nombre || `Ciudad ${v.ciudadId ?? ""}`),
       30
     ),
     yAxis: ejeValorOscuro(),
@@ -397,6 +431,7 @@ export function construirVistaDashboardMock(): GraficosDashboardVista {
   return {
     cargando: false,
     ventasPorSucursal: opcionesVentasPorSucursalMock(MOCK_VENTAS_POR_SUCURSAL),
+    ventasPorCiudad: opcionesVentasPorCiudadMock(MOCK_VENTAS_POR_CIUDAD),
     formasPago: opcionesFormasPagoMock(MOCK_FORMAS_PAGO),
     gastosCategoria: opcionesGastosCategoriaMock(MOCK_GASTOS_CATEGORIA),
     ingresosGastos: opcionesIngresosGastosMock(

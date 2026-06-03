@@ -12,6 +12,7 @@ import { VentasPorFuncionarioMultiGQL } from './graphql/ventas-por-funcionario-m
 import { FormaPagoEstadisticasMultiGQL } from './graphql/forma-pago-estadisticas-multi.gql';
 import { GastosPorCategoriaMultiGQL } from './graphql/gastos-por-categoria-multi.gql';
 import { VentasPorSucursalMultiGQL } from './graphql/ventas-por-sucursal-multi.gql';
+import { VentasPorCiudadMultiGQL } from './graphql/ventas-por-ciudad-multi.gql';
 import { ProductosMasVendidosMultiGQL } from './graphql/productos-mas-vendidos-multi.gql';
 import { IngresosGastosPorMesMultiGQL } from './graphql/ingresos-gastos-por-mes-multi.gql';
 import { VentasPorHoraMultiGQL } from './graphql/ventas-por-hora-multi.gql';
@@ -27,6 +28,7 @@ import { ProductoVendidoEstadistica } from './producto-vendido/interfaces/produc
 import { VentaFuncionarioItem } from './venta-funcionario/interfaces/venta-funcionario-item.model';
 import { GastoCategoriaItem } from './gasto-categoria/interfaces/gasto-categoria-item.model';
 import { VentaSucursalItem } from './venta-sucursal/venta-sucursal-item.model';
+import { VentaCiudadItem } from './venta-ciudad/venta-ciudad-item.model';
 import { IngresoGastoSerieGrafico } from './ingreso-gasto/interfaces/ingreso-gasto-serie-grafico.model';
 import { VentasPorHoraSerieGrafico } from './ventas-dias/interfaces/ventas-por-hora-serie-grafico.model';
 
@@ -43,6 +45,7 @@ export class GraficoService {
   private formaPagoMultiGQL = inject(FormaPagoEstadisticasMultiGQL);
   private gastosPorCategoriaMultiGQL = inject(GastosPorCategoriaMultiGQL);
   private ventasPorSucursalMultiGQL = inject(VentasPorSucursalMultiGQL);
+  private ventasPorCiudadMultiGQL = inject(VentasPorCiudadMultiGQL);
   private productosMasVendidosMultiGQL = inject(ProductosMasVendidosMultiGQL);
   private ingresosGastosPorMesMultiGQL = inject(IngresosGastosPorMesMultiGQL);
   private ventasPorHoraMultiGQL = inject(VentasPorHoraMultiGQL);
@@ -206,6 +209,18 @@ export class GraficoService {
   ): Observable<VentaSucursalItem[]> {
     return this.genericService.onCustomQuery(
       this.ventasPorSucursalMultiGQL,
+      { periodos },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorCiudadMulti(
+    periodos: PeriodoGraficoInput[]
+  ): Observable<VentaCiudadItem[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorCiudadMultiGQL,
       { periodos },
       true,
       null,

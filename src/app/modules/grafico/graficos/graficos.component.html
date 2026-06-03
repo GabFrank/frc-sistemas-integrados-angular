@@ -15,6 +15,18 @@
 
       <div
         class="chart-card clickable"
+        (click)="onChartClick('venta-ciudad')"
+      >
+        <div
+          *ngIf="vista.ventasPorCiudad as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
         (click)="onChartClick('pago')"
       >
         <div
