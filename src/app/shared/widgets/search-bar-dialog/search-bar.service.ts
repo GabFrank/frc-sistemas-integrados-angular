@@ -23,6 +23,7 @@ import { ListClientesComponent } from '../../../modules/personas/clientes/list-c
 import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-retiro/list-retiro.component';
 import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -59,6 +60,7 @@ export const componenteList: SearchData[] =
     { title: 'Lista de clientes', component: ListClientesComponent, visibilityRoles: [ROLES.VER_PERSONAS] },
     { title: 'Lista de retiros', component: ListRetiroComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
+    { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lucro por producto', component: LucroPorProductoComponent, visibilityRoles: [ROLES.ADMIN] }
   ]
 

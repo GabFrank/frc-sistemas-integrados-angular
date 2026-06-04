@@ -1,5 +1,5 @@
 
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, Input, ChangeDetectorRef } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
 import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
@@ -11,6 +11,15 @@ import { MatDialog } from '@angular/material/dialog';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { UsuarioSearchGQL } from '../../personas/usuarios/graphql/usuarioSearch';
 import { Usuario } from '../../personas/usuarios/usuario.model';
+import { Tab } from '../../../layouts/tab/tab.model';
+
+export interface VentaFuncionarioDesdeLucroTabData {
+  source: 'lucro-por-funcionario';
+  datos: any[];
+  titulo?: string;
+  subtitulo?: string;
+  mostrarTodos?: boolean;
+}
 
 
 interface DatosGraficoProcesados {
@@ -27,9 +36,17 @@ interface DatosGraficoProcesados {
 })
 export class VentaFuncionarioComponent implements OnInit {
 
+  @Input() data: Tab;
+
+  modoExterno = false;
+  private tituloExterno: string | null = null;
+  private subtituloExterno: string | null = null;
+  private mostrarTodosExterno = false;
+
   private graficoService = inject(GraficoService);
   private dialog = inject(MatDialog);
   private usuarioSearchGQL = inject(UsuarioSearchGQL);
+  private cdr = inject(ChangeDetectorRef);
 
 
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
@@ -72,10 +89,22 @@ export class VentaFuncionarioComponent implements OnInit {
   ngOnInit(): void {
     this.inicializarAnhos();
 
+    const tabPayload = this.data?.tabData?.data as VentaFuncionarioDesdeLucroTabData | undefined;
+    if (tabPayload?.source === 'lucro-por-funcionario' && tabPayload.datos?.length) {
+      this.modoExterno = true;
+      this.allData = tabPayload.datos;
+      this.tituloExterno = tabPayload.titulo ?? null;
+      this.subtituloExterno = tabPayload.subtitulo ?? null;
+      this.mostrarTodosExterno = tabPayload.mostrarTodos ?? true;
+      this.actualizarGrafico();
+      this.cdr.markForCheck();
+      return;
+    }
+
     setTimeout(() => {
       this.cargarMetadata();
       this.configurarDataStream();
-    }, 100);
+    }, 0);
     this.mesControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.fechaControl.setValue(null, { emitEvent: false }));
     this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.fechaControl.setValue(null, { emitEvent: false }));
   }
@@ -200,19 +229,23 @@ export class VentaFuncionarioComponent implements OnInit {
           sucursales: '-'
         }];
       }
-    } else {
+    } else if (!this.mostrarTodosExterno) {
       validas = validas.slice(0, 15);
     }
 
     const totalGeneral = validas.reduce((sum, item) => sum + (item.total || 0), 0);
-    const titulo = this.funcionarioSeleccionado
-      ? `Ventas de: ${this.funcionarioSeleccionado.persona?.nombre || this.funcionarioSeleccionado.nickname}`
-      : 'Ventas por Funcionario (Top 15)';
+    const titulo = this.tituloExterno
+      ?? (this.funcionarioSeleccionado
+        ? `Ventas de: ${this.funcionarioSeleccionado.persona?.nombre || this.funcionarioSeleccionado.nickname}`
+        : 'Ventas por Funcionario (Top 15)');
+    const subtext = this.subtituloExterno
+      ? `${this.subtituloExterno} · Total: ₲ ${totalGeneral.toLocaleString('es-PY')}`
+      : `Total Mostrado: ₲ ${totalGeneral.toLocaleString('es-PY')}`;
 
     const opciones: EChartsOption = {
       title: {
         text: titulo,
-        subtext: `Total Mostrado: ₲ ${totalGeneral.toLocaleString('es-PY')}`,
+        subtext: subtext,
         left: 'center', top: 10,
         textStyle: { color: this.colores.text, fontSize: 18, fontWeight: 'bold' },
         subtextStyle: { color: this.colores.textSecondary, fontSize: 12 }

@@ -19,7 +19,7 @@ export class GastoCategoriaComponent implements OnInit {
   private datePipe = new DatePipe('en-US');
 
   sucursalControl = new FormControl(null);
-  monthControl = new FormControl(new Date().getMonth() + 1);
+  monthControl = new FormControl<number | null>(new Date().getMonth() + 1);
   yearControl = new FormControl(new Date().getFullYear());
 
   sucursales$: Observable<Sucursal[]>;
@@ -62,10 +62,19 @@ export class GastoCategoriaComponent implements OnInit {
   cargarDatos() {
     this.cargando = true;
     const year = this.yearControl.value || new Date().getFullYear();
-    const month = (this.monthControl.value || (new Date().getMonth() + 1)) - 1;
+    const monthValue = this.monthControl.value;
 
-    const inicio = new Date(year, month, 1);
-    const fin = new Date(year, month + 1, 0);
+    let inicio: Date;
+    let fin: Date;
+
+    if (monthValue == null) {
+      inicio = new Date(year, 0, 1);
+      fin = new Date(year, 12, 0);
+    } else {
+      const month = monthValue - 1;
+      inicio = new Date(year, month, 1);
+      fin = new Date(year, month + 1, 0);
+    }
 
     const inicioStr = this.datePipe.transform(inicio, 'yyyy-MM-dd') || '';
     const finStr = this.datePipe.transform(fin, 'yyyy-MM-dd') || '';

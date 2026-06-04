@@ -1,10 +1,12 @@
 .recepcion-mercaderia-container {
   width: 100%;
   height: 100%;
+  min-height: 0;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;
 
   // Header Card - Siguiendo patrón del proyecto
   .header-card {
@@ -144,17 +146,31 @@
   .verificacion-section {
     // Dos Paneles Layout - Siguiendo patrón del proyecto
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
     .dos-paneles-container {
-      height: 100%;
+      flex: 1;
+      min-height: 0;
       display: flex;
       gap: 20px;
+      overflow: hidden;
 
       .panel {
         flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         background: #2d2d2d;
         border: 1px solid #444;
         border-radius: 8px;
         overflow: hidden;
+
+        .mat-mdc-card-header {
+          flex-shrink: 0;
+        }
 
         .panel-header {
           padding: 16px;
@@ -307,14 +323,34 @@
           }
         }
 
-        .mat-mdc-card-content {
+        .mat-mdc-card-content,
+        .notas-panel-content {
           padding: 0;
           flex: 1;
+          min-height: 0;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+        }
 
+        .table-container {
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+
+          .table-content-wrapper {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+          }
+
+          mat-paginator {
+            flex-shrink: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+          }
         }
       }
 
@@ -326,6 +362,19 @@
       .right-panel {
         background-color: #2d2d2d;
         flex: 1;
+      }
+
+      .right-panel-column {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .right-panel {
+          flex: 1;
+          min-height: 0;
+        }
       }
     }
 
@@ -675,10 +724,23 @@
 } 
 
 .items-container {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  overflow: hidden;
+
+  .table-content-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  mat-paginator {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
 }
 
   .cantidad-esperada {

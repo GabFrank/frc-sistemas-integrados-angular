@@ -406,6 +406,13 @@
   <div class="footer-section">
     <div class="footer-buttons">
       <button
+        mat-button
+        (click)="dialogRef.close()"
+        class="exit-btn">
+        <mat-icon>close</mat-icon>
+        Salir
+      </button>
+      <button
         *ngIf="modoSeleccionMultiple"
         mat-raised-button
         color="primary"
@@ -414,13 +421,6 @@
         class="apply-btn">
         <mat-icon>check</mat-icon>
         Aplicar filtro ({{ cantidadSeleccionados() }})
-      </button>
-      <button
-        mat-button
-        (click)="dialogRef.close()"
-        class="exit-btn">
-        <mat-icon>close</mat-icon>
-        Salir
       </button>
     </div>
   </div>

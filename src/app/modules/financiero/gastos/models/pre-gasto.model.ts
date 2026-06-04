@@ -31,10 +31,18 @@ export class PreGastoGastoRendicion {
   vueltoDs: number;
 }
 
+export class EnteResumen {
+  id: number;
+  tipoEnte?: string;
+  referenciaId?: number;
+  descripcion?: string;
+}
+
 export class PreGasto {
   id: number;
   sucursalId: number;
   funcionario: Persona;
+  ente?: EnteResumen;
   tipoGasto: TipoGasto;
   descripcion: string;
   moneda: Moneda;

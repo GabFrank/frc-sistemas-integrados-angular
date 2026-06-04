@@ -14,7 +14,8 @@
         <mat-form-field appearance="outline" class="filter-field filter-rango">
             <mat-label>Período</mat-label>
             <mat-date-range-input [formGroup]="fechaRangoGroup" [rangePicker]="pickerRango">
-                <input matStartDate formControlName="inicio" placeholder="Desde" [min]="minFechaAnho" [max]="maxFechaAnho">
+                <input matStartDate formControlName="inicio" placeholder="Desde" [min]="minFechaAnho"
+                    [max]="maxFechaAnho">
                 <input matEndDate formControlName="fin" placeholder="Hasta" [min]="minFechaAnho" [max]="maxFechaAnho">
             </mat-date-range-input>
             <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
@@ -23,8 +24,7 @@
 
         <mat-form-field appearance="outline" class="filter-field filter-producto">
             <mat-label>Productos</mat-label>
-            <input matInput readonly [value]="etiquetaProductosFiltro"
-                placeholder="Todos los productos"
+            <input matInput readonly [value]="etiquetaProductosFiltro" placeholder="Todos los productos"
                 (click)="abrirBusquedaProducto()">
             <button mat-icon-button matSuffix type="button" (click)="abrirBusquedaProducto(); $event.stopPropagation()"
                 matTooltip="Seleccionar productos">
@@ -116,11 +116,9 @@
         <div class="products-details" *ngIf="datos.hayDatos">
             <h3 class="details-title">Detalle por producto — clic para ver evolución</h3>
             <div class="details-list">
-                <div *ngFor="let p of datos.productos; trackBy: trackByProductoId"
-                    class="detail-item"
+                <div *ngFor="let p of datos.productos; trackBy: trackByProductoId" class="detail-item"
                     [class.selected]="datos.productoSeleccionado?.productoId === p.productoId"
-                    (click)="seleccionarProducto(p.productoId)"
-                    matTooltip="Ver evolución">
+                    (click)="seleccionarProducto(p.productoId)" matTooltip="Ver evolución">
                     <span class="rank-badge">#{{ p.rank }}</span>
                     <div class="item-color-dot" [style.background-color]="p.color"></div>
                     <div class="item-info">

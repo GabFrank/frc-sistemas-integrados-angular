@@ -15,6 +15,7 @@ import { DeliveryDashboardComponent } from '../../../modules/operaciones/deliver
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
@@ -271,6 +272,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Maletines',
           icon: 'work',
           action: 'list-maletin',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Lucro por funcionario',
+          icon: 'groups',
+          action: 'lucro-por-funcionario',
           visibilityRoles: [ROLES.ADMIN]
         },
         {
@@ -687,6 +694,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
+        break;
+      case "lucro-por-funcionario":
+        this.tabService.addTab(new Tab(LucroPorFuncionarioComponent, "Lucro por funcionario", null, null));
         break;
       case "lucro-por-producto":
         this.tabService.addTab(new Tab(LucroPorProductoComponent, "Lucro por producto", null, null));

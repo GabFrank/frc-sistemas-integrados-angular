@@ -46,6 +46,7 @@ import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
+import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 
 
 import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
@@ -71,6 +72,7 @@ import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-di
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
+import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 
 @NgModule({
   declarations: [
@@ -111,6 +113,7 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
     AcompanhanteComponent,
     RutaHojaComponent,
     EntregadoresComponent,
+    ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
     SelectSucursalesDialogComponent,
@@ -134,7 +137,8 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
     AdicionarNotaDialogComponent,
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
-    GenericListVentaComponent
+    GenericListVentaComponent,
+    LucroPorFuncionarioComponent
   ],
   imports: [
     CommonModule,
