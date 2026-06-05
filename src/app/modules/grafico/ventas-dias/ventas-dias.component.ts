@@ -314,17 +314,30 @@ export class VentasDiasComponent implements OnInit {
 
     datosSucursales.forEach((datos, idx) => {
       const valoresHoy = this.construirArrayHoras(datos.hoy);
+      const valoresAyer = this.construirArrayHoras(datos.ayer);
       const paleta = PALETA_LINEAS[idx % PALETA_LINEAS.length];
-      const nombre = `Hoy · ${datos.sucursalNombre}`;
+      const nombreAyer = `Ayer · ${datos.sucursalNombre}`;
+      const nombreHoy = `Hoy · ${datos.sucursalNombre}`;
 
-      legendData.push(nombre);
+      legendData.push(nombreAyer, nombreHoy);
 
-      if (valoresHoy.some((v) => v > 0)) {
+      if (
+        valoresHoy.some((v) => v > 0) ||
+        valoresAyer.some((v) => v > 0)
+      ) {
         hayAlgunDato = true;
       }
 
       series.push({
-        name: nombre,
+        name: nombreAyer,
+        type: "line",
+        data: valoresAyer,
+        smooth: true,
+        lineStyle: { width: 2, color: paleta.color, type: "dashed" },
+        itemStyle: { color: paleta.color },
+      });
+      series.push({
+        name: nombreHoy,
         type: "line",
         data: valoresHoy,
         smooth: true,
