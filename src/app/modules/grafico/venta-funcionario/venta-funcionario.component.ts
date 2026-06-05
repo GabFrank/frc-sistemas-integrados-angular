@@ -210,16 +210,16 @@ export class VentaFuncionarioComponent implements OnInit {
     this.exportandoSubject.next(true);
     const sucIds = this.filtroSucursales.normalizarIds();
     const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
-    const funcionarios = this.funcionariosSeleccionados;
+    const usuarioIds = this.resolverUsuarioIdsExportacion();
     const filtroExtra =
-      funcionarios.length > 0
-        ? funcionarios.map((u) => this.nombreFuncionario(u)).join(", ")
+      this.funcionariosSeleccionados.length > 0
+        ? this.funcionariosSeleccionados.map((u) => this.nombreFuncionario(u)).join(", ")
         : undefined;
     this.graficoService
       .exportarGraficoExcel("VENTA_FUNCIONARIO", {
         periodos: periodosDesdeFiltro(this.filtroPeriodo),
         sucIds,
-        usuarioIds: funcionarios.map((u) => u.id),
+        usuarioIds,
         ...filtros,
         filtroSucursales: etiquetaSucursalesSeleccionadas(
           this.sucursalesSubject.value,
@@ -240,6 +240,19 @@ export class VentaFuncionarioComponent implements OnInit {
           nombreArchivoGraficoExcel("VENTA_FUNCIONARIO")
         );
       });
+  }
+
+  private resolverUsuarioIdsExportacion(): number[] {
+    if (this.funcionariosSeleccionados.length > 0) {
+      return this.funcionariosSeleccionados
+        .map((u) => u.id)
+        .filter((id) => id != null);
+    }
+    return [...this.datosCrudos]
+      .sort((a, b) => (b.total || 0) - (a.total || 0))
+      .slice(0, 15)
+      .map((v) => v.id)
+      .filter((id) => id != null);
   }
 
   private cargarMetadata(): void {
