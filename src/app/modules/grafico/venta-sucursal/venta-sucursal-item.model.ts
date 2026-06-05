@@ -4,4 +4,5 @@ export interface VentaSucursalItem extends ConDesglosePeriodoGrafico {
   sucId?: number;
   nombre?: string;
   total?: number;
+  cantidadVentas?: number;
 }

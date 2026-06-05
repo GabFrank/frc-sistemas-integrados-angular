@@ -219,11 +219,17 @@ export class VentaSucursalComponent implements OnInit {
     if (!item) {
       return "";
     }
+    const lineasExtra =
+      item.cantidadVentas != null && item.cantidadVentas > 0
+        ? [`Cant. ventas: ${item.cantidadVentas.toLocaleString("es-PY")}`]
+        : undefined;
+
     return formatearTooltipGraficoPeriodo({
       titulo: this.nombreSucursal(item),
       total: item.total ?? 0,
       desglosePeriodos: item.desglosePeriodos,
       desgloseAnhos: item.desgloseAnhos,
+      lineasExtra,
     });
   }
 
