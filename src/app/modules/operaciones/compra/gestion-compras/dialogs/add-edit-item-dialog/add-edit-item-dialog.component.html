@@ -124,6 +124,7 @@
                 <mat-select
                   #presentacionSelect
                   formControlName="presentacion"
+                  [compareWith]="comparePresentaciones"
                   (keydown)="onPresentacionKeydown($event)"
                   (closed)="onPresentacionClosed()"
                 >

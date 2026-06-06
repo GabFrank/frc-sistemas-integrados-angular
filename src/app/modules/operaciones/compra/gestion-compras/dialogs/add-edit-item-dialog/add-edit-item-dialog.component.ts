@@ -735,6 +735,7 @@ export class AddEditItemDialogComponent implements OnInit {
         if (productoCompleto?.presentaciones) {
           this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
           this.presentacionesDisponibles = productoCompleto.presentaciones;
+          this.syncPresentacionEnFormulario(presentacion);
           this.updateComputedProperties();
         }
       });
@@ -743,10 +744,11 @@ export class AddEditItemDialogComponent implements OnInit {
     // y hay exactamente una presentación disponible
     // Si se proporcionó una presentación, usarla (modo edición o selección previa)
     // Si NO se proporcionó y hay múltiples presentaciones, dejar null para que el usuario seleccione
-    const presentacionSeleccionada = presentacion ||
-      (this.presentacionesDisponibles.length === 1
+    const presentacionSeleccionada = presentacion
+      ? this.resolvePresentacionEnLista(presentacion)
+      : this.presentacionesDisponibles.length === 1
         ? this.presentacionesDisponibles[0]
-        : null);
+        : null;
 
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
@@ -1934,6 +1936,31 @@ export class AddEditItemDialogComponent implements OnInit {
       if (this.canSaveComputed) {
         this.guardarBtn?.focus();
       }
+    }
+  }
+
+  comparePresentaciones(a: Presentacion | null, b: Presentacion | null): boolean {
+    return !!a && !!b && a.id === b.id;
+  }
+
+  private resolvePresentacionEnLista(presentacion: Presentacion): Presentacion {
+    return (
+      this.presentacionesDisponibles.find((p) => p.id === presentacion.id) ||
+      presentacion
+    );
+  }
+
+  private syncPresentacionEnFormulario(presentacionFallback?: Presentacion): void {
+    const actual =
+      this.itemForm.get("presentacion")?.value || presentacionFallback;
+    if (!actual?.id) {
+      return;
+    }
+    const matched = this.presentacionesDisponibles.find(
+      (p) => p.id === actual.id
+    );
+    if (matched) {
+      this.itemForm.patchValue({ presentacion: matched }, { emitEvent: false });
     }
   }
 }
