@@ -6,7 +6,7 @@
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 12,
+  "pdvId": 25,
   "isConfigured": true,
   "isLocal": false,
   "updateChannel": "dev",
