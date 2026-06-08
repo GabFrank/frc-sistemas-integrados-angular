@@ -22,7 +22,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
 
   idControl = new FormControl();
   descripcionControl = new FormControl(null, Validators.required);
-  autorizacionControl = new FormControl(null, Validators.required);
+  autorizacionControl = new FormControl(true, Validators.required);
   cargoControl = new FormControl();
   moduloPadreControl = new FormControl<string | null>(null, Validators.required);
   activoControl = new FormControl(true);
@@ -32,7 +32,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   usuarioControl = new FormControl();
   selectedTipoGasto: TipoGasto;
   listCargo: Cargo[];
-  moduloPadreList = ['MUEBLE', 'INMUEBLE', 'PERSONAS', 'VEHICULO', 'OTRO'];
+  moduloPadreList = ['MUEBLE', 'INMUEBLE', 'PERSONAS', 'VEHICULO', 'EQUIPOS', 'OTRO'];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarTipoGastoData,
