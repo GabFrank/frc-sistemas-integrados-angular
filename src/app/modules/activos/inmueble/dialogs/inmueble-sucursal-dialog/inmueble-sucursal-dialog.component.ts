@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EnteVinculacion, EnteVinculacionInput } from '../../../ente/models/ente-vinculacion.model';
@@ -21,6 +22,7 @@ export interface InmuebleSucursalDialogData {
   vinculacion?: EnteVinculacion;
 }
 
+@UntilDestroy()
 @Component({
   selector: 'app-inmueble-sucursal-dialog',
   templateUrl: './inmueble-sucursal-dialog.component.html',
@@ -46,6 +48,8 @@ export class InmuebleSucursalDialogComponent implements OnInit {
 
   selectedArrendador: Persona | null = null;
   arrendadorDisplay = '';
+  inmuebleDisplay = '';
+  esAlquilado = false;
   isLoading = false;
 
   constructor(
@@ -54,6 +58,15 @@ export class InmuebleSucursalDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.inmuebleDisplay = this.data?.inmueble?.nombreAsignado
+      || this.data?.inmueble?.direccion
+      || `Inmueble #${this.data?.inmueble?.id}`;
+    this.esAlquilado = this.esPropioControl.value === false;
+    this.esPropioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(esPropio => {
+      this.esAlquilado = esPropio === false;
+      this.cdr.markForCheck();
+    });
+
     this.sucursalService.onGetAllSucursales().subscribe(res => {
       this.sucursales = res || [];
       this.cdr.markForCheck();
@@ -71,14 +84,6 @@ export class InmuebleSucursalDialogComponent implements OnInit {
         this.alquilerVigenciaControl.setValue(new Date(v.alquilerVigencia));
       }
     }
-  }
-
-  get inmuebleDisplay(): string {
-    return this.data?.inmueble?.nombreAsignado || this.data?.inmueble?.direccion || `Inmueble #${this.data?.inmueble?.id}`;
-  }
-
-  get esAlquilado(): boolean {
-    return this.esPropioControl.value === false;
   }
 
   onBuscarArrendador(): void {

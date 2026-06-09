@@ -84,8 +84,8 @@
         <th mat-header-cell *matHeaderCellDef>Cuotas</th>
         <td mat-cell *matCellDef="let row">
           {{ row.cuotasPagadas }} / {{ row.cuotasTotales }}
-          <div class="subtext" [class.cuota-pagada]="isCuotaPagada(row)">
-            {{ isCuotaPagada(row) ? 'Pagado' : 'Faltan: ' + row.cuotasFaltantes }}
+          <div class="subtext" [class.cuota-pagada]="row.cuotaPagada">
+            {{ row.cuotasSubtexto }}
           </div>
         </td>
       </ng-container>
@@ -160,7 +160,7 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-        [ngClass]="expandedRow?.id === row.id ? 'selected-row' : ''"
+        [class.selected-row]="expandedRow?.id === row.id"
         (click)="toggleExpand(row)"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>

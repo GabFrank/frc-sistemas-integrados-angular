@@ -23,6 +23,7 @@ export class CuotasDetalleEditorComponent implements OnChanges {
   currencyMask = new CurrencyMask();
   cuotaEnEdicion: CuotaDetalle | null = null;
   indiceEdicion = -1;
+  totalCuotasMonto = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (
@@ -32,6 +33,8 @@ export class CuotasDetalleEditorComponent implements OnChanges {
       changes['montoYaPagado']
     ) {
       this.regenerarCuotas();
+    } else if (changes['cuotas']) {
+      this.actualizarTotalCuotas();
     }
   }
 
@@ -79,11 +82,12 @@ export class CuotasDetalleEditorComponent implements OnChanges {
     this.emitir();
   }
 
-  totalCuotas(cuotas: CuotaDetalle[]): number {
-    return this.cuotasService.totalCuotas(this.cuotas);
+  private actualizarTotalCuotas(): void {
+    this.totalCuotasMonto = this.cuotasService.totalCuotas(this.cuotas);
   }
 
   private emitir(): void {
+    this.actualizarTotalCuotas();
     this.cuotasChange.emit(this.cuotas);
     this.cdr.markForCheck();
   }

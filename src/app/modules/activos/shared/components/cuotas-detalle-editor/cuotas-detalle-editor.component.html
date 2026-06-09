@@ -7,7 +7,7 @@
   </div>
 
   <div class="total-cuotas" *ngIf="cuotas.length">
-    Total cuotas: <strong>{{ totalCuotas(cuotas) | number:'1.0-2' }}</strong>
+    Total cuotas: <strong>{{ totalCuotasMonto | number:'1.0-2' }}</strong>
   </div>
 
   <table mat-table [dataSource]="cuotas" class="mat-elevation-z2" *ngIf="cuotas.length">

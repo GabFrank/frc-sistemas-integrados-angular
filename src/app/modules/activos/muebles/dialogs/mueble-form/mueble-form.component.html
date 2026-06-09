@@ -160,10 +160,10 @@
 
                             <app-cuotas-detalle-editor
                                 *ngIf="situacion === 'PAGANDO'"
-                                [cantidadCuotas]="form.get('cantidadCuotas')?.value"
-                                [cantidadCuotasPagadas]="form.get('cantidadCuotasPagadas')?.value"
-                                [montoTotal]="form.get('montoTotal')?.value"
-                                [montoYaPagado]="form.get('montoYaPagado')?.value"
+                                [cantidadCuotas]="form.controls['cantidadCuotas'].value"
+                                [cantidadCuotasPagadas]="form.controls['cantidadCuotasPagadas'].value"
+                                [montoTotal]="form.controls['montoTotal'].value"
+                                [montoYaPagado]="form.controls['montoYaPagado'].value"
                                 [cuotas]="cuotasDetalle"
                                 (cuotasChange)="onCuotasChange($event)">
                             </app-cuotas-detalle-editor>

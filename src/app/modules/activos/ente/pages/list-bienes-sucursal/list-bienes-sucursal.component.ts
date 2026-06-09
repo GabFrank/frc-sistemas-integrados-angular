@@ -35,6 +35,8 @@ interface BienFinancieroRow {
   diasParaVencer: number;
   estadoCuota: 'PAGADO' | 'AL DIA' | 'POR VENCER' | 'VENCIDO' | 'SIN PLAN';
   estadoCuotaClass: string;
+  cuotaPagada: boolean;
+  cuotasSubtexto: string;
   proveedor: string;
   detalleGastos: { concepto: string; monto: number; moneda: string }[];
   sucursalIds: number[];
@@ -238,12 +240,6 @@ export class ListBienesSucursalComponent implements OnInit {
     this.enteService.refrescar();
   }
 
-  isCuotaPagada(row: BienFinancieroRow): boolean {
-    return row.situacionPago === 'PAGADO'
-      || row.montoPendiente <= 0
-      || row.cuotasFaltantes <= 0;
-  }
-
   private armarFila(ente: Ente): Observable<BienFinancieroRow> {
     const cuotasTotales = ente.cuotasTotales || 0;
     const cuotasPagadas = ente.cuotasPagadas || 0;
@@ -253,6 +249,9 @@ export class ListBienesSucursalComponent implements OnInit {
     const montoPendiente = ente.montoPendiente || 0;
     const moneda = ente.monedaSimbolo || 'Gs.';
     const estadoCuota = (ente.estadoCuota as any) || 'SIN PLAN';
+    const cuotaPagada = (ente.situacionPago || '') === 'PAGADO'
+      || montoPendiente <= 0
+      || cuotasFaltantes <= 0;
 
     return of({
       id: ente.id,
@@ -273,6 +272,8 @@ export class ListBienesSucursalComponent implements OnInit {
       diasParaVencer: ente.diasParaVencer || 0,
       estadoCuota,
       estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
+      cuotaPagada,
+      cuotasSubtexto: cuotaPagada ? 'Pagado' : `Faltan: ${cuotasFaltantes}`,
       proveedor: ente.proveedorNombre || 'No definido',
       detalleGastos: [
         { concepto: 'Monto total comprometido', monto: montoTotal, moneda },

@@ -39,7 +39,7 @@
       <ng-container matColumnDef="sucursal">
         <th mat-header-cell *matHeaderCellDef>Sucursal</th>
         <td mat-cell *matCellDef="let row">
-          <ng-container *ngIf="getVinculacionPrincipal(row) as vinculacion; else sinSucursal">
+          <ng-container *ngIf="row.vinculacionesSucursal?.[0] as vinculacion; else sinSucursal">
             {{ vinculacion.sucursal?.nombre }}
           </ng-container>
           <ng-template #sinSucursal>
@@ -51,7 +51,7 @@
       <ng-container matColumnDef="tenencia">
         <th mat-header-cell *matHeaderCellDef>Tenencia</th>
         <td mat-cell *matCellDef="let row">
-          <ng-container *ngIf="getVinculacionPrincipal(row) as vinculacion; else sinTenencia">
+          <ng-container *ngIf="row.vinculacionesSucursal?.[0] as vinculacion; else sinTenencia">
             <span class="badge" [class.badge-propio]="vinculacion.esPropio !== false" [class.badge-alquilado]="vinculacion.esPropio === false">
               {{ vinculacion.esPropio === false ? 'Alquilado' : 'Propio' }}
             </span>
@@ -76,7 +76,7 @@
             <span style="font-weight: 600;">{{ row.valorTasacion | currency:'USD':'symbol':'1.0-0' }}</span>
             <br *ngIf="row.valorTasacionPyg || row.valorTasacionBrl">
             <span *ngIf="row.valorTasacionPyg || row.valorTasacionBrl" style="font-size: 0.75em; opacity: 0.6;">
-                <span *ngIf="row.valorTasacionPyg">â‚² {{ row.valorTasacionPyg | number:'1.0-0' }}</span>
+                <span *ngIf="row.valorTasacionPyg">ÿÿÿ {{ row.valorTasacionPyg | number:'1.0-0' }}</span>
                 <span *ngIf="row.valorTasacionPyg && row.valorTasacionBrl"> | </span>
                 <span *ngIf="row.valorTasacionBrl">R$ {{ row.valorTasacionBrl | number:'1.2-2' }}</span>
             </span>
@@ -92,9 +92,9 @@
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onVincularSucursal(row)">
               <mat-icon color="primary">store</mat-icon>
-              <span>{{ getVinculacionPrincipal(row) ? 'Configurar sucursal / tenencia' : 'Vincular a sucursal' }}</span>
+              <span>{{ row.vinculacionesSucursal?.[0] ? 'Configurar sucursal / tenencia' : 'Vincular a sucursal' }}</span>
             </button>
-            <button mat-menu-item (click)="onDesvincularSucursal(row)" *ngIf="getVinculacionPrincipal(row)">
+            <button mat-menu-item (click)="onDesvincularSucursal(row)" *ngIf="row.vinculacionesSucursal?.[0]">
               <mat-icon color="warn">link_off</mat-icon>
               <span>Desvincular de sucursal</span>
             </button>

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EnteService } from '../../service/ente.service';
@@ -27,6 +28,7 @@ interface BienVinculadoItem {
   observacion: string;
 }
 
+@UntilDestroy()
 @Component({
   selector: 'app-ente-vinculacion-dialog',
   templateUrl: './ente-vinculacion-dialog.component.html',
@@ -62,6 +64,8 @@ export class EnteVinculacionDialogComponent implements OnInit {
   bienesAgregados: BienVinculadoItem[] = [];
 
   tiposBien = [TipoEnte.VEHICULO, TipoEnte.MUEBLE, TipoEnte.EQUIPO];
+  esModoLocal = false;
+  esAlquilado = false;
   isLoading = false;
 
   constructor(
@@ -70,6 +74,13 @@ export class EnteVinculacionDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.esModoLocal = this.data.modo === 'LOCAL';
+    this.esAlquilado = this.esPropioControl.value === false;
+    this.esPropioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(esPropio => {
+      this.esAlquilado = esPropio === false;
+      this.cdr.markForCheck();
+    });
+
     this.sucursalService.onGetAllSucursales().subscribe(res => {
       this.sucursales = res || [];
       if (this.data?.sucursalId) {
@@ -101,14 +112,6 @@ export class EnteVinculacionDialogComponent implements OnInit {
         }
       }
     }
-  }
-
-  get esModoLocal(): boolean {
-    return this.data.modo === 'LOCAL';
-  }
-
-  get esAlquilado(): boolean {
-    return this.esPropioControl.value === false;
   }
 
   onBuscarInmueble(): void {

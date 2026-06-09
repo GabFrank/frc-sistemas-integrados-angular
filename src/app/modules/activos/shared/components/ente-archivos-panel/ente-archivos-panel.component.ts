@@ -17,6 +17,14 @@ interface ArchivoPendiente {
   contenidoBase64: string;
 }
 
+interface ArchivoTablaRow extends EnteArchivo {
+  etiquetaTipo: string;
+}
+
+interface ArchivoPendienteRow extends ArchivoPendiente {
+  etiquetaTipo: string;
+}
+
 @Component({
   selector: 'app-ente-archivos-panel',
   templateUrl: './ente-archivos-panel.component.html',
@@ -33,8 +41,8 @@ export class EnteArchivosPanelComponent implements OnChanges {
   @Input() enteId: number | null = null;
   @Input() tiposPermitidos: TipoArchivoOpcion[] = [];
 
-  archivos: EnteArchivo[] = [];
-  archivosPendientes: ArchivoPendiente[] = [];
+  archivos: ArchivoTablaRow[] = [];
+  archivosPendientes: ArchivoPendienteRow[] = [];
   cargando = false;
   subiendo = false;
   tipoSeleccionado: TipoArchivoEnte | null = null;
@@ -56,8 +64,9 @@ export class EnteArchivosPanelComponent implements OnChanges {
         this.cdr.markForCheck();
       }
     }
-    if (this.tiposPermitidos?.length) {
+    if (changes['tiposPermitidos'] && this.tiposPermitidos?.length) {
       this.tipoSeleccionado = this.tiposPermitidos[0].tipo;
+      this.actualizarEtiquetasArchivos();
     }
   }
 
@@ -70,7 +79,7 @@ export class EnteArchivosPanelComponent implements OnChanges {
     this.cargando = true;
     this.enteArchivoService.listarPorEnte(this.enteId).subscribe({
       next: (lista) => {
-        this.archivos = lista || [];
+        this.archivos = (lista || []).map(archivo => this.mapearArchivo(archivo));
         this.cargando = false;
         this.cdr.markForCheck();
       },
@@ -100,11 +109,11 @@ export class EnteArchivosPanelComponent implements OnChanges {
       if (!this.enteId) {
         this.archivosPendientes = [
           ...this.archivosPendientes,
-          {
+          this.mapearArchivoPendiente({
             nombre: file.name,
             tipo: this.tipoSeleccionado,
             contenidoBase64,
-          },
+          }),
         ];
         this.subiendo = false;
         this.notificacion.openSucess('Archivo agregado. Se subirá al guardar el registro.');
@@ -212,7 +221,26 @@ export class EnteArchivosPanelComponent implements OnChanges {
     this.contenidoAmpliado = null;
   }
 
-  etiquetaTipo(tipo: TipoArchivoEnte): string {
+  private mapearArchivo(archivo: EnteArchivo): ArchivoTablaRow {
+    return {
+      ...archivo,
+      etiquetaTipo: this.resolverEtiquetaTipo(archivo.tipoArchivo),
+    };
+  }
+
+  private mapearArchivoPendiente(archivo: ArchivoPendiente): ArchivoPendienteRow {
+    return {
+      ...archivo,
+      etiquetaTipo: this.resolverEtiquetaTipo(archivo.tipo),
+    };
+  }
+
+  private actualizarEtiquetasArchivos(): void {
+    this.archivos = this.archivos.map(archivo => this.mapearArchivo(archivo));
+    this.archivosPendientes = this.archivosPendientes.map(archivo => this.mapearArchivoPendiente(archivo));
+  }
+
+  private resolverEtiquetaTipo(tipo: TipoArchivoEnte): string {
     return this.tiposPermitidos.find(t => t.tipo === tipo)?.etiqueta || tipo;
   }
 }
