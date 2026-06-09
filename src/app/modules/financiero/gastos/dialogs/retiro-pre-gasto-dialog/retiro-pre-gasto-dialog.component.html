@@ -1,0 +1,81 @@
+<div class="dialogo-contenedor">
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">qr_code_scanner</mat-icon>
+    <h3 class="dialogo-titulo">Gastos autorizados</h3>
+  </div>
+
+  <p class="hint-text">
+    Seleccione la solicitud, muestre el QR al funcionario para que lo escanee desde su celular,
+    y luego confirme la entrega de efectivo en caja.
+  </p>
+
+  <div *ngIf="cargandoLista" class="estado-carga">
+    <mat-icon class="estado-icono">hourglass_empty</mat-icon>
+    Cargando solicitudes...
+  </div>
+
+  <div *ngIf="!cargandoLista && solicitudes.length > 0" class="lista-solicitudes">
+    <button
+      type="button"
+      class="item-solicitud"
+      *ngFor="let item of solicitudes"
+      (click)="seleccionarSolicitud(item)"
+      [class.seleccionado]="seleccionada?.id === item.id"
+    >
+      <span class="item-titulo">#{{ item.id }} — {{ item.funcionario?.nombre }}</span>
+      <span class="item-sublinea">
+        {{ item.tipoGasto?.descripcion }} · {{ formatMonto(item.montoSolicitado) }} {{ item.moneda?.simbolo }}
+      </span>
+    </button>
+  </div>
+
+  <div *ngIf="!cargandoLista && solicitudes.length === 0" class="estado-vacio">
+    <mat-icon class="estado-icono">inbox</mat-icon>
+    No hay solicitudes autorizadas para retiro en esta sucursal.
+  </div>
+
+  <div *ngIf="seleccionada" class="panel-detalle" fxLayout="column" fxLayoutGap="12px">
+    <div class="detalle-campo">
+      <span class="etiqueta">Solicitud</span>
+      <span class="valor">#{{ seleccionada.id }} — {{ seleccionada.descripcion }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Funcionario</span>
+      <span class="valor">{{ seleccionada.funcionario?.nombre }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Monto</span>
+      <span class="valor">{{ formatMonto(seleccionada.montoSolicitado) }} {{ seleccionada.moneda?.simbolo }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Confirmación móvil</span>
+      <span class="valor" [class.confirmado]="funcionarioConfirmo">
+        {{ funcionarioConfirmo ? 'Funcionario confirmó retiro' : 'Pendiente de escaneo' }}
+      </span>
+    </div>
+  </div>
+
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="12px">
+    <button mat-raised-button type="button" (click)="cerrar()">Cerrar</button>
+    <button
+      mat-raised-button
+      class="boton-qr"
+      type="button"
+      [disabled]="!seleccionada || cargandoQr"
+      (click)="mostrarQrRetiro()"
+    >
+      <mat-icon>qr_code_2</mat-icon>
+      Mostrar QR
+    </button>
+    <button
+      mat-raised-button
+      class="boton-entregar"
+      type="button"
+      [disabled]="!seleccionada || !funcionarioConfirmo || cargandoRetiro"
+      (click)="ejecutarRetiro()"
+    >
+      <mat-icon>payments</mat-icon>
+      Entregar efectivo
+    </button>
+  </div>
+</div>

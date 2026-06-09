@@ -33,7 +33,11 @@ export class AutorizarGastoDialogComponent implements OnInit {
   montoRendidoGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
+  registrandoDevolucion = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
   currencyMask = new CurrencyMask();
@@ -51,6 +55,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
     if (this.esTramite()) {
+      this.cargarGastoLocalSiAplica();
       const gasto = this.preGasto?.gasto;
       const retiroGs = Number(gasto?.retiroGs ?? 0);
       const retiroRs = Number(gasto?.retiroRs ?? 0);
@@ -71,6 +76,51 @@ export class AutorizarGastoDialogComponent implements OnInit {
 
   esTramite(): boolean {
     return this.preGasto?.estado === this.ESTADO_TRAMITE;
+  }
+
+  tieneSaldoDevolver(): boolean {
+    return Number(this.preGasto?.saldoDevolver ?? 0) > 0;
+  }
+
+  registrarDevolucion(): void {
+    if (!this.esTramite() || !this.tieneSaldoDevolver() || !this.preGasto?.cajaId) {
+      return;
+    }
+    const vueltoGs = this.parseMontoMoneda(this.devolucionGsControl.value, 'GS');
+    const vueltoRs = this.parseMontoMoneda(this.devolucionRsControl.value, 'RS');
+    const vueltoDs = this.parseMontoMoneda(this.devolucionDsControl.value, 'DS');
+    if (vueltoGs + vueltoRs + vueltoDs <= 0) {
+      return;
+    }
+    const sucursalCajaId = this.preGasto.sucursalCaja?.id ?? this.mainService.sucursalActual?.id;
+    if (!sucursalCajaId) {
+      return;
+    }
+    this.registrandoDevolucion = true;
+    this.gastoService.registrarDevolucionSaldoHibrido(
+      this.preGasto,
+      vueltoGs,
+      vueltoRs,
+      vueltoDs,
+      sucursalCajaId,
+      this.mainService.usuarioActual?.id
+    ).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        this.registrandoDevolucion = false;
+        if (res) {
+          this.preGasto = { ...this.preGasto, ...res };
+          this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
+          this.devolucionGsControl.setValue(0, { emitEvent: false });
+          this.devolucionRsControl.setValue(0, { emitEvent: false });
+          this.devolucionDsControl.setValue(0, { emitEvent: false });
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {
+        this.registrandoDevolucion = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   autorizar(): void {
@@ -216,12 +266,67 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  private cargarGastoLocalSiAplica(): void {
+    if (!this.preGasto?.gastoCajaRegistroId || !this.preGasto?.cajaId) {
+      return;
+    }
+    const sucursalCajaId = this.preGasto.sucursalCaja?.id ?? this.mainService.sucursalActual?.id;
+    if (!sucursalCajaId) {
+      return;
+    }
+    this.gastoService.onFilterGasto(
+      this.preGasto.gastoCajaRegistroId,
+      this.preGasto.cajaId,
+      sucursalCajaId,
+      undefined,
+      undefined,
+      0,
+      1,
+      false
+    ).pipe(untilDestroyed(this)).subscribe({
+      next: (page) => {
+        const gastoLocal = page?.getContent?.[0];
+        if (!gastoLocal) {
+          return;
+        }
+        this.preGasto = {
+          ...this.preGasto,
+          gasto: {
+            retiroGs: gastoLocal.retiroGs,
+            retiroRs: gastoLocal.retiroRs,
+            retiroDs: gastoLocal.retiroDs,
+            vueltoGs: gastoLocal.vueltoGs,
+            vueltoRs: gastoLocal.vueltoRs,
+            vueltoDs: gastoLocal.vueltoDs,
+          },
+        };
+        this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
+        const retiroGs = Number(gastoLocal.retiroGs ?? 0);
+        const retiroRs = Number(gastoLocal.retiroRs ?? 0);
+        const retiroDs = Number(gastoLocal.retiroDs ?? 0);
+        const vueltoGs = Number(gastoLocal.vueltoGs ?? 0);
+        const vueltoRs = Number(gastoLocal.vueltoRs ?? 0);
+        const vueltoDs = Number(gastoLocal.vueltoDs ?? 0);
+        this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
+        this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
+        this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {
     const normalized = (simbolo ?? '').trim().toUpperCase();
     const normalizedDen = (denominacion ?? '').trim().toUpperCase();
     const gasto = this.preGasto?.gasto;
     if (!gasto) {
-      return 0;
+      const finanzas = this.preGasto?.finanzas ?? [];
+      const fin = finanzas.find((item) => {
+        const itemSimbolo = (item?.moneda?.simbolo ?? '').trim().toUpperCase();
+        const itemDen = (item?.moneda?.denominacion ?? '').trim().toUpperCase();
+        return itemSimbolo === normalized || itemDen === normalizedDen;
+      });
+      return Number(fin?.monto ?? this.preGasto?.montoRetirado ?? 0);
     }
     if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) {
       return Number(gasto.retiroGs ?? 0);

@@ -50,6 +50,39 @@
     </mat-form-field>
   </div>
 
+  <div class="resumen-solicitud" *ngIf="esTramite() && tieneSaldoDevolver()">
+    <div class="resumen-campo">
+      <span class="resumen-label">Saldo a devolver</span>
+      <span class="resumen-valor">
+        {{ preGasto.moneda?.simbolo }} {{ formatMonto(preGasto.saldoDevolver) }}
+      </span>
+    </div>
+  </div>
+
+  <div class="rendicion-seccion" *ngIf="esTramite() && tieneSaldoDevolver()">
+    <p class="rendicion-titulo">Devolución de saldo en caja</p>
+    <div class="rendicion-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Devolver (Gs.)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsGuarani" [formControl]="devolucionGsControl" />
+        <span matSuffix>Gs.</span>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Devolver (R$)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="devolucionRsControl" />
+        <span matSuffix>R$</span>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Devolver (USD)</mat-label>
+        <input matInput type="text" numericOnly currencyMask [options]="currencyMask.currencyOptionsNoGuarani" [formControl]="devolucionDsControl" />
+        <span matSuffix>USD</span>
+      </mat-form-field>
+    </div>
+    <button mat-stroked-button color="accent" type="button" [disabled]="registrandoDevolucion" (click)="registrarDevolucion()">
+      Registrar devolución
+    </button>
+  </div>
+
   <div class="rendicion-seccion" *ngIf="esTramite()">
     <div class="rendicion-grid">
       <mat-form-field appearance="outline">

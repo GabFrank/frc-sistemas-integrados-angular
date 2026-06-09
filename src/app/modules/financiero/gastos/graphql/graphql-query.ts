@@ -176,6 +176,7 @@ export const filterGastosQuery = gql`
       hasPrevious
       getContent {
         id
+        sucursalId
         sucursal {
           id
           nombre
@@ -185,20 +186,27 @@ export const filterGastosQuery = gql`
           sucursalId
         }
         responsable {
+          id
           persona {
             nombre
           }
         }
         tipoGasto {
+          id
           descripcion
         }
         autorizadoPor {
+          id
           persona {
             nombre
           }
         }
+        usuario {
+          id
+        }
         preGasto {
           id
+          sucursalId
           estado
           estadoEtiqueta
           estadoIcono
@@ -211,6 +219,11 @@ export const filterGastosQuery = gql`
         retiroGs
         retiroRs
         retiroDs
+        vueltoGs
+        vueltoRs
+        vueltoDs
+        activo
+        finalizado
         creadoEn
       }
     }
@@ -334,16 +347,6 @@ export const rechazarPreGastoMutation = gql`
   }
 `;
 
-export const tramitarPreGastoMutation = gql`
-  mutation tramitarPreGasto($id: ID!, $sucId: ID) {
-    data: tramitarPreGasto(id: $id, sucId: $sucId) {
-      id
-      sucursalId
-      estado
-    }
-  }
-`;
-
 export const completarPreGastoMutation = gql`
   mutation completarPreGasto(
     $id: ID!,
@@ -424,6 +427,7 @@ export const filterPreGastosQuery = gql`
         }
         montoSolicitado
         cajaId
+        gastoCajaRegistroId
         sucursalCaja {
           id
           nombre
@@ -519,5 +523,136 @@ export const imprimirPreGastoQuery = gql`
 export const imprimirSolicitudPagoMutation = gql`
   mutation ($id: ID!) {
     data: imprimirSolicitudPagoPDF(solicitudPagoId: $id)
+  }
+`;
+
+export const preGastosParaRetiroQuery = gql`
+  query ($sucursalCajaId: ID!) {
+    data: preGastosParaRetiro(sucursalCajaId: $sucursalCajaId) {
+      id
+      sucursalId
+      descripcion
+      estado
+      montoSolicitado
+      montoRetirado
+      montoGastado
+      saldoDevolver
+      qrToken
+      retiroConfirmadoEn
+      funcionario { id nombre }
+      autorizadoPor { id nombre }
+      tipoGasto { id descripcion moduloPadre }
+      moneda { id simbolo denominacion }
+      finanzas { monto moneda { simbolo denominacion } }
+    }
+  }
+`;
+
+export const qrRetiroPreGastoQuery = gql`
+  query ($preGastoId: ID!, $sucursalId: ID!) {
+    data: qrRetiroPreGasto(preGastoId: $preGastoId, sucursalId: $sucursalId) {
+      codigoQr
+      preGastoId
+      sucursalId
+      qrToken
+    }
+  }
+`;
+
+export const preGastoPorIdQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: preGasto(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      descripcion
+      estado
+      montoSolicitado
+      montoRetirado
+      montoGastado
+      saldoDevolver
+      estadoEtiqueta
+      estadoRendicion
+      qrToken
+      retiroConfirmadoEn
+      funcionario { id nombre }
+      tipoGasto { id descripcion moduloPadre }
+      moneda { id simbolo denominacion }
+      finanzas { monto moneda { simbolo denominacion } }
+      rendiciones {
+        id
+        montoTotal
+        fotoFacturaUrl
+        fotoProductoUrl
+        kmActual
+        litros
+        precioPorLitro
+        ubicacionProvisoria
+        establecimientoAlimentacion
+        creadoEn
+        tipoGasto { descripcion }
+      }
+    }
+  }
+`;
+
+export const confirmarRetiroFuncionarioMutation = gql`
+  mutation ($input: ConfirmarRetiroFuncionarioInput!) {
+    data: confirmarRetiroFuncionarioPreGasto(input: $input) {
+      id
+      sucursalId
+      estado
+      retiroConfirmadoEn
+    }
+  }
+`;
+
+export const ejecutarRetiroPreGastoMutation = gql`
+  mutation ($input: EjecutarRetiroPreGastoInput!) {
+    data: ejecutarRetiroPreGasto(input: $input) {
+      id
+      sucursalId
+      estado
+      montoRetirado
+      saldoDevolver
+    }
+  }
+`;
+
+export const registrarDevolucionSaldoMutation = gql`
+  mutation ($input: DevolucionSaldoPreGastoInput!) {
+    data: registrarDevolucionSaldoPreGasto(input: $input) {
+      id
+      sucursalId
+      saldoDevolver
+      estado
+    }
+  }
+`;
+
+export const saveGastoRendicionMutation = gql`
+  mutation ($input: GastoRendicionInput!) {
+    data: saveGastoRendicion(input: $input) {
+      id
+      montoTotal
+      creadoEn
+    }
+  }
+`;
+
+export const gastoRendicionesByPreGastoQuery = gql`
+  query ($preGastoId: ID!, $sucursalId: ID!) {
+    data: gastoRendicionesByPreGasto(preGastoId: $preGastoId, sucursalId: $sucursalId) {
+      id
+      montoTotal
+      fotoFacturaUrl
+      fotoProductoUrl
+      kmActual
+      litros
+      precioPorLitro
+      ubicacionProvisoria
+      establecimientoAlimentacion
+      creadoEn
+      tipoGasto { id descripcion }
+    }
   }
 `;
