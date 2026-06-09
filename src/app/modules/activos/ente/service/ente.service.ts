@@ -285,15 +285,6 @@ export class EnteService {
     }).afterClosed();
   }
 
-  abrirConfiguracionLocalSucursal(sucursalId?: number): Observable<unknown> {
-    return this.dialog.open(EnteVinculacionDialogComponent, {
-      data: { modo: 'LOCAL', sucursalId } as EnteVinculacionDialogData,
-      width: '620px',
-      disableClose: true,
-      autoFocus: false,
-    }).afterClosed();
-  }
-
   abrirVincularBienSucursal(sucursalId?: number): Observable<unknown> {
     return this.dialog.open(EnteVinculacionDialogComponent, {
       data: { modo: 'BIEN', sucursalId } as EnteVinculacionDialogData,

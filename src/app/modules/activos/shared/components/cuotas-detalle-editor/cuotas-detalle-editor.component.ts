@@ -79,7 +79,7 @@ export class CuotasDetalleEditorComponent implements OnChanges {
     this.emitir();
   }
 
-  get totalCuotas(): number {
+  totalCuotas(cuotas: CuotaDetalle[]): number {
     return this.cuotasService.totalCuotas(this.cuotas);
   }
 

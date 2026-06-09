@@ -18,6 +18,11 @@ export interface InmuebleInput {
     cantidadCuotas?: number;
     cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
+    esPropio?: boolean;
+    alquilerProveedorId?: number;
+    alquilerMonto?: number;
+    alquilerDiaVencimiento?: number;
+    alquilerVigencia?: string;
     usuarioId?: number;
     cuotasDetalle?: { numeroCuota: number; monto: number; pagado?: boolean }[];
 }
