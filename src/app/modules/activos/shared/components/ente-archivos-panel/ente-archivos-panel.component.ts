@@ -1,4 +1,18 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import {
+  AfterViewChecked,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Renderer2,
+  SimpleChanges,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { EnteArchivo } from '../../../ente/models/ente-archivo.model';
 import { TipoArchivoEnte } from '../../../ente/enums/tipo-archivo-ente.enum';
 import { EnteArchivoService } from '../../../ente/service/ente-archivo.service';
@@ -31,12 +45,16 @@ interface ArchivoPendienteRow extends ArchivoPendiente {
   styleUrls: ['./ente-archivos-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EnteArchivosPanelComponent implements OnChanges {
+export class EnteArchivosPanelComponent implements OnChanges, AfterViewChecked, OnDestroy {
   private enteArchivoService = inject(EnteArchivoService);
   private documentoService = inject(EnteDocumentoService);
   private notificacion = inject(NotificacionSnackbarService);
   private mainService = inject(MainService);
   private cdr = inject(ChangeDetectorRef);
+  private document = inject(DOCUMENT);
+  private renderer = inject(Renderer2);
+
+  @ViewChild('archivoOverlay') archivoOverlay?: ElementRef<HTMLElement>;
 
   @Input() enteId: number | null = null;
   @Input() tiposPermitidos: TipoArchivoOpcion[] = [];
@@ -49,6 +67,22 @@ export class EnteArchivosPanelComponent implements OnChanges {
   archivoAmpliado = false;
   contenidoAmpliado: string | null = null;
   tituloAmpliado = 'Archivo';
+  private overlayPendienteEnBody = false;
+
+  ngAfterViewChecked(): void {
+    if (!this.overlayPendienteEnBody || !this.archivoAmpliado) {
+      return;
+    }
+    const overlay = this.archivoOverlay?.nativeElement;
+    if (overlay && overlay.parentNode !== this.document.body) {
+      this.renderer.appendChild(this.document.body, overlay);
+      this.overlayPendienteEnBody = false;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.removerOverlayDelBody();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['enteId']) {
@@ -204,21 +238,49 @@ export class EnteArchivosPanelComponent implements OnChanges {
       return;
     }
 
-    const localUrl = this.documentoService.urlDocumentoLocal(url);
-    if (this.documentoService.esImagenPorNombre(url)) {
-      this.contenidoAmpliado = localUrl;
-      this.tituloAmpliado = archivo.descripcion || 'Archivo';
-      this.archivoAmpliado = true;
-      this.cdr.markForCheck();
+    if (!archivo.id) {
+      this.notificacion.openWarn('No se puede abrir el archivo');
       return;
     }
 
-    window.open(localUrl, '_blank');
+    this.enteArchivoService.obtenerContenido(archivo.id).subscribe({
+      next: (contenidos) => {
+        if (!contenidos?.length) {
+          this.notificacion.openWarn('No se pudo cargar el archivo');
+          return;
+        }
+
+        const contenido = contenidos[0];
+        if (this.documentoService.esImagenPorNombre(url)) {
+          this.contenidoAmpliado = contenido;
+          this.tituloAmpliado = archivo.descripcion || 'Archivo';
+          this.archivoAmpliado = true;
+          this.overlayPendienteEnBody = true;
+          this.cdr.markForCheck();
+          return;
+        }
+
+        window.open(contenido, '_blank');
+      },
+      error: () => {
+        this.notificacion.openWarn('No se pudo cargar el archivo');
+      },
+    });
   }
 
   cerrarArchivoAmpliado(): void {
+    this.removerOverlayDelBody();
     this.archivoAmpliado = false;
     this.contenidoAmpliado = null;
+    this.overlayPendienteEnBody = false;
+    this.cdr.markForCheck();
+  }
+
+  private removerOverlayDelBody(): void {
+    const overlay = this.archivoOverlay?.nativeElement;
+    if (overlay?.parentNode === this.document.body) {
+      this.renderer.removeChild(this.document.body, overlay);
+    }
   }
 
   private mapearArchivo(archivo: EnteArchivo): ArchivoTablaRow {
