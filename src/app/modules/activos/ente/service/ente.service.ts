@@ -31,6 +31,7 @@ import { Mueble } from '../../muebles/models/mueble.model';
 import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
 import { Inmueble } from '../../inmueble/models/inmueble.model';
 import { Equipo } from '../../equipos/models/equipo.model';
+import { EnteVinculacionDialogComponent, EnteVinculacionDialogData } from '../dialogs/ente-vinculacion-dialog/ente-vinculacion-dialog.component';
 
 @Injectable({
   providedIn: 'root'
@@ -281,6 +282,24 @@ export class EnteService {
       height: '80vh',
       disableClose: false,
       autoFocus: false
+    }).afterClosed();
+  }
+
+  abrirConfiguracionLocalSucursal(sucursalId?: number): Observable<unknown> {
+    return this.dialog.open(EnteVinculacionDialogComponent, {
+      data: { modo: 'LOCAL', sucursalId } as EnteVinculacionDialogData,
+      width: '620px',
+      disableClose: true,
+      autoFocus: false,
+    }).afterClosed();
+  }
+
+  abrirVincularBienSucursal(sucursalId?: number): Observable<unknown> {
+    return this.dialog.open(EnteVinculacionDialogComponent, {
+      data: { modo: 'BIEN', sucursalId } as EnteVinculacionDialogData,
+      width: '620px',
+      disableClose: true,
+      autoFocus: false,
     }).afterClosed();
   }
 }

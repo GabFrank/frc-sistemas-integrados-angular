@@ -6,6 +6,7 @@ import { MaterialModule } from '../../../commons/core/material.module';
 import { SharedModule } from '../../../shared/shared.module';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ActivosSharedModule } from '../shared/activos-shared.module';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
     SharedModule,
     FlexLayoutModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    ActivosSharedModule,
   ],
   exports: [
     ListInmueblesComponent

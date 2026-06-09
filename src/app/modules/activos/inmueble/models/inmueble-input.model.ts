@@ -19,4 +19,5 @@ export interface InmuebleInput {
     cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
     usuarioId?: number;
+    cuotasDetalle?: { numeroCuota: number; monto: number; pagado?: boolean }[];
 }

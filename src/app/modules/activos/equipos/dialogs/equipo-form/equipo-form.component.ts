@@ -11,6 +11,12 @@ import { TipoEquipo } from '../../models/tipo-equipo.model';
 import { ModeloEquipo } from '../../models/modelo-equipo.model';
 import { EquipoDialogService } from '../../services/equipo-dialog.service';
 import { EquiposService } from '../../services/equipos.service';
+import { EnteService } from '../../../ente/service/ente.service';
+import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
+import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
+import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { EnteCuotasByEnteIdGQL } from '../../../ente/graphql/enteCuotasByEnteId';
+import { ARCHIVOS_MUEBLE_EQUIPO } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
 @Component({
@@ -24,6 +30,14 @@ export class EquipoFormComponent implements OnInit {
   private equiposService = inject(EquiposService);
   private equipoDialogService = inject(EquipoDialogService);
   private cdr = inject(ChangeDetectorRef);
+  private enteService = inject(EnteService);
+  private genericService = inject(GenericCrudService);
+  private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
+
+  enteId: number | null = null;
+  cuotasDetalle: CuotaDetalle[] = [];
+  archivosTipos = ARCHIVOS_MUEBLE_EQUIPO;
+  registroGuardado = false;
 
   form: FormGroup;
   equipo: Equipo;
@@ -64,15 +78,38 @@ export class EquipoFormComponent implements OnInit {
     this.inicializarFormulario();
 
     if (this.equipo?.id) {
+      this.registroGuardado = true;
       this.equiposService.onBuscarPorId(this.equipo.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res) {
           this.equipo = res;
           this.cargarDatos();
+          this.cargarEnteYCuotas(res.id);
         }
       });
     } else {
       this.cargarDatos();
     }
+  }
+
+  private cargarEnteYCuotas(referenciaId: number): void {
+    this.enteService.onGetByReferenciaId(TipoEnte.EQUIPO, referenciaId).pipe(untilDestroyed(this)).subscribe(ente => {
+      if (!ente?.id) return;
+      this.enteId = ente.id;
+      this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }).pipe(untilDestroyed(this)).subscribe(cuotas => {
+        if (cuotas?.length) {
+          this.cuotasDetalle = cuotas.map(c => ({
+            numeroCuota: c.numeroCuota || 0,
+            monto: c.monto || 0,
+            pagado: c.pagado,
+          }));
+        }
+        this.cdr.markForCheck();
+      });
+    });
+  }
+
+  onCuotasChange(cuotas: CuotaDetalle[]): void {
+    this.cuotasDetalle = cuotas;
   }
 
   private inicializarFormulario(): void {
@@ -205,7 +242,17 @@ export class EquipoFormComponent implements OnInit {
   }
 
   onGuardar(): void {
-    this.equipoDialogService.onGuardar(this.form, this.equipo, this.dialogRef);
+    const cerrar = !!this.equipo?.id && this.registroGuardado;
+    this.equipoDialogService.onGuardar(this.form, this.equipo, this.dialogRef, this.cuotasDetalle, cerrar)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (!res?.id) return;
+        this.equipo = { ...this.equipo, ...res, id: res.id };
+        this.registroGuardado = true;
+        this.form.patchValue({ id: res.id });
+        this.cargarEnteYCuotas(res.id);
+        this.cdr.markForCheck();
+      });
   }
 
   private nombreProveedor(proveedor: Proveedor | Persona): string {

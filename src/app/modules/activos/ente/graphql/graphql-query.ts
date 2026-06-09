@@ -177,6 +177,12 @@ export const enteArchivosByEnteQuery = gql`
   }
 `;
 
+export const getEnteArchivoContenidoQuery = gql`
+  query getEnteArchivoContenido($id: ID!) {
+    data: getEnteArchivoContenido(id: $id)
+  }
+`;
+
 export const saveEnteArchivoMutation = gql`
   mutation saveEnteArchivo($entity: EnteArchivoInput!) {
     data: saveEnteArchivo(enteArchivo: $entity) {
@@ -190,6 +196,61 @@ export const saveEnteArchivoMutation = gql`
 export const deleteEnteArchivoMutation = gql`
   mutation deleteEnteArchivo($id: ID!) {
     data: deleteEnteArchivo(id: $id)
+  }
+`;
+
+export const enteCuotasByEnteIdQuery = gql`
+  query enteCuotasByEnteId($enteId: ID!) {
+    data: enteCuotasByEnteId(enteId: $enteId) {
+      id
+      numeroCuota
+      monto
+      pagado
+      fechaVencimiento
+    }
+  }
+`;
+
+export const enteVinculacionesBySucursalQuery = gql`
+  query enteVinculacionesBySucursal($sucursalId: ID!) {
+    data: enteVinculacionesBySucursal(sucursalId: $sucursalId) {
+      id
+      esPropio
+      alquilerMonto
+      alquilerDiaVencimiento
+      alquilerVigencia
+      observacion
+      ente {
+        id
+        tipoEnte
+        descripcion
+        referenciaId
+      }
+      sucursal {
+        id
+        nombre
+      }
+      alquilerProveedor {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const saveEnteVinculacionMutation = gql`
+  mutation saveEnteVinculacion($entity: EnteVinculacionInput!) {
+    data: saveEnteVinculacion(enteVinculacion: $entity) {
+      id
+      esPropio
+      observacion
+    }
+  }
+`;
+
+export const deleteEnteVinculacionMutation = gql`
+  mutation deleteEnteVinculacion($id: ID!) {
+    data: deleteEnteVinculacion(id: $id)
   }
 `;
 

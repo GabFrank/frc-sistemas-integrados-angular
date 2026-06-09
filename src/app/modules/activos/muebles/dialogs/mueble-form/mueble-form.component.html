@@ -105,9 +105,7 @@
                                     style="cursor: pointer;">
                                 <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarProveedor()">search</mat-icon>
                             </mat-form-field>
-                            <button mat-stroked-button color="accent">
-                                <mat-icon>attachment</mat-icon> SUBIR CONTRATO DE COMODATO
-                            </button>
+                            <p class="hint-text">El contrato de comodato se carga en la pestaña Archivos.</p>
                         </div>
 
                         <div *ngIf="situacion === 'PAGADO' || situacion === 'PAGANDO'"
@@ -160,6 +158,16 @@
                                 </mat-form-field>
                             </div>
 
+                            <app-cuotas-detalle-editor
+                                *ngIf="situacion === 'PAGANDO'"
+                                [cantidadCuotas]="form.get('cantidadCuotas')?.value"
+                                [cantidadCuotasPagadas]="form.get('cantidadCuotasPagadas')?.value"
+                                [montoTotal]="form.get('montoTotal')?.value"
+                                [montoYaPagado]="form.get('montoYaPagado')?.value"
+                                [cuotas]="cuotasDetalle"
+                                (cuotasChange)="onCuotasChange($event)">
+                            </app-cuotas-detalle-editor>
+
                             <div *ngIf="situacion === 'PAGADO'">
                                 <mat-form-field fxFlex="100">
                                     <mat-label>Monto Pagado</mat-label>
@@ -172,13 +180,8 @@
                 </div>
             </mat-tab>
 
-            <!-- PESTAÑA 3: ARCHIVOS (5.3-9) -->
             <mat-tab label="Archivos">
-                <div fxLayout="column" fxLayoutGap="20px" style="padding-top: 15px;">
-                    <button mat-raised-button color="accent">
-                        <mat-icon>photo_camera</mat-icon> SUBIR FOTOS ESTADO INICIAL (FOTOS DEL PRODUCTO)
-                    </button>
-                </div>
+                <app-ente-archivos-panel [enteId]="enteId" [tiposPermitidos]="archivosTipos"></app-ente-archivos-panel>
             </mat-tab>
         </mat-tab-group>
 
@@ -192,6 +195,6 @@
         CANCELAR
     </button>
     <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="form.invalid">
-        {{ data?.id ? 'GUARDAR' : 'REGISTRAR MUEBLE' }}
+        {{ registroGuardado ? 'GUARDAR' : 'REGISTRAR MUEBLE' }}
     </button>
 </mat-dialog-actions>

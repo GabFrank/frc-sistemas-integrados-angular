@@ -1,0 +1,51 @@
+.archivos-panel {
+  padding-top: 10px;
+}
+
+.aviso-guardar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.sin-archivos {
+  opacity: 0.6;
+  font-size: 0.85rem;
+}
+
+.pendientes-table {
+  margin-top: 8px;
+}
+
+.estado-pendiente {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.archivo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 24px;
+}
+
+.archivo-overlay-imagen {
+  max-width: min(90vw, 900px);
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.archivo-overlay-cerrar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: #fff;
+}

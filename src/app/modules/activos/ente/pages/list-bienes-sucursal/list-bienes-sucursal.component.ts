@@ -155,6 +155,30 @@ export class ListBienesSucursalComponent implements OnInit {
     this.enteService.refrescar();
   }
 
+  onConfigurarLocal(): void {
+    const sucursalId = this.sucursalControl.value;
+    if (!sucursalId) {
+      this.notificationService.openWarn('Seleccione una sucursal para configurar el local');
+      return;
+    }
+    this.enteService.abrirConfiguracionLocalSucursal(sucursalId).pipe(
+      filter(res => !!res),
+      untilDestroyed(this)
+    ).subscribe(() => this.enteService.refrescar());
+  }
+
+  onVincularBien(): void {
+    const sucursalId = this.sucursalControl.value;
+    if (!sucursalId) {
+      this.notificationService.openWarn('Seleccione una sucursal para vincular bienes');
+      return;
+    }
+    this.enteService.abrirVincularBienSucursal(sucursalId).pipe(
+      filter(res => !!res),
+      untilDestroyed(this)
+    ).subscribe(() => this.enteService.refrescar());
+  }
+
   onAdicionar(): void {
     const sucursalId = this.sucursalControl.value;
 

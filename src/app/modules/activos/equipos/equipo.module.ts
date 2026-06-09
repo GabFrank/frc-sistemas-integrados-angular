@@ -8,6 +8,7 @@ import { ListEquiposComponent } from './pages/list-equipos/list-equipos.componen
 import { EquipoFormComponent } from './dialogs/equipo-form/equipo-form.component';
 import { AdicionarTipoEquipoDialogComponent } from './dialogs/adicionar-tipo-equipo-dialog/adicionar-tipo-equipo-dialog.component';
 import { AdicionarModeloEquipoDialogComponent } from './dialogs/adicionar-modelo-equipo-dialog/adicionar-modelo-equipo-dialog.component';
+import { ActivosSharedModule } from '../shared/activos-shared.module';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { AdicionarModeloEquipoDialogComponent } from './dialogs/adicionar-modelo
     SharedModule,
     FlexLayoutModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    ActivosSharedModule,
   ],
   exports: [
     ListEquiposComponent

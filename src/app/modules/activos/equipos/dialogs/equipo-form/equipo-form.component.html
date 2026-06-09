@@ -329,6 +329,16 @@
                 </mat-form-field>
               </div>
 
+              <app-cuotas-detalle-editor
+                *ngIf="situacion === 'PAGANDO'"
+                [cantidadCuotas]="form.get('cantidadCuotas')?.value"
+                [cantidadCuotasPagadas]="form.get('cantidadCuotasPagadas')?.value"
+                [montoTotal]="form.get('montoTotal')?.value"
+                [montoYaPagado]="form.get('montoYaPagado')?.value"
+                [cuotas]="cuotasDetalle"
+                (cuotasChange)="onCuotasChange($event)">
+              </app-cuotas-detalle-editor>
+
               <div *ngIf="situacion === 'PAGADO'">
                 <mat-form-field fxFlex="100">
                   <mat-label>Monto Pagado</mat-label>
@@ -346,16 +356,7 @@
       </mat-tab>
 
       <mat-tab label="Archivos">
-        <div
-          fxLayout="column"
-          fxLayoutGap="20px"
-          style="padding-top: 15px;"
-        >
-          <button mat-raised-button color="accent">
-            <mat-icon>photo_camera</mat-icon>
-            SUBIR FOTOS ESTADO INICIAL
-          </button>
-        </div>
+        <app-ente-archivos-panel [enteId]="enteId" [tiposPermitidos]="archivosTipos"></app-ente-archivos-panel>
       </mat-tab>
     </mat-tab-group>
   </form>
@@ -381,6 +382,6 @@
     (click)="onGuardar()"
     [disabled]="form.invalid"
   >
-    {{ data?.id ? 'GUARDAR' : 'REGISTRAR EQUIPO' }}
+    {{ registroGuardado ? 'GUARDAR' : 'REGISTRAR EQUIPO' }}
   </button>
 </mat-dialog-actions>

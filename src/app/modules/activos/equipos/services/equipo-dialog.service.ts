@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { MainService } from '../../../../main.service';
 import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
@@ -85,9 +85,16 @@ export class EquipoDialogService {
     this.assetCommonDialogService.buscarMoneda(callback);
   }
 
-  onGuardar(form: FormGroup, equipo: Equipo, dialogRef: MatDialogRef<EquipoFormComponent>): void {
+  onGuardar(
+    form: FormGroup,
+    equipo: Equipo,
+    dialogRef: MatDialogRef<EquipoFormComponent>,
+    cuotasDetalle: { numeroCuota: number; monto: number; pagado?: boolean }[] = [],
+    cerrarAlGuardar = false
+  ): Observable<Equipo | null> {
     if (!form.valid) {
-      return;
+      form.markAllAsTouched();
+      return of(null);
     }
 
     const values = form.getRawValue();
@@ -113,13 +120,31 @@ export class EquipoDialogService {
       cantidadCuotas: values.cantidadCuotas,
       cantidadCuotasPagadas: values.cantidadCuotasPagadas,
       diaVencimiento: values.diaVencimiento,
+      financiero: {
+        costo: values.costo,
+        valorTasacion: values.valorTasacion,
+        valorTasacionPyg: values.valorTasacionPyg,
+        valorTasacionBrl: values.valorTasacionBrl,
+        situacionPago: values.situacionPago,
+        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
+        montoTotal: values.montoTotal,
+        montoYaPagado: values.montoYaPagado,
+        cantidadCuotas: values.cantidadCuotas,
+        cantidadCuotasPagadas: values.cantidadCuotasPagadas,
+        diaVencimiento: values.diaVencimiento,
+        cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+      },
     };
 
-    this.equiposService.onGuardar(input).subscribe((res) => {
-      if (res) {
-        dialogRef.close(true);
-      }
-    });
+    return this.equiposService.onGuardar(input).pipe(
+      tap((res) => {
+        if (res && cerrarAlGuardar) {
+          dialogRef.close(true);
+        }
+      }),
+      map((res) => res || null)
+    );
   }
 
   onCancelar(dialogRef: MatDialogRef<unknown>): void {
