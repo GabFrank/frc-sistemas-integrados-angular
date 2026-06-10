@@ -543,7 +543,7 @@ export const preGastosParaRetiroQuery = gql`
       autorizadoPor { id nombre }
       tipoGasto { id descripcion moduloPadre }
       moneda { id simbolo denominacion }
-      finanzas { monto moneda { simbolo denominacion } }
+      finanzas { monto moneda { id simbolo denominacion } }
     }
   }
 `;
@@ -577,12 +577,14 @@ export const preGastoPorIdQuery = gql`
       funcionario { id nombre }
       tipoGasto { id descripcion moduloPadre }
       moneda { id simbolo denominacion }
-      finanzas { monto moneda { simbolo denominacion } }
+      finanzas { monto moneda { id simbolo denominacion } }
       rendiciones {
         id
         montoTotal
         fotoFacturaUrl
         fotoProductoUrl
+        fotosFacturaUrls
+        fotosProductoUrls
         kmActual
         litros
         precioPorLitro
@@ -603,6 +605,31 @@ export const confirmarRetiroFuncionarioMutation = gql`
       estado
       retiroConfirmadoEn
     }
+  }
+`;
+
+export const lineasRetiroSugeridasQuery = gql`
+  query ($preGastoId: ID!, $sucursalId: ID!) {
+    data: lineasRetiroSugeridas(preGastoId: $preGastoId, sucursalId: $sucursalId) {
+      monedaId
+      monto
+    }
+  }
+`;
+
+export const montosRetiroDesdeLineasQuery = gql`
+  query ($lineas: [RetiroPreGastoLineaInput!]!) {
+    data: montosRetiroDesdeLineas(lineas: $lineas) {
+      retiroGs
+      retiroRs
+      retiroDs
+    }
+  }
+`;
+
+export const preGastoRetiroConfirmadoQuery = gql`
+  query ($preGastoId: ID!, $sucursalId: ID!) {
+    data: preGastoRetiroConfirmado(preGastoId: $preGastoId, sucursalId: $sucursalId)
   }
 `;
 
@@ -646,6 +673,8 @@ export const gastoRendicionesByPreGastoQuery = gql`
       montoTotal
       fotoFacturaUrl
       fotoProductoUrl
+      fotosFacturaUrls
+      fotosProductoUrls
       kmActual
       litros
       precioPorLitro

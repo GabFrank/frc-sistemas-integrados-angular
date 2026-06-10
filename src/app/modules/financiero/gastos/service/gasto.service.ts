@@ -8,6 +8,9 @@ import { ConfiguracionService } from '../../../../shared/services/configuracion.
 import { PageInfo } from '../../../../app.component';
 import { Gasto } from '../models/gastos.model';
 import { PreGasto } from '../models/pre-gasto.model';
+import { LineaRetiroSugerida } from '../models/linea-retiro-sugerida.model';
+import { MontosRetiroPayload } from '../models/montos-retiro-payload.model';
+import { RetiroPreGastoLineaInput } from '../models/retiro-pre-gasto-linea-input.model';
 import { FilterGastosGQL } from '../graphql/filterGastos';
 import { GastoPorCajaIdGQL } from '../graphql/gastoPorCajaId';
 import { ReimprimirGastoGQL } from '../graphql/reimprimirGasto';
@@ -31,6 +34,9 @@ import { PreGastosParaRetiroGQL } from '../graphql/preGastosParaRetiro';
 import { QrRetiroPreGastoGQL } from '../graphql/qrRetiroPreGasto';
 import { PreGastoPorIdGQL } from '../graphql/preGastoPorId';
 import { EjecutarRetiroPreGastoGQL } from '../graphql/ejecutarRetiroPreGasto';
+import { LineasRetiroSugeridasGQL } from '../graphql/lineasRetiroSugeridas';
+import { MontosRetiroDesdeLineasGQL } from '../graphql/montosRetiroDesdeLineas';
+import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado';
 import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
 import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
 
@@ -64,6 +70,9 @@ export class GastoService {
     private qrRetiroPreGastoGQL: QrRetiroPreGastoGQL,
     private preGastoPorIdGQL: PreGastoPorIdGQL,
     private ejecutarRetiroPreGastoGQL: EjecutarRetiroPreGastoGQL,
+    private lineasRetiroSugeridasGQL: LineasRetiroSugeridasGQL,
+    private montosRetiroDesdeLineasGQL: MontosRetiroDesdeLineasGQL,
+    private preGastoRetiroConfirmadoGQL: PreGastoRetiroConfirmadoGQL,
     private registrarDevolucionSaldoGQL: RegistrarDevolucionSaldoGQL,
     private saveGastoRendicionGQL: SaveGastoRendicionGQL
   ) { }
@@ -196,6 +205,18 @@ export class GastoService {
     return this.genericService.onCustomQuery(this.preGastoPorIdGQL, { id, sucId });
   }
 
+  lineasRetiroSugeridas(preGastoId: number, sucursalId: number): Observable<LineaRetiroSugerida[]> {
+    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId });
+  }
+
+  montosRetiroDesdeLineas(lineas: RetiroPreGastoLineaInput[]): Observable<MontosRetiroPayload> {
+    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas });
+  }
+
+  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId });
+  }
+
   ejecutarRetiroPreGasto(input: {
     preGastoId: number;
     sucursalId: number;
@@ -203,6 +224,7 @@ export class GastoService {
     cajaId: number;
     usuarioId?: number;
     gastoRegistroId: number;
+    lineas?: RetiroPreGastoLineaInput[];
   }): Observable<PreGasto> {
     return this.genericService.onCustomMutation(this.ejecutarRetiroPreGastoGQL, { input });
   }
@@ -212,39 +234,44 @@ export class GastoService {
     caja: PdvCaja,
     responsable: Funcionario,
     autorizadoPor: Funcionario | null,
+    lineas: RetiroPreGastoLineaInput[],
     usuarioId?: number
   ): Observable<PreGasto> {
-    const montos = this.calcularMontosRetiro(preGasto);
     const sucursalCajaId = caja?.sucursal?.id ?? caja?.sucursalId;
-    const gasto = new Gasto();
-    gasto.caja = caja;
-    gasto.sucursalId = sucursalCajaId;
-    gasto.responsable = responsable;
-    gasto.tipoGasto = preGasto.tipoGasto;
-    gasto.autorizadoPor = autorizadoPor ?? undefined;
-    gasto.observacion = preGasto.descripcion;
-    gasto.retiroGs = montos.gs;
-    gasto.retiroRs = montos.rs;
-    gasto.retiroDs = montos.ds;
-    gasto.vueltoGs = 0;
-    gasto.vueltoRs = 0;
-    gasto.vueltoDs = 0;
-    gasto.activo = true;
-    gasto.finalizado = false;
+    return this.montosRetiroDesdeLineas(lineas).pipe(
+      switchMap((montos) => {
+        const gasto = new Gasto();
+        gasto.caja = caja;
+        gasto.sucursalId = sucursalCajaId;
+        gasto.responsable = responsable;
+        gasto.tipoGasto = preGasto.tipoGasto;
+        gasto.autorizadoPor = autorizadoPor ?? undefined;
+        gasto.observacion = preGasto.descripcion;
+        gasto.retiroGs = Number(montos?.retiroGs ?? 0);
+        gasto.retiroRs = Number(montos?.retiroRs ?? 0);
+        gasto.retiroDs = Number(montos?.retiroDs ?? 0);
+        gasto.vueltoGs = 0;
+        gasto.vueltoRs = 0;
+        gasto.vueltoDs = 0;
+        gasto.activo = true;
+        gasto.finalizado = false;
 
-    return this.onSave(gasto, false).pipe(
-      switchMap((gastoGuardado) => {
-        if (!gastoGuardado?.id) {
-          return throwError(() => new Error('No se pudo registrar el gasto en la caja local.'));
-        }
-        return this.ejecutarRetiroPreGasto({
-          preGastoId: preGasto.id,
-          sucursalId: preGasto.sucursalId,
-          sucursalCajaId,
-          cajaId: caja.id,
-          usuarioId,
-          gastoRegistroId: gastoGuardado.id,
-        });
+        return this.onSave(gasto, false).pipe(
+          switchMap((gastoGuardado) => {
+            if (!gastoGuardado?.id) {
+              return throwError(() => new Error('No se pudo registrar el gasto en la caja local.'));
+            }
+            return this.ejecutarRetiroPreGasto({
+              preGastoId: preGasto.id,
+              sucursalId: preGasto.sucursalId,
+              sucursalCajaId,
+              cajaId: caja.id,
+              usuarioId,
+              gastoRegistroId: gastoGuardado.id,
+              lineas,
+            });
+          })
+        );
       })
     );
   }

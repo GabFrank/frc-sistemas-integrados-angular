@@ -24,7 +24,7 @@
     >
       <span class="item-titulo">#{{ item.id }} — {{ item.funcionario?.nombre }}</span>
       <span class="item-sublinea">
-        {{ item.tipoGasto?.descripcion }} · {{ formatMonto(item.montoSolicitado) }} {{ item.moneda?.simbolo }}
+        {{ item.tipoGasto?.descripcion }} · {{ item.montoSolicitado | number:'1.0-0' }} {{ item.moneda?.simbolo }}
       </span>
     </button>
   </div>
@@ -45,13 +45,79 @@
     </div>
     <div class="detalle-campo">
       <span class="etiqueta">Monto</span>
-      <span class="valor">{{ formatMonto(seleccionada.montoSolicitado) }} {{ seleccionada.moneda?.simbolo }}</span>
+      <span class="valor">{{ seleccionada.montoSolicitado | number:'1.0-0' }} {{ seleccionada.moneda?.simbolo }}</span>
     </div>
     <div class="detalle-campo">
       <span class="etiqueta">Confirmación móvil</span>
       <span class="valor" [class.confirmado]="funcionarioConfirmo">
         {{ funcionarioConfirmo ? 'Funcionario confirmó retiro' : 'Pendiente de escaneo' }}
       </span>
+    </div>
+
+    <div *ngIf="funcionarioConfirmo" class="panel-entrega-efectivo">
+      <p class="hint-entrega">
+        Confirme la moneda y el monto a entregar. Si no dispone del efectivo en la moneda solicitada,
+        use el botón + para agregar otra moneda.
+      </p>
+
+      <ng-container *ngFor="let fila of filasMontoView; let i = index">
+        <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start start" [formGroup]="fila.grupo" class="fila-monto-entrega">
+          <mat-form-field fxFlex="38%">
+            <mat-label>Moneda</mat-label>
+            <mat-select
+              formControlName="monedaId"
+              [attr.name]="'moneda-' + i"
+              [compareWith]="compararMonedaId"
+              required
+            >
+              <mat-option
+                *ngFor="let opcion of fila.opcionesMoneda"
+                [value]="opcion.moneda.id"
+              >
+                {{ opcion.moneda.denominacion }} ({{ opcion.moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="fila.errores.monedaRequerida">La moneda es requerida</mat-error>
+            <mat-error *ngIf="fila.errores.monedaDuplicada">Esta moneda ya fue seleccionada</mat-error>
+          </mat-form-field>
+
+          <mat-form-field fxFlex="38%">
+            <mat-label>Monto</mat-label>
+            <input
+              matInput
+              currencyMask
+              [attr.name]="'monto-' + i"
+              [options]="fila.opcionesCurrency"
+              formControlName="monto"
+              required
+            />
+            <mat-error *ngIf="fila.errores.montoRequerido">El monto es requerido</mat-error>
+            <mat-error *ngIf="fila.errores.montoMinimo">El monto debe ser mayor a 0</mat-error>
+          </mat-form-field>
+
+          <div fxFlex="24%" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="4px" class="fila-monto-acciones">
+            <button
+              *ngIf="i === filasMontoView.length - 1"
+              type="button"
+              mat-mini-fab
+              class="btn-add-monto-linea"
+              (click)="agregarFilaMonto()"
+              aria-label="Agregar monto en otra moneda"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              *ngIf="filasMontoView.length > 1"
+              type="button"
+              mat-icon-button
+              (click)="quitarFilaMonto(i)"
+              aria-label="Quitar esta moneda y monto"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </ng-container>
     </div>
   </div>
 
@@ -71,7 +137,7 @@
       mat-raised-button
       class="boton-entregar"
       type="button"
-      [disabled]="!seleccionada || !funcionarioConfirmo || cargandoRetiro"
+      [disabled]="!seleccionada || !funcionarioConfirmo || !montosEntregaValidos || cargandoRetiro"
       (click)="ejecutarRetiro()"
     >
       <mat-icon>payments</mat-icon>

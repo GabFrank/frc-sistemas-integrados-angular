@@ -158,3 +158,31 @@
   background-color: #1e88e5 !important;
   color: white !important;
 }
+
+.panel-entrega-efectivo {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hint-entrega {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #bdbdbd;
+}
+
+.fila-monto-entrega {
+  width: 100%;
+}
+
+.fila-monto-acciones {
+  padding-top: 8px;
+  min-height: 56px;
+}
+
+.btn-add-monto-linea {
+  background-color: #43a047 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
