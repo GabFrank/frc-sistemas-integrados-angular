@@ -55,22 +55,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
     if (this.esTramite()) {
-      this.cargarGastoLocalSiAplica();
-      const gasto = this.preGasto?.gasto;
-      const retiroGs = Number(gasto?.retiroGs ?? 0);
-      const retiroRs = Number(gasto?.retiroRs ?? 0);
-      const retiroDs = Number(gasto?.retiroDs ?? 0);
-      const vueltoGs = Number(gasto?.vueltoGs ?? 0);
-      const vueltoRs = Number(gasto?.vueltoRs ?? 0);
-      const vueltoDs = Number(gasto?.vueltoDs ?? 0);
-
-      this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
-      this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
-      this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
-
-      this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
-      this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
-      this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
+      this.inicializarMontosRendidos();
     }
   }
 
@@ -83,7 +68,7 @@ export class AutorizarGastoDialogComponent implements OnInit {
   }
 
   registrarDevolucion(): void {
-    if (!this.esTramite() || !this.tieneSaldoDevolver() || !this.preGasto?.cajaId) {
+    if (!this.esTramite() || !this.tieneSaldoDevolver()) {
       return;
     }
     const vueltoGs = this.parseMontoMoneda(this.devolucionGsControl.value, 'GS');
@@ -92,19 +77,16 @@ export class AutorizarGastoDialogComponent implements OnInit {
     if (vueltoGs + vueltoRs + vueltoDs <= 0) {
       return;
     }
-    const sucursalCajaId = this.preGasto.sucursalCaja?.id ?? this.mainService.sucursalActual?.id;
-    if (!sucursalCajaId) {
-      return;
-    }
     this.registrandoDevolucion = true;
-    this.gastoService.registrarDevolucionSaldoHibrido(
-      this.preGasto,
+    this.gastoService.registrarDevolucionSaldo({
+      preGastoId: this.preGasto.id,
+      sucursalId: this.preGasto.sucursalId,
+      cajaId: this.preGasto.cajaId,
       vueltoGs,
       vueltoRs,
       vueltoDs,
-      sucursalCajaId,
-      this.mainService.usuarioActual?.id
-    ).pipe(untilDestroyed(this)).subscribe({
+      usuarioId: this.mainService.usuarioActual?.id,
+    }).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
         this.registrandoDevolucion = false;
         if (res) {
@@ -266,53 +248,22 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
-  private cargarGastoLocalSiAplica(): void {
-    if (!this.preGasto?.gastoCajaRegistroId || !this.preGasto?.cajaId) {
-      return;
-    }
-    const sucursalCajaId = this.preGasto.sucursalCaja?.id ?? this.mainService.sucursalActual?.id;
-    if (!sucursalCajaId) {
-      return;
-    }
-    this.gastoService.onFilterGasto(
-      this.preGasto.gastoCajaRegistroId,
-      this.preGasto.cajaId,
-      sucursalCajaId,
-      undefined,
-      undefined,
-      0,
-      1,
-      false
-    ).pipe(untilDestroyed(this)).subscribe({
-      next: (page) => {
-        const gastoLocal = page?.getContent?.[0];
-        if (!gastoLocal) {
-          return;
-        }
-        this.preGasto = {
-          ...this.preGasto,
-          gasto: {
-            retiroGs: gastoLocal.retiroGs,
-            retiroRs: gastoLocal.retiroRs,
-            retiroDs: gastoLocal.retiroDs,
-            vueltoGs: gastoLocal.vueltoGs,
-            vueltoRs: gastoLocal.vueltoRs,
-            vueltoDs: gastoLocal.vueltoDs,
-          },
-        };
-        this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
-        const retiroGs = Number(gastoLocal.retiroGs ?? 0);
-        const retiroRs = Number(gastoLocal.retiroRs ?? 0);
-        const retiroDs = Number(gastoLocal.retiroDs ?? 0);
-        const vueltoGs = Number(gastoLocal.vueltoGs ?? 0);
-        const vueltoRs = Number(gastoLocal.vueltoRs ?? 0);
-        const vueltoDs = Number(gastoLocal.vueltoDs ?? 0);
-        this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
-        this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
-        this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
-        this.cdr.markForCheck();
-      },
-    });
+  private inicializarMontosRendidos(): void {
+    const gasto = this.preGasto?.gasto;
+    const retiroGs = Number(gasto?.retiroGs ?? 0);
+    const retiroRs = Number(gasto?.retiroRs ?? 0);
+    const retiroDs = Number(gasto?.retiroDs ?? 0);
+    const vueltoGs = Number(gasto?.vueltoGs ?? 0);
+    const vueltoRs = Number(gasto?.vueltoRs ?? 0);
+    const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+
+    this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
+    this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
+    this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+
+    this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
+    this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
+    this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {
