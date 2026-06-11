@@ -43,6 +43,8 @@ import { ReporteService } from "../../reportes/reporte.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { ReportesComponent } from "../../reportes/reportes/reportes.component";
+import { LucroPorFuncionarioListGQL } from "./graphql/lucroPorFuncionarioList";
+import { ReporteLucroPorFuncionarioGQL } from "./graphql/reporteLucroPorFuncionario";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -76,7 +78,9 @@ export class VentaService {
     private ventasGenericFilter: VentasGenericFilterGQL,
     private reporteGenericVentas: ReporteGenericVentasGQL,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private lucroPorFuncionarioList: LucroPorFuncionarioListGQL,
+    private reporteLucroPorFuncionario: ReporteLucroPorFuncionarioGQL
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -391,5 +395,65 @@ export class VentaService {
       ventas[index] = ventaObs;
       this.ventasBS.next([...ventas]);
     }
+  }
+
+  onImprimirReporteLucroPorFuncionario(
+    fechaInicio: string,
+    fechaFin: string,
+    sucursalIdList?: number[],
+    usuarioIdList?: number[],
+    productoIdList?: number[],
+    subfamiliaId?: number,
+    servidor = true,
+    familiaId?: number
+  ) {
+    this.genericService
+      .onCustomQuery(
+        this.reporteLucroPorFuncionario,
+        {
+          fechaInicio,
+          fechaFin,
+          sucursalIdList,
+          usuarioId: this.mainService.usuarioActual.id,
+          usuarioIdList,
+          productoIdList,
+          subfamiliaId,
+          familiaId
+        },
+        servidor
+      )
+      .subscribe((res) => {
+        if (res != null) {
+          this.reporteService.onAdd("Lucro por funcionario " + Date.now(), res);
+          this.tabService.addTab(
+            new Tab(ReportesComponent, "Reportes", null, null)
+          );
+        }
+      });
+  }
+
+  onGetLucroPorFuncionario(
+    fechaInicio: string,
+    fechaFin: string,
+    sucursalIdList: number[],
+    usuarioIdList: number[],
+    productoIdList: number[],
+    subfamiliaId?: number,
+    page?: number,
+    size?: number,
+    familiaId?: number,
+    servidor = true
+  ): Observable<any> {
+    return this.genericService.onCustomQuery(this.lucroPorFuncionarioList, {
+      fechaInicio,
+      fechaFin,
+      sucursalIdList,
+      usuarioIdList,
+      productoIdList,
+      subfamiliaId,
+      page,
+      size,
+      familiaId
+    }, servidor);
   }
 }

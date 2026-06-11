@@ -1,0 +1,37 @@
+input {
+  text-transform: uppercase;
+}
+
+.icon:hover {
+  color: rgb(0, 172, 46);
+  cursor: pointer;
+}
+
+.icon {
+  font-size: 2em;
+}
+
+.ver-grafico-action {
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0 4px;
+
+  &:hover {
+    color: rgb(0, 172, 46);
+
+    .ver-grafico-label {
+      color: rgb(0, 172, 46);
+    }
+  }
+}
+
+.ver-grafico-label {
+  font-size: 0.85em;
+  user-select: none;
+}
+
+.cellAlignment {
+  text-align: center;
+  width: 8%;
+  padding: 0
+}

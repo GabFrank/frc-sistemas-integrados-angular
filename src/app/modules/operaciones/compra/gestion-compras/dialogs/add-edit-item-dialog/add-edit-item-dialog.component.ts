@@ -48,6 +48,8 @@ export interface AddEditItemDialogData {
   pedido: Pedido;
   item?: PedidoItem;
   lastSearchText?: string;
+  producto?: Producto;
+  presentacion?: Presentacion;
 }
 
 export interface AddEditItemDialogResult {
@@ -80,6 +82,7 @@ export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("precioPorPresentacionInput")
   precioPorPresentacionInput!: ElementRef;
   @ViewChild("vencimientoInput") vencimientoInput!: ElementRef;
+  @ViewChild("vencimientoPicker") vencimientoPicker!: any;
   @ViewChild("observacionInput") observacionInput!: ElementRef;
   @ViewChild("guardarBtn", { read: MatButton }) guardarBtn!: MatButton;
   @ViewChild("cancelarBtn", { read: MatButton }) cancelarBtn!: MatButton;
@@ -185,6 +188,7 @@ export class AddEditItemDialogComponent implements OnInit {
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
+  selectedCurrencyDecimalFormat = '1.0-0';
   monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
@@ -239,6 +243,11 @@ export class AddEditItemDialogComponent implements OnInit {
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
+
+    if (!this.data.isEdit && this.data.producto) {
+      this.onProductoSelected(this.data.producto, this.data.presentacion);
+    }
+
     this.setInitialFocus();
   }
 
@@ -321,6 +330,7 @@ export class AddEditItemDialogComponent implements OnInit {
       this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
       
       const item = this.data.item;
+      const vencimientoEsperadoDate = this.normalizeDateValue(item.vencimientoEsperado);
       this.selectedProducto = item.producto;
       this.presentacionesDisponibles = item.producto?.presentaciones || [];
 
@@ -347,7 +357,7 @@ export class AddEditItemDialogComponent implements OnInit {
         precioUnitarioSolicitado: item.precioUnitarioSolicitado,
         precioUnitarioPorPresentacion: precioUnitarioPorPresentacion,
         esBonificacion: item.esBonificacion,
-        vencimientoEsperado: item.vencimientoEsperado,
+        vencimientoEsperado: vencimientoEsperadoDate,
         observacion: item.observacion,
       });
 
@@ -364,6 +374,25 @@ export class AddEditItemDialogComponent implements OnInit {
         this.isLoadingInitialData = false;
       }, 100);
     }
+  }
+
+  /**
+   * Normaliza valores de fecha recibidos del backend para que sean compatibles con MatDatepicker.
+   * Acepta Date/string y devuelve Date o null.
+   */
+  private normalizeDateValue(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    // El backend suele devolver "yyyy-MM-dd HH:mm". Convertimos a ISO básico para parse seguro.
+    const normalizedString = value.includes(" ") ? value.replace(" ", "T") : value;
+    const parsed = new Date(normalizedString);
+    return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private setInitialFocus(): void {
@@ -541,11 +570,13 @@ export class AddEditItemDialogComponent implements OnInit {
     if (monedaCompleta) {
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
       this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
+      this.selectedCurrencyDecimalFormat = monedaCompleta.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
     } else {
       // Valores por defecto si no se puede cargar la moneda
       // Asumir GUARANI como default (comportamiento más común)
       this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
       this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
+      this.selectedCurrencyDecimalFormat = '1.0-0';
     }
 
     // Check if product handles expiration
@@ -704,6 +735,7 @@ export class AddEditItemDialogComponent implements OnInit {
         if (productoCompleto?.presentaciones) {
           this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
           this.presentacionesDisponibles = productoCompleto.presentaciones;
+          this.syncPresentacionEnFormulario(presentacion);
           this.updateComputedProperties();
         }
       });
@@ -712,12 +744,29 @@ export class AddEditItemDialogComponent implements OnInit {
     // y hay exactamente una presentación disponible
     // Si se proporcionó una presentación, usarla (modo edición o selección previa)
     // Si NO se proporcionó y hay múltiples presentaciones, dejar null para que el usuario seleccione
-    const presentacionSeleccionada = presentacion ||
-      (this.presentacionesDisponibles.length === 1
+    const presentacionSeleccionada = presentacion
+      ? this.resolvePresentacionEnLista(presentacion)
+      : this.presentacionesDisponibles.length === 1
         ? this.presentacionesDisponibles[0]
-        : null);
+        : null;
 
-    const precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+    let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+
+    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
+    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
+    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    const costo = producto?.costo;
+    const costoMonedaId = costo?.moneda?.id;
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
+      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
+      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+      if (pedidoCotizacion > 1) {
+        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
+      } else {
+        precioInicial = Math.round(costoEnGs);
+      }
+    }
     
     this.itemForm.patchValue(
       {
@@ -1113,69 +1162,75 @@ export class AddEditItemDialogComponent implements OnInit {
    * Se ejecuta cuando el input pierde el foco
    */
   onVencimientoBlur(): void {
-    const vencimiento = this.itemForm.get("vencimientoEsperado")?.value;
-    
-    if (!vencimiento) {
-      return; // Vencimiento vacío: nada (por ahora)
-    }
+    setTimeout(() => {
+      if (this.vencimientoPicker?.opened) {
+        return; // No validar si el calendario está abierto o abriéndose
+      }
 
-    const fechaVencimiento = typeof vencimiento === 'string' 
-      ? new Date(vencimiento) 
-      : vencimiento instanceof Date 
-        ? vencimiento 
-        : new Date(vencimiento);
-    
-    if (isNaN(fechaVencimiento.getTime())) {
-      return; // Fecha inválida
-    }
+      const vencimiento = this.itemForm.get("vencimientoEsperado")?.value;
+      
+      if (!vencimiento) {
+        return; // Vencimiento vacío: nada (por ahora)
+      }
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fechaVencimientoNormalizada = new Date(fechaVencimiento);
-    fechaVencimientoNormalizada.setHours(0, 0, 0, 0);
+      const fechaVencimiento = typeof vencimiento === 'string' 
+        ? new Date(vencimiento) 
+        : vencimiento instanceof Date 
+          ? vencimiento 
+          : new Date(vencimiento);
+      
+      if (isNaN(fechaVencimiento.getTime())) {
+        return; // Fecha inválida
+      }
 
-    // Calcular diferencia en meses
-    const diffTime = fechaVencimientoNormalizada.getTime() - hoy.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffMonths = diffDays / 30.44; // Promedio de días por mes
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const fechaVencimientoNormalizada = new Date(fechaVencimiento);
+      fechaVencimientoNormalizada.setHours(0, 0, 0, 0);
 
-    let mensaje = "";
-    let titulo = "Atención - Vencimiento";
+      // Calcular diferencia en meses
+      const diffTime = fechaVencimientoNormalizada.getTime() - hoy.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffMonths = diffDays / 30.44; // Promedio de días por mes
 
-    // Vencimiento muy corto (< 3 meses)
-    if (diffMonths < 3 && diffMonths > 0) {
-      const mesesRestantes = Math.round(diffMonths * 10) / 10;
-      mensaje = `El vencimiento es muy corto (${mesesRestantes} meses). ¿Está seguro de que es correcto?`;
-    }
-    // Vencimiento muy largo (> 2 años)
-    else if (diffMonths > 24) {
-      const añosRestantes = Math.round((diffMonths / 12) * 10) / 10;
-      mensaje = `El vencimiento es muy largo (${añosRestantes} años). ¿Está seguro de que es correcto?`;
-    }
-    // Vencimiento pasado
-    else if (diffDays < 0) {
-      mensaje = `La fecha de vencimiento está en el pasado. ¿Está seguro de que es correcta?`;
-    }
+      let mensaje = "";
+      let titulo = "Atención - Vencimiento";
 
-    // Mostrar diálogo solo si hay un mensaje de advertencia
-    if (mensaje) {
-      this.dialogosService.confirm(
-        titulo,
-        mensaje,
-        null,
-        [],
-        true,
-        "Sí, es correcto",
-        "Corregir"
-      ).subscribe((confirmed) => {
-        // Si el usuario elige "Corregir", hacer focus de nuevo en el input
-        if (!confirmed) {
-          setTimeout(() => {
-            this.vencimientoInput?.nativeElement.focus();
-          }, 100);
-        }
-      });
-    }
+      // Vencimiento muy corto (< 3 meses)
+      if (diffMonths < 3 && diffMonths > 0) {
+        const mesesRestantes = Math.round(diffMonths * 10) / 10;
+        mensaje = `El vencimiento es muy corto (${mesesRestantes} meses). ¿Está seguro de que es correcto?`;
+      }
+      // Vencimiento muy largo (> 2 años)
+      else if (diffMonths > 24) {
+        const añosRestantes = Math.round((diffMonths / 12) * 10) / 10;
+        mensaje = `El vencimiento es muy largo (${añosRestantes} años). ¿Está seguro de que es correcto?`;
+      }
+      // Vencimiento pasado
+      else if (diffDays < 0) {
+        mensaje = `La fecha de vencimiento está en el pasado. ¿Está seguro de que es correcta?`;
+      }
+
+      // Mostrar diálogo solo si hay un mensaje de advertencia
+      if (mensaje) {
+        this.dialogosService.confirm(
+          titulo,
+          mensaje,
+          null,
+          [],
+          true,
+          "Sí, es correcto",
+          "Corregir"
+        ).subscribe((confirmed) => {
+          // Si el usuario elige "Corregir", hacer focus de nuevo en el input
+          if (!confirmed) {
+            setTimeout(() => {
+              this.vencimientoInput?.nativeElement.focus();
+            }, 100);
+          }
+        });
+      }
+    }, 150);
   }
 
   /**
@@ -1881,6 +1936,31 @@ export class AddEditItemDialogComponent implements OnInit {
       if (this.canSaveComputed) {
         this.guardarBtn?.focus();
       }
+    }
+  }
+
+  comparePresentaciones(a: Presentacion | null, b: Presentacion | null): boolean {
+    return !!a && !!b && a.id === b.id;
+  }
+
+  private resolvePresentacionEnLista(presentacion: Presentacion): Presentacion {
+    return (
+      this.presentacionesDisponibles.find((p) => p.id === presentacion.id) ||
+      presentacion
+    );
+  }
+
+  private syncPresentacionEnFormulario(presentacionFallback?: Presentacion): void {
+    const actual =
+      this.itemForm.get("presentacion")?.value || presentacionFallback;
+    if (!actual?.id) {
+      return;
+    }
+    const matched = this.presentacionesDisponibles.find(
+      (p) => p.id === actual.id
+    );
+    if (matched) {
+      this.itemForm.patchValue({ presentacion: matched }, { emitEvent: false });
     }
   }
 }

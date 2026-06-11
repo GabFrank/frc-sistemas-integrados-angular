@@ -1,0 +1,62 @@
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    color: #667eea;
+  }
+}
+
+.dialog-subtitle {
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.opciones-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 340px;
+}
+
+.opcion-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  height: auto;
+  text-align: left;
+  width: 100%;
+  border-color: rgba(255, 255, 255, 0.15);
+
+  &:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.08);
+  }
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #667eea;
+    flex-shrink: 0;
+  }
+}
+
+.opcion-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .opcion-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .opcion-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}

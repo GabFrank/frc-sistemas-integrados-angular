@@ -15,14 +15,71 @@ const fs = require("fs");
 const path = require("path");
 const url = require("url");
 const child_process_1 = require("child_process");
+const buffer_1 = require("buffer");
 const electron_pos_printer_1 = require("electron-pos-printer");
 const electron_updater_1 = require("electron-updater");
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
+electron_1.app.disableHardwareAcceleration();
 electron_updater_1.autoUpdater.logger = log;
 electron_updater_1.autoUpdater.autoDownload = false;
 electron_updater_1.autoUpdater.autoInstallOnAppQuit = false;
+// Patch: safe AppImage swap (rename-then-move instead of unlink-then-move)
+// Prevents losing the AppImage if the update fails mid-swap.
+if (process.platform === 'linux') {
+    const origDoInstall = electron_updater_1.autoUpdater.doInstall;
+    if (origDoInstall) {
+        electron_updater_1.autoUpdater.doInstall = function (options) {
+            const appImageFile = process.env['APPIMAGE'];
+            if (appImageFile && fs.existsSync(appImageFile)) {
+                const backupPath = appImageFile + '.old';
+                try {
+                    // Step 1: rename current → .old (atomic, never leaves gap)
+                    if (fs.existsSync(backupPath))
+                        fs.unlinkSync(backupPath);
+                    fs.renameSync(appImageFile, backupPath);
+                    log.info(`AppImage backed up: ${backupPath}`);
+                }
+                catch (e) {
+                    log.error('Failed to backup AppImage, proceeding with default install:', e);
+                    return origDoInstall.call(this, options);
+                }
+                try {
+                    // Step 2: move new AppImage to operative path
+                    const { execFileSync } = require('child_process');
+                    const destination = appImageFile;
+                    execFileSync('mv', ['-f', options.installerPath, destination]);
+                    execFileSync('chmod', ['+x', destination]);
+                    log.info(`New AppImage installed: ${destination}`);
+                    // Step 3: clean up backup
+                    if (fs.existsSync(backupPath))
+                        fs.unlinkSync(backupPath);
+                    // Step 4: relaunch
+                    const { spawn } = require('child_process');
+                    const env = Object.assign(Object.assign({}, process.env), { APPIMAGE_SILENT_INSTALL: 'true' });
+                    if (options.isForceRunAfter) {
+                        spawn(destination, [], { detached: true, stdio: 'ignore', env }).unref();
+                    }
+                    return true;
+                }
+                catch (e) {
+                    // Rollback: restore backup
+                    log.error('Failed to install new AppImage, restoring backup:', e);
+                    try {
+                        fs.renameSync(backupPath, appImageFile);
+                        log.info('Backup restored successfully');
+                    }
+                    catch (restoreErr) {
+                        log.error('CRITICAL: Failed to restore backup:', restoreErr);
+                    }
+                    return false;
+                }
+            }
+            return origDoInstall.call(this, options);
+        };
+    }
+}
 let updateEnabled = false;
 function configureUpdateChannel() {
     try {
@@ -344,7 +401,7 @@ ipcMain.on('check-for-update-manual', () => {
     }).catch(err => {
         log.error('Error checking for updates:', err);
         if (win)
-            win.webContents.send('update-status', `Error: ${err.message}`);
+            win.webContents.send('update-status', `Error: ${err === null || err === void 0 ? void 0 : err.message}`);
     });
 });
 ipcMain.on('open-update-dialog', () => {
@@ -392,7 +449,7 @@ ipcMain.handle('test-printer', (event, printerId) => __awaiter(void 0, void 0, v
     }
     catch (error) {
         console.error('Error printing test page:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error === null || error === void 0 ? void 0 : error.message };
     }
 }));
 ipcMain.handle('print-receipt', (event, { printerId, order, orderItems }) => __awaiter(void 0, void 0, void 0, function* () {
@@ -407,7 +464,7 @@ ipcMain.handle('print-receipt', (event, { printerId, order, orderItems }) => __a
     }
     catch (error) {
         console.error('Error printing receipt:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error === null || error === void 0 ? void 0 : error.message };
     }
 }));
 function registerPrinterIpcHandlers() {
@@ -488,7 +545,7 @@ function registerPrinterIpcHandlers() {
                         break;
                 }
             }
-            const imageItems = printData.filter(item => (item.type === 'image' && item.path && item.path.startsWith('data:image')) ||
+            const imageItems = printData.filter((item) => (item.type === 'image' && item.path && item.path.startsWith('data:image')) ||
                 (item.style && item.style.backgroundImage && item.style.backgroundImage.startsWith('data:image')));
             if (imageItems.length > 0) {
                 console.log(`Detected ${imageItems.length} image items in print job`);
@@ -504,7 +561,7 @@ function registerPrinterIpcHandlers() {
                             const imgPath = path.join(tmpDir, `img-${timestamp}-${i}.png`);
                             const base64Data = item.path.split(';base64,').pop();
                             if (base64Data) {
-                                fs.writeFileSync(imgPath, Buffer.from(base64Data, 'base64'));
+                                fs.writeFileSync(imgPath, buffer_1.Buffer.from(base64Data, 'base64'));
                                 printData[i].path = imgPath;
                                 console.log(`Saved image ${i} to temp file: ${imgPath}`);
                             }
@@ -519,7 +576,7 @@ function registerPrinterIpcHandlers() {
                             const imgPath = path.join(tmpDir, `bg-${timestamp}-${i}.png`);
                             const base64Data = item.style.backgroundImage.split(';base64,').pop();
                             if (base64Data) {
-                                fs.writeFileSync(imgPath, Buffer.from(base64Data, 'base64'));
+                                fs.writeFileSync(imgPath, buffer_1.Buffer.from(base64Data, 'base64'));
                                 printData[i].style.backgroundImage = `url(${imgPath})`;
                                 console.log(`Saved background image ${i} to temp file: ${imgPath}`);
                             }
@@ -534,12 +591,15 @@ function registerPrinterIpcHandlers() {
                 const isLinux = process.platform === 'linux';
                 const isNetwork = typeof options.printerName === 'string' && options.printerName.includes('://');
                 const isXprinter = typeof options.printerName === 'string' && (options.printerName.toLowerCase().includes('xprinter') || options.printerName.toLowerCase().includes('xp-'));
+                // Revertido: El envío directo de PNG a una cola CUPS RAW causa caracteres chinos.
+                // Generaremos el bitmask ESC * en el frontend y lo enviaremos como rawBase64.
                 if (isLinux && !isNetwork && !isXprinter) {
-                    const buildEscPos = () => {
+                    const buildEscPos = () => __awaiter(this, void 0, void 0, function* () {
                         const chunks = [];
-                        const push = (b) => chunks.push(Buffer.isBuffer(b) ? b : Buffer.from(b));
-                        const textEnc = (s) => Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
+                        const push = (b) => chunks.push(buffer_1.Buffer.isBuffer(b) ? b : buffer_1.Buffer.from(b));
+                        const textEnc = (s) => buffer_1.Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
                         push([0x1B, 0x40]);
+                        push(textEnc('\n\n')); // Double feed at top to completely prevent tear bar cutoff
                         for (const item of printData) {
                             if (item.type === 'text') {
                                 const center = item.style && item.style.textAlign === 'center';
@@ -548,23 +608,48 @@ function registerPrinterIpcHandlers() {
                                 const size = parseInt((item.style && item.style.fontSize || '12px').toString().replace('px', ''), 10);
                                 if (item.style && item.style.fontWeight === 'bold')
                                     mode |= 0x08;
-                                if (size >= 18)
-                                    mode |= 0x20;
+                                if (size >= 14 && size < 18) {
+                                    mode |= 0x10; // Double height only
+                                }
+                                else if (size >= 18) {
+                                    mode |= 0x10; // Double height
+                                    mode |= 0x20; // Double width
+                                }
                                 push([0x1B, 0x21, mode]);
                                 push(textEnc((item.value || '') + '\n'));
                                 push([0x1B, 0x21, 0x00]);
                                 push([0x1B, 0x61, 0x00]);
                             }
                             else if (item.type === 'barCode' || item.type === 'barcode') {
-                                const value = ((item.value || '').toString().replace(/[^0-9]/g, ''));
-                                if (value.length >= 8) {
+                                let value = (item.value || '').toString().trim();
+                                if (value.length > 0) {
                                     push([0x1B, 0x61, 0x01]);
-                                    push([0x1D, 0x48, 0x02]);
-                                    push([0x1D, 0x68, 60]);
-                                    push([0x1D, 0x77, 2]);
-                                    push([0x1D, 0x6B, 0x43, value.length]);
-                                    push(Buffer.from(value, 'ascii'));
-                                    push(textEnc('\n\n'));
+                                    // Handle position
+                                    let hriPos = 0x02; // BELOW
+                                    if (item.position === 'OFF')
+                                        hriPos = 0x00;
+                                    else if (item.position === 'ABOVE')
+                                        hriPos = 0x01;
+                                    push([0x1D, 0x48, hriPos]);
+                                    // Handle height
+                                    const height = item.height ? parseInt(item.height) : 60;
+                                    push([0x1D, 0x68, height]);
+                                    // Handle width
+                                    const width = item.width ? parseInt(item.width) : 2;
+                                    push([0x1D, 0x77, width]);
+                                    let m = 0x49; // CODE128 (73)
+                                    let printValue = value;
+                                    if (item.barcodeType === 'CODE128' || !item.barcodeType) {
+                                        m = 0x49; // 0x49 = 73 = CODE128
+                                        printValue = value; // Generic printers assume Charset B
+                                    }
+                                    else if (item.barcodeType === 'EAN13') {
+                                        m = 0x43; // 0x43 = 67 = EAN13
+                                        printValue = value.replace(/[^0-9]/g, '');
+                                    }
+                                    push([0x1D, 0x6B, m, printValue.length]);
+                                    push(buffer_1.Buffer.from(printValue, 'ascii'));
+                                    push(textEnc('\n')); // Only one newline
                                     push([0x1B, 0x61, 0x00]);
                                 }
                             }
@@ -574,7 +659,7 @@ function registerPrinterIpcHandlers() {
                                 push([0x1D, 0x28, 0x6B, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00]);
                                 push([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x43, 0x06]);
                                 push([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x45, 0x01]);
-                                const dataBuf = Buffer.from(val, 'ascii');
+                                const dataBuf = buffer_1.Buffer.from(val, 'ascii');
                                 const pL = (dataBuf.length + 3) & 0xFF;
                                 const pH = ((dataBuf.length + 3) >> 8) & 0xFF;
                                 push([0x1D, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30]);
@@ -583,15 +668,24 @@ function registerPrinterIpcHandlers() {
                                 push(textEnc('\n\n'));
                                 push([0x1B, 0x61, 0x00]);
                             }
+                            else if (item.type === 'rawBase64' && item.value) {
+                                try {
+                                    const buf = buffer_1.Buffer.from(item.value, 'base64');
+                                    push(buf);
+                                }
+                                catch (e) {
+                                    console.error('Error parsing rawBase64:', e);
+                                }
+                            }
                             else if (item.type === 'cut') {
                                 push([0x1D, 0x56, 0x00]);
                             }
                         }
                         push(textEnc('\n'));
                         push([0x1D, 0x56, 0x00]);
-                        return Buffer.concat(chunks);
-                    };
-                    const rawBuf = buildEscPos();
+                        return buffer_1.Buffer.concat(chunks);
+                    });
+                    const rawBuf = yield buildEscPos();
                     const tmp = path.join(electron_1.app.getPath('temp'), `escpos-${Date.now()}.bin`);
                     fs.writeFileSync(tmp, rawBuf);
                     const cmd = `lp -d "${options.printerName}" -o raw ${tmp}`;
@@ -808,7 +902,7 @@ function registerPrinterIpcHandlers() {
                             catch (_a) { }
                             if (error) {
                                 console.error('EPL error:', error, stderr);
-                                resolve({ success: false, error: error.message || 'EPL error' });
+                                resolve({ success: false, error: (error === null || error === void 0 ? void 0 : error.message) || 'EPL error' });
                                 return;
                             }
                             console.log('EPL stdout:', stdout);
@@ -847,15 +941,19 @@ function registerPrinterIpcHandlers() {
             }
             catch (printError) {
                 console.error('PosPrinter.print() threw an error:', printError);
+                const errObj = printError;
+                const msg = (errObj === null || errObj === void 0 ? void 0 : errObj.message) || (typeof printError === 'string' ? printError : JSON.stringify(printError)) || 'Unknown printing error';
                 return {
                     success: false,
-                    error: printError.message || 'Unknown printing error'
+                    error: msg
                 };
             }
         }
         catch (error) {
             console.error('Error in print-with-pos-printer handler:', error);
-            return { success: false, error: error.message || 'Unknown printing error' };
+            const errObj = error;
+            const msg = (errObj === null || errObj === void 0 ? void 0 : errObj.message) || (typeof error === 'string' ? error : JSON.stringify(error)) || 'Unknown printing error';
+            return { success: false, error: msg };
         }
     }));
 }
@@ -1031,7 +1129,7 @@ try {
         electron_updater_1.autoUpdater.on('error', (err) => {
             log.error('Error en auto-update:', err);
             if (win)
-                win.webContents.send('update-status', `Error en actualizacion: ${err.message}`);
+                win.webContents.send('update-status', `Error en actualizacion: ${err === null || err === void 0 ? void 0 : err.message}`);
         });
     });
     electron_1.app.on('window-all-closed', () => {
@@ -1127,7 +1225,7 @@ function printImageWithCUPS(printer, content) {
             if (base64Data.startsWith('data:image')) {
                 base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
             }
-            const imageBuffer = Buffer.from(base64Data, 'base64');
+            const imageBuffer = buffer_1.Buffer.from(base64Data, 'base64');
             console.log(`Image buffer created, size: ${imageBuffer.length} bytes`);
             const imageTempFile = path.join(electron_1.app.getPath('temp'), `label-${Date.now()}.png`);
             fs.writeFileSync(imageTempFile, imageBuffer);
@@ -1147,7 +1245,7 @@ function printImageWithCUPS(printer, content) {
                         console.error('Failed to delete temp image file:', e);
                     }
                     if (error) {
-                        console.error(`CUPS image printing error: ${error.message}`);
+                        console.error(`CUPS image printing error: ${error === null || error === void 0 ? void 0 : error.message}`);
                         console.error(`stderr: ${stderr}`);
                         reject(error);
                         return;
@@ -1182,7 +1280,7 @@ function printWithCUPS(printer, content) {
                 }
                 console.log('Valid image data found, preparing for CUPS printing...');
                 console.log(`Image data length: ${imageData.length} bytes`);
-                const imageBuffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+                const imageBuffer = buffer_1.Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
                 console.log(`Image buffer created, size: ${imageBuffer.length} bytes`);
                 const imageTempFile = path.join(electron_1.app.getPath('temp'), `label-${Date.now()}.png`);
                 fs.writeFileSync(imageTempFile, imageBuffer);
@@ -1199,7 +1297,7 @@ function printWithCUPS(printer, content) {
                             console.error('Failed to delete temp image file:', e);
                         }
                         if (error) {
-                            console.error(`CUPS image printing error: ${error.message}`);
+                            console.error(`CUPS image printing error: ${error === null || error === void 0 ? void 0 : error.message}`);
                             console.error(`stderr: ${stderr}`);
                             reject(error);
                             return;
@@ -1233,7 +1331,7 @@ function printWithCUPS(printer, content) {
                             console.error('Failed to delete temp file:', e);
                         }
                         if (error) {
-                            console.error(`CUPS rotated label printing error: ${error.message}`);
+                            console.error(`CUPS rotated label printing error: ${error === null || error === void 0 ? void 0 : error.message}`);
                             console.error(`stderr: ${stderr}`);
                             reject(error);
                             return;
@@ -1257,7 +1355,7 @@ function printWithCUPS(printer, content) {
                             console.error('Failed to delete temp file:', e);
                         }
                         if (error) {
-                            console.error(`CUPS label printing error: ${error.message}`);
+                            console.error(`CUPS label printing error: ${error === null || error === void 0 ? void 0 : error.message}`);
                             console.error(`stderr: ${stderr}`);
                             reject(error);
                             return;
@@ -1282,7 +1380,7 @@ function printWithCUPS(printer, content) {
                         console.error('Failed to delete temp file:', e);
                     }
                     if (error) {
-                        console.error(`CUPS printing error: ${error.message}`);
+                        console.error(`CUPS printing error: ${error === null || error === void 0 ? void 0 : error.message}`);
                         console.error(`stderr: ${stderr}`);
                         reject(error);
                         return;
@@ -1340,7 +1438,7 @@ function printWithNodeThermalPrinter(printer, content) {
                 thermalPrinter.clear();
                 thermalPrinter.initialize();
                 thermalPrinter.alignCenter();
-                const imgBuffer = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+                const imgBuffer = buffer_1.Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
                 console.log(`Image buffer created, size: ${imgBuffer.length} bytes`);
                 console.log('Sending image to printer...');
                 thermalPrinter.printImage(imgBuffer);
@@ -1491,10 +1589,10 @@ function printWithElectronPosPrinter(printer, content) {
                     const jsonContent = content.replace('__POS_PRINTER_DATA__:', '');
                     console.log(`Parsing JSON content, length: ${jsonContent.length}`);
                     data = JSON.parse(jsonContent);
-                    const hasImage = data.some(item => item.type === 'image');
+                    const hasImage = data.some((item) => item.type === 'image');
                     if (hasImage) {
                         console.log('Image data detected in print job - WARNING: electron-pos-printer may fail with very long base64 strings');
-                        data = data.map(item => {
+                        data = data.map((item) => {
                             if (item.type === 'image' && item.path && item.path.startsWith('data:image')) {
                                 console.log('Converting image item to text to avoid ENAMETOOLONG error');
                                 return {

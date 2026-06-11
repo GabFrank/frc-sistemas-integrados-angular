@@ -68,12 +68,30 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   resumenPorMonedaComputed: { monedaDenominacion: string; total: number }[] = [];
   /** Total convertido a Guaraníes usando cotización por detalle o moneda.cambio. */
   totalEnGuaraniesComputed = 0;
+
+  /** Resumen por moneda de las notas agregadas (multi-currency). */
+  resumenPorMonedaNotasComputed: {
+    monedaDenominacion: string;
+    simbolo: string;
+    total: number;
+    totalEnGs: number;
+    format: string;
+  }[] = [];
+  /** Total de notas convertido a Gs usando `nota.cotizacion` (fallback `moneda.cambio`). */
+  totalNotasGsEquivalenteComputed = 0;
+  /** True si las notas agregadas mezclan más de una moneda. */
+  tieneMonedasMixtasNotas = false;
+
+  /** Diferencia entre lo a pagar (notas Gs equiv) y lo cubierto (formas Gs equiv). */
+  diferenciaGsComputed = 0;
+  /** "cubre" | "exceso" | "falta" — para color/icono del panel de balance. */
+  diferenciaEstadoComputed: 'cubre' | 'exceso' | 'falta' = 'falta';
   /** true si se puede editar una forma de pago (solicitud nueva, PENDIENTE o PARCIAL). */
   puedeEditarFormaPagoComputed = false;
   /** true si se puede cambiar el proveedor; solo cuando no hay notas ni formas de pago agregadas. */
   puedeEditarProveedorComputed = false;
 
-  displayedColumnsNotas: string[] = ['numero', 'fecha', 'valorTotal', 'moneda', 'formaPago', 'plazo', 'quitar'];
+  displayedColumnsNotas: string[] = ['numero', 'fecha', 'monedaNota', 'valorTotal', 'moneda', 'formaPago', 'plazo', 'quitar'];
   displayedColumnsDetalles: string[] = ['moneda', 'formaPago', 'valor', 'fechaPago', 'acciones'];
 
   /** Fila de nota expandida para mostrar observación del pedido. */
@@ -522,6 +540,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       total: mapByMoneda[k]
     }));
     this.totalEnGuaraniesComputed = Math.round(totalGs);
+    this.updateDiferencia();
   }
 
   /** Valor de un detalle convertido a Guaraníes (para calcular monto sugerido en edición). */
@@ -540,12 +559,55 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   }
 
   private updateMontoTotal(): void {
-    const sum = this.notasAgregadas.reduce(
-      (acc, n) => acc + (n.valorTotal ?? (n as any).valor ?? 0),
-      0
-    );
-    // Redondear para evitar decimales por errores de punto flotante (valorTotal viene como Double del backend; suma en JS puede dar 962499.9999999)
-    this.montoTotalComputed = Math.round(sum);
+    const mapByMoneda: Record<string, { simbolo: string; total: number; totalEnGs: number; format: string }> = {};
+    let totalGs = 0;
+    for (const n of this.notasAgregadas) {
+      const valor = n.valorTotal ?? (n as any).valor ?? 0;
+      const moneda: any = (n as any).moneda;
+      const denom = (moneda?.denominacion || 'GUARANI').toString().toUpperCase().trim();
+      const esGs = denom === 'GUARANI' || denom === 'GS' || denom.includes('GUARANI');
+      const cot = (n as any).cotizacion ?? moneda?.cambio ?? 1;
+      const valorEnGs = esGs ? valor : valor * (cot || 0);
+      if (!mapByMoneda[denom]) {
+        mapByMoneda[denom] = {
+          simbolo: moneda?.simbolo || (esGs ? 'Gs.' : ''),
+          total: 0,
+          totalEnGs: 0,
+          format: esGs ? '1.0-0' : '1.2-2'
+        };
+      }
+      mapByMoneda[denom].total += valor;
+      mapByMoneda[denom].totalEnGs += valorEnGs;
+      totalGs += valorEnGs;
+    }
+    this.resumenPorMonedaNotasComputed = Object.entries(mapByMoneda).map(([den, info]) => ({
+      monedaDenominacion: den,
+      simbolo: info.simbolo,
+      total: info.total,
+      totalEnGs: Math.round(info.totalEnGs),
+      format: info.format
+    }));
+    this.totalNotasGsEquivalenteComputed = Math.round(totalGs);
+    // montoTotalComputed se mantiene en Gs equivalente para que el cálculo del monto sugerido
+    // de forma de pago (totalEnGuaraniesComputed ya viene en Gs) sea coherente.
+    this.montoTotalComputed = this.totalNotasGsEquivalenteComputed;
+    this.tieneMonedasMixtasNotas = this.resumenPorMonedaNotasComputed.length > 1;
+    this.updateDiferencia();
+  }
+
+  /** Compara totales Gs equivalente — recalcula color/estado del panel de balance. */
+  private updateDiferencia(): void {
+    const aPagar = this.totalNotasGsEquivalenteComputed || 0;
+    const cubierto = this.totalEnGuaraniesComputed || 0;
+    this.diferenciaGsComputed = cubierto - aPagar;
+    // Tolerancia 1 Gs por redondeos cross-currency.
+    if (Math.abs(this.diferenciaGsComputed) <= 1) {
+      this.diferenciaEstadoComputed = 'cubre';
+    } else if (this.diferenciaGsComputed > 0) {
+      this.diferenciaEstadoComputed = 'exceso';
+    } else {
+      this.diferenciaEstadoComputed = 'falta';
+    }
   }
 
   /** Rellena propiedades de display de pedido (moneda, formaPago, plazo, observación) para la tabla de notas. */
@@ -558,11 +620,22 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         pedidoFormaPagoDisplay?: string;
         pedidoPlazoDisplay?: string;
         pedidoObservacionDisplay?: string;
+        notaMonedaDisplay?: string;
+        notaSimboloDisplay?: string;
+        notaDecimalFormatDisplay?: string;
       };
       n.pedidoMonedaDisplay = (ped?.moneda?.denominacion ?? ped?.moneda?.simbolo ?? '-').toString().toUpperCase();
       n.pedidoFormaPagoDisplay = (ped?.formaPago?.descripcion ?? '-').toString().toUpperCase();
       n.pedidoPlazoDisplay = ped?.plazoCredito != null ? String(ped.plazoCredito) : '-';
       n.pedidoObservacionDisplay = (ped?.observacionFormaPago ?? '').toString().trim();
+      // Display de la moneda propia de la nota (no del pedido) para tabla.
+      const notaMonedaDenom = (nota as any)?.moneda?.denominacion;
+      const notaMonedaSim = (nota as any)?.moneda?.simbolo;
+      const denomUpper = (notaMonedaDenom || '').toString().toUpperCase().trim();
+      const esGs = denomUpper === 'GUARANI' || denomUpper === 'GS' || denomUpper.includes('GUARANI');
+      n.notaMonedaDisplay = (notaMonedaDenom ?? '-').toString().toUpperCase();
+      n.notaSimboloDisplay = notaMonedaSim || (esGs ? 'Gs.' : '');
+      n.notaDecimalFormatDisplay = esGs ? '1.0-0' : '1.0-2';
       map[nota.id] = !!(n.pedidoObservacionDisplay && n.pedidoObservacionDisplay.length > 0);
     });
     this.notaTieneObservacionMap = map;
@@ -570,6 +643,33 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
 
   onNotaRowClick(nota: NotaRecepcion): void {
     this.expandedNota = this.expandedNota === nota ? null : nota;
+  }
+
+  /**
+   * Resuelve la moneda + monto de cabecera al guardar:
+   * - Notas todas misma moneda → esa moneda + suma directa en esa moneda.
+   * - Mezcla (o sin moneda válida) → fallback Guaraní + total Gs equivalente.
+   */
+  private resolveCabeceraMonedaYTotal(): { monedaId: number | undefined; montoTotal: number } {
+    const monedasUnicas = Array.from(
+      new Set(
+        this.notasAgregadas
+          .map((n) => (n as any)?.moneda?.id)
+          .filter((id) => id != null)
+      )
+    );
+    if (monedasUnicas.length === 1) {
+      const monedaId = monedasUnicas[0] as number;
+      const sumaEnEsaMoneda = this.notasAgregadas.reduce(
+        (s, n) => s + (n.valorTotal ?? 0),
+        0
+      );
+      return { monedaId, montoTotal: Math.round(sumaEnEsaMoneda * 100) / 100 };
+    }
+    const guarani = this.monedaList.find((m) =>
+      (m.denominacion || '').toString().toUpperCase().includes('GUARANI')
+    );
+    return { monedaId: guarani?.id, montoTotal: this.totalNotasGsEquivalenteComputed };
   }
 
   private buildInputForSave(): SolicitudPagoInput {
@@ -586,9 +686,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       nominal: d.nominal,
       diferido: d.diferido
     }));
+    const { monedaId, montoTotal } = this.resolveCabeceraMonedaYTotal();
     return {
       proveedorId: this.selectedProveedor.id,
-      montoTotal: this.montoTotalComputed,
+      monedaId,
+      montoTotal,
       estado: SolicitudPagoEstado.PENDIENTE,
       notaRecepcionIds: this.notasAgregadas.map((n) => n.id),
       observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined,
@@ -630,29 +732,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       this.notificacionService.openWarn('Agregue al menos una nota de recepción');
       return;
     }
-    const detallesInput: SolicitudPagoDetalleInput[] = (this.detallesAgregados || []).map((d) => ({
-      monedaId: d.monedaId,
-      formaPagoId: d.formaPagoId,
-      valor: d.valor,
-      fechaPago: d.fechaPago,
-      observacion: d.observacion,
-      cotizacion: d.cotizacion,
-      orden: d.orden,
-      fechaEmisionCheque: d.fechaEmisionCheque,
-      portador: d.portador,
-      nominal: d.nominal,
-      diferido: d.diferido
-    }));
-
-    const input: SolicitudPagoInput = {
-      proveedorId: this.selectedProveedor.id,
-      montoTotal: this.montoTotalComputed,
-      estado: SolicitudPagoEstado.PENDIENTE,
-      notaRecepcionIds: this.notasAgregadas.map((n) => n.id),
-      observaciones: (this.form.get('observaciones').value || '').toString().trim().toUpperCase() || undefined,
-      usuarioId: this.mainService?.usuarioActual?.id,
-      detalles: detallesInput
-    };
+    const input: SolicitudPagoInput = this.buildInputForSave();
 
     this.saving = true;
     if (this.isEditMode) {

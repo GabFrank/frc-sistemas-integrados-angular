@@ -1,196 +1,5 @@
 import gql from "graphql-tag";
 
-export const gastosQuery = gql`
-  query ($sucId: ID) {
-    data: gastos(sucId: $sucId) {
-      id
-      sucursalId
-      responsable {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      tipoGasto {
-        id
-        descripcion
-        autorizacion
-      }
-      autorizadoPor {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      observacion
-      creadoEn
-      usuario {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      retiroGs
-      retiroRs
-      retiroDs
-      vueltoGs
-      vueltoRs
-      vueltoDs
-      activo
-      finalizado
-    }
-  }
-`;
-
-export const gastosPorFecha = gql`
-  query ($inicio: String, $fin: String, $sucId: ID) {
-    data: gastosPorFecha(inicio: $inicio, fin: $fin, sucId: $sucId) {
-      id
-      sucursalId
-      responsable {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      tipoGasto {
-        id
-        descripcion
-        autorizacion
-      }
-      autorizadoPor {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      observacion
-      creadoEn
-      usuario {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      retiroGs
-      retiroRs
-      retiroDs
-      vueltoGs
-      vueltoRs
-      vueltoDs
-      activo
-      finalizado
-      sucursalVuelto {
-        id
-        nombre
-      }
-    }
-  }
-`;
-
-// export const gastosSearch = gql`
-//   query ($texto: String) {
-//     gastos: gastosSearch(texto: $texto) {
-//       id
-//       responsable {
-//         id
-//         persona {
-//           id
-//           nombre
-//         }
-//       }
-//       tipoGasto {
-//         id
-//         descripcion
-//         autorizacion
-//       }
-//       autorizadoPor {
-//         id
-//         persona {
-//           id
-//           nombre
-//         }
-//       }
-//       observacion
-//       creadoEn
-//       usuario {
-//         id
-//         persona {
-//           id
-//           nombre
-//         }
-//       }
-//       gastoDetalleList {
-//         id
-//         moneda {
-//           id
-//           denominacion
-//         }
-//         cambio {
-//           id
-//           valorEnGs
-//         }
-//         cantidad
-//       }
-//     }
-//   }
-// `;
-
-export const gastoQuery = gql`
-  query ($id: ID!, $sucId: ID) {
-    data: gasto(id: $id, sucId: $sucId) {
-      id
-      sucursalId
-      responsable {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      tipoGasto {
-        id
-        descripcion
-        autorizacion
-      }
-      autorizadoPor {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      observacion
-      creadoEn
-      usuario {
-        id
-        persona {
-          id
-          nombre
-        }
-      }
-      retiroGs
-      retiroRs
-      retiroDs
-      vueltoGs
-      vueltoRs
-      vueltoDs
-      activo
-      finalizado
-      sucursalVuelto {
-        id
-        nombre
-      }
-    }
-  }
-`;
-
 export const reimprimirQuery = gql`
   query ($id: ID!, $printerName: String, $sucId: ID) {
     data: reimprimirGasto(id: $id, printerName: $printerName, sucId: $sucId)
@@ -198,11 +7,7 @@ export const reimprimirQuery = gql`
 `;
 
 export const saveGasto = gql`
-  mutation saveGasto(
-    $entity: GastoInput!
-    $printerName: String
-    $local: String
-  ) {
+  mutation saveGasto($entity: GastoInput!, $printerName: String, $local: String) {
     data: saveGasto(entity: $entity, printerName: $printerName, local: $local) {
       id
       responsable {
@@ -245,23 +50,17 @@ export const saveGasto = gql`
         id
         nombre
       }
+      preGasto {
+        id
+        sucursalId
+      }
     }
   }
 `;
 
 export const saveVueltoGasto = gql`
-  mutation saveVueltoGasto(
-    $id: ID!
-    $valorGs: Float
-    $valorRs: Float
-    $valorDs: Float
-  ) {
-    data: saveVueltoGasto(
-      id: $id
-      valorGs: $valorGs
-      valorRs: $valorRs
-      valorDs: $valorDs
-    ) {
+  mutation saveVueltoGasto($id: ID!, $valorGs: Float, $valorRs: Float, $valorDs: Float) {
+    data: saveVueltoGasto(id: $id, valorGs: $valorGs, valorRs: $valorRs, valorDs: $valorDs) {
       id
       sucursalId
       responsable {
@@ -304,17 +103,13 @@ export const saveVueltoGasto = gql`
         id
         nombre
       }
+      preGasto {
+        id
+        sucursalId
+      }
     }
   }
 `;
-
-export const deleteGastoQuery = gql`
-  mutation deleteGasto($id: ID!, $sucId: ID) {
-    deleteGasto(id: $id, sucId: $sucId)
-  }
-`;
-
-//gastosPorCajaId
 
 export const gastosPorCajaIdQuery = gql`
   query ($id: ID!, $sucId: ID) {
@@ -361,29 +156,17 @@ export const gastosPorCajaIdQuery = gql`
         id
         nombre
       }
+      preGasto {
+        id
+        sucursalId
+      }
     }
   }
 `;
 
 export const filterGastosQuery = gql`
-  query (
-    $id: ID
-    $cajaId: ID
-    $sucId: ID
-    $responsableId: ID
-    $descripcion: String
-    $page: Int
-    $size: Int
-  ) {
-    data: filterGastos(
-      id: $id
-      cajaId: $cajaId
-      sucId: $sucId
-      responsableId: $responsableId
-      descripcion: $descripcion
-      page: $page
-      size: $size
-    ) {
+  query ($id: ID, $cajaId: ID, $sucId: ID, $responsableId: ID, $descripcion: String, $page: Int, $size: Int) {
+    data: filterGastos(id: $id, cajaId: $cajaId, sucId: $sucId, responsableId: $responsableId, descripcion: $descripcion, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -409,6 +192,21 @@ export const filterGastosQuery = gql`
         tipoGasto {
           descripcion
         }
+        autorizadoPor {
+          persona {
+            nombre
+          }
+        }
+        preGasto {
+          id
+          estado
+          estadoEtiqueta
+          estadoIcono
+          estadoColor
+          tipoGasto {
+            descripcion
+          }
+        }
         observacion
         retiroGs
         retiroRs
@@ -416,5 +214,310 @@ export const filterGastosQuery = gql`
         creadoEn
       }
     }
+  }
+`;
+
+export const tipoGastosQuery = gql`
+  query {
+    data: tipoGastos {
+      id
+      descripcion
+      autorizacion
+      activo
+      activoEnSucursales
+    }
+  }
+`;
+
+export const tipoGastoQuery = gql`
+  query ($id: ID!) {
+    data: tipoGasto(id: $id) {
+      id
+      descripcion
+      autorizacion
+      activo
+      activoEnSucursales
+      isClasificacion
+      tipoNaturaleza
+      moduloPadre
+      cargo {
+        id
+      }
+      clasificacionGasto {
+        id
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+    }
+  }
+`;
+
+export const tipoGastosSearch = gql`
+  query ($texto: String) {
+    data: tipoGastosSearch(texto: $texto) {
+      id
+      descripcion
+      autorizacion
+      activo
+      activoEnSucursales
+      moduloPadre
+    }
+  }
+`;
+
+export const saveTipoGasto = gql`
+  mutation saveTipoGasto($entity: TipoGastoInput!) {
+    data: saveTipoGasto(tipoGasto: $entity) {
+      id
+      descripcion
+      autorizacion
+      activo
+      activoEnSucursales
+      isClasificacion
+      tipoNaturaleza
+      moduloPadre
+      cargo {
+        id
+      }
+      clasificacionGasto {
+        id
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+    }
+  }
+`;
+
+export const deleteTipoGastoQuery = gql`
+  mutation deleteTipoGasto($id: ID!) {
+    deleteTipoGasto(id: $id)
+  }
+`;
+
+// PreGasto
+export const savePreGastoMutation = gql`
+  mutation savePreGasto($entity: PreGastoInput!) {
+    data: savePreGasto(entity: $entity) {
+      id
+      sucursalId
+    }
+  }
+`;
+
+export const autorizarPreGastoMutation = gql`
+  mutation autorizarPreGasto($id: ID!, $autorizadorId: ID!, $usuarioId: ID, $sucId: ID) {
+    data: autorizarPreGasto(id: $id, autorizadorId: $autorizadorId, usuarioId: $usuarioId, sucId: $sucId) {
+      id
+      sucursalId
+      estado
+    }
+  }
+`;
+
+export const rechazarPreGastoMutation = gql`
+  mutation rechazarPreGasto($id: ID!, $motivo: String!, $rechazadorId: ID, $usuarioId: ID, $sucId: ID) {
+    data: rechazarPreGasto(id: $id, motivo: $motivo, rechazadorId: $rechazadorId, usuarioId: $usuarioId, sucId: $sucId) {
+      id
+      sucursalId
+      estado
+    }
+  }
+`;
+
+export const tramitarPreGastoMutation = gql`
+  mutation tramitarPreGasto($id: ID!, $sucId: ID) {
+    data: tramitarPreGasto(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      estado
+    }
+  }
+`;
+
+export const completarPreGastoMutation = gql`
+  mutation completarPreGasto(
+    $id: ID!,
+    $sucId: ID,
+    $rindioGasto: Boolean,
+    $montoGastado: Float,
+    $montoGastadoGs: Float,
+    $montoGastadoRs: Float,
+    $montoGastadoDs: Float
+  ) {
+    data: completarPreGasto(
+      id: $id,
+      sucId: $sucId,
+      rindioGasto: $rindioGasto,
+      montoGastado: $montoGastado,
+      montoGastadoGs: $montoGastadoGs,
+      montoGastadoRs: $montoGastadoRs,
+      montoGastadoDs: $montoGastadoDs
+    ) {
+      id
+      sucursalId
+      estado
+      rindioGasto
+    }
+  }
+`;
+
+export const deletePreGastoMutation = gql`
+  mutation deletePreGasto($id: ID!, $sucId: ID) {
+    deletePreGasto(id: $id, sucId: $sucId)
+  }
+`;
+
+export const enviarPreGastoATesoreriaMutation = gql`
+  mutation ($id: ID!, $sucId: ID, $usuarioId: ID) {
+    data: enviarPreGastoATesoreria(id: $id, sucId: $sucId, usuarioId: $usuarioId) {
+      id
+      sucursalId
+      estado
+      solicitudPagoId
+    }
+  }
+`;
+
+export const filterPreGastosQuery = gql`
+  query ($id: ID, $cajaId: ID, $estado: String, $estados: [String], $inicio: String, $fin: String, $page: Int, $size: Int) {
+    data: filterPreGastos(id: $id, cajaId: $cajaId, estado: $estado, estados: $estados, inicio: $inicio, fin: $fin, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        funcionario {
+          id
+          nombre
+        }
+        tipoGasto {
+          id
+          descripcion
+          moduloPadre
+        }
+        ente {
+          id
+          tipoEnte
+          referenciaId
+          descripcion
+        }
+        descripcion
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        montoSolicitado
+        cajaId
+        sucursalCaja {
+          id
+          nombre
+        }
+        estado
+        qrToken
+        autorizadoPor {
+          id
+          nombre
+        }
+        motivoRechazo
+        montoRetirado
+        montoGastado
+        saldoDevolver
+        montoPendienteRetiro
+        montoNoRendido
+        porcentajeRendicion
+        desvioVsSolicitado
+        estadoEtiqueta
+        estadoIcono
+        estadoColor
+        solicitudPagoId
+        rindioGasto
+        estadoRendicion
+        fechaRendicion
+        finanzas {
+          id
+          monto
+          moneda {
+            id
+            denominacion
+            simbolo
+          }
+        }
+        gasto {
+          retiroGs
+          retiroRs
+          retiroDs
+          vueltoGs
+          vueltoRs
+          vueltoDs
+        }
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const filterTipoGastosQuery = gql`
+  query ($naturaleza: String, $texto: String, $page: Int, $size: Int) {
+    data: filterTipoGastos(naturaleza: $naturaleza, texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+        autorizacion
+        activo
+        activoEnSucursales
+        isClasificacion
+        tipoNaturaleza
+        moduloPadre
+        cargo {
+          id
+        }
+        clasificacionGasto {
+          id
+          descripcion
+        }
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const imprimirPreGastoQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: imprimirPreGasto(id: $id, sucId: $sucId)
+  }
+`;
+
+export const imprimirSolicitudPagoMutation = gql`
+  mutation ($id: ID!) {
+    data: imprimirSolicitudPagoPDF(solicitudPagoId: $id)
   }
 `;

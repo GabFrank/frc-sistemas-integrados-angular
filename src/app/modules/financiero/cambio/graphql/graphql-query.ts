@@ -46,6 +46,8 @@ export const cambioQuery = gql`
       id
       valorEnGs
       valorEnGsCambio
+      valorEnGsVentaMercado
+      valorEnGsCompraMercado
       activo
       moneda {
         id
@@ -66,6 +68,9 @@ export const saveCambio = gql`
     data: saveCambio(cambio: $entity) {
       id
       valorEnGs
+      valorEnGsCambio
+      valorEnGsVentaMercado
+      valorEnGsCompraMercado
       activo
       moneda {
         id
@@ -113,6 +118,8 @@ export const ultimoCambioPorMonedaIdQuery = gql`
       id
       valorEnGs
       valorEnGsCambio
+      valorEnGsVentaMercado
+      valorEnGsCompraMercado
       activo
       moneda {
         id

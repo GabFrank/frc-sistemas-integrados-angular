@@ -12,13 +12,14 @@ import { MainService } from "../../../main.service";
 import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
-import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component";
 import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
@@ -426,6 +427,11 @@ export class SideComponent implements OnInit {
         else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
+        break;
+      case "lucro-por-funcionario":
+        this.tabService.addTab(
+          new Tab(LucroPorFuncionarioComponent, "Lucro por funcionario", null, null)
+        );
         break;
       case "lucro-por-producto":
         this.tabService.addTab(

@@ -50,10 +50,11 @@ import { Delivery } from "../../../../operaciones/delivery/delivery.model";
 import { Tab } from "../../../../../layouts/tab/tab.model";
 import { TransferirCajaDialogComponent } from "../transferir-caja-dialog/transferir-caja-dialog.component";
 import { TabService, TabData } from "../../../../../layouts/tab/tab.service";
-import { ListGastosComponent } from "../../../gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../../../gastos/pages/list-gastos/list-gastos.component";
 import { ListRetiroComponent } from "../../../retiro/list-retiro/list-retiro.component";
 import { ROLES } from "../../../../personas/roles/roles.enum";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
+import { GastoService } from "../../../gastos/service/gasto.service";
 
 @UntilDestroy()
 @Component({
@@ -67,14 +68,14 @@ export class AdicionarCajaDialogComponent implements OnInit {
   data: Tab;
 
   ROLES = ROLES;
-  
+
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoMaletinInput", { static: false })
   codigoMaletinInput: ElementRef;
 
   @ViewChild("siguienteBtn", { static: false })
 
-  
+
   siguienteBtn: MatButton;
 
   conetoMonedaList: ConteoMoneda[];
@@ -119,6 +120,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   isCierre = false;
 
   isDeliveryAbierto = false;
+  isSolicitudPendienteOAutorizado = false;
 
   verificarMaletinTimeout = null;
 
@@ -135,6 +137,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
     private deliveryService: DeliveryService,
+    private gastoService: GastoService,
     private tabService: TabService,
     public mainService: MainService
   ) {
@@ -146,10 +149,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
 
-    if(this.data != null) this.isTab = true;
+    if (this.data != null) this.isTab = true;
 
-    if(this.data2?.isVentaTouch != null) this.isVentaTouch = this.data2?.isVentaTouch;
-    
+    if (this.data2?.isVentaTouch != null) this.isVentaTouch = this.data2?.isVentaTouch;
+
     let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
     if (auxData != null) {
       this.cajaService
@@ -160,7 +163,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;
             this.cargarDatos();
-            
+
             const targetSection = this.data?.tabData?.goToSection;
             if (targetSection) {
               console.log('Navegando automáticamente a:', targetSection);
@@ -168,7 +171,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
                 this.goTo(targetSection);
               }, 1000);
             }
-            
+
             this.deliveryService
               .onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [
                 DeliveryEstado.ABIERTO,
@@ -177,6 +180,23 @@ export class AdicionarCajaDialogComponent implements OnInit {
               ], this.selectedCaja.sucursal.id, !this.isVentaTouch)
               .subscribe((deliveryRes: Delivery[]) => {
                 if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
+              });
+
+            this.gastoService.preGastoFilter(
+              undefined,
+              this.selectedCaja.id,
+              undefined,
+              undefined,
+              undefined,
+              0,
+              1,
+              ["PENDIENTE", "AUTORIZADO"]
+            )
+              .pipe(untilDestroyed(this))
+              .subscribe((solicitudRes) => {
+                this.isSolicitudPendienteOAutorizado =
+                  (solicitudRes?.getNumberOfElements ?? 0) > 0 ||
+                  (solicitudRes?.getContent?.length ?? 0) > 0;
               });
           }
         });
@@ -289,8 +309,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
               this.seleccionarMaletin(null);
             }
           });
-          clearTimeout(this.verificarMaletinTimeout)
-          this.verificarMaletinTimeout = null;
+        clearTimeout(this.verificarMaletinTimeout)
+        this.verificarMaletinTimeout = null;
       }, 1000);
     }
   }
@@ -419,6 +439,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
       case "cierre":
         if (this.isDeliveryAbierto) {
           this.notificacionBar.openWarn("Posee deliverys sin concluir");
+        } else if (this.isSolicitudPendienteOAutorizado) {
+          this.notificacionBar.openWarn(
+            "Posee solicitudes en estado pendiente o autorizado"
+          );
         } else {
           this.stepper.selectedIndex = 1;
           this.stepper.selectedIndex = 2;
@@ -447,7 +471,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       case "imprimir-factura":
         if (this.selectedCaja != null)
           // this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id);
-        break;
+          break;
       case "salir":
         this.matDialogRef.close();
         break;
@@ -485,7 +509,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       }
     });
   }
-  
+
   onIrAGastos() {
     if (this.selectedCaja != null) {
       this.tabService.addTab(

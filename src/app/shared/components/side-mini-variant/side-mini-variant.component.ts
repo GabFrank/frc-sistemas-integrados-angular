@@ -7,13 +7,15 @@ import { MainService } from "../../../main.service";
 import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
-import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
+import { ListGastosComponent } from "../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component";
+import { GastosDashboardComponent } from "../../../modules/financiero/gastos/pages/gastos-dashboard/gastos-dashboard.component";
 import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
@@ -49,6 +51,8 @@ import { GraficosComponent } from '../../../modules/grafico/graficos/graficos.co
 import { GenericListVentaComponent } from '../../../modules/operaciones/venta/generic-list-venta/generic-list-venta.component';
 import { ListMarcacionComponent } from '../../../modules/administrativo/marcacion/pages/list-marcacion/list-marcacion.component';
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
+import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
+import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -243,7 +247,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         {
           name: 'Gastos',
           icon: 'money_off',
-          action: 'list-gastos',
+          action: 'gastos-dashboard',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
         {
@@ -268,6 +272,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Maletines',
           icon: 'work',
           action: 'list-maletin',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Lucro por funcionario',
+          icon: 'groups',
+          action: 'lucro-por-funcionario',
           visibilityRoles: [ROLES.ADMIN]
         },
         {
@@ -306,6 +316,36 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       items: [],
       requiresServerMode: false,
       visibilityRoles: [ROLES.ADMIN]
+    },
+    {
+      name: 'Vehículos',
+      icon: 'directions_car',
+      isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN],
+      items: [
+        {
+          name: 'Vehículo',
+          icon: 'commute',
+          action: 'list-vehiculo',
+          visibilityRoles: [ROLES.ADMIN]
+        }
+      ]
+    },
+    {
+      name: 'Bienes',
+      icon: 'forest',
+      isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN],
+      items: [
+        {
+          name: 'Bien',
+          icon: 'check_circle',
+          action: 'bienes-dashboard',
+          visibilityRoles: [ROLES.ADMIN]
+        }
+      ]
     },
     {
       name: 'R.R.H.H.',
@@ -527,20 +567,55 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
     const sidenavElement = document.querySelector('.side-nav-container');
-    if (this.isExpanded && sidenavElement && !sidenavElement.contains(event.target as Node)) {
-      const isHeaderMenuButton = (event.target as HTMLElement).closest('[class*="header-menu-toggle"]');
-      if (!isHeaderMenuButton) {
+
+    const isHeaderInteraction = target.closest('.frc-header');
+    const isNotificationsPanel = target.closest('.notifications-overlay');
+
+    if (this.isExpanded && sidenavElement && !sidenavElement.contains(target)) {
+      if (!isHeaderInteraction && !isNotificationsPanel) {
         this.toggleSidenav(false);
       }
     }
   }
+  collapseSiblings(targetSection: any): void {
+    const isFirstLevel = this.navigationItems.some(item => item === targetSection);
+    if (isFirstLevel) {
+      this.navigationItems.forEach(item => {
+        if (item !== targetSection && 'isExpanded' in item) {
+          item.isExpanded = false;
+        }
+      });
+      return;
+    }
+
+    for (const parent of this.navigationItems) {
+      if ('items' in parent && parent.items) {
+        const isChild = parent.items.some(child => child === targetSection);
+        if (isChild) {
+          parent.items.forEach(child => {
+            if (child !== targetSection && 'isExpanded' in child) {
+              child.isExpanded = false;
+            }
+          });
+          break;
+        }
+      }
+    }
+  }
+
   toggleMenuSection(section: any, event: Event): void {
     event.stopPropagation();
     if (this.isExpanded) {
-      section.isExpanded = !section.isExpanded;
+      const willExpand = !section.isExpanded;
+      if (willExpand) {
+        this.collapseSiblings(section);
+      }
+      section.isExpanded = willExpand;
     } else {
       this.toggleSidenav(true);
+      this.collapseSiblings(section);
       section.isExpanded = true;
     }
   }
@@ -596,6 +671,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-gastos":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListGastosComponent, "Gastos");
         break;
+      case "gastos-dashboard":
+        this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, GastosDashboardComponent, "Principal Gastos");
+        break;
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
         break;
@@ -616,6 +694,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
+        break;
+      case "lucro-por-funcionario":
+        this.tabService.addTab(new Tab(LucroPorFuncionarioComponent, "Lucro por funcionario", null, null));
         break;
       case "lucro-por-producto":
         this.tabService.addTab(new Tab(LucroPorProductoComponent, "Lucro por producto", null, null));
@@ -703,6 +784,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "graficos":
         this.openTabIfAuthorized(ROLES.ADMIN, GraficosComponent, "Gráficos");
+        break;
+      case "list-vehiculo":
+        this.openTabIfAuthorized(ROLES.ADMIN, VehiculosDashboardComponent, "Vehículos");
+        break;
+      case "bienes-dashboard":
+        this.openTabIfAuthorized(ROLES.ADMIN, BienesDashboardComponent, "Bien");
         break;
       case "marcar-horario":
         this.tabService.addTab(new Tab(MarcarHorarioComponent, "Marcar horario", null, null));

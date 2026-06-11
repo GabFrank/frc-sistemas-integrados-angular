@@ -115,10 +115,10 @@ export const findMovimientoStockByFiltersQuery = gql`
   query (
     $inicio: String
     $fin: String
-    $sucursalList: [Int]
-    $productoId: Int
+    $sucursalList: [ID]
+    $productoId: ID
     $tipoMovimientoList: [TipoMovimiento]
-    $usuarioId: Int
+    $usuarioId: ID
     $page: Int
     $size: Int
   ) {
@@ -171,10 +171,10 @@ export const findStockWithFiltersQuery = gql`
   query (
     $inicio: String
     $fin: String
-    $sucursalList: [Int]
-    $productoId: Int
+    $sucursalList: [ID]
+    $productoId: ID
     $tipoMovimientoList: [TipoMovimiento]
-    $usuarioId: Int
+    $usuarioId: ID
   ) {
     data: findStockWithFilters(
       inicio: $inicio
@@ -191,10 +191,10 @@ export const findStockPorTipoMovimientoQuery = gql`
   query (
     $inicio: String
     $fin: String
-    $sucursalList: [Int]
-    $productoId: Int
+    $sucursalList: [ID]
+    $productoId: ID
     $tipoMovimientoList: [TipoMovimiento]
-    $usuarioId: Int
+    $usuarioId: ID
   ) {
     data: findStockPorTipoMovimiento(
       inicio: $inicio

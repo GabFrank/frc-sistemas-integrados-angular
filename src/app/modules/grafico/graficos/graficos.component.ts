@@ -3,6 +3,7 @@ import { EChartsOption } from 'echarts';
 import { TabService } from '../../../layouts/tab/tab.service';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { ProductoVendidoComponent } from '../producto-vendido/producto-vendido.component';
+import { AnalisisProductoComponent } from '../analisis-producto/analisis-producto.component';
 
 import { FormaPagoComponent } from '../forma-pago/forma-pago.component';
 import { VentaFuncionarioComponent } from '../venta-funcionario/venta-funcionario.component';
@@ -53,6 +54,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
     ventasHoraOptions: EChartsOption = {};
     ventasFuncionarioOptions: EChartsOption = {};
     productosMasVendidosOptions: EChartsOption = {};
+    analisisProductoOptions: EChartsOption = {};
 
     constructor() { }
 
@@ -79,6 +81,9 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         switch (type) {
             case 'productos':
                 this.tabService.addTab(new Tab(ProductoVendidoComponent, 'Productos Vendidos', null, null));
+                break;
+            case 'analisis-producto':
+                this.tabService.addTab(new Tab(AnalisisProductoComponent, 'Análisis de Productos', null, null));
                 break;
 
             case 'pago':
@@ -268,14 +273,13 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         const hoyStr = datePipe.transform(today, 'yyyy-MM-dd') || '';
 
         this.graficoService.obtenerVentasPorHora(hoyStr).subscribe(res => {
-            const horas = Array.from({ length: 15 }, (_, i) => (i + 7).toString()); // 7 to 21
-            const data = new Array(15).fill(0);
+            const horas = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+            const data = new Array(horas.length).fill(0);
 
             if (res) {
                 res.forEach((item: any) => {
-                    const idx = item.hora - 7;
-                    if (idx >= 0 && idx < 15) {
-                        data[idx] = item.total;
+                    if (item.hora >= 0 && item.hora <= 23) {
+                        data[item.hora] = item.total;
                     }
                 });
             }
@@ -370,25 +374,70 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         });
 
 
-        this.productosMasVendidosOptions = {
-            title: {
-                text: 'Top Productos Más Vendidos',
-                left: 'center',
-                textStyle: { color: this.colores.text, fontSize: 14, fontWeight: 'bold' }
-            },
-            legend: { bottom: 5, textStyle: { color: this.colores.textSecondary, fontSize: 10 } },
-            grid: { left: '20%', right: '4%', bottom: '18%', top: '15%' },
-            xAxis: { type: 'value' },
-            yAxis: {
-                type: 'category',
-                data: ['Cerveza Brahma 1L', 'Coca Cola 2L', 'Hielo 5kg', 'Cerveza Pilsen Lata', 'Agua Mineral 500ml', 'Gaseosa Pepsi 2L', 'Vino Tinto 750ml', 'Cerveza Corona', 'Energizante Red Bull', 'Whisky J. Walker']
-            },
-            series: [
-                { name: 'Canindeyu 1', type: 'bar', stack: 'total', data: [1250, 980, 850, 720, 650, 580, 420, 380, 320, 280] },
-                { name: 'Curuguaty 2', type: 'bar', stack: 'total', data: [980, 1100, 720, 650, 580, 490, 380, 290, 250, 180] },
-                { name: 'Renacer', type: 'bar', stack: 'total', data: [720, 650, 920, 480, 420, 380, 290, 250, 180, 150] }
-            ]
-        };
+        const mesActual = new Date();
+        const fechaInicioProd = `${mesActual.getFullYear()}-${String(mesActual.getMonth() + 1).padStart(2, '0')}-01 00:00:00`;
+        const fechaFinMes = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 1);
+        const fechaFinProd = `${fechaFinMes.getFullYear()}-${String(fechaFinMes.getMonth() + 1).padStart(2, '0')}-01 00:00:00`;
+
+        this.graficoService.obtenerProductosMasVendidos(fechaInicioProd, fechaFinProd, undefined, undefined, 5, false)
+            .subscribe(productos => {
+                const lista = (productos || []).slice(0, 5).reverse();
+                const nombres = lista.map((p: any) => p.descripcion?.length > 18 ? p.descripcion.substring(0, 16) + '…' : p.descripcion);
+                const cantidades = lista.map((p: any) => p.cantidad);
+
+                this.productosMasVendidosOptions = {
+                    title: {
+                        text: 'Top Productos Más Vendidos',
+                        left: 'center',
+                        textStyle: { color: this.colores.text, fontSize: 14, fontWeight: 'bold' }
+                    },
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    grid: { left: '28%', right: '8%', bottom: '8%', top: '18%' },
+                    xAxis: { type: 'value', axisLabel: { color: this.colores.textSecondary, fontSize: 9 } },
+                    yAxis: {
+                        type: 'category',
+                        data: nombres.length ? nombres : ['Sin datos'],
+                        axisLabel: { color: this.colores.textSecondary, fontSize: 9 }
+                    },
+                    series: [{
+                        name: 'Cantidad',
+                        type: 'bar',
+                        data: cantidades.length ? cantidades : [0],
+                        itemStyle: { color: this.colores.primary, borderRadius: [0, 4, 4, 0] }
+                    }]
+                };
+            });
+
+        this.graficoService.obtenerProductosMasVendidos(fechaInicioProd, fechaFinProd, undefined, undefined, 5, true)
+            .subscribe(productos => {
+                const lista = (productos || []).slice(0, 5).reverse();
+                const nombres = lista.map((p: any) => p.descripcion?.length > 16 ? p.descripcion.substring(0, 14) + '…' : p.descripcion);
+                const cantidades = lista.map((p: any) => p.cantidad);
+
+                this.analisisProductoOptions = {
+                    title: {
+                        text: 'Análisis de Productos',
+                        subtext: 'Menor rotación del mes',
+                        left: 'center',
+                        textStyle: { color: this.colores.text, fontSize: 14, fontWeight: 'bold' },
+                        subtextStyle: { color: this.colores.textSecondary, fontSize: 10 }
+                    },
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    grid: { left: '28%', right: '8%', bottom: '12%', top: '22%' },
+                    xAxis: { type: 'value', axisLabel: { color: this.colores.textSecondary, fontSize: 9 } },
+                    yAxis: {
+                        type: 'category',
+                        data: nombres.length ? nombres : ['Sin datos'],
+                        axisLabel: { color: this.colores.textSecondary, fontSize: 9 }
+                    },
+                    series: [{
+                        name: 'Cantidad',
+                        type: 'bar',
+                        data: cantidades.length ? cantidades : [0],
+                        itemStyle: { color: this.colores.warn, borderRadius: [0, 4, 4, 0] }
+                    }]
+                };
+            });
     }
 
 }

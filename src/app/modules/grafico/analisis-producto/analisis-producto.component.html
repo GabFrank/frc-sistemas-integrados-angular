@@ -1,0 +1,139 @@
+<div class="analisis-producto-container">
+    <div class="filters-section">
+        <mat-button-toggle-group [formControl]="modoControl" class="modo-toggle">
+            <mat-button-toggle *ngFor="let m of modos" [value]="m.valor">{{ m.label }}</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field appearance="outline" class="filter-field filter-small">
+            <mat-label>Año</mat-label>
+            <mat-select [formControl]="anhoControl">
+                <mat-option *ngFor="let anho of anhos" [value]="anho">{{ anho }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field filter-rango">
+            <mat-label>Período</mat-label>
+            <mat-date-range-input [formGroup]="fechaRangoGroup" [rangePicker]="pickerRango">
+                <input matStartDate formControlName="inicio" placeholder="Desde" [min]="minFechaAnho"
+                    [max]="maxFechaAnho">
+                <input matEndDate formControlName="fin" placeholder="Hasta" [min]="minFechaAnho" [max]="maxFechaAnho">
+            </mat-date-range-input>
+            <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+            <mat-date-range-picker #pickerRango></mat-date-range-picker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field filter-producto">
+            <mat-label>Productos</mat-label>
+            <input matInput readonly [value]="etiquetaProductosFiltro" placeholder="Todos los productos"
+                (click)="abrirBusquedaProducto()">
+            <button mat-icon-button matSuffix type="button" (click)="abrirBusquedaProducto(); $event.stopPropagation()"
+                matTooltip="Seleccionar productos">
+                <mat-icon>search</mat-icon>
+            </button>
+            <button mat-icon-button matSuffix *ngIf="productosFiltro.length" type="button"
+                (click)="limpiarProductosFiltro(); $event.stopPropagation()" matTooltip="Quitar filtro">
+                <mat-icon>close</mat-icon>
+            </button>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option *ngFor="let s of sucursales$ | async" [value]="s.id">{{ s.nombre }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Familia</mat-label>
+            <mat-select [formControl]="familiaControl">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option *ngFor="let f of familias$ | async" [value]="f.id">{{ f.nombre | titlecase }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-button-toggle-group [formControl]="vistaTemporalControl" class="vista-toggle">
+            <mat-button-toggle *ngFor="let v of vistasTemporales" [value]="v.valor">{{ v.label }}</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field appearance="outline" class="filter-field filter-small">
+            <mat-label>Top</mat-label>
+            <mat-select [formControl]="limitControl">
+                <mat-option *ngFor="let l of limits" [value]="l">{{ l }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
+            <mat-icon>filter_alt_off</mat-icon>
+        </button>
+    </div>
+
+    <div class="productos-filtro-chips" *ngIf="productosFiltro.length">
+        <mat-chip-set>
+            <mat-chip *ngFor="let p of productosFiltro" (removed)="quitarProductoFiltro(p)">
+                {{ p.descripcion }}
+                <button matChipRemove>
+                    <mat-icon>cancel</mat-icon>
+                </button>
+            </mat-chip>
+        </mat-chip-set>
+    </div>
+
+    <div class="loading-overlay" *ngIf="cargando">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <ng-container *ngIf="datos$ | async as datos">
+        <div class="stats-row" *ngIf="datos.productoSeleccionado">
+            <div class="stat-card">
+                <span class="stat-label">Producto seleccionado</span>
+                <span class="stat-value truncate">{{ datos.productoSeleccionado.descripcion }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Cantidad total</span>
+                <span class="stat-value">{{ datos.productoSeleccionado.cantidadFormateada }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Promedio</span>
+                <span class="stat-value">{{ datos.promedioPeriodo }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">{{ datos.labelPeriodoPico }}</span>
+                <span class="stat-value">{{ datos.periodoPico }}</span>
+            </div>
+        </div>
+
+        <div class="charts-layout">
+            <div class="chart-panel">
+                <div echarts [options]="datos.rankingOptions" class="chart" (chartClick)="onChartClick($event)"></div>
+            </div>
+
+            <div class="chart-panel">
+                <div echarts [options]="datos.temporalOptions" class="chart"></div>
+            </div>
+        </div>
+
+        <div class="products-details" *ngIf="datos.hayDatos">
+            <h3 class="details-title">Detalle por producto — clic para ver evolución</h3>
+            <div class="details-list">
+                <div *ngFor="let p of datos.productos; trackBy: trackByProductoId" class="detail-item"
+                    [class.selected]="datos.productoSeleccionado?.productoId === p.productoId"
+                    (click)="seleccionarProducto(p.productoId)" matTooltip="Ver evolución">
+                    <span class="rank-badge">#{{ p.rank }}</span>
+                    <div class="item-color-dot" [style.background-color]="p.color"></div>
+                    <div class="item-info">
+                        <span class="item-name">{{ p.descripcion }}</span>
+                        <span class="item-qty">{{ p.cantidadFormateada }}</span>
+                        <span class="nivel-badge" [class]="'nivel-' + p.nivel">{{ p.nivelLabel }}</span>
+                    </div>
+                    <div class="item-amount">{{ p.montoFormateado }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="no-data-message" *ngIf="!datos.hayDatos && !cargando">
+            <mat-icon>inventory</mat-icon>
+            <span>No hay ventas de productos para el período seleccionado</span>
+        </div>
+    </ng-container>
+</div>

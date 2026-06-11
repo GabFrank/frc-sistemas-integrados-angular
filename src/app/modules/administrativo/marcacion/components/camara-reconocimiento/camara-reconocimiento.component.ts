@@ -42,13 +42,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     detecting = false;
     mensajeReconocimiento = '';
-    fotoCapturada = false;
-    snapshotDataUrl: string | null = null;
     verificacionSnapshotUrl: string | null = null;
-    buscandoAutomaticamente = false;
-    intentosBusqueda = 0;
-    maxIntentosBusqueda = 10;
-    countdownSegundos = 0;
 
     capturaMultiplePaso = 0;
     capturaMultipleFotos: Array<{ imageBase64: string; embedding: number[]; score: number }> = [];
@@ -59,21 +53,22 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         'Paso 3/3: Mire de FRENTE a la cámara'
     ];
 
-    // Liveness detection state
     livenessStep: 'BLINK' | 'DONE' = 'BLINK';
     livenessInstruction = 'Parpadee para verificar';
-    livenessIcon = 'eye-outline';
-    livenessColor = 'primary';
     private hasBlinked = false;
 
     esperandoCapturaPerfil = false;
 
-    private snapshotEmbedding: number[] | null = null;
     private embeddingCapturado: number[] | null = null;
-    private countdownInterval: any;
-    private autoSearchInterval: any;
-    private excludedUserIds: number[] = [];
-    private lastCheckTime = 0;
+    private busquedaLoopActivo = false;
+    private busquedaApiEnCurso = false;
+    private busquedaLoopTimer: ReturnType<typeof setTimeout> | null = null;
+    private ultimaBusquedaApi = 0;
+    private hitsConsecutivos = 0;
+
+    private readonly INTERVALO_LOOP_MS = 400;
+    private readonly INTERVALO_MIN_API_MS = 700;
+    private readonly HITS_PARA_CONFIRMAR = 2;
 
     constructor(
         private cdr: ChangeDetectorRef,
@@ -82,8 +77,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     ) { }
 
     ngOnDestroy(): void {
-        this.detenerCountdown();
-        this.detenerAutoSearch();
+        this.detenerBusquedaContinua();
         this.camaraService.detenerCamara();
     }
 
@@ -106,11 +100,6 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     private async iniciarCamaraBusqueda(): Promise<void> {
         this.limpiarEstados();
-        this.livenessStep = 'BLINK';
-        this.livenessInstruction = 'Parpadee para verificar';
-        this.hasBlinked = false;
-        this.fotoCapturada = false;
-        this.snapshotDataUrl = null;
         this.mensajeReconocimiento = 'Iniciando cámara...';
         this.cdr.detectChanges();
 
@@ -126,8 +115,12 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                     resolve();
                 };
             });
-            this.iniciarCountdown(3);
+
+            this.detecting = true;
+            this.busquedaLoopActivo = true;
+            this.mensajeReconocimiento = 'Mire a la cámara para identificarse';
             this.cdr.markForCheck();
+            this.bucleBusquedaContinua();
         } catch (e) {
             console.error('Error en iniciarCamaraBusqueda:', e);
             this.mensajeReconocimiento = 'Error al acceder a la cámara.';
@@ -137,155 +130,88 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         }
     }
 
-    private iniciarCountdown(segundos: number): void {
-        this.countdownSegundos = segundos;
-        this.mensajeReconocimiento = `Captura automática en ${this.countdownSegundos}s - Posicione su rostro`;
-        this.cdr.markForCheck();
-
-        this.countdownInterval = setInterval(() => {
-            this.countdownSegundos--;
-            if (this.countdownSegundos <= 0) {
-                this.detenerCountdown();
-                this.capturarSnapshotAutomatico();
-            } else {
-                this.mensajeReconocimiento = `Captura automática en ${this.countdownSegundos}s - Posicione su rostro`;
-                this.cdr.markForCheck();
-            }
-        }, 1000);
-    }
-
-    private detenerCountdown(): void {
-        if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-            this.countdownInterval = null;
+    private detenerBusquedaContinua(): void {
+        this.busquedaLoopActivo = false;
+        this.busquedaApiEnCurso = false;
+        this.hitsConsecutivos = 0;
+        if (this.busquedaLoopTimer) {
+            clearTimeout(this.busquedaLoopTimer);
+            this.busquedaLoopTimer = null;
         }
     }
 
-    private detenerAutoSearch(): void {
-        this.buscandoAutomaticamente = false;
-        if (this.autoSearchInterval) {
-            clearTimeout(this.autoSearchInterval);
-            this.autoSearchInterval = null;
+    private async bucleBusquedaContinua(): Promise<void> {
+        if (!this.busquedaLoopActivo || !this.videoElement) {
+            return;
         }
-    }
 
-    async capturarSnapshotAutomatico(): Promise<void> {
-        if (!this.videoElement) return;
         const video = this.videoElement.nativeElement;
-
-        this.snapshotDataUrl = this.camaraService.capturarFoto(video);
-        video.pause();
-        this.fotoCapturada = true;
-        this.detecting = true;
-        this.mensajeReconocimiento = 'Foto capturada. Analizando rostro...';
-        this.cdr.markForCheck();
-
-        this.camaraService.detenerCamara();
-
-        try {
-            this.snapshotEmbedding = await this.faceHelper.obtenerDescriptorReferencia(this.snapshotDataUrl);
-
-            if (!this.snapshotEmbedding) {
-                this.mensajeReconocimiento = 'No se detectó rostro en la foto. Intente nuevamente.';
-                this.detecting = false;
-                this.cdr.markForCheck();
-                return;
-            }
-            this.iniciarBusquedaAutomatica();
-        } catch (e) {
-            console.error('Error al procesar snapshot:', e);
-            this.mensajeReconocimiento = 'Error al procesar la captura.';
-            this.detecting = false;
-            this.cdr.markForCheck();
+        if (video.paused || video.ended) {
+            this.busquedaLoopTimer = setTimeout(() => this.bucleBusquedaContinua(), 100);
+            return;
         }
-    }
 
-    private async iniciarBusquedaAutomatica(): Promise<void> {
-        if (!this.snapshotEmbedding || !this.fotoCapturada) return;
-        this.buscandoAutomaticamente = true;
-        this.intentosBusqueda = 0;
-        this.ejecutarBusquedaConSnapshot();
-    }
+        const ahora = Date.now();
+        if (!this.busquedaApiEnCurso && ahora - this.ultimaBusquedaApi >= this.INTERVALO_MIN_API_MS) {
+            try {
+                const embedding = await this.faceHelper.obtenerEmbeddingFrame(video);
+                if (embedding) {
+                    this.busquedaApiEnCurso = true;
+                    this.mensajeReconocimiento = 'Buscando...';
+                    this.cdr.markForCheck();
 
-    private async ejecutarBusquedaConSnapshot(): Promise<void> {
-        if (!this.buscandoAutomaticamente || !this.snapshotEmbedding) return;
+                    const resultado = await this.faceHelper.buscarUsuarioPorEmbedding(embedding, []);
+                    this.ultimaBusquedaApi = Date.now();
+                    this.busquedaApiEnCurso = false;
 
-        this.intentosBusqueda++;
-        this.detecting = true;
-        this.mensajeReconocimiento = `Buscando persona... (intento ${this.intentosBusqueda}/${this.maxIntentosBusqueda})`;
-        this.cdr.markForCheck();
+                    if (resultado?.confiable) {
+                        this.hitsConsecutivos++;
+                        const pct = (resultado.similitudBackend * 100).toFixed(0);
+                        this.mensajeReconocimiento = `Identificando... ${resultado.usuario.persona?.nombre} (${pct}%)`;
+                        this.cdr.markForCheck();
 
-        try {
-            const resultado = await this.faceHelper.buscarUsuarioPorEmbedding(this.snapshotEmbedding, this.excludedUserIds);
-
-            if (resultado && resultado.confiable) {
-                this.buscandoAutomaticamente = false;
-                const pct = (resultado.similitudBackend * 100).toFixed(0);
-                this.mensajeReconocimiento = `✓ Identificado: ${resultado.usuario.persona?.nombre} (${pct}%)`;
-                this.detecting = false;
-                this.cdr.markForCheck();
-
-                setTimeout(() => {
-                    this.usuarioIdentificado.emit(resultado.usuario);
-                }, 1200);
-                return;
-            }
-
-            if (resultado && !resultado.confiable) {
-                const userId = resultado.usuario.id;
-                this.excludedUserIds.push(userId);
-                this.mensajeReconocimiento = `${resultado.usuario.persona?.nombre} descartado. Buscando siguiente...`;
-                this.cdr.markForCheck();
-
-                if (this.intentosBusqueda < this.maxIntentosBusqueda) {
-                    this.autoSearchInterval = setTimeout(() => {
-                        this.ejecutarBusquedaConSnapshot();
-                    }, 500);
-                    return;
+                        if (this.hitsConsecutivos >= this.HITS_PARA_CONFIRMAR) {
+                            this.detenerBusquedaContinua();
+                            this.detecting = false;
+                            this.mensajeReconocimiento = `✓ ${resultado.usuario.persona?.nombre} (${pct}%)`;
+                            this.cdr.markForCheck();
+                            video.pause();
+                            this.camaraService.detenerCamara();
+                            setTimeout(() => this.usuarioIdentificado.emit(resultado.usuario), 400);
+                            return;
+                        }
+                    } else {
+                        this.hitsConsecutivos = 0;
+                        this.mensajeReconocimiento = 'Mire a la cámara para identificarse';
+                    }
+                } else {
+                    this.hitsConsecutivos = 0;
+                    this.mensajeReconocimiento = 'Centra tu rostro en la cámara';
                 }
+            } catch (e) {
+                console.error('Error en búsqueda continua:', e);
+                this.busquedaApiEnCurso = false;
+                this.hitsConsecutivos = 0;
+                this.mensajeReconocimiento = 'Error en la búsqueda. Reintentando...';
             }
+        }
 
-            if (this.intentosBusqueda >= this.maxIntentosBusqueda || !resultado) {
-                this.buscandoAutomaticamente = false;
-                this.detecting = false;
-                this.mensajeReconocimiento = 'No se encontró coincidencia. Intente con nueva foto.';
-                this.cdr.markForCheck();
-                return;
-            }
-
-            this.mensajeReconocimiento = `Sin coincidencia. Reintentando... (${this.intentosBusqueda}/${this.maxIntentosBusqueda})`;
-            this.cdr.markForCheck();
-
-            this.autoSearchInterval = setTimeout(() => {
-                this.ejecutarBusquedaConSnapshot();
-            }, 3000);
-
-        } catch (e) {
-            console.error('Error en búsqueda automática:', e);
-            this.buscandoAutomaticamente = false;
-            this.detecting = false;
-            this.mensajeReconocimiento = 'Error en la búsqueda. Intente nuevamente.';
-            this.cdr.markForCheck();
+        this.cdr.markForCheck();
+        if (this.busquedaLoopActivo) {
+            this.busquedaLoopTimer = setTimeout(() => this.bucleBusquedaContinua(), this.INTERVALO_LOOP_MS);
         }
     }
 
     detenerAutoSearchPublic(): void {
-        this.detenerAutoSearch();
+        this.detenerBusquedaContinua();
         this.detecting = false;
-        this.mensajeReconocimiento = 'Búsqueda detenida. Intente con nueva foto.';
+        this.mensajeReconocimiento = 'Búsqueda detenida.';
         this.cdr.markForCheck();
     }
 
     async retomarCamara(): Promise<void> {
-        this.detenerAutoSearch();
-        this.fotoCapturada = false;
-        this.snapshotDataUrl = null;
-        this.snapshotEmbedding = null;
-        this.detecting = false;
-        this.intentosBusqueda = 0;
-        this.excludedUserIds = [];
-        this.cdr.markForCheck();
-
+        this.detenerBusquedaContinua();
+        this.camaraService.detenerCamara();
         await this.iniciarCamaraBusqueda();
     }
 
@@ -298,6 +224,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         this.camaraService.detenerCamara();
         this.cerrar.emit();
     }
+
     private async iniciarCamaraParaVerificacion(): Promise<void> {
         this.mensajeReconocimiento = 'Iniciando cámara...';
         this.livenessStep = 'BLINK';
@@ -339,7 +266,6 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         const resultado = await this.faceHelper.procesarFrame(video, this.referenciaDescriptor);
 
         if (resultado.exito && resultado.embedding) {
-            // Liveness detection check
             if (this.livenessStep === 'BLINK' && resultado.result) {
                 const blinkGesture = resultado.result.gesture?.find((g: any) => g.gesture.toLowerCase().includes('blink'));
                 const liveness = resultado.result.face?.[0]?.liveness;
@@ -372,12 +298,13 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         if (resultado.mensaje.includes('Similitud insuficiente')) {
             this.similitudInsuficiente.emit(true);
         } else if (resultado.mensaje.includes('No se detecta rostro')) {
-            this.similitudInsuficiente.emit(false); // Reset if face is lost
+            this.similitudInsuficiente.emit(false);
         }
 
         this.cdr.markForCheck();
         requestAnimationFrame(() => this.bucleDeteccion());
     }
+
     private async iniciarCapturaPerfil(): Promise<void> {
         this.esperandoCapturaPerfil = true;
         this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
@@ -427,6 +354,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             this.cdr.markForCheck();
         }
     }
+
     private async iniciarCapturaMultiple(): Promise<void> {
         this.capturaMultiplePaso = 1;
         this.capturaMultipleFotos = [];
@@ -514,24 +442,17 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             this.cdr.markForCheck();
         }
     }
+
     private limpiarEstados(): void {
+        this.detenerBusquedaContinua();
         this.detecting = false;
         this.mensajeReconocimiento = '';
-        this.fotoCapturada = false;
-        this.snapshotDataUrl = null;
-        this.snapshotEmbedding = null;
         this.embeddingCapturado = null;
-        this.buscandoAutomaticamente = false;
-        this.intentosBusqueda = 0;
-        this.countdownSegundos = 0;
-        this.excludedUserIds = [];
         this.esperandoCapturaPerfil = false;
         this.capturaMultipleFotos = [];
         this.livenessStep = 'BLINK';
         this.livenessInstruction = 'Parpadee para verificar';
         this.hasBlinked = false;
-        this.detenerCountdown();
-        this.detenerAutoSearch();
     }
 
     private async esperarVideoElement(): Promise<void> {

@@ -8,7 +8,8 @@ import {
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable, Subscription } from "rxjs";
+import { Observable, Subscription, timer } from "rxjs";
+import { map } from "rxjs/operators";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
@@ -30,6 +31,14 @@ import { UsuarioService } from "../../../modules/personas/usuarios/usuario.servi
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
 import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
+import { CotizacionHeaderService } from "../../services/cotizacion-header.service";
+
+/** Hora/fecha del reloj del header: siempre reloj local del SO (no servidor). */
+export interface HeaderClockNow {
+  time: string;
+  date: string;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -56,6 +65,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
   unreadCount$ = this.notificacionesTableroService.unreadCount$;
+  cotizaciones$ = this.cotizacionHeaderService.cotizaciones$;
+  /** Reloj local: útil para detectar si la zona horaria del equipo cambió. */
+  now$ = timer(0, 1000).pipe(map(() => HeaderComponent.formatRelojLocal(new Date())));
+  userMainRole = '';
+  isRefreshingCotiz = false;
 
   constructor(
     public mainService: MainService,
@@ -70,11 +84,46 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private dialogoService: DialogosService,
     private usuarioService: UsuarioService,
     private loginDialogService: LoginDialogService,
-    private notificacionesTableroService: NotificacionesTableroService
-  ) { 
+    private notificacionesTableroService: NotificacionesTableroService,
+    private cotizacionHeaderService: CotizacionHeaderService
+  ) {
     setTimeout(() => {
       console.log(this.mainService.usuarioActual);
     }, 2000);
+  }
+
+  /**
+   * Electron 24 embebe ICU con DST obsoleto en `America/Asuncion` (UTC−4 en mayo).
+   * El SO y `date` en terminal usan UTC−3 fijo; `getHours()` en el renderer queda 1 h atrás.
+   */
+  private static readonly DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  private static readonly MESES_CORTOS = [
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+  ];
+
+  /** Minutos al este de UTC según el SO; corrige el bug UTC−4 de Electron en Paraguay. */
+  private static offsetMinutosLocalCorregido(d: Date): number {
+    let offsetMinEste = -d.getTimezoneOffset();
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz === "America/Asuncion" && offsetMinEste === -240) {
+      offsetMinEste = -180;
+    }
+    return offsetMinEste;
+  }
+
+  private static formatRelojLocal(d: Date): HeaderClockNow {
+    const offsetMinEste = HeaderComponent.offsetMinutosLocalCorregido(d);
+    const local = new Date(d.getTime() + offsetMinEste * 60 * 1000);
+    const time = [local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds()]
+      .map((n) => String(n).padStart(2, "0"))
+      .join(":");
+
+    const date = `${HeaderComponent.DIAS_CORTOS[local.getUTCDay()]} ${local.getUTCDate()} ${
+      HeaderComponent.MESES_CORTOS[local.getUTCMonth()]
+    }.`;
+
+    return { time, date };
   }
 
   ngOnInit(): void {
@@ -117,8 +166,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
           if (tokenFcm) {
             this.notificacionesTableroService.setTokenFcm(tokenFcm);
           }
+          this.refreshUserChip();
+        } else {
+          this.userMainRole = '';
         }
       });
+    this.refreshUserChip();
+  }
+
+  private refreshUserChip(): void {
+    const roles = this.mainService?.usuarioActual?.roles || [];
+    this.userMainRole = roles.length ? String(roles[0]).toUpperCase() : '';
   }
   private updateServerWarning(): void {
     if (this.cloudStatus != null) {
@@ -170,6 +228,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (this.configChangedSub) {
       this.configChangedSub.unsubscribe();
     }
+  }
+
+  onRefreshCotizacion() {
+    if (this.isRefreshingCotiz) return;
+    this.isRefreshingCotiz = true;
+    this.cotizacionHeaderService.refresh();
+    setTimeout(() => (this.isRefreshingCotiz = false), 1500);
   }
 
   onSearch() {

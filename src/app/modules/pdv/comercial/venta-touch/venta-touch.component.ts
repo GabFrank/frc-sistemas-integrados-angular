@@ -13,7 +13,7 @@ import {
   MatDialog,
   MatDialogRef,
 } from "@angular/material/dialog";
-import { Observable, Subject, Subscription } from "rxjs";
+import { Observable, Subject, Subscription, forkJoin, interval, of } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -105,10 +105,16 @@ import {
   DescuentoDialogData,
 } from "./pago-touch/descuento-dialog/descuento-dialog.component";
 import { FormControl } from "@angular/forms";
+import { catchError, map, startWith, switchMap } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
-import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
+import {
+  NotificationHttpService,
+  VentaStockCriticoItemPayload,
+} from "../../../../shared/services/notification-http.service";
+import { GastoService } from "../../../financiero/gastos/service/gasto.service";
+import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -156,6 +162,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cantidadControl = new FormControl();
   modoConsulta = false;
   isDialogOpen = false;
+  solicitudesProcesadasTotal = 0;
+  solicitudesAutorizadas = 0;
+  solicitudesRechazadas = 0;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
@@ -175,7 +184,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private dialogoService: DialogosService,
     private ventaService: VentaService, //ok
     private configService: ConfiguracionService,
-    private notificationHttpService: NotificationHttpService
+    private notificationHttpService: NotificationHttpService,
+    private gastoService: GastoService,
+    private movimientoStockService: MovimientoStockService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -235,6 +246,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((isOpen) => {
         this.isDialogOpen = isOpen;
       });
+
+    this.startSolicitudesProcesadasPolling();
   }
 
   ngAfterViewInit(): void {
@@ -1035,6 +1048,39 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               }
             }
 
+            const sucursalId =
+              this.cajaService.selectedCaja?.sucursalId ||
+              this.mainService.sucursalActual?.id;
+            if (res.id && sucursalId) {
+              this.getStockCriticoItems$(sucursalId)
+                .pipe(untilDestroyed(this))
+                .subscribe((stockCriticoItems) => {
+                  if (stockCriticoItems.length === 0) {
+                    return;
+                  }
+                  this.notificationHttpService
+                    .sendVentaStockCriticoNotification({
+                      ventaId: res.id,
+                      sucursalId,
+                      usuarioNombre:
+                        this.mainService.usuarioActual?.persona?.nombre,
+                      sucursalNombre: this.mainService.sucursalActual?.nombre,
+                      items: stockCriticoItems,
+                    })
+                    .subscribe({
+                      next: () =>
+                        console.log(
+                          "Notificación de stock crítico enviada exitosamente"
+                        ),
+                      error: (err) =>
+                        console.error(
+                          "Error al enviar notificación de stock crítico:",
+                          err
+                        ),
+                    });
+                });
+            }
+
             this.resetForm();
             obs.next(res);
           } else {
@@ -1138,6 +1184,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy(): void { }
 
+  get tieneSolicitudesProcesadas(): boolean {
+    return this.solicitudesProcesadasTotal > 0;
+  }
+
   openUtilitarios() {
     if (this.modoConsulta) return;
     this.isDialogOpen = true;
@@ -1170,6 +1220,131 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   updateCantidad(cantidad: number) {
     this.cantidadControl.setValue(cantidad);
+  }
+
+  private buildStockCriticoAggregate(): Record<
+    string,
+    { productoId: number; descripcion: string; vendido: number }
+  > {
+    const aggregate: Record<
+      string,
+      { productoId: number; descripcion: string; vendido: number }
+    > = {};
+
+    this.selectedItemList.forEach((item) => {
+      const productoId = item?.producto?.id;
+      const cantidad = Number(item?.cantidad);
+      const factorPresentacion = Number(item?.presentacion?.cantidad || 1);
+
+      if (!productoId || Number.isNaN(cantidad)) {
+        return;
+      }
+
+      const vendido = cantidad * factorPresentacion;
+      const key = String(productoId);
+
+      if (!aggregate[key]) {
+        aggregate[key] = {
+          productoId,
+          descripcion: item?.producto?.descripcion || `Producto ${productoId}`,
+          vendido: 0,
+        };
+      }
+
+      aggregate[key].vendido += vendido;
+    });
+
+    return aggregate;
+  }
+
+  private getStockCriticoItems$(
+    sucursalId: number
+  ): Observable<VentaStockCriticoItemPayload[]> {
+    const entries = Object.values(this.buildStockCriticoAggregate());
+    if (entries.length === 0) {
+      return of([]);
+    }
+
+    return forkJoin(
+      entries.map((entry) =>
+        this.movimientoStockService
+          .onGetStockPorProducto(entry.productoId, sucursalId, false)
+          .pipe(
+            catchError(() => of(null)),
+            map((stock) => ({ entry, stock }))
+          )
+      )
+    ).pipe(
+      map((results) =>
+        results
+          .filter(
+            (r) => r.stock != null && !Number.isNaN(Number(r.stock))
+          )
+          .map(({ entry, stock }) => {
+            const stockActual = Number(stock);
+            const stockResultante = stockActual - entry.vendido;
+            return {
+              productoId: entry.productoId,
+              productoDescripcion: entry.descripcion,
+              stockActual,
+              cantidadVendida: entry.vendido,
+              stockResultante,
+            };
+          })
+          .filter((it) => it.stockResultante <= 0)
+      )
+    );
+  }
+
+  private startSolicitudesProcesadasPolling(): void {
+    const POLL_INTERVAL_MS = 3 * 60 * 1000;
+    interval(POLL_INTERVAL_MS)
+      .pipe(
+        startWith(0),
+        switchMap(() => {
+          const cajaId = this.cajaService?.selectedCaja?.id;
+          if (cajaId == null) {
+            return of(null);
+          }
+          return this.gastoService
+            .preGastoFilter(
+              undefined,
+              cajaId,
+              undefined,
+              undefined,
+              undefined,
+              0,
+              200,
+              ["AUTORIZADO", "RECHAZADO"],
+              true
+            )
+            .pipe(catchError(() => of(null)));
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((res) => {
+        const sucursalActualId =
+          this.cajaService?.selectedCaja?.sucursalId ??
+          this.cajaService?.selectedCaja?.sucursal?.id ??
+          this.mainService?.sucursalActual?.id;
+
+        const solicitudes = (res?.getContent ?? []).filter((s) => {
+          if (!sucursalActualId) {
+            return true;
+          }
+          const solicitudSucursalId = Number(s?.sucursalCaja?.id ?? s?.sucursalId);
+          return solicitudSucursalId === Number(sucursalActualId);
+        });
+
+        this.solicitudesAutorizadas = solicitudes.filter(
+          (s) => s?.estado === "AUTORIZADO"
+        ).length;
+        this.solicitudesRechazadas = solicitudes.filter(
+          (s) => s?.estado === "RECHAZADO"
+        ).length;
+        this.solicitudesProcesadasTotal =
+          this.solicitudesAutorizadas + this.solicitudesRechazadas;
+      });
   }
 
   // @HostListener("document:keydown", ["$event"]) onKeydownHandler(

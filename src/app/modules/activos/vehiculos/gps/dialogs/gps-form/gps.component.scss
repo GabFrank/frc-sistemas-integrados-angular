@@ -1,0 +1,109 @@
+@import 'src/styles.scss';
+
+.form-container {
+    background-color: #0f0f0f;
+    color: #e0e0e0;
+}
+
+.titulo {
+    color: white !important;
+}
+
+.sub-descripcion {
+    font-size: 11px;
+    color: #ababab;
+}
+
+.icon-circle {
+    background: rgba(255, 82, 82, 0.1);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        
+        &.icon-edit {
+            color: #4caf50 !important; // Verde para editar
+        }
+        
+        &.icon-new {
+            color: white !important; // Blanco para nuevo
+        }
+    }
+}
+
+.required-field {
+    color: #f44336 !important; // System red
+}
+
+:host {
+    ::ng-deep {
+        .mat-mdc-form-field {
+            width: 100%;
+        }
+
+        .mat-mdc-form-field-infix {
+            color: white !important;
+        }
+
+        .mat-mdc-form-field-label {
+            color: #ababab !important;
+        }
+
+        .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+            color: #43a047 !important; // Green focus
+        }
+
+        input {
+            color: white !important;
+        }
+
+        input:not([type="password"]) {
+            text-transform: uppercase;
+        }
+
+        .white-icon {
+            .mat-datepicker-toggle-default-icon {
+                color: white !important;
+            }
+            
+            .mat-icon-button {
+                .mat-icon {
+                    color: white !important;
+                }
+            }
+        }
+        
+        .mat-datepicker-toggle {
+            .mat-icon-button {
+                .mat-icon {
+                    color: white !important;
+                }
+            }
+        }
+        
+        .search-icon-btn {
+            .mat-icon {
+                color: white !important;
+            }
+        }
+    }
+
+    .btn-cancelar {
+        background-color: #f44336 !important;
+        color: white !important;
+        width: 120px;
+    }
+
+    .btn-guardar {
+        background-color: #4caf50 !important;
+        color: white !important;
+        width: 150px;
+    }
+}

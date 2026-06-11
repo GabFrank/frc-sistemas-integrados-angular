@@ -682,7 +682,7 @@ export class ListFacturaLegalComponent implements OnInit {
           document.body.appendChild(a);
           a.setAttribute('style', 'display: none');
           a.href = url;
-          a.download = `factura-${factura.numeroFactura}-${factura.cdc}.pdf`;
+          a.download = `KuDE-${factura.id}-${factura.cdc}.pdf`;
           a.click();
           window.URL.revokeObjectURL(url);
           a.remove();
@@ -712,7 +712,7 @@ export class ListFacturaLegalComponent implements OnInit {
           }
 
           // Agregar el PDF al servicio de reportes
-          const nombreReporte = `Factura Electrónica ${factura.numeroFactura} - ${factura.cdc}`;
+          const nombreReporte = `KuDE ${factura.numeroFactura} - ${factura.cdc}`;
           this.reporteService.onAdd(nombreReporte, base64String);
 
           // Abrir el componente de reportes en un nuevo tab

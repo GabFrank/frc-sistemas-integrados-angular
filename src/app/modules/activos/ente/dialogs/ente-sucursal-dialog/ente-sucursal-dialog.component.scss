@@ -1,0 +1,17 @@
+:host {
+    .btn-cancelar {
+        background-color: #f44336 !important;
+        color: white !important;
+        width: 120px;
+    }
+
+    .btn-guardar {
+        background-color: #4caf50 !important;
+        color: white !important;
+        width: 150px;
+    }
+
+    mat-form-field {
+        margin-bottom: 5px;
+    }
+}

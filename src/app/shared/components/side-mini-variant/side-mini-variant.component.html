@@ -87,7 +87,7 @@
             <div *ngIf="mainService?.usuarioActual != null" class="footer-button logout-button"
                 (click)="onLogout(); $event.stopPropagation()">
                 <mat-icon>exit_to_app</mat-icon>
-                <span *ngIf="isExpanded">SALIR</span>
+                <span *ngIf="isExpanded" style="margin-bottom: 6px;">SALIR</span>
             </div>
 
             <div *ngIf="mainService?.usuarioActual == null" class="footer-button login-button"

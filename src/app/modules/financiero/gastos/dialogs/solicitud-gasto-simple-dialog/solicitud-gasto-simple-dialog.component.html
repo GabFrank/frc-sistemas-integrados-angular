@@ -1,0 +1,174 @@
+<div fxLayout="column" class="solicitud-gasto-simple-root">
+  <div mat-dialog-title fxLayout="row" fxLayoutAlign="space-between center">
+    <span>Solicitud de Gasto</span>
+    <button mat-icon-button type="button" (click)="onCancelar()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="solicitud-gasto-simple-content">
+    <div fxLayout="column" fxLayoutGap="15px">
+      <!-- Fila 1: Tipo de Gasto y Solicitante (Solo lectura) -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="50%">
+          <mat-label>Tipo de Gasto</mat-label>
+          <input matInput [formControl]="tipoGastoDescripcionControl" readonly />
+        </mat-form-field>
+
+        <mat-form-field fxFlex="50%">
+          <mat-label>Solicitante</mat-label>
+          <input matInput [formControl]="solicitanteNombreControl" readonly />
+        </mat-form-field>
+      </div>
+
+      <!-- Activo vinculado (vehículo, mueble o inmueble según módulo padre del tipo de gasto) -->
+      <ng-container *ngIf="requiereEnteActivo">
+        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+          <mat-form-field fxFlex="100%" class="beneficiario-bloqueado">
+            <mat-label>{{ etiquetaEnteActivo }}</mat-label>
+            <input
+              matInput
+              [formControl]="enteDisplayControl"
+              readonly
+              tabindex="-1"
+              [placeholder]="placeholderEnteActivo"
+              required
+            />
+            <mat-icon matSuffix>{{ iconoEnteActivo }}</mat-icon>
+            <mat-error *ngIf="enteRequerido">
+              {{ mensajeErrorEnteActivo }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" class="beneficiario-acciones">
+          <button mat-stroked-button color="primary" type="button" (click)="abrirBuscadorEnteActivo()">
+            {{ textoBuscarEnteActivo }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- Fila 2: Descripción -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%">
+          <mat-label>Descripción del Gasto</mat-label>
+          <input matInput [formControl]="descripcionControl" placeholder="Ingrese una descripción" required />
+          <mat-error *ngIf="descripcionRequerida">
+            La descripción es requerida
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 3: Vencimiento -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%">
+          <mat-label>Vencimiento</mat-label>
+          <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" required />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="vencimientoRequerido">
+            El vencimiento es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Filas Moneda / Monto (múltiples) -->
+      <ng-container *ngFor="let fila of filasMontoView; let i = index">
+        <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start" [formGroup]="fila.grupo">
+          <mat-form-field fxFlex="38%">
+            <mat-label>Moneda</mat-label>
+            <mat-select formControlName="monedaId" [attr.name]="'moneda-' + i" required>
+              <mat-option
+                *ngFor="let opcion of fila.opcionesMoneda"
+                [value]="opcion.moneda.id"
+                [disabled]="opcion.deshabilitada"
+              >
+                {{ opcion.moneda.denominacion }} ({{ opcion.moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="fila.errores.monedaRequerida">
+              La moneda es requerida
+            </mat-error>
+            <mat-error *ngIf="fila.errores.monedaDuplicada">
+              Esta moneda ya fue seleccionada en otra línea
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field fxFlex="38%">
+            <mat-label>Monto</mat-label>
+            <input
+              matInput
+              currencyMask
+              [attr.name]="'monto-' + i"
+              [options]="fila.opcionesCurrency"
+              formControlName="monto"
+              required
+            />
+            <mat-error *ngIf="fila.errores.montoRequerido">
+              El monto es requerido
+            </mat-error>
+            <mat-error *ngIf="fila.errores.montoMinimo">
+              El monto debe ser mayor a 0
+            </mat-error>
+          </mat-form-field>
+
+          <div fxFlex="24%" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="4px" class="fila-monto-acciones">
+            <button
+              *ngIf="i === filasMontoView.length - 1"
+              type="button"
+              mat-mini-fab
+              class="btn-add-monto-linea"
+              (click)="agregarFilaMonto()"
+              aria-label="Agregar monto en otra moneda"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              *ngIf="filasMontoView.length > 1"
+              type="button"
+              mat-icon-button
+              (click)="quitarFilaMonto(i)"
+              aria-label="Quitar esta moneda y monto"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Sucursal de Retiro -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%">
+          <mat-label>Sucursal de Retiro</mat-label>
+          <input matInput [formControl]="sucursalRetiroControl" readonly />
+        </mat-form-field>
+      </div>
+
+      <!-- Beneficiario (Proveedor) -->
+      <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start start">
+        <mat-form-field fxFlex="100%" class="beneficiario-bloqueado">
+          <mat-label>Beneficiario (Proveedor)</mat-label>
+          <input matInput [formControl]="beneficiarioControl" readonly tabindex="-1" placeholder="Seleccione un proveedor" required />
+          <mat-icon matSuffix>search</mat-icon>
+          <mat-error *ngIf="proveedorRequerido">
+            El beneficiario es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" class="beneficiario-acciones">
+        <button mat-stroked-button color="primary" type="button" (click)="abrirBuscadorProveedor()">
+          Buscar
+        </button>
+        <button mat-raised-button color="accent" type="button" (click)="abrirAdicionarProveedor()">
+          Adicionar
+        </button>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="solicitud-gasto-simple-actions">
+    <button mat-button type="button" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" type="button" [disabled]="!formularioValido" (click)="onSolicitar()">
+      Solicitar
+    </button>
+  </mat-dialog-actions>
+</div>

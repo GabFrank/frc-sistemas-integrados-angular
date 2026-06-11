@@ -24,6 +24,19 @@
   margin: 0;
 }
 
+.tr.mat-mdc-row.row-seleccionada,
+tr.mat-row.row-seleccionada {
+  background-color: rgba(104, 159, 56, 0.2) !important;
+}
+
+.footer-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .header-section .dialog-title {
   margin: 0;
   font-size: 1.8rem;
