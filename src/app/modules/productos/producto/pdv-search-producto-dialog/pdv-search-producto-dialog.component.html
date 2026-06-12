@@ -71,6 +71,16 @@
                 oninput="(this.value == ' ') ? this.value = null : null ;this.value = this.value.toUpperCase()"
                 (keydown)="keydownEvent($event.key)"
               />
+              <button
+                *ngIf="formGroup.get('buscarControl')?.value"
+                matSuffix
+                mat-icon-button
+                type="button"
+                aria-label="Limpiar búsqueda"
+                (click)="limpiarBusqueda()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
             </mat-form-field>
           </div>
         </div>
