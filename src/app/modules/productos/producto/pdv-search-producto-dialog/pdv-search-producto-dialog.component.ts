@@ -41,6 +41,8 @@ import {
 import { SelectPrecioDialogComponent } from "../../precio-por-sucursal/select-precio-dialog/select-precio-dialog.component";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { ProductoComponent } from "../edit-producto/producto.component";
+import { forkJoin, of } from "rxjs";
+import { catchError, map } from "rxjs/operators";
 
 export interface PdvSearchProductoData {
   texto?: any;
@@ -63,6 +65,8 @@ export interface PdvSearchProductoResponseData {
   precio?: PrecioPorSucursal;
   cantidad?: number;
   productos?: Producto[];
+  /** Texto que el usuario escribió en el campo de búsqueda al momento de seleccionar */
+  searchText?: string;
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -220,12 +224,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   onSearchProducto(text: string, offset?: number) {
-    let isPesable = false;
-    let peso;
-    let codigo;
     this.isSearching = true;
     const soloStock = this.formGroup.get("soloStock").value;
-    
+
     if (this.data.conservarUltimaBusqueda == true)
       this.productoService.lastSearchText = text;
     if (this.onSearchTimer != null) {
@@ -241,23 +242,51 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {
-      // if (text.length == 13 && text.substring(0, 2) == "20") {
-      //   isPesable = true;
-      //   codigo = text.substring(2, 7);
-      //   peso = +text.substring(7, 12) / 1000;
-      //   text = codigo;
-      //   this.formGroup.get("cantidad").setValue(peso);
-      // }
       this.onSearchTimer = setTimeout(() => {
-        this.productoService
+        // Determinar si el texto parece un código de barras (solo dígitos con ≥3 caracteres)
+        const esCodigo = /^\d{3,}$/.test(text.trim());
+
+        // Siempre buscar por descripción
+        const busquedaDescripcion$ = this.productoService
           .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor)
+          .pipe(catchError(() => of([])));
+
+        // Si parece código de barras, buscar también por código en paralelo
+        const busquedaCodigo$ = esCodigo
+          ? this.productoService
+              .onGetProductoPorCodigo(text.trim(), this.data.servidor)
+              .pipe(
+                map((p: Producto) => (p ? [p] : [])),
+                catchError(() => of([]))
+              )
+          : of([]);
+
+        forkJoin([busquedaDescripcion$, busquedaCodigo$])
           .pipe(untilDestroyed(this))
-          .subscribe((res) => {
+          .subscribe(([porDescripcion, porCodigo]: [Producto[], Producto[]]) => {
+            // Combinar resultados evitando duplicados (por id)
+            const idsVistos = new Set<number>();
+            const combinados: Producto[] = [];
+
+            // Primero agregar los del código (mayor prioridad)
+            for (const p of porCodigo) {
+              if (p?.id && !idsVistos.has(p.id)) {
+                idsVistos.add(p.id);
+                combinados.push(p);
+              }
+            }
+            // Luego los de descripción
+            for (const p of porDescripcion) {
+              if (p?.id && !idsVistos.has(p.id)) {
+                idsVistos.add(p.id);
+                combinados.push(p);
+              }
+            }
+
             if (offset == null) {
-              this.dataSource.data = res;
+              this.dataSource.data = combinados;
             } else {
-              const arr = [...this.dataSource.data.concat(res)];
-              this.dataSource.data = arr;
+              this.dataSource.data = [...this.dataSource.data, ...combinados];
             }
 
             if (this.isTransferencia) {
@@ -510,6 +539,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     );
   }
 
+  limpiarBusqueda(): void {
+    this.formGroup.get('buscarControl')?.setValue(null);
+    this.dataSource.data = [];
+    setTimeout(() => {
+      this.buscarInput?.nativeElement?.focus();
+    }, 50);
+  }
+
   onPresentacionClick(
     presentacion?: Presentacion,
     producto?: Producto,
@@ -519,11 +556,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     if (precio == null && presentacion?.precios != null) {
       precio = this.selectedPrecio;
     }
+    const searchText = this.formGroup.controls.buscarControl.value || '';
     let response: PdvSearchProductoResponseData = {
       producto,
       presentacion,
       cantidad: this.formGroup.controls.cantidad.value,
       precio,
+      searchText,
     };
 
     if (producto != null && presentacion != null && precio != null) {
