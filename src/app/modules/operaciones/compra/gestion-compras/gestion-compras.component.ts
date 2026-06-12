@@ -2215,7 +2215,7 @@ export class GestionComprasComponent
       cantidad: 1,
       mostrarStock: true,
       mostrarOpciones: false,
-      conservarUltimaBusqueda: true,
+      conservarUltimaBusqueda: false,
     };
 
     const searchDialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
@@ -2225,8 +2225,10 @@ export class GestionComprasComponent
 
     searchDialogRef.afterClosed().subscribe((searchResult: PdvSearchProductoResponseData) => {
       if (searchResult && searchResult.producto) {
-        if (searchResult.presentacion?.codigoPrincipal?.codigo) {
-          this.lastItemSearchText = searchResult.presentacion.codigoPrincipal.codigo;
+        // Conservar el texto que el usuario escribió en el buscador (ej: "FANTA")
+        // en lugar de la descripción completa del producto (ej: "FANTA NARANJA 3LTS")
+        if (searchResult.searchText) {
+          this.lastItemSearchText = searchResult.searchText;
         } else if (searchResult.producto.descripcion) {
           this.lastItemSearchText = searchResult.producto.descripcion;
         }
