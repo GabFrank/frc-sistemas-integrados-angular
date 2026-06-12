@@ -271,7 +271,7 @@ export class ReconocimientoFacialHelperService {
             ).toPromise();
 
             this.notificacionService.notification$.next({
-                texto: 'Foto de perfil guardada con embedding mejorado',
+                texto: 'Foto de perfil actualizada correctamente',
                 color: NotificacionColor.success,
                 duracion: 3
             });
