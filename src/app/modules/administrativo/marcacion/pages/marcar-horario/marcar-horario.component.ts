@@ -169,13 +169,13 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   }
 
   async onFotoPerfilGuardada(): Promise<void> {
-    if (this.usuarioSeleccionado?.persona) {
-      this.usuarioSeleccionado.persona.imagenes = 'captured';
+    if (this.usuarioSeleccionado) {
+      this.usuarioSeleccionado.avatar = null;
     }
     this.mensajeErrorFoto = '';
     this.mostrandoCamara = false;
     this.cdr.markForCheck();
-    await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
+    await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado, true);
   }
 
   onIniciarReconocimiento(): void {
@@ -205,9 +205,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     }
   }
 
-  async iniciarProcesoValidacionFacial(usuario: Usuario): Promise<void> {
+  async iniciarProcesoValidacionFacial(usuario: Usuario, forzarRecargaFoto = false): Promise<void> {
     this.cargando = true;
-    const fotoUrl = await this.usuarioHelper.obtenerFotoPerfil(usuario);
+    const fotoUrl = await this.usuarioHelper.obtenerFotoPerfil(usuario, forzarRecargaFoto);
     this.cargando = false;
 
     if (!fotoUrl) {

@@ -49,7 +49,7 @@ export class ReconocimientoFacialHelperService {
             const tensor = Array.from(detection.face[0].embedding);
             const similarity = this.faceService.similarity(referenciaDescriptor, tensor);
 
-            if (similarity > 0.6) {
+            if (similarity > 0.55) {
                 return {
                     exito: true,
                     mensaje: 'Rostro verificado',
@@ -127,7 +127,7 @@ export class ReconocimientoFacialHelperService {
                     usuario,
                     similitudBackend,
                     similitudLocal: 0,
-                    confiable: similitudBackend > 0.85
+                    confiable: similitudBackend > 0.55
                 };
             }
             const descriptorPerfil = await this.obtenerDescriptorReferencia(fotoUrl);
@@ -137,7 +137,7 @@ export class ReconocimientoFacialHelperService {
                     usuario,
                     similitudBackend,
                     similitudLocal: 0,
-                    confiable: similitudBackend > 0.85
+                    confiable: similitudBackend > 0.55
                 };
             }
             const similitudLocal = this.faceService.similarity(embedding, descriptorPerfil);
@@ -147,7 +147,7 @@ export class ReconocimientoFacialHelperService {
                 usuario,
                 similitudBackend,
                 similitudLocal,
-                confiable: similitudBackend > 0.75 && similitudLocal > 0.5
+                confiable: similitudBackend > 0.55 && similitudLocal > 0.55
             };
         } catch (error) {
             console.error('Error en búsqueda y validación de usuario', error);
@@ -191,7 +191,7 @@ export class ReconocimientoFacialHelperService {
                 usuario: resultado.usuario,
                 similitudBackend,
                 similitudLocal: similitudBackend,
-                confiable: similitudBackend > 0.75
+                confiable: similitudBackend > 0.55
             };
         } catch (error) {
             console.error('Error en búsqueda por embedding', error);
@@ -271,7 +271,7 @@ export class ReconocimientoFacialHelperService {
             ).toPromise();
 
             this.notificacionService.notification$.next({
-                texto: 'Foto de perfil guardada con embedding mejorado',
+                texto: 'Foto de perfil actualizada correctamente',
                 color: NotificacionColor.success,
                 duracion: 3
             });
