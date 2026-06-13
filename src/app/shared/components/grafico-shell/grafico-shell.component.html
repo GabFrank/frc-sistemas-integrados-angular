@@ -1,0 +1,45 @@
+<div
+  class="grafico-shell"
+  role="region"
+  [attr.aria-label]="titulo || 'Gráfico estadístico'"
+  [attr.aria-busy]="cargando"
+  [style.min-height]="alturaMinima"
+>
+  <div class="grafico-shell__chart-area">
+    <ng-container *ngIf="datosListos; else estadoInicial">
+      <div
+        *ngIf="hayDatos; else sinDatos"
+        echarts
+        [options]="opciones"
+        (chartInit)="onChartInit($event)"
+        class="grafico-shell__chart-instance"
+      ></div>
+
+      <ng-template #sinDatos>
+        <div class="grafico-shell__empty" role="status">
+          <mat-icon aria-hidden="true">bar_chart</mat-icon>
+          <p>{{ mensajeVacio }}</p>
+        </div>
+      </ng-template>
+    </ng-container>
+
+    <ng-template #estadoInicial>
+      <div
+        class="grafico-shell__empty grafico-shell__empty--inicial"
+        role="status"
+      >
+        <p>{{ mensajeInicial }}</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="grafico-shell__loading"
+    role="status"
+    aria-live="polite"
+    aria-label="Cargando gráfico"
+  >
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+</div>
