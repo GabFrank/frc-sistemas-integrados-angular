@@ -63,6 +63,9 @@ import { UpdateDialogComponent } from './components/update-dialog/update-dialog.
 import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
 import { CellFormatPipe } from '../commons/core/pipes/cell-format.pipe';
 import { NotificationBoardComponent } from '../modules/notificaciones/components/notification-board/notification-board.component';
+import { NgxEchartsModule } from 'ngx-echarts';
+import { GraficoShellComponent } from './components/grafico-shell/grafico-shell.component';
+import { GraficoFiltrosFechaComponent } from './components/grafico-filtros-fecha/grafico-filtros-fecha.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -110,7 +113,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ConfiguracionDialogComponent,
     UpdateDialogComponent,
     SideMiniVariantComponent,
-    CellFormatPipe
+    CellFormatPipe,
+    GraficoShellComponent,
+    GraficoFiltrosFechaComponent
   ],
   imports: [
     CommonModule,
@@ -126,7 +131,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     Ng2FittextModule,
     BootstrapModule,
     NgxSpinnerModule,
-    NotificationBoardComponent
+    NotificationBoardComponent,
+    NgxEchartsModule
   ],
   exports: [
     HeaderComponent,
@@ -163,7 +169,10 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     A11yModule,
     ConfiguracionDialogComponent,
     CellFormatPipe,
-    NotificationBoardComponent
+    NotificationBoardComponent,
+    GraficoShellComponent,
+    GraficoFiltrosFechaComponent,
+    NgxEchartsModule
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })
