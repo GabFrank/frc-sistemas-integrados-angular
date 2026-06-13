@@ -1,0 +1,16 @@
+@import '../styles/grafico-filtros';
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.venta-ciudad-layout {
+  gap: 0;
+
+  &__grafico {
+    flex: 1;
+    min-height: 0;
+  }
+}

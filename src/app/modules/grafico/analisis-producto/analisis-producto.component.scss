@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 $primary: #689F38;
 $accent: #009688;
 $warn: #F44336;
@@ -9,37 +11,16 @@ $text-secondary: #9E9E9E;
 $border: #555;
 
 .analisis-producto-container {
-    padding: 16px;
-    background: $background-dark;
-    color: $text;
-    position: relative;
     min-height: 100%;
-}
-
-.filters-section {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    background: $background;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid $border;
-    margin-bottom: 16px;
 }
 
 .modo-toggle,
 .vista-toggle {
-    margin-right: 4px;
+    flex-shrink: 0;
 }
 
-.filter-producto {
-    min-width: 220px;
-    max-width: 300px;
-
-    input[readonly] {
-        cursor: pointer;
-    }
+.grafico-filtros__campo--producto input[readonly] {
+    cursor: pointer;
 }
 
 .productos-filtro-chips {
@@ -61,21 +42,6 @@ $border: #555;
             text-overflow: ellipsis;
         }
     }
-}
-
-.filter-rango {
-    min-width: 260px;
-    max-width: 320px;
-}
-
-.filter-field {
-    flex: 1;
-    min-width: 120px;
-    max-width: 180px;
-}
-
-.filter-small {
-    max-width: 110px;
 }
 
 .loading-overlay {

@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 $primary: #689F38;
 $primary-light: #8BC34A;
 $accent: #009688;
@@ -8,10 +10,6 @@ $text-secondary: #9E9E9E;
 $border: #555;
 
 .producto-vendido-container {
-    padding: 16px;
-    background: $background-dark;
-    color: $text;
-    position: relative;
     max-height: 100%;
 }
 
@@ -43,32 +41,6 @@ $border: #555;
 .subtitle {
     color: $text-secondary;
     font-size: 0.9rem;
-}
-
-.filters-section {
-    background: $background;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid $border;
-    margin-bottom: 20px;
-}
-
-.filters-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.filter-field {
-    flex: 1;
-    min-width: 140px;
-    max-width: 200px;
-}
-
-.sucursal-filter,
-.familia-filter {
-    max-width: 250px;
 }
 
 .loading-overlay {
@@ -289,5 +261,53 @@ $border: #555;
     font-weight: 700;
     font-size: 1.05rem;
     color: $primary-light;
+    white-space: nowrap;
+}
+
+// Card de detalles
+.details-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid $border;
+    margin-bottom: 16px;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: $primary-light;
+}
+
+.details-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text;
+    margin: 0 0 12px 0;
+}
+
+.filter-field--limit {
+    width: 88px;
+    min-width: 88px;
+    max-width: 88px;
+}
+
+.btn-buscar-producto {
+    flex-shrink: 0;
     white-space: nowrap;
 }

@@ -1,44 +1,113 @@
 <div class="graficos-dashboard">
+  <ng-container *ngIf="vista$ | async as vista">
+    <div class="charts-grid">
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('venta-sucursal')"
+      >
+        <div
+          *ngIf="vista.ventasPorSucursal as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
 
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('venta-ciudad')"
+      >
+        <div
+          *ngIf="vista.ventasPorCiudad as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
 
-  <div class="charts-grid">
-    <div class="chart-card clickable" (click)="onChartClick('venta-sucursal')">
-      <div echarts [options]="ventasPorSucursalOptions" class="chart"></div>
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('pago')"
+      >
+        <div
+          *ngIf="vista.formasPago as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('gasto-categoria')"
+      >
+        <div
+          *ngIf="vista.gastosCategoria as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('ingreso-gasto')"
+      >
+        <div
+          *ngIf="vista.ingresosGastos as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('hora')"
+      >
+        <div
+          *ngIf="vista.ventasHora as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('funcionario')"
+      >
+        <div
+          *ngIf="vista.ventasFuncionario as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('productos')"
+      >
+        <div
+          *ngIf="vista.productosMasVendidos as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('analisis-producto')"
+      >
+        <div
+          *ngIf="vista.analisisProducto as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
     </div>
-
-    <!-- DESHABILITADO: Gráfico de ventas mensuales no se utiliza
-    <div class="chart-card clickable" (click)="onChartClick('venta-mes')">
-      <div echarts [options]="evolucionVentasOptions" class="chart"></div>
-    </div>
-    -->
-
-    <div class="chart-card clickable" (click)="onChartClick('pago')">
-      <div echarts [options]="formasPagoOptions" class="chart"></div>
-    </div>
-
-    <div class="chart-card clickable" (click)="onChartClick('gasto-categoria')">
-      <div echarts [options]="gastosCategoriaOptions" class="chart"></div>
-    </div>
-
-    <div class="chart-card clickable" (click)="onChartClick('ingreso-gasto')">
-      <div echarts [options]="ingresosGastosOptions" class="chart"></div>
-    </div>
-
-    <div class="chart-card clickable" (click)="onChartClick('hora')">
-      <div echarts [options]="ventasHoraOptions" class="chart"></div>
-    </div>
-
-
-    <div class="chart-card clickable" (click)="onChartClick('funcionario')">
-      <div echarts [options]="ventasFuncionarioOptions" class="chart"></div>
-    </div>
-
-    <div class="chart-card clickable" (click)="onChartClick('productos')">
-      <div echarts [options]="productosMasVendidosOptions" class="chart"></div>
-    </div>
-
-    <div class="chart-card clickable" (click)="onChartClick('analisis-producto')">
-      <div echarts [options]="analisisProductoOptions" class="chart"></div>
-    </div>
-  </div>
+  </ng-container>
 </div>

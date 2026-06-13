@@ -1,105 +1,250 @@
-<div class="producto-vendido-container">
-    <div class="filters-section">
-        <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Sucursal</mat-label>
-            <mat-select [formControl]="sucursalControl">
-                <mat-option [value]="null">Todas las sucursales</mat-option>
-                <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
-                    {{ sucursal.nombre }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+<div class="producto-vendido-container grafico-pantalla">
+  <div class="grafico-filtros">
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="filtroSucursales.control"
+        multiple
+        placeholder="Todas las sucursales"
+        (selectionChange)="filtroSucursales.onSeleccionChange($event.value, filtrar.bind(this))"
+      >
+        <mat-option [value]="filtroSucursales.todosValor">Todos</mat-option>
+        <mat-option
+          *ngFor="let sucursal of sucursales$ | async"
+          [value]="sucursal.id"
+        >
+          {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Familia</mat-label>
-            <mat-select [formControl]="familiaControl">
-                <mat-option [value]="null">Todas las familias</mat-option>
-                <mat-option *ngFor="let familia of familias$ | async" [value]="familia.id">
-                    {{ familia.nombre | titlecase }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--familia"
+    >
+      <mat-label>Familia</mat-label>
+      <mat-select [formControl]="familiaControl">
+        <mat-option [value]="null">Todas las familias</mat-option>
+        <mat-option
+          *ngFor="let familia of familias$ | async"
+          [value]="familia.id"
+        >
+          {{ familia.nombre | titlecase }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Año</mat-label>
-            <mat-select [formControl]="anhoControl">
-                <mat-option *ngFor="let anho of anhos" [value]="anho">
-                    {{ anho }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--anho"
+    >
+      <mat-label>Años</mat-label>
+      <mat-select [formControl]="filtroPeriodo.anhoControl" multiple>
+        <mat-option
+          *ngFor="let y of filtroPeriodo.anhos"
+          [value]="y"
+        >
+          {{ y }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>calendar_today</mat-icon>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Mes</mat-label>
-            <mat-select [formControl]="mesControl">
-                <mat-option [value]="null">Todos los meses</mat-option>
-                <mat-option *ngFor="let mes of meses" [value]="mes.valor">
-                    {{ mes.nombre }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--mes"
+    >
+      <mat-label>Meses</mat-label>
+      <mat-select
+        [formControl]="filtroPeriodo.mesControl"
+        multiple
+        (selectionChange)="filtroPeriodo.onMesesChange($event.value)"
+      >
+        <mat-option
+          *ngFor="let m of filtroPeriodo.meses"
+          [value]="m.valor"
+        >
+          {{ m.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>date_range</mat-icon>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field w-24">
-            <mat-label>Cant.</mat-label>
-            <mat-select [formControl]="limitControl">
-                <mat-option *ngFor="let limit of limits" [value]="limit">
-                    {{ limit }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--rango filter-rango"
+      [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
+    >
+      <mat-label>Rango de días</mat-label>
+      <mat-date-range-input
+        [formGroup]="filtroPeriodo.fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
 
-        <button mat-icon-button class="clear-filters-btn" (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
-            <mat-icon>filter_alt_off</mat-icon>
-        </button>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--limit"
+    >
+      <mat-label>Cant.</mat-label>
+      <mat-select [formControl]="limitControl">
+        <mat-option
+          *ngFor="let limit of limits"
+          [value]="limit"
+        >
+          {{ limit }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="grafico-filtros__btn-secundario"
+      (click)="buscarProductoEspecifico()"
+      matTooltip="Buscar producto específico"
+      aria-label="Buscar producto específico"
+    >
+      <mat-icon>search</mat-icon>
+      Buscar Producto
+    </button>
+
+    <div
+      *ngIf="productosSeleccionadosNombres.length > 0"
+      class="grafico-filtros__chips-row"
+    >
+      <span
+        *ngFor="let nombre of productosSeleccionadosNombres; let i = index"
+        class="grafico-filtros__chip"
+      >
+        {{ nombre }}
+        <mat-icon
+          class="chip-remove"
+          (click)="quitarProductoBusqueda(i)"
+          matTooltip="Quitar producto"
+        >
+          close
+        </mat-icon>
+      </span>
     </div>
 
-    <div class="loading-overlay" *ngIf="cargando$ | async">
-        <mat-spinner diameter="40"></mat-spinner>
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+        [disabled]="cargando$ | async"
+        aria-label="Aplicar filtros"
+      >
+        Filtrar
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="grafico-filtros__btn-secundario"
+        (click)="exportarExcel()"
+        [disabled]="(cargando$ | async) || (exportando$ | async) || !(puedeExportar$ | async)"
+        matTooltip="Exportar gráfico y detalle a Excel"
+        aria-label="Exportar a Excel"
+      >
+        <mat-icon>download</mat-icon>
+        Excel
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
     </div>
+  </div>
 
-    <ng-container *ngIf="datos$ | async as datos">
-        <div class="main-content" [class.loading]="cargando$ | async">
-            <div class="chart-card">
-                <div echarts [options]="datos.opciones" class="pie-chart"></div>
+  <ng-container *ngIf="pantalla$ | async as pantalla">
+    <div
+      class="main-content"
+      [class.loading]="pantalla.cargando"
+    >
+      <frc-grafico-shell
+        class="chart-card"
+        titulo="Top Productos más Vendidos"
+        [opciones]="pantalla.opciones"
+        [cargando]="pantalla.cargando"
+        [hayDatos]="pantalla.hayDatos"
+        [datosListos]="pantalla.datosListos"
+        alturaMinima="400px"
+      ></frc-grafico-shell>
+
+      <div
+        class="details-card"
+        *ngIf="pantalla.datosListos"
+      >
+        <div class="summary-header">
+          <span class="summary-label">Monto Total Seleccionado</span>
+          <span class="summary-value">{{ pantalla.totalMonto }}</span>
+        </div>
+
+        <h3 class="details-title">Detalle de Ventas</h3>
+        <div class="details-list">
+          <div
+            *ngFor="let item of pantalla.detalles; let i = index; trackBy: trackByProductoId"
+            class="detail-item"
+            [class.item-oculto]="item.oculto"
+          >
+            <span class="rank-badge">#{{ i + 1 }}</span>
+            <div
+              class="item-toggle-btn"
+              [style.background-color]="item.oculto ? '#555' : item.color"
+              (click)="alternarItem(item.productoId)"
+              [matTooltip]="item.oculto ? 'Mostrar en gráfico' : 'Ocultar del gráfico'"
+              matTooltipPosition="above"
+              role="button"
+              tabindex="0"
+              (keydown.enter)="alternarItem(item.productoId)"
+              (keydown.space)="alternarItem(item.productoId)"
+            >
+              <mat-icon
+                class="toggle-icon"
+                *ngIf="item.oculto"
+              >
+                visibility_off
+              </mat-icon>
             </div>
-
-            <div class="details-card">
-                <div class="summary-header">
-                    <span class="summary-label">Monto Total Seleccionado</span>
-                    <span class="summary-value">{{ datos.totalMonto }}</span>
-                </div>
-
-                <h3 class="details-title">Detalle de Ventas</h3>
-                <div class="details-list">
-                    <div *ngFor="let item of datos.detalles; let i = index; trackBy: trackByProductoId"
-                        class="detail-item" [class.item-oculto]="item.oculto">
-                        <span class="rank-badge">#{{ i + 1 }}</span>
-                        <div class="item-toggle-btn" [style.background-color]="item.oculto ? '#555' : item.color"
-                            (click)="toggleItem(item.productoId)"
-                            [matTooltip]="item.oculto ? 'Mostrar en gráfico' : 'Ocultar del gráfico'"
-                            matTooltipPosition="above">
-                            <mat-icon class="toggle-icon" *ngIf="item.oculto">visibility_off</mat-icon>
-                        </div>
-                        <div class="item-info">
-                            <span class="item-name">{{ item.descripcion }}</span>
-                            <span class="item-qty">{{ item.cantidadFormateada }}</span>
-                        </div>
-                        <div class="item-amount">{{ item.montoFormateado }}</div>
-                    </div>
-                </div>
+            <div class="item-info">
+              <span class="item-name">{{ item.descripcion }}</span>
+              <span class="item-qty">{{ item.cantidadFormateada }}</span>
             </div>
+            <div class="item-amount">{{ item.montoFormateado }}</div>
+          </div>
         </div>
-
-        <div class="no-data-message" *ngIf="!datos.hayDatos">
-            <mat-icon>sentiment_dissatisfied</mat-icon>
-            <span>No hay datos para esta combinación de filtros</span>
-        </div>
-    </ng-container>
-
-    <ng-container *ngIf="(datos$ | async) === null && !(cargando$ | async)">
-        <div class="loading-state">
-            <mat-spinner diameter="50"></mat-spinner>
-            <span>Cargando productos...</span>
-        </div>
-    </ng-container>
+      </div>
+    </div>
+  </ng-container>
 </div>
