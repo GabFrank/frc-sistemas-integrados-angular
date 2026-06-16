@@ -12,7 +12,6 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
-import { forkJoin, of } from "rxjs";
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   orderByIdDesc,
@@ -48,6 +47,7 @@ import { SolicitudGastoSimpleDialogComponent } from "../solicitud-gasto-simple-d
 import { SolicitudGastoSimpleData } from "../../interface/solicitud-gasto-simple-data.interface";
 import { SolicitudGastoSimpleResult } from "../../interface/solicitud-gasto-simple-result.interface";
 import { PreGasto, PreGastoInput } from "../../models/pre-gasto.model";
+import { RetiroPreGastoData, RetiroPreGastoDialogComponent } from "../retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
@@ -130,9 +130,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   autorizado = true;
 
   gastoList: Gasto[] = [];
-
-  preGastoIdAlCompletarDespuesDeGasto: number | null = null;
-  preGastoSucursalIdAlCompletarDespuesDeGasto: number | null = null;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarGastoData,
@@ -554,21 +551,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               } else {
                 gasto.finalizado = false;
               }
-              const preGastoId = this.preGastoIdAlCompletarDespuesDeGasto;
-              const preGastoSucursalId = this.preGastoSucursalIdAlCompletarDespuesDeGasto;
-              if (
-                preGastoId != null &&
-                (preGastoSucursalId == null || Number(preGastoSucursalId) <= 0)
-              ) {
-                this.notificacionService.openWarn(
-                  "No se pudo determinar la sucursal de la solicitud. Vuelve a seleccionar la solicitud antes de guardar."
-                );
-                return;
-              }
-              if (preGastoId != null) {
-                gasto.preGastoId = preGastoId;
-                gasto.preGastoSucursalId = preGastoSucursalId;
-              }
               this.gastoService
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
@@ -591,25 +573,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
                     this.goTo("lista-gastos");
                   }
-                  if (gastoResponse != null && preGastoId != null) {
-                    this.gastoService
-                      .preGastoTramitar(preGastoId, preGastoSucursalId ?? undefined)
-                      .pipe(untilDestroyed(this))
-                      .subscribe({
-                        next: () => {
-                          this.onCancelar();
-                          this.cargarSolicitudesProcesadas();
-                        },
-                        error: () => {
-                          this.notificacionService.openWarn(
-                            "El gasto se guardó, pero no se pudo pasar la solicitud a trámite en el servidor."
-                          );
-                          this.onCancelar();
-                        },
-                      });
-                  } else {
-                    this.onCancelar();
-                  }
+                  this.onCancelar();
                 });
             }
           });
@@ -679,8 +643,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onCancelar() {
     this.isVuelto = false;
-    this.preGastoIdAlCompletarDespuesDeGasto = null;
-    this.preGastoSucursalIdAlCompletarDespuesDeGasto = null;
     this.selectedGasto = null;
     this.selectedTipoGasto = null;
     this.selectedAutorizadoPor = null;
@@ -771,135 +733,51 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     }
     return true;
   }
-  onFinalizarSolicitudAutorizada(solicitud: PreGasto, ev?: Event): void {
+  onRetirarSolicitudAutorizada(solicitud: PreGasto, ev?: Event): void {
     if (ev) {
       ev.stopPropagation();
     }
     if (!solicitud || solicitud.estado !== "AUTORIZADO") {
       return;
     }
-    this.onCancelar();
-    this.isVuelto = false;
-
-    const personaSolicitanteId = Number(solicitud.funcionario?.id);
-    const personaAutorizadorId = Number(solicitud.autorizadoPor?.id);
-
-    const solicitante$ = Number.isFinite(personaSolicitanteId) && personaSolicitanteId > 0
-      ? this.funcionarioService.onGetFuncionarioPorPersona(personaSolicitanteId, false)
-      : null;
-    const autorizador$ = Number.isFinite(personaAutorizadorId) && personaAutorizadorId > 0
-      ? this.funcionarioService.onGetFuncionarioPorPersona(personaAutorizadorId, false)
-      : null;
-
-    forkJoin([
-      solicitante$ ?? of(null),
-      autorizador$ ?? of(null),
-    ])
-      .pipe(untilDestroyed(this))
-      .subscribe(([funcionarioSolicitante, funcionarioAutorizador]) => {
-        const solicitante = funcionarioSolicitante ?? this.mapPersonaToFuncionario(
-          personaSolicitanteId,
-          solicitud.funcionario?.nombre
-        );
-        const autorizador = funcionarioAutorizador ?? this.mapPersonaToFuncionario(
-          personaAutorizadorId,
-          solicitud.autorizadoPor?.nombre
-        );
-
-        this.selectedResponsable = solicitante;
-        this.selectedTipoGasto = solicitud.tipoGasto;
-        this.selectedAutorizadoPor = autorizador;
-
-        this.responsableControl.setValue(
-          `${solicitante?.id ?? "-"} - ${solicitante?.persona?.nombre ?? "-"}`,
-          { emitEvent: false }
-        );
-        this.tipoGastoControl.setValue(
-          `${solicitud.tipoGasto?.id ?? "-"} - ${solicitud.tipoGasto?.descripcion ?? "-"}`,
-          { emitEvent: false }
-        );
-        this.autorizadoPorControl.setValue(
-          `${autorizador?.id ?? "-"} - ${autorizador?.persona?.nombre ?? "-"}`,
-          { emitEvent: false }
-        );
-        this.observacionControl.setValue(solicitud.descripcion ?? "");
-        const montosSolicitud = this.obtenerMontosSolicitudPorMoneda(solicitud);
-        this.guaraniControl.setValue(montosSolicitud.gs);
-        this.realControl.setValue(montosSolicitud.rs);
-        this.dolarControl.setValue(montosSolicitud.ds);
-        this.guaraniVueltoControl.setValue(0);
-        this.realVueltoControl.setValue(0);
-        this.dolarVueltoControl.setValue(0);
-
-        this.responsableControl.disable();
-        this.tipoGastoControl.disable();
-        this.autorizadoPorControl.disable();
-        this.observacionControl.disable();
-        this.guaraniControl.disable();
-        this.realControl.disable();
-        this.dolarControl.disable();
-        this.guaraniVueltoControl.enable();
-        this.realVueltoControl.enable();
-        this.dolarVueltoControl.enable();
-
-        this.stepper.selectedIndex = 0;
-
-        const sucursalPre = Number(
-          solicitud.sucursalId
-        );
-        this.preGastoIdAlCompletarDespuesDeGasto = solicitud.id;
-        this.preGastoSucursalIdAlCompletarDespuesDeGasto =
-          Number.isFinite(sucursalPre) && sucursalPre > 0 ? sucursalPre : null;
-      });
+    this.abrirDialogoRetiro(solicitud);
   }
 
-  private mapPersonaToFuncionario(personaId: number, nombre?: string): Funcionario {
-    const f = new Funcionario();
-    f.id = personaId;
-    f.persona = {
-      id: personaId,
-      nombre: nombre ?? "-",
-    } as any;
-    return f;
+  onAbrirRetiroAutorizados(): void {
+    this.abrirDialogoRetiro();
   }
 
-  private obtenerMontosSolicitudPorMoneda(solicitud: PreGasto): { gs: number; rs: number; ds: number } {
-    const montos = { gs: 0, rs: 0, ds: 0 };
-    const finanzas = solicitud?.finanzas ?? [];
-
-    if (finanzas.length > 0) {
-      finanzas.forEach((fin) => {
-        const monto = Number(fin?.monto ?? 0);
-        const simbolo = (fin?.moneda?.simbolo ?? "").trim().toUpperCase();
-        const denominacion = (fin?.moneda?.denominacion ?? "").trim().toUpperCase();
-
-        if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
-          montos.gs += monto;
-          return;
-        }
-        if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
-          montos.rs += monto;
-          return;
-        }
-        if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
-          montos.ds += monto;
+  private abrirDialogoRetiro(solicitud?: PreGasto): void {
+    if (!this.selectedCaja) {
+      this.notificacionService.openWarn("No hay caja activa para registrar el retiro.");
+      return;
+    }
+    const dialogRef = this.matDialog.open(RetiroPreGastoDialogComponent, {
+      data: { caja: this.selectedCaja } as RetiroPreGastoData,
+      width: "520px",
+      panelClass: "darkMode",
+    });
+    if (solicitud) {
+      dialogRef.afterOpened().pipe(untilDestroyed(this)).subscribe(() => {
+        const component = dialogRef.componentInstance;
+        if (component) {
+          component.seleccionarSolicitud(solicitud);
         }
       });
-
-      return montos;
     }
-
-    const montoSolicitado = Number(solicitud?.montoSolicitado ?? 0);
-    const simbolo = (solicitud?.moneda?.simbolo ?? "").trim().toUpperCase();
-    const denominacion = (solicitud?.moneda?.denominacion ?? "").trim().toUpperCase();
-    if (simbolo.includes("GS") || denominacion.includes("GUARANI")) {
-      montos.gs = montoSolicitado;
-    } else if (simbolo.includes("R$") || simbolo.includes("RS") || denominacion.includes("REAL")) {
-      montos.rs = montoSolicitado;
-    } else if (simbolo.includes("USD") || simbolo.includes("US$") || simbolo === "$" || denominacion.includes("DOLAR")) {
-      montos.ds = montoSolicitado;
-    }
-    return montos;
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res) {
+        this.cargarSolicitudesProcesadas();
+        this.gastoService.onGetByCajaId(this.selectedCaja.id, false)
+          .pipe(untilDestroyed(this))
+          .subscribe((gastos) => {
+            if (gastos != null) {
+              this.gastoList = orderByIdDesc<Gasto>(gastos);
+              this.dataSource.data = this.gastoList;
+            }
+          });
+      }
+    });
   }
 
   goTo(text) {
@@ -1020,7 +898,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           if (filtroIdTexto && this.solicitudesProcesadasDataSource.data.length === 1) {
             const match = this.solicitudesProcesadasDataSource.data[0];
             if (match.id.toString() === filtroIdTexto && match.estado === 'AUTORIZADO') {
-              this.onFinalizarSolicitudAutorizada(match);
+              this.onRetirarSolicitudAutorizada(match);
             }
           }
 

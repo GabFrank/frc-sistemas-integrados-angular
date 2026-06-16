@@ -205,18 +205,11 @@
           </button>
         </div>
 
-        <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;" fxLayout="row" fxLayoutGap="8px">
-          <button mat-raised-button color="accent"
-            style="flex: 1 1 50%; min-height: 36px; padding: 0 10px; font-size: 12px; line-height: 1;"
-            (click)="onEnviarATesoreria(seleccionado)">
+        <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;">
+          <button mat-raised-button color="accent" style="width: 100%;" disabled
+            matTooltip="Disponible cuando el módulo de tesorería esté en producción">
             <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">send</mat-icon>
             ENVIAR A TESORERÍA
-          </button>
-          <button mat-raised-button color="primary"
-            style="flex: 1 1 50%; min-height: 36px; padding: 0 10px; font-size: 12px; line-height: 1;"
-            (click)="onEnviarASucursalRetiro(seleccionado)">
-            <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">store</mat-icon>
-            ENVIAR A SUCURSAL DE RETIRO
           </button>
         </div>
 

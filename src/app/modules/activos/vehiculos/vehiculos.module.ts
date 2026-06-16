@@ -15,6 +15,8 @@ import { ListMapasComponent } from './gps/pages/list-mapas/list-mapas.component'
 import { MaterialModule } from '../../../commons/core/material.module';
 import { SharedModule } from '../../../shared/shared.module';
 import { VehiculosDashboardComponent } from '../dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
+import { ActivosSharedModule } from '../shared/activos-shared.module';
+
 @NgModule({
   declarations: [
     VehiculoComponent,
@@ -35,7 +37,8 @@ import { VehiculosDashboardComponent } from '../dashboard/vehiculos-dashboard/ve
     FormsModule,
     FlexLayoutModule,
     MaterialModule,
-    SharedModule
+    SharedModule,
+    ActivosSharedModule,
   ],
   exports: [
     ListVehiculosComponent

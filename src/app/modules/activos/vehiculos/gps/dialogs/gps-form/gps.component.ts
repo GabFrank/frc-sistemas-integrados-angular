@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { UntilDestroy } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Gps } from '../../models/gps.model';
 import { GpsService } from '../../service/gps.service';
 import { Vehiculo } from '../../../vehiculo/models/vehiculo.model';
@@ -23,6 +23,7 @@ export class GPSComponent implements OnInit {
     gps: Gps;
     vehiculoSelected: Vehiculo | null = null;
     vehiculoDescripcion: string = 'SELECCIONE UN VEHICULO';
+    imeiRequeridoInvalido = false;
 
     imeiControl = new FormControl('', [Validators.required, Validators.pattern('^[0-9]+$')]);
     modeloTrackerControl = new FormControl('', [Validators.required]);
@@ -38,10 +39,19 @@ export class GPSComponent implements OnInit {
     ngOnInit(): void {
         this.gps = this.data;
         this.inicializarFormulario();
+        this.actualizarImeiRequeridoInvalido();
+        this.imeiControl.statusChanges.pipe(untilDestroyed(this)).subscribe(() => {
+            this.actualizarImeiRequeridoInvalido();
+            this.cdr.markForCheck();
+        });
 
         if (this.gps?.id) {
             this.cargarDatos();
         }
+    }
+
+    private actualizarImeiRequeridoInvalido(): void {
+        this.imeiRequeridoInvalido = this.imeiControl.hasError('required');
     }
 
     private inicializarFormulario(): void {

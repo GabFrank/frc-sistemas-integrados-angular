@@ -1,0 +1,147 @@
+<div class="dialogo-contenedor">
+  <div class="dialogo-header" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-icon class="dialogo-header-icono">qr_code_scanner</mat-icon>
+    <h3 class="dialogo-titulo">Gastos autorizados</h3>
+  </div>
+
+  <p class="hint-text">
+    Seleccione la solicitud, muestre el QR al funcionario para que lo escanee desde su celular,
+    y luego confirme la entrega de efectivo en caja.
+  </p>
+
+  <div *ngIf="cargandoLista" class="estado-carga">
+    <mat-icon class="estado-icono">hourglass_empty</mat-icon>
+    Cargando solicitudes...
+  </div>
+
+  <div *ngIf="!cargandoLista && solicitudes.length > 0" class="lista-solicitudes">
+    <button
+      type="button"
+      class="item-solicitud"
+      *ngFor="let item of solicitudes"
+      (click)="seleccionarSolicitud(item)"
+      [class.seleccionado]="seleccionada?.id === item.id"
+    >
+      <span class="item-titulo">#{{ item.id }} — {{ item.funcionario?.nombre }}</span>
+      <span class="item-sublinea">
+        {{ item.tipoGasto?.descripcion }} · {{ item.montoSolicitado | number:'1.0-0' }} {{ item.moneda?.simbolo }}
+      </span>
+    </button>
+  </div>
+
+  <div *ngIf="!cargandoLista && solicitudes.length === 0" class="estado-vacio">
+    <mat-icon class="estado-icono">inbox</mat-icon>
+    No hay solicitudes autorizadas para retiro en esta sucursal.
+  </div>
+
+  <div *ngIf="seleccionada" class="panel-detalle" fxLayout="column" fxLayoutGap="12px">
+    <div class="detalle-campo">
+      <span class="etiqueta">Solicitud</span>
+      <span class="valor">#{{ seleccionada.id }} — {{ seleccionada.descripcion }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Funcionario</span>
+      <span class="valor">{{ seleccionada.funcionario?.nombre }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Monto</span>
+      <span class="valor">{{ seleccionada.montoSolicitado | number:'1.0-0' }} {{ seleccionada.moneda?.simbolo }}</span>
+    </div>
+    <div class="detalle-campo">
+      <span class="etiqueta">Confirmación móvil</span>
+      <span class="valor" [class.confirmado]="funcionarioConfirmo">
+        {{ funcionarioConfirmo ? 'Funcionario confirmó retiro' : 'Pendiente de escaneo' }}
+      </span>
+    </div>
+
+    <div *ngIf="funcionarioConfirmo" class="panel-entrega-efectivo">
+      <p class="hint-entrega">
+        Confirme la moneda y el monto a entregar. Si no dispone del efectivo en la moneda solicitada,
+        use el botón + para agregar otra moneda.
+      </p>
+
+      <ng-container *ngFor="let fila of filasMontoView; let i = index">
+        <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start start" [formGroup]="fila.grupo" class="fila-monto-entrega">
+          <mat-form-field fxFlex="38%">
+            <mat-label>Moneda</mat-label>
+            <mat-select
+              formControlName="monedaId"
+              [attr.name]="'moneda-' + i"
+              [compareWith]="compararMonedaId"
+              required
+            >
+              <mat-option
+                *ngFor="let opcion of fila.opcionesMoneda"
+                [value]="opcion.moneda.id"
+              >
+                {{ opcion.moneda.denominacion }} ({{ opcion.moneda.simbolo }})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="fila.errores.monedaRequerida">La moneda es requerida</mat-error>
+            <mat-error *ngIf="fila.errores.monedaDuplicada">Esta moneda ya fue seleccionada</mat-error>
+          </mat-form-field>
+
+          <mat-form-field fxFlex="38%">
+            <mat-label>Monto</mat-label>
+            <input
+              matInput
+              currencyMask
+              [attr.name]="'monto-' + i"
+              [options]="fila.opcionesCurrency"
+              formControlName="monto"
+              required
+            />
+            <mat-error *ngIf="fila.errores.montoRequerido">El monto es requerido</mat-error>
+            <mat-error *ngIf="fila.errores.montoMinimo">El monto debe ser mayor a 0</mat-error>
+          </mat-form-field>
+
+          <div fxFlex="24%" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="4px" class="fila-monto-acciones">
+            <button
+              *ngIf="i === filasMontoView.length - 1"
+              type="button"
+              mat-mini-fab
+              class="btn-add-monto-linea"
+              (click)="agregarFilaMonto()"
+              aria-label="Agregar monto en otra moneda"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              *ngIf="filasMontoView.length > 1"
+              type="button"
+              mat-icon-button
+              (click)="quitarFilaMonto(i)"
+              aria-label="Quitar esta moneda y monto"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="dialogo-acciones" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="12px">
+    <button mat-raised-button type="button" (click)="cerrar()">Cerrar</button>
+    <button
+      mat-raised-button
+      class="boton-qr"
+      type="button"
+      [disabled]="!seleccionada || cargandoQr"
+      (click)="mostrarQrRetiro()"
+    >
+      <mat-icon>qr_code_2</mat-icon>
+      Mostrar QR
+    </button>
+    <button
+      mat-raised-button
+      class="boton-entregar"
+      type="button"
+      [disabled]="!seleccionada || !funcionarioConfirmo || !montosEntregaValidos || cargandoRetiro"
+      (click)="ejecutarRetiro()"
+    >
+      <mat-icon>payments</mat-icon>
+      Entregar efectivo
+    </button>
+  </div>
+</div>

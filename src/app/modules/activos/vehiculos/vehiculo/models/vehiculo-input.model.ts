@@ -26,4 +26,5 @@ export interface VehiculoInput {
     cantidadCuotas?: number;
     cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
+    cuotasDetalle?: { numeroCuota: number; monto: number; pagado?: boolean }[];
 }

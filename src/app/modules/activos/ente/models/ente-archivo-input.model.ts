@@ -6,4 +6,6 @@ export interface EnteArchivoInput {
     descripcion?: string;
     vigente?: boolean;
     usuarioId?: number;
+    nombreArchivo?: string;
+    contenidoBase64?: string;
 }

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { MuebleService } from './mueble.service';
 import { Mueble } from '../models/mueble.model';
 import { MuebleInput } from '../models/mueble-input.model';
@@ -83,26 +83,42 @@ export class MuebleDialogService {
     this.assetCommonDialogService.buscarMoneda(callback);
   }
 
-  onGuardar(form: FormGroup, mueble: Mueble, dialogRef: MatDialogRef<MuebleFormComponent>): void {
-    if (form.valid) {
-      const values = form.getRawValue();
-      const input: MuebleInput = {
-        ...values,
-        id: values.id ? Number(values.id) : undefined,
-        identificador: values.identificador?.toUpperCase() || '',
-        descripcion: values.descripcion?.toUpperCase() || '',
-        consumoValor: values.consumoValor?.toUpperCase() || '',
-        propietarioId: Number(values.propietarioId),
-        familiaId: Number(values.familiaId),
-        tipoMuebleId: Number(values.tipoMuebleId),
-        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
-        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
-        usuarioId: this.mainService.usuarioActual?.id || mueble?.usuario?.id
-      };
-      this.muebleService.onGuardar(input).subscribe(res => {
-        if (res) dialogRef.close(true);
-      });
+  onGuardar(
+    form: FormGroup,
+    mueble: Mueble,
+    dialogRef: MatDialogRef<MuebleFormComponent>,
+    cuotasDetalle: { numeroCuota: number; monto: number; pagado?: boolean }[] = [],
+    cerrarAlGuardar = false
+  ): Observable<Mueble | null> {
+    if (!form.valid) {
+      form.markAllAsTouched();
+      return of(null);
     }
+
+    const values = form.getRawValue();
+    const input: MuebleInput = {
+      ...values,
+      id: values.id ? Number(values.id) : undefined,
+      identificador: values.identificador?.toUpperCase() || '',
+      descripcion: values.descripcion?.toUpperCase() || '',
+      consumoValor: values.consumoValor?.toUpperCase() || '',
+      propietarioId: Number(values.propietarioId),
+      familiaId: Number(values.familiaId),
+      tipoMuebleId: Number(values.tipoMuebleId),
+      proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+      monedaId: values.monedaId ? Number(values.monedaId) : undefined,
+      usuarioId: this.mainService.usuarioActual?.id || mueble?.usuario?.id,
+      cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+    };
+
+    return this.muebleService.onGuardar(input).pipe(
+      tap((res) => {
+        if (res && cerrarAlGuardar) {
+          dialogRef.close(true);
+        }
+      }),
+      map((res) => res || null)
+    );
   }
 
   onCancelar(dialogRef: MatDialogRef<any>): void {

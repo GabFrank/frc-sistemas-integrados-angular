@@ -1,0 +1,112 @@
+<div class="archivos-panel" fxLayout="column" fxLayoutGap="15px">
+  <div *ngIf="!enteId" class="aviso-guardar">
+    <mat-icon>info</mat-icon>
+    Puede seleccionar archivos ahora. Se subirán automáticamente al guardar el registro. Los documentos se guardan en el servidor local.
+  </div>
+
+  <div fxLayout="row" fxLayoutGap="15px" fxLayoutAlign="start center" *ngIf="tiposPermitidos.length">
+    <mat-form-field fxFlex="40">
+      <mat-label>Tipo de archivo</mat-label>
+      <mat-select [(value)]="tipoSeleccionado">
+        <mat-option *ngFor="let t of tiposPermitidos" [value]="t.tipo">{{ t.etiqueta }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="button" [disabled]="subiendo" (click)="fileInput.click()">
+      <mat-icon>upload_file</mat-icon>
+      {{ subiendo ? 'Subiendo...' : 'Subir archivo' }}
+    </button>
+    <input #fileInput type="file" hidden (change)="onSeleccionarArchivo($event)" />
+  </div>
+
+  <div *ngIf="cargando" fxLayout="row" fxLayoutAlign="center center">
+    <mat-spinner diameter="28"></mat-spinner>
+  </div>
+
+  <table mat-table [dataSource]="archivos" *ngIf="!cargando && archivos.length" class="mat-elevation-z2">
+    <ng-container matColumnDef="tipo">
+      <th mat-header-cell *matHeaderCellDef>Tipo</th>
+      <td mat-cell *matCellDef="let a">{{ a.etiquetaTipo }}</td>
+    </ng-container>
+    <ng-container matColumnDef="descripcion">
+      <th mat-header-cell *matHeaderCellDef>Descripción</th>
+      <td mat-cell *matCellDef="let a">{{ a.descripcion || '-' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="vigente">
+      <th mat-header-cell *matHeaderCellDef>Vigente</th>
+      <td mat-cell *matCellDef="let a">
+        <mat-icon [color]="a.vigente ? 'primary' : ''">{{ a.vigente ? 'check_circle' : 'history' }}</mat-icon>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef>Fecha</th>
+      <td mat-cell *matCellDef="let a">{{ a.creadoEn | date:'short' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="accion">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let a">
+        <button mat-icon-button type="button" (click)="abrirArchivo(a)">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="['tipo', 'descripcion', 'vigente', 'fecha', 'accion']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['tipo', 'descripcion', 'vigente', 'fecha', 'accion'];"></tr>
+  </table>
+
+  <table mat-table [dataSource]="archivosPendientes" *ngIf="archivosPendientes.length" class="mat-elevation-z2 pendientes-table">
+    <ng-container matColumnDef="tipo">
+      <th mat-header-cell *matHeaderCellDef>Tipo</th>
+      <td mat-cell *matCellDef="let a">{{ a.etiquetaTipo }}</td>
+    </ng-container>
+    <ng-container matColumnDef="descripcion">
+      <th mat-header-cell *matHeaderCellDef>Descripción</th>
+      <td mat-cell *matCellDef="let a">{{ a.nombre || '-' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef>Estado</th>
+      <td mat-cell *matCellDef="let a">
+        <span class="estado-pendiente">Pendiente de guardar</span>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="accion">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let a; let i = index">
+        <button mat-icon-button type="button" aria-label="Quitar archivo pendiente" (click)="quitarPendiente(i)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="['tipo', 'descripcion', 'estado', 'accion']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['tipo', 'descripcion', 'estado', 'accion'];"></tr>
+  </table>
+
+  <div *ngIf="!cargando && !archivos.length && !archivosPendientes.length" class="sin-archivos">
+    No hay archivos cargados para este bien.
+  </div>
+</div>
+
+<div
+  #archivoOverlay
+  *ngIf="archivoAmpliado"
+  class="archivo-overlay"
+  (click)="cerrarArchivoAmpliado()"
+  role="dialog"
+  [attr.aria-label]="tituloAmpliado"
+>
+  <button
+    type="button"
+    class="archivo-overlay-cerrar"
+    mat-icon-button
+    aria-label="Cerrar"
+    (click)="cerrarArchivoAmpliado(); $event.stopPropagation()"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+  <img
+    class="archivo-overlay-imagen"
+    [src]="contenidoAmpliado"
+    [alt]="tituloAmpliado"
+    (click)="$event.stopPropagation()"
+  />
+</div>

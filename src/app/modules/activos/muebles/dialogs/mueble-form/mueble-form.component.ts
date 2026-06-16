@@ -11,6 +11,12 @@ import { Persona } from '../../../../personas/persona/persona.model';
 import { FamiliaMueble } from '../../models/familia-mueble.model';
 import { TipoMueble } from '../../models/tipo-mueble.model';
 import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
+import { EnteService } from '../../../ente/service/ente.service';
+import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
+import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
+import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { EnteCuotasByEnteIdGQL } from '../../../ente/graphql/enteCuotasByEnteId';
+import { ARCHIVOS_MUEBLE_EQUIPO } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
 @Component({
@@ -24,6 +30,14 @@ export class MuebleFormComponent implements OnInit {
   private muebleService = inject(MuebleService);
   private muebleDialogService = inject(MuebleDialogService);
   private cdr = inject(ChangeDetectorRef);
+  private enteService = inject(EnteService);
+  private genericService = inject(GenericCrudService);
+  private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
+
+  enteId: number | null = null;
+  cuotasDetalle: CuotaDetalle[] = [];
+  archivosTipos = ARCHIVOS_MUEBLE_EQUIPO;
+  registroGuardado = false;
 
   form: FormGroup;
   mueble: Mueble;
@@ -67,10 +81,12 @@ export class MuebleFormComponent implements OnInit {
     this.inicializarFormulario();
 
     if (this.mueble?.id) {
+      this.registroGuardado = true;
       this.muebleService.onBuscarPorId(this.mueble.id).pipe(untilDestroyed(this)).subscribe(res => {
         if (res) {
           this.mueble = res;
           this.cargarDatos();
+          this.cargarEnteYCuotas(res.id);
         }
       });
     } else {
@@ -78,6 +94,26 @@ export class MuebleFormComponent implements OnInit {
     }
   }
 
+  private cargarEnteYCuotas(referenciaId: number): void {
+    this.enteService.onGetByReferenciaId(TipoEnte.MUEBLE, referenciaId).pipe(untilDestroyed(this)).subscribe(ente => {
+      if (!ente?.id) return;
+      this.enteId = ente.id;
+      this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }).pipe(untilDestroyed(this)).subscribe(cuotas => {
+        if (cuotas?.length) {
+          this.cuotasDetalle = cuotas.map(c => ({
+            numeroCuota: c.numeroCuota || 0,
+            monto: c.monto || 0,
+            pagado: c.pagado,
+          }));
+        }
+        this.cdr.markForCheck();
+      });
+    });
+  }
+
+  onCuotasChange(cuotas: CuotaDetalle[]): void {
+    this.cuotasDetalle = cuotas;
+  }
 
   private inicializarFormulario(): void {
     this.form = this.fb.group({
@@ -201,7 +237,17 @@ export class MuebleFormComponent implements OnInit {
   }
 
   onGuardar(): void {
-    this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef);
+    const cerrar = !!this.mueble?.id && this.registroGuardado;
+    this.muebleDialogService.onGuardar(this.form, this.mueble, this.dialogRef, this.cuotasDetalle, cerrar)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (!res?.id) return;
+        this.mueble = { ...this.mueble, ...res, id: res.id };
+        this.registroGuardado = true;
+        this.form.patchValue({ id: res.id });
+        this.cargarEnteYCuotas(res.id);
+        this.cdr.markForCheck();
+      });
   }
 
   private getProveedorNombre(proveedor: Proveedor | Persona): string {

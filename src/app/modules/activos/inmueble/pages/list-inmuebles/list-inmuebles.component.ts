@@ -6,6 +6,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Inmueble } from '../../models/inmueble.model';
 import { InmuebleService } from '../../service/inmueble.service';
+import { EnteVinculacion } from '../../../ente/models/ente-vinculacion.model';
 
 @UntilDestroy()
 @Component({
@@ -18,7 +19,7 @@ export class ListInmueblesComponent implements OnInit {
   public inmuebleService = inject(InmuebleService);
   inmuebles$ = this.inmuebleService.inmuebles$;
 
-  displayedColumns: string[] = ['id', 'nombreAsignado', 'direccion', 'paisCity', 'propietario', 'tasacion', 'acciones'];
+  displayedColumns: string[] = ['id', 'nombreAsignado', 'direccion', 'paisCity', 'sucursal', 'tenencia', 'propietario', 'tasacion', 'acciones'];
 
   filtroControl = new FormControl('');
 
@@ -47,6 +48,21 @@ export class ListInmueblesComponent implements OnInit {
 
   onEditar(row: Inmueble): void {
     this.inmuebleService.abrirFormulario(row).subscribe();
+  }
+
+  getVinculacionPrincipal(row: Inmueble): EnteVinculacion | undefined {
+    return row.vinculacionesSucursal?.[0];
+  }
+
+  onVincularSucursal(row: Inmueble): void {
+    const vinculacion = this.getVinculacionPrincipal(row);
+    this.inmuebleService.abrirVinculacionSucursal(row, vinculacion).pipe(untilDestroyed(this)).subscribe();
+  }
+
+  onDesvincularSucursal(row: Inmueble): void {
+    const vinculacion = this.getVinculacionPrincipal(row);
+    if (!vinculacion?.id) return;
+    this.inmuebleService.onDesvincularSucursal(vinculacion.id).pipe(untilDestroyed(this)).subscribe();
   }
 
   onFiltrar(): void {

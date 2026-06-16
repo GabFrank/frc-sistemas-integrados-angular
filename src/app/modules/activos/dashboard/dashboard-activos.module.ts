@@ -7,6 +7,7 @@ import { MaterialModule } from '../../../commons/core/material.module';
 import { MueblesModule } from '../muebles/muebles.module';
 import { InmuebleModule } from '../inmueble/inmueble.module';
 import { EnteModule } from '../ente/ente.module';
+import { EquipoModule } from '../equipos/equipo.module';
 
 
 @NgModule({
@@ -20,7 +21,8 @@ import { EnteModule } from '../ente/ente.module';
     MaterialModule,
     MueblesModule,
     InmuebleModule,
-    EnteModule
+    EnteModule,
+    EquipoModule
   ]
 })
 export class DashboardActivosModule { }
