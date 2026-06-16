@@ -115,6 +115,7 @@ import {
 } from "../../../../shared/services/notification-http.service";
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
+import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -165,6 +166,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
+  pdvValidado = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
@@ -186,7 +188,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private configService: ConfiguracionService,
     private notificationHttpService: NotificationHttpService,
     private gastoService: GastoService,
-    private movimientoStockService: MovimientoStockService
+    private movimientoStockService: MovimientoStockService,
+    private puntoDeVentaService: PuntoDeVentaService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -206,7 +209,133 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
     console.log('iniciando venta touch');
 
+    // Validar PDV antes de permitir operaciones
+    this.validarPdvSucursal();
 
+    this.selectedItemList = this.itemList;
+
+    if (this.dialogData?.venta) {
+      this.selectedVenta = this.dialogData?.venta;
+      this.totalGs = this.selectedVenta?.totalGs;
+      this.selectedItemList = this.selectedVenta?.ventaItemList;
+    }
+
+    this.cargandoService
+      .dialogState$()
+      .pipe(untilDestroyed(this))
+      .subscribe((isOpen) => {
+        this.isDialogOpen = isOpen;
+      });
+
+    this.startSolicitudesProcesadasPolling();
+  }
+
+  /**
+   * Valida que el pdvId configurado localmente corresponda a la sucursal actual del backend.
+   * Si la validación es exitosa, procede a cargar la caja.
+   * Si falla, muestra un diálogo bloqueante e impide operar.
+   */
+  private validarPdvSucursal(): void {
+    const pdvId = this.configService.getConfig().pdvId;
+    const sucursalActual = this.mainService.sucursalActual;
+
+    if (pdvId == null) {
+      this.dialogoService
+        .confirm(
+          'Error de Configuración',
+          'No se ha configurado un ID de Punto de Venta (PDV).',
+          'Por favor, configure el PDV en la Configuración del Sistema antes de operar.',
+          null,
+          false
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(() => {
+          this.tabService.removeTab(this.tabService.currentIndex);
+        });
+      return;
+    }
+
+    if (sucursalActual == null) {
+      this.dialogoService
+        .confirm(
+          'Error de Configuración',
+          'No se pudo determinar la sucursal actual del servidor.',
+          'Verifique la conexión con el servidor y que la configuración sea correcta.',
+          null,
+          false
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(() => {
+          this.tabService.removeTab(this.tabService.currentIndex);
+        });
+      return;
+    }
+
+    this.puntoDeVentaService.onGetPuntoDeVentaPorId(pdvId, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (puntoDeVenta) => {
+          if (puntoDeVenta == null) {
+            this.dialogoService
+              .confirm(
+                'Error de Configuración',
+                `No se encontró el Punto de Venta con ID ${pdvId}.`,
+                'El pdvId no corresponde a la sucursal actual.',
+                ['Verifique la configuración del PDV en la Configuración del Sistema.'],
+                false
+              )
+              .pipe(untilDestroyed(this))
+              .subscribe(() => {
+                this.tabService.removeTab(this.tabService.currentIndex);
+              });
+            return;
+          }
+
+          const sucursalPdv = puntoDeVenta.sucursal;
+          if (sucursalPdv == null || sucursalPdv.id != sucursalActual.id) {
+            const sucursalPdvNombre = sucursalPdv?.nombre || 'Desconocida';
+            const sucursalActualNombre = sucursalActual.nombre || 'Desconocida';
+            this.dialogoService
+              .confirm(
+                'Error de Configuración - PDV no corresponde',
+                `El Punto de Venta "${puntoDeVenta.nombre}" (ID: ${pdvId}) pertenece a la sucursal "${sucursalPdvNombre}" (ID: ${sucursalPdv?.id}).`,
+                `Sin embargo, este servidor está configurado como sucursal "${sucursalActualNombre}" (ID: ${sucursalActual.id}). No se puede operar con un PDV de otra sucursal.`,
+                null,
+                false
+              )
+              .pipe(untilDestroyed(this))
+              .subscribe(() => {
+                this.tabService.removeTab(this.tabService.currentIndex);
+              });
+            return;
+          }
+
+          // PDV válido - proceder con la carga de caja
+          this.pdvValidado = true;
+          this.iniciarCargaDeCaja();
+        },
+        error: (err) => {
+          console.error('Error al validar PDV:', err);
+          this.dialogoService
+            .confirm(
+              'Error de Validación',
+              'Ocurrió un error al validar el Punto de Venta.',
+              'Verifique la conexión con el servidor e intente nuevamente.',
+              null,
+              false
+            )
+            .pipe(untilDestroyed(this))
+            .subscribe(() => {
+              this.tabService.removeTab(this.tabService.currentIndex);
+            });
+        }
+      });
+  }
+
+  /**
+   * Inicia la carga de caja después de que el PDV fue validado exitosamente.
+   */
+  private iniciarCargaDeCaja(): void {
     this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id, null, false)
       .pipe(untilDestroyed(this))
@@ -231,23 +360,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.buscadorFocusSub.next();
     }, 3000);
-
-    this.selectedItemList = this.itemList;
-
-    if (this.dialogData?.venta) {
-      this.selectedVenta = this.dialogData?.venta;
-      this.totalGs = this.selectedVenta?.totalGs;
-      this.selectedItemList = this.selectedVenta?.ventaItemList;
-    }
-
-    this.cargandoService
-      .dialogState$()
-      .pipe(untilDestroyed(this))
-      .subscribe((isOpen) => {
-        this.isDialogOpen = isOpen;
-      });
-
-    this.startSolicitudesProcesadasPolling();
   }
 
   ngAfterViewInit(): void {
@@ -1008,16 +1120,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               const personaId = venta.cliente?.persona?.id;
 
               if (personaId && sucursalId) {
-                this.notificationHttpService.sendVentaCreditoNotification(
+                this.notificationHttpService.sendCompraCreditoNotification(
                   res.id,
                   sucursalId,
                   personaId,
                   ventaCreditoInput.valorTotal,
-                  this.mainService.usuarioActual?.persona?.nombre,
                   this.mainService.sucursalActual?.nombre
                 ).subscribe({
-                  next: () => console.log('Notificación enviada exitosamente'),
-                  error: (err) => console.error('Error al enviar notificación:', err)
+                  next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                  error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                 });
               }
             }
