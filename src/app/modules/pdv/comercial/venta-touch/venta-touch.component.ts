@@ -1120,16 +1120,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               const personaId = venta.cliente?.persona?.id;
 
               if (personaId && sucursalId) {
-                this.notificationHttpService.sendVentaCreditoNotification(
+                this.notificationHttpService.sendCompraCreditoNotification(
                   res.id,
                   sucursalId,
                   personaId,
                   ventaCreditoInput.valorTotal,
-                  this.mainService.usuarioActual?.persona?.nombre,
                   this.mainService.sucursalActual?.nombre
                 ).subscribe({
-                  next: () => console.log('Notificación enviada exitosamente'),
-                  error: (err) => console.error('Error al enviar notificación:', err)
+                  next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                  error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                 });
               }
             }
