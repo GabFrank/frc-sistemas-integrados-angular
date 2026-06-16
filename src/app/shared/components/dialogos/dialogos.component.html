@@ -12,13 +12,14 @@
       </div>
     </div>
     <div fxFlex *ngIf="data.listMessages?.length > 0">
-      <div *ngIf="data.listMessages?.length">
-        <ul *ngFor="let mes of data.listMessages">
-          <li>
-            <h3>{{ mes }}</h3>
-          </li>
-        </ul>
+      <div *ngIf="data.listMessages?.length === 1">
+        <h4>{{ data.listMessages[0] }}</h4>
       </div>
+      <ul *ngIf="data.listMessages?.length > 1">
+        <li *ngFor="let mes of data.listMessages">
+          <h3>{{ mes }}</h3>
+        </li>
+      </ul>
     </div>
   </div>
 </div>
