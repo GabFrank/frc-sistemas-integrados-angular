@@ -36,17 +36,15 @@ export class NotificationHttpService {
         return `http://${centralIp}:${centralPort}`;
     }
 
-    sendVentaCreditoNotification(
-        ventaCreditoId: number,
+    sendCompraCreditoNotification(
+        ventaId: number,
         sucursalId: number,
         personaId: number,
         valorTotal: number,
-        usuarioNombre?: string,
         sucursalNombre?: string
     ): Observable<any> {
-        const url = `${this.baseUrl}/notification/venta-credito/${ventaCreditoId}/${sucursalId}/${personaId}/${valorTotal}`;
+        const url = `${this.baseUrl}/notification/compra-credito/${ventaId}/${sucursalId}/${personaId}/${valorTotal}`;
         let params: any = {};
-        if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
         return this.http.post(url, {}, { params });
     }
