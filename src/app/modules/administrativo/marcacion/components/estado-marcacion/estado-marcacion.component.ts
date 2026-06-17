@@ -10,6 +10,7 @@ import {
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { CamaraReconocimientoComponent, ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.component';
 import { AccionMarcacionPendiente } from '../../enums/accion-marcacion-pendiente.enum';
+import { EmbeddingGaleria } from '../../models/embedding-galeria.model';
 
 @Component({
     selector: 'estado-marcacion',
@@ -26,7 +27,7 @@ export class EstadoMarcacionComponent {
     @Input() mensajeErrorFoto = '';
     @Input() mostrandoCamara = false;
     @Input() modoCamara: ModoCamara = 'verificacion';
-    @Input() referenciaDescriptor: number[] | null = null;
+    @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
 
     @Output() registrarEntrada = new EventEmitter<void>();

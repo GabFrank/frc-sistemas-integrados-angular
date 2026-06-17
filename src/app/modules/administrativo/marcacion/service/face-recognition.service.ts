@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Human, Config, Result } from '@vladmandic/human';
+import { EmbeddingGaleria, extraerVectoresGaleria } from '../models/embedding-galeria.model';
 
 export interface DescriptorConScore {
     embedding: number[];
@@ -98,16 +99,53 @@ export class FaceRecognitionService {
         return this.human?.match.similarity(embedding1, embedding2) || 0;
     }
 
-    async getDescriptorConScore(input: HTMLVideoElement | HTMLImageElement): Promise<DescriptorConScore | null> {
-        await this.init();
-        const result = await this.human!.detect(input);
-        if (result.face && result.face.length > 0) {
-            const face = result.face[0];
-            return {
-                embedding: Array.from(face.embedding),
-                score: face.score ?? 0
-            };
+    calcularMejorSimilitudConGaleria(embedding: number[], galeria: EmbeddingGaleria): number {
+        const vectores = extraerVectoresGaleria(galeria);
+        if (!embedding?.length || vectores.length === 0) {
+            return 0;
         }
-        return null;
+        let maxima = 0;
+        for (const referencia of vectores) {
+            const similitud = this.similarity(embedding, referencia);
+            if (similitud > maxima) {
+                maxima = similitud;
+            }
+        }
+        return maxima;
+    }
+
+    async getDescriptorConScore(input: HTMLVideoElement | HTMLImageElement): Promise<DescriptorConScore | null> {
+        return this.getDescriptorConScoreConTimeout(input, 20000);
+    }
+
+    async getDescriptorConScoreDesdeImagen(dataUrl: string): Promise<DescriptorConScore | null> {
+        await this.init();
+        const image = new Image();
+        image.src = dataUrl;
+        image.crossOrigin = 'anonymous';
+        await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error('No se pudo cargar el frame capturado'));
+        });
+        return this.getDescriptorConScoreConTimeout(image, 20000);
+    }
+
+    private async getDescriptorConScoreConTimeout(
+        input: HTMLVideoElement | HTMLImageElement,
+        timeoutMs: number
+    ): Promise<DescriptorConScore | null> {
+        await this.init();
+        const deteccion = await Promise.race([
+            this.human!.detect(input),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))
+        ]);
+        if (!deteccion || !deteccion.face || deteccion.face.length === 0) {
+            return null;
+        }
+        const face = deteccion.face[0];
+        return {
+            embedding: Array.from(face.embedding),
+            score: face.score ?? 0
+        };
     }
 }

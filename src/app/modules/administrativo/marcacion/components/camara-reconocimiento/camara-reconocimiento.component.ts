@@ -14,6 +14,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
+import { EmbeddingGaleria } from '../../models/embedding-galeria.model';
 
 export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captura-multiple';
 
@@ -27,7 +28,7 @@ export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captu
 export class CamaraReconocimientoComponent implements OnDestroy {
 
     @Input() modo: ModoCamara = 'busqueda';
-    @Input() referenciaDescriptor: number[] | null = null;
+    @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
 
     @Output() usuarioIdentificado = new EventEmitter<Usuario>();
@@ -90,7 +91,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                 await this.iniciarCamaraParaVerificacion();
                 break;
             case 'captura-perfil':
-                await this.iniciarCapturaPerfil();
+                await this.iniciarCapturaMultiple();
                 break;
             case 'captura-multiple':
                 await this.iniciarCapturaMultiple();
@@ -255,7 +256,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     }
 
     private async bucleDeteccion(): Promise<void> {
-        if (!this.detecting || !this.videoElement || !this.referenciaDescriptor) return;
+        if (!this.detecting || !this.videoElement || !this.referenciaGaleria) return;
 
         const video = this.videoElement.nativeElement;
         if (video.paused || video.ended) {
@@ -263,7 +264,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             return;
         }
 
-        const resultado = await this.faceHelper.procesarFrame(video, this.referenciaDescriptor);
+        const resultado = await this.faceHelper.procesarFrame(video, this.referenciaGaleria);
 
         if (resultado.exito && resultado.embedding) {
             if (this.livenessStep === 'BLINK' && resultado.result) {
@@ -305,65 +306,24 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         requestAnimationFrame(() => this.bucleDeteccion());
     }
 
-    private async iniciarCapturaPerfil(): Promise<void> {
-        this.esperandoCapturaPerfil = true;
-        this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
-        this.cdr.detectChanges();
-
-        try {
-            const stream = await this.camaraService.iniciarCamara();
-            await this.esperarVideoElement();
-
-            if (this.videoElement) {
-                const video = this.videoElement.nativeElement;
-                video.srcObject = stream;
-                await new Promise<void>((resolve) => {
-                    video.onloadedmetadata = async () => {
-                        await video.play().catch(err => console.error('Error playing video:', err));
-                        resolve();
-                    };
-                });
-            }
-            this.cdr.markForCheck();
-        } catch (e) {
-            console.error('Error en capturaPerfil:', e);
-            this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
-            this.esperandoCapturaPerfil = false;
-            this.cdr.markForCheck();
-        }
-    }
-
     async tomarFotoPerfil(): Promise<void> {
-        if (!this.videoElement || !this.usuarioSeleccionado) return;
-
-        const video = this.videoElement.nativeElement;
-        this.esperandoCapturaPerfil = false;
-        this.detecting = true;
-        this.mensajeReconocimiento = 'Capturando foto...';
-        this.cdr.markForCheck();
-
-        const exito = await this.faceHelper.capturarYGuardarFotoPerfil(this.usuarioSeleccionado.id, video);
-        this.detecting = false;
-
-        if (exito) {
-            this.camaraService.detenerCamara();
-            this.fotoPerfilGuardada.emit();
-        } else {
-            this.esperandoCapturaPerfil = true;
-            this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
-            this.cdr.markForCheck();
-        }
+        await this.tomarFotoPerfilMultiple();
     }
 
     private async iniciarCapturaMultiple(): Promise<void> {
         this.capturaMultiplePaso = 1;
         this.capturaMultipleFotos = [];
-        this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+        this.mensajeReconocimiento = 'Cargando modelos de reconocimiento facial...';
+        this.detecting = true;
         this.cdr.detectChanges();
 
         try {
+            await this.faceHelper.inicializarMotorFacial();
+            this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+
             const stream = await this.camaraService.iniciarCamara();
             await this.esperarVideoElement();
+            await this.esperarVideoListo();
 
             if (this.videoElement) {
                 const video = this.videoElement.nativeElement;
@@ -374,71 +334,70 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                         resolve();
                     };
                 });
+                await this.esperarVideoListo();
             }
-            this.cdr.markForCheck();
         } catch (e) {
             console.error('Error en capturaMultiple:', e);
             this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
             this.capturaMultiplePaso = 0;
+        } finally {
+            this.detecting = false;
             this.cdr.markForCheck();
         }
     }
 
     async tomarFotoPerfilMultiple(): Promise<void> {
-        if (!this.videoElement || !this.usuarioSeleccionado || this.capturaMultiplePaso === 0) return;
+        if (!this.videoElement || !this.usuarioSeleccionado || this.capturaMultiplePaso === 0 || this.detecting) {
+            return;
+        }
 
         const video = this.videoElement.nativeElement;
         this.detecting = true;
         this.mensajeReconocimiento = 'Capturando foto...';
         this.cdr.markForCheck();
 
-        const resultado = await this.faceHelper.capturarFrameConScore(video);
-        this.detecting = false;
+        try {
+            await this.esperarVideoListo();
+            const resultado = await this.faceHelper.capturarFrameConScore(video);
 
-        if (!resultado) {
-            this.mensajeReconocimiento = `No se detectó rostro. ${this.capturaMultipleMensajes[this.capturaMultiplePaso]}`;
+            if (!resultado) {
+                this.mensajeReconocimiento = `No se detectó rostro. ${this.capturaMultipleMensajes[this.capturaMultiplePaso]}`;
+                return;
+            }
+
+            this.capturaMultipleFotos.push(resultado);
+
+            if (this.capturaMultiplePaso < 3) {
+                this.capturaMultiplePaso++;
+                this.mensajeReconocimiento = this.capturaMultipleMensajes[this.capturaMultiplePaso];
+                return;
+            }
+
+            this.mensajeReconocimiento = 'Procesando galería facial...';
             this.cdr.markForCheck();
-            return;
-        }
 
-        this.capturaMultipleFotos.push(resultado);
+            const fotoFrontal = this.capturaMultipleFotos[this.capturaMultipleFotos.length - 1].imageBase64;
+            const exito = await this.faceHelper.guardarFotoPerfilConEmbeddingMaestro(
+                this.usuarioSeleccionado.id,
+                fotoFrontal,
+                this.capturaMultipleFotos
+            );
 
-        if (this.capturaMultiplePaso < 3) {
-            this.capturaMultiplePaso++;
-            this.mensajeReconocimiento = this.capturaMultipleMensajes[this.capturaMultiplePaso];
-            this.cdr.markForCheck();
-            return;
-        }
-
-        this.mensajeReconocimiento = 'Procesando embedding maestro...';
-        this.cdr.markForCheck();
-
-        const embeddingMaestro = this.faceHelper.fusionarEmbeddings(this.capturaMultipleFotos);
-        if (!embeddingMaestro) {
-            this.mensajeReconocimiento = 'Las fotos capturadas no tienen calidad suficiente. Intente de nuevo.';
-            this.capturaMultiplePaso = 1;
-            this.capturaMultipleFotos = [];
-            this.cdr.markForCheck();
-            return;
-        }
-
-        const fotoFrontal = this.capturaMultipleFotos[this.capturaMultipleFotos.length - 1].imageBase64;
-        const exito = await this.faceHelper.guardarFotoPerfilConEmbeddingMaestro(
-            this.usuarioSeleccionado.id,
-            fotoFrontal,
-            embeddingMaestro
-        );
-
-        if (exito) {
-            this.camaraService.detenerCamara();
-            this.capturaMultiplePaso = 0;
-            this.capturaMultipleFotos = [];
-            this.cdr.markForCheck();
-            this.fotoPerfilGuardada.emit();
-        } else {
-            this.capturaMultiplePaso = 1;
-            this.capturaMultipleFotos = [];
-            this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+            if (exito) {
+                this.camaraService.detenerCamara();
+                this.capturaMultiplePaso = 0;
+                this.capturaMultipleFotos = [];
+                this.fotoPerfilGuardada.emit();
+            } else {
+                this.capturaMultiplePaso = 1;
+                this.capturaMultipleFotos = [];
+                this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+            }
+        } catch (error) {
+            console.error('Error al capturar foto de perfil:', error);
+            this.mensajeReconocimiento = 'Error al procesar la foto. Intente de nuevo.';
+        } finally {
+            this.detecting = false;
             this.cdr.markForCheck();
         }
     }
@@ -463,6 +422,19 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         }
         if (!this.videoElement) {
             throw new Error('No se encontró el elemento de video');
+        }
+    }
+
+    private async esperarVideoListo(): Promise<void> {
+        if (!this.videoElement) {
+            return;
+        }
+        const video = this.videoElement.nativeElement;
+        for (let i = 0; i < 30; i++) {
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 }

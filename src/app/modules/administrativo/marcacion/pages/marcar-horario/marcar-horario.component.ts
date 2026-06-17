@@ -26,6 +26,8 @@ import { DispositivoService } from '../../../../../shared/services/dispositivo.s
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { UsuarioHelperService } from '../../service/usuario-helper.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
+import { EmbeddingGaleria } from '../../models/embedding-galeria.model';
+import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 
 import { ModoCamara } from '../../components/camara-reconocimiento/camara-reconocimiento.component';
 import { EstadoMarcacionComponent } from '../../components/estado-marcacion/estado-marcacion.component';
@@ -65,7 +67,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   similitudInsuficiente = false;
   centralOnline: boolean = false;
 
-  public referenciaDescriptor: number[] | null = null;
+  public referenciaGaleria: EmbeddingGaleria | null = null;
   public embeddingCapturado: number[] | null = null;
 
   @ViewChild('estadoRef') estadoRef: EstadoMarcacionComponent;
@@ -80,7 +82,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     private dispositivoService: DispositivoService,
     private camaraService: CamaraService,
     private usuarioHelper: UsuarioHelperService,
-    private faceHelper: ReconocimientoFacialHelperService
+    private faceHelper: ReconocimientoFacialHelperService,
+    private usuarioService: UsuarioService
   ) { }
 
   ngOnInit(): void {
@@ -152,7 +155,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.reconocimientoExitoso = false;
     this.mostrandoCamara = false;
     this.mensajeErrorFoto = '';
-    this.referenciaDescriptor = null;
+    this.referenciaGaleria = null;
     this.embeddingCapturado = null;
     this.similitudInsuficiente = false;
     this.camaraService.detenerCamara();
@@ -207,13 +210,30 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   async iniciarProcesoValidacionFacial(usuario: Usuario, forzarRecargaFoto = false): Promise<void> {
     this.cargando = true;
-    const fotoUrl = await this.usuarioHelper.obtenerFotoPerfil(usuario, forzarRecargaFoto);
+    let usuarioActual = usuario;
+
+    if (forzarRecargaFoto && usuario?.id) {
+      try {
+        const usuarioRecargado = await this.usuarioService.onGetUsuario(usuario.id, true)
+          .pipe(timeout(10000))
+          .toPromise();
+        if (usuarioRecargado) {
+          usuarioActual = usuarioRecargado;
+          this.usuarioSeleccionado = usuarioRecargado;
+        }
+      } catch (error) {
+        console.warn('No se pudo recargar usuario para galería facial', error);
+      }
+    }
+
+    const galeria = await this.faceHelper.obtenerGaleriaReferencia(usuarioActual);
     this.cargando = false;
 
-    if (!fotoUrl) {
-      this.mensajeErrorFoto = 'Sin foto de perfil';
-      this.modoCamara = 'captura-multiple';
+    if (galeria) {
+      this.referenciaGaleria = galeria;
+      this.modoCamara = 'verificacion';
       this.mostrandoCamara = true;
+      this.mensajeErrorFoto = '';
       this.cdr.markForCheck();
 
       setTimeout(() => {
@@ -225,22 +245,17 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.referenciaDescriptor = await this.faceHelper.obtenerDescriptorReferencia(fotoUrl);
-    if (this.referenciaDescriptor) {
-      this.modoCamara = 'verificacion';
-      this.mostrandoCamara = true;
-      this.cdr.markForCheck();
-
-      setTimeout(() => {
-        const camaraRef = this.estadoRef?.camaraRef;
-        if (camaraRef) {
-          camaraRef.iniciar();
-        }
-      });
-    } else {
-      this.mensajeErrorFoto = 'Error: No se pudo procesar la foto de perfil para validación.';
-    }
+    this.mensajeErrorFoto = 'Sin registro facial. Complete el enrollment de 3 fotos.';
+    this.modoCamara = 'captura-multiple';
+    this.mostrandoCamara = true;
     this.cdr.markForCheck();
+
+    setTimeout(() => {
+      const camaraRef = this.estadoRef?.camaraRef;
+      if (camaraRef) {
+        camaraRef.iniciar();
+      }
+    });
   }
   verificarMarcacionActiva(): void {
     if (!this.usuarioSeleccionado?.id) return;

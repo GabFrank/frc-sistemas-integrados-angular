@@ -92,8 +92,19 @@ export class UsuarioService {
     return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor, errorConf);
   }
 
-  onSaveUsuarioImage(id: number, type: string, image: string, embedding: number[], servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image, embedding }, servidor);
+  onSaveUsuarioImage(
+    id: number,
+    type: string,
+    image: string,
+    embedding: number[],
+    servidor: boolean = true,
+    embeddingGaleriaJson?: string
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.saveUsuarioImage,
+      { id, type, image, embedding, embeddingGaleriaJson },
+      servidor
+    );
   }
 
   onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
