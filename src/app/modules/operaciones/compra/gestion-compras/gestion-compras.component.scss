@@ -990,6 +990,14 @@
   }
   .items-actions {
     margin-right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .add-item-search-field {
+      min-width: 260px;
+      margin: 0;
+    }
   }
 }
 

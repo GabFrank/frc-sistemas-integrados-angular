@@ -552,10 +552,23 @@
                   <mat-icon>inventory_2</mat-icon>
                   Nuevo Producto
                 </button>
-                <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()" [disabled]="itemsTabState !== 'editable'">
-                  <mat-icon>add</mat-icon>
-                  Añadir Item
-                </button>
+                <mat-form-field
+                  appearance="outline"
+                  class="add-item-search-field"
+                  floatLabel="always"
+                >
+                  <mat-label>Código de barra</mat-label>
+                  <input
+                    #addItemInput
+                    matInput
+                    type="text"
+                    [formControl]="codigoControl"
+                    [disabled]="itemsTabState !== 'editable'"
+                    (keyup.enter)="onSearchPorCodigo()"
+                    (keyup.tab)="onSearchPorCodigo()"
+                    (focusin)="onCodigoFocus()"
+                  />
+                </mat-form-field>
               </div>
             </mat-card>
 
@@ -1056,8 +1069,8 @@
               >
                 <mat-icon>shopping_cart</mat-icon>
                 <span
-                  >No hay items en este pedido. Haga clic en "Añadir Item" para
-                  comenzar.</span
+                  >No hay items en este pedido. Escriba un código de barra o
+                  nombre de producto para comenzar.</span
                 >
               </div>
                   </div>
