@@ -14,6 +14,12 @@ import { Inject, Optional } from '@angular/core';
 import { TabService } from '../../../../../../layouts/tab/tab.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { startWith } from 'rxjs/operators';
+import { EnteService } from '../../../../ente/service/ente.service';
+import { TipoEnte } from '../../../../ente/enums/tipo-ente.enum';
+import { CuotaDetalle } from '../../../../shared/models/cuota-detalle.model';
+import { GenericCrudService } from '../../../../../../generics/generic-crud.service';
+import { EnteCuotasByEnteIdGQL } from '../../../../ente/graphql/enteCuotasByEnteId';
+import { ARCHIVOS_VEHICULO } from '../../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
 @Component({
@@ -28,6 +34,16 @@ export class VehiculoComponent implements OnInit {
     private vehiculoDialogService = inject(VehiculoDialogService);
     private tabService = inject(TabService);
     private cdr = inject(ChangeDetectorRef);
+    private enteService = inject(EnteService);
+    private genericService = inject(GenericCrudService);
+    private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
+
+    enteId: number | null = null;
+    cuotasDetalle: CuotaDetalle[] = [];
+    archivosTipos = ARCHIVOS_VEHICULO;
+    registroGuardado = false;
+    nuevoControl = this.fb.control(false);
+    nuevo$ = this.nuevoControl.valueChanges.pipe(startWith(this.nuevoControl.value));
 
     constructor(
         @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
@@ -75,10 +91,12 @@ export class VehiculoComponent implements OnInit {
         this.vehiculo = this.data || tabData;
         this.inicializarFormulario();
         if (this.vehiculo?.id) {
+            this.registroGuardado = true;
             this.vehiculoService.onBuscarPorId(this.vehiculo.id).pipe(untilDestroyed(this)).subscribe(vehiculoCompleto => {
                 if (vehiculoCompleto) {
                     this.vehiculo = vehiculoCompleto;
                     this.cargarDatosEnFormulario();
+                    this.cargarEnteYCuotas(vehiculoCompleto.id);
                 }
             });
         } else {
@@ -93,7 +111,7 @@ export class VehiculoComponent implements OnInit {
             chapa: [null, [Validators.required]],
             color: [null, [Validators.required]],
             anho: [new Date().getFullYear(), [Validators.required, Validators.min(1900)]],
-            nuevo: [false],
+            nuevo: this.nuevoControl,
             documentacion: [false],
             refrigerado: [false],
             capacidadKg: [null],
@@ -194,8 +212,39 @@ export class VehiculoComponent implements OnInit {
         this.cdr.markForCheck();
     }
 
+    private cargarEnteYCuotas(referenciaId: number): void {
+        this.enteService.onGetByReferenciaId(TipoEnte.VEHICULO, referenciaId).pipe(untilDestroyed(this)).subscribe(ente => {
+            if (!ente?.id) return;
+            this.enteId = ente.id;
+            this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }).pipe(untilDestroyed(this)).subscribe(cuotas => {
+                if (cuotas?.length) {
+                    this.cuotasDetalle = cuotas.map(c => ({
+                        numeroCuota: c.numeroCuota || 0,
+                        monto: c.monto || 0,
+                        pagado: c.pagado,
+                    }));
+                }
+                this.cdr.markForCheck();
+            });
+        });
+    }
+
+    onCuotasChange(cuotas: CuotaDetalle[]): void {
+        this.cuotasDetalle = cuotas;
+    }
+
     onGuardar(): void {
-        this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef);
+        const cerrar = !!this.vehiculo?.id && this.registroGuardado;
+        this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef, this.cuotasDetalle, cerrar)
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+                if (!res?.id) return;
+                this.vehiculo = { ...this.vehiculo, ...res, id: res.id };
+                this.registroGuardado = true;
+                this.form.patchValue({ id: res.id });
+                this.cargarEnteYCuotas(res.id);
+                this.cdr.markForCheck();
+            });
     }
 
     onBuscarModelo(): void {

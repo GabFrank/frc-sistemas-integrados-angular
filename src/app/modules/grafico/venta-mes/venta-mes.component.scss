@@ -1,3 +1,5 @@
+@import '../styles/grafico-filtros';
+
 .venta-mes-host {
     display: block;
     width: 100%;
@@ -5,23 +7,8 @@
 }
 
 .venta-mes-container {
-    padding: 20px;
-    background-color: #303030;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    color: #E0E0E0;
-
-    .filtros-container {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
-
-        mat-form-field {
-            min-width: 200px;
-        }
-    }
 
     .grafico-wrapper {
         position: relative;

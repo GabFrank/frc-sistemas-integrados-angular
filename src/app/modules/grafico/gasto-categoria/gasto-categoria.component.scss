@@ -1,21 +1,6 @@
+@import '../styles/grafico-filtros';
+
 .gasto-categoria-container {
-    padding: 20px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    color: #E0E0E0;
-
-    .filtros-container {
-        display: flex;
-        gap: 16px;
-        margin-bottom: 20px;
-        align-items: center;
-
-        mat-form-field {
-            width: 300px;
-        }
-    }
-
     .grafico-wrapper {
         flex: 1;
         background-color: #424242;

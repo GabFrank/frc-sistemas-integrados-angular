@@ -244,6 +244,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       case 'INMUEBLE':
         this.etiquetaEnteActivo = 'Inmueble';
         break;
+      case 'EQUIPOS':
+        this.etiquetaEnteActivo = 'Equipo';
+        break;
       default:
         this.etiquetaEnteActivo = 'Activo';
     }
@@ -254,6 +257,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
         break;
       case 'INMUEBLE':
         this.iconoEnteActivo = 'domain';
+        break;
+      case 'EQUIPOS':
+        this.iconoEnteActivo = 'computer';
         break;
       default:
         this.iconoEnteActivo = 'directions_car';
@@ -300,6 +306,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     const modulo = this.data?.moduloPadre;
     if (modulo === 'VEHICULO' || modulo === 'MUEBLE' || modulo === 'INMUEBLE') {
       return modulo as TipoEnte;
+    }
+    if (modulo === 'EQUIPOS') {
+      return TipoEnte.EQUIPO;
     }
     return null;
   }

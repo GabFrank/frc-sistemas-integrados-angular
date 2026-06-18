@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { VehiculoService } from './vehiculo.service';
 import { Vehiculo } from '../models/vehiculo.model';
 import { VehiculoInput } from '../models/vehiculo-input.model';
@@ -84,36 +84,50 @@ export class VehiculoDialogService {
     this.assetCommonDialogService.buscarMoneda(callback);
   }
 
-  onGuardar(form: any, vehiculo: Vehiculo, dialogRef: any): void {
-    if (form.valid) {
-      const values = form.getRawValue();
-      const modeloId = Number(values.modeloId);
-      const tipoVehiculoId = Number(values.tipoVehiculoId);
-      const input: VehiculoInput = {
-        ...values,
-        id: values.id ? Number(values.id) : undefined,
-        chapa: values.chapa?.trim()?.toUpperCase(),
-        color: values.color?.trim()?.toUpperCase(),
-        fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion), 'yyyy-MM-dd') : null,
-        primerKilometraje: values.primerKilometraje || null,
-        capacidadKg: values.capacidadKg || null,
-        capacidadPasajeros: values.capacidadPasajeros || null,
-        modeloId: Number.isFinite(modeloId) ? modeloId : null,
-        tipoVehiculoId: Number.isFinite(tipoVehiculoId) ? tipoVehiculoId : null,
-        proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
-        monedaId: values.monedaId ? Number(values.monedaId) : undefined,
-        usuarioId: this.mainService.usuarioActual?.id || vehiculo?.usuario?.id
-      };
-      this.vehiculoService.onGuardar(input).subscribe(res => {
-        if (res) {
+  onGuardar(
+    form: any,
+    vehiculo: Vehiculo,
+    dialogRef: any,
+    cuotasDetalle: { numeroCuota: number; monto: number; pagado?: boolean }[] = [],
+    cerrarAlGuardar = false
+  ): Observable<Vehiculo | null> {
+    if (!form.valid) {
+      form.markAllAsTouched();
+      return of(null);
+    }
+
+    const values = form.getRawValue();
+    const modeloId = Number(values.modeloId);
+    const tipoVehiculoId = Number(values.tipoVehiculoId);
+    const input: VehiculoInput = {
+      ...values,
+      id: values.id ? Number(values.id) : undefined,
+      chapa: values.chapa?.trim()?.toUpperCase(),
+      color: values.color?.trim()?.toUpperCase(),
+      fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion), 'yyyy-MM-dd') : null,
+      primerKilometraje: values.primerKilometraje || null,
+      capacidadKg: values.capacidadKg || null,
+      capacidadPasajeros: values.capacidadPasajeros || null,
+      modeloId: Number.isFinite(modeloId) ? modeloId : null,
+      tipoVehiculoId: Number.isFinite(tipoVehiculoId) ? tipoVehiculoId : null,
+      proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
+      monedaId: values.monedaId ? Number(values.monedaId) : undefined,
+      usuarioId: this.mainService.usuarioActual?.id || vehiculo?.usuario?.id,
+      cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+    };
+
+    return this.vehiculoService.onGuardar(input).pipe(
+      tap((res) => {
+        if (res && cerrarAlGuardar) {
           if (dialogRef) {
             dialogRef.close(true);
           } else {
             this.tabService.removeTab(this.tabService.currentIndex);
           }
         }
-      });
-    }
+      }),
+      map((res) => res || null)
+    );
   }
 
   onCancelar(dialogRef: any): void {

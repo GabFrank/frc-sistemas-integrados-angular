@@ -1,4 +1,5 @@
 import { Persona } from "../../../personas/persona/persona.model";
+import { EnteVinculacion } from "../../ente/models/ente-vinculacion.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Pais } from "../../../general/pais/pais.model";
@@ -26,6 +27,12 @@ export interface Inmueble {
     cantidadCuotas?: number;
     cantidadCuotasPagadas?: number;
     diaVencimiento?: number;
+    esPropio?: boolean;
+    alquilerProveedor?: Persona;
+    alquilerMonto?: number;
+    alquilerDiaVencimiento?: number;
+    alquilerVigencia?: Date | string;
+    vinculacionesSucursal?: EnteVinculacion[];
     usuario?: Usuario;
     creadoEn?: Date;
 }

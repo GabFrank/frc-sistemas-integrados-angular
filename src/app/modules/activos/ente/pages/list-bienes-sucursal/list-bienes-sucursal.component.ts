@@ -6,15 +6,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { EnteService } from '../../service/ente.service';
 import { Ente } from '../../models/ente.model';
 import { MainService } from '../../../../../main.service';
-import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
-import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { MatDialog } from '@angular/material/dialog';
 import { EnteSucursalDialogComponent } from '../../dialogs/ente-sucursal-dialog/ente-sucursal-dialog.component';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../../notificacion-snackbar.service';
-import { combineLatest, forkJoin, Observable, of } from 'rxjs';
-import { filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
+import { forkJoin, Observable, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, shareReplay, switchMap, tap } from 'rxjs/operators';
 import { TipoEnte } from '../../enums/tipo-ente.enum';
 import { EnteSucursal } from '../../models/ente-sucursal.model';
+import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
 
 interface BienFinancieroRow {
   id?: number;
@@ -35,19 +35,11 @@ interface BienFinancieroRow {
   diasParaVencer: number;
   estadoCuota: 'PAGADO' | 'AL DIA' | 'POR VENCER' | 'VENCIDO' | 'SIN PLAN';
   estadoCuotaClass: string;
+  cuotaPagada: boolean;
+  cuotasSubtexto: string;
   proveedor: string;
   detalleGastos: { concepto: string; monto: number; moneda: string }[];
   sucursalIds: number[];
-}
-
-interface DashboardResumen {
-  totalBienes: number;
-  pagados: number;
-  enPago: number;
-  cuotasFaltantes: number;
-  totalGastado: number;
-  totalComprometido: number;
-  totalPendiente: number;
 }
 
 @UntilDestroy()
@@ -66,27 +58,25 @@ interface DashboardResumen {
 })
 export class ListBienesSucursalComponent implements OnInit {
   public enteService = inject(EnteService);
-  private cdr = inject(ChangeDetectorRef);
   public mainService = inject(MainService);
-  public sucursalService = inject(SucursalService);
   private matDialog = inject(MatDialog);
   private notificationService = inject(NotificacionSnackbarService);
+  private sucursalService = inject(SucursalService);
+  private cdr = inject(ChangeDetectorRef);
 
+  muebleControl = new FormControl('');
+  inmuebleControl = new FormControl('');
+  equipoControl = new FormControl('');
+  vehiculoControl = new FormControl('');
   sucursalControl = new FormControl<number | null>(null);
-  tipoControl = new FormControl<TipoEnte | null>(null);
-  estadoPagoControl = new FormControl<string | null>(null);
-  estadoCuotaControl = new FormControl<string | null>(null);
+  sucursales: Sucursal[] = [];
+
+  private lastActiveTipo: TipoEnte | null = null;
 
   public allRows$ = this.enteService.entes$.pipe(
     switchMap(entes => {
       if (!entes?.length) return of([]);
       return forkJoin(entes.map(ente => this.armarFila(ente)));
-    }),
-    tap(rows => {
-      if (rows.length > 0) {
-        this.tiposDisponibles = Array.from(new Set(rows.map(r => r.tipoEnte).filter((v): v is TipoEnte => !!v)));
-        this.estadosPagoDisponibles = Array.from(new Set(rows.map(r => r.situacionPago).filter(Boolean)));
-      }
     }),
     shareReplay(1)
   );
@@ -94,21 +84,6 @@ export class ListBienesSucursalComponent implements OnInit {
   public filteredRows$ = this.allRows$.pipe(
     tap(() => {
       this.expandedRow = null;
-    })
-  );
-
-  public resumen$ = this.enteService.summary$.pipe(
-    map(summary => summary || {
-      totalBienes: 0,
-      pagados: 0,
-      enPago: 0,
-      cuotasFaltantes: 0,
-      totalGastado: 0,
-      totalComprometido: 0,
-      totalPendiente: 0
-    }),
-    tap(summary => {
-      if (summary.monedaPrincipal) this.monedaPrincipal = summary.monedaPrincipal;
     })
   );
 
@@ -127,41 +102,59 @@ export class ListBienesSucursalComponent implements OnInit {
     'acciones'
   ];
 
-  sucursales: Sucursal[] = [];
-  tiposDisponibles: TipoEnte[] = [];
-  estadosPagoDisponibles: string[] = [];
-  estadosCuotaDisponibles: string[] = ['PAGADO', 'AL DIA', 'POR VENCER', 'VENCIDO', 'SIN PLAN'];
-  monedaPrincipal = 'Gs.';
-
   ngOnInit(): void {
-    this.sucursalControl.setValue(null);
+    this.cargarSucursales();
     this.enteService.setSucursalId(null);
     this.enteService.setFilters(null, null, null);
     this.enteService.setSearchText('');
-
-    combineLatest([
-      this.tipoControl.valueChanges.pipe(startWith(this.tipoControl.value)),
-      this.estadoPagoControl.valueChanges.pipe(startWith(this.estadoPagoControl.value)),
-      this.estadoCuotaControl.valueChanges.pipe(startWith(this.estadoCuotaControl.value))
-    ]).subscribe(([tipo, situacion, estado]) => {
-      this.enteService.setFilters(tipo, situacion, estado);
-    });
-
-    this.sucursalService.onGetAllSucursales().subscribe(res => {
-      this.sucursales = res || [];
-      this.cdr.markForCheck();
-    });
-
+    this.initFiltros();
     this.enteService.refrescar();
   }
 
-  onAdicionar(): void {
-    const sucursalId = this.sucursalControl.value;
+  private cargarSucursales(): void {
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
+      this.sucursales = res || [];
+      this.cdr.markForCheck();
+    });
+  }
 
+  private initFiltros(): void {
+    const configs: { control: FormControl<string | null>; tipo: TipoEnte; others: FormControl<string | null>[] }[] = [
+      { control: this.muebleControl, tipo: TipoEnte.MUEBLE, others: [this.inmuebleControl, this.equipoControl, this.vehiculoControl] },
+      { control: this.inmuebleControl, tipo: TipoEnte.INMUEBLE, others: [this.muebleControl, this.equipoControl, this.vehiculoControl] },
+      { control: this.equipoControl, tipo: TipoEnte.EQUIPO, others: [this.muebleControl, this.inmuebleControl, this.vehiculoControl] },
+      { control: this.vehiculoControl, tipo: TipoEnte.VEHICULO, others: [this.muebleControl, this.inmuebleControl, this.equipoControl] },
+    ];
+
+    configs.forEach(({ control, tipo, others }) => {
+      control.valueChanges.pipe(
+        untilDestroyed(this),
+        debounceTime(400),
+        distinctUntilChanged()
+      ).subscribe(texto => {
+        const value = (texto || '').trim();
+        if (value) {
+          others.forEach(c => c.setValue('', { emitEvent: false }));
+          this.lastActiveTipo = tipo;
+          this.enteService.setFilters(tipo, null, null);
+          this.enteService.setSearchText(value);
+        } else if (this.lastActiveTipo === tipo) {
+          this.lastActiveTipo = null;
+          this.enteService.setFilters(null, null, null);
+          this.enteService.setSearchText('');
+        }
+      });
+    });
+  }
+
+  onSucursalChanged(sucursal: Sucursal | null): void {
+    this.sucursalControl.setValue(sucursal?.id ?? null);
+    this.enteService.setSucursalId(sucursal?.id ?? null);
+  }
+
+  onAdicionar(): void {
     this.matDialog.open(EnteSucursalDialogComponent, {
-      data: {
-        sucursalId
-      },
+      data: {},
       width: '600px'
     }).afterClosed().pipe(
       filter(res => !!res)
@@ -172,11 +165,8 @@ export class ListBienesSucursalComponent implements OnInit {
 
   onEditar(row: BienFinancieroRow): void {
     if (!row.id) return;
-    const sucursalId = this.sucursalControl.value;
 
-    const obs = sucursalId
-      ? this.enteService.getEnteSucursalByEnteAndSucursal(row.id, sucursalId)
-      : this.enteService.getEnteSucursalByEnteId(row.id).pipe(map(res => (res as EnteSucursal[])[0] || null));
+    const obs = this.enteService.getEnteSucursalByEnteId(row.id).pipe(map(res => (res as EnteSucursal[])[0] || null));
 
     obs.pipe(untilDestroyed(this)).subscribe(enteSucursal => {
       if (enteSucursal) {
@@ -193,8 +183,7 @@ export class ListBienesSucursalComponent implements OnInit {
           if (ente) {
             this.matDialog.open(EnteSucursalDialogComponent, {
               data: {
-                ente,
-                sucursalId
+                ente
               },
               width: '600px'
             }).afterClosed().pipe(filter(res => !!res)).subscribe(() => {
@@ -207,8 +196,11 @@ export class ListBienesSucursalComponent implements OnInit {
   }
 
   onRetirarDeSucursal(ente: BienFinancieroRow): void {
-    const sucursalId = this.sucursalControl.value;
-    if (!sucursalId || !ente?.id) return;
+    const sucursalId = ente.sucursalIds?.length === 1 ? ente.sucursalIds[0] : null;
+    if (!sucursalId || !ente?.id) {
+      this.notificationService.openWarn('Seleccione un bien vinculado a una sola sucursal para retirarlo');
+      return;
+    }
 
     this.enteService.getEnteSucursalByEnteAndSucursal(ente.id, sucursalId).subscribe(res => {
       if (res) {
@@ -228,12 +220,7 @@ export class ListBienesSucursalComponent implements OnInit {
 
 
   onFiltrar(): void {
-    this.enteService.setSucursalId(this.sucursalControl.value);
     this.enteService.refrescar();
-  }
-
-  onSearchKeyUp(texto: string): void {
-    this.enteService.setSearchText(texto);
   }
 
   handlePageEvent(event: PageEvent): void {
@@ -241,12 +228,15 @@ export class ListBienesSucursalComponent implements OnInit {
   }
 
   resetFiltro(): void {
-    this.enteService.setSearchText('');
+    this.muebleControl.setValue('');
+    this.inmuebleControl.setValue('');
+    this.equipoControl.setValue('');
+    this.vehiculoControl.setValue('');
     this.sucursalControl.setValue(null);
+    this.lastActiveTipo = null;
     this.enteService.setSucursalId(null);
-    this.tipoControl.setValue(null);
-    this.estadoPagoControl.setValue(null);
-    this.estadoCuotaControl.setValue(null);
+    this.enteService.setFilters(null, null, null);
+    this.enteService.setSearchText('');
     this.enteService.refrescar();
   }
 
@@ -259,6 +249,9 @@ export class ListBienesSucursalComponent implements OnInit {
     const montoPendiente = ente.montoPendiente || 0;
     const moneda = ente.monedaSimbolo || 'Gs.';
     const estadoCuota = (ente.estadoCuota as any) || 'SIN PLAN';
+    const cuotaPagada = (ente.situacionPago || '') === 'PAGADO'
+      || montoPendiente <= 0
+      || cuotasFaltantes <= 0;
 
     return of({
       id: ente.id,
@@ -279,6 +272,8 @@ export class ListBienesSucursalComponent implements OnInit {
       diasParaVencer: ente.diasParaVencer || 0,
       estadoCuota,
       estadoCuotaClass: this.resolveEstadoCuotaClass(estadoCuota),
+      cuotaPagada,
+      cuotasSubtexto: cuotaPagada ? 'Pagado' : `Faltan: ${cuotasFaltantes}`,
       proveedor: ente.proveedorNombre || 'No definido',
       detalleGastos: [
         { concepto: 'Monto total comprometido', monto: montoTotal, moneda },

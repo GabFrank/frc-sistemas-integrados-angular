@@ -81,11 +81,18 @@ export class ListGastosComponent implements OnInit {
     if (this.data?.tabData?.data?.caja?.id) {
       this.idCajaControl.setValue(this.data.tabData.data.caja.id);
     }
-    if (this.data?.tabData?.data?.sucursal?.id) {
+    if (this.data?.tabData?.data?.sucursal) {
+      this.sucOrigenControl.setValue(this.data.tabData.data.sucursal);
+    } else if (this.data?.tabData?.data?.sucursal?.id) {
       this.sucursalList$.subscribe(res => {
-        this.sucOrigenControl.setValue(res.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
+        this.sucOrigenControl.setValue(res.find(s => s.id == this.data?.tabData?.data?.sucursal?.id));
+        this.onFiltrar();
       })
     }
+  }
+
+  compareSucursal(s1: Sucursal, s2: Sucursal): boolean {
+    return s1 && s2 ? s1.id === s2.id : s1 === s2;
   }
 
   onFiltrar() {

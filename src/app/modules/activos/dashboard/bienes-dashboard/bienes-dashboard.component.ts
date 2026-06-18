@@ -6,6 +6,7 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListMueblesComponent } from '../../muebles/pages/list-muebles/list-muebles.component';
 import { ListInmueblesComponent } from '../../inmueble/pages/list-inmuebles/list-inmuebles.component';
 import { ListBienesSucursalComponent } from '../../ente/pages/list-bienes-sucursal/list-bienes-sucursal.component';
+import { ListEquiposComponent } from '../../equipos/pages/list-equipos/list-equipos.component';
 
 @Component({
   selector: 'bienes-dashboard',
@@ -43,6 +44,13 @@ export class BienesDashboardComponent implements OnInit {
         expression: false
       },
       {
+        nombre: 'Lista de equipos',
+        clickEvent: 'list-equipos',
+        icon: 'computer',
+        iconSize: 4,
+        expression: false
+      },
+      {
         nombre: 'Bienes por sucursal',
         clickEvent: 'list-bienes-sucursal',
         icon: 'location_on',
@@ -60,6 +68,9 @@ export class BienesDashboardComponent implements OnInit {
       case 'list-inmuebles':
         this.onListInmuebles()
         break;
+      case 'list-equipos':
+        this.onListEquipos()
+        break;
       case 'list-bienes-sucursal':
         this.onListBienesSucursal()
         break;
@@ -72,6 +83,10 @@ export class BienesDashboardComponent implements OnInit {
 
   onListInmuebles() {
     this.tabService.addTab(new Tab(ListInmueblesComponent, "Inmuebles", null, BienesDashboardComponent))
+  }
+
+  onListEquipos() {
+    this.tabService.addTab(new Tab(ListEquiposComponent, "Equipos", null, BienesDashboardComponent))
   }
 
   onListBienesSucursal() {

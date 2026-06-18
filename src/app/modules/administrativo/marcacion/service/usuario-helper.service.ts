@@ -62,8 +62,10 @@ export class UsuarioHelperService {
         }).afterClosed();
     }
 
-    async obtenerFotoPerfil(usuario: Usuario): Promise<string | null> {
-        if (usuario.avatar) return usuario.avatar;
+    async obtenerFotoPerfil(usuario: Usuario, forzarRecarga = false): Promise<string | null> {
+        if (!forzarRecarga && usuario.avatar) {
+            return usuario.avatar;
+        }
 
         let filename = null;
         if (usuario.persona?.imagenes) {
@@ -81,6 +83,7 @@ export class UsuarioHelperService {
                 ));
 
                 if (images && images.length > 0) {
+                    usuario.avatar = images[0];
                     return images[0];
                 }
             } catch (e) {

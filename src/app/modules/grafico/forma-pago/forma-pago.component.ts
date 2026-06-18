@@ -1,188 +1,323 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { FormaPagoEstadistica } from '../models/forma-pago-estadistica.model';
-import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
-import { GraficoService } from '../grafico.service';
-
-interface DetalleProcesado {
-  descripcion: string;
-  montoFormateado: string;
-  cantidadFormateada: string;
-  porcentaje: number;
-  color: string;
-  icono: string;
-}
-
-interface DatosGraficoProcesados {
-  opciones: EChartsOption;
-  detalles: DetalleProcesado[];
-  totalMonto: string;
-  totalTransacciones: string;
-  hayDatos: boolean;
-}
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnInit,
+  inject,
+} from "@angular/core";
+import { EChartsOption } from "echarts";
+import {
+  BehaviorSubject,
+  Observable,
+  combineLatest,
+  debounceTime,
+  finalize,
+  map,
+  Subject,
+  startWith,
+  switchMap,
+  tap,
+} from "rxjs";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { FormaPagoEstadistica } from "./interfaces/forma-pago-estadistica.model";
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
+import { GraficoService } from "../grafico.service";
+import {
+  GRAFICO_COLORES,
+  GRAFICO_PALETA_BARRAS,
+  formatoMonedaPy,
+} from "../../../shared/utils/grafico-echarts.theme";
+import { FormaPagoDatosGraficoProcesados } from "./interfaces/forma-pago-datos-grafico-procesados.model";
+import { FormaPagoDetalleProcesado } from "./interfaces/forma-pago-detalle-procesado.model";
+import { FormaPagoPantalla } from "./interfaces/forma-pago-pantalla.model";
+import { FormaPagoMonedaDesglose } from "./interfaces/forma-pago-moneda-desglose.model";
+import { GraficoFiltrosPeriodo } from "../utils/grafico-filtro-rango-fechas.helper";
+import { GraficoFiltroSucursalesMulti } from "../utils/grafico-filtro-sucursales-multi.helper";
+import { periodosDesdeFiltro } from "../utils/grafico-consulta-multi.helper";
+import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo.util";
+import {
+  etiquetaMoneda,
+  formatoMontoMoneda,
+} from "./utils/forma-pago-moneda-format.util";
+import {
+  descargarExcelBase64,
+  etiquetaSucursalesSeleccionadas,
+  etiquetasFiltroPeriodoGrafico,
+  nombreArchivoGraficoExcel,
+} from "../utils/grafico-excel-export.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'forma-pago',
-  templateUrl: './forma-pago.component.html',
-  styleUrls: ['./forma-pago.component.scss'],
+  selector: "forma-pago",
+  templateUrl: "./forma-pago.component.html",
+  styleUrls: ["./forma-pago.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'forma-pago-host'
-  }
+    class: "forma-pago-host",
+  },
 })
 export class FormaPagoComponent implements OnInit {
-
   private graficoService = inject(GraficoService);
+  private cdr = inject(ChangeDetectorRef);
 
-  private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
-  datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
+  readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
+  readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
-  private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
-  sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
+  sucursales$: Observable<Sucursal[]>;
 
-  private cargandoSubject = new BehaviorSubject<boolean>(false);
-  cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+  detallesConDesglose: FormaPagoDetalleProcesado[] = [];
 
-  sucursalControl = new FormControl<number | null>(null);
-  anhoControl = new FormControl<number>(new Date().getFullYear());
-  mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
+  private readonly datosSubject =
+    new BehaviorSubject<FormaPagoDatosGraficoProcesados | null>(null);
+  private readonly cargandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
+  private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
+  private readonly filtrarSubject = new Subject<void>();
 
-  meses = [
-    { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
-    { valor: 4, nombre: 'Abril' }, { valor: 5, nombre: 'Mayo' }, { valor: 6, nombre: 'Junio' },
-    { valor: 7, nombre: 'Julio' }, { valor: 8, nombre: 'Agosto' }, { valor: 9, nombre: 'Septiembre' },
-    { valor: 10, nombre: 'Octubre' }, { valor: 11, nombre: 'Noviembre' }, { valor: 12, nombre: 'Diciembre' }
-  ];
-
-  anhos: number[] = [];
-
-  private colores = {
-    text: '#E0E0E0',
-    textSecondary: '#9E9E9E',
-    background: '#424242',
-    backgroundDark: '#303030'
-  };
-
-  private paletaColores = ['#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4'];
+  readonly pantalla$: Observable<FormaPagoPantalla> = combineLatest([
+    this.datosSubject,
+    this.cargandoSubject,
+  ]).pipe(
+    map(([datos, cargando]) => ({
+      cargando,
+      datosListos: datos !== null,
+      opciones: datos?.opciones ?? null,
+      hayDatos: datos?.hayDatos ?? false,
+      detalles: datos?.detalles ?? [],
+      totalMonto: datos?.totalMonto ?? "",
+      totalTransacciones: datos?.totalTransacciones ?? "",
+    }))
+  );
+  readonly cargando$ = this.cargandoSubject.asObservable();
+  readonly exportando$ = this.exportandoSubject.asObservable();
+  readonly puedeExportar$ = this.datosSubject.pipe(
+    map((datos) => !!(datos?.hayDatos))
+  );
 
   ngOnInit(): void {
-    this.inicializarAnhos();
-
-    // Diferir la carga de datos para no bloquear el renderizado inicial
-    setTimeout(() => {
-      this.cargarSucursales();
-      this.configurarDataStream();
-    }, 100);
+    this.cargarSucursales();
+    this.filtroPeriodo.configurarLimitesRangoDias(
+      (source) => source.pipe(untilDestroyed(this)),
+      () => this.cdr.markForCheck()
+    );
+    this.configurarDataStream();
   }
 
-  private inicializarAnhos(): void {
-    const anhoActual = new Date().getFullYear();
-    this.anhos = Array.from({ length: 5 }, (_, i) => anhoActual - i);
+  alternarDesglose(indice: number): void {
+    this.detallesConDesglose[indice].expandido =
+      !this.detallesConDesglose[indice].expandido;
+    this.cdr.markForCheck();
+  }
+
+  limpiarFiltros(): void {
+    this.filtroSucursales.limpiar();
+    this.filtroPeriodo.limpiar();
+    this.filtrar();
+    this.cdr.markForCheck();
+  }
+
+  filtrar(): void {
+    this.filtrarSubject.next();
+  }
+
+  exportarExcel(): void {
+    const datos = this.datosSubject.value;
+    if (!datos?.hayDatos || this.exportandoSubject.value) {
+      return;
+    }
+    this.exportandoSubject.next(true);
+    const sucIds = this.filtroSucursales.normalizarIds();
+    const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
+    this.graficoService
+      .exportarGraficoExcel("FORMA_PAGO", {
+        periodos: periodosDesdeFiltro(this.filtroPeriodo),
+        sucIds,
+        ...filtros,
+        filtroSucursales: etiquetaSucursalesSeleccionadas(
+          this.sucursalesSubject.value,
+          sucIds
+        ),
+      })
+      .pipe(
+        finalize(() => {
+          this.exportandoSubject.next(false);
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe((base64) => {
+        descargarExcelBase64(base64, nombreArchivoGraficoExcel("FORMA_PAGO"));
+      });
   }
 
   private cargarSucursales(): void {
-    this.graficoService.obtenerSucursales()
+    this.graficoService
+      .obtenerSucursales()
       .pipe(
         untilDestroyed(this),
-        map(sucs => (sucs || []).filter(s => s.activo && s.id > 0 && s.id !== 999))
+        map((sucs) =>
+          (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)
+        )
       )
-      .subscribe(sucs => this.sucursalesSubject.next(sucs));
+      .subscribe((sucs) => this.sucursalesSubject.next(sucs));
+
+    this.sucursales$ = this.sucursalesSubject.asObservable();
   }
 
   private configurarDataStream(): void {
-    combineLatest([
-      this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
-      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged())
-    ]).pipe(
-      debounceTime(300),
-      tap(() => this.cargandoSubject.next(true)),
-      switchMap(([sucId, anho, mes]) => {
-        const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
-        return this.graficoService.obtenerEstadisticasFormaPago(inicio, fin, sucId || undefined).pipe(
-          map(estadisticas => this.procesarDatos(estadisticas)),
-          finalize(() => this.cargandoSubject.next(false))
-        );
-      }),
-      untilDestroyed(this)
-    ).subscribe(datos => this.datosSubject.next(datos));
+    this.filtrarSubject
+      .pipe(
+        startWith(void 0),
+        debounceTime(300),
+        tap(() => this.cargandoSubject.next(true)),
+        switchMap(() =>
+          this.consultarDatos(this.filtroSucursales.normalizarIds())
+        ),
+        untilDestroyed(this)
+      )
+      .subscribe((datos) => {
+        this.datosSubject.next(datos);
+        this.detallesConDesglose = datos?.detalles || [];
+        this.cdr.markForCheck();
+      });
   }
 
-  private generarRangoFecha(anho: number, mes: number | null): { inicio: string; fin: string } {
-    if (mes) {
-      const inicio = `${anho}-${String(mes).padStart(2, '0')}-01 00:00:00`;
-      const fechaFin = new Date(anho, mes, 1);
-      const fin = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}-01 00:00:00`;
-      return { inicio, fin };
-    } else {
-      return { inicio: `${anho}-01-01 00:00:00`, fin: `${anho + 1}-01-01 00:00:00` };
-    }
+  private consultarDatos(
+    sucIds: number[]
+  ): Observable<FormaPagoDatosGraficoProcesados> {
+    return this.graficoService
+      .obtenerEstadisticasFormaPagoMulti(
+        periodosDesdeFiltro(this.filtroPeriodo),
+        this.filtroSucursales.normalizarIds(sucIds)
+      )
+      .pipe(
+        map((estadisticas) => this.procesarDatos(estadisticas)),
+        finalize(() => this.cargandoSubject.next(false))
+      );
   }
 
-  private procesarDatos(estadisticas: FormaPagoEstadistica[]): DatosGraficoProcesados {
-    const validas = (estadisticas || []).filter(e => e.cantidadTransacciones > 0);
-    const totalMontoNum = validas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
-    const totalTransNum = validas.reduce((sum, e) => sum + (e.cantidadTransacciones || 0), 0);
+  private procesarDatos(
+    estadisticas: FormaPagoEstadistica[]
+  ): FormaPagoDatosGraficoProcesados {
+    const validas = (estadisticas || []).filter(
+      (e) => e.cantidadTransacciones > 0
+    );
+    const totalMontoNum = validas.reduce(
+      (sum, e) => sum + (e.totalMonto || 0),
+      0
+    );
+    const totalTransNum = validas.reduce(
+      (sum, e) => sum + (e.cantidadTransacciones || 0),
+      0
+    );
 
-    const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => ({
-      descripcion: e.descripcion,
-      montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
-      cantidadFormateada: `${e.cantidadTransacciones.toLocaleString('es-PY')} transacciones`,
-      porcentaje: e.porcentaje || 0,
-      color: this.paletaColores[i % this.paletaColores.length],
-      icono: this.obtenerIcono(e.descripcion)
-    }));
+    const detallesProcesados: FormaPagoDetalleProcesado[] = (estadisticas || []).map(
+      (e, i) => ({
+        descripcion: e.descripcion,
+        montoFormateado: formatoMonedaPy(e.totalMonto),
+        cantidadFormateada: `${e.cantidadTransacciones.toLocaleString("es-PY")} transacciones`,
+        porcentaje: e.porcentaje || 0,
+        color: GRAFICO_PALETA_BARRAS[i % GRAFICO_PALETA_BARRAS.length],
+        icono: this.resolverIconoFormaPago(e.descripcion),
+        expandido: false,
+        desglose: this.procesarDesgloseMoneda(e.desgloseMoneda),
+      })
+    );
 
     const opciones: EChartsOption = {
-      title: {
-        text: 'Distribución de Formas de Pago',
-        subtext: `Total: ₲ ${totalMontoNum.toLocaleString('es-PY')}`,
-        left: 'center', top: 10,
-        textStyle: { color: this.colores.text, fontSize: 18, fontWeight: 'bold' },
-        subtextStyle: { color: this.colores.textSecondary, fontSize: 13 }
-      },
       tooltip: {
-        trigger: 'item',
-        backgroundColor: '#424242', borderColor: '#555',
-        textStyle: { color: this.colores.text },
-        formatter: (params: any) => `<strong>${params.name}</strong><br/>Monto: ₲ ${params.value.toLocaleString('es-PY')}<br/>Porcentaje: ${params.percent.toFixed(2)}%`
+        trigger: "item",
+        backgroundColor: GRAFICO_COLORES.background,
+        borderColor: GRAFICO_COLORES.axisLine,
+        textStyle: { color: GRAFICO_COLORES.text },
+        formatter: (params: unknown) => {
+          const p = params as { name: string; value: number; percent: number };
+          const item = (estadisticas || []).find((e) => e.descripcion === p.name);
+          return formatearTooltipGraficoPeriodo({
+            titulo: p.name,
+            total: Number(p.value),
+            desglosePeriodos: item?.desglosePeriodos,
+            desgloseAnhos: item?.desgloseAnhos,
+            lineasExtra: [`Porcentaje: ${p.percent.toFixed(2)}%`],
+          });
+        },
       },
-      legend: { orient: 'vertical', right: '5%', top: 'center', textStyle: { color: this.colores.textSecondary } },
-      series: [{
-        name: 'Forma de Pago', type: 'pie', radius: ['40%', '70%'], center: ['40%', '55%'],
-        itemStyle: { borderRadius: 8, borderColor: this.colores.backgroundDark, borderWidth: 2 },
-        label: { show: true, formatter: '{b}: {d}%', color: this.colores.textSecondary },
-        data: validas.map((e, i) => ({
-          value: e.totalMonto, name: e.descripcion,
-          itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
-        }))
-      }]
+      legend: {
+        orient: "horizontal",
+        bottom: 0,
+        left: "center",
+        itemGap: 16,
+        textStyle: { color: GRAFICO_COLORES.textSecondary, fontSize: 12 },
+      },
+      series: [
+        {
+          name: "Forma de Pago",
+          type: "pie",
+          radius: ["48%", "78%"],
+          center: ["50%", "46%"],
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: GRAFICO_COLORES.backgroundDark,
+            borderWidth: 2,
+          },
+          label: {
+            show: false,
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 13,
+              fontWeight: "bold",
+              color: GRAFICO_COLORES.text,
+              formatter: "{b}\n{d}%",
+            },
+          },
+          data: validas.map((e, i) => ({
+            value: e.totalMonto,
+            name: e.descripcion,
+            itemStyle: {
+              color: GRAFICO_PALETA_BARRAS[i % GRAFICO_PALETA_BARRAS.length],
+            },
+          })),
+        },
+      ],
     };
 
     return {
       opciones,
       detalles: detallesProcesados,
-      totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`,
-      totalTransacciones: totalTransNum.toLocaleString('es-PY'),
-      hayDatos: totalTransNum > 0
+      totalMonto: formatoMonedaPy(totalMontoNum),
+      totalTransacciones: totalTransNum.toLocaleString("es-PY"),
+      hayDatos: totalTransNum > 0,
     };
   }
 
-  private obtenerIcono(desc: string): string {
+  private procesarDesgloseMoneda(
+    desglose?: FormaPagoMonedaDesglose[]
+  ): FormaPagoDetalleProcesado["desglose"] {
+    return (desglose || [])
+      .filter((d) => d.totalMonto > 0)
+      .sort((a, b) => b.totalMonto - a.totalMonto)
+      .map((d) => ({
+        moneda: etiquetaMoneda(d.denominacion),
+        monto: d.totalMonto,
+        montoFormateado: formatoMontoMoneda(
+          d.totalMonto,
+          d.simbolo,
+          d.denominacion
+        ),
+        cantidad: d.cantidadTransacciones,
+      }));
+  }
+
+  private resolverIconoFormaPago(desc: string): string {
     const iconos: Record<string, string> = {
-      'EFECTIVO': 'payments', 'TARJETA': 'credit_card', 'CONVENIO': 'handshake',
-      'TRANSFERENCIA': 'account_balance', 'CHEQUE': 'receipt_long'
+      EFECTIVO: "payments",
+      TARJETA: "credit_card",
+      CONVENIO: "handshake",
+      TRANSFERENCIA: "account_balance",
+      CHEQUE: "receipt_long",
     };
-    return iconos[desc?.toUpperCase()] || 'payment';
-  }
-
-  limpiarFiltros(): void {
-    this.sucursalControl.setValue(null);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue(new Date().getMonth() + 1);
+    return iconos[desc?.toUpperCase()] || "payment";
   }
 }

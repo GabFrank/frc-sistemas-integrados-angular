@@ -33,7 +33,11 @@ export class AutorizarGastoDialogComponent implements OnInit {
   montoRendidoGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   montoRendidoDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionGsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionRsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
+  devolucionDsControl = new FormControl<number>(0, { nonNullable: true, validators: [Validators.min(0)] });
   mostrarMotivoRechazo = false;
+  registrandoDevolucion = false;
   readonly ESTADO_TRAMITE = 'TRAMITE';
   resumenMontosPorMoneda: ResumenMontoPorMoneda[] = [];
   currencyMask = new CurrencyMask();
@@ -51,26 +55,54 @@ export class AutorizarGastoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
     if (this.esTramite()) {
-      const gasto = this.preGasto?.gasto;
-      const retiroGs = Number(gasto?.retiroGs ?? 0);
-      const retiroRs = Number(gasto?.retiroRs ?? 0);
-      const retiroDs = Number(gasto?.retiroDs ?? 0);
-      const vueltoGs = Number(gasto?.vueltoGs ?? 0);
-      const vueltoRs = Number(gasto?.vueltoRs ?? 0);
-      const vueltoDs = Number(gasto?.vueltoDs ?? 0);
-
-      this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
-      this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
-      this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
-
-      this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
-      this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
-      this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
+      this.inicializarMontosRendidos();
     }
   }
 
   esTramite(): boolean {
     return this.preGasto?.estado === this.ESTADO_TRAMITE;
+  }
+
+  tieneSaldoDevolver(): boolean {
+    return Number(this.preGasto?.saldoDevolver ?? 0) > 0;
+  }
+
+  registrarDevolucion(): void {
+    if (!this.esTramite() || !this.tieneSaldoDevolver()) {
+      return;
+    }
+    const vueltoGs = this.parseMontoMoneda(this.devolucionGsControl.value, 'GS');
+    const vueltoRs = this.parseMontoMoneda(this.devolucionRsControl.value, 'RS');
+    const vueltoDs = this.parseMontoMoneda(this.devolucionDsControl.value, 'DS');
+    if (vueltoGs + vueltoRs + vueltoDs <= 0) {
+      return;
+    }
+    this.registrandoDevolucion = true;
+    this.gastoService.registrarDevolucionSaldo({
+      preGastoId: this.preGasto.id,
+      sucursalId: this.preGasto.sucursalId,
+      cajaId: this.preGasto.cajaId,
+      vueltoGs,
+      vueltoRs,
+      vueltoDs,
+      usuarioId: this.mainService.usuarioActual?.id,
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: (res) => {
+        this.registrandoDevolucion = false;
+        if (res) {
+          this.preGasto = { ...this.preGasto, ...res };
+          this.resumenMontosPorMoneda = this.buildResumenMontosPorMoneda();
+          this.devolucionGsControl.setValue(0, { emitEvent: false });
+          this.devolucionRsControl.setValue(0, { emitEvent: false });
+          this.devolucionDsControl.setValue(0, { emitEvent: false });
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {
+        this.registrandoDevolucion = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   autorizar(): void {
@@ -216,12 +248,36 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  private inicializarMontosRendidos(): void {
+    const gasto = this.preGasto?.gasto;
+    const retiroGs = Number(gasto?.retiroGs ?? 0);
+    const retiroRs = Number(gasto?.retiroRs ?? 0);
+    const retiroDs = Number(gasto?.retiroDs ?? 0);
+    const vueltoGs = Number(gasto?.vueltoGs ?? 0);
+    const vueltoRs = Number(gasto?.vueltoRs ?? 0);
+    const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+
+    this.montoRendidoGsControl.setValue(Math.max(retiroGs - vueltoGs, 0), { emitEvent: false });
+    this.montoRendidoRsControl.setValue(Math.max(retiroRs - vueltoRs, 0), { emitEvent: false });
+    this.montoRendidoDsControl.setValue(Math.max(retiroDs - vueltoDs, 0), { emitEvent: false });
+
+    this.montoRendidoGsControl.updateValueAndValidity({ emitEvent: false });
+    this.montoRendidoRsControl.updateValueAndValidity({ emitEvent: false });
+    this.montoRendidoDsControl.updateValueAndValidity({ emitEvent: false });
+  }
+
   private valorRetiradoPorMoneda(simbolo: string, denominacion: string): number {
     const normalized = (simbolo ?? '').trim().toUpperCase();
     const normalizedDen = (denominacion ?? '').trim().toUpperCase();
     const gasto = this.preGasto?.gasto;
     if (!gasto) {
-      return 0;
+      const finanzas = this.preGasto?.finanzas ?? [];
+      const fin = finanzas.find((item) => {
+        const itemSimbolo = (item?.moneda?.simbolo ?? '').trim().toUpperCase();
+        const itemDen = (item?.moneda?.denominacion ?? '').trim().toUpperCase();
+        return itemSimbolo === normalized || itemDen === normalizedDen;
+      });
+      return Number(fin?.monto ?? this.preGasto?.montoRetirado ?? 0);
     }
     if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) {
       return Number(gasto.retiroGs ?? 0);

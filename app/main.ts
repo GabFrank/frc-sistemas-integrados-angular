@@ -231,20 +231,45 @@ let printers: PrinterConfig[] = [];
 
 
 const { ipcMain } = require('electron');
-let instanceCount = 0;
 
 require("@electron/remote/main").initialize();
 
 let win: BrowserWindow;
+let windows: BrowserWindow[] = [];
+// Particion (sesion/localStorage propios) para la 2da ventana: permite tener un
+// usuario logueado distinto al de la 1ra (caso cambio de turno de cajero). La config
+// del sistema (servidor/caja/pdv) NO se aisla: la 2da ventana la recupera del archivo
+// compartido config-backup.json via el fallback de ConfiguracionService.
+const SECOND_INSTANCE_PARTITION = 'persist:frc-caja-2';
 const args = process.argv.slice(1),
   serve = args.some(val => val === '--serve');
 
-export async function createWindow(): Promise<BrowserWindow> {
+// Maximo 2 instancias. El lock de instancia unica hace que cualquier re-lanzamiento
+// del ejecutable caiga en el proceso primario via 'second-instance'. Ahi decidimos:
+// si hay < 2 ventanas, abrir una 2da; si ya hay 2, enfocar la activa y avisar.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+app.on('second-instance', () => {
+  if (windows.length >= 2) {
+    const target = win || windows[windows.length - 1];
+    if (target) {
+      if (target.isMinimized()) target.restore();
+      target.focus();
+      target.webContents.send('max-instances-reached');
+    }
+    return;
+  }
+  createWindow(SECOND_INSTANCE_PARTITION);
+});
+
+export async function createWindow(partition?: string): Promise<BrowserWindow> {
   const electronScreen = screen;
   const size = screen.getPrimaryDisplay().workAreaSize;
   let factor = screen.getPrimaryDisplay().scaleFactor;
 
-  win = new BrowserWindow({
+  const w = new BrowserWindow({
     icon: `file://${__dirname}/dist/assets/logo.ico`,
     x: 0,
     y: 0,
@@ -254,18 +279,25 @@ export async function createWindow(): Promise<BrowserWindow> {
       nodeIntegration: true,
       allowRunningInsecureContent: (serve),
       contextIsolation: false,
+      ...(partition ? { partition } : {}),
     },
   });
-  try {
-    const path = require('path');
-    const fs = require('fs');
-    const userDataPath = app.getPath('userData');
-  } catch (e) {
-  }
+  win = w;
+  windows.push(w);
+  require("@electron/remote/main").enable(w.webContents);
+  // 'win' (global) apunta siempre a la ventana enfocada: menu, zoom y update-status operan sobre ella.
+  w.on('focus', () => { win = w; });
+  w.on('closed', () => {
+    windows = windows.filter((other) => other !== w);
+    if (win === w) win = windows[windows.length - 1];
+  });
 
-  setupPushReceiver(win.webContents);
+  setupPushReceiver(w.webContents);
   const { Notification } = require('electron');
 
+  // Registrar el handler de notificaciones nativas una sola vez (no por ventana):
+  // evita notificaciones duplicadas cuando hay 2 instancias abiertas.
+  ipcMain.removeAllListeners('SHOW_NATIVE_NOTIFICATION');
   ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
 
     try {
@@ -313,28 +345,16 @@ export async function createWindow(): Promise<BrowserWindow> {
 
   // win.webContents.setZoomFactor(1); // Removido para permitir que el zoom se maneje dinámicamente en did-finish-load
 
-  win.maximize();
-  win.show();
-
-  app.on("second-instance", (event, commandLine, workingDirectory) => {
-    instanceCount++;
-    if (instanceCount >= 2) {
-      app.quit();
-      return;
-    }
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.focus();
-    }
-  });
+  w.maximize();
+  w.show();
 
   if (serve) {
-    win.webContents.openDevTools();
+    w.webContents.openDevTools();
     const debug = require('electron-debug');
     debug();
 
     require('electron-reloader')(module);
-    win.loadURL('http://localhost:4200');
+    w.loadURL('http://localhost:4200');
   } else {
     let pathIndex = './index.html';
 
@@ -343,14 +363,10 @@ export async function createWindow(): Promise<BrowserWindow> {
     }
 
     const url = new URL(path.join('file:', __dirname, pathIndex));
-    win.loadURL(url.href);
+    w.loadURL(url.href);
   }
 
-  win.on('closed', () => {
-    app.quit();
-  });
-
-  win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+  w.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
     console.log("did-fail-load", { errorCode, errorDescription, validatedURL });
     // Solo relanzamos si es un error crítico de carga de la página principal (index.html o localhost:4200)
     // No relanzamos por errores de recursos secundarios o servicios externos (como FCM/push notifications)
@@ -368,21 +384,21 @@ export async function createWindow(): Promise<BrowserWindow> {
     }
   });
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  w.webContents.setWindowOpenHandler(({ url }) => {
     require("electron").shell.openExternal(url);
     return { action: "deny" };
   });
 
-  win.webContents.on('did-finish-load', () => {
+  w.webContents.on('did-finish-load', () => {
     // Leer zoom desde archivo (no depende de localStorage ni del renderer)
     const zoom = loadZoomLevel();
-    win.webContents.setZoomLevel(zoom);
+    w.webContents.setZoomLevel(zoom);
     // Sincronizar con localStorage del renderer para mantener compatibilidad
-    win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${zoom});`, true);
+    w.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${zoom});`, true);
     log.info(`Zoom level applied on load: ${zoom}`);
   });
 
-  return win;
+  return w;
 }
 
 ipcMain.on('get-config-file', (event: any, arg: any) => {
@@ -1209,7 +1225,6 @@ try {
   });
 
   app.on('window-all-closed', () => {
-    instanceCount--;
     if (process.platform !== "darwin") {
       app.quit();
     }

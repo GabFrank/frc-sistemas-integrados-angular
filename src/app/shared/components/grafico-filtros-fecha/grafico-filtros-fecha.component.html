@@ -1,0 +1,51 @@
+<mat-form-field
+  appearance="outline"
+  class="grafico-filtro-fecha grafico-filtro-fecha--anho"
+>
+  <mat-label>Años</mat-label>
+  <mat-select [formControl]="anhoControl" multiple>
+    <mat-option *ngFor="let anho of anhos" [value]="anho">
+      {{ anho }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<mat-form-field
+  appearance="outline"
+  class="grafico-filtro-fecha grafico-filtro-fecha--mes"
+>
+  <mat-label>Mes</mat-label>
+  <mat-select [formControl]="mesControl">
+    <mat-option [value]="null">Todos</mat-option>
+    <mat-option *ngFor="let mes of meses" [value]="mes.valor">
+      {{ mes.nombre }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<mat-form-field
+  *ngIf="mostrarDia"
+  appearance="outline"
+  class="grafico-filtro-fecha grafico-filtro-fecha--dia"
+>
+  <mat-label>{{ etiquetaDia }}</mat-label>
+  <input
+    matInput
+    [matDatepicker]="pickerDia"
+    [formControl]="fechaControl"
+    placeholder="dd/mm/aaaa"
+  />
+  <mat-datepicker-toggle matSuffix [for]="pickerDia"></mat-datepicker-toggle>
+  <mat-datepicker #pickerDia></mat-datepicker>
+</mat-form-field>
+
+<button
+  *ngIf="mostrarBotonLimpiar"
+  mat-icon-button
+  type="button"
+  (click)="limpiarFiltros()"
+  matTooltip="Limpiar filtros de fecha"
+  aria-label="Limpiar filtros de fecha"
+>
+  <mat-icon>filter_alt_off</mat-icon>
+</button>

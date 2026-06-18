@@ -4,7 +4,7 @@
             <mat-icon style="color: white;">domain</mat-icon>
         </div>
         <div>
-            <h2 class="titulo" style="margin: 0;">{{ data?.id ? 'Editar Inmueble' : 'Nuevo Inmueble' }}</h2>
+            <h2 class="titulo" style="margin: 0;">{{ registroGuardado ? 'Editar Inmueble' : 'Nuevo Inmueble' }}</h2>
         </div>
         <span fxFlex></span>
         <button mat-icon-button (click)="onCancelar()">
@@ -42,6 +42,9 @@
                             <input matInput [value]="paisDescripcion" readonly (click)="onBuscarPais()"
                                 style="cursor: pointer;">
                             <mat-icon matSuffix style="cursor: pointer;" (click)="onBuscarPais()">search</mat-icon>
+                            <mat-hint *ngIf="form.controls['paisId'].invalid && form.controls['paisId'].touched">
+                                Seleccione un país (o elija una ciudad que lo asigne automáticamente)
+                            </mat-hint>
                         </mat-form-field>
 
                         <mat-form-field fxFlex="50">
@@ -156,21 +159,21 @@
                                 <input matInput type="number" formControlName="diaVencimiento" min="1" max="31">
                             </mat-form-field>
                         </div>
+
+                        <app-cuotas-detalle-editor
+                            *ngIf="(situacionPago$ | async) === 'PAGANDO'"
+                            [cantidadCuotas]="form.controls['cantidadCuotas'].value"
+                            [cantidadCuotasPagadas]="form.controls['cantidadCuotasPagadas'].value"
+                            [montoTotal]="form.controls['montoTotal'].value"
+                            [montoYaPagado]="form.controls['montoYaPagado'].value"
+                            [cuotas]="cuotasDetalle"
+                            (cuotasChange)="onCuotasChange($event)">
+                        </app-cuotas-detalle-editor>
                     </div>
                 </div>
             </mat-tab>
             <mat-tab label="Archivos">
-                <div fxLayout="column" fxLayoutGap="20px" style="padding-top: 15px;">
-                    <button mat-raised-button color="primary">
-                        <mat-icon>upload_file</mat-icon> SUBIR DOCUMENTOS DE COMPRA
-                    </button>
-                    <button mat-raised-button color="accent">
-                        <mat-icon>photo_camera</mat-icon> SUBIR FOTOS ESTADO INICIAL
-                    </button>
-
-                    <div style="opacity: 0.5; font-size: 0.8em;">* Los archivos subidos mantendrán historial de
-                        vigencia.</div>
-                </div>
+                <app-ente-archivos-panel [enteId]="enteId" [tiposPermitidos]="archivosTipos"></app-ente-archivos-panel>
             </mat-tab>
         </mat-tab-group>
 
@@ -184,6 +187,6 @@
         CANCELAR
     </button>
     <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="form.invalid">
-        {{ data?.id ? 'GUARDAR' : 'REGISTRAR INMUEBLE' }}
+        {{ registroGuardado ? 'GUARDAR' : 'REGISTRAR INMUEBLE' }}
     </button>
 </mat-dialog-actions>

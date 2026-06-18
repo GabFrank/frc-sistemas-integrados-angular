@@ -1,10 +1,16 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { PdvCaja } from '../../pdv/caja/caja.model';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { PageInfo } from '../../../../app.component';
 import { Gasto } from '../models/gastos.model';
 import { PreGasto } from '../models/pre-gasto.model';
+import { LineaRetiroSugerida } from '../models/linea-retiro-sugerida.model';
+import { MontosRetiroPayload } from '../models/montos-retiro-payload.model';
+import { RetiroPreGastoLineaInput } from '../models/retiro-pre-gasto-linea-input.model';
 import { FilterGastosGQL } from '../graphql/filterGastos';
 import { GastoPorCajaIdGQL } from '../graphql/gastoPorCajaId';
 import { ReimprimirGastoGQL } from '../graphql/reimprimirGasto';
@@ -13,7 +19,6 @@ import { SaveVueltoGastoGQL } from '../graphql/saveVuelto';
 import { AutorizarPreGastoGQL } from '../graphql/autorizarPreGasto';
 import { RechazarPreGastoGQL } from '../graphql/rechazarPreGasto';
 import { SavePreGastoGQL } from '../graphql/savePreGasto';
-import { TramitarPreGastoGQL } from '../graphql/tramitarPreGasto';
 import { CompletarPreGastoGQL } from '../graphql/completarPreGasto';
 import { ImprimirPreGastoGQL } from '../graphql/imprimirPreGasto';
 import { EnviarPreGastoATesoreriaGQL } from '../graphql/enviarPreGastoATesoreria';
@@ -25,6 +30,15 @@ import { SaveTipoGastoGQL } from '../graphql/saveTipoGasto';
 import { FilterTipoGastosGQL } from '../graphql/filterTipoGastos';
 import { TipoGastoSearchGQL } from '../graphql/tipoGastosSearch';
 import { TipoGasto } from '../models/tipo-gasto.model';
+import { PreGastosParaRetiroGQL } from '../graphql/preGastosParaRetiro';
+import { QrRetiroPreGastoGQL } from '../graphql/qrRetiroPreGasto';
+import { PreGastoPorIdGQL } from '../graphql/preGastoPorId';
+import { EjecutarRetiroPreGastoGQL } from '../graphql/ejecutarRetiroPreGasto';
+import { LineasRetiroSugeridasGQL } from '../graphql/lineasRetiroSugeridas';
+import { MontosRetiroDesdeLineasGQL } from '../graphql/montosRetiroDesdeLineas';
+import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado';
+import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
+import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
 
 @Injectable({
   providedIn: 'root'
@@ -42,7 +56,6 @@ export class GastoService {
     private onSavePreGasto: SavePreGastoGQL,
     private autorizarGQL: AutorizarPreGastoGQL,
     private rechazarGQL: RechazarPreGastoGQL,
-    private tramitarGQL: TramitarPreGastoGQL,
     private completarPreGastoGQL: CompletarPreGastoGQL,
     private filterPreGastosGQL: FilterPreGastosGQL,
     private imprimirPreGastoGQL: ImprimirPreGastoGQL,
@@ -52,7 +65,16 @@ export class GastoService {
     private tipoGastoSearch: TipoGastoSearchGQL,
     private filterTipoGastosGQL: FilterTipoGastosGQL,
     private enviarATesoreriaGQL: EnviarPreGastoATesoreriaGQL,
-    private imprimirSolicitudPagoGQL: ImprimirSolicitudPagoGQL
+    private imprimirSolicitudPagoGQL: ImprimirSolicitudPagoGQL,
+    private preGastosParaRetiroGQL: PreGastosParaRetiroGQL,
+    private qrRetiroPreGastoGQL: QrRetiroPreGastoGQL,
+    private preGastoPorIdGQL: PreGastoPorIdGQL,
+    private ejecutarRetiroPreGastoGQL: EjecutarRetiroPreGastoGQL,
+    private lineasRetiroSugeridasGQL: LineasRetiroSugeridasGQL,
+    private montosRetiroDesdeLineasGQL: MontosRetiroDesdeLineasGQL,
+    private preGastoRetiroConfirmadoGQL: PreGastoRetiroConfirmadoGQL,
+    private registrarDevolucionSaldoGQL: RegistrarDevolucionSaldoGQL,
+    private saveGastoRendicionGQL: SaveGastoRendicionGQL
   ) { }
 
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
@@ -114,10 +136,6 @@ export class GastoService {
     return this.genericService.onCustomMutation(this.rechazarGQL, { id, motivo, rechazadorId, usuarioId, sucId });
   }
 
-  preGastoTramitar(id: number, sucId?: number): Observable<PreGasto> {
-    return this.genericService.onCustomMutation(this.tramitarGQL, { id, sucId });
-  }
-
   preGastoCompletar(
     id: number,
     sucId?: number,
@@ -173,6 +191,187 @@ export class GastoService {
       page,
       size
     });
+  }
+
+  preGastosParaRetiro(sucursalCajaId: number): Observable<PreGasto[]> {
+    return this.genericService.onCustomQuery(this.preGastosParaRetiroGQL, { sucursalCajaId });
+  }
+
+  qrRetiroPreGasto(preGastoId: number, sucursalId: number): Observable<{ codigoQr: string; preGastoId: number; sucursalId: number; qrToken: string }> {
+    return this.genericService.onCustomQuery(this.qrRetiroPreGastoGQL, { preGastoId, sucursalId });
+  }
+
+  preGastoPorId(id: number, sucId?: number): Observable<PreGasto> {
+    return this.genericService.onCustomQuery(this.preGastoPorIdGQL, { id, sucId });
+  }
+
+  lineasRetiroSugeridas(preGastoId: number, sucursalId: number): Observable<LineaRetiroSugerida[]> {
+    return this.genericService.onCustomQuery(this.lineasRetiroSugeridasGQL, { preGastoId, sucursalId });
+  }
+
+  montosRetiroDesdeLineas(lineas: RetiroPreGastoLineaInput[]): Observable<MontosRetiroPayload> {
+    return this.genericService.onCustomQuery(this.montosRetiroDesdeLineasGQL, { lineas });
+  }
+
+  preGastoRetiroConfirmado(preGastoId: number, sucursalId: number): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.preGastoRetiroConfirmadoGQL, { preGastoId, sucursalId });
+  }
+
+  ejecutarRetiroPreGasto(input: {
+    preGastoId: number;
+    sucursalId: number;
+    sucursalCajaId: number;
+    cajaId: number;
+    usuarioId?: number;
+    gastoRegistroId: number;
+    lineas?: RetiroPreGastoLineaInput[];
+  }): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.ejecutarRetiroPreGastoGQL, { input });
+  }
+
+  registrarRetiroPreGastoHibrido(
+    preGasto: PreGasto,
+    caja: PdvCaja,
+    responsable: Funcionario,
+    autorizadoPor: Funcionario | null,
+    lineas: RetiroPreGastoLineaInput[],
+    usuarioId?: number
+  ): Observable<PreGasto> {
+    const sucursalCajaId = caja?.sucursal?.id ?? caja?.sucursalId;
+    return this.montosRetiroDesdeLineas(lineas).pipe(
+      switchMap((montos) => {
+        const gasto = new Gasto();
+        gasto.caja = caja;
+        gasto.sucursalId = sucursalCajaId;
+        gasto.responsable = responsable;
+        gasto.tipoGasto = preGasto.tipoGasto;
+        gasto.autorizadoPor = autorizadoPor ?? undefined;
+        gasto.observacion = preGasto.descripcion;
+        gasto.retiroGs = Number(montos?.retiroGs ?? 0);
+        gasto.retiroRs = Number(montos?.retiroRs ?? 0);
+        gasto.retiroDs = Number(montos?.retiroDs ?? 0);
+        gasto.vueltoGs = 0;
+        gasto.vueltoRs = 0;
+        gasto.vueltoDs = 0;
+        gasto.activo = true;
+        gasto.finalizado = false;
+
+        return this.onSave(gasto, false).pipe(
+          switchMap((gastoGuardado) => {
+            if (!gastoGuardado?.id) {
+              return throwError(() => new Error('No se pudo registrar el gasto en la caja local.'));
+            }
+            return this.ejecutarRetiroPreGasto({
+              preGastoId: preGasto.id,
+              sucursalId: preGasto.sucursalId,
+              sucursalCajaId,
+              cajaId: caja.id,
+              usuarioId,
+              gastoRegistroId: gastoGuardado.id,
+              lineas,
+            });
+          })
+        );
+      })
+    );
+  }
+
+  registrarDevolucionSaldo(input: {
+    preGastoId: number;
+    sucursalId: number;
+    cajaId: number;
+    vueltoGs?: number;
+    vueltoRs?: number;
+    vueltoDs?: number;
+    usuarioId?: number;
+  }): Observable<PreGasto> {
+    return this.genericService.onCustomMutation(this.registrarDevolucionSaldoGQL, { input });
+  }
+
+  registrarDevolucionSaldoHibrido(
+    preGasto: PreGasto,
+    vueltoGs: number,
+    vueltoRs: number,
+    vueltoDs: number,
+    sucursalCajaId: number,
+    usuarioId?: number
+  ): Observable<PreGasto> {
+    if (!preGasto?.gastoCajaRegistroId || !preGasto?.cajaId) {
+      return throwError(() => new Error('La solicitud no tiene un gasto de caja local asociado.'));
+    }
+    return this.onFilterGasto(
+      preGasto.gastoCajaRegistroId,
+      preGasto.cajaId,
+      sucursalCajaId,
+      undefined,
+      undefined,
+      0,
+      1,
+      false
+    ).pipe(
+      switchMap((page) => {
+        const gastoLocal = page?.getContent?.[0];
+        if (!gastoLocal?.id) {
+          return throwError(() => new Error('No se encontró el gasto en la caja local.'));
+        }
+        const gasto = new Gasto();
+        Object.assign(gasto, gastoLocal);
+        gasto.sucursalId = gasto.sucursalId ?? gastoLocal.sucursal?.id ?? sucursalCajaId;
+        gasto.preGastoId = preGasto.id;
+        gasto.preGastoSucursalId = preGasto.sucursalId;
+        gasto.vueltoGs = Number(gasto.vueltoGs ?? 0) + vueltoGs;
+        gasto.vueltoRs = Number(gasto.vueltoRs ?? 0) + vueltoRs;
+        gasto.vueltoDs = Number(gasto.vueltoDs ?? 0) + vueltoDs;
+        return this.onSave(gasto, false).pipe(
+          switchMap(() => this.registrarDevolucionSaldo({
+            preGastoId: preGasto.id,
+            sucursalId: preGasto.sucursalId,
+            cajaId: preGasto.cajaId,
+            vueltoGs,
+            vueltoRs,
+            vueltoDs,
+            usuarioId,
+          }))
+        );
+      })
+    );
+  }
+
+  calcularMontosRetiro(preGasto: PreGasto): { gs: number; rs: number; ds: number } {
+    let gs = 0;
+    let rs = 0;
+    let ds = 0;
+    const finanzas = preGasto?.finanzas ?? [];
+    if (finanzas.length > 0) {
+      for (const fin of finanzas) {
+        const monto = Number(fin?.monto ?? 0);
+        const simbolo = (fin?.moneda?.simbolo ?? '').trim().toUpperCase();
+        const denominacion = (fin?.moneda?.denominacion ?? '').trim().toUpperCase();
+        if (simbolo.includes('GS') || denominacion.includes('GUARANI')) {
+          gs += monto;
+        } else if (simbolo.includes('R$') || simbolo.includes('RS') || denominacion.includes('REAL')) {
+          rs += monto;
+        } else {
+          ds += monto;
+        }
+      }
+      return { gs, rs, ds };
+    }
+    const monto = Number(preGasto?.montoSolicitado ?? 0);
+    const simbolo = (preGasto?.moneda?.simbolo ?? '').trim().toUpperCase();
+    const denominacion = (preGasto?.moneda?.denominacion ?? '').trim().toUpperCase();
+    if (simbolo.includes('GS') || denominacion.includes('GUARANI')) {
+      gs = monto;
+    } else if (simbolo.includes('R$') || simbolo.includes('RS') || denominacion.includes('REAL')) {
+      rs = monto;
+    } else {
+      ds = monto;
+    }
+    return { gs, rs, ds };
+  }
+
+  saveGastoRendicion(input: unknown): Observable<unknown> {
+    return this.genericService.onSave(this.saveGastoRendicionGQL, input);
   }
 
 }
