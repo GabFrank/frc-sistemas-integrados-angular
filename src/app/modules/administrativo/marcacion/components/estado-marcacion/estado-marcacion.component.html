@@ -3,7 +3,8 @@
         <mat-spinner diameter="50"></mat-spinner>
         <span class="loading-text">Verificando estado...</span>
     </div>
-    <mat-card *ngIf="!cargando && !estaEnJornada" class="estado-card sin-entrada">
+
+    <mat-card *ngIf="!cargando" class="estado-card" [ngClass]="estaEnJornada ? 'con-entrada' : 'sin-entrada'">
         <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
             <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" class="estado-content">
                 <div *ngIf="mensajeErrorFoto" class="error-foto">
@@ -17,62 +18,35 @@
                     (similitudInsuficiente)="similitudInsuficiente.emit($event)">
                 </camara-reconocimiento>
 
-                <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
-                    <button mat-stroked-button color="primary" (click)="iniciarReconocimiento.emit()">
+                <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !reconocimientoExitoso">
+                    <button *ngIf="!estaEnJornada" mat-stroked-button color="primary"
+                        (click)="iniciarReconocimiento.emit()">
                         <mat-icon>face</mat-icon> Intentar Reconocimiento
                     </button>
-                </div>
-
-                <span *ngIf="cargando" class="procesando-text">Procesando...</span>
-
-                <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column" fxLayoutAlign="center center"
-                    fxLayoutGap="16px" class="estado-content">
-                    <div class="success-message">
-                        <mat-icon>check_circle</mat-icon> Identidad Verificada
-                    </div>
-                    <button mat-raised-button class="btn-entrada" (click)="registrarEntrada.emit()">
-                        <mat-icon>login</mat-icon>
-                        REGISTRAR ENTRADA
-                    </button>
-                </div>
-            </div>
-        </mat-card-content>
-    </mat-card>
-    <mat-card *ngIf="!cargando && estaEnJornada" class="estado-card con-entrada">
-        <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="24px">
-            <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="16px" class="estado-content">
-                <div *ngIf="mensajeErrorFoto" class="error-foto">
-                    {{ mensajeErrorFoto }}
-                </div>
-
-                <camara-reconocimiento *ngIf="mostrandoCamara" #camaraRef [modo]="modoCamara"
-                    [referenciaGaleria]="referenciaGaleria" [usuarioSeleccionado]="usuarioSeleccionado"
-                    (identidadVerificada)="identidadVerificada.emit($event)"
-                    (fotoPerfilGuardada)="fotoPerfilGuardada.emit()"
-                    (similitudInsuficiente)="similitudInsuficiente.emit($event)">
-                </camara-reconocimiento>
-
-                <div *ngIf="!mostrandoCamara && !mensajeErrorFoto && !cargando && !reconocimientoExitoso">
-                    <button mat-stroked-button color="warn" (click)="iniciarReconocimiento.emit()">
+                    <button *ngIf="estaEnJornada" mat-stroked-button color="warn"
+                        (click)="iniciarReconocimiento.emit()">
                         <mat-icon>face</mat-icon>
                         {{ accionPendiente === AccionMarcacionPendiente.RETORNO_ALMUERZO ? 'Verificar para Retorno' : 'Verificar para Salir' }}
                     </button>
                 </div>
 
-                <span *ngIf="cargando" class="procesando-text">Procesando...</span>
-
-                <div *ngIf="reconocimientoExitoso && !cargando" fxLayout="column" fxLayoutAlign="center center"
+                <div *ngIf="reconocimientoExitoso" fxLayout="column" fxLayoutAlign="center center"
                     fxLayoutGap="16px" class="estado-content">
                     <div class="success-message">
                         <mat-icon>check_circle</mat-icon> Identidad Verificada
                     </div>
-                    <button *ngIf="accionPendiente === AccionMarcacionPendiente.RETORNO_ALMUERZO"
+                    <button *ngIf="!estaEnJornada" mat-raised-button class="btn-entrada"
+                        (click)="registrarEntrada.emit()">
+                        <mat-icon>login</mat-icon>
+                        REGISTRAR ENTRADA
+                    </button>
+                    <button *ngIf="estaEnJornada && accionPendiente === AccionMarcacionPendiente.RETORNO_ALMUERZO"
                         mat-raised-button class="btn-retorno-almuerzo" (click)="registrarRetornoAlmuerzo.emit()">
                         <mat-icon>restaurant</mat-icon>
                         REGISTRAR RETORNO ALMUERZO
                     </button>
-                    <button *ngIf="accionPendiente === AccionMarcacionPendiente.SALIDA
-                        || accionPendiente === AccionMarcacionPendiente.SALIDA_DEFINITIVA"
+                    <button *ngIf="estaEnJornada && (accionPendiente === AccionMarcacionPendiente.SALIDA
+                        || accionPendiente === AccionMarcacionPendiente.SALIDA_DEFINITIVA)"
                         mat-raised-button class="btn-salida" (click)="registrarSalida.emit()">
                         <mat-icon>logout</mat-icon>
                         REGISTRAR SALIDA

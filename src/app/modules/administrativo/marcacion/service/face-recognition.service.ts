@@ -26,21 +26,21 @@ export class FaceRecognitionService {
             wasmPath: wasmAssetsPath(),
             modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/',
             filter: { enabled: true, equalization: false },
-            face: {
-                enabled: true,
-                detector: { rotation: false },
-                mesh: { enabled: true },
-                attention: { enabled: false },
-                iris: { enabled: true },
-                description: { enabled: true },
-                emotion: { enabled: false },
-                antispoof: { enabled: true },
-                liveness: { enabled: true }
-            },
+        face: {
+            enabled: true,
+            detector: { rotation: true, maxDetected: 1 },
+            mesh: { enabled: true },
+            attention: { enabled: false },
+            iris: { enabled: true },
+            description: { enabled: true },
+            emotion: { enabled: false },
+            antispoof: { enabled: false },
+            liveness: { enabled: false }
+        },
             body: { enabled: false },
             hand: { enabled: false },
             object: { enabled: false },
-            gesture: { enabled: true }
+            gesture: { enabled: false }
         };
     }
 

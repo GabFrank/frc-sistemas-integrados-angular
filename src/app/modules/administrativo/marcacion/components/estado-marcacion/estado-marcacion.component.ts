@@ -36,7 +36,7 @@ export class EstadoMarcacionComponent {
 
     readonly AccionMarcacionPendiente = AccionMarcacionPendiente;
     @Output() iniciarReconocimiento = new EventEmitter<void>();
-    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string }>();
+    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string, score: number }>();
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
     @Output() similitudInsuficiente = new EventEmitter<boolean>();
 

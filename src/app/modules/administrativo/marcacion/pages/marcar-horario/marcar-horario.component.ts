@@ -9,7 +9,7 @@ import {
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { catchError } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import { timeout } from 'rxjs';
 
 import { MainService } from '../../../../../main.service';
@@ -69,6 +69,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   public referenciaGaleria: EmbeddingGaleria | null = null;
   public embeddingCapturado: number[] | null = null;
+  public embeddingScoreCapturado: number | null = null;
 
   @ViewChild('estadoRef') estadoRef: EstadoMarcacionComponent;
   @ViewChild('busquedaRef') busquedaRef: BusquedaUsuarioComponent;
@@ -98,6 +99,34 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.camaraService.detenerCamara();
+  }
+
+  private async iniciarCamaraEnEstado(): Promise<void> {
+    this.cdr.detectChanges();
+    for (let i = 0; i < 25; i++) {
+      const camaraRef = this.estadoRef?.camaraRef;
+      if (camaraRef) {
+        await camaraRef.iniciar();
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+      this.cdr.detectChanges();
+    }
+    console.warn('No se pudo iniciar la cámara: componente no disponible');
+  }
+
+  private async iniciarCamaraEnBusqueda(): Promise<void> {
+    this.cdr.detectChanges();
+    for (let i = 0; i < 25; i++) {
+      const camaraRef = this.busquedaRef?.camaraRef;
+      if (camaraRef) {
+        await camaraRef.iniciar();
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+      this.cdr.detectChanges();
+    }
+    console.warn('No se pudo iniciar la cámara de búsqueda: componente no disponible');
   }
   buscarEmpleado(): void {
     const valor = this.empleadoIdControl.value;
@@ -131,8 +160,8 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.usuarioSeleccionado = usuario;
     this.empleadoNombreControl.setValue(usuario.persona?.nombre);
     this.empleadoIdControl.setValue(usuario.id);
-    this.verificarMarcacionActiva();
-    this.limpiarEstadosCamara();
+    this.reiniciarEstadosReconocimiento();
+    await this.verificarMarcacionActivaAsync();
     await this.iniciarProcesoValidacionFacial(usuario);
     this.cdr.markForCheck();
   }
@@ -152,11 +181,16 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   }
 
   limpiarEstadosCamara(): void {
-    this.reconocimientoExitoso = false;
+    this.reiniciarEstadosReconocimiento();
     this.mostrandoCamara = false;
+  }
+
+  private reiniciarEstadosReconocimiento(): void {
+    this.reconocimientoExitoso = false;
     this.mensajeErrorFoto = '';
     this.referenciaGaleria = null;
     this.embeddingCapturado = null;
+    this.embeddingScoreCapturado = null;
     this.similitudInsuficiente = false;
     this.camaraService.detenerCamara();
   }
@@ -165,9 +199,10 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.seleccionarUsuario(usuario);
   }
 
-  onIdentidadVerificada(evento: { embedding: number[], snapshotUrl: string }): void {
+  onIdentidadVerificada(evento: { embedding: number[], snapshotUrl: string, score: number }): void {
     this.reconocimientoExitoso = true;
     this.embeddingCapturado = evento.embedding;
+    this.embeddingScoreCapturado = evento.score;
     this.cdr.markForCheck();
   }
 
@@ -188,11 +223,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   onIniciarBusquedaCamara(): void {
     this.mostrandoCamara = true;
     this.cdr.markForCheck();
-    setTimeout(() => {
-      if (this.busquedaRef?.camaraRef) {
-        this.busquedaRef.camaraRef.iniciar();
-      }
-    });
+    void this.iniciarCamaraEnBusqueda();
   }
 
   onCerrarCamara(): void {
@@ -204,19 +235,19 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     if (this.usuarioSeleccionado) {
       this.reconocimientoExitoso = false;
       this.embeddingCapturado = null;
+    this.embeddingScoreCapturado = null;
       await this.iniciarProcesoValidacionFacial(this.usuarioSeleccionado);
     }
   }
 
   async iniciarProcesoValidacionFacial(usuario: Usuario, forzarRecargaFoto = false): Promise<void> {
-    this.cargando = true;
     let usuarioActual = usuario;
 
     if (forzarRecargaFoto && usuario?.id) {
       try {
-        const usuarioRecargado = await this.usuarioService.onGetUsuario(usuario.id, true)
-          .pipe(timeout(10000))
-          .toPromise();
+        const usuarioRecargado = await firstValueFrom(
+          this.usuarioService.onGetUsuario(usuario.id, true).pipe(timeout(10000))
+        );
         if (usuarioRecargado) {
           usuarioActual = usuarioRecargado;
           this.usuarioSeleccionado = usuarioRecargado;
@@ -227,21 +258,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     }
 
     const galeria = await this.faceHelper.obtenerGaleriaReferencia(usuarioActual);
-    this.cargando = false;
 
     if (galeria) {
       this.referenciaGaleria = galeria;
       this.modoCamara = 'verificacion';
-      this.mostrandoCamara = true;
       this.mensajeErrorFoto = '';
+      this.mostrandoCamara = true;
       this.cdr.markForCheck();
-
-      setTimeout(() => {
-        const camaraRef = this.estadoRef?.camaraRef;
-        if (camaraRef) {
-          camaraRef.iniciar();
-        }
-      });
+      await this.iniciarCamaraEnEstado();
       return;
     }
 
@@ -249,59 +273,58 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     this.modoCamara = 'captura-multiple';
     this.mostrandoCamara = true;
     this.cdr.markForCheck();
-
-    setTimeout(() => {
-      const camaraRef = this.estadoRef?.camaraRef;
-      if (camaraRef) {
-        camaraRef.iniciar();
-      }
-    });
+    await this.iniciarCamaraEnEstado();
   }
   verificarMarcacionActiva(): void {
+    void this.verificarMarcacionActivaAsync();
+  }
+
+  private async verificarMarcacionActivaAsync(): Promise<void> {
     if (!this.usuarioSeleccionado?.id) return;
 
     this.jornadaActual = null;
     this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
     this.cargando = true;
+    this.cdr.markForCheck();
     const { inicio, fin } = this.obtenerRangoMarcacion();
 
-    this.marcacionService.onGetMarcacionesPorUsuario(
-      this.usuarioSeleccionado.id, inicio, fin, 0, 100, true,
-      { networkError: { propagate: true, show: false } }
-    ).pipe(
-      timeout(5000),
-      untilDestroyed(this)
-    ).subscribe({
-      next: (res) => {
-        this.cargando = false;
-        this.procesarMarcaciones(res?.getContent || []);
-        this.consultarJornadaActual();
-      },
-      error: (err) => {
-        this.cargando = false;
-        console.error('Error al verificar marcación activa', err);
-      }
-    });
+    try {
+      const res = await firstValueFrom(
+        this.marcacionService.onGetMarcacionesPorUsuario(
+          this.usuarioSeleccionado.id, inicio, fin, 0, 100, true,
+          { networkError: { propagate: true, show: false } }
+        ).pipe(timeout(5000))
+      );
+      this.procesarMarcaciones(res?.getContent || []);
+      await this.consultarJornadaActualAsync();
+    } catch (err) {
+      console.error('Error al verificar marcación activa', err);
+    } finally {
+      this.cargando = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async consultarJornadaActualAsync(): Promise<void> {
+    if (!this.usuarioSeleccionado?.id) return;
+    const { inicio, fin } = this.obtenerRangoMarcacion();
+
+    try {
+      const jornadas = await firstValueFrom(
+        this.marcacionService.onGetJornadasPorUsuario(
+          this.usuarioSeleccionado.id, inicio, fin, true
+        )
+      );
+      this.jornadaActual = this.seleccionarJornadaRelevante(jornadas || []);
+      this.sincronizarEstadoDesdeJornada();
+      this.actualizarAccionPendiente();
+    } catch {
+      this.jornadaActual = null;
+    }
   }
 
   private consultarJornadaActual(): void {
-    if (!this.usuarioSeleccionado?.id) return;
-    const { inicio, fin } = this.obtenerRangoMarcacion();
-    this.marcacionService.onGetJornadasPorUsuario(
-      this.usuarioSeleccionado.id, inicio, fin, true
-    ).pipe(
-      untilDestroyed(this)
-    ).subscribe({
-      next: (jornadas: Jornada[]) => {
-        this.jornadaActual = this.seleccionarJornadaRelevante(jornadas || []);
-        this.sincronizarEstadoDesdeJornada();
-        this.actualizarAccionPendiente();
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.jornadaActual = null;
-      }
-    });
+    void this.consultarJornadaActualAsync();
   }
 
   /** Incluye ayer para jornadas NOCHE/MADRUGADA que cruzan medianoche. */
@@ -534,6 +557,14 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       color: NotificacionColor.success,
       duracion: 4
     });
+
+    if (this.usuarioSeleccionado?.id && this.embeddingCapturado && this.embeddingScoreCapturado != null) {
+      void this.faceHelper.actualizarGaleriaPostMarcacion(
+        this.usuarioSeleccionado.id,
+        this.embeddingCapturado,
+        this.embeddingScoreCapturado
+      );
+    }
 
     this.limpiarEstadosCamara();
     this.verificarMarcacionActiva();

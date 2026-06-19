@@ -11,6 +11,21 @@ export interface EmbeddingGaleria {
 
 const POSES_CAPTURA = ['left', 'right', 'front'];
 
+export const UMBRAL_SIMILITUD_FACIAL = 0.55;
+/** Umbral mínimo para considerar que hay un rostro usable en cámara. */
+export const SCORE_MINIMO_DETECCION = 0.45;
+/** Umbral de calidad para confirmar verificación y promediar frames. */
+export const SCORE_MINIMO_FRAME = 0.55;
+/** Umbral estricto para incorporar embeddings a la galería tras marcación. */
+export const SCORE_MINIMO_GALERIA = 0.7;
+export const FRAMES_MINIMOS_VERIFICACION = 2;
+export const HITS_CONSECUTIVOS_VERIFICACION = 2;
+
+export interface FrameCalidadFacial {
+  embedding: number[];
+  score: number;
+}
+
 export function parsearGaleriaFacial(json: string | null | undefined): EmbeddingGaleria | null {
   if (!json || json.trim() === '') {
     return null;
@@ -73,6 +88,46 @@ export function extraerVectoresGaleria(galeria: EmbeddingGaleria): number[][] {
 
 export function serializarGaleriaFacial(galeria: EmbeddingGaleria): string {
   return JSON.stringify(galeria);
+}
+
+export function promediarEmbeddingsConScore(frames: FrameCalidadFacial[]): number[] | null {
+  const validas = frames.filter((f) => f.embedding?.length > 0 && f.score >= SCORE_MINIMO_DETECCION);
+  if (validas.length === 0) {
+    return null;
+  }
+
+  const dim = validas[0].embedding.length;
+  const promedio = new Array(dim).fill(0);
+  let pesoTotal = 0;
+
+  for (const frame of validas) {
+    const peso = frame.score;
+    pesoTotal += peso;
+    for (let i = 0; i < dim; i++) {
+      promedio[i] += frame.embedding[i] * peso;
+    }
+  }
+
+  for (let i = 0; i < dim; i++) {
+    promedio[i] /= pesoTotal;
+  }
+
+  const magnitud = Math.sqrt(promedio.reduce((sum, val) => sum + val * val, 0));
+  if (magnitud > 0) {
+    for (let i = 0; i < dim; i++) {
+      promedio[i] /= magnitud;
+    }
+  }
+
+  return promedio;
+}
+
+export function scorePromedioFrames(frames: FrameCalidadFacial[]): number {
+  if (!frames.length) {
+    return 0;
+  }
+  const total = frames.reduce((sum, frame) => sum + frame.score, 0);
+  return total / frames.length;
 }
 
 function fusionarEmbeddingsMaestro(

@@ -22,6 +22,7 @@ import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inic
 import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
 import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
 import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
+import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMarcacion";
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 
 @UntilDestroy({ checkProperties: true })
@@ -46,6 +47,7 @@ export class UsuarioService {
     private getUsuarioImages: GetUsuarioImagesGQL,
     private saveUsuarioImage: SaveUsuarioImageGQL,
     private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL,
+    private incorporarEmbeddingMarcacion: IncorporarEmbeddingMarcacionGQL,
     private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL
 
   ) {
@@ -109,6 +111,19 @@ export class UsuarioService {
 
   onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
     return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding, excludeIds }, servidor, null, true);
+  }
+
+  onIncorporarEmbeddingMarcacion(
+    usuarioId: number,
+    embedding: number[],
+    score: number,
+    servidor: boolean = true
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.incorporarEmbeddingMarcacion,
+      { usuarioId, embedding, score },
+      servidor
+    );
   }
 
   onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<any> {

@@ -9,7 +9,14 @@ import {
     EmbeddingGaleria,
     construirGaleriaDesdeCapturas,
     parsearGaleriaFacial,
-    serializarGaleriaFacial
+    serializarGaleriaFacial,
+    FrameCalidadFacial,
+    UMBRAL_SIMILITUD_FACIAL,
+    SCORE_MINIMO_DETECCION,
+    SCORE_MINIMO_FRAME,
+    SCORE_MINIMO_GALERIA,
+    promediarEmbeddingsConScore,
+    scorePromedioFrames
 } from '../models/embedding-galeria.model';
 
 export interface EstadoReconocimiento {
@@ -18,6 +25,30 @@ export interface EstadoReconocimiento {
     embedding?: number[];
     mostrarCamara: boolean;
     result?: any;
+}
+
+export interface ResultadoVerificacionFacial {
+    embedding: number[];
+    score: number;
+    similitud: number;
+    snapshotUrl: string;
+}
+
+export interface EvaluacionFrameVerificacion {
+    calidadOk: boolean;
+    rostroDetectado: boolean;
+    similitud?: number;
+    embedding?: number[];
+    score?: number;
+    mensaje: string;
+    result?: any;
+}
+
+export interface EvaluacionFrameBusqueda {
+    rostroDetectado: boolean;
+    embedding?: number[];
+    score?: number;
+    mensaje: string;
 }
 
 export interface ResultadoBusqueda {
@@ -48,35 +79,167 @@ export class ReconocimientoFacialHelperService {
     }
 
     async procesarFrame(video: HTMLVideoElement, referenciaGaleria: EmbeddingGaleria): Promise<EstadoReconocimiento> {
+        const evaluacion = await this.evaluarFrameVerificacion(video, referenciaGaleria);
+        if (evaluacion.calidadOk && evaluacion.embedding) {
+            return {
+                exito: true,
+                mensaje: `Rostro verificado (${Math.round((evaluacion.similitud ?? 0) * 100)}%)`,
+                embedding: evaluacion.embedding,
+                mostrarCamara: false,
+                result: evaluacion.result
+            };
+        }
+        return {
+            exito: false,
+            mensaje: evaluacion.mensaje,
+            mostrarCamara: true,
+            result: evaluacion.result
+        };
+    }
+
+    async evaluarFrameVerificacion(
+        video: HTMLVideoElement,
+        referenciaGaleria: EmbeddingGaleria
+    ): Promise<EvaluacionFrameVerificacion> {
         const detection = await this.faceService.detect(video);
 
-        if (detection.face && detection.face.length > 0) {
-            const tensor = Array.from(detection.face[0].embedding);
-            const similarity = this.faceService.calcularMejorSimilitudConGaleria(tensor, referenciaGaleria);
-
-            if (similarity > 0.55) {
-                return {
-                    exito: true,
-                    mensaje: 'Rostro verificado',
-                    embedding: tensor,
-                    mostrarCamara: false,
-                    result: detection
-                };
-            } else {
-                return {
-                    exito: false,
-                    mensaje: `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`,
-                    mostrarCamara: true,
-                    result: detection
-                };
-            }
-        } else {
+        if (!detection.face || detection.face.length === 0) {
             return {
-                exito: false,
+                calidadOk: false,
+                rostroDetectado: false,
                 mensaje: 'No se detecta rostro. Centra tu cara.',
-                mostrarCamara: true,
                 result: detection
             };
+        }
+
+        const face = detection.face[0];
+        const score = this.resolverScoreRostro(face);
+        const tensor = this.extraerEmbedding(face);
+
+        if (!tensor) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                score,
+                mensaje: 'Procesando rostro, mantenga la posición...',
+                result: detection
+            };
+        }
+
+        const similarity = this.faceService.calcularMejorSimilitudConGaleria(tensor, referenciaGaleria);
+        const pct = Math.round(similarity * 100);
+
+        if (score < SCORE_MINIMO_DETECCION) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Rostro detectado (${pct}%). Acérquese con mejor iluminación.`,
+                result: detection
+            };
+        }
+
+        if (similarity < UMBRAL_SIMILITUD_FACIAL) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Similitud insuficiente (${pct}%). Se requiere al menos ${Math.round(UMBRAL_SIMILITUD_FACIAL * 100)}%.`,
+                result: detection
+            };
+        }
+
+        if (score < SCORE_MINIMO_FRAME) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Coincidencia ${pct}%. Mejore iluminación para confirmar.`,
+                result: detection
+            };
+        }
+
+        return {
+            calidadOk: true,
+            rostroDetectado: true,
+            similitud: similarity,
+            embedding: tensor,
+            score,
+            mensaje: `Identidad verificada (${pct}%)`,
+            result: detection
+        };
+    }
+
+    async evaluarFrameBusqueda(video: HTMLVideoElement): Promise<EvaluacionFrameBusqueda> {
+        const detection = await this.faceService.detect(video);
+
+        if (!detection.face || detection.face.length === 0) {
+            return {
+                rostroDetectado: false,
+                mensaje: 'Centra tu rostro en la cámara'
+            };
+        }
+
+        const face = detection.face[0];
+        const score = this.resolverScoreRostro(face);
+        const embedding = this.extraerEmbedding(face);
+
+        if (!embedding) {
+            return {
+                rostroDetectado: true,
+                score,
+                mensaje: 'Procesando rostro, espere un momento...'
+            };
+        }
+
+        if (score < SCORE_MINIMO_DETECCION) {
+            return {
+                rostroDetectado: true,
+                embedding,
+                score,
+                mensaje: 'Rostro detectado. Acérquese con mejor iluminación.'
+            };
+        }
+
+        return {
+            rostroDetectado: true,
+            embedding,
+            score,
+            mensaje: 'Rostro detectado, buscando...'
+        };
+    }
+
+    construirEmbeddingVerificado(frames: FrameCalidadFacial[]): { embedding: number[]; score: number } | null {
+        const embedding = promediarEmbeddingsConScore(frames);
+        if (!embedding) {
+            return null;
+        }
+        return {
+            embedding,
+            score: scorePromedioFrames(frames)
+        };
+    }
+
+    async actualizarGaleriaPostMarcacion(
+        usuarioId: number,
+        embedding: number[],
+        score: number
+    ): Promise<void> {
+        if (!usuarioId || !embedding?.length || score < SCORE_MINIMO_GALERIA) {
+            return;
+        }
+        try {
+            await this.usuarioService.onIncorporarEmbeddingMarcacion(usuarioId, embedding, score, true)
+                .pipe(timeout(8000))
+                .toPromise();
+        } catch (error) {
+            console.warn('No se pudo enriquecer la galería facial tras marcación', error);
         }
     }
 
@@ -116,14 +279,6 @@ export class ReconocimientoFacialHelperService {
         }
     }
 
-    async obtenerEmbeddingFrame(video: HTMLVideoElement): Promise<number[] | null> {
-        const detection = await this.faceService.detect(video);
-        if (detection.face && detection.face.length > 0) {
-            return Array.from(detection.face[0].embedding);
-        }
-        return null;
-    }
-  /** Identificación por embedding: solo backend (caché en memoria), sin segunda validación con foto de perfil. */
     async buscarUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = []): Promise<ResultadoBusqueda | null> {
         try {
             const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds, true)
@@ -139,13 +294,27 @@ export class ReconocimientoFacialHelperService {
                 usuario: resultado.usuario,
                 similitudBackend,
                 similitudLocal: similitudBackend,
-                confiable: similitudBackend > 0.55
+                confiable: similitudBackend >= UMBRAL_SIMILITUD_FACIAL
             };
         } catch (error) {
             console.error('Error en búsqueda por embedding', error);
             return null;
         }
     }
+
+    private extraerEmbedding(face: { embedding?: ArrayLike<number> }): number[] | null {
+        if (!face?.embedding) {
+            return null;
+        }
+        const embedding = Array.from(face.embedding);
+        return embedding.length > 0 ? embedding : null;
+    }
+
+    private resolverScoreRostro(face: { score?: number; boxScore?: number }): number {
+        const score = face.score ?? face.boxScore;
+        return score != null && score > 0 ? score : 0.6;
+    }
+
     async capturarFrameConScore(
         videoElement: HTMLVideoElement
     ): Promise<{ imageBase64: string; embedding: number[]; score: number } | null> {
