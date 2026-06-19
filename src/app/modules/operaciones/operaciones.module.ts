@@ -71,6 +71,8 @@ import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-di
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
+import { ImportarFacturaComponent } from './compra/importar-factura/importar-factura.component';
+import { HistorialImportacionesComponent } from './compra/importar-factura/historial-importaciones.component';
 
 @NgModule({
   declarations: [
@@ -134,7 +136,9 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
     AdicionarNotaDialogComponent,
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
-    GenericListVentaComponent
+    GenericListVentaComponent,
+    ImportarFacturaComponent,
+    HistorialImportacionesComponent
   ],
   imports: [
     CommonModule,

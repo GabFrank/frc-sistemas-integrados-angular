@@ -31,6 +31,9 @@ import { InventarioDashboardComponent } from './../../../modules/operaciones/inv
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
 import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
+import { ImportarFacturaComponent } from "../../../modules/operaciones/compra/importar-factura/importar-factura.component";
+import { HistorialImportacionesComponent } from "../../../modules/operaciones/compra/importar-factura/historial-importaciones.component";
+import { SistemaComponent } from "../../../modules/configuracion/sistema/sistema.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
@@ -116,7 +119,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       items: [
         { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
-        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' },
+        { name: 'Importar Factura IA', icon: 'document_scanner', action: 'importar-factura', visibilityRoles: [ROLES.RECIBIR_PEDIDOS] },
+        { name: 'Historial Importaciones', icon: 'history', action: 'historial-importaciones', visibilityRoles: [ROLES.RECIBIR_PEDIDOS] }
       ]
     },
     {
@@ -424,6 +429,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'table_chart',
           action: 'replication-tables',
           visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Sistema (IA + Empresa)',
+          icon: 'smart_toy',
+          action: 'sistema-config',
+          visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
         }
       ]
     }
@@ -697,6 +708,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-solicitud-pago":
         this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
         break;
+      case "importar-factura":
+        this.openTabIfAuthorized(ROLES.RECIBIR_PEDIDOS, ImportarFacturaComponent, "Importar Factura");
+        break;
+      case "historial-importaciones":
+        this.openTabIfAuthorized(ROLES.RECIBIR_PEDIDOS, HistorialImportacionesComponent, "Historial Importaciones");
+        break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
         break;
@@ -758,6 +775,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "replication-tables":
         this.openTabIfAuthorized(ROLES.ADMIN, ListReplicationTablesComponent, "Tablas de Replicación");
+        break;
+      case "sistema-config":
+        this.openTabIfAuthorized(ROLES.ADMIN, SistemaComponent, "Configuración del Sistema");
         break;
       case "observacion-cajas":
         this.openTabIfAuthorized(ROLES.ADMIN, MainCajaObservacionComponent, "Observación de Cajas");

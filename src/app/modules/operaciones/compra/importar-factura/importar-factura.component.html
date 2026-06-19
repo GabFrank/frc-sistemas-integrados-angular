@@ -1,0 +1,232 @@
+<div class="importar-factura-container">
+
+  <!-- ================= PASO SUBIR ================= -->
+  <div *ngIf="paso === 'subir'" class="paso-subir">
+    <h2 class="titulo-center">Importar Factura de Proveedor</h2>
+    <p class="subtitulo">
+      Subí la factura del proveedor (XML SIFEN, PDF o foto/escaneo). La IA extrae los ítems y
+      los montos; después revisás y confirmás para crear el pedido de compra.
+    </p>
+
+    <mat-card class="upload-card">
+      <input
+        #fileInput
+        type="file"
+        multiple
+        accept=".xml,.pdf,image/*"
+        (change)="onArchivosSelected($event)"
+        hidden
+      />
+
+      <div class="upload-drop" (click)="fileInput.click()">
+        <mat-icon class="upload-icon">cloud_upload</mat-icon>
+        <div>Hacé clic para seleccionar archivos</div>
+        <div class="upload-hint">
+          Una factura puede ser varias páginas (subí todas). Usá escaneos o fotos nítidas;
+          las imágenes reenviadas por WhatsApp suelen venir reducidas y no se leen bien.
+        </div>
+      </div>
+
+      <div *ngIf="archivosSeleccionados.length > 0" class="archivos-list">
+        <div class="archivo-row" *ngFor="let f of archivosSeleccionados; let i = index; trackBy: trackByIndex">
+          <mat-icon>insert_drive_file</mat-icon>
+          <span class="archivo-nombre">{{ f.name }}</span>
+          <span class="archivo-size">({{ (f.size / 1024) | number: '1.0-0' }} KB)</span>
+          <button mat-icon-button color="warn" (click)="quitarArchivo(i)" [disabled]="procesando">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-card>
+
+    <div class="acciones-subir" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="importar()"
+        [disabled]="procesando || archivosSeleccionados.length === 0"
+      >
+        <mat-icon>auto_awesome</mat-icon>
+        {{ procesando ? 'Procesando con IA...' : 'Procesar con IA' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= PASO REVISAR ================= -->
+  <div *ngIf="paso === 'revisar' && preview" class="paso-revisar">
+    <h2 class="titulo">Revisión de la factura importada</h2>
+
+    <!-- Cabecera -->
+    <mat-card class="cabecera-card">
+      <div class="cabecera-grid">
+        <div class="campo">
+          <label>Proveedor</label>
+          <div class="proveedor-box">
+            <span *ngIf="proveedorSeleccionado?.persona">
+              {{ proveedorSeleccionado.persona.nombre }}
+              <small *ngIf="proveedorSeleccionado.persona.documento">
+                ({{ proveedorSeleccionado.persona.documento }})
+              </small>
+            </span>
+            <span *ngIf="!proveedorSeleccionado" class="danger">Sin proveedor — buscalo</span>
+            <span class="chip" [ngClass]="confianzaClass(proveedorConfianza)" *ngIf="proveedorConfianza">
+              {{ proveedorConfianza }}
+            </span>
+            <button mat-icon-button color="primary" (click)="buscarProveedor()" matTooltip="Buscar proveedor">
+              <mat-icon>search</mat-icon>
+            </button>
+          </div>
+        </div>
+        <div class="campo"><label>RUC emisor</label><span>{{ preview.emisorRuc || '-' }}</span></div>
+        <div class="campo"><label>Nº Factura</label><span>{{ preview.numeroFactura || '-' }}</span></div>
+        <div class="campo"><label>Timbrado</label><span>{{ preview.timbrado || '-' }}</span></div>
+        <div class="campo"><label>Fecha</label><span>{{ preview.fechaEmision || '-' }}</span></div>
+        <div class="campo"><label>Moneda</label><span>{{ preview.moneda || '-' }}</span></div>
+        <div class="campo">
+          <label>Total factura</label>
+          <span class="total-general">{{ preview.totalGeneral | number: '1.0-2' }}</span>
+        </div>
+        <div class="campo">
+          <label>Tipo</label>
+          <span class="chip" [ngClass]="preview.esLegal ? 'success' : 'warn'">
+            {{ preview.esLegal ? 'LEGAL' : 'NOTA' }}
+          </span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Control de totales -->
+    <div
+      class="totales-banner"
+      [ngClass]="cuadraActual === false ? 'fondo-danger' : (cuadraActual === true ? 'fondo-success' : 'fondo-warn')"
+    >
+      <mat-icon>{{ cuadraActual === false ? 'warning' : (cuadraActual === true ? 'check_circle' : 'help') }}</mat-icon>
+      <span>
+        Suma de ítems (incluidos): <b>{{ sumaItemsActual | number: '1.0-2' }}</b>
+        &nbsp;|&nbsp; Total factura: <b>{{ preview.totalGeneral | number: '1.0-2' }}</b>
+        <ng-container *ngIf="cuadraActual === false">
+          — <b>NO CUADRAN.</b> {{ preview.totalesAdvertencia || 'Revisá si faltan ítems o hay error de lectura.' }}
+        </ng-container>
+        <ng-container *ngIf="cuadraActual === true"> — cuadran ✓</ng-container>
+      </span>
+    </div>
+
+    <!-- Tabla de items -->
+    <div class="tabla-wrapper">
+      <table mat-table [dataSource]="itemsArray.controls" class="items-table">
+
+        <ng-container matColumnDef="confianza">
+          <th mat-header-cell *matHeaderCellDef>Match</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            <span
+              class="chip"
+              [ngClass]="confianzaClass(getCtrl(i, 'productoConfianza').value)"
+              [matTooltip]="getCtrl(i, 'productoRazon').value || ''"
+            >
+              {{ getCtrl(i, 'productoConfianza').value || 'NONE' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="textoOcr">
+          <th mat-header-cell *matHeaderCellDef>Descripción factura</th>
+          <td mat-cell *matCellDef="let row; let i = index" class="celda-texto">
+            <div class="ocr-texto">{{ getCtrl(i, 'textoOcr').value }}</div>
+            <small *ngIf="getCtrl(i, 'codigoOcr').value">cod: {{ getCtrl(i, 'codigoOcr').value }}</small>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="producto">
+          <th mat-header-cell *matHeaderCellDef>Producto interno</th>
+          <td mat-cell *matCellDef="let row; let i = index" class="celda-producto">
+            <div *ngIf="getCtrl(i, 'productoId').value" class="producto-asignado">
+              <span>{{ getCtrl(i, 'productoDescripcion').value }}</span>
+            </div>
+            <span *ngIf="!getCtrl(i, 'productoId').value" class="danger sin-producto">Sin asignar</span>
+            <div class="producto-acciones">
+              <button mat-icon-button color="primary" (click)="buscarProducto(i)" matTooltip="Buscar producto">
+                <mat-icon>search</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                *ngIf="getCtrl(i, 'productoId').value"
+                (click)="limpiarProducto(i)"
+                matTooltip="Quitar"
+              >
+                <mat-icon>clear</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            <mat-form-field appearance="outline" class="num-field">
+              <input matInput type="number" [formControl]="getCtrl(i, 'cantidad')" />
+            </mat-form-field>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="precioUnitario">
+          <th mat-header-cell *matHeaderCellDef>Precio unit.</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            <mat-form-field appearance="outline" class="num-field">
+              <input matInput type="number" [formControl]="getCtrl(i, 'precioUnitario')" />
+            </mat-form-field>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="descuento">
+          <th mat-header-cell *matHeaderCellDef>Desc.</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            <mat-form-field appearance="outline" class="num-field">
+              <input matInput type="number" [formControl]="getCtrl(i, 'descuento')" />
+            </mat-form-field>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="totalItem">
+          <th mat-header-cell *matHeaderCellDef>Total ítem</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            {{ getCtrl(i, 'totalItem').value | number: '1.0-2' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="omitir">
+          <th mat-header-cell *matHeaderCellDef>Omitir</th>
+          <td mat-cell *matCellDef="let row; let i = index">
+            <mat-checkbox [formControl]="getCtrl(i, 'omitir')"></mat-checkbox>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns; let i = index"
+          [class.fila-omitida]="getCtrl(i, 'omitir').value"
+          [class.fila-sin-producto]="!getCtrl(i, 'omitir').value && !getCtrl(i, 'productoId').value"
+        ></tr>
+      </table>
+    </div>
+
+    <!-- Footer acciones -->
+    <div class="footer-revisar" fxLayout="row" fxLayoutAlign="space-between center">
+      <div class="resumen">
+        <span><b>{{ itemsIncluidos }}</b> ítem(s) se incluirán en el pedido</span>
+        <span *ngIf="itemsSinProducto > 0" class="danger">
+          &nbsp;· {{ itemsSinProducto }} sin producto (no se incluyen)
+        </span>
+      </div>
+      <div fxLayout="row" fxLayoutGap="12px">
+        <button mat-stroked-button (click)="volverASubir()">
+          <mat-icon>arrow_back</mat-icon> Volver
+        </button>
+        <button mat-flat-button color="primary" (click)="confirmar()">
+          <mat-icon>check</mat-icon> Confirmar y crear pedido
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

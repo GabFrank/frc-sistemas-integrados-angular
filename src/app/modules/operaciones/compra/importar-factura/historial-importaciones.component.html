@@ -1,0 +1,93 @@
+<div class="historial-container">
+  <div class="historial-header" fxLayout="row" fxLayoutAlign="space-between center">
+    <h2 class="titulo">Historial de importaciones</h2>
+    <button mat-flat-button color="primary" (click)="nuevaImportacion()">
+      <mat-icon>add</mat-icon> Nueva importación
+    </button>
+  </div>
+
+  <div class="filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+    <mat-form-field appearance="outline" class="filtro-estado">
+      <mat-label>Estado</mat-label>
+      <mat-select [(value)]="estadoSeleccionado" (selectionChange)="onEstadoChange()">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="REVISION_PENDIENTE">Pendiente de revisión</mat-option>
+        <mat-option value="CONFIRMADO">Confirmado</mat-option>
+        <mat-option value="ERROR">Error</mat-option>
+        <mat-option value="PROCESANDO">Procesando</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-icon-button (click)="cargar()" matTooltip="Refrescar">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="tabla-wrapper">
+    <table mat-table [dataSource]="data" class="historial-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row">{{ row.creadoEn | date: 'dd/MM/yy HH:mm' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="origen">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+        <td mat-cell *matCellDef="let row">{{ row.origen }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombreArchivo">
+        <th mat-header-cell *matHeaderCellDef>Archivo</th>
+        <td mat-cell *matCellDef="let row" class="celda-archivo">{{ row.nombreArchivo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="chip" [ngClass]="estadoClass(row.estado)">{{ row.estado }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="modeloIa">
+        <th mat-header-cell *matHeaderCellDef>Modelo</th>
+        <td mat-cell *matCellDef="let row">{{ row.modeloIa }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="abrir(row)"
+            [matTooltip]="
+              row.estado === ESTADO.REVISION_PENDIENTE
+                ? 'Revisar / confirmar'
+                : (row.estado === ESTADO.CONFIRMADO ? 'Abrir pedido' : 'Ver detalle')
+            "
+          >
+            <mat-icon>
+              {{ row.estado === ESTADO.CONFIRMADO ? 'open_in_new' : (row.estado === ESTADO.ERROR ? 'error_outline' : 'edit') }}
+            </mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <div *ngIf="data.length === 0" class="vacio">No hay importaciones para el filtro seleccionado.</div>
+  </div>
+
+  <mat-paginator
+    [length]="totalElements"
+    [pageSize]="size"
+    [pageIndex]="page"
+    [pageSizeOptions]="[10, 20, 50]"
+    (page)="onPage($event)"
+  ></mat-paginator>
+</div>

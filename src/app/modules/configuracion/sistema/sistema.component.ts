@@ -81,7 +81,12 @@ export class SistemaComponent implements OnInit {
   }
 
   private async fetchValor(clave: string): Promise<string | null> {
-    const r = await firstValueFrom(this.getGQL.fetch({ clave }, { fetchPolicy: 'network-only' }));
+    const r = await firstValueFrom(
+      this.getGQL.fetch(
+        { clave },
+        { fetchPolicy: 'network-only', context: { clientName: 'servidor' } },
+      ),
+    );
     const config = (r.data as any)?.configuracionSistema as ConfiguracionSistema | null;
     return config?.valor ?? null;
   }
@@ -123,7 +128,9 @@ export class SistemaComponent implements OnInit {
   }
 
   private async setValor(clave: string, valor: string | null): Promise<void> {
-    await firstValueFrom(this.setGQL.mutate({ clave, valor: valor || null }));
+    await firstValueFrom(
+      this.setGQL.mutate({ clave, valor: valor || null }, { context: { clientName: 'servidor' } }),
+    );
   }
 
   onLogoSelected(event: Event): void {
@@ -153,7 +160,7 @@ export class SistemaComponent implements OnInit {
   async testearConexionIa(): Promise<void> {
     this.testeando = true;
     try {
-      const r = await firstValueFrom(this.testGQL.mutate({}));
+      const r = await firstValueFrom(this.testGQL.mutate({}, { context: { clientName: 'servidor' } }));
       const msg = (r.data as any)?.testOpenAiConnection || 'sin respuesta';
       if (msg === 'OK') {
         this.notif.openSucess('Conexión OpenAI exitosa');
