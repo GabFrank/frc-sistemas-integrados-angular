@@ -11,8 +11,15 @@
                     {{ mensajeErrorFoto }}
                 </div>
 
+                <div *ngIf="usuarioActualId && usuarioSeleccionado?.id && usuarioActualId !== usuarioSeleccionado.id"
+                    class="aviso-tercero">
+                    Debe presentarse el rostro de <strong>{{ usuarioSeleccionado?.persona?.nombre }}</strong>
+                    (similitud mínima 75%).
+                </div>
+
                 <camara-reconocimiento *ngIf="mostrandoCamara" #camaraRef [modo]="modoCamara"
                     [referenciaGaleria]="referenciaGaleria" [usuarioSeleccionado]="usuarioSeleccionado"
+                    [usuarioActualId]="usuarioActualId"
                     (identidadVerificada)="identidadVerificada.emit($event)"
                     (fotoPerfilGuardada)="fotoPerfilGuardada.emit()"
                     (similitudInsuficiente)="similitudInsuficiente.emit($event)">

@@ -23,6 +23,7 @@ import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
 import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
 import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
 import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMarcacion";
+import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 
 @UntilDestroy({ checkProperties: true })
@@ -118,11 +119,12 @@ export class UsuarioService {
     embedding: number[],
     score: number,
     servidor: boolean = true
-  ): Observable<boolean> {
+  ): Observable<IncorporarEmbeddingMarcacionResult> {
     return this.genericService.onCustomMutation(
       this.incorporarEmbeddingMarcacion,
       { usuarioId, embedding, score },
-      servidor
+      servidor,
+      true
     );
   }
 

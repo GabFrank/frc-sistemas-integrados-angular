@@ -29,6 +29,7 @@ export class EstadoMarcacionComponent {
     @Input() modoCamara: ModoCamara = 'verificacion';
     @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
+    @Input() usuarioActualId: number | null = null;
 
     @Output() registrarEntrada = new EventEmitter<void>();
     @Output() registrarSalida = new EventEmitter<void>();

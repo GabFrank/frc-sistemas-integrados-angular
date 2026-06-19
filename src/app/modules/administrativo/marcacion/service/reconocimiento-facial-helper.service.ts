@@ -14,10 +14,18 @@ import {
     UMBRAL_SIMILITUD_FACIAL,
     SCORE_MINIMO_DETECCION,
     SCORE_MINIMO_FRAME,
+    SCORE_MINIMO_FRAME_VERIFICACION,
     SCORE_MINIMO_GALERIA,
+    FRAMES_MINIMOS_VERIFICACION,
     promediarEmbeddingsConScore,
     scorePromedioFrames
 } from '../models/embedding-galeria.model';
+import {
+    IncorporarEmbeddingMarcacionResult,
+    MENSAJE_ERROR_RED_CLIENTE,
+    MENSAJE_RECHAZADO_SCORE_CLIENTE,
+    ResultadoIncorporacionEmbeddingCliente
+} from '../models/incorporar-embedding-result.model';
 
 export interface EstadoReconocimiento {
     exito: boolean;
@@ -78,8 +86,12 @@ export class ReconocimientoFacialHelperService {
         await this.faceService.init();
     }
 
-    async procesarFrame(video: HTMLVideoElement, referenciaGaleria: EmbeddingGaleria): Promise<EstadoReconocimiento> {
-        const evaluacion = await this.evaluarFrameVerificacion(video, referenciaGaleria);
+    async procesarFrame(
+        video: HTMLVideoElement,
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): Promise<EstadoReconocimiento> {
+        const evaluacion = await this.evaluarFrameVerificacion(video, referenciaGaleria, umbralSimilitud);
         if (evaluacion.calidadOk && evaluacion.embedding) {
             return {
                 exito: true,
@@ -99,7 +111,8 @@ export class ReconocimientoFacialHelperService {
 
     async evaluarFrameVerificacion(
         video: HTMLVideoElement,
-        referenciaGaleria: EmbeddingGaleria
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
     ): Promise<EvaluacionFrameVerificacion> {
         const detection = await this.faceService.detect(video);
 
@@ -128,6 +141,7 @@ export class ReconocimientoFacialHelperService {
 
         const similarity = this.faceService.calcularMejorSimilitudConGaleria(tensor, referenciaGaleria);
         const pct = Math.round(similarity * 100);
+        const umbralPct = Math.round(umbralSimilitud * 100);
 
         if (score < SCORE_MINIMO_DETECCION) {
             return {
@@ -141,19 +155,19 @@ export class ReconocimientoFacialHelperService {
             };
         }
 
-        if (similarity < UMBRAL_SIMILITUD_FACIAL) {
+        if (similarity < umbralSimilitud) {
             return {
                 calidadOk: false,
                 rostroDetectado: true,
                 similitud: similarity,
                 embedding: tensor,
                 score,
-                mensaje: `Similitud insuficiente (${pct}%). Se requiere al menos ${Math.round(UMBRAL_SIMILITUD_FACIAL * 100)}%.`,
+                mensaje: `Similitud insuficiente (${pct}%). Se requiere al menos ${umbralPct}%.`,
                 result: detection
             };
         }
 
-        if (score < SCORE_MINIMO_FRAME) {
+        if (score < SCORE_MINIMO_FRAME_VERIFICACION) {
             return {
                 calidadOk: false,
                 rostroDetectado: true,
@@ -174,6 +188,55 @@ export class ReconocimientoFacialHelperService {
             mensaje: `Identidad verificada (${pct}%)`,
             result: detection
         };
+    }
+
+    confirmarVerificacionFinal(
+        frames: FrameCalidadFacial[],
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): { embedding: number[]; score: number; similitud: number } | null {
+        const framesValidos = frames.filter(
+            (f) =>
+                f.embedding?.length > 0 &&
+                f.score >= SCORE_MINIMO_FRAME_VERIFICACION &&
+                (f.similitud == null || f.similitud >= umbralSimilitud)
+        );
+        if (framesValidos.length < FRAMES_MINIMOS_VERIFICACION) {
+            return null;
+        }
+
+        const embedding = promediarEmbeddingsConScore(framesValidos);
+        if (!embedding) {
+            return null;
+        }
+
+        const similitudFinal = this.faceService.calcularMejorSimilitudConGaleria(embedding, referenciaGaleria);
+        if (similitudFinal < umbralSimilitud) {
+            return null;
+        }
+
+        const similitudPromedio =
+            framesValidos.reduce((sum, f) => sum + (f.similitud ?? 0), 0) / framesValidos.length;
+        if (similitudPromedio < umbralSimilitud) {
+            return null;
+        }
+
+        return {
+            embedding,
+            score: scorePromedioFrames(framesValidos),
+            similitud: similitudFinal
+        };
+    }
+
+    embeddingCumpleUmbralVerificacion(
+        embedding: number[],
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): boolean {
+        if (!embedding?.length || !referenciaGaleria) {
+            return false;
+        }
+        return this.faceService.calcularMejorSimilitudConGaleria(embedding, referenciaGaleria) >= umbralSimilitud;
     }
 
     async evaluarFrameBusqueda(video: HTMLVideoElement): Promise<EvaluacionFrameBusqueda> {
@@ -231,16 +294,69 @@ export class ReconocimientoFacialHelperService {
         embedding: number[],
         score: number
     ): Promise<void> {
-        if (!usuarioId || !embedding?.length || score < SCORE_MINIMO_GALERIA) {
+        if (!usuarioId || !embedding?.length) {
             return;
         }
+
+        if (score < SCORE_MINIMO_GALERIA) {
+            this.notificarResultadoIncorporacion({
+                resultado: 'RECHAZADO_SCORE',
+                mensaje: MENSAJE_RECHAZADO_SCORE_CLIENTE
+            });
+            return;
+        }
+
         try {
-            await this.usuarioService.onIncorporarEmbeddingMarcacion(usuarioId, embedding, score, true)
+            const resultado = await this.usuarioService.onIncorporarEmbeddingMarcacion(usuarioId, embedding, score, true)
                 .pipe(timeout(8000))
                 .toPromise();
+            this.notificarResultadoIncorporacion(this.normalizarResultadoIncorporacion(resultado));
         } catch (error) {
             console.warn('No se pudo enriquecer la galería facial tras marcación', error);
+            this.notificarResultadoIncorporacion({
+                resultado: 'ERROR_RED',
+                mensaje: MENSAJE_ERROR_RED_CLIENTE
+            });
         }
+    }
+
+    private normalizarResultadoIncorporacion(resultado: unknown): {
+        resultado: ResultadoIncorporacionEmbeddingCliente;
+        mensaje: string;
+    } {
+        if (resultado == null) {
+            return {
+                resultado: 'ERROR_RED',
+                mensaje: MENSAJE_ERROR_RED_CLIENTE
+            };
+        }
+        if (typeof resultado === 'boolean') {
+            return resultado
+                ? { resultado: 'OK', mensaje: 'Perfil facial actualizado con esta marcación.' }
+                : { resultado: 'RECHAZADO_SCORE', mensaje: MENSAJE_RECHAZADO_SCORE_CLIENTE };
+        }
+        const payload = resultado as IncorporarEmbeddingMarcacionResult;
+        return {
+            resultado: payload.resultado ?? 'ERROR_RED',
+            mensaje: payload.mensaje || MENSAJE_ERROR_RED_CLIENTE
+        };
+    }
+
+    private notificarResultadoIncorporacion(resultado: {
+        resultado: ResultadoIncorporacionEmbeddingCliente;
+        mensaje: string;
+    }): void {
+        const color = resultado.resultado === 'OK'
+            ? NotificacionColor.info
+            : resultado.resultado === 'ERROR_RED'
+                ? NotificacionColor.danger
+                : NotificacionColor.warn;
+
+        this.notificacionService.notification$.next({
+            texto: resultado.mensaje,
+            color,
+            duracion: 3
+        });
     }
 
     async buscarYValidarUsuario(embedding: number[]): Promise<ResultadoBusqueda | null> {

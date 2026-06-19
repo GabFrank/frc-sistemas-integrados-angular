@@ -26,7 +26,7 @@ import { DispositivoService } from '../../../../../shared/services/dispositivo.s
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { UsuarioHelperService } from '../../service/usuario-helper.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
-import { EmbeddingGaleria } from '../../models/embedding-galeria.model';
+import { EmbeddingGaleria, UMBRAL_SIMILITUD_VERIFICACION } from '../../models/embedding-galeria.model';
 import { UsuarioService } from '../../../../personas/usuarios/usuario.service';
 
 import { ModoCamara } from '../../components/camara-reconocimiento/camara-reconocimiento.component';
@@ -551,6 +551,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
   private finalizarRegistro(marcacion: Marcacion, tipo: 'Entrada' | 'Salida') {
     this.cargando = false;
     const hora = tipo === 'Entrada' ? new Date(marcacion.fechaEntrada) : new Date(marcacion.fechaSalida);
+    const usuarioId = this.usuarioSeleccionado?.id;
+    const embedding = this.embeddingCapturado ? [...this.embeddingCapturado] : null;
+    const score = this.embeddingScoreCapturado;
 
     this.notificacionService.notification$.next({
       texto: `${tipo} registrada exitosamente a las ${hora.toLocaleTimeString()}`,
@@ -558,16 +561,20 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       duracion: 4
     });
 
-    if (this.usuarioSeleccionado?.id && this.embeddingCapturado && this.embeddingScoreCapturado != null) {
-      void this.faceHelper.actualizarGaleriaPostMarcacion(
-        this.usuarioSeleccionado.id,
-        this.embeddingCapturado,
-        this.embeddingScoreCapturado
-      );
-    }
-
+    void this.finalizarEnriquecimientoPerfil(usuarioId, embedding, score);
     this.limpiarEstadosCamara();
     this.verificarMarcacionActiva();
+  }
+
+  private async finalizarEnriquecimientoPerfil(
+    usuarioId: number | undefined,
+    embedding: number[] | null,
+    score: number | null
+  ): Promise<void> {
+    if (!usuarioId || !embedding?.length || score == null) {
+      return;
+    }
+    await this.faceHelper.actualizarGaleriaPostMarcacion(usuarioId, embedding, score);
   }
 
   private validarRegistro(esSalida = false): boolean {
@@ -585,6 +592,22 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
     }
     if (!this.reconocimientoExitoso) {
       this.notificarError('Debe verificar su identidad con reconocimiento facial primero');
+      return false;
+    }
+    if (!this.embeddingCapturado?.length || !this.referenciaGaleria) {
+      this.notificarError('No hay datos de verificación facial válidos');
+      return false;
+    }
+    if (!this.faceHelper.embeddingCumpleUmbralVerificacion(
+      this.embeddingCapturado,
+      this.referenciaGaleria,
+      UMBRAL_SIMILITUD_VERIFICACION
+    )) {
+      this.reconocimientoExitoso = false;
+      this.notificarError(
+        'El rostro verificado no coincide con el usuario seleccionado. Debe ser la persona indicada en pantalla.',
+        NotificacionColor.danger
+      );
       return false;
     }
     return true;

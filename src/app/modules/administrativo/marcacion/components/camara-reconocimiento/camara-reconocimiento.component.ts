@@ -14,7 +14,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
-import { EmbeddingGaleria, FrameCalidadFacial, FRAMES_MINIMOS_VERIFICACION, HITS_CONSECUTIVOS_VERIFICACION, UMBRAL_SIMILITUD_FACIAL } from '../../models/embedding-galeria.model';
+import { EmbeddingGaleria, FrameCalidadFacial, FRAMES_MINIMOS_VERIFICACION, HITS_CONSECUTIVOS_VERIFICACION, UMBRAL_SIMILITUD_VERIFICACION } from '../../models/embedding-galeria.model';
 
 export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captura-multiple';
 
@@ -30,6 +30,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     @Input() modo: ModoCamara = 'busqueda';
     @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
+    @Input() usuarioActualId: number | null = null;
 
     @Output() usuarioIdentificado = new EventEmitter<Usuario>();
     @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string, score: number }>();
@@ -290,11 +291,20 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             this.procesandoFrame = true;
 
             try {
-                const evaluacion = await this.faceHelper.evaluarFrameVerificacion(video, this.referenciaGaleria);
+                const umbralSimilitud = UMBRAL_SIMILITUD_VERIFICACION;
+                const evaluacion = await this.faceHelper.evaluarFrameVerificacion(
+                    video,
+                    this.referenciaGaleria,
+                    umbralSimilitud
+                );
                 this.mensajeReconocimiento = evaluacion.mensaje;
 
                 if (evaluacion.similitud != null) {
-                    this.actualizarSimilitud(Math.round(evaluacion.similitud * 100), evaluacion.calidadOk);
+                    this.actualizarSimilitud(
+                        Math.round(evaluacion.similitud * 100),
+                        evaluacion.calidadOk,
+                        umbralSimilitud
+                    );
                 } else {
                     this.actualizarSimilitud(null);
                 }
@@ -303,9 +313,10 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                     this.hitsConsecutivosVerificacion++;
                     this.framesVerificacion.push({
                         embedding: evaluacion.embedding,
-                        score: evaluacion.score
+                        score: evaluacion.score,
+                        similitud: evaluacion.similitud
                     });
-                    if (this.framesVerificacion.length > 5) {
+                    if (this.framesVerificacion.length > 6) {
                         this.framesVerificacion.shift();
                     }
 
@@ -319,12 +330,16 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                         this.hitsConsecutivosVerificacion >= HITS_CONSECUTIVOS_VERIFICACION
                         && this.framesVerificacion.length >= FRAMES_MINIMOS_VERIFICACION
                     ) {
-                        const verificado = this.faceHelper.construirEmbeddingVerificado(this.framesVerificacion);
+                        const verificado = this.faceHelper.confirmarVerificacionFinal(
+                            this.framesVerificacion,
+                            this.referenciaGaleria,
+                            umbralSimilitud
+                        );
                         if (!verificado) {
                             this.reiniciarAcumulacionVerificacion();
                             this.mensajeReconocimiento = 'Mantenga el rostro estable frente a la cámara';
                         } else {
-                            const pct = Math.round((evaluacion.similitud ?? 0) * 100);
+                            const pct = Math.round(verificado.similitud * 100);
                             this.mensajeReconocimiento = `✓ Rostro verificado (${pct}%)`;
                             this.progresoVerificacion = 100;
                             this.embeddingCapturado = verificado.embedding;
@@ -345,9 +360,15 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                 } else if (!evaluacion.rostroDetectado) {
                     this.reiniciarAcumulacionVerificacion();
                     this.similitudInsuficiente.emit(false);
-                } else if (evaluacion.similitud != null && evaluacion.similitud < UMBRAL_SIMILITUD_FACIAL) {
+                } else if (evaluacion.similitud != null && evaluacion.similitud < umbralSimilitud) {
                     this.reiniciarAcumulacionVerificacion();
                     this.similitudInsuficiente.emit(true);
+                } else if (evaluacion.rostroDetectado) {
+                    this.hitsConsecutivosVerificacion = 0;
+                    this.progresoVerificacion = Math.min(
+                        100,
+                        Math.round((this.framesVerificacion.length / FRAMES_MINIMOS_VERIFICACION) * 100)
+                    );
                 } else {
                     this.progresoVerificacion = Math.min(
                         100,
@@ -372,15 +393,20 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         this.progresoVerificacion = 0;
     }
 
-    private actualizarSimilitud(porcentaje: number | null, exito = false): void {
+    private actualizarSimilitud(
+        porcentaje: number | null,
+        exito = false,
+        umbralSimilitud = UMBRAL_SIMILITUD_VERIFICACION
+    ): void {
         this.porcentajeSimilitud = porcentaje;
         if (porcentaje == null) {
             this.barraSimilitudClase = '';
             return;
         }
-        if (exito || porcentaje >= Math.round(UMBRAL_SIMILITUD_FACIAL * 100)) {
+        const umbralPct = Math.round(umbralSimilitud * 100);
+        if (exito || porcentaje >= umbralPct) {
             this.barraSimilitudClase = 'similitud-alta';
-        } else if (porcentaje >= 40) {
+        } else if (porcentaje >= umbralPct - 15) {
             this.barraSimilitudClase = 'similitud-media';
         } else {
             this.barraSimilitudClase = 'similitud-baja';

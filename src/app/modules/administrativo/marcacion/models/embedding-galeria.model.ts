@@ -12,18 +12,19 @@ export interface EmbeddingGaleria {
 const POSES_CAPTURA = ['left', 'right', 'front'];
 
 export const UMBRAL_SIMILITUD_FACIAL = 0.55;
-/** Umbral mínimo para considerar que hay un rostro usable en cámara. */
+/** Umbral 1:1 en pantalla de marcación (usuario ya seleccionado), sin importar cómo se llegó. */
+export const UMBRAL_SIMILITUD_VERIFICACION = 0.75;
 export const SCORE_MINIMO_DETECCION = 0.45;
-/** Umbral de calidad para confirmar verificación y promediar frames. */
 export const SCORE_MINIMO_FRAME = 0.55;
-/** Umbral estricto para incorporar embeddings a la galería tras marcación. */
+export const SCORE_MINIMO_FRAME_VERIFICACION = 0.6;
 export const SCORE_MINIMO_GALERIA = 0.7;
-export const FRAMES_MINIMOS_VERIFICACION = 2;
-export const HITS_CONSECUTIVOS_VERIFICACION = 2;
+export const FRAMES_MINIMOS_VERIFICACION = 3;
+export const HITS_CONSECUTIVOS_VERIFICACION = 3;
 
 export interface FrameCalidadFacial {
   embedding: number[];
   score: number;
+  similitud?: number;
 }
 
 export function parsearGaleriaFacial(json: string | null | undefined): EmbeddingGaleria | null {
