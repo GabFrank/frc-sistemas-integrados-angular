@@ -145,6 +145,15 @@ export class AppComponent implements OnInit, OnDestroy {
             width: '450px',
           });
         });
+        // El proceso principal avisa cuando se intenta abrir una 3ra instancia
+        // (maximo permitido: 2). Enfoca esta ventana y notifica al usuario.
+        ipcRenderer.on('max-instances-reached', () => {
+          this.notificationService.notification$.next({
+            texto: "YA HAY 2 INSTANCIAS ABIERTAS. NO SE PERMITEN MÁS.",
+            color: NotificacionColor.warn,
+            duracion: 5
+          });
+        });
       }
     } catch (e) { }
     this.configService.isConfigured()
