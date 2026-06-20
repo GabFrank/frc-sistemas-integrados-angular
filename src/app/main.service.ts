@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, Injector, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { BehaviorSubject, Observable, Subscription } from "rxjs";
 import { ConfigFile } from "../environments/conectionConfig";
@@ -18,6 +18,7 @@ import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
 import { PuntoDeVentaService } from "./modules/financiero/punto-de-venta/punto-de-venta.service";
 import { ConfiguracionService } from "./shared/services/configuracion.service";
+import { LoginService } from "./modules/login/login.service";
 
 @UntilDestroy()
 @Injectable({
@@ -53,7 +54,8 @@ export class MainService implements OnDestroy {
     public sucursalService: SucursalService,
     private usuarioService: UsuarioService,
     private configService: ConfiguracionService,
-    private puntoDeVentaService: PuntoDeVentaService
+    private puntoDeVentaService: PuntoDeVentaService,
+    private injector: Injector
   ) {
     // Get server IP from ConfiguracionService instead of environment
     const config = this.configService.getConfig();
@@ -242,7 +244,12 @@ export class MainService implements OnDestroy {
    * This will force a re-authentication on next app start
    */
   logout(): void {
-    // Clear authentication tokens
+    try {
+      this.injector.get(LoginService).cerrarSesionActiva();
+    } catch (error) {
+      console.warn("No se pudo cerrar la sesión activa en el servidor", error);
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("token_central");
     localStorage.removeItem("usuarioId");
