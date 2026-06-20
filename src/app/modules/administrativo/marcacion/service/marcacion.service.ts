@@ -9,6 +9,7 @@ import { PageInfo } from '../../../../app.component';
 
 import { Marcacion, MarcacionInput } from '../models/marcacion.model';
 import { Jornada } from '../models/jornada.model';
+import { EstadoMarcacionUsuario } from '../models/estado-marcacion.model';
 import { TipoMarcacion } from '../enums/tipo-marcacion.enum';
 
 import { GetMarcacionGQL } from '../graphql/getMarcacion';
@@ -19,6 +20,7 @@ import { DeleteMarcacionGQL } from '../graphql/deleteMarcacion';
 import { GetJornadaGQL } from '../graphql/getJornada';
 import { GetJornadasGQL } from '../graphql/getJornadas';
 import { GetJornadasPorUsuarioGQL } from '../graphql/getJornadasPorUsuario';
+import { GetEstadoMarcacionUsuarioGQL } from '../graphql/getEstadoMarcacionUsuario';
 import { ImprimirReporteMarcacionesGQL } from '../graphql/imprimirReporteMarcaciones';
 import { AjustarJornadaA8HorasGQL } from '../graphql/ajustarJornadaA8Horas';
 import { GuardarObservacionJornadaGQL } from '../graphql/guardarObservacionJornada';
@@ -59,6 +61,7 @@ export class MarcacionService {
     private getJornada: GetJornadaGQL,
     private getJornadas: GetJornadasGQL,
     private getJornadasPorUsuario: GetJornadasPorUsuarioGQL,
+    private getEstadoMarcacionUsuario: GetEstadoMarcacionUsuarioGQL,
     private imprimirReporteMarcaciones: ImprimirReporteMarcacionesGQL,
     private ajustarJornadaA8Horas: AjustarJornadaA8HorasGQL,
     private guardarObservacionJornada: GuardarObservacionJornadaGQL,
@@ -115,6 +118,14 @@ export class MarcacionService {
     return this.genericCrudService.onCustomQuery(
       this.getJornadasPorUsuario,
       { usuarioId, fechaInicio, fechaFin },
+      servidor
+    );
+  }
+
+  onGetEstadoMarcacionUsuario(usuarioId: number, servidor = true): Observable<EstadoMarcacionUsuario> {
+    return this.genericCrudService.onCustomQuery(
+      this.getEstadoMarcacionUsuario,
+      { usuarioId },
       servidor
     );
   }

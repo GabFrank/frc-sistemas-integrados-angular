@@ -162,6 +162,22 @@ export const jornadasPorUsuarioQuery = gql`
   }
 `;
 
+export const estadoMarcacionUsuarioQuery = gql`
+  query ($usuarioId: ID!) {
+    data: estadoMarcacionUsuario(usuarioId: $usuarioId) {
+      accionPendiente
+      puedeMarcarEntrada
+      puedeMarcarSalida
+      puedeMarcarSalidaAlmuerzo
+      puedeMarcarEntradaAlmuerzo
+      estaEnJornada
+      jornadaRelevante {
+        ${jornadaFragment}
+      }
+    }
+  }
+`;
+
 export const imprimirReporteMarcacionesQuery = gql`
   query ($usuarioId: ID, $fechaInicio: String, $fechaFin: String, $usuarioResponsableId: ID) {
     data: imprimirReporteMarcaciones(

@@ -27,6 +27,7 @@ export const usuariosSearch = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -48,6 +49,7 @@ export const usuarioQuery = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -85,6 +87,7 @@ export const usuarioPorPersonaIdQuery = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -122,6 +125,7 @@ export const saveUsuario = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {

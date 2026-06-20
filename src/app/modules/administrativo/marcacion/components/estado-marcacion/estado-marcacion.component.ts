@@ -10,6 +10,7 @@ import {
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
 import { CamaraReconocimientoComponent, ModoCamara } from '../camara-reconocimiento/camara-reconocimiento.component';
 import { AccionMarcacionPendiente } from '../../enums/accion-marcacion-pendiente.enum';
+import { EmbeddingGaleria } from '../../models/embedding-galeria.model';
 
 @Component({
     selector: 'estado-marcacion',
@@ -26,8 +27,9 @@ export class EstadoMarcacionComponent {
     @Input() mensajeErrorFoto = '';
     @Input() mostrandoCamara = false;
     @Input() modoCamara: ModoCamara = 'verificacion';
-    @Input() referenciaDescriptor: number[] | null = null;
+    @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
+    @Input() usuarioActualId: number | null = null;
 
     @Output() registrarEntrada = new EventEmitter<void>();
     @Output() registrarSalida = new EventEmitter<void>();
@@ -35,7 +37,7 @@ export class EstadoMarcacionComponent {
 
     readonly AccionMarcacionPendiente = AccionMarcacionPendiente;
     @Output() iniciarReconocimiento = new EventEmitter<void>();
-    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string }>();
+    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string, score: number }>();
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
     @Output() similitudInsuficiente = new EventEmitter<boolean>();
 

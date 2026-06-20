@@ -23,6 +23,7 @@ export class UsuarioPorEmbeddingGQL extends Query<{ data: UsuarioSimilitud }> {
             id
             nombre
             imagenes
+            embeddingFacial
           }
         }
         similitud

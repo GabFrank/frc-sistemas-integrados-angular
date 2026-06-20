@@ -22,6 +22,7 @@ export class Persona  {
   isCliente: boolean
   isProveedor: boolean
   isUsuario: boolean
+  embeddingFacial?: string
 
   toInput(): PersonaInput {
     let input = new PersonaInput;
