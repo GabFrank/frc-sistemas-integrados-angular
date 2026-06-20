@@ -17,7 +17,6 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../../n
 import { MarcacionService, MarcacionContexto } from '../../service/marcacion.service';
 import { Marcacion } from '../../models/marcacion.model';
 import { Jornada } from '../../models/jornada.model';
-import { EstadoJornada } from '../../enums/estado-jornada.enum';
 import { TipoMarcacion } from '../../enums/tipo-marcacion.enum';
 import { AccionMarcacionPendiente } from '../../enums/accion-marcacion-pendiente.enum';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
@@ -307,24 +306,42 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
 
   private async consultarJornadaActualAsync(): Promise<void> {
     if (!this.usuarioSeleccionado?.id) return;
-    const { inicio, fin } = this.obtenerRangoMarcacion();
 
     try {
-      const jornadas = await firstValueFrom(
-        this.marcacionService.onGetJornadasPorUsuario(
-          this.usuarioSeleccionado.id, inicio, fin, true
-        )
+      const estado = await firstValueFrom(
+        this.marcacionService.onGetEstadoMarcacionUsuario(this.usuarioSeleccionado.id, true)
       );
-      this.jornadaActual = this.seleccionarJornadaRelevante(jornadas || []);
-      this.sincronizarEstadoDesdeJornada();
-      this.actualizarAccionPendiente();
+      this.aplicarEstadoMarcacion(estado);
     } catch {
       this.jornadaActual = null;
+      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
+      this.estaEnJornada = false;
+      this.marcacionActiva = null;
+      this.horaEntrada = null;
     }
   }
 
   private consultarJornadaActual(): void {
     void this.consultarJornadaActualAsync();
+  }
+
+  private aplicarEstadoMarcacion(estado: {
+    jornadaRelevante?: Jornada;
+    accionPendiente?: AccionMarcacionPendiente;
+    estaEnJornada?: boolean;
+  } | null): void {
+    this.jornadaActual = estado?.jornadaRelevante ?? null;
+    this.accionPendiente = estado?.accionPendiente ?? AccionMarcacionPendiente.ENTRADA;
+    this.estaEnJornada = !!estado?.estaEnJornada;
+
+    const j = this.jornadaActual;
+    if (this.estaEnJornada && j?.marcacionEntrada && !j.marcacionSalida) {
+      this.marcacionActiva = j.marcacionEntrada;
+      this.horaEntrada = new Date(j.marcacionEntrada.fechaEntrada);
+    } else {
+      this.marcacionActiva = null;
+      this.horaEntrada = null;
+    }
   }
 
   /** Incluye ayer para jornadas NOCHE/MADRUGADA que cruzan medianoche. */
@@ -336,95 +353,6 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       inicio: new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate()).toISOString(),
       fin: new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
     };
-  }
-
-  private seleccionarJornadaRelevante(jornadas: Jornada[]): Jornada | null {
-    if (!jornadas.length) {
-      return null;
-    }
-    const abiertas = jornadas.filter(
-      j => j.estado === EstadoJornada.INCOMPLETO && j.marcacionEntrada && !j.marcacionSalida
-    );
-    if (abiertas.length > 0) {
-      const nocturnas = abiertas.filter(j => this.cruzaMedianoche(j));
-      const candidatas = nocturnas.length > 0 ? nocturnas : abiertas;
-      return [...candidatas].sort((a, b) => b.id - a.id)[0];
-    }
-    return [...jornadas].sort((a, b) => a.id - b.id)[jornadas.length - 1];
-  }
-
-  private cruzaMedianoche(j: Jornada): boolean {
-    const turno = (j.turno || '').toUpperCase();
-    return turno === 'NOCHE' || turno === 'MADRUGADA';
-  }
-
-  private sincronizarEstadoDesdeJornada(): void {
-    const j = this.jornadaActual;
-    if (!j?.marcacionEntrada || j.marcacionSalida) {
-      return;
-    }
-    const hoy = this.fechaLocal(new Date());
-    const fechaJornada = this.fechaLocal(j.fecha);
-    const activa = fechaJornada >= hoy
-      || (this.cruzaMedianoche(j) && j.estado === EstadoJornada.INCOMPLETO);
-    if (activa) {
-      this.marcacionActiva = j.marcacionEntrada;
-      this.horaEntrada = new Date(j.marcacionEntrada.fechaEntrada);
-      this.estaEnJornada = true;
-    }
-  }
-
-  /** Determina el siguiente paso según el estado de la jornada (entrada, almuerzo, retorno, salida). */
-  private actualizarAccionPendiente(): void {
-    const j = this.jornadaActual;
-    if (!j || !this.esJornadaActiva(j) || j.estado === EstadoJornada.NORMAL || j.marcacionSalida) {
-      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
-      this.estaEnJornada = false;
-      return;
-    }
-
-    if (!j.marcacionEntrada) {
-      this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
-      this.estaEnJornada = false;
-      return;
-    }
-
-    if (!j.marcacionSalidaAlmuerzo) {
-      this.accionPendiente = AccionMarcacionPendiente.SALIDA;
-      this.estaEnJornada = true;
-      return;
-    }
-
-    if (!j.marcacionEntradaAlmuerzo) {
-      this.accionPendiente = AccionMarcacionPendiente.RETORNO_ALMUERZO;
-      this.estaEnJornada = true;
-      return;
-    }
-
-    this.accionPendiente = AccionMarcacionPendiente.SALIDA_DEFINITIVA;
-    this.estaEnJornada = true;
-  }
-
-  private esJornadaActiva(j: Jornada): boolean {
-    const hoy = this.fechaLocal(new Date());
-    const fechaJornada = this.fechaLocal(j.fecha);
-    if (fechaJornada >= hoy) {
-      return true;
-    }
-    return this.cruzaMedianoche(j)
-      && j.estado === EstadoJornada.INCOMPLETO
-      && !j.marcacionSalida
-      && !!j.marcacionEntrada;
-  }
-
-  private fechaLocal(valor: Date | string): string {
-    const date = typeof valor === 'string'
-      ? new Date(valor.length <= 10 ? `${valor}T12:00:00` : valor)
-      : valor;
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
   }
 
   private procesarMarcaciones(marcaciones: Marcacion[]) {
@@ -466,10 +394,9 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
         this.horaEntrada = new Date(currentRaw.fechaEntrada);
         this.estaEnJornada = true;
         this.accionPendiente = AccionMarcacionPendiente.SALIDA;
-      } else {
+      } else if (!this.estaEnJornada) {
         this.marcacionActiva = null;
         this.horaEntrada = null;
-        this.estaEnJornada = false;
         this.accionPendiente = AccionMarcacionPendiente.ENTRADA;
       }
     }
@@ -535,7 +462,7 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => this.finalizarRegistro(res, 'Entrada'),
-        error: () => { this.cargando = false; this.cdr.markForCheck(); }
+        error: (err) => this.manejarErrorMarcacion(err)
       });
   }
 
@@ -544,8 +471,18 @@ export class MarcarHorarioComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => this.finalizarRegistro(res, 'Salida'),
-        error: () => { this.cargando = false; this.cdr.markForCheck(); }
+        error: (err) => this.manejarErrorMarcacion(err)
       });
+  }
+
+  private manejarErrorMarcacion(err: unknown): void {
+    this.cargando = false;
+    const graphQLError = (err as { graphQLErrors?: Array<{ message?: string }> })?.graphQLErrors?.[0]?.message;
+    const mensaje = graphQLError
+      || (err as { message?: string })?.message
+      || 'No se pudo registrar la marcación';
+    this.notificarError(mensaje, NotificacionColor.danger);
+    this.cdr.markForCheck();
   }
 
   private finalizarRegistro(marcacion: Marcacion, tipo: 'Entrada' | 'Salida') {
