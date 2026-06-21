@@ -220,6 +220,7 @@ export class GestionComprasComponent
   @ViewChild("sucursalEntregaSelect", { read: MatSelect }) sucursalEntregaSelect!: MatSelect;
   @ViewChild("sucursalInfluenciaSelect", { read: MatSelect }) sucursalInfluenciaSelect!: MatSelect;
   @ViewChild("formaPagoSelect", { read: MatSelect }) formaPagoSelect!: MatSelect;
+  @ViewChild("cotizacionInput") cotizacionInput!: any;
   @ViewChild("plazoCreditoInput") plazoCreditoInput!: any;
   @ViewChild("continuarButton", { read: MatButton }) continuarButton!: MatButton;
   @ViewChild("addItemInput") addItemInput!: ElementRef;
@@ -490,11 +491,11 @@ export class GestionComprasComponent
 
   private initializeForms(): void {
     this.datosGeneralesForm = this.fb.group({
-      proveedor: ["", Validators.required],
-      vendedor: [""],
-      moneda: ["", Validators.required],
+      proveedor: [null, Validators.required],
+      vendedor: [null],
+      moneda: [null, Validators.required],
       cotizacion: [null],
-      formaPago: ["", Validators.required],
+      formaPago: [null, Validators.required],
       plazoCredito: [0],
       observacionFormaPago: [''],
       sucursalesEntrega: [[], Validators.required],
@@ -592,9 +593,7 @@ export class GestionComprasComponent
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
           this.datosGeneralesForm.patchValue({ moneda: monedas[0] }, { emitEvent: false });
         }
-        if (formasPago.length > 0 && !this.datosGeneralesForm.get("formaPago")?.value) {
-          this.datosGeneralesForm.patchValue({ formaPago: formasPago[0] }, { emitEvent: false });
-        }
+        this.ensureDefaultFormaPago();
       }),
       takeUntil(this.destroy$)
     );
@@ -1965,7 +1964,12 @@ export class GestionComprasComponent
   onMonedaClosed(): void {
     // Navegar al siguiente campo después de que se cierre el dropdown
     setTimeout(() => {
-      this.focusFormaPago();
+      const moneda: Moneda | null = this.datosGeneralesForm.get("moneda")?.value;
+      if (moneda && moneda.denominacion !== "GUARANI") {
+        this.focusCotizacion();
+      } else {
+        this.focusFormaPago();
+      }
     }, 100);
   }
 
@@ -1989,6 +1993,9 @@ export class GestionComprasComponent
     cotizacionCtrl.setValidators([Validators.required, Validators.min(0.0001)]);
     cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
 
+    // Re-aplicar EFECTIVO: al aparecer el campo cotización (*ngIf) el mat-select puede desincronizarse.
+    this.ensureDefaultFormaPago();
+
     const hadItems = this.itemsDataSource.data.length > 0;
     this.prefillCotizacionFromMercado(moneda).subscribe(() => {
       if (hadItems) {
@@ -1996,6 +2003,7 @@ export class GestionComprasComponent
           "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
         );
       }
+      this.updateComputedProperties();
     });
   }
 
@@ -2017,6 +2025,7 @@ export class GestionComprasComponent
             const fromMercado = !!(cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado);
             this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
             this.cotizacionFromMercado = fromMercado;
+            this.updateComputedProperties();
             observer.next(valor);
             observer.complete();
           },
@@ -2024,6 +2033,7 @@ export class GestionComprasComponent
             const fallback = moneda?.cambio ?? null;
             this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
             this.cotizacionFromMercado = false;
+            this.updateComputedProperties();
             observer.next(fallback);
             observer.complete();
           }
@@ -2105,6 +2115,50 @@ export class GestionComprasComponent
       this.monedaSelect.focus();
     }
   }
+
+  private focusCotizacion(): void {
+    if (this.cotizacionInput) {
+      const inputElement =
+        this.cotizacionInput.nativeElement?.querySelector("input") ||
+        this.cotizacionInput.nativeElement;
+      if (inputElement) {
+        inputElement.focus();
+      }
+    }
+  }
+
+  private getDefaultFormaPago(): FormaPago | null {
+    if (!this.formasPago?.length) {
+      return null;
+    }
+    return (
+      this.formasPago.find((f) => f.descripcion?.toUpperCase() === "EFECTIVO") ??
+      this.formasPago[0]
+    );
+  }
+
+  private ensureDefaultFormaPago(): void {
+    const ctrl = this.datosGeneralesForm.get("formaPago");
+    if (!ctrl) {
+      return;
+    }
+    const current: FormaPago | null = ctrl.value;
+    if (current?.id) {
+      return;
+    }
+    const defaultFormaPago = this.getDefaultFormaPago();
+    if (!defaultFormaPago) {
+      return;
+    }
+    ctrl.setValue(defaultFormaPago, { emitEvent: false });
+    this.onFormaPagoChange();
+  }
+
+  compareMoneda = (a: Moneda | null, b: Moneda | null): boolean =>
+    !!a && !!b && a.id === b.id;
+
+  compareFormaPago = (a: FormaPago | null, b: FormaPago | null): boolean =>
+    !!a && !!b && a.id === b.id;
 
   private focusFormaPago(): void {
     if (this.formaPagoSelect) {
