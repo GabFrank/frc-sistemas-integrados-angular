@@ -370,6 +370,7 @@
                   <mat-select
                     formControlName="moneda"
                     #monedaSelect
+                    [compareWith]="compareMoneda"
                     (closed)="onMonedaClosed()"
                   >
                     <mat-option *ngFor="let moneda of monedas" [value]="moneda">
@@ -396,6 +397,7 @@
                 >
                   <mat-label>Cotización</mat-label>
                   <input
+                    #cotizacionInput
                     matInput
                     type="number"
                     formControlName="cotizacion"
@@ -439,6 +441,7 @@
                   <mat-select
                     #formaPagoSelect
                     formControlName="formaPago"
+                    [compareWith]="compareFormaPago"
                     (selectionChange)="onFormaPagoChange()"
                     (closed)="onFormaPagoClosed()"
                   >
