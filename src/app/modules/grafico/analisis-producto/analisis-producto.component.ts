@@ -6,9 +6,9 @@ import {
   switchMap, distinctUntilChanged, tap, map, of, catchError, forkJoin
 } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { ProductoVendidoEstadistica } from '../models/producto-vendido-estadistica.model';
-import { ProductoVentaPorPeriodo } from '../models/producto-venta-periodo.model';
-import { ProductoCompraPorPeriodo } from '../models/producto-compra-periodo.model';
+import { ProductoVendidoEstadistica } from '../producto-vendido/interfaces/producto-vendido-estadistica.model';
+import { ProductoVentaPorPeriodo } from '../producto-vendido/interfaces/producto-venta-periodo.model';
+import { ProductoCompraPorPeriodo } from '../producto-vendido/interfaces/producto-compra-periodo.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { Familia } from '../../productos/familia/familia.model';
 import { MatDialog } from '@angular/material/dialog';
@@ -19,44 +19,13 @@ import {
   PdvSearchProductoDialogComponent,
   PdvSearchProductoResponseData
 } from '../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
-import { dateToString } from '../../../commons/core/utils/dateUtils';
-
-type ModoRanking = 'mas' | 'menos';
-type NivelVenta = 'alto' | 'medio' | 'bajo';
-type VistaTemporal = 'dia' | 'mes';
-
-interface ProductoDetalle {
-  productoId: string;
-  descripcion: string;
-  cantidad: number;
-  totalMonto: number;
-  cantidadFormateada: string;
-  montoFormateado: string;
-  porcentaje: number;
-  nivel: NivelVenta;
-  nivelLabel: string;
-  color: string;
-  rank: number;
-}
-
-interface VistaAnalisis {
-  rankingOptions: EChartsOption;
-  temporalOptions: EChartsOption;
-  productos: ProductoDetalle[];
-  productoSeleccionado: ProductoDetalle | null;
-  promedioPeriodo: string;
-  periodoPico: string;
-  labelPeriodoPico: string;
-  hayDatos: boolean;
-  tituloRanking: string;
-}
-
-interface RangoFechas {
-  inicio: string;
-  fin: string;
-  inicioDate: Date;
-  finDate: Date;
-}
+import { dateToString, listarAnhosGrafico } from '../../../commons/core/utils/dateUtils';
+import { AnalisisProductoModoRanking } from './interfaces/analisis-producto-modo-ranking.type';
+import { AnalisisProductoNivelVenta } from './interfaces/analisis-producto-nivel-venta.type';
+import { AnalisisProductoVistaTemporal } from './interfaces/analisis-producto-vista-temporal.type';
+import { AnalisisProductoProductoDetalle } from './interfaces/analisis-producto-producto-detalle.model';
+import { AnalisisProductoVista } from './interfaces/analisis-producto-vista.model';
+import { AnalisisProductoRangoFechas } from './interfaces/analisis-producto-rango-fechas.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -72,8 +41,8 @@ export class AnalisisProductoComponent implements OnInit {
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
 
-  private datosSubject = new BehaviorSubject<VistaAnalisis | null>(null);
-  datos$: Observable<VistaAnalisis | null> = this.datosSubject.asObservable();
+  private datosSubject = new BehaviorSubject<AnalisisProductoVista | null>(null);
+  datos$: Observable<AnalisisProductoVista | null> = this.datosSubject.asObservable();
 
   private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
@@ -84,17 +53,17 @@ export class AnalisisProductoComponent implements OnInit {
   cargando = false;
 
   private productoSeleccionadoId: string | null = null;
-  private ultimoRango: RangoFechas | null = null;
+  private ultimoRango: AnalisisProductoRangoFechas | null = null;
 
   sucursalControl = new FormControl<number | null>(null);
   familiaControl = new FormControl<number | null>(null);
   limitControl = new FormControl<number>(15);
-  modoControl = new FormControl<ModoRanking>('mas');
-  vistaTemporalControl = new FormControl<VistaTemporal>('dia');
-  anhoControl = new FormControl<number>(new Date().getFullYear());
+  modoControl = new FormControl<AnalisisProductoModoRanking>('mas');
+  vistaTemporalControl = new FormControl<AnalisisProductoVistaTemporal>('dia');
+  anhoControl = new FormControl<number[]>([new Date().getFullYear()]);
   productosFiltro: Producto[] = [];
 
-  anhos: number[] = [];
+  anhos: number[] = listarAnhosGrafico();
   minFechaAnho = new Date(new Date().getFullYear(), 0, 1);
   maxFechaAnho = new Date();
 
@@ -106,11 +75,11 @@ export class AnalisisProductoComponent implements OnInit {
   });
 
   limits = [10, 15, 20, 30, 50, 75, 100];
-  modos: { valor: ModoRanking; label: string }[] = [
+  modos: { valor: AnalisisProductoModoRanking; label: string }[] = [
     { valor: 'mas', label: 'Más vendidos' },
     { valor: 'menos', label: 'Menos vendidos' }
   ];
-  vistasTemporales: { valor: VistaTemporal; label: string }[] = [
+  vistasTemporales: { valor: AnalisisProductoVistaTemporal; label: string }[] = [
     { valor: 'dia', label: 'Por día' },
     { valor: 'mes', label: 'Por mes' }
   ];
@@ -134,33 +103,41 @@ export class AnalisisProductoComponent implements OnInit {
   private paleta = ['#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4'];
 
   ngOnInit(): void {
-    this.inicializarAnhos();
     this.inicializarRangoPorDefecto();
     this.configurarSincronizacionAnho();
     this.cargarMetadata();
     this.configurarDataStream();
   }
 
-  private inicializarAnhos(): void {
-    const anhoActual = new Date().getFullYear();
-    this.anhos = Array.from({ length: 5 }, (_, i) => anhoActual - i);
-  }
-
   private inicializarRangoPorDefecto(): void {
     const hoy = new Date();
     const anho = hoy.getFullYear();
-    this.anhoControl.setValue(anho, { emitEvent: false });
-    this.actualizarLimitesAnho(anho);
+    this.anhoControl.setValue([anho], { emitEvent: false });
+    this.actualizarLimitesAnhos([anho]);
     const inicioMes = new Date(anho, hoy.getMonth(), 1);
     this.ajustandoRango = true;
     this.fechaRangoGroup.setValue({ inicio: inicioMes, fin: hoy }, { emitEvent: false });
     this.ajustandoRango = false;
   }
 
+  private normalizarAnhosSeleccionados(anhosSel?: number[] | null): number[] {
+    const anhos = anhosSel ?? this.anhoControl.value ?? [];
+    if (!anhos.length) {
+      return [new Date().getFullYear()];
+    }
+    return Array.from(
+      new Set(
+        anhos
+          .map((a) => Number(a))
+          .filter((a) => Number.isFinite(a))
+      )
+    ).sort((a, b) => a - b);
+  }
+
   private configurarSincronizacionAnho(): void {
-    this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(anho => {
-      if (this.ajustandoRango || anho == null) return;
-      this.ajustarRangoPorAnho(anho);
+    this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((anhos) => {
+      if (this.ajustandoRango) return;
+      this.ajustarRangoPorAnhos(this.normalizarAnhosSeleccionados(anhos));
     });
 
     this.fechaRangoGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
@@ -169,18 +146,23 @@ export class AnalisisProductoComponent implements OnInit {
     });
   }
 
-  private actualizarLimitesAnho(anho: number): void {
+  private actualizarLimitesAnhos(anhos: number[]): void {
     const hoy = new Date();
     hoy.setHours(23, 59, 59, 999);
-    this.minFechaAnho = new Date(anho, 0, 1);
-    this.maxFechaAnho = anho === hoy.getFullYear() ? hoy : new Date(anho, 11, 31);
+    const anhoMin = Math.min(...anhos);
+    const anhoMax = Math.max(...anhos);
+    this.minFechaAnho = new Date(anhoMin, 0, 1);
+    this.maxFechaAnho =
+      anhoMax === hoy.getFullYear() ? hoy : new Date(anhoMax, 11, 31);
   }
 
-  private ajustarRangoPorAnho(anho: number): void {
+  private ajustarRangoPorAnhos(anhos: number[]): void {
     const hoy = new Date();
-    const inicio = new Date(anho, 0, 1);
-    const fin = anho === hoy.getFullYear() ? hoy : new Date(anho, 11, 31);
-    this.actualizarLimitesAnho(anho);
+    const anhoMin = Math.min(...anhos);
+    const anhoMax = Math.max(...anhos);
+    const inicio = new Date(anhoMin, 0, 1);
+    const fin = anhoMax === hoy.getFullYear() ? hoy : new Date(anhoMax, 11, 31);
+    this.actualizarLimitesAnhos(anhos);
     this.ajustandoRango = true;
     this.fechaRangoGroup.setValue({ inicio, fin });
     this.ajustandoRango = false;
@@ -188,15 +170,28 @@ export class AnalisisProductoComponent implements OnInit {
 
   private syncAnhoDesdeRango(): void {
     const inicio = this.fechaRangoGroup.value.inicio;
-    if (!inicio) return;
-    const anho = inicio.getFullYear();
-    if (this.anhoControl.value === anho) {
-      this.actualizarLimitesAnho(anho);
+    const fin = this.fechaRangoGroup.value.fin;
+    if (!inicio || !fin) return;
+
+    const anhoIni = inicio.getFullYear();
+    const anhoFin = fin.getFullYear();
+    const anhosEnRango: number[] = [];
+    for (let y = anhoIni; y <= anhoFin; y++) {
+      anhosEnRango.push(y);
+    }
+
+    const actuales = this.normalizarAnhosSeleccionados();
+    const mismos =
+      actuales.length === anhosEnRango.length &&
+      actuales.every((a, i) => a === anhosEnRango[i]);
+
+    this.actualizarLimitesAnhos(anhosEnRango);
+    if (mismos) {
       return;
     }
+
     this.ajustandoRango = true;
-    this.anhoControl.setValue(anho, { emitEvent: false });
-    this.actualizarLimitesAnho(anho);
+    this.anhoControl.setValue(anhosEnRango, { emitEvent: false });
     this.ajustandoRango = false;
   }
 
@@ -295,7 +290,7 @@ export class AnalisisProductoComponent implements OnInit {
     }
   }
 
-  private obtenerRangoFechas(): RangoFechas | null {
+  private obtenerRangoFechas(): AnalisisProductoRangoFechas | null {
     const inicio = this.fechaRangoGroup.value.inicio;
     const fin = this.fechaRangoGroup.value.fin;
     if (!inicio || !fin) return null;
@@ -384,9 +379,9 @@ export class AnalisisProductoComponent implements OnInit {
 
   private cargarVentasPeriodo(
     productoId: string,
-    rango: RangoFechas,
+    rango: AnalisisProductoRangoFechas,
     productos: ProductoVendidoEstadistica[],
-    modo: ModoRanking
+    modo: AnalisisProductoModoRanking
   ): void {
     const sucId = this.sucursalControl.value || undefined;
     const vista = this.vistaTemporalControl.value || 'dia';
@@ -409,9 +404,9 @@ export class AnalisisProductoComponent implements OnInit {
     productos: ProductoVendidoEstadistica[],
     ventasPeriodo: ProductoVentaPorPeriodo[],
     comprasPeriodo: ProductoCompraPorPeriodo[],
-    modo: ModoRanking,
+    modo: AnalisisProductoModoRanking,
     productoId: string | null,
-    rango: RangoFechas
+    rango: AnalisisProductoRangoFechas
   ): void {
     this.cargando = false;
     const vista = this.vistaTemporalControl.value || 'dia';
@@ -422,10 +417,10 @@ export class AnalisisProductoComponent implements OnInit {
     estadisticas: ProductoVendidoEstadistica[],
     ventasPeriodo: ProductoVentaPorPeriodo[],
     comprasPeriodo: ProductoCompraPorPeriodo[],
-    modo: ModoRanking,
+    modo: AnalisisProductoModoRanking,
     productoId: string | null,
-    vistaTemporal: VistaTemporal,
-    rango: RangoFechas
+    vistaTemporal: AnalisisProductoVistaTemporal,
+    rango: AnalisisProductoRangoFechas
   ): void {
     const vista = this.construirVista(estadisticas, ventasPeriodo, comprasPeriodo, modo, productoId, vistaTemporal, rango);
     this.datosSubject.next(vista);
@@ -436,14 +431,14 @@ export class AnalisisProductoComponent implements OnInit {
     estadisticas: ProductoVendidoEstadistica[],
     ventasPeriodo: ProductoVentaPorPeriodo[],
     comprasPeriodo: ProductoCompraPorPeriodo[],
-    modo: ModoRanking,
+    modo: AnalisisProductoModoRanking,
     productoId: string | null,
-    vistaTemporal: VistaTemporal,
-    rango: RangoFechas
-  ): VistaAnalisis {
+    vistaTemporal: AnalisisProductoVistaTemporal,
+    rango: AnalisisProductoRangoFechas
+  ): AnalisisProductoVista {
     const validas = (estadisticas || []).filter(e => e.cantidad > 0);
 
-    const productos: ProductoDetalle[] = validas.map((e, i) => {
+    const productos: AnalisisProductoProductoDetalle[] = validas.map((e, i) => {
       const nivel = this.calcularNivelRotacion(e.indiceRotacion);
       return {
         productoId: String(e.productoId),
@@ -474,14 +469,14 @@ export class AnalisisProductoComponent implements OnInit {
   }
 
   /** Rotación según movimiento_stock: ventas / (compras + transferencias entrantes). */
-  private calcularNivelRotacion(indiceRotacion?: number): NivelVenta {
+  private calcularNivelRotacion(indiceRotacion?: number): AnalisisProductoNivelVenta {
     const ratio = indiceRotacion ?? 0;
     if (ratio >= 0.66) return 'alto';
     if (ratio >= 0.33) return 'medio';
     return 'bajo';
   }
 
-  private buildRankingChart(productos: ProductoDetalle[], titulo: string, modo: ModoRanking): EChartsOption {
+  private buildRankingChart(productos: AnalisisProductoProductoDetalle[], titulo: string, modo: AnalisisProductoModoRanking): EChartsOption {
     const nombres = [...productos].reverse().map(p => this.truncar(p.descripcion, 28));
     const cantidades = [...productos].reverse().map(p => p.cantidad);
     const colores = [...productos].reverse().map(p => {
@@ -517,9 +512,9 @@ export class AnalisisProductoComponent implements OnInit {
     ventasPeriodo: ProductoVentaPorPeriodo[],
     comprasPeriodo: ProductoCompraPorPeriodo[],
     nombreProducto: string,
-    vistaTemporal: VistaTemporal,
-    rango: RangoFechas
-  ): Pick<VistaAnalisis, 'temporalOptions' | 'promedioPeriodo' | 'periodoPico' | 'labelPeriodoPico'> {
+    vistaTemporal: AnalisisProductoVistaTemporal,
+    rango: AnalisisProductoRangoFechas
+  ): Pick<AnalisisProductoVista, 'temporalOptions' | 'promedioPeriodo' | 'periodoPico' | 'labelPeriodoPico'> {
     const serie = vistaTemporal === 'mes'
       ? this.prepararSerieMensual(ventasPeriodo, comprasPeriodo, rango)
       : this.prepararSerieDiaria(ventasPeriodo, comprasPeriodo, rango);
@@ -619,7 +614,7 @@ export class AnalisisProductoComponent implements OnInit {
     };
   }
 
-  private prepararSerieDiaria(ventas: ProductoVentaPorPeriodo[], compras: ProductoCompraPorPeriodo[], rango: RangoFechas) {
+  private prepararSerieDiaria(ventas: ProductoVentaPorPeriodo[], compras: ProductoCompraPorPeriodo[], rango: AnalisisProductoRangoFechas) {
     const mapaVentas = new Map<string, { cantidad: number; monto: number }>();
     for (const v of ventas) {
       const key = this.normalizarFechaPeriodo(v.periodo);
@@ -657,7 +652,7 @@ export class AnalisisProductoComponent implements OnInit {
     return { etiquetas, cantidades, montos, tooltips, comprasCantidades, comprasCount };
   }
 
-  private prepararSerieMensual(ventas: ProductoVentaPorPeriodo[], compras: ProductoCompraPorPeriodo[], rango: RangoFechas) {
+  private prepararSerieMensual(ventas: ProductoVentaPorPeriodo[], compras: ProductoCompraPorPeriodo[], rango: AnalisisProductoRangoFechas) {
     const mapaVentas = new Map<string, { cantidad: number; monto: number }>();
     for (const v of ventas) {
       mapaVentas.set(v.periodo, { cantidad: v.cantidad, monto: v.totalMonto });
@@ -713,7 +708,7 @@ export class AnalisisProductoComponent implements OnInit {
     return texto.length > max ? texto.substring(0, max - 2) + '…' : texto;
   }
 
-  trackByProductoId(_: number, item: ProductoDetalle): string {
+  trackByProductoId(_: number, item: AnalisisProductoProductoDetalle): string {
     return item.productoId;
   }
 

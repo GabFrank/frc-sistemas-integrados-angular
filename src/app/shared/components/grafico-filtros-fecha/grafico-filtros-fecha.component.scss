@@ -1,0 +1,19 @@
+:host {
+  display: contents;
+}
+
+.grafico-filtro-fecha {
+  font-size: 14px;
+
+  &--anho {
+    width: 100px;
+  }
+
+  &--mes {
+    width: 140px;
+  }
+
+  &--dia {
+    width: 160px;
+  }
+}

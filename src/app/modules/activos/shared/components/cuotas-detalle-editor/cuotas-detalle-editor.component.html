@@ -1,0 +1,51 @@
+<div class="cuotas-editor" fxLayout="column" fxLayoutGap="12px">
+  <div fxLayout="row" fxLayoutAlign="space-between center">
+    <span class="titulo-seccion">Detalle de cuotas pendientes</span>
+    <button mat-stroked-button color="accent" type="button" (click)="agregarCuotaExtra()">
+      <mat-icon>add</mat-icon> Ajustar cuota
+    </button>
+  </div>
+
+  <div class="total-cuotas" *ngIf="cuotas.length">
+    Total cuotas: <strong>{{ totalCuotasMonto | number:'1.0-2' }}</strong>
+  </div>
+
+  <table mat-table [dataSource]="cuotas" class="mat-elevation-z2" *ngIf="cuotas.length">
+    <ng-container matColumnDef="numero">
+      <th mat-header-cell *matHeaderCellDef>#</th>
+      <td mat-cell *matCellDef="let c">{{ c.numeroCuota }}</td>
+    </ng-container>
+    <ng-container matColumnDef="monto">
+      <th mat-header-cell *matHeaderCellDef>Monto</th>
+      <td mat-cell *matCellDef="let c">{{ c.monto | number:'1.0-2' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef>Estado</th>
+      <td mat-cell *matCellDef="let c">{{ c.pagado ? 'Pagada' : 'Pendiente' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="accion">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let c; let i = index">
+        <button mat-icon-button type="button" (click)="editarCuota(i)" [disabled]="c.pagado">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="['numero', 'monto', 'estado', 'accion']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['numero', 'monto', 'estado', 'accion'];"></tr>
+  </table>
+
+  <div *ngIf="cuotaEnEdicion" class="edicion-cuota" fxLayout="column" fxLayoutGap="10px">
+    <span>Editar cuota #{{ cuotaEnEdicion.numeroCuota }}</span>
+    <mat-form-field>
+      <mat-label>Monto de la cuota</mat-label>
+      <input matInput type="text" numericOnly currencyMask
+        [options]="currencyMask.currencyOptionsGuarani"
+        [(ngModel)]="cuotaEnEdicion.monto" [ngModelOptions]="{standalone: true}">
+    </mat-form-field>
+    <div fxLayout="row" fxLayoutGap="10px">
+      <button mat-button type="button" (click)="cancelarEdicionCuota()">Cancelar</button>
+      <button mat-raised-button color="primary" type="button" (click)="guardarEdicionCuota()">Aplicar</button>
+    </div>
+  </div>
+</div>

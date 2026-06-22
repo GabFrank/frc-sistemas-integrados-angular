@@ -8,6 +8,7 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { AdicionarFamiliaMuebleDialogComponent } from './dialogs/adicionar-familia-mueble-dialog/adicionar-familia-mueble-dialog.component';
 import { AdicionarTipoMuebleDialogComponent } from './dialogs/adicionar-tipo-mueble-dialog/adicionar-tipo-mueble-dialog.component';
+import { ActivosSharedModule } from '../shared/activos-shared.module';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { AdicionarTipoMuebleDialogComponent } from './dialogs/adicionar-tipo-mue
     SharedModule,
     FlexLayoutModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    ActivosSharedModule,
   ],
   exports: [
     ListMueblesComponent

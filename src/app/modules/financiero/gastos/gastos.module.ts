@@ -19,6 +19,7 @@ import { BienFinancieroCardComponent } from './components/bien-financiero-card/b
 import { HistorialSolicitudesComponent } from './components/historial-solicitudes/historial-solicitudes.component';
 import { PreGastoStepperComponent } from './components/pre-gasto-stepper/pre-gasto-stepper.component';
 import { SolicitudGastoSimpleDialogComponent } from './dialogs/solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component';
+import { RetiroPreGastoDialogComponent } from './dialogs/retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component';
 
 @NgModule({
   declarations: [
@@ -43,7 +44,8 @@ import { SolicitudGastoSimpleDialogComponent } from './dialogs/solicitud-gasto-s
     FormsModule,
     MaterialModule,
     SharedModule,
-    BootstrapModule
+    BootstrapModule,
+    RetiroPreGastoDialogComponent
   ],
   exports: [
     ListGastosComponent,

@@ -3,19 +3,11 @@ import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
 import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, forkJoin, switchMap, finalize, distinctUntilChanged } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { VentaPorPeriodo } from '../models/venta-por-periodo.model';
+import { VentaPorPeriodo } from '../venta-sucursal/venta-por-periodo.model';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { GraficoService } from '../grafico.service';
-
-interface ResumenAnho {
-  label: string;
-  valor: string;
-}
-
-interface DatosGraficoProcesados {
-  opciones: EChartsOption;
-  resumen: ResumenAnho[];
-}
+import { VentaMesDatosGraficoProcesados } from './interfaces/venta-mes-datos-grafico-procesados.model';
+import { VentaMesResumenAnho } from './interfaces/venta-mes-resumen-anho.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -31,8 +23,8 @@ export class VentaMesComponent implements OnInit {
 
   private graficoService = inject(GraficoService);
 
-  private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
-  datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
+  private datosSubject = new BehaviorSubject<VentaMesDatosGraficoProcesados | null>(null);
+  datos$: Observable<VentaMesDatosGraficoProcesados | null> = this.datosSubject.asObservable();
 
   private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
@@ -104,7 +96,7 @@ export class VentaMesComponent implements OnInit {
     anterior: VentaPorPeriodo[],
     anhoActual: number,
     anhoAnterior: number
-  ): DatosGraficoProcesados {
+  ): VentaMesDatosGraficoProcesados {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
     const agruparPorMes = (datos: VentaPorPeriodo[]) => {

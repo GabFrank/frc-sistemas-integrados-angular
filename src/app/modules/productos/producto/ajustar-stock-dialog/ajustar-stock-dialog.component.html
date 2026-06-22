@@ -64,6 +64,7 @@
             step="0.01"
             formControlName="cantidad"
             style="text-align: center;"
+            (keyup.enter)="onGuardar()"
           />
           <mat-error *ngIf="cantidadControl.hasError('required')">
             La cantidad es requerida

@@ -5,7 +5,7 @@
         <app-boton nombre="Histórico de transferencias" icon="manage_search" [iconSize]="4"
           (clickEvent)="onListTransferencias()"></app-boton>
       </div>
-      <div fxFlex="30%" style="height: 250px">
+      <div fxFlex="30%" style="height: 250px" *ngIf="mainService.usuarioActual?.roles.includes(ROLES.CREAR_TRANSFERENCIA)">
         <app-boton nombre="Nueva Transferencia" icon="move_up" [iconSize]="4"
           (clickEvent)="onNuevaTransferencia()"></app-boton>
       </div>

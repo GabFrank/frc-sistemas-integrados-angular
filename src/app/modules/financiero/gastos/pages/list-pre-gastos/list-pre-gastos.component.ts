@@ -16,8 +16,6 @@ import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
 import { ReporteService } from '../../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
-import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
-import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { CajaService } from '../../../pdv/caja/caja.service';
 
 @UntilDestroy()
@@ -34,8 +32,6 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   private tabService = inject(TabService);
   private mainService = inject(MainService);
   private reporteService = inject(ReporteService);
-  private dialogosService = inject(DialogosService);
-  private notificacionService = inject(NotificacionSnackbarService);
   private cajaService = inject(CajaService);
 
   alturaContenedor = this.windowInfoService.innerTabHeight;
@@ -194,21 +190,6 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         this.cargandoSubject.next(false);
         console.error('Error al enviar a tesorería:', err);
       }
-    });
-  }
-
-  onEnviarASucursalRetiro(preGasto: PreGasto): void {
-    if (!preGasto?.id) return;
-
-    this.dialogosService.confirm(
-      'Confirmar envío',
-      null,
-      null,
-      [`Solicitud #${preGasto.id}`, `Sucursal retiro: ${preGasto?.sucursalCaja?.nombre || 'Sin sucursal'}`]
-    ).subscribe(confirmado => {
-      if (!confirmado) return;
-      this.notificacionService.openSucess('Solicitud enviada a sucursal de retiro');
-      this.refetchSubject.next();
     });
   }
 

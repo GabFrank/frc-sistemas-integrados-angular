@@ -23,12 +23,15 @@ import { MainService } from '../../../../main.service';
 import { VehiculoSearchPageGQL } from '../../vehiculos/vehiculo/graphql/vehiculoSearchPage';
 import { MuebleSearchPageGQL } from '../../muebles/graphql/muebleSearchPage';
 import { InmuebleSearchPageGQL } from '../../inmueble/graphql/inmuebleSearchPage';
+import { EquipoSearchPageGQL } from '../../equipos/graphql/equipoSearchPage';
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { Mueble } from '../../muebles/models/mueble.model';
 import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
 import { Inmueble } from '../../inmueble/models/inmueble.model';
+import { Equipo } from '../../equipos/models/equipo.model';
+import { EnteVinculacionDialogComponent, EnteVinculacionDialogData } from '../dialogs/ente-vinculacion-dialog/ente-vinculacion-dialog.component';
 
 @Injectable({
   providedIn: 'root'
@@ -50,6 +53,7 @@ export class EnteService {
   private vehiculoSearchPageGQL = inject(VehiculoSearchPageGQL);
   private muebleSearchPageGQL = inject(MuebleSearchPageGQL);
   private inmuebleSearchPageGQL = inject(InmuebleSearchPageGQL);
+  private equipoSearchPageGQL = inject(EquipoSearchPageGQL);
   private funcionarioSearchGQL = inject(FuncionarioSearchGQL);
 
   private entesSubject = new BehaviorSubject<Ente[]>([]);
@@ -171,7 +175,7 @@ export class EnteService {
   }
 
   abrirBuscadorEnte(tipo: TipoEnte): Observable<Ente | undefined> {
-    let query: VehiculoSearchPageGQL | MuebleSearchPageGQL | InmuebleSearchPageGQL | undefined;
+    let query: VehiculoSearchPageGQL | MuebleSearchPageGQL | InmuebleSearchPageGQL | EquipoSearchPageGQL | undefined;
     let tableData: TableData[] = [];
     let titulo = '';
 
@@ -202,6 +206,17 @@ export class EnteService {
           { id: 'nombreAsignado', nombre: 'Descripción', width: '90%' }
         ];
         break;
+      case TipoEnte.EQUIPO:
+        query = this.equipoSearchPageGQL;
+        titulo = 'Buscar Equipo';
+        tableData = [
+          { id: 'id', nombre: 'Id', width: '10%' },
+          { id: 'identificador', nombre: 'Identificador', width: '20%' },
+          { id: 'modelo.marca.descripcion', nombre: 'Marca', width: '25%' },
+          { id: 'modelo.descripcion', nombre: 'Modelo', width: '25%' },
+          { id: 'descripcion', nombre: 'Descripción', width: '20%' }
+        ];
+        break;
     }
 
     if (!query) return of(undefined);
@@ -223,7 +238,7 @@ export class EnteService {
       disableClose: false,
       autoFocus: false
     }).afterClosed().pipe(
-      switchMap((res: Vehiculo | Mueble | Inmueble | undefined) => {
+      switchMap((res: Vehiculo | Mueble | Inmueble | Equipo | undefined) => {
         if (res) {
           return this.onGetByReferenciaId(tipo, res.id!).pipe(
             switchMap(ente => {
@@ -267,6 +282,15 @@ export class EnteService {
       height: '80vh',
       disableClose: false,
       autoFocus: false
+    }).afterClosed();
+  }
+
+  abrirVincularBienSucursal(sucursalId?: number): Observable<unknown> {
+    return this.dialog.open(EnteVinculacionDialogComponent, {
+      data: { modo: 'BIEN', sucursalId } as EnteVinculacionDialogData,
+      width: '620px',
+      disableClose: true,
+      autoFocus: false,
     }).afterClosed();
   }
 }
