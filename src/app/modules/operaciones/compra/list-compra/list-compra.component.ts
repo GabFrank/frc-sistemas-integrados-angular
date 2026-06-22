@@ -24,7 +24,7 @@ import { ProveedorService } from "../../../personas/proveedor/proveedor.service"
 import { Producto } from "../../../productos/producto/producto.model";
 import { PedidoService } from "../pedido.service";
 import { Pedido } from "../gestion-compras/pedido.model";
-import { ProcesoEtapaTipo } from "../gestion-compras/proceso-etapa.model";
+import { ProcesoEtapaTipo, ProcesoEtapaEstado } from "../gestion-compras/proceso-etapa.model";
 import { GestionComprasComponent } from "../gestion-compras/gestion-compras.component";
 import {
   NotificacionColor,
@@ -466,10 +466,17 @@ export class ListCompraComponent implements OnInit {
     if (!pedido?.procesoEtapas || pedido.procesoEtapas.length === 0) {
       return "CREACION";
     }
+
+    const pedidoCancelado = pedido.procesoEtapas.every(
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.CANCELADA
+    );
+    if (pedidoCancelado) {
+      return "CANCELADA";
+  }
     
     // Buscar etapa en proceso
     const etapaEnProceso = pedido.procesoEtapas.find(
-      (e) => e.estadoEtapa === "EN_PROCESO"
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO
     );
     if (etapaEnProceso) {
       return etapaEnProceso.tipoEtapa;
@@ -477,7 +484,7 @@ export class ListCompraComponent implements OnInit {
     
     // Buscar primera etapa pendiente
     const etapaPendiente = pedido.procesoEtapas.find(
-      (e) => e.estadoEtapa === "PENDIENTE"
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.PENDIENTE
     );
     if (etapaPendiente) {
       return etapaPendiente.tipoEtapa;
