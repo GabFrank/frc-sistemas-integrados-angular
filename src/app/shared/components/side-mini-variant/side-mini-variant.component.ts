@@ -53,6 +53,7 @@ import { ListMarcacionComponent } from '../../../modules/administrativo/marcacio
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
 
 
 interface BaseNavigationItem {
@@ -291,7 +292,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'qr_code_2',
           action: 'list-lote-de',
           visibilityRoles: [ROLES.ADMIN]
-        }
+        },
+        // {
+        //   name: 'Terminales POS',
+        //   icon: 'contactless',
+        //   action: 'list-terminal-pos',
+        //   visibilityRoles: [ROLES.ADMIN]
+        // }
       ]
     },
     {
@@ -691,6 +698,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
+        break;
+      case "list-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTerminalPosComponent, "Terminales POS");
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
