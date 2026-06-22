@@ -18,6 +18,7 @@ jobs:
       pull-requests: write
     outputs:
       version: ${{ steps.version.outputs.version }}
+      skip_build: ${{ steps.redundant.outputs.skip_build }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +53,43 @@ jobs:
             echo "No new release created"
           fi
 
+      # Skip the (expensive) build + auto-update publish when the released commit
+      # is byte-identical to the previous release on the same channel. This happens
+      # e.g. when a beta->master promotion PR triggers "Update branch" (merging
+      # master into release/beta adds only merge nodes, no code) yet semantic-release
+      # still bumps the version. Publishing it would push a redundant auto-update to
+      # every client on that channel for identical code.
+      - name: Detect redundant release
+        id: redundant
+        if: steps.version.outputs.version != ''
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          case "$VERSION" in
+            *-alpha*) PREV=$(git tag --sort=-creatordate | grep -- '-alpha\.' | grep -vx "v${VERSION}" | head -1) ;;
+            *-beta*)  PREV=$(git tag --sort=-creatordate | grep -- '-beta\.'  | grep -vx "v${VERSION}" | head -1) ;;
+            *)        PREV=$(git tag --sort=-creatordate | grep -vE 'alpha|beta' | grep -vx "v${VERSION}" | head -1) ;;
+          esac
+          if [ -z "$PREV" ]; then
+            echo "No previous release on this channel — building."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CUR_TREE=$(git rev-parse "v${VERSION}^{tree}")
+          PREV_TREE=$(git rev-parse "${PREV}^{tree}")
+          echo "current v${VERSION} tree=${CUR_TREE}"
+          echo "previous ${PREV} tree=${PREV_TREE}"
+          if [ "$CUR_TREE" = "$PREV_TREE" ]; then
+            echo "::warning::v${VERSION} is byte-identical to ${PREV} — skipping build & auto-update publish."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Code differs from ${PREV} — building."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+
   # Job 2: build platform artifacts and upload to the release
   build:
     needs: release
-    if: needs.release.outputs.version != ''
+    if: needs.release.outputs.version != '' && needs.release.outputs.skip_build != 'true'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
