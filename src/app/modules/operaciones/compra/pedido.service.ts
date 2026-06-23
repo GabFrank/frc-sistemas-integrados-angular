@@ -168,8 +168,8 @@ export class PedidoService {
    * @param pedidoId - ID del pedido
    * @returns Observable<PedidoItem[]>
    */
-  onGetPedidoItemsByPedidoId(pedidoId: number): Observable<PedidoItem[]> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId });
+  onGetPedidoItemsByPedidoId(pedidoId: number, silentLoad = false): Observable<PedidoItem[]> {
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId }, true, undefined, silentLoad);
   }
 
   onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto?: string, soloPendientes?: boolean): Observable<PageInfo<PedidoItem>> {

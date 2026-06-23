@@ -9,8 +9,8 @@ import {
 import { FormBuilder, FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
-import { Subject, forkJoin, Observable } from "rxjs";
-import { takeUntil, tap } from "rxjs/operators";
+import { Subject, forkJoin, Observable, of } from "rxjs";
+import { takeUntil, tap, map, catchError } from "rxjs/operators";
 
 import {
   AddEditItemDialogComponent,
@@ -2365,6 +2365,40 @@ export class GestionComprasComponent
     presentacion?: Presentacion,
     searchText?: string
   ): void {
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        this.openAddEditItemDialogInternal(
+          producto,
+          presentacion,
+          searchText,
+          productoIdsEnPedido
+        );
+      });
+  }
+
+  private fetchProductoIdsEnPedido(): Observable<number[]> {
+    if (!this.currentPedido?.id) {
+      return of([]);
+    }
+
+    return this.pedidoService.onGetPedidoItemsByPedidoId(this.currentPedido.id, true).pipe(
+      map((items) =>
+        items
+          .map((item) => item.producto?.id)
+          .filter((id): id is number => id != null)
+          .map((id) => Number(id))
+      ),
+      catchError(() => of([]))
+    );
+  }
+
+  private openAddEditItemDialogInternal(
+    producto: Producto,
+    presentacion?: Presentacion,
+    searchText?: string,
+    productoIdsEnPedido: number[] = []
+  ): void {
     const dialogData: AddEditItemDialogData = {
       pedido: this.currentPedido as Pedido,
       isEdit: false,
@@ -2372,6 +2406,7 @@ export class GestionComprasComponent
       lastSearchText: searchText || this.lastItemSearchText,
       producto,
       presentacion,
+      productoIdsEnPedido,
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
@@ -4296,66 +4331,56 @@ export class GestionComprasComponent
       return;
     }
 
-    // Necesitamos cargar el producto completo con presentaciones y costo
-    // Si el producto ya tiene estas propiedades, usarlo directamente
-    // Si no, necesitamos cargarlo desde el backend
-    
-    const dialogData: AddEditItemDialogData = {
-      pedido: this.currentPedido,
-      isEdit: false,
-      title: "Añadir Nuevo Ítem al Pedido",
-    };
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        const dialogData: AddEditItemDialogData = {
+          pedido: this.currentPedido as Pedido,
+          isEdit: false,
+          title: "Añadir Nuevo Ítem al Pedido",
+          productoIdsEnPedido,
+        };
 
-    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "65%",
-      height: "70%",
-      data: dialogData,
-      disableClose: true,
-    });
+        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+          width: "65%",
+          height: "70%",
+          data: dialogData,
+          disableClose: true,
+        });
 
-    // Después de abrir el diálogo, precargar el producto
-    dialogRef.afterOpened().subscribe(() => {
-      const dialogComponent = dialogRef.componentInstance;
-      // El producto del ProductoProveedor ya debería tener presentaciones y costo
-      // según la query GraphQL actualizada
-      if (dialogComponent && producto) {
-        // NO pasar automáticamente la primera presentación
-        // Esto permite que el usuario seleccione la presentación manualmente
-        // El foco se establecerá en el select de presentación si no hay presentación preseleccionada
-        dialogComponent.onProductoSelected(producto);
-      }
-    });
+        // Después de abrir el diálogo, precargar el producto
+        dialogRef.afterOpened().subscribe(() => {
+          const dialogComponent = dialogRef.componentInstance;
+          if (dialogComponent && producto) {
+            dialogComponent.onProductoSelected(producto);
+          }
+        });
 
-    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-      if (result && result.action === "save") {
-        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-        if (result.item?.producto?.id) {
-          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-        }
-        
-        // Marcar tab de ítems como no cargado para recargar en próxima visita
-        this.markTabAsUnloaded(1);
-        
-        // Si estamos en el tab de ítems, recargar inmediatamente
-        if (this.selectedTabIndex === 1) {
-          // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-        } else {
-          this.updateItemsComputedProperties();
-        }
-        
-        // Recargar resumen del pedido para actualizar header
-        if (this.isEditMode) {
-          this.loadPedidoResumen();
-        }
-        
-        // Seleccionar automáticamente el siguiente producto de la lista (si existe)
-        setTimeout(() => {
-          this.selectNextProductoProveedor();
-        }, 300); // Delay para asegurar que los datos se hayan actualizado
-      }
-    });
+        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result && result.action === "save") {
+            if (result.item?.producto?.id) {
+              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+            }
+
+            this.markTabAsUnloaded(1);
+
+            if (this.selectedTabIndex === 1) {
+              this.itemsPageIndex = 0;
+              this.loadItemsData();
+            } else {
+              this.updateItemsComputedProperties();
+            }
+
+            if (this.isEditMode) {
+              this.loadPedidoResumen();
+            }
+
+            setTimeout(() => {
+              this.selectNextProductoProveedor();
+            }, 300);
+          }
+        });
+      });
   }
 
   /**

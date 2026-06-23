@@ -50,7 +50,10 @@ export interface AddEditItemDialogData {
   lastSearchText?: string;
   producto?: Producto;
   presentacion?: Presentacion;
+  productoIdsEnPedido?: number[];
 }
+
+const MENSAJE_PRODUCTO_YA_EN_PEDIDO = "Ya existe un producto cargado en la lista";
 
 export interface AddEditItemDialogResult {
   item: PedidoItem;
@@ -91,6 +94,7 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Product data
   private originalSearchText = '';
+  private productoIdsEnPedido: number[] = [];
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -240,6 +244,7 @@ export class AddEditItemDialogComponent implements OnInit {
     
     if (!this.data.isEdit) {
       this.updateComputedProperties();
+      this.loadProductoIdsEnPedido();
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
@@ -695,8 +700,7 @@ export class AddEditItemDialogComponent implements OnInit {
     dialogRef
       .afterClosed()
       .subscribe((result: ComprasSearchProductoResponse) => {
-        if (result && result.producto && result.presentacion) {
-          console.log(result);
+        if (result?.producto) {
           this.onProductoSelected(result.producto, result.presentacion);
         }
 
@@ -720,7 +724,73 @@ export class AddEditItemDialogComponent implements OnInit {
       });
   }
 
+  private loadProductoIdsEnPedido(): void {
+    if (this.data.productoIdsEnPedido?.length) {
+      this.productoIdsEnPedido = this.data.productoIdsEnPedido.map((id) => Number(id));
+      return;
+    }
+
+    if (!this.data.pedido?.id) {
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+        },
+        error: () => {
+          this.productoIdsEnPedido = [];
+        },
+      });
+  }
+
+  private extractProductoIds(items: PedidoItem[]): number[] {
+    return items
+      .map((item) => item.producto?.id)
+      .filter((id): id is number => id != null)
+      .map((id) => Number(id));
+  }
+
+  private productoYaEstaEnPedido(productoId?: number): boolean {
+    if (productoId == null) {
+      return false;
+    }
+
+    const idBuscado = Number(productoId);
+    return this.productoIdsEnPedido.some((id) => Number(id) === idBuscado);
+  }
+
+  private avisoProductoYaEnPedido(productoId?: number): void {
+    if (this.data.isEdit || productoId == null) {
+      return;
+    }
+
+    const mostrarAvisoSiCorresponde = () => {
+      if (this.productoYaEstaEnPedido(productoId)) {
+        this.notificacionService.openWarn(MENSAJE_PRODUCTO_YA_EN_PEDIDO);
+      }
+    };
+
+    if (this.productoIdsEnPedido.length > 0 || !this.data.pedido?.id) {
+      mostrarAvisoSiCorresponde();
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+          mostrarAvisoSiCorresponde();
+        },
+      });
+  }
+
   onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
+    this.avisoProductoYaEnPedido(producto?.id);
+
     this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
     
     this.selectedProducto = producto;
