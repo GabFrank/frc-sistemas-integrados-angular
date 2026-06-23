@@ -16,10 +16,10 @@ import { MatSelect } from "@angular/material/select";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import {
   PedidoItem,
   PedidoItemInput,
@@ -682,21 +682,19 @@ export class AddEditItemDialogComponent implements OnInit {
     const searchText = this.itemForm.get("productoSearch")?.value || "";
     this.originalSearchText = searchText;
 
-    const dialogData: PdvSearchProductoData = {
+    const dialogData: ComprasSearchProductoData = {
       texto: searchText,
-      cantidad: 1,
       mostrarStock: false,
-      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+    const dialogRef = this.dialog.open(ComprasSearchProductoDialogComponent, {
       height: "80%",
       data: dialogData,
     });
 
     dialogRef
       .afterClosed()
-      .subscribe((result: PdvSearchProductoResponseData) => {
+      .subscribe((result: ComprasSearchProductoResponse) => {
         if (result && result.producto && result.presentacion) {
           console.log(result);
           this.onProductoSelected(result.producto, result.presentacion);

@@ -72,6 +72,7 @@ import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-di
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
+import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
 import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 
 @NgModule({
@@ -125,6 +126,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     RechazarItemDialogComponent,
     StockDetalladoDialogComponent,
     ImprimirPedidoDialogComponent,
+    ComprasSearchProductoDialogComponent,
     RecepcionMercaderiaComponent,
     RecepcionMercaderiaVerificarItemDialogComponent,
     RecepcionMercaderiaRechazarItemDialogComponent,

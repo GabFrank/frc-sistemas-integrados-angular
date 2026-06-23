@@ -555,23 +555,26 @@
                   <mat-icon>inventory_2</mat-icon>
                   Nuevo Producto
                 </button>
-                <mat-form-field
-                  appearance="outline"
-                  class="add-item-search-field"
-                  floatLabel="always"
-                >
-                  <mat-label>Código de barra</mat-label>
-                  <input
-                    #addItemInput
-                    matInput
-                    type="text"
-                    [formControl]="codigoControl"
-                    [disabled]="itemsTabState !== 'editable'"
-                    (keyup.enter)="onSearchPorCodigo()"
-                    (keyup.tab)="onSearchPorCodigo()"
-                    (focusin)="onCodigoFocus()"
-                  />
-                </mat-form-field>
+                <div class="add-item-search-wrapper">
+                  <mat-form-field
+                    appearance="outline"
+                    class="add-item-search-field transferencia-input-field shrinking-mat-form-field"
+                    floatLabel="always"
+                    color="warn"
+                  >
+                    <mat-label>Código de barra</mat-label>
+                    <input
+                      #addItemInput
+                      matInput
+                      type="text"
+                      [formControl]="codigoControl"
+                      [disabled]="itemsTabState !== 'editable'"
+                      (keyup.enter)="onSearchPorCodigo()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="onCodigoFocus()"
+                    />
+                  </mat-form-field>
+                </div>
               </div>
             </mat-card>
 
@@ -586,12 +589,17 @@
                       <h4 class="section-title">Productos del proveedor</h4>
                       
                       <!-- Campo de búsqueda -->
-                      <mat-form-field appearance="outline" class="search-field">
+                      <mat-form-field
+                        appearance="outline"
+                        class="search-field transferencia-input-field shrinking-mat-form-field"
+                        floatLabel="always"
+                        color="warn"
+                      >
                         <mat-label>Buscar producto</mat-label>
                         <input
                           matInput
                           type="text"
-                          placeholder="Ingrese nombre del producto..."
+                          placeholder="Nombre, código o código de barra..."
                           (input)="onProductosProveedorSearchChange($any($event.target).value)"
                         />
                         <mat-icon matSuffix>search</mat-icon>
@@ -1072,7 +1080,7 @@
               >
                 <mat-icon>shopping_cart</mat-icon>
                 <span
-                  >No hay items en este pedido. Escriba un código de barra o
+                  >No hay items en este pedido. Busque un producto por nombre o
                   nombre de producto para comenzar.</span
                 >
               </div>
