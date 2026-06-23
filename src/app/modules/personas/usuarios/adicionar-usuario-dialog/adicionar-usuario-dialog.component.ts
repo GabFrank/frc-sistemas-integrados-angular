@@ -115,22 +115,33 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   }
 
   onAddUsuarioRole() {
-    this.onSearchRole().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        let selectedRole: Role = res;
-        let input = new UsuarioRoleInput;
-        input.roleId = selectedRole.id;
-        input.userId = this.selectedUsuario.id;
-        this.roleService.onSaveUsuarioRole(input).pipe(untilDestroyed(this)).subscribe(saveRes => {
-          this.usuarioRoleList.data = updateDataSource(this.usuarioRoleList.data, saveRes)
-        })
-      }
-    })
+    const openSearch = () => {
+      this.onSearchRole().pipe(untilDestroyed(this)).subscribe((res) => {
+        if (res != null) {
+          const selectedRole: Role = res;
+          const input = new UsuarioRoleInput;
+          input.roleId = selectedRole.id;
+          input.userId = this.selectedUsuario.id;
+          this.roleService.onSaveUsuarioRole(input).pipe(untilDestroyed(this)).subscribe(saveRes => {
+            this.usuarioRoleList.data = updateDataSource(this.usuarioRoleList.data, saveRes)
+          })
+        }
+      })
+    };
+
+    if (this.roleList != null) {
+      openSearch();
+    } else {
+      this.roleService.onGetRoles().pipe(untilDestroyed(this)).subscribe(res => {
+        this.roleList = res ?? [];
+        openSearch();
+      });
+    }
   }
 
   onSearchRole(): Observable<Role> {
-    let data: SearchListtDialogData = {
-      titulo: "Seleccionar sucursal",
+    const data: SearchListtDialogData = {
+      titulo: "Seleccionar rol",
       query: null,
       tableData: [
         { id: "id", nombre: "Id", width: "20%" },
@@ -138,7 +149,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
       ],
       inicialData: this.roleList?.filter(r => {
         return this.usuarioRoleList.data.find(ur => ur.role.id == r.id) == null;
-      }),
+      }) ?? [],
     };
     return new Observable(obs => {
       this.matDialog
@@ -150,11 +161,8 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
         .afterClosed()
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          if (res != null) {
-            return obs.next(res);
-          } else {
-            return obs.next(null);
-          }
+          obs.next(res ?? null);
+          obs.complete();
         });
     })
   }
