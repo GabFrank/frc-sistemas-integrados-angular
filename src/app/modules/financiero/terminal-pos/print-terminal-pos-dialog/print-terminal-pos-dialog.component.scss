@@ -1,0 +1,36 @@
+.full-width {
+  width: 100%;
+}
+
+.label-preview {
+  margin-top: 10px;
+
+  h3 {
+    margin-bottom: 8px;
+  }
+}
+
+.label-shape.box {
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  padding: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-descripcion {
+  color: #000000;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.sin-codigo {
+  color: #b00020;
+  font-size: 12px;
+}
+
+.button-spinner {
+  display: inline-block;
+}
