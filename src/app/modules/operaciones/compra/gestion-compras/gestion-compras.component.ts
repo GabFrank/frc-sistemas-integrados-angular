@@ -9,8 +9,8 @@ import {
 import { FormBuilder, FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
-import { Subject, forkJoin, Observable } from "rxjs";
-import { takeUntil, tap } from "rxjs/operators";
+import { Subject, forkJoin, Observable, of } from "rxjs";
+import { takeUntil, tap, map, catchError } from "rxjs/operators";
 
 import {
   AddEditItemDialogComponent,
@@ -72,10 +72,10 @@ import {
   TableData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "./dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
@@ -94,6 +94,7 @@ import { ProductoProveedor } from "../../../productos/producto-proveedor/product
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
 import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
+import { BuscadorComprasService } from "./buscador-compras.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 import { MainService } from "../../../../main.service";
 import {
@@ -375,6 +376,8 @@ export class GestionComprasComponent
   productosProveedorPageIndex = 0;
   productosProveedorTotalElements = 0;
   productosProveedorSearchText = '';
+  private proveedorBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly BUSQUEDA_DEBOUNCE_MS = 300;
   ultimasComprasPageSize = 5;
   ultimasComprasPageIndex = 0;
   ultimasComprasTotalElements = 0;
@@ -426,6 +429,7 @@ export class GestionComprasComponent
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
+    private buscadorComprasService: BuscadorComprasService,
     private tabService: TabService,
     public mainService: MainService,
     private reporteService: ReporteService,
@@ -483,6 +487,9 @@ export class GestionComprasComponent
   }
 
   ngOnDestroy(): void {
+    if (this.proveedorBusquedaTimer) {
+      clearTimeout(this.proveedorBusquedaTimer);
+    }
     this.destroy$.next();
     this.destroy$.complete();
     // Remover listener de teclado
@@ -2269,29 +2276,45 @@ export class GestionComprasComponent
       return;
     }
 
-    if (!this.codigoControl.value?.trim()) {
+    const text = this.codigoControl.value?.trim();
+    if (!text) {
       this.onAddItem();
       return;
     }
 
-    let text = this.codigoControl.value.trim();
-    if (text.length === 13 && text.substring(0, 2) === "20") {
-      text = text.substring(2, 7);
-    }
-
-    this.productoService
-      .onGetProductoPorCodigo(text)
+    this.buscadorComprasService
+      .buscarProducto(text, 0, 10, undefined, true)
       .pipe(takeUntil(this.destroy$))
-      .subscribe((producto) => {
-        if (producto != null) {
-          const searchText = this.codigoControl.value?.trim() || "";
-          this.lastItemSearchText = searchText;
-          this.openAddEditItemDialog(producto, undefined, searchText);
-          this.codigoControl.setValue(null);
-          setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
-        } else {
-          this.onAddItem(this.codigoControl.value || undefined);
-        }
+      .subscribe({
+        next: (page) => {
+          const resultados = page.getContent ?? [];
+
+          if (resultados.length === 0) {
+            this.notificacionService.openWarn("Producto no encontrado");
+            setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+            return;
+          }
+
+          const unicoResultado = resultados.length === 1 ? resultados[0] : null;
+          const coincidenciaExacta = resultados.find(
+            (r) => r.tipoCoincidencia === "CODIGO_EXACTO"
+          );
+
+          const seleccion = coincidenciaExacta ?? unicoResultado;
+          if (seleccion?.producto) {
+            const presentacion = this.resolverPresentacionPrincipal(seleccion.producto);
+            this.lastItemSearchText = text;
+            this.openAddEditItemDialog(seleccion.producto, presentacion, text);
+            this.codigoControl.setValue(null);
+            setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+            return;
+          }
+
+          this.onAddItem(text);
+        },
+        error: () => {
+          this.onAddItem(text);
+        },
       });
   }
 
@@ -2300,20 +2323,17 @@ export class GestionComprasComponent
   }
 
   onAddItem(texto?: string): void {
-    const searchData: PdvSearchProductoData = {
+    const searchData: ComprasSearchProductoData = {
       texto: texto || this.lastItemSearchText || "",
-      cantidad: 1,
       mostrarStock: true,
-      mostrarOpciones: false,
-      conservarUltimaBusqueda: false,
     };
 
-    const searchDialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+    const searchDialogRef = this.dialog.open(ComprasSearchProductoDialogComponent, {
       height: "80%",
       data: searchData,
     });
 
-    searchDialogRef.afterClosed().subscribe((searchResult: PdvSearchProductoResponseData) => {
+    searchDialogRef.afterClosed().subscribe((searchResult: ComprasSearchProductoResponse) => {
       if (searchResult && searchResult.producto) {
         if (searchResult.searchText) {
           this.lastItemSearchText = searchResult.searchText;
@@ -2333,10 +2353,51 @@ export class GestionComprasComponent
     });
   }
 
+  private resolverPresentacionPrincipal(producto: Producto): Presentacion | undefined {
+    const presentaciones = (producto?.presentaciones ?? []).filter(
+      (p) => p?.activo !== false
+    );
+    return presentaciones.find((p) => p.principal) ?? presentaciones[0];
+  }
+
   private openAddEditItemDialog(
     producto: Producto,
     presentacion?: Presentacion,
     searchText?: string
+  ): void {
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        this.openAddEditItemDialogInternal(
+          producto,
+          presentacion,
+          searchText,
+          productoIdsEnPedido
+        );
+      });
+  }
+
+  private fetchProductoIdsEnPedido(): Observable<number[]> {
+    if (!this.currentPedido?.id) {
+      return of([]);
+    }
+
+    return this.pedidoService.onGetPedidoItemsByPedidoId(this.currentPedido.id, true).pipe(
+      map((items) =>
+        items
+          .map((item) => item.producto?.id)
+          .filter((id): id is number => id != null)
+          .map((id) => Number(id))
+      ),
+      catchError(() => of([]))
+    );
+  }
+
+  private openAddEditItemDialogInternal(
+    producto: Producto,
+    presentacion?: Presentacion,
+    searchText?: string,
+    productoIdsEnPedido: number[] = []
   ): void {
     const dialogData: AddEditItemDialogData = {
       pedido: this.currentPedido as Pedido,
@@ -2345,6 +2406,7 @@ export class GestionComprasComponent
       lastSearchText: searchText || this.lastItemSearchText,
       producto,
       presentacion,
+      productoIdsEnPedido,
     };
 
     const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
@@ -3841,14 +3903,24 @@ export class GestionComprasComponent
 
     this.productosProveedorLoading = true;
 
-    this.productoProveedorService
-      .getByProveedorId(
-        proveedorId,
-        this.productosProveedorSearchText || '',
-        this.productosProveedorPageIndex,
-        this.productosProveedorPageSize,
-        pedidoId
-      )
+    const searchText = (this.productosProveedorSearchText || "").trim();
+    const request$ = searchText
+      ? this.buscadorComprasService.buscarProductoProveedor(
+          proveedorId,
+          searchText,
+          this.productosProveedorPageIndex,
+          this.productosProveedorPageSize,
+          pedidoId
+        )
+      : this.productoProveedorService.getByProveedorId(
+          proveedorId,
+          "",
+          this.productosProveedorPageIndex,
+          this.productosProveedorPageSize,
+          pedidoId
+        );
+
+    request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -4259,66 +4331,56 @@ export class GestionComprasComponent
       return;
     }
 
-    // Necesitamos cargar el producto completo con presentaciones y costo
-    // Si el producto ya tiene estas propiedades, usarlo directamente
-    // Si no, necesitamos cargarlo desde el backend
-    
-    const dialogData: AddEditItemDialogData = {
-      pedido: this.currentPedido,
-      isEdit: false,
-      title: "Añadir Nuevo Ítem al Pedido",
-    };
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        const dialogData: AddEditItemDialogData = {
+          pedido: this.currentPedido as Pedido,
+          isEdit: false,
+          title: "Añadir Nuevo Ítem al Pedido",
+          productoIdsEnPedido,
+        };
 
-    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "65%",
-      height: "70%",
-      data: dialogData,
-      disableClose: true,
-    });
+        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+          width: "65%",
+          height: "70%",
+          data: dialogData,
+          disableClose: true,
+        });
 
-    // Después de abrir el diálogo, precargar el producto
-    dialogRef.afterOpened().subscribe(() => {
-      const dialogComponent = dialogRef.componentInstance;
-      // El producto del ProductoProveedor ya debería tener presentaciones y costo
-      // según la query GraphQL actualizada
-      if (dialogComponent && producto) {
-        // NO pasar automáticamente la primera presentación
-        // Esto permite que el usuario seleccione la presentación manualmente
-        // El foco se establecerá en el select de presentación si no hay presentación preseleccionada
-        dialogComponent.onProductoSelected(producto);
-      }
-    });
+        // Después de abrir el diálogo, precargar el producto
+        dialogRef.afterOpened().subscribe(() => {
+          const dialogComponent = dialogRef.componentInstance;
+          if (dialogComponent && producto) {
+            dialogComponent.onProductoSelected(producto);
+          }
+        });
 
-    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-      if (result && result.action === "save") {
-        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-        if (result.item?.producto?.id) {
-          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-        }
-        
-        // Marcar tab de ítems como no cargado para recargar en próxima visita
-        this.markTabAsUnloaded(1);
-        
-        // Si estamos en el tab de ítems, recargar inmediatamente
-        if (this.selectedTabIndex === 1) {
-          // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-        } else {
-          this.updateItemsComputedProperties();
-        }
-        
-        // Recargar resumen del pedido para actualizar header
-        if (this.isEditMode) {
-          this.loadPedidoResumen();
-        }
-        
-        // Seleccionar automáticamente el siguiente producto de la lista (si existe)
-        setTimeout(() => {
-          this.selectNextProductoProveedor();
-        }, 300); // Delay para asegurar que los datos se hayan actualizado
-      }
-    });
+        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result && result.action === "save") {
+            if (result.item?.producto?.id) {
+              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+            }
+
+            this.markTabAsUnloaded(1);
+
+            if (this.selectedTabIndex === 1) {
+              this.itemsPageIndex = 0;
+              this.loadItemsData();
+            } else {
+              this.updateItemsComputedProperties();
+            }
+
+            if (this.isEditMode) {
+              this.loadPedidoResumen();
+            }
+
+            setTimeout(() => {
+              this.selectNextProductoProveedor();
+            }, 300);
+          }
+        });
+      });
   }
 
   /**
@@ -4348,7 +4410,13 @@ export class GestionComprasComponent
     }
     this.selectedProductoProveedor = null;
     this.selectedProductoProveedorIndex = -1;
-    this.loadProductosProveedor();
+
+    if (this.proveedorBusquedaTimer) {
+      clearTimeout(this.proveedorBusquedaTimer);
+    }
+    this.proveedorBusquedaTimer = setTimeout(() => {
+      this.loadProductosProveedor();
+    }, this.BUSQUEDA_DEBOUNCE_MS);
   }
 
   /**

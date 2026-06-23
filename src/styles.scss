@@ -516,3 +516,55 @@ input {
     overflow: hidden;
   }
 }
+
+// Estilo de inputs outline usado en transferencias (código de barra, búsqueda)
+mat-form-field.transferencia-input-field {
+  height: 30px !important;
+  font-size: 10px;
+
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background-color: #2e2e2e !important;
+    border-radius: 4px !important;
+  }
+
+  .mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+    min-height: unset;
+  }
+
+  .mat-mdc-input-element {
+    font-size: 15px;
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+    text-transform: uppercase;
+  }
+
+  .mdc-floating-label,
+  .mat-mdc-floating-label {
+    color: #f57c00 !important;
+  }
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: #f57c00 !important;
+  }
+
+  &.mat-focused,
+  &:hover {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #f57c00 !important;
+    }
+
+    .mdc-floating-label,
+    .mat-mdc-floating-label {
+      color: #f57c00 !important;
+    }
+  }
+}
