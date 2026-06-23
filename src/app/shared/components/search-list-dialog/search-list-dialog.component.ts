@@ -203,6 +203,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    if (this.data?.query == null) {
+      this.filterLocalData();
+      return;
+    }
+
     this.isSearching = true;
     this.isLoadingComputed = true;
     this.updateComputedProperties();
@@ -268,6 +273,29 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
           }
         });
     }
+  }
+
+  private filterLocalData(): void {
+    const baseData = Array.isArray(this.data?.inicialData) ? this.data.inicialData : [];
+    let text = this.buscarControl.value;
+
+    if (text == null || String(text).trim() === '' || String(text).trim() === '%') {
+      this.dataSource.data = [...baseData];
+    } else {
+      text = String(text).toUpperCase();
+      this.dataSource.data = baseData.filter(item => this.matchesLocalSearch(item, text));
+    }
+
+    this.selectedItem = null;
+    this.procesarResultados(this.dataSource.data);
+  }
+
+  private matchesLocalSearch(item: any, text: string): boolean {
+    const fields = this.data?.tableData?.map(c => c.id) || ['id', 'nombre'];
+    return fields.some(field => {
+      const value = field.split('.').reduce((obj, key) => obj?.[key], item);
+      return value != null && String(value).toUpperCase().includes(text);
+    });
   }
 
   private procesarResultados(res: any): void {
