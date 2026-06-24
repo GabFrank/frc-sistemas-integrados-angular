@@ -40,6 +40,22 @@
 
     <mat-form-field
       appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--subfamilia"
+    >
+      <mat-label>Subfamilia</mat-label>
+      <mat-select [formControl]="subfamiliaControl">
+        <mat-option [value]="null">Todas las subfamilias</mat-option>
+        <mat-option
+          *ngFor="let subfamilia of subfamiliasFiltradas$ | async"
+          [value]="subfamilia.id"
+        >
+          {{ subfamilia.nombre | titlecase }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
       class="grafico-filtros__campo grafico-filtros__campo--anho"
     >
       <mat-label>Años</mat-label>
