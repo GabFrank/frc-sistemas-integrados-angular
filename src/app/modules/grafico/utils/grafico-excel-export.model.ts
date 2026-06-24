@@ -22,6 +22,7 @@ export interface GraficoExcelExportInput {
   filtroExtra?: string;
   limit?: number;
   familiaId?: number | null;
+  subfamiliaId?: number | null;
   ascendente?: boolean;
   productoIds?: number[] | null;
 }

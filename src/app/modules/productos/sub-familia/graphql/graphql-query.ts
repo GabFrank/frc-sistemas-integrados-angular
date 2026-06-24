@@ -8,6 +8,9 @@ export const subfamiliasQuery = gql`
       descripcion
       icono
       posicion
+      familia {
+        id
+      }
       subfamilia {
         id
       }

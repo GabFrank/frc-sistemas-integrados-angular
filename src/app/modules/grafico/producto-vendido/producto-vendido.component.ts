@@ -14,17 +14,14 @@ import { EChartsOption } from "echarts";
 import {
   BehaviorSubject,
   Observable,
-  catchError,
   combineLatest,
   debounceTime,
   finalize,
   map,
-  of,
   Subject,
   startWith,
   switchMap,
   tap,
-  timeout,
 } from "rxjs";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MatDialog } from "@angular/material/dialog";
@@ -32,6 +29,8 @@ import { ProductoForPdvGQL } from "../../productos/producto/graphql/productoSear
 import { ProductoVendidoEstadistica } from "./interfaces/producto-vendido-estadistica.model";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Familia } from "../../productos/familia/familia.model";
+import { Subfamilia } from "../../productos/sub-familia/sub-familia.model";
+import { SubFamiliaService } from "../../productos/sub-familia/sub-familia.service";
 import { GraficoService } from "../grafico.service";
 import {
   GRAFICO_COLORES,
@@ -65,12 +64,14 @@ import {
 })
 export class ProductoVendidoComponent implements OnInit {
   private graficoService = inject(GraficoService);
+  private subFamiliaService = inject(SubFamiliaService);
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
   private productoSearchGQL = inject(ProductoForPdvGQL);
 
   readonly filtroSucursales = new GraficoFiltroSucursalesMulti();
   familiaControl = new FormControl<number | null>(null);
+  subfamiliaControl = new FormControl<number | null>(null);
   limitControl = new FormControl<number>(10);
   readonly filtroPeriodo = new GraficoFiltrosPeriodo();
 
@@ -86,6 +87,7 @@ export class ProductoVendidoComponent implements OnInit {
   private readonly exportandoSubject = new BehaviorSubject<boolean>(false);
   private readonly sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   private readonly familiasSubject = new BehaviorSubject<Familia[]>([]);
+  private readonly subfamiliasSubject = new BehaviorSubject<Subfamilia[]>([]);
   private readonly indicesOcultosSubject = new BehaviorSubject<Set<string>>(
     new Set()
   );
@@ -97,6 +99,12 @@ export class ProductoVendidoComponent implements OnInit {
 
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
   familias$: Observable<Familia[]> = this.familiasSubject.asObservable();
+  subfamiliasFiltradas$: Observable<Subfamilia[]> = combineLatest([
+    this.subfamiliasSubject.asObservable(),
+    this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value)),
+  ]).pipe(
+    map(([subfamilias, familiaId]) => this.filtrarSubfamilias(subfamilias, familiaId))
+  );
 
   readonly pantalla$: Observable<ProductoVendidoPantalla> = combineLatest([
     this.datosSubject,
@@ -123,7 +131,23 @@ export class ProductoVendidoComponent implements OnInit {
       () => this.cdr.markForCheck()
     );
     this.cargarMetadata();
+    this.configurarFiltroSubfamilia();
     this.configurarDataStream();
+  }
+
+  onFamiliaChange(): void {
+    const familiaId = this.familiaControl.value;
+    const subfamiliaId = this.subfamiliaControl.value;
+    if (subfamiliaId == null) {
+      return;
+    }
+    const subfamilias = this.filtrarSubfamilias(
+      this.subfamiliasSubject.value,
+      familiaId
+    );
+    if (!subfamilias.some((s) => s.id === subfamiliaId)) {
+      this.subfamiliaControl.setValue(null);
+    }
   }
 
   alternarItem(id: string | number): void {
@@ -199,6 +223,7 @@ export class ProductoVendidoComponent implements OnInit {
   limpiarFiltros(): void {
     this.filtroSucursales.limpiar();
     this.familiaControl.setValue(null);
+    this.subfamiliaControl.setValue(null);
     this.limitControl.setValue(10);
     this.filtroPeriodo.limpiar();
     this.productosSeleccionadosIds = [];
@@ -221,14 +246,23 @@ export class ProductoVendidoComponent implements OnInit {
     const sucIds = this.filtroSucursales.normalizarIds();
     const filtros = etiquetasFiltroPeriodoGrafico(this.filtroPeriodo);
     const familiaId = this.familiaControl.value;
+    const subfamiliaId = this.subfamiliaControl.value;
     const familias = this.familiasSubject.value;
+    const subfamilias = this.subfamiliasSubject.value;
     const familiaNombre =
       familiaId != null
         ? familias.find((f) => f.id === familiaId)?.nombre ?? String(familiaId)
         : null;
+    const subfamiliaNombre =
+      subfamiliaId != null
+        ? subfamilias.find((s) => s.id === subfamiliaId)?.nombre ?? String(subfamiliaId)
+        : null;
     const partesExtra: string[] = [];
     if (familiaNombre) {
       partesExtra.push(`Familia: ${familiaNombre}`);
+    }
+    if (subfamiliaNombre) {
+      partesExtra.push(`Subfamilia: ${subfamiliaNombre}`);
     }
     if (this.productosSeleccionadosNombres.length) {
       partesExtra.push(
@@ -242,6 +276,7 @@ export class ProductoVendidoComponent implements OnInit {
         sucIds,
         limit: this.limitControl.value ?? 10,
         familiaId,
+        subfamiliaId,
         productoIds: this.productosSeleccionadosIds.length
           ? this.productosSeleccionadosIds
           : null,
@@ -282,6 +317,27 @@ export class ProductoVendidoComponent implements OnInit {
       .obtenerFamilias()
       .pipe(untilDestroyed(this))
       .subscribe((fams) => this.familiasSubject.next(fams));
+
+    this.subFamiliaService.subfamiliaBS
+      .pipe(untilDestroyed(this))
+      .subscribe((subs) => this.subfamiliasSubject.next(subs ?? []));
+  }
+
+  private configurarFiltroSubfamilia(): void {
+    this.familiaControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.onFamiliaChange());
+  }
+
+  private filtrarSubfamilias(
+    subfamilias: Subfamilia[] | null | undefined,
+    familiaId: number | null
+  ): Subfamilia[] {
+    const lista = subfamilias ?? [];
+    if (familiaId == null) {
+      return lista;
+    }
+    return lista.filter((s) => s.familia?.id === familiaId);
   }
 
   private configurarDataStream(): void {
@@ -297,6 +353,7 @@ export class ProductoVendidoComponent implements OnInit {
           this.consultarDatos(
             this.filtroSucursales.normalizarIds(),
             this.familiaControl.value,
+            this.subfamiliaControl.value,
             this.limitControl.value || 10,
             this.productosIdsBusquedaSubject.value
           )
@@ -328,6 +385,7 @@ export class ProductoVendidoComponent implements OnInit {
   private consultarDatos(
     sucIds: number[],
     famId: number | null,
+    subfamId: number | null,
     limit: number,
     productoIds: number[]
   ): Observable<ProductoVendidoEstadistica[]> {
@@ -336,18 +394,17 @@ export class ProductoVendidoComponent implements OnInit {
         periodosDesdeFiltro(this.filtroPeriodo),
         this.filtroSucursales.normalizarIds(sucIds),
         famId || undefined,
+        subfamId || undefined,
         limit || 10,
         false,
         productoIds?.length ? productoIds : undefined
       )
       .pipe(
-        timeout(20000),
         map((items) =>
           this.normalizarEstadisticas(items).sort(
             (a, b) => b.totalMonto - a.totalMonto
           )
         ),
-        catchError(() => of([])),
         finalize(() => this.cargandoSubject.next(false))
       );
   }

@@ -83,6 +83,7 @@ export class GraficoService {
     fin: string,
     sucId?: number,
     familiaId?: number,
+    subfamiliaId?: number,
     limit: number = 10,
     ascendente: boolean = false,
     productoId?: number,
@@ -95,6 +96,7 @@ export class GraficoService {
         inicio, fin, limit, ascendente,
         sucursalId: sucId ? String(sucId) : null,
         familiaId: familiaId ? String(familiaId) : null,
+        subfamiliaId: subfamiliaId ? String(subfamiliaId) : null,
         productoId: productoId ? String(productoId) : null,
         productoIds: ids
       },
@@ -251,6 +253,7 @@ export class GraficoService {
     periodos: PeriodoGraficoInput[],
     sucIds?: number[],
     familiaId?: number,
+    subfamiliaId?: number,
     limit = 10,
     ascendente = false,
     productoIds?: number[]
@@ -263,6 +266,7 @@ export class GraficoService {
         limit,
         ascendente,
         familiaId: familiaId ? String(familiaId) : null,
+        subfamiliaId: subfamiliaId ? String(subfamiliaId) : null,
         productoIds: productoIds?.length ? productoIds.map(String) : null,
       },
       true,

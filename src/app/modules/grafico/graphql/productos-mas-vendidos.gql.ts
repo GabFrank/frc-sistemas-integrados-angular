@@ -8,8 +8,8 @@ export interface Response {
 }
 
 const productosMasVendidosQuery = gql`
-  query productosMasVendidos($inicio: String, $fin: String, $limit: Int, $sucursalId: ID, $familiaId: ID, $ascendente: Boolean, $productoId: ID, $productoIds: [ID]) {
-    data: productosMasVendidos(inicio: $inicio, fin: $fin, limit: $limit, sucursalId: $sucursalId, familiaId: $familiaId, ascendente: $ascendente, productoId: $productoId, productoIds: $productoIds) {
+  query productosMasVendidos($inicio: String, $fin: String, $limit: Int, $sucursalId: ID, $familiaId: ID, $subfamiliaId: ID, $ascendente: Boolean, $productoId: ID, $productoIds: [ID]) {
+    data: productosMasVendidos(inicio: $inicio, fin: $fin, limit: $limit, sucursalId: $sucursalId, familiaId: $familiaId, subfamiliaId: $subfamiliaId, ascendente: $ascendente, productoId: $productoId, productoIds: $productoIds) {
       productoId
       descripcion
       cantidad
