@@ -1,4 +1,5 @@
-import { Component, OnInit, ViewEncapsulation, OnDestroy, ViewChild, ChangeDetectorRef } from "@angular/core";
+import { Component, OnInit, ViewEncapsulation, OnDestroy, ViewChild, ChangeDetectorRef, AfterViewInit } from "@angular/core";
+import { MatDrawerContainer } from "@angular/material/sidenav";
 import { Router } from "@angular/router";
 import { TabService } from "../tab/tab.service";
 import { Tab } from "../tab/tab.model";
@@ -23,9 +24,14 @@ import { FormControl, FormGroup } from "@angular/forms";
   styleUrls: ["./default.component.scss"],
   encapsulation: ViewEncapsulation.None,
 })
-export class DefaultComponent implements OnInit, OnDestroy {
+export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild(MatTabGroup) matTabGroup: MatTabGroup;
+  @ViewChild("drawerContainer") drawerContainer: MatDrawerContainer;
+
+  readonly sidenavCollapsedWidth = 60;
+  readonly sidenavExpandedWidth = 250;
+  private readonly sidenavTransitionMs = 300;
 
   sideBarOpen = false;
   notificationsOpen = false;
@@ -97,6 +103,10 @@ export class DefaultComponent implements OnInit, OnDestroy {
 
 
 
+  ngAfterViewInit(): void {
+    this.updateDrawerLayout();
+  }
+
   ngOnInit(): void {
     this.mainService.authenticationSub
       .pipe(untilDestroyed(this))
@@ -136,9 +146,24 @@ export class DefaultComponent implements OnInit, OnDestroy {
 
   toggleSideNav(): void {
     this.sideBarOpen = !this.sideBarOpen;
+    this.onSideNavLayoutChange();
   }
+
   setSideNav(isExpanded: boolean): void {
     this.sideBarOpen = isExpanded;
+    this.onSideNavLayoutChange();
+  }
+
+  private onSideNavLayoutChange(): void {
+    this.updateDrawerLayout();
+    setTimeout(() => this.updateDrawerLayout(), this.sidenavTransitionMs);
+  }
+
+  private updateDrawerLayout(): void {
+    this.drawerContainer?.updateContentMargins();
+    this.cdr.detectChanges();
+    this.windowInfo.notifyLayoutChange();
+    window.dispatchEvent(new Event("resize"));
   }
 
 
