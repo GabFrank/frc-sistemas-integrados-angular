@@ -8,13 +8,7 @@
       <div fxLayout="column">
         <div fxLayout="row">
           <div fxFlex="100">
-            <mat-form-field
-              appearance="outline"
-              class="buscar-producto-field transferencia-input-field shrinking-mat-form-field"
-              floatLabel="always"
-              color="warn"
-              style="width: 95%"
-            >
+            <mat-form-field style="width: 95%">
               <mat-label>Ingresar texto</mat-label>
               <input
                 #buscarInput
@@ -22,7 +16,6 @@
                 placeholder="Buscar Producto"
                 autocomplete="off"
                 formControlName="buscarControl"
-                oninput="(this.value == ' ') ? this.value = null : null ;this.value = this.value.toUpperCase()"
                 (keydown)="keydownEvent($event.key)"
               />
               <button
@@ -299,14 +292,10 @@
               </button>
             </div>
 
-            <div *ngIf="isSearching" class="estado-busqueda">
-              <mat-spinner diameter="32"></mat-spinner>
-            </div>
             <div
               *ngIf="
-                !isSearching &&
                 dataSource.data.length === 0 &&
-                formGroup.get('buscarControl')?.value
+                formGroup.get('buscarControl')?.value?.trim()
               "
               class="estado-busqueda"
             >
