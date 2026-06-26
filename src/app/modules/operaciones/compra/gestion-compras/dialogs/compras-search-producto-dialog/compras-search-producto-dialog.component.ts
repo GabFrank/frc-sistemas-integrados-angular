@@ -23,7 +23,15 @@ import {
 } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import {
+  catchError,
+  distinctUntilChanged,
+  map,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs/operators';
 import { Producto } from '../../../../../productos/producto/producto.model';
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
 import { ProductoComponent } from '../../../../../productos/producto/edit-producto/producto.component';
@@ -43,7 +51,6 @@ export interface ComprasSearchProductoResponse {
   searchText?: string;
 }
 
-const DEBOUNCE_MS = 300;
 const PAGE_SIZE = 20;
 
 @UntilDestroy({ checkProperties: true })
@@ -75,7 +82,6 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
   selectedRowIndex = -1;
   selectedPresentacionRowIndex = -1;
   selectedPresentacion: Presentacion | null = null;
-  isSearching = false;
   mostrarStockColumna = false;
   private paginaActual = 0;
   private terminoBusqueda = '';
@@ -104,55 +110,101 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     this.formGroup
       .get('buscarControl')
       ?.valueChanges.pipe(
-        debounceTime(DEBOUNCE_MS),
+        startWith(this.data?.texto ?? ''),
         distinctUntilChanged(),
+        tap(() => this.reiniciarSeleccion()),
+        switchMap((value: string) => {
+          const termino = (value ?? '').trim();
+          this.terminoBusqueda = termino;
+          this.paginaActual = 0;
+
+          if (!termino) {
+            this.dataSource.data = [];
+            return of([] as Producto[]);
+          }
+
+          return this.crearBusqueda$(termino, 0);
+        }),
         untilDestroyed(this)
       )
-      .subscribe((value: string) => {
-        this.ejecutarBusqueda(value, 0, false);
+      .subscribe({
+        next: (productos) => {
+          this.dataSource.data = productos;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.dataSource.data = [];
+          this.notificacionService.openWarn('Error al buscar productos');
+          this.cdr.markForCheck();
+        },
       });
-
-    const textoInicial = this.data?.texto?.trim();
-    if (textoInicial) {
-      this.ejecutarBusqueda(textoInicial, 0, false);
-    }
   }
 
   ngAfterViewInit(): void {
     setTimeout(() => this.buscarInput?.nativeElement?.focus(), 200);
   }
 
+  private crearBusqueda$(texto: string, page: number): Observable<Producto[]> {
+    const termino = (texto ?? '').trim();
+    if (!termino) {
+      return of([]);
+    }
+
+    const esCodigo = this.pareceCodigoBarras(termino);
+
+    if (esCodigo) {
+      return this.buscadorComprasService
+        .buscarProducto(termino, page, PAGE_SIZE, undefined, true)
+        .pipe(
+          map((res) =>
+            (res.getContent ?? [])
+              .map((r) => r.producto)
+              .filter((p): p is Producto => p?.id != null)
+          ),
+          catchError(() => of([] as Producto[]))
+        );
+    }
+
+    return this.productoService
+      .onSearch(termino, page * PAGE_SIZE, null, false, true, true, true)
+      .pipe(catchError(() => of([] as Producto[])));
+  }
+
+  private pareceCodigoBarras(termino: string): boolean {
+    if (!termino || termino.includes(' ')) {
+      return false;
+    }
+    return /^\d{3,}$/.test(termino) || /^[A-Za-z0-9\-._]{4,32}$/.test(termino);
+  }
+
+  private reiniciarSeleccion(): void {
+    this.expandedProducto = null;
+    this.selectedRowIndex = -1;
+    this.selectedPresentacionRowIndex = -1;
+    this.selectedPresentacion = null;
+  }
+
   ejecutarBusqueda(texto: string, page: number, append: boolean): void {
     const termino = (texto ?? '').trim();
     this.terminoBusqueda = termino;
-    this.paginaActual = page;
 
     if (!append) {
-      this.expandedProducto = null;
-      this.selectedRowIndex = -1;
-      this.selectedPresentacionRowIndex = -1;
-      this.selectedPresentacion = null;
+      this.paginaActual = 0;
+      this.reiniciarSeleccion();
+    } else {
+      this.paginaActual = page;
     }
 
     if (!termino) {
       this.dataSource.data = [];
-      this.isSearching = false;
       this.cdr.markForCheck();
       return;
     }
 
-    this.isSearching = true;
-    this.cdr.markForCheck();
-
-    this.buscadorComprasService
-      .buscarProducto(termino, page, PAGE_SIZE, undefined, true)
+    this.crearBusqueda$(termino, append ? page : 0)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (res) => {
-          const productos = (res.getContent ?? [])
-            .map((r) => r.producto)
-            .filter((p): p is Producto => p?.id != null);
-
+        next: (productos) => {
           if (append) {
             const idsExistentes = new Set(this.dataSource.data.map((p) => p.id));
             const nuevos = productos.filter((p) => !idsExistentes.has(p.id));
@@ -161,14 +213,12 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
             this.dataSource.data = productos;
           }
 
-          this.isSearching = false;
           this.cdr.markForCheck();
         },
         error: () => {
           if (!append) {
             this.dataSource.data = [];
           }
-          this.isSearching = false;
           this.notificacionService.openWarn('Error al buscar productos');
           this.cdr.markForCheck();
         },

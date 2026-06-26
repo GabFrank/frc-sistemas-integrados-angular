@@ -2277,45 +2277,7 @@ export class GestionComprasComponent
     }
 
     const text = this.codigoControl.value?.trim();
-    if (!text) {
-      this.onAddItem();
-      return;
-    }
-
-    this.buscadorComprasService
-      .buscarProducto(text, 0, 10, undefined, true)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (page) => {
-          const resultados = page.getContent ?? [];
-
-          if (resultados.length === 0) {
-            this.notificacionService.openWarn("Producto no encontrado");
-            setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
-            return;
-          }
-
-          const unicoResultado = resultados.length === 1 ? resultados[0] : null;
-          const coincidenciaExacta = resultados.find(
-            (r) => r.tipoCoincidencia === "CODIGO_EXACTO"
-          );
-
-          const seleccion = coincidenciaExacta ?? unicoResultado;
-          if (seleccion?.producto) {
-            const presentacion = this.resolverPresentacionPrincipal(seleccion.producto);
-            this.lastItemSearchText = text;
-            this.openAddEditItemDialog(seleccion.producto, presentacion, text);
-            this.codigoControl.setValue(null);
-            setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
-            return;
-          }
-
-          this.onAddItem(text);
-        },
-        error: () => {
-          this.onAddItem(text);
-        },
-      });
+    this.onAddItem(text || undefined);
   }
 
   onCodigoFocus(): void {
@@ -2351,13 +2313,6 @@ export class GestionComprasComponent
       this.codigoControl.setValue(null);
       setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
     });
-  }
-
-  private resolverPresentacionPrincipal(producto: Producto): Presentacion | undefined {
-    const presentaciones = (producto?.presentaciones ?? []).filter(
-      (p) => p?.activo !== false
-    );
-    return presentaciones.find((p) => p.principal) ?? presentaciones[0];
   }
 
   private openAddEditItemDialog(
