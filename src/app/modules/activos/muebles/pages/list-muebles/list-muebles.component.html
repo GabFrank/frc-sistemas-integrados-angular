@@ -1,9 +1,9 @@
 <app-generic-list [data]="(muebles$ | async) || []" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
   (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros fxLayout="row" fxLayoutGap="15px" style="width: 100%">
-    <div fxFlex="45">
+    <div class="filtro-busqueda">
       <mat-form-field style="width: 100%">
-        <mat-label>Código o descripción</mat-label>
+        <mat-label>Codigo o descripcion</mat-label>
         <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: M-OFF-01" />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
@@ -45,7 +45,7 @@
             <span style="font-weight: 600;">{{ row.valorTasacion | currency:'USD':'symbol':'1.0-0' }}</span>
             <br *ngIf="row.valorTasacionPyg || row.valorTasacionBrl">
             <span *ngIf="row.valorTasacionPyg || row.valorTasacionBrl" style="font-size: 0.75em; opacity: 0.6;">
-                <span *ngIf="row.valorTasacionPyg">₲ {{ row.valorTasacionPyg | number:'1.0-0' }}</span>
+                <span *ngIf="row.valorTasacionPyg">{{ row.valorTasacionPyg | number:'1.0-0' }}</span>
                 <span *ngIf="row.valorTasacionPyg && row.valorTasacionBrl"> | </span>
                 <span *ngIf="row.valorTasacionBrl">R$ {{ row.valorTasacionBrl | number:'1.2-2' }}</span>
             </span>
