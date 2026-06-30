@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit }
 import { AbstractControl, FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { startWith } from 'rxjs/operators';
+import { startWith, take } from 'rxjs/operators';
 import { MainService } from '../../../../../main.service';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Moneda } from '../../../moneda/moneda.model';
@@ -17,6 +17,19 @@ import { FilaMontoVista } from '../../interface/fila-monto-vista.interface';
 import { SolicitudGastoSimpleData } from '../../interface/solicitud-gasto-simple-data.interface';
 import { SolicitudGastoSimpleMontoLinea } from '../../interface/solicitud-gasto-simple-monto-linea.interface';
 import { SolicitudGastoSimpleResult } from '../../interface/solicitud-gasto-simple-result.interface';
+import {
+  etiquetaModuloPadre,
+  requiereEnteActivo,
+  tipoEnteDesdeModuloPadre,
+} from '../../utils/tipo-gasto-modulo-reglas.util';
+import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
+import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
+import {
+  construirNotificacionVencimiento,
+  EnteFinancialSummaryResponse,
+  mapearSummaryASolicitudGastoData,
+  parsearFechaVencimientoSugerida,
+} from '../../utils/ente-financial-summary.util';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -53,6 +66,10 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   vencimientoRequerido = false;
   enteRequerido = false;
   proveedorRequerido = false;
+  resumenEnte: SolicitudGastoData | null = null;
+  notificacionVencimiento: string | null = null;
+  cargandoResumenEnte = false;
+  mostrarResumenFinanciero = false;
 
   constructor(
     private matDialogRef: MatDialogRef<SolicitudGastoSimpleDialogComponent>,
@@ -62,6 +79,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private proveedoresSearchByPersonaPageGQL: ProveedoresSearchByPersonaPageGQL,
     private enteService: EnteService,
+    private enteFinancialSummaryGQL: EnteFinancialSummaryGQL,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -232,30 +250,20 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
 
   private inicializarPropiedadesEnteActivo(): void {
     const modulo = this.data?.moduloPadre;
-    this.requiereEnteActivo = this.tipoEnteDesdeModuloPadre() != null;
-
-    switch (modulo) {
-      case 'VEHICULO':
-        this.etiquetaEnteActivo = 'Vehículo';
-        break;
-      case 'MUEBLE':
-        this.etiquetaEnteActivo = 'Mueble';
-        break;
-      case 'INMUEBLE':
-        this.etiquetaEnteActivo = 'Inmueble';
-        break;
-      case 'EQUIPOS':
-        this.etiquetaEnteActivo = 'Equipo';
-        break;
-      default:
-        this.etiquetaEnteActivo = 'Activo';
-    }
+    this.requiereEnteActivo = requiereEnteActivo(modulo);
+    this.etiquetaEnteActivo = etiquetaModuloPadre(modulo);
 
     switch (modulo) {
       case 'MUEBLE':
         this.iconoEnteActivo = 'chair';
         break;
       case 'INMUEBLE':
+      case 'ANDE':
+      case 'JUNTA_SANEAMIENTO':
+      case 'IMPUESTO':
+      case 'INTERNET':
+      case 'SEGURIDAD':
+      case 'BASURA':
         this.iconoEnteActivo = 'domain';
         break;
       case 'EQUIPOS':
@@ -303,14 +311,11 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   }
 
   private tipoEnteDesdeModuloPadre(): TipoEnte | null {
-    const modulo = this.data?.moduloPadre;
-    if (modulo === 'VEHICULO' || modulo === 'MUEBLE' || modulo === 'INMUEBLE') {
-      return modulo as TipoEnte;
+    const tipo = tipoEnteDesdeModuloPadre(this.data?.moduloPadre);
+    if (tipo == null) {
+      return null;
     }
-    if (modulo === 'EQUIPOS') {
-      return TipoEnte.EQUIPO;
-    }
-    return null;
+    return tipo as TipoEnte;
   }
 
   private actualizarValidadoresEnte(): void {
@@ -332,9 +337,71 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
         this.selectedEnte = ente;
         this.enteIdControl.setValue(ente.id);
         this.enteDisplayControl.setValue(this.descripcionEnte(ente));
+        this.cargarResumenFinanciero(Number(ente.id));
         this.cdr.markForCheck();
       }
     });
+  }
+
+  private cargarResumenFinanciero(enteId: number): void {
+    this.cargandoResumenEnte = true;
+    this.mostrarResumenFinanciero = false;
+    this.cdr.markForCheck();
+
+    this.enteFinancialSummaryGQL
+      .fetch(
+        { enteId, tipoGastoId: this.data?.tipoGastoId ?? null },
+        { fetchPolicy: 'no-cache' }
+      )
+      .pipe(take(1), untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          this.cargandoResumenEnte = false;
+          const summary = res.data?.data as EnteFinancialSummaryResponse | undefined;
+          if (summary) {
+            this.aplicarAutocompletado(summary);
+            this.mostrarResumenFinanciero = true;
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.cargandoResumenEnte = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private aplicarAutocompletado(summary: EnteFinancialSummaryResponse): void {
+    const tipoBien = tipoEnteDesdeModuloPadre(this.data?.moduloPadre);
+    this.resumenEnte = mapearSummaryASolicitudGastoData(summary, tipoBien);
+    this.notificacionVencimiento = construirNotificacionVencimiento(summary.diasParaVencer);
+
+    if (summary.descripcionSugerida) {
+      this.descripcionControl.setValue(summary.descripcionSugerida);
+    }
+
+    const fechaVencimiento = parsearFechaVencimientoSugerida(summary.fechaVencimientoSugerida);
+    if (fechaVencimiento) {
+      this.vencimientoControl.setValue(fechaVencimiento);
+    }
+
+    if (summary.autocompletarMonto !== false && summary.montoSugerido != null && this.filasMonto.length > 0) {
+      const primeraFila = this.filasMonto.at(0) as FormGroup;
+      if (summary.monedaId != null) {
+        primeraFila.get('monedaId')?.setValue(Number(summary.monedaId));
+      }
+      primeraFila.get('monto')?.setValue(Math.round(Number(summary.montoSugerido)));
+      this.actualizarVistasFilasMonto();
+    }
+
+    if (summary.proveedorId != null) {
+      this.proveedorIdControl.setValue(Number(summary.proveedorId));
+      this.beneficiarioControl.setValue(summary.proveedorNombre || '');
+    } else if (summary.proveedorNombre) {
+      this.beneficiarioControl.setValue(summary.proveedorNombre);
+    }
+
+    this.actualizarFormularioValido();
   }
 
   private descripcionEnte(ente: Ente): string {

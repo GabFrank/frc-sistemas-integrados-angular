@@ -7,8 +7,8 @@ import gql from 'graphql-tag';
 })
 export class EnteFinancialSummaryGQL extends Query<any> {
   document = gql`
-    query getEnteFinancialSummary($enteId: ID!) {
-      data: getEnteFinancialSummary(enteId: $enteId) {
+    query getEnteFinancialSummary($enteId: ID!, $tipoGastoId: ID) {
+      data: getEnteFinancialSummary(enteId: $enteId, tipoGastoId: $tipoGastoId) {
         enteId
         descripcion
         montoTotal
@@ -23,11 +23,15 @@ export class EnteFinancialSummaryGQL extends Query<any> {
         monedaSimbolo
         monedaId
         proveedorNombre
+        proveedorId
         tipoGastoSugeridoId
         situacionPago
         porcentajePagado
         montoSugerido
         descripcionSugerida
+        autocompletarMonto
+        numeroCuotaActual
+        fechaVencimientoSugerida
       }
     }
   `;

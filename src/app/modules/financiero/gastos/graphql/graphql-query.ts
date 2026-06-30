@@ -253,6 +253,8 @@ export const tipoGastoQuery = gql`
       isClasificacion
       tipoNaturaleza
       moduloPadre
+      afectaFinanzasActivo
+      esPagoCuotaActivo
       cargo {
         id
       }
@@ -294,6 +296,8 @@ export const saveTipoGasto = gql`
       isClasificacion
       tipoNaturaleza
       moduloPadre
+      afectaFinanzasActivo
+      esPagoCuotaActivo
       cargo {
         id
       }
@@ -477,8 +481,8 @@ export const filterPreGastosQuery = gql`
 `;
 
 export const filterTipoGastosQuery = gql`
-  query ($naturaleza: String, $texto: String, $page: Int, $size: Int) {
-    data: filterTipoGastos(naturaleza: $naturaleza, texto: $texto, page: $page, size: $size) {
+  query ($naturaleza: String, $texto: String, $moduloPadre: TipoPadreGastoModulo, $page: Int, $size: Int) {
+    data: filterTipoGastos(naturaleza: $naturaleza, texto: $texto, moduloPadre: $moduloPadre, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -495,6 +499,8 @@ export const filterTipoGastosQuery = gql`
         isClasificacion
         tipoNaturaleza
         moduloPadre
+        afectaFinanzasActivo
+        esPagoCuotaActivo
         cargo {
           id
         }

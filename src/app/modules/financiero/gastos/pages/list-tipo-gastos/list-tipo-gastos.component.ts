@@ -2,14 +2,14 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
 import { GastoService } from '../../service/gasto.service';
-import { TipoGasto, TipoGastoInput } from '../../models/tipo-gasto.model';
+import { TipoGasto } from '../../models/tipo-gasto.model';
 import { AdicionarTipoGastoDialogComponent } from '../../dialogs/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
 import { UntilDestroy } from '@ngneat/until-destroy';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
-
+import { MODULOS_PADRE_OPCIONES } from '../../utils/tipo-gasto-modulo-reglas.util';
 
 @UntilDestroy()
 @Component({
@@ -28,16 +28,21 @@ export class ListTipoGastosComponent implements OnInit {
 
   tabNaturalezas = [null, 'CONTINUO', 'RECURRENTE', 'VARIABLE'];
   tabEtiquetas = ['Todos', 'Continuos', 'Recurrentes', 'Variables'];
+  modulosPadreOpciones = MODULOS_PADRE_OPCIONES;
+
+  coloresNaturaleza: Record<string, string> = {
+    CONTINUO: '#42a5f5',
+    RECURRENTE: '#ffa726',
+    VARIABLE: '#66bb6a',
+  };
 
   columnasVisibles = [
-    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
+    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
 
-  // Tab activa (Naturaleza)
-  private tabActivaSubject = new BehaviorSubject<number>(0); // Todos por defecto
+  private tabActivaSubject = new BehaviorSubject<number>(0);
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
-  // Paginación
   private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
   public pagination$ = this.paginationSubject.asObservable();
 
@@ -48,9 +53,9 @@ export class ListTipoGastosComponent implements OnInit {
   public cargandoSubject = new BehaviorSubject<boolean>(false);
   public cargando$ = this.cargandoSubject.asObservable();
 
-  // Formulario de búsqueda por texto
   searchFormGroup = new FormGroup({
-    texto: new FormControl<string | null>('')
+    texto: new FormControl<string | null>(''),
+    moduloPadre: new FormControl<string | null>(null),
   });
 
   public listaFiltrada$: Observable<TipoGasto[]> = combineLatest([
@@ -62,12 +67,14 @@ export class ListTipoGastosComponent implements OnInit {
     switchMap(([tabIndex, _, pag]) => {
       const naturaleza = this.tabNaturalezas[tabIndex];
       const texto = this.searchFormGroup.controls.texto.value || null;
+      const moduloPadre = this.searchFormGroup.controls.moduloPadre.value || null;
 
       return this.gastoService.tipoGastoFilter(
         naturaleza,
         texto,
         pag.pageIndex,
-        pag.pageSize
+        pag.pageSize,
+        moduloPadre
       ).pipe(
         catchError(err => {
           console.error('Error fetching tipo_gastos:', err);
@@ -141,8 +148,6 @@ export class ListTipoGastosComponent implements OnInit {
       });
   }
 
-
-
   eliminarItem(tipoGasto: TipoGasto): void {
     this.gastoService.tipoGastoOnDelete(tipoGasto.id)
       .subscribe(res => {
@@ -156,12 +161,7 @@ export class ListTipoGastosComponent implements OnInit {
     this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 
-  colorNaturaleza(naturaleza: string): string {
-    const colores: Record<string, string> = {
-      'CONTINUO': '#42a5f5',
-      'RECURRENTE': '#ffa726',
-      'VARIABLE': '#66bb6a'
-    };
-    return colores[naturaleza] || '#9e9e9e';
+  esTabActiva(indice: number, tabActiva: number | null): boolean {
+    return tabActiva === indice;
   }
 }

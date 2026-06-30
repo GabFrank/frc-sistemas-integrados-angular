@@ -1,65 +1,92 @@
 <app-generic-list [data]="(listaFiltrada$ | async) || []" (filtrar)="onBuscar()" (adicionar)="agregarNuevo()" (resetFiltro)="onLimpiar()" [isAdicionar]="true">
   <div filtros>
-    <div fxLayout="row" fxLayoutAlign="start center" style="width: 100%">
-      <!-- Búsqueda -->
-      <div fxFlex="50%" fxLayout="row" fxLayoutGap="10px">
-        <mat-form-field style="width: 100%" [formGroup]="searchFormGroup">
-          <mat-label>Buscar (ID o Descripción)</mat-label>
-          <input matInput formControlName="texto" placeholder="Ingrese texto a buscar..." (keyup.enter)="onBuscar()" />
-          <mat-icon matPrefix>search</mat-icon>
-        </mat-form-field>
-      </div>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px" style="width: 100%">
+      <mat-form-field fxFlex="40%" [formGroup]="searchFormGroup" appearance="outline">
+        <mat-label>Buscar (ID o Descripción)</mat-label>
+        <input matInput formControlName="texto" placeholder="Ingrese texto a buscar..." (keyup.enter)="onBuscar()" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="35%" [formGroup]="searchFormGroup" appearance="outline">
+        <mat-label>Módulo padre</mat-label>
+        <mat-select formControlName="moduloPadre">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let modulo of modulosPadreOpciones" [value]="modulo.valor">
+            {{ modulo.etiqueta }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>account_tree</mat-icon>
+      </mat-form-field>
     </div>
 
-    <!-- Filtros de Naturaleza -->
-    <div fxLayout="row" fxLayoutAlign="start end" style="width: 100%; margin-top: 10px;">
-      <button *ngFor="let etiqueta of tabEtiquetas; let i = index" mat-button
-        [class.tab-activa]="(tabActiva$ | async) === i" (click)="cambiarTab(i)"
-        [ngStyle]="{'border-bottom': ((tabActiva$ | async) === i) ? '2px solid #ff9800': 'none', 'color': ((tabActiva$ | async) === i) ? '#ff9800' : 'inherit' }">
+    <div fxLayout="row" fxLayoutAlign="start end" class="tabs-naturaleza">
+      <button
+        *ngFor="let etiqueta of tabEtiquetas; let i = index"
+        mat-button
+        type="button"
+        [class.tab-activa]="esTabActiva(i, (tabActiva$ | async) ?? 0)"
+        (click)="cambiarTab(i)"
+      >
         {{ etiqueta | uppercase }}
       </button>
     </div>
   </div>
 
-  <div table style="height: 100%; background-color: rgb(40, 40, 40)" fxLayout="row" fxLayoutAlign="start start"
-    fxLayoutGap="10px">
-
-    <!-- Tabla y Paginador (Ancho Completo) -->
+  <div table style="height: 100%; background-color: rgb(40, 40, 40)" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
     <div fxFlex="100%" fxLayout="column" fxLayoutAlign="space-between start" style="height: 100%;">
       <table mat-table [dataSource]="(listaFiltrada$ | async) || []" class="mat-elevation-z8" style="width: 100%;">
-        <!-- ... (columnas existentes) ... -->
-        <!-- ID -->
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef style="width: 5%">ID</th>
           <td mat-cell *matCellDef="let item" style="width: 5%">{{ item.id }}</td>
         </ng-container>
 
-        <!-- Descripción -->
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef>Descripción</th>
           <td mat-cell *matCellDef="let item">{{ item.descripcion | uppercase }}</td>
         </ng-container>
 
-        <!-- Naturaleza -->
         <ng-container matColumnDef="tipoNaturaleza">
           <th mat-header-cell *matHeaderCellDef>Naturaleza</th>
           <td mat-cell *matCellDef="let item">
-            <span *ngIf="item.tipoNaturaleza" [style.color]="colorNaturaleza(item.tipoNaturaleza)" style="font-weight: 500;">
+            <span
+              *ngIf="item.tipoNaturaleza"
+              [style.color]="coloresNaturaleza[item.tipoNaturaleza]"
+              style="font-weight: 500;"
+            >
               {{ item.tipoNaturaleza }}
             </span>
             <span *ngIf="!item.tipoNaturaleza" style="color: #666;">-</span>
           </td>
         </ng-container>
 
-        <!-- Clasificación (Padre) -->
         <ng-container matColumnDef="clasificacion">
-          <th mat-header-cell *matHeaderCellDef>Pertenece a</th>
+          <th mat-header-cell *matHeaderCellDef>Módulo padre</th>
           <td mat-cell *matCellDef="let item" style="color: #aaa;">
-            {{ item.moduloPadre || 'OTRO' }}
+            {{ item.moduloPadre | etiquetaModuloPadre }}
           </td>
         </ng-container>
 
-        <!-- Autorización -->
+        <ng-container matColumnDef="comportamiento">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Comportamiento</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            <mat-icon
+              *ngIf="item.esPagoCuotaActivo"
+              matTooltip="Habilita cuotas del activo"
+              style="color: #42a5f5;"
+            >
+              event_note
+            </mat-icon>
+            <mat-icon
+              *ngIf="item.afectaFinanzasActivo"
+              matTooltip="Afecta finanzas del activo"
+              style="color: #ffa726;"
+            >
+              account_balance_wallet
+            </mat-icon>
+            <span *ngIf="!item.esPagoCuotaActivo && !item.afectaFinanzasActivo" style="color: #666;">-</span>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="autorizacion">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">Req. Aut.</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
@@ -69,7 +96,6 @@
           </td>
         </ng-container>
 
-        <!-- Activo -->
         <ng-container matColumnDef="activo">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">Activo</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
@@ -91,7 +117,6 @@
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center">Acciones</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
-
             <button mat-icon-button (click)="$event.stopPropagation(); editarItem(item)" color="primary" matTooltip="Editar">
               <mat-icon>edit</mat-icon>
             </button>
@@ -105,11 +130,16 @@
         <tr mat-row *matRowDef="let row; columns: columnasVisibles;" class="example-element-row"></tr>
       </table>
 
-      <mat-paginator itemsPerPageLabel="Items por página" [pageSizeOptions]="[15, 30, 50, 100]"
-        (page)="handlePageEvent($event)" [length]="(totalElements$ | async) || 0"
-        [pageIndex]="(pagination$ | async)?.pageIndex" [pageSize]="(pagination$ | async)?.pageSize"
-        style="width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);" showFirstLastButtons>
-      </mat-paginator>
+      <mat-paginator
+        itemsPerPageLabel="Items por página"
+        [pageSizeOptions]="[15, 30, 50, 100]"
+        (page)="handlePageEvent($event)"
+        [length]="(totalElements$ | async) || 0"
+        [pageIndex]="(pagination$ | async)?.pageIndex"
+        [pageSize]="(pagination$ | async)?.pageSize"
+        style="width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);"
+        showFirstLastButtons
+      ></mat-paginator>
     </div>
   </div>
 </app-generic-list>

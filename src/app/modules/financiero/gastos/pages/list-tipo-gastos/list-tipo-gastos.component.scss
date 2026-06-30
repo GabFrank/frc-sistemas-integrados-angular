@@ -1,7 +1,13 @@
 .tab-activa {
   color: #ff9800 !important;
-  border-bottom-color: #ff9800 !important;
+  border-bottom: 2px solid #ff9800 !important;
   font-weight: 500;
+}
+
+.tabs-naturaleza {
+  width: 100%;
+  margin-top: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .example-element-row:hover {

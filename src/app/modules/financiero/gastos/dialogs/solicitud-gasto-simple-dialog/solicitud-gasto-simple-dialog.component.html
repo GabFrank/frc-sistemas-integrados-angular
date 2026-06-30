@@ -45,6 +45,17 @@
             {{ textoBuscarEnteActivo }}
           </button>
         </div>
+
+        <div *ngIf="cargandoResumenEnte" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px" class="resumen-cargando">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Cargando datos del activo...</span>
+        </div>
+
+        <app-bien-financiero-card
+          *ngIf="mostrarResumenFinanciero && resumenEnte"
+          [data]="resumenEnte"
+          [notificacionVencimiento]="notificacionVencimiento"
+        ></app-bien-financiero-card>
       </ng-container>
 
       <!-- Fila 2: Descripción -->

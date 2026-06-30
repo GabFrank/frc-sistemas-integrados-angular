@@ -20,6 +20,7 @@ import { HistorialSolicitudesComponent } from './components/historial-solicitude
 import { PreGastoStepperComponent } from './components/pre-gasto-stepper/pre-gasto-stepper.component';
 import { SolicitudGastoSimpleDialogComponent } from './dialogs/solicitud-gasto-simple-dialog/solicitud-gasto-simple-dialog.component';
 import { RetiroPreGastoDialogComponent } from './dialogs/retiro-pre-gasto-dialog/retiro-pre-gasto-dialog.component';
+import { EtiquetaModuloPadrePipe } from './pipes/etiqueta-modulo-padre.pipe';
 
 @NgModule({
   declarations: [
@@ -35,7 +36,8 @@ import { RetiroPreGastoDialogComponent } from './dialogs/retiro-pre-gasto-dialog
     BienFinancieroCardComponent,
     HistorialSolicitudesComponent,
     PreGastoStepperComponent,
-    SolicitudGastoSimpleDialogComponent
+    SolicitudGastoSimpleDialogComponent,
+    EtiquetaModuloPadrePipe,
   ],
   imports: [
     CommonModule,

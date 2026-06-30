@@ -35,6 +35,7 @@ export interface SolicitudGastoData {
   bienDescripcion?: string;
   proveedor?: string;
   proveedorNombre?: string;
+  proveedorId?: number;
   cuotasTotales?: number;
   cuotasPagadas?: number;
   cuotasFaltantes?: number;
@@ -192,7 +193,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
   private cargarSummaryBackend(enteId: number): void {
     this.cargandoBien = true;
     this.cdr.markForCheck();
-    this.enteFinancialSummaryGQL.fetch({ enteId }, { fetchPolicy: 'no-cache' }).pipe(take(1)).subscribe(res => {
+        this.enteFinancialSummaryGQL.fetch({ enteId, tipoGastoId: null }, { fetchPolicy: 'no-cache' }).pipe(take(1)).subscribe(res => {
       this.cargandoBien = false;
       const summary = res.data?.data;
       if (summary) {
@@ -200,6 +201,9 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
         Object.assign(this.data, summary);
         this.bienSeleccionadoDescripcion = summary.descripcion;
         this.beneficiarioControl.setValue(summary.proveedorNombre || '');
+        if (summary.proveedorId) {
+          this.data.proveedorId = Number(summary.proveedorId);
+        }
         if (summary.monedaId) this.monedaControl.setValue(summary.monedaId);
         if (summary.cuotasPagadas != null) this.numeroCuotaControl.setValue(summary.cuotasPagadas + 1);
         if (summary.cuotasTotales > 0 && summary.montoTotal > 0) {
