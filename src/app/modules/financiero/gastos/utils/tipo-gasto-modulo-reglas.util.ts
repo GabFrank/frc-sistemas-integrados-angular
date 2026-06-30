@@ -60,6 +60,13 @@ const MODULOS_SERVICIO_CONTINUO: ModuloPadreGasto[] = [
   'SEGURO',
 ];
 
+const MODULOS_PADRE_CON_CUOTAS_ACTIVO: ModuloPadreGasto[] = [
+  'INMUEBLE',
+  'MUEBLE',
+  'VEHICULO',
+  'EQUIPOS',
+];
+
 export function esGastoContinuoRecurrente(naturaleza?: string | null): boolean {
   return naturaleza === 'CONTINUO' || naturaleza === 'RECURRENTE';
 }
@@ -78,11 +85,11 @@ export function calcularReglasTipoGastoModulo(
   const servicio = esModuloServicioContinuo(mod);
 
   const esPagoCuotaActivo =
-    continuo && (mod === 'INMUEBLE' || mod === 'MUEBLE' || mod === 'VEHICULO');
+    continuo && MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod);
 
   const afectaFinanzasActivo =
     servicio ||
-    (continuo && (mod === 'INMUEBLE' || mod === 'MUEBLE' || mod === 'VEHICULO'));
+    (continuo && MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod));
 
   const requiereDiaVencimiento = continuo && (servicio || mod === 'INMUEBLE');
   const requiereLecturaMedidor =
@@ -112,9 +119,9 @@ export function calcularReglasTipoGastoModulo(
   return {
     esPagoCuotaActivo,
     afectaFinanzasActivo,
-    mostrarCuotas: mod === 'INMUEBLE' || mod === 'MUEBLE' || mod === 'VEHICULO',
+    mostrarCuotas: MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod),
     mostrarAfectaFinanzas:
-      mod === 'INMUEBLE' || mod === 'MUEBLE' || mod === 'VEHICULO' || servicio,
+      MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod) || servicio,
     requiereDiaVencimiento,
     requiereLecturaMedidor,
     requiereNis,
@@ -146,4 +153,22 @@ export function tipoEnteDesdeModuloPadre(
 
 export function requiereEnteActivo(modulo?: ModuloPadreGasto | string | null): boolean {
   return tipoEnteDesdeModuloPadre(modulo) != null;
+}
+
+export function esModuloPadreConCuotasActivo(modulo?: ModuloPadreGasto | string | null): boolean {
+  return MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(modulo as ModuloPadreGasto);
+}
+
+export function mostrarTarjetaCuotasActivoEnSolicitud(
+  modulo?: ModuloPadreGasto | string | null,
+  naturaleza?: TipoNaturalezaGasto | string | null,
+  esPagoCuotaActivo?: boolean | null,
+): boolean {
+  if (!esModuloPadreConCuotasActivo(modulo)) {
+    return false;
+  }
+  if (typeof esPagoCuotaActivo === 'boolean') {
+    return esPagoCuotaActivo;
+  }
+  return esGastoContinuoRecurrente(naturaleza);
 }

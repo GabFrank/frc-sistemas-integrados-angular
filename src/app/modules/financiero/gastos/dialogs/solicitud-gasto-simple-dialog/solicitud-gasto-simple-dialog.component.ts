@@ -18,6 +18,7 @@ import { SolicitudGastoSimpleData } from '../../interface/solicitud-gasto-simple
 import { SolicitudGastoSimpleMontoLinea } from '../../interface/solicitud-gasto-simple-monto-linea.interface';
 import { SolicitudGastoSimpleResult } from '../../interface/solicitud-gasto-simple-result.interface';
 import {
+  mostrarTarjetaCuotasActivoEnSolicitud,
   etiquetaModuloPadre,
   requiereEnteActivo,
   tipoEnteDesdeModuloPadre,
@@ -69,7 +70,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   resumenEnte: SolicitudGastoData | null = null;
   notificacionVencimiento: string | null = null;
   cargandoResumenEnte = false;
-  mostrarResumenFinanciero = false;
+  mostrarTarjetaCuotasActivo = false;
 
   constructor(
     private matDialogRef: MatDialogRef<SolicitudGastoSimpleDialogComponent>,
@@ -252,6 +253,11 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     const modulo = this.data?.moduloPadre;
     this.requiereEnteActivo = requiereEnteActivo(modulo);
     this.etiquetaEnteActivo = etiquetaModuloPadre(modulo);
+    this.mostrarTarjetaCuotasActivo = mostrarTarjetaCuotasActivoEnSolicitud(
+      modulo,
+      this.data?.tipoNaturaleza,
+      this.data?.esPagoCuotaActivo,
+    );
 
     switch (modulo) {
       case 'MUEBLE':
@@ -345,7 +351,6 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
 
   private cargarResumenFinanciero(enteId: number): void {
     this.cargandoResumenEnte = true;
-    this.mostrarResumenFinanciero = false;
     this.cdr.markForCheck();
 
     this.enteFinancialSummaryGQL
@@ -360,7 +365,6 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
           const summary = res.data?.data as EnteFinancialSummaryResponse | undefined;
           if (summary) {
             this.aplicarAutocompletado(summary);
-            this.mostrarResumenFinanciero = true;
           }
           this.cdr.markForCheck();
         },
@@ -373,11 +377,9 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
 
   private aplicarAutocompletado(summary: EnteFinancialSummaryResponse): void {
     const tipoBien = tipoEnteDesdeModuloPadre(this.data?.moduloPadre);
-    this.resumenEnte = mapearSummaryASolicitudGastoData(summary, tipoBien);
-    this.notificacionVencimiento = construirNotificacionVencimiento(summary.diasParaVencer);
-
-    if (summary.descripcionSugerida) {
-      this.descripcionControl.setValue(summary.descripcionSugerida);
+    if (this.mostrarTarjetaCuotasActivo) {
+      this.resumenEnte = mapearSummaryASolicitudGastoData(summary, tipoBien);
+      this.notificacionVencimiento = construirNotificacionVencimiento(summary.diasParaVencer);
     }
 
     const fechaVencimiento = parsearFechaVencimientoSugerida(summary.fechaVencimientoSugerida);
