@@ -75,6 +75,14 @@
             <button mat-icon-button color="primary" (click)="buscarProveedor()" matTooltip="Buscar proveedor">
               <mat-icon>search</mat-icon>
             </button>
+            <button
+              mat-icon-button
+              color="primary"
+              (click)="crearProveedor()"
+              matTooltip="Crear proveedor con los datos de la factura"
+            >
+              <mat-icon>person_add</mat-icon>
+            </button>
           </div>
         </div>
         <div class="campo"><label>RUC emisor</label><span>{{ preview.emisorRuc || '-' }}</span></div>

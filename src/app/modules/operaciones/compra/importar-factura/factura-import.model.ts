@@ -71,6 +71,13 @@ export interface FacturaImportPreview {
   estado?: string;
   emisorRuc?: string;
   emisorNombre?: string;
+  emisorNombreFantasia?: string;
+  emisorDireccion?: string;
+  emisorTelefono?: string;
+  emisorEmail?: string;
+  emisorDepartamento?: string;
+  emisorDistrito?: string;
+  emisorCiudad?: string;
   numeroFactura?: string;
   timbrado?: string;
   fechaEmision?: string;

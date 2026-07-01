@@ -27,6 +27,13 @@ export const facturaImportPreviewQuery = gql`
       estado
       emisorRuc
       emisorNombre
+      emisorNombreFantasia
+      emisorDireccion
+      emisorTelefono
+      emisorEmail
+      emisorDepartamento
+      emisorDistrito
+      emisorCiudad
       numeroFactura
       timbrado
       fechaEmision

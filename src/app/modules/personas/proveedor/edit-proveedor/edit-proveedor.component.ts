@@ -27,6 +27,15 @@ import { MainService } from "../../../../main.service";
 export interface EditProveedorData {
   proveedor?: Proveedor;
   isEditing?: boolean;
+  /** Datos para precargar el alta de un proveedor nuevo (ej: desde una factura importada). */
+  prefill?: {
+    nombre?: string;
+    apodo?: string;
+    documento?: string;
+    telefono?: string;
+    direccion?: string;
+    email?: string;
+  };
 }
 
 export interface EditProveedorResult {
@@ -53,6 +62,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     apodo: new FormControl(""),
     documento: new FormControl("", [Validators.required, Validators.minLength(6)]),
     telefono: new FormControl("", [Validators.minLength(9)]),
+    direccion: new FormControl(""),
+    email: new FormControl(""),
     credito: new FormControl(false),
     chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)])
   });
@@ -139,7 +150,23 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
         });
     } else {
       this.loadExistingProveedorData();
+      this.applyPrefill();
     }
+  }
+
+  /** Precarga campos del formulario para un alta nueva (ej: datos del emisor de una factura). */
+  private applyPrefill(): void {
+    const pf = this.data?.prefill;
+    if (!pf || this.selectedProveedor) return;
+    this.proveedorFormGroup.patchValue({
+      nombre: pf.nombre || "",
+      apodo: pf.apodo || "",
+      documento: pf.documento || "",
+      telefono: pf.telefono || "",
+      direccion: pf.direccion || "",
+      email: pf.email || ""
+    });
+    this.updateComputedProperties();
   }
 
   ngOnDestroy(): void {}
@@ -185,6 +212,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
       apodo: this.selectedPersona.apodo || "",
       documento: this.selectedPersona.documento,
       telefono: this.selectedPersona.telefono || "",
+      direccion: this.selectedPersona.direccion || "",
+      email: this.selectedPersona.email || "",
       credito: this.selectedProveedor.credito || false,
       chequeDias: this.selectedProveedor.chequeDias || 8
     });
@@ -376,6 +405,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.apodo = formValue.apodo?.trim().toUpperCase() || "";
     personaInput.documento = formValue.documento?.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
+    personaInput.direccion = formValue.direccion?.trim() || "";
+    personaInput.email = formValue.email?.trim() || "";
 
     this.personaService
       .onSavePersona(personaInput)
@@ -405,6 +436,8 @@ export class EditProveedorComponent implements OnInit, OnDestroy {
     personaInput.apodo = formValue.apodo?.trim().toUpperCase() || "";
     personaInput.documento = formValue.documento.trim();
     personaInput.telefono = formValue.telefono?.trim() || "";
+    personaInput.direccion = formValue.direccion?.trim() || "";
+    personaInput.email = formValue.email?.trim() || "";
     this.personaService
       .onSavePersona(personaInput)
       .pipe(untilDestroyed(this))

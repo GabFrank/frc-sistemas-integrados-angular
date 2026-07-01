@@ -14,6 +14,11 @@ import {
   PdvSearchProductoResponseData,
 } from '../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
+import {
+  EditProveedorComponent,
+  EditProveedorData,
+  EditProveedorResult,
+} from '../../../personas/proveedor/edit-proveedor/edit-proveedor.component';
 
 import { FacturaImportService } from './factura-import.service';
 import {
@@ -251,6 +256,37 @@ export class ImportarFacturaComponent implements OnInit {
       .subscribe((prov: any) => {
         if (prov) {
           this.proveedorSeleccionado = { id: prov.id, persona: prov.persona };
+          this.proveedorConfianza = 'MANUAL';
+        }
+      });
+  }
+
+  /** Abre el alta de proveedor precargada con los datos del emisor de la factura. */
+  crearProveedor(): void {
+    const p = this.preview;
+    if (!p) return;
+    // El catalogo guarda el RUC sin el digito verificador -> se descarta el "-D".
+    const documento = (p.emisorRuc || '').split('-')[0];
+    const data: EditProveedorData = {
+      prefill: {
+        nombre: p.emisorNombre,
+        apodo: p.emisorNombreFantasia,
+        documento,
+        telefono: p.emisorTelefono,
+        direccion: p.emisorDireccion,
+        email: p.emisorEmail,
+      },
+    };
+    this.matDialog
+      .open(EditProveedorComponent, { width: '600px', data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result: EditProveedorResult) => {
+        if (result?.saved && result.proveedor) {
+          this.proveedorSeleccionado = {
+            id: result.proveedor.id,
+            persona: result.proveedor.persona,
+          };
           this.proveedorConfianza = 'MANUAL';
         }
       });
