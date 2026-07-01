@@ -5,12 +5,11 @@ import { MatButton } from '@angular/material/button';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SearchListDialogComponent } from '../../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { productoSearchPdv } from '../../../../../productos/producto/graphql/graphql-query';
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from '../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from '../compras-search-producto-dialog/compras-search-producto-dialog.component';
 
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
@@ -684,24 +683,20 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
   }
 
   onBuscarProducto(): void {
-    // Implementar búsqueda de producto usando PdvSearchProductoDialogComponent
     const searchText = this.itemForm.get('searchProducto')?.value || '';
 
-    const dialogData: PdvSearchProductoData = {
+    const dialogData: ComprasSearchProductoData = {
       texto: searchText,
-      cantidad: 1,
       mostrarStock: false,
-      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.matDialog.open(PdvSearchProductoDialogComponent, {
+    const dialogRef = this.matDialog.open(ComprasSearchProductoDialogComponent, {
       height: '80%',
       data: dialogData,
     });
 
-    dialogRef.afterClosed().subscribe((result: PdvSearchProductoResponseData) => {
+    dialogRef.afterClosed().subscribe((result: ComprasSearchProductoResponse) => {
       if (result && result.producto && result.presentacion) {
-        console.log('Producto seleccionado:', result);
         this.onProductoSelected(result.producto, result.presentacion);
       }
     });

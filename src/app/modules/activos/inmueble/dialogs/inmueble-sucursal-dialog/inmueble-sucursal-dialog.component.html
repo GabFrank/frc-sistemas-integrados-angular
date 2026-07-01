@@ -1,0 +1,59 @@
+<h2 mat-dialog-title>Vincular inmueble a sucursal</h2>
+
+<mat-dialog-content>
+  <div fxLayout="column" fxLayoutGap="15px" style="padding: 16px; min-width: 520px;">
+    <mat-form-field appearance="outline">
+      <mat-label>Inmueble</mat-label>
+      <input matInput readonly [value]="inmuebleDisplay">
+      <mat-icon matSuffix>domain</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [formControl]="sucursalControl">
+        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo de tenencia</mat-label>
+      <mat-select [formControl]="esPropioControl">
+        <mat-option [value]="true">Propio</mat-option>
+        <mat-option [value]="false">Alquilado</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <ng-container *ngIf="esAlquilado">
+      <mat-form-field appearance="outline">
+        <mat-label>Arrendador (persona/empresa)</mat-label>
+        <input matInput readonly [value]="arrendadorDisplay" (click)="onBuscarArrendador()">
+        <mat-icon matSuffix (click)="onBuscarArrendador()" style="cursor:pointer">search</mat-icon>
+      </mat-form-field>
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field appearance="outline" fxFlex>
+          <mat-label>Valor alquiler</mat-label>
+          <input matInput type="number" [formControl]="alquilerMontoControl">
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="30">
+          <mat-label>Día vencimiento</mat-label>
+          <input matInput type="number" [formControl]="alquilerDiaControl" min="1" max="31">
+        </mat-form-field>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Vigencia del contrato</mat-label>
+        <input matInput [matDatepicker]="pickerVigencia" [formControl]="alquilerVigenciaControl">
+        <mat-datepicker-toggle matSuffix [for]="pickerVigencia"></mat-datepicker-toggle>
+        <mat-datepicker #pickerVigencia></mat-datepicker>
+      </mat-form-field>
+      <p class="hint-text">El contrato de alquiler puede cargarse desde archivos del inmueble.</p>
+    </ng-container>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancelar()" [disabled]="isLoading">Cancelar</button>
+  <button mat-raised-button color="primary" type="button" (click)="onGuardar()"
+    [disabled]="isLoading || !sucursalControl.value">
+    {{ isLoading ? 'Guardando...' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import gql from 'graphql-tag';
-import { ProductoCompraPorPeriodo } from '../models/producto-compra-periodo.model';
+import { ProductoCompraPorPeriodo } from '../producto-vendido/interfaces/producto-compra-periodo.model';
 
 export interface Response {
   data: ProductoCompraPorPeriodo[];

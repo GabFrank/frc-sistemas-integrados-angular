@@ -71,6 +71,16 @@
                 oninput="(this.value == ' ') ? this.value = null : null ;this.value = this.value.toUpperCase()"
                 (keydown)="keydownEvent($event.key)"
               />
+              <button
+                *ngIf="formGroup.get('buscarControl')?.value"
+                matSuffix
+                mat-icon-button
+                type="button"
+                aria-label="Limpiar búsqueda"
+                (click)="limpiarBusqueda()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
             </mat-form-field>
           </div>
         </div>
@@ -406,6 +416,13 @@
   <div class="footer-section">
     <div class="footer-buttons">
       <button
+        mat-button
+        (click)="dialogRef.close()"
+        class="exit-btn">
+        <mat-icon>close</mat-icon>
+        Salir
+      </button>
+      <button
         *ngIf="modoSeleccionMultiple"
         mat-raised-button
         color="primary"
@@ -414,13 +431,6 @@
         class="apply-btn">
         <mat-icon>check</mat-icon>
         Aplicar filtro ({{ cantidadSeleccionados() }})
-      </button>
-      <button
-        mat-button
-        (click)="dialogRef.close()"
-        class="exit-btn">
-        <mat-icon>close</mat-icon>
-        Salir
       </button>
     </div>
   </div>

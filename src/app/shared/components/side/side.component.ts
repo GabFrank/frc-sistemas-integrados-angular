@@ -19,6 +19,7 @@ import { DeliveryDashboardComponent } from '../../../modules/operaciones/deliver
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
@@ -427,6 +428,11 @@ export class SideComponent implements OnInit {
         else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
+        break;
+      case "lucro-por-funcionario":
+        this.tabService.addTab(
+          new Tab(LucroPorFuncionarioComponent, "Lucro por funcionario", null, null)
+        );
         break;
       case "lucro-por-producto":
         this.tabService.addTab(

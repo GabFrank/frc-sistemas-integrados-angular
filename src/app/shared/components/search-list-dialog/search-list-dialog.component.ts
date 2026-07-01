@@ -37,6 +37,7 @@ export class SearchListtDialogData {
   tableData: TableData[];
   query: Query;
   multiple? = false;
+  seleccionadosIniciales?: any[];
   search? = true;
   inicialSearch? = false;
   inicialData?: any;
@@ -71,6 +72,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   selectedPageInfo: PageInfo<any> = new PageInfo<any>();
   pageIndex = 0;
   pageSize = 15;
+  seleccionadosMap = new Map<number, any>();
 
   // **PERFORMANCE**: Computed properties for template usage (avoid getters/functions in template)
   dialogTitleComputed = '';
@@ -125,6 +127,16 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     if (this.displayedColumns.length === 0) {
       this.displayedColumns = ['id', 'nombre'];
     }
+
+    if (this.data?.multiple) {
+      this.displayedColumns = ['seleccion', ...this.displayedColumns];
+      (this.data.seleccionadosIniciales || []).forEach((item) => {
+        if (item?.id != null) {
+          this.seleccionadosMap.set(item.id, item);
+        }
+      });
+    }
+
     // **PERFORMANCE**: Initialize computed properties
     this.updateComputedProperties();
 
@@ -188,6 +200,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   onSearch(): void {
     // **PERFORMANCE**: Prevent multiple simultaneous searches
     if (this.isSearching) {
+      return;
+    }
+
+    if (this.data?.query == null) {
+      this.filterLocalData();
       return;
     }
 
@@ -258,6 +275,29 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private filterLocalData(): void {
+    const baseData = Array.isArray(this.data?.inicialData) ? this.data.inicialData : [];
+    let text = this.buscarControl.value;
+
+    if (text == null || String(text).trim() === '' || String(text).trim() === '%') {
+      this.dataSource.data = [...baseData];
+    } else {
+      text = String(text).toUpperCase();
+      this.dataSource.data = baseData.filter(item => this.matchesLocalSearch(item, text));
+    }
+
+    this.selectedItem = null;
+    this.procesarResultados(this.dataSource.data);
+  }
+
+  private matchesLocalSearch(item: any, text: string): boolean {
+    const fields = this.data?.tableData?.map(c => c.id) || ['id', 'nombre'];
+    return fields.some(field => {
+      const value = field.split('.').reduce((obj, key) => obj?.[key], item);
+      return value != null && String(value).toUpperCase().includes(text);
+    });
+  }
+
   private procesarResultados(res: any): void {
     if (res != null) {
       if (this.data?.paginator == true) {
@@ -282,6 +322,13 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   }
 
   onRowSelect(row): void {
+    if (this.data?.multiple) {
+      this.toggleSeleccion(row);
+      this.selectedItem = row;
+      this.updateComputedProperties();
+      return;
+    }
+
     if (row == this.selectedItem) {
       // Double-click behavior: close dialog with selection
       this.matDialogRef.close(row)
@@ -292,7 +339,35 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.updateComputedProperties();
   }
 
+  toggleSeleccion(item: any, event?: Event): void {
+    event?.stopPropagation();
+    if (item?.id == null) return;
+    if (this.seleccionadosMap.has(item.id)) {
+      this.seleccionadosMap.delete(item.id);
+    } else {
+      this.seleccionadosMap.set(item.id, item);
+    }
+    this.updateComputedProperties();
+    this.cdr.markForCheck();
+  }
+
+  isSeleccionado(item: any): boolean {
+    return item?.id != null && this.seleccionadosMap.has(item.id);
+  }
+
+  cantidadSeleccionados(): number {
+    return this.seleccionadosMap.size;
+  }
+
+  onAplicarFiltro(): void {
+    this.matDialogRef.close(Array.from(this.seleccionadosMap.values()));
+  }
+
   onAceptar(): void {
+    if (this.data?.multiple) {
+      this.onAplicarFiltro();
+      return;
+    }
     this.matDialogRef.close(this.selectedItem)
   }
 
@@ -322,7 +397,9 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.hasDataComputed = this.dataSource.data.length > 0;
 
     // Selection state
-    this.hasSelectedItemComputed = this.selectedItem != null;
+    this.hasSelectedItemComputed = this.data?.multiple
+      ? this.seleccionadosMap.size > 0
+      : this.selectedItem != null;
 
     // Pagination
     this.showPaginatorComputed = this.data?.paginator === true && this.selectedPageInfo != null;

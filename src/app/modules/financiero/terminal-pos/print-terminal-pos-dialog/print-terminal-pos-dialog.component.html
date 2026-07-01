@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>Imprimir Código de Barras</h2>
+
+<mat-dialog-content class="mat-typography">
+  <form [formGroup]="printForm">
+    <div class="printer-selection">
+      <mat-form-field appearance="outline" class="full-width"  style="margin-bottom: 10px; margin-top: 4px;">
+        <mat-label>Impresora Térmica</mat-label>
+        <mat-select formControlName="selectedPrinter">
+          <mat-option *ngFor="let printer of printers" [value]="printer.name">
+            {{ printer.displayName || printer.name }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="printForm.get('selectedPrinter').hasError('required')">
+          Seleccione una impresora
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="quantity-selection">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Cantidad</mat-label>
+        <input matInput type="number" min="1" formControlName="quantity" />
+        <mat-error *ngIf="printForm.get('quantity').hasError('required')">
+          Ingrese la cantidad
+        </mat-error>
+        <mat-error *ngIf="printForm.get('quantity').hasError('min')">
+          La cantidad debe ser al menos 1
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="label-preview">
+      <h3>Vista Previa (CODE128)</h3>
+      <div class="label-shape box">
+        <div style="text-align: center">
+          <div class="terminal-descripcion">{{ data.terminalPos?.descripcion }}</div>
+          <img
+            *ngIf="previewBarcodeDataUrl"
+            [src]="previewBarcodeDataUrl"
+            alt="barcode"
+            style="height: 70px; max-width: 100%"
+          />
+          <div *ngIf="!previewBarcodeDataUrl" class="sin-codigo">
+            El terminal POS no tiene un código válido
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" style="padding-right: 24px">
+  <button mat-button (click)="onCancel()" [disabled]="loading">Cancelar</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onPrint()"
+    [disabled]="loading || printForm.invalid || !previewBarcodeDataUrl"
+  >
+    <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
+    <span *ngIf="!loading">Imprimir</span>
+  </button>
+</mat-dialog-actions>

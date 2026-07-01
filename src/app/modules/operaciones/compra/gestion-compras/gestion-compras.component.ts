@@ -4,13 +4,20 @@ import {
   OnDestroy,
   ViewChild,
   Input,
-  AfterViewInit,
+  ElementRef,
 } from "@angular/core";
-import { FormBuilder, FormGroup, Validators } from "@angular/forms";
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ValidationErrors,
+  Validators,
+} from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
-import { Subject, forkJoin, Observable } from "rxjs";
-import { takeUntil, tap } from "rxjs/operators";
+import { Subject, forkJoin, Observable, of } from "rxjs";
+import { takeUntil, tap, map, catchError, debounceTime, distinctUntilChanged, filter, switchMap, take } from "rxjs/operators";
 
 import {
   AddEditItemDialogComponent,
@@ -72,16 +79,15 @@ import {
   TableData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "./dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { VendedoresSearchByPersonaGQL } from "../../../personas/vendedor/graphql/vendedorSearchByPersona";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
 import { PedidoService } from "../pedido.service";
 import { MatSelect } from "@angular/material/select";
-import { FormControl } from "@angular/forms";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -95,6 +101,7 @@ import { ProductoProveedor } from "../../../productos/producto-proveedor/product
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
 import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 import { ProductoService } from "../../../productos/producto/producto.service";
+import { BuscadorComprasService } from "./buscador-compras.service";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 import { MainService } from "../../../../main.service";
 import {
@@ -207,13 +214,26 @@ type TabState = "disabled" | "readonly" | "editable";
  * - Los otros tabs están deshabilitados hasta que se guarde el pedido
  * - Al guardar el pedido, se cambia automáticamente a modo edición
  */
+function proveedorSeleccionadoValidator(
+  control: AbstractControl
+): ValidationErrors | null {
+  const value = control.value;
+  if (value != null && typeof value === "object" && value.id != null) {
+    return null;
+  }
+  if (value == null || value === "") {
+    return null;
+  }
+  return { proveedorNoSeleccionado: true };
+}
+
 @Component({
   selector: "app-gestion-compras",
   templateUrl: "./gestion-compras.component.html",
   styleUrls: ["./gestion-compras.component.scss"],
 })
 export class GestionComprasComponent
-  implements OnInit, OnDestroy, AfterViewInit
+  implements OnInit, OnDestroy
 {
   @ViewChild("monedaSelect", { read: MatSelect }) monedaSelect!: MatSelect;
   @ViewChild("proveedorInput") proveedorInput!: any;
@@ -221,9 +241,10 @@ export class GestionComprasComponent
   @ViewChild("sucursalEntregaSelect", { read: MatSelect }) sucursalEntregaSelect!: MatSelect;
   @ViewChild("sucursalInfluenciaSelect", { read: MatSelect }) sucursalInfluenciaSelect!: MatSelect;
   @ViewChild("formaPagoSelect", { read: MatSelect }) formaPagoSelect!: MatSelect;
+  @ViewChild("cotizacionInput") cotizacionInput!: any;
   @ViewChild("plazoCreditoInput") plazoCreditoInput!: any;
   @ViewChild("continuarButton", { read: MatButton }) continuarButton!: MatButton;
-  @ViewChild("addItemButton", { read: MatButton }) addItemButton!: MatButton;
+  @ViewChild("addItemInput") addItemInput!: ElementRef;
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("itemsPendientesPaginator", { read: MatPaginator }) itemsPendientesPaginator!: MatPaginator;
   @ViewChild("notasRecepcionPaginator", { read: MatPaginator }) notasRecepcionPaginator!: MatPaginator;
@@ -254,6 +275,7 @@ export class GestionComprasComponent
 
   // Último texto de búsqueda en el diálogo Añadir Item (persiste dentro de la misma sesión de gestión)
   private lastItemSearchText = '';
+  codigoControl = new FormControl<string | null>(null, Validators.required);
 
   // Pedido resumen from backend (for edit mode)
   pedidoResumen: PedidoResumen | null = null;
@@ -277,6 +299,8 @@ export class GestionComprasComponent
   isFormaPagoCreditoComputed = false;
   step1ButtonDisabledComputed = true;
   step1ButtonTextComputed = "Guardar y Continuar";
+  proveedorRequiredErrorComputed = false;
+  proveedorNoSeleccionadoErrorComputed = false;
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
   canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
@@ -374,6 +398,8 @@ export class GestionComprasComponent
   productosProveedorPageIndex = 0;
   productosProveedorTotalElements = 0;
   productosProveedorSearchText = '';
+  private proveedorBusquedaTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly BUSQUEDA_DEBOUNCE_MS = 300;
   ultimasComprasPageSize = 5;
   ultimasComprasPageIndex = 0;
   ultimasComprasTotalElements = 0;
@@ -425,6 +451,7 @@ export class GestionComprasComponent
     private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
     private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL,
     private productoService: ProductoService,
+    private buscadorComprasService: BuscadorComprasService,
     private tabService: TabService,
     public mainService: MainService,
     private reporteService: ReporteService,
@@ -479,25 +506,32 @@ export class GestionComprasComponent
 
     // Configurar navegación con teclado para productos del proveedor
     this.setupKeyboardNavigation();
+    this.setupCodigoPrefetch();
   }
 
-  ngAfterViewInit() {
-    this.itemsDataSource.paginator = this.paginator;
-    
-    // Configurar paginador para ítems pendientes
-    if (this.itemsPendientesPaginator) {
-      this.itemsPendientesDataSource.paginator = this.itemsPendientesPaginator;
-    }
-
-    // Configurar paginador para notas de recepción
-    if (this.notasRecepcionPaginator) {
-      this.notasRecepcionDataSource.paginator = this.notasRecepcionPaginator;
-    }
-
-    // Estado de tabs configurado
+  /**
+   * Precarga búsquedas mientras el usuario escribe en el campo de código,
+   * para que al presionar Enter los resultados ya estén en caché.
+   */
+  private setupCodigoPrefetch(): void {
+    this.codigoControl.valueChanges
+      .pipe(
+        debounceTime(250),
+        map((value) => (value ?? "").trim()),
+        distinctUntilChanged(),
+        filter((texto) => texto.length >= 2),
+        switchMap((texto) =>
+          this.buscadorComprasService.buscarProductosParaDialog(texto, 0, 20, true)
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({ error: () => undefined });
   }
 
   ngOnDestroy(): void {
+    if (this.proveedorBusquedaTimer) {
+      clearTimeout(this.proveedorBusquedaTimer);
+    }
     this.destroy$.next();
     this.destroy$.complete();
     // Remover listener de teclado
@@ -506,11 +540,11 @@ export class GestionComprasComponent
 
   private initializeForms(): void {
     this.datosGeneralesForm = this.fb.group({
-      proveedor: ["", Validators.required],
-      vendedor: [""],
-      moneda: ["", Validators.required],
+      proveedor: [null, [Validators.required, proveedorSeleccionadoValidator]],
+      vendedor: [null],
+      moneda: [null, Validators.required],
       cotizacion: [null],
-      formaPago: ["", Validators.required],
+      formaPago: [null, Validators.required],
       plazoCredito: [0],
       observacionFormaPago: [''],
       sucursalesEntrega: [[], Validators.required],
@@ -567,6 +601,8 @@ export class GestionComprasComponent
             this.loadProductosProveedor();
           }
         } else {
+          this.selectedProveedorComputed = null;
+          this.showProveedorCard = false;
           // Si se remueve el proveedor, limpiar la lista de productos
           this.productosProveedorDataSource.data = [];
           this.ultimasComprasDataSource.data = [];
@@ -576,6 +612,11 @@ export class GestionComprasComponent
           this.selectedProductoProveedor = null;
         }
       });
+
+    this.datosGeneralesForm
+      .get("proveedor")
+      ?.statusChanges.pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateComputedProperties());
 
     this.datosGeneralesForm
       .get("moneda")
@@ -608,9 +649,7 @@ export class GestionComprasComponent
         if (monedas.length > 0 && !this.datosGeneralesForm.get("moneda")?.value) {
           this.datosGeneralesForm.patchValue({ moneda: monedas[0] }, { emitEvent: false });
         }
-        if (formasPago.length > 0 && !this.datosGeneralesForm.get("formaPago")?.value) {
-          this.datosGeneralesForm.patchValue({ formaPago: formasPago[0] }, { emitEvent: false });
-        }
+        this.ensureDefaultFormaPago();
       }),
       takeUntil(this.destroy$)
     );
@@ -727,10 +766,10 @@ export class GestionComprasComponent
           this.updateStep3ComputedProperties();
         }
         
-        // Si estamos en el tab de Items y el estado es EN PLANIFICACION, hacer focus en el botón "Añadir Item"
+        // Si estamos en el tab de Items y el estado es EN PLANIFICACION, hacer focus en el buscador de ítems
         if (this.selectedTabIndex === 1 && this.isEstadoEnPlanificacion()) {
           setTimeout(() => {
-            this.focusAddItemButton();
+            this.focusAddItemInput();
           }, 100);
         }
       },
@@ -971,9 +1010,9 @@ export class GestionComprasComponent
     }
     cotizacionCtrl?.updateValueAndValidity({ emitEvent: false });
 
-    // Establecer proveedor seleccionado para mostrar la tarjeta
+    // Mostrar tarjeta solo si hay proveedor; si no, dejar visible el buscador
     this.selectedProveedorComputed = pedido.proveedor;
-    this.showProveedorCard = true;
+    this.showProveedorCard = !!pedido.proveedor;
   }
 
   private loadItemsIntoTable(items: PedidoItem[]): void {
@@ -1061,6 +1100,7 @@ export class GestionComprasComponent
       Object.keys(this.datosGeneralesForm.controls).forEach((key) => {
         this.datosGeneralesForm.get(key)?.markAsTouched();
       });
+      this.updateComputedProperties();
     }
   }
 
@@ -1283,6 +1323,15 @@ export class GestionComprasComponent
     this.isFormaPagoCreditoComputed = this.isFormaPagoCredito();
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
+
+    const proveedorCtrl = this.datosGeneralesForm.get("proveedor");
+    const proveedorInteracted = proveedorCtrl?.touched || proveedorCtrl?.dirty;
+    this.proveedorRequiredErrorComputed = !!(
+      proveedorCtrl?.hasError("required") && proveedorInteracted
+    );
+    this.proveedorNoSeleccionadoErrorComputed = !!(
+      proveedorCtrl?.hasError("proveedorNoSeleccionado") && proveedorInteracted
+    );
     
     // Moneda display
     const moneda = this.headerDataComputed?.moneda;
@@ -1724,6 +1773,7 @@ export class GestionComprasComponent
         // Solo marcar como cargado para el sistema de lazy loading
         break;
       case 1: // Tab 2: Ítems del Pedido
+        this.buscadorComprasService.warmupBusquedaProductos();
         if (this.currentPedido?.id) {
           // Pedido existente: cargar ítems del backend
           this.loadItemsData();
@@ -1735,10 +1785,10 @@ export class GestionComprasComponent
             this.loadProductosProveedor();
           }
           
-          // Si el estado es EN PLANIFICACION, hacer focus en el botón "Añadir Item"
+          // Si el estado es EN PLANIFICACION, hacer focus en el buscador de ítems
           if (this.isEstadoEnPlanificacion()) {
             setTimeout(() => {
-              this.focusAddItemButton();
+              this.focusAddItemInput();
             }, 200); // Pequeño delay para asegurar que el tab esté completamente renderizado
           }
         } else {
@@ -1752,9 +1802,9 @@ export class GestionComprasComponent
             this.loadProductosProveedor();
           }
           
-          // En nueva compra, siempre hacer focus en el botón "Añadir Item"
+          // En nueva compra, siempre hacer focus en el buscador de ítems
           setTimeout(() => {
-            this.focusAddItemButton();
+            this.focusAddItemInput();
           }, 200);
         }
         break;
@@ -1981,7 +2031,12 @@ export class GestionComprasComponent
   onMonedaClosed(): void {
     // Navegar al siguiente campo después de que se cierre el dropdown
     setTimeout(() => {
-      this.focusFormaPago();
+      const moneda: Moneda | null = this.datosGeneralesForm.get("moneda")?.value;
+      if (moneda && moneda.denominacion !== "GUARANI") {
+        this.focusCotizacion();
+      } else {
+        this.focusFormaPago();
+      }
     }, 100);
   }
 
@@ -2005,6 +2060,9 @@ export class GestionComprasComponent
     cotizacionCtrl.setValidators([Validators.required, Validators.min(0.0001)]);
     cotizacionCtrl.updateValueAndValidity({ emitEvent: false });
 
+    // Re-aplicar EFECTIVO: al aparecer el campo cotización (*ngIf) el mat-select puede desincronizarse.
+    this.ensureDefaultFormaPago();
+
     const hadItems = this.itemsDataSource.data.length > 0;
     this.prefillCotizacionFromMercado(moneda).subscribe(() => {
       if (hadItems) {
@@ -2012,6 +2070,7 @@ export class GestionComprasComponent
           "Cotización recalculada por cambio de moneda. Revisa los precios de los ítems."
         );
       }
+      this.updateComputedProperties();
     });
   }
 
@@ -2033,6 +2092,7 @@ export class GestionComprasComponent
             const fromMercado = !!(cambio?.valorEnGsCompraMercado ?? cambio?.valorEnGsVentaMercado);
             this.datosGeneralesForm.get("cotizacion")?.setValue(valor, { emitEvent: false });
             this.cotizacionFromMercado = fromMercado;
+            this.updateComputedProperties();
             observer.next(valor);
             observer.complete();
           },
@@ -2040,6 +2100,7 @@ export class GestionComprasComponent
             const fallback = moneda?.cambio ?? null;
             this.datosGeneralesForm.get("cotizacion")?.setValue(fallback, { emitEvent: false });
             this.cotizacionFromMercado = false;
+            this.updateComputedProperties();
             observer.next(fallback);
             observer.complete();
           }
@@ -2122,6 +2183,50 @@ export class GestionComprasComponent
     }
   }
 
+  private focusCotizacion(): void {
+    if (this.cotizacionInput) {
+      const inputElement =
+        this.cotizacionInput.nativeElement?.querySelector("input") ||
+        this.cotizacionInput.nativeElement;
+      if (inputElement) {
+        inputElement.focus();
+      }
+    }
+  }
+
+  private getDefaultFormaPago(): FormaPago | null {
+    if (!this.formasPago?.length) {
+      return null;
+    }
+    return (
+      this.formasPago.find((f) => f.descripcion?.toUpperCase() === "EFECTIVO") ??
+      this.formasPago[0]
+    );
+  }
+
+  private ensureDefaultFormaPago(): void {
+    const ctrl = this.datosGeneralesForm.get("formaPago");
+    if (!ctrl) {
+      return;
+    }
+    const current: FormaPago | null = ctrl.value;
+    if (current?.id) {
+      return;
+    }
+    const defaultFormaPago = this.getDefaultFormaPago();
+    if (!defaultFormaPago) {
+      return;
+    }
+    ctrl.setValue(defaultFormaPago, { emitEvent: false });
+    this.onFormaPagoChange();
+  }
+
+  compareMoneda = (a: Moneda | null, b: Moneda | null): boolean =>
+    !!a && !!b && a.id === b.id;
+
+  compareFormaPago = (a: FormaPago | null, b: FormaPago | null): boolean =>
+    !!a && !!b && a.id === b.id;
+
   private focusFormaPago(): void {
     if (this.formaPagoSelect) {
       this.formaPagoSelect.focus();
@@ -2143,9 +2248,9 @@ export class GestionComprasComponent
     }
   }
 
-  private focusAddItemButton(): void {
-    if (this.addItemButton) {
-      this.addItemButton.focus();
+  private focusAddItemInput(): void {
+    if (this.addItemInput?.nativeElement) {
+      this.addItemInput.nativeElement.focus();
     }
   }
 
@@ -2226,119 +2331,190 @@ export class GestionComprasComponent
     this.tabService.addTab(new Tab(ProductoComponent, "Nuevo Producto", null, null));
   }
 
-  onAddItem(): void {
-    const searchData: PdvSearchProductoData = {
-      texto: this.lastItemSearchText || "",
-      cantidad: 1,
+  onSearchPorCodigo(): void {
+    if (this.itemsTabState !== "editable") {
+      return;
+    }
+
+    const text = this.codigoControl.value?.trim();
+    this.onAddItem(text || undefined);
+  }
+
+  onCodigoFocus(): void {
+    this.addItemInput?.nativeElement?.select();
+  }
+
+  onAddItem(texto?: string): void {
+    const searchText = (texto || this.lastItemSearchText || "").trim();
+
+    if (searchText) {
+      this.buscadorComprasService
+        .buscarProductosParaDialog(searchText, 0, 20, true)
+        .pipe(take(1), takeUntil(this.destroy$))
+        .subscribe({ error: () => undefined });
+    }
+
+    const searchData: ComprasSearchProductoData = {
+      texto: searchText,
       mostrarStock: true,
-      mostrarOpciones: false,
-      conservarUltimaBusqueda: true,
     };
 
-    const searchDialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+    const searchDialogRef = this.dialog.open(ComprasSearchProductoDialogComponent, {
       height: "80%",
       data: searchData,
     });
 
-    searchDialogRef.afterClosed().subscribe((searchResult: PdvSearchProductoResponseData) => {
+    searchDialogRef.afterClosed().subscribe((searchResult: ComprasSearchProductoResponse) => {
       if (searchResult && searchResult.producto) {
-        if (searchResult.presentacion?.codigoPrincipal?.codigo) {
-          this.lastItemSearchText = searchResult.presentacion.codigoPrincipal.codigo;
+        if (searchResult.searchText) {
+          this.lastItemSearchText = searchResult.searchText;
         } else if (searchResult.producto.descripcion) {
           this.lastItemSearchText = searchResult.producto.descripcion;
         }
 
-        const dialogData: AddEditItemDialogData = {
-          pedido: this.currentPedido as Pedido,
-          isEdit: false,
-          title: "Añadir Nuevo Ítem al Pedido",
-          lastSearchText: this.lastItemSearchText,
-          producto: searchResult.producto,
-          presentacion: searchResult.presentacion
-        };
-
-        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-          width: "65%",
-          height: "70%",
-          data: dialogData,
-          disableClose: true,
-        });
-
-        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-          if (result?.lastSearchText !== undefined) {
-            this.lastItemSearchText = result.lastSearchText;
-          }
-          if (result && result.action === "save") {
-            // Actualizar localmente el monto total del pedido
-            if (this.isEditMode && result.item) {
-              this.updateMontoTotalLocalOnAdd(result.item);
-            }
-            
-            // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-            if (result.item?.producto?.id) {
-              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-            }
-            
-            // Marcar tab de ítems como no cargado para recargar en próxima visita
-            this.markTabAsUnloaded(1);
-            
-            // Si estamos en el tab de ítems, recargar inmediatamente
-            if (this.selectedTabIndex === 1) {
-              // Resetear a primera página y recargar
-              this.itemsPageIndex = 0;
-              this.loadItemsData();
-            } else {
-              // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
-              // Si estamos en el tab de ítems, recargar inmediatamente con paginación
-              if (this.selectedTabIndex === 1) {
-                // Resetear a primera página y recargar
-                this.itemsPageIndex = 0;
-                this.loadItemsData();
-              } else {
-                // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
-                // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
-                this.updateItemsComputedProperties();
-              }
-            }
-            
-            // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
-            this.markTabAsUnloaded(2);
-            
-            // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
-            if (this.isEditMode) {
-              // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
-              setTimeout(() => {
-                this.loadPedidoResumen();
-              }, 500);
-            }
-            
-            // Recargar pedido completo para obtener procesoEtapas actualizado
-            if (this.currentPedido?.id) {
-              this.pedidoService.onGetPedidoById(this.currentPedido.id)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                  next: (pedidoCompleto) => {
-                    this.currentPedido = pedidoCompleto;
-                    this.updateComputedProperties();
-                    // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
-                    if (this.selectedTabIndex !== 1) {
-                      this.updateItemsComputedProperties();
-                    }
-                  },
-                  error: (error) => {
-                    console.error("Error recargando pedido después de agregar item:", error);
-                    this.updateComputedProperties();
-                    if (this.selectedTabIndex !== 1) {
-                      this.updateItemsComputedProperties();
-                    }
-                  }
-                });
-            } else {
-              this.updateComputedProperties();
-            }
-          }
-        });
+        this.openAddEditItemDialog(
+          searchResult.producto,
+          searchResult.presentacion,
+          this.lastItemSearchText
+        );
       }
+
+      this.codigoControl.setValue(null);
+      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+    });
+  }
+
+  private openAddEditItemDialog(
+    producto: Producto,
+    presentacion?: Presentacion,
+    searchText?: string
+  ): void {
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        this.openAddEditItemDialogInternal(
+          producto,
+          presentacion,
+          searchText,
+          productoIdsEnPedido
+        );
+      });
+  }
+
+  private fetchProductoIdsEnPedido(): Observable<number[]> {
+    if (!this.currentPedido?.id) {
+      return of([]);
+    }
+
+    return this.pedidoService.onGetPedidoItemsByPedidoId(this.currentPedido.id, true).pipe(
+      map((items) =>
+        items
+          .map((item) => item.producto?.id)
+          .filter((id): id is number => id != null)
+          .map((id) => Number(id))
+      ),
+      catchError(() => of([]))
+    );
+  }
+
+  private openAddEditItemDialogInternal(
+    producto: Producto,
+    presentacion?: Presentacion,
+    searchText?: string,
+    productoIdsEnPedido: number[] = []
+  ): void {
+    const dialogData: AddEditItemDialogData = {
+      pedido: this.currentPedido as Pedido,
+      isEdit: false,
+      title: "Añadir Nuevo Ítem al Pedido",
+      lastSearchText: searchText || this.lastItemSearchText,
+      producto,
+      presentacion,
+      productoIdsEnPedido,
+    };
+
+    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+      width: "65%",
+      height: "70%",
+      data: dialogData,
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result?.lastSearchText !== undefined) {
+        this.lastItemSearchText = result.lastSearchText;
+      }
+      if (result && result.action === "save") {
+        // Actualizar localmente el monto total del pedido
+        if (this.isEditMode && result.item) {
+          this.updateMontoTotalLocalOnAdd(result.item);
+        }
+
+        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
+        if (result.item?.producto?.id) {
+          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+        }
+
+        // Marcar tab de ítems como no cargado para recargar en próxima visita
+        this.markTabAsUnloaded(1);
+
+        // Si estamos en el tab de ítems, recargar inmediatamente
+        if (this.selectedTabIndex === 1) {
+          // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
+        } else {
+          // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
+          // Si estamos en el tab de ítems, recargar inmediatamente con paginación
+          if (this.selectedTabIndex === 1) {
+            // Resetear a primera página y recargar
+            this.itemsPageIndex = 0;
+            this.loadItemsData();
+          } else {
+            // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
+            // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
+            this.updateItemsComputedProperties();
+          }
+        }
+
+        // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
+        this.markTabAsUnloaded(2);
+
+        // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
+        if (this.isEditMode) {
+          // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+          setTimeout(() => {
+            this.loadPedidoResumen();
+          }, 500);
+        }
+
+        // Recargar pedido completo para obtener procesoEtapas actualizado
+        if (this.currentPedido?.id) {
+          this.pedidoService.onGetPedidoById(this.currentPedido.id)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (pedidoCompleto) => {
+                this.currentPedido = pedidoCompleto;
+                this.updateComputedProperties();
+                // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
+                if (this.selectedTabIndex !== 1) {
+                  this.updateItemsComputedProperties();
+                }
+              },
+              error: (error) => {
+                console.error("Error recargando pedido después de agregar item:", error);
+                this.updateComputedProperties();
+                if (this.selectedTabIndex !== 1) {
+                  this.updateItemsComputedProperties();
+                }
+              }
+            });
+        } else {
+          this.updateComputedProperties();
+        }
+      }
+
+      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
     });
   }
 
@@ -3751,14 +3927,24 @@ export class GestionComprasComponent
 
     this.productosProveedorLoading = true;
 
-    this.productoProveedorService
-      .getByProveedorId(
-        proveedorId,
-        this.productosProveedorSearchText || '',
-        this.productosProveedorPageIndex,
-        this.productosProveedorPageSize,
-        pedidoId
-      )
+    const searchText = (this.productosProveedorSearchText || "").trim();
+    const request$ = searchText
+      ? this.buscadorComprasService.buscarProductoProveedor(
+          proveedorId,
+          searchText,
+          this.productosProveedorPageIndex,
+          this.productosProveedorPageSize,
+          pedidoId
+        )
+      : this.productoProveedorService.getByProveedorId(
+          proveedorId,
+          "",
+          this.productosProveedorPageIndex,
+          this.productosProveedorPageSize,
+          pedidoId
+        );
+
+    request$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -4169,66 +4355,56 @@ export class GestionComprasComponent
       return;
     }
 
-    // Necesitamos cargar el producto completo con presentaciones y costo
-    // Si el producto ya tiene estas propiedades, usarlo directamente
-    // Si no, necesitamos cargarlo desde el backend
-    
-    const dialogData: AddEditItemDialogData = {
-      pedido: this.currentPedido,
-      isEdit: false,
-      title: "Añadir Nuevo Ítem al Pedido",
-    };
+    this.fetchProductoIdsEnPedido()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((productoIdsEnPedido) => {
+        const dialogData: AddEditItemDialogData = {
+          pedido: this.currentPedido as Pedido,
+          isEdit: false,
+          title: "Añadir Nuevo Ítem al Pedido",
+          productoIdsEnPedido,
+        };
 
-    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-      width: "65%",
-      height: "70%",
-      data: dialogData,
-      disableClose: true,
-    });
+        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+          width: "65%",
+          height: "70%",
+          data: dialogData,
+          disableClose: true,
+        });
 
-    // Después de abrir el diálogo, precargar el producto
-    dialogRef.afterOpened().subscribe(() => {
-      const dialogComponent = dialogRef.componentInstance;
-      // El producto del ProductoProveedor ya debería tener presentaciones y costo
-      // según la query GraphQL actualizada
-      if (dialogComponent && producto) {
-        // NO pasar automáticamente la primera presentación
-        // Esto permite que el usuario seleccione la presentación manualmente
-        // El foco se establecerá en el select de presentación si no hay presentación preseleccionada
-        dialogComponent.onProductoSelected(producto);
-      }
-    });
+        // Después de abrir el diálogo, precargar el producto
+        dialogRef.afterOpened().subscribe(() => {
+          const dialogComponent = dialogRef.componentInstance;
+          if (dialogComponent && producto) {
+            dialogComponent.onProductoSelected(producto);
+          }
+        });
 
-    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
-      if (result && result.action === "save") {
-        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
-        if (result.item?.producto?.id) {
-          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
-        }
-        
-        // Marcar tab de ítems como no cargado para recargar en próxima visita
-        this.markTabAsUnloaded(1);
-        
-        // Si estamos en el tab de ítems, recargar inmediatamente
-        if (this.selectedTabIndex === 1) {
-          // Resetear a primera página y recargar
-          this.itemsPageIndex = 0;
-          this.loadItemsData();
-        } else {
-          this.updateItemsComputedProperties();
-        }
-        
-        // Recargar resumen del pedido para actualizar header
-        if (this.isEditMode) {
-          this.loadPedidoResumen();
-        }
-        
-        // Seleccionar automáticamente el siguiente producto de la lista (si existe)
-        setTimeout(() => {
-          this.selectNextProductoProveedor();
-        }, 300); // Delay para asegurar que los datos se hayan actualizado
-      }
-    });
+        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+          if (result && result.action === "save") {
+            if (result.item?.producto?.id) {
+              this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+            }
+
+            this.markTabAsUnloaded(1);
+
+            if (this.selectedTabIndex === 1) {
+              this.itemsPageIndex = 0;
+              this.loadItemsData();
+            } else {
+              this.updateItemsComputedProperties();
+            }
+
+            if (this.isEditMode) {
+              this.loadPedidoResumen();
+            }
+
+            setTimeout(() => {
+              this.selectNextProductoProveedor();
+            }, 300);
+          }
+        });
+      });
   }
 
   /**
@@ -4258,7 +4434,13 @@ export class GestionComprasComponent
     }
     this.selectedProductoProveedor = null;
     this.selectedProductoProveedorIndex = -1;
-    this.loadProductosProveedor();
+
+    if (this.proveedorBusquedaTimer) {
+      clearTimeout(this.proveedorBusquedaTimer);
+    }
+    this.proveedorBusquedaTimer = setTimeout(() => {
+      this.loadProductosProveedor();
+    }, this.BUSQUEDA_DEBOUNCE_MS);
   }
 
   /**

@@ -17,6 +17,14 @@ export const inmuebleByIdQuery = gql`
       cantidadCuotas
       cantidadCuotasPagadas
       diaVencimiento
+      esPropio
+      alquilerProveedor {
+        id
+        nombre
+      }
+      alquilerMonto
+      alquilerDiaVencimiento
+      alquilerVigencia
       propietario {
         id
         nombre
@@ -90,6 +98,21 @@ export const inmuebleSearchPageQuery = gql`
           nombre
         }
         situacionPago
+        vinculacionesSucursal {
+          id
+          esPropio
+          alquilerMonto
+          alquilerDiaVencimiento
+          alquilerVigencia
+          sucursal {
+            id
+            nombre
+          }
+          alquilerProveedor {
+            id
+            nombre
+          }
+        }
       }
     }
   }

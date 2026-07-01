@@ -12,6 +12,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { tap } from 'rxjs/operators';
 import { InmuebleDialogService } from './inmueble-dialog-service.service';
 import { InmuebleSearchGQL } from '../graphql/inmuebleSearch';
+import { InmuebleSucursalDialogComponent, InmuebleSucursalDialogData } from '../dialogs/inmueble-sucursal-dialog/inmueble-sucursal-dialog.component';
+import { EnteVinculacion } from '../../ente/models/ente-vinculacion.model';
+import { DeleteEnteVinculacionGQL } from '../../ente/graphql/deleteEnteVinculacion';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -23,10 +27,41 @@ export class InmuebleService {
   private deleteInmuebleGQL = inject(DeleteInmuebleGQL);
   private inmuebleSearchGQL = inject(InmuebleSearchGQL);
   private inmuebleSearchPageGQL = inject(InmuebleSearchPageGQL);
+  private deleteEnteVinculacionGQL = inject(DeleteEnteVinculacionGQL);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
   abrirFormulario(inmueble?: Inmueble): Observable<boolean | undefined> {
     return this.injector.get(InmuebleDialogService).abrirFormulario(inmueble);
+  }
+
+  abrirVinculacionSucursal(inmueble: Inmueble, vinculacion?: EnteVinculacion): Observable<EnteVinculacion | undefined> {
+    return this.dialog.open(InmuebleSucursalDialogComponent, {
+      data: { inmueble, vinculacion } as InmuebleSucursalDialogData,
+      width: '620px',
+      disableClose: true,
+      autoFocus: false,
+    }).afterClosed().pipe(
+      tap((res) => {
+        if (res) this.refrescar();
+      }),
+      map(res => res || undefined)
+    );
+  }
+
+  onDesvincularSucursal(vinculacionId: number): Observable<boolean> {
+    return this.genericService.onDelete(
+      this.deleteEnteVinculacionGQL,
+      vinculacionId,
+      '¿Desvincular inmueble de sucursal?',
+      null,
+      true,
+      true,
+      '¿Está seguro que desea quitar la vinculación con la sucursal?'
+    ).pipe(
+      tap((res) => {
+        if (res) this.refrescar();
+      })
+    );
   }
 
   private inmueblesSubject = new BehaviorSubject<Inmueble[]>([]);

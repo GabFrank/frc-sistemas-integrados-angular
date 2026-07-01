@@ -46,6 +46,7 @@ import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante
 import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
 import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 import { GenericListVentaComponent } from './venta/generic-list-venta/generic-list-venta.component';
+import { ConfiguracionTransferenciaDialogComponent } from './transferencia/configuracion-transferencia-dialog/configuracion-transferencia-dialog.component';
 
 
 import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
@@ -73,6 +74,8 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
 import { ImportarFacturaComponent } from './compra/importar-factura/importar-factura.component';
 import { HistorialImportacionesComponent } from './compra/importar-factura/historial-importaciones.component';
+import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
+import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 
 @NgModule({
   declarations: [
@@ -113,6 +116,7 @@ import { HistorialImportacionesComponent } from './compra/importar-factura/histo
     AcompanhanteComponent,
     RutaHojaComponent,
     EntregadoresComponent,
+    ConfiguracionTransferenciaDialogComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
     SelectSucursalesDialogComponent,
@@ -124,6 +128,7 @@ import { HistorialImportacionesComponent } from './compra/importar-factura/histo
     RechazarItemDialogComponent,
     StockDetalladoDialogComponent,
     ImprimirPedidoDialogComponent,
+    ComprasSearchProductoDialogComponent,
     RecepcionMercaderiaComponent,
     RecepcionMercaderiaVerificarItemDialogComponent,
     RecepcionMercaderiaRechazarItemDialogComponent,
@@ -138,7 +143,8 @@ import { HistorialImportacionesComponent } from './compra/importar-factura/histo
     GestionPagoDialogComponent,
     GenericListVentaComponent,
     ImportarFacturaComponent,
-    HistorialImportacionesComponent
+    HistorialImportacionesComponent,
+    LucroPorFuncionarioComponent
   ],
   imports: [
     CommonModule,

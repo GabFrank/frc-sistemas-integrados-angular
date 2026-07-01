@@ -5,6 +5,27 @@ import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { timeout } from 'rxjs/operators';
+import {
+    EmbeddingGaleria,
+    construirGaleriaDesdeCapturas,
+    parsearGaleriaFacial,
+    serializarGaleriaFacial,
+    FrameCalidadFacial,
+    UMBRAL_SIMILITUD_FACIAL,
+    SCORE_MINIMO_DETECCION,
+    SCORE_MINIMO_FRAME,
+    SCORE_MINIMO_FRAME_VERIFICACION,
+    SCORE_MINIMO_GALERIA,
+    FRAMES_MINIMOS_VERIFICACION,
+    promediarEmbeddingsConScore,
+    scorePromedioFrames
+} from '../models/embedding-galeria.model';
+import {
+    IncorporarEmbeddingMarcacionResult,
+    MENSAJE_ERROR_RED_CLIENTE,
+    MENSAJE_RECHAZADO_SCORE_CLIENTE,
+    ResultadoIncorporacionEmbeddingCliente
+} from '../models/incorporar-embedding-result.model';
 
 export interface EstadoReconocimiento {
     exito: boolean;
@@ -12,6 +33,30 @@ export interface EstadoReconocimiento {
     embedding?: number[];
     mostrarCamara: boolean;
     result?: any;
+}
+
+export interface ResultadoVerificacionFacial {
+    embedding: number[];
+    score: number;
+    similitud: number;
+    snapshotUrl: string;
+}
+
+export interface EvaluacionFrameVerificacion {
+    calidadOk: boolean;
+    rostroDetectado: boolean;
+    similitud?: number;
+    embedding?: number[];
+    score?: number;
+    mensaje: string;
+    result?: any;
+}
+
+export interface EvaluacionFrameBusqueda {
+    rostroDetectado: boolean;
+    embedding?: number[];
+    score?: number;
+    mensaje: string;
 }
 
 export interface ResultadoBusqueda {
@@ -33,149 +78,323 @@ export class ReconocimientoFacialHelperService {
         private notificacionService: NotificacionSnackbarService
     ) { }
 
-    async obtenerDescriptorReferencia(fotoUrl: string): Promise<number[] | null> {
-        try {
-            return await this.faceService.getDescriptor(fotoUrl);
-        } catch (error) {
-            console.error('Error al obtener descriptor de referencia', error);
-            return null;
-        }
+    async obtenerGaleriaReferencia(usuario: Usuario): Promise<EmbeddingGaleria | null> {
+        return parsearGaleriaFacial(usuario?.persona?.embeddingFacial);
     }
 
-    async procesarFrame(video: HTMLVideoElement, referenciaDescriptor: number[]): Promise<EstadoReconocimiento> {
+    async inicializarMotorFacial(): Promise<void> {
+        await this.faceService.init();
+    }
+
+    async procesarFrame(
+        video: HTMLVideoElement,
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): Promise<EstadoReconocimiento> {
+        const evaluacion = await this.evaluarFrameVerificacion(video, referenciaGaleria, umbralSimilitud);
+        if (evaluacion.calidadOk && evaluacion.embedding) {
+            return {
+                exito: true,
+                mensaje: `Rostro verificado (${Math.round((evaluacion.similitud ?? 0) * 100)}%)`,
+                embedding: evaluacion.embedding,
+                mostrarCamara: false,
+                result: evaluacion.result
+            };
+        }
+        return {
+            exito: false,
+            mensaje: evaluacion.mensaje,
+            mostrarCamara: true,
+            result: evaluacion.result
+        };
+    }
+
+    async evaluarFrameVerificacion(
+        video: HTMLVideoElement,
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): Promise<EvaluacionFrameVerificacion> {
         const detection = await this.faceService.detect(video);
 
-        if (detection.face && detection.face.length > 0) {
-            const tensor = Array.from(detection.face[0].embedding);
-            const similarity = this.faceService.similarity(referenciaDescriptor, tensor);
-
-            if (similarity > 0.6) {
-                return {
-                    exito: true,
-                    mensaje: 'Rostro verificado',
-                    embedding: tensor,
-                    mostrarCamara: false,
-                    result: detection
-                };
-            } else {
-                return {
-                    exito: false,
-                    mensaje: `Rostro detectado. Similitud insuficiente (${(similarity * 100).toFixed(0)}%)`,
-                    mostrarCamara: true,
-                    result: detection
-                };
-            }
-        } else {
+        if (!detection.face || detection.face.length === 0) {
             return {
-                exito: false,
+                calidadOk: false,
+                rostroDetectado: false,
                 mensaje: 'No se detecta rostro. Centra tu cara.',
-                mostrarCamara: true,
                 result: detection
             };
         }
-    }
 
-    async capturarYGuardarFotoPerfil(usuarioId: number, videoElement: HTMLVideoElement): Promise<boolean> {
-        const detection = await this.faceService.detect(videoElement);
+        const face = detection.face[0];
+        const score = this.resolverScoreRostro(face);
+        const tensor = this.extraerEmbedding(face);
 
-        if (detection.face && detection.face.length > 0) {
-            const tensor = Array.from(detection.face[0].embedding);
-            const imageBase64 = this.camaraService.capturarFoto(videoElement);
-            this.camaraService.detenerCamara();
-
-            try {
-                await this.usuarioService.onSaveUsuarioImage(
-                    usuarioId,
-                    'perfil',
-                    imageBase64,
-                    tensor
-                ).toPromise();
-
-                this.notificacionService.notification$.next({
-                    texto: 'Foto de perfil guardada exitosamente',
-                    color: NotificacionColor.success,
-                    duracion: 3
-                });
-                return true;
-            } catch (error) {
-                this.notificacionService.notification$.next({
-                    texto: 'Error al guardar la foto de perfil',
-                    color: NotificacionColor.danger,
-                    duracion: 3
-                });
-                return false;
-            }
+        if (!tensor) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                score,
+                mensaje: 'Procesando rostro, mantenga la posición...',
+                result: detection
+            };
         }
-        return false;
+
+        const similarity = this.faceService.calcularMejorSimilitudConGaleria(tensor, referenciaGaleria);
+        const pct = Math.round(similarity * 100);
+        const umbralPct = Math.round(umbralSimilitud * 100);
+
+        if (score < SCORE_MINIMO_DETECCION) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Rostro detectado (${pct}%). Acérquese con mejor iluminación.`,
+                result: detection
+            };
+        }
+
+        if (similarity < umbralSimilitud) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Similitud insuficiente (${pct}%). Se requiere al menos ${umbralPct}%.`,
+                result: detection
+            };
+        }
+
+        if (score < SCORE_MINIMO_FRAME_VERIFICACION) {
+            return {
+                calidadOk: false,
+                rostroDetectado: true,
+                similitud: similarity,
+                embedding: tensor,
+                score,
+                mensaje: `Coincidencia ${pct}%. Mejore iluminación para confirmar.`,
+                result: detection
+            };
+        }
+
+        return {
+            calidadOk: true,
+            rostroDetectado: true,
+            similitud: similarity,
+            embedding: tensor,
+            score,
+            mensaje: `Identidad verificada (${pct}%)`,
+            result: detection
+        };
     }
-    async buscarYValidarUsuario(embedding: number[], video: HTMLVideoElement): Promise<ResultadoBusqueda | null> {
+
+    confirmarVerificacionFinal(
+        frames: FrameCalidadFacial[],
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): { embedding: number[]; score: number; similitud: number } | null {
+        const framesValidos = frames.filter(
+            (f) =>
+                f.embedding?.length > 0 &&
+                f.score >= SCORE_MINIMO_FRAME_VERIFICACION &&
+                (f.similitud == null || f.similitud >= umbralSimilitud)
+        );
+        if (framesValidos.length < FRAMES_MINIMOS_VERIFICACION) {
+            return null;
+        }
+
+        const embedding = promediarEmbeddingsConScore(framesValidos);
+        if (!embedding) {
+            return null;
+        }
+
+        const similitudFinal = this.faceService.calcularMejorSimilitudConGaleria(embedding, referenciaGaleria);
+        if (similitudFinal < umbralSimilitud) {
+            return null;
+        }
+
+        const similitudPromedio =
+            framesValidos.reduce((sum, f) => sum + (f.similitud ?? 0), 0) / framesValidos.length;
+        if (similitudPromedio < umbralSimilitud) {
+            return null;
+        }
+
+        return {
+            embedding,
+            score: scorePromedioFrames(framesValidos),
+            similitud: similitudFinal
+        };
+    }
+
+    embeddingCumpleUmbralVerificacion(
+        embedding: number[],
+        referenciaGaleria: EmbeddingGaleria,
+        umbralSimilitud: number
+    ): boolean {
+        if (!embedding?.length || !referenciaGaleria) {
+            return false;
+        }
+        return this.faceService.calcularMejorSimilitudConGaleria(embedding, referenciaGaleria) >= umbralSimilitud;
+    }
+
+    async evaluarFrameBusqueda(video: HTMLVideoElement): Promise<EvaluacionFrameBusqueda> {
+        const detection = await this.faceService.detect(video);
+
+        if (!detection.face || detection.face.length === 0) {
+            return {
+                rostroDetectado: false,
+                mensaje: 'Centra tu rostro en la cámara'
+            };
+        }
+
+        const face = detection.face[0];
+        const score = this.resolverScoreRostro(face);
+        const embedding = this.extraerEmbedding(face);
+
+        if (!embedding) {
+            return {
+                rostroDetectado: true,
+                score,
+                mensaje: 'Procesando rostro, espere un momento...'
+            };
+        }
+
+        if (score < SCORE_MINIMO_DETECCION) {
+            return {
+                rostroDetectado: true,
+                embedding,
+                score,
+                mensaje: 'Rostro detectado. Acérquese con mejor iluminación.'
+            };
+        }
+
+        return {
+            rostroDetectado: true,
+            embedding,
+            score,
+            mensaje: 'Rostro detectado, buscando...'
+        };
+    }
+
+    construirEmbeddingVerificado(frames: FrameCalidadFacial[]): { embedding: number[]; score: number } | null {
+        const embedding = promediarEmbeddingsConScore(frames);
+        if (!embedding) {
+            return null;
+        }
+        return {
+            embedding,
+            score: scorePromedioFrames(frames)
+        };
+    }
+
+    async actualizarGaleriaPostMarcacion(
+        usuarioId: number,
+        embedding: number[],
+        score: number
+    ): Promise<void> {
+        if (!usuarioId || !embedding?.length) {
+            return;
+        }
+
+        if (score < SCORE_MINIMO_GALERIA) {
+            this.notificarResultadoIncorporacion({
+                resultado: 'RECHAZADO_SCORE',
+                mensaje: MENSAJE_RECHAZADO_SCORE_CLIENTE
+            });
+            return;
+        }
+
+        try {
+            const resultado = await this.usuarioService.onIncorporarEmbeddingMarcacion(usuarioId, embedding, score, true)
+                .pipe(timeout(8000))
+                .toPromise();
+            this.notificarResultadoIncorporacion(this.normalizarResultadoIncorporacion(resultado));
+        } catch (error) {
+            console.warn('No se pudo enriquecer la galería facial tras marcación', error);
+            this.notificarResultadoIncorporacion({
+                resultado: 'ERROR_RED',
+                mensaje: MENSAJE_ERROR_RED_CLIENTE
+            });
+        }
+    }
+
+    private normalizarResultadoIncorporacion(resultado: unknown): {
+        resultado: ResultadoIncorporacionEmbeddingCliente;
+        mensaje: string;
+    } {
+        if (resultado == null) {
+            return {
+                resultado: 'ERROR_RED',
+                mensaje: MENSAJE_ERROR_RED_CLIENTE
+            };
+        }
+        if (typeof resultado === 'boolean') {
+            return resultado
+                ? { resultado: 'OK', mensaje: 'Perfil facial actualizado con esta marcación.' }
+                : { resultado: 'RECHAZADO_SCORE', mensaje: MENSAJE_RECHAZADO_SCORE_CLIENTE };
+        }
+        const payload = resultado as IncorporarEmbeddingMarcacionResult;
+        return {
+            resultado: payload.resultado ?? 'ERROR_RED',
+            mensaje: payload.mensaje || MENSAJE_ERROR_RED_CLIENTE
+        };
+    }
+
+    private notificarResultadoIncorporacion(resultado: {
+        resultado: ResultadoIncorporacionEmbeddingCliente;
+        mensaje: string;
+    }): void {
+        const color = resultado.resultado === 'OK'
+            ? NotificacionColor.info
+            : resultado.resultado === 'ERROR_RED'
+                ? NotificacionColor.danger
+                : NotificacionColor.warn;
+
+        this.notificacionService.notification$.next({
+            texto: resultado.mensaje,
+            color,
+            duracion: 3
+        });
+    }
+
+    async buscarYValidarUsuario(embedding: number[]): Promise<ResultadoBusqueda | null> {
         try {
             const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, [], true)
                 .pipe(timeout(10000))
                 .toPromise();
-            if (!resultado || !resultado.usuario) {
+            if (!resultado?.usuario) {
                 return null;
             }
 
             const usuario: Usuario = resultado.usuario;
             const similitudBackend: number = resultado.similitud;
+            const galeriaPerfil = parsearGaleriaFacial(usuario.persona?.embeddingFacial);
 
-            const fotoUrl = await this.obtenerFotoPerfilUsuario(usuario);
-            if (!fotoUrl) {
-                console.warn('Usuario sin foto de perfil, confiando solo en backend');
+            if (!galeriaPerfil) {
                 return {
                     usuario,
                     similitudBackend,
                     similitudLocal: 0,
-                    confiable: similitudBackend > 0.85
+                    confiable: false
                 };
             }
-            const descriptorPerfil = await this.obtenerDescriptorReferencia(fotoUrl);
-            if (!descriptorPerfil) {
-                console.warn('No se pudo obtener descriptor de foto de perfil');
-                return {
-                    usuario,
-                    similitudBackend,
-                    similitudLocal: 0,
-                    confiable: similitudBackend > 0.85
-                };
-            }
-            const similitudLocal = this.faceService.similarity(embedding, descriptorPerfil);
-            console.log(`Doble validación - Backend: ${(similitudBackend * 100).toFixed(1)}%, Local: ${(similitudLocal * 100).toFixed(1)}%`);
+
+            const similitudLocal = this.faceService.calcularMejorSimilitudConGaleria(embedding, galeriaPerfil);
 
             return {
                 usuario,
                 similitudBackend,
                 similitudLocal,
-                confiable: similitudBackend > 0.75 && similitudLocal > 0.5
+                confiable: similitudBackend > 0.55 && similitudLocal > 0.55
             };
         } catch (error) {
             console.error('Error en búsqueda y validación de usuario', error);
             return null;
         }
     }
-    private async obtenerFotoPerfilUsuario(usuario: Usuario): Promise<string | null> {
-        if (!usuario.persona?.imagenes) return null;
-        try {
-            const images = await this.usuarioService.onGetUsuarioImages(
-                usuario.id, 'perfil', true,
-                { networkError: { propagate: true, show: false } }
-            ).toPromise();
-            if (images && images.length > 0) return images[0];
-        } catch (e) {
-            console.error('Error obteniendo foto de perfil del servidor central', e);
-        }
-        return null;
-    }
 
-    async obtenerEmbeddingFrame(video: HTMLVideoElement): Promise<number[] | null> {
-        const detection = await this.faceService.detect(video);
-        if (detection.face && detection.face.length > 0) {
-            return Array.from(detection.face[0].embedding);
-        }
-        return null;
-    }
-  /** Identificación por embedding: solo backend (caché en memoria), sin segunda validación con foto de perfil. */
     async buscarUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = []): Promise<ResultadoBusqueda | null> {
         try {
             const resultado = await this.usuarioService.onGetUsuarioPorEmbedding(embedding, excludeIds, true)
@@ -191,20 +410,44 @@ export class ReconocimientoFacialHelperService {
                 usuario: resultado.usuario,
                 similitudBackend,
                 similitudLocal: similitudBackend,
-                confiable: similitudBackend > 0.75
+                confiable: similitudBackend >= UMBRAL_SIMILITUD_FACIAL
             };
         } catch (error) {
             console.error('Error en búsqueda por embedding', error);
             return null;
         }
     }
+
+    private extraerEmbedding(face: { embedding?: ArrayLike<number> }): number[] | null {
+        if (!face?.embedding) {
+            return null;
+        }
+        const embedding = Array.from(face.embedding);
+        return embedding.length > 0 ? embedding : null;
+    }
+
+    private resolverScoreRostro(face: { score?: number; boxScore?: number }): number {
+        const score = face.score ?? face.boxScore;
+        return score != null && score > 0 ? score : 0.6;
+    }
+
     async capturarFrameConScore(
         videoElement: HTMLVideoElement
     ): Promise<{ imageBase64: string; embedding: number[]; score: number } | null> {
-        const resultado = await this.faceService.getDescriptorConScore(videoElement);
-        if (!resultado) return null;
+        if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+            return null;
+        }
 
         const imageBase64 = this.camaraService.capturarFoto(videoElement);
+        if (!imageBase64) {
+            return null;
+        }
+
+        const resultado = await this.faceService.getDescriptorConScoreDesdeImagen(imageBase64);
+        if (!resultado) {
+            return null;
+        }
+
         return {
             imageBase64,
             embedding: resultado.embedding,
@@ -212,66 +455,33 @@ export class ReconocimientoFacialHelperService {
         };
     }
 
-    /**
-     * Fusiona múltiples embeddings promediando componente a componente.
-     * Filtra los embeddings con score inferior al umbral mínimo.
-     * @param capturas Array de { embedding, score }
-     * @param scoreMinimo Umbral mínimo de score (default 0.5)
-     * @returns Embedding maestro promediado o null si no hay embeddings válidos
-     */
-    fusionarEmbeddings(
-        capturas: Array<{ embedding: number[]; score: number }>,
-        scoreMinimo: number = 0.5
-    ): number[] | null {
-        const validas = capturas.filter(c => c.score >= scoreMinimo);
-        console.log(`Fusión de embeddings: ${capturas.length} capturas, ${validas.length} válidas (umbral: ${scoreMinimo})`);
-
-        capturas.forEach((c, i) => {
-            console.log(`  Captura ${i + 1}: score=${c.score.toFixed(4)} ${c.score < scoreMinimo ? '(DESCARTADA)' : '(OK)'}`);
-        });
-
-        if (validas.length === 0) {
-            console.warn('No hay capturas con score suficiente para fusionar');
-            return null;
-        }
-
-        const dim = validas[0].embedding.length;
-        const promedio = new Array(dim).fill(0);
-
-        for (const captura of validas) {
-            for (let i = 0; i < dim; i++) {
-                promedio[i] += captura.embedding[i];
-            }
-        }
-
-        for (let i = 0; i < dim; i++) {
-            promedio[i] /= validas.length;
-        }
-        const magnitud = Math.sqrt(promedio.reduce((sum, val) => sum + val * val, 0));
-        if (magnitud > 0) {
-            for (let i = 0; i < dim; i++) {
-                promedio[i] /= magnitud;
-            }
-        }
-
-        console.log(`Embedding maestro generado y normalizado con ${validas.length} vectores`);
-        return promedio;
-    }
     async guardarFotoPerfilConEmbeddingMaestro(
         usuarioId: number,
         imagenFrontalBase64: string,
-        embeddingMaestro: number[]
+        capturas: Array<{ imageBase64: string; embedding: number[]; score: number }>
     ): Promise<boolean> {
+        const galeria = construirGaleriaDesdeCapturas(capturas);
+        if (!galeria) {
+            this.notificacionService.notification$.next({
+                texto: 'Las fotos no tienen calidad suficiente para guardar el perfil facial',
+                color: NotificacionColor.danger,
+                duracion: 3
+            });
+            return false;
+        }
+
         try {
             await this.usuarioService.onSaveUsuarioImage(
                 usuarioId,
                 'perfil',
                 imagenFrontalBase64,
-                embeddingMaestro
+                galeria.master,
+                true,
+                serializarGaleriaFacial(galeria)
             ).toPromise();
 
             this.notificacionService.notification$.next({
-                texto: 'Foto de perfil guardada con embedding mejorado',
+                texto: 'Foto de perfil actualizada correctamente',
                 color: NotificacionColor.success,
                 duracion: 3
             });

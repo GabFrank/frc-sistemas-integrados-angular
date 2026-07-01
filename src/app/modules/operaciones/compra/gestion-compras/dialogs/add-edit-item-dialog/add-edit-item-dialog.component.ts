@@ -16,10 +16,10 @@ import { MatSelect } from "@angular/material/select";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
 import {
   PedidoItem,
   PedidoItemInput,
@@ -50,7 +50,10 @@ export interface AddEditItemDialogData {
   lastSearchText?: string;
   producto?: Producto;
   presentacion?: Presentacion;
+  productoIdsEnPedido?: number[];
 }
+
+const MENSAJE_PRODUCTO_YA_EN_PEDIDO = "Ya existe un producto cargado en la lista";
 
 export interface AddEditItemDialogResult {
   item: PedidoItem;
@@ -91,6 +94,7 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Product data
   private originalSearchText = '';
+  private productoIdsEnPedido: number[] = [];
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -240,6 +244,7 @@ export class AddEditItemDialogComponent implements OnInit {
     
     if (!this.data.isEdit) {
       this.updateComputedProperties();
+      this.loadProductoIdsEnPedido();
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
@@ -682,23 +687,20 @@ export class AddEditItemDialogComponent implements OnInit {
     const searchText = this.itemForm.get("productoSearch")?.value || "";
     this.originalSearchText = searchText;
 
-    const dialogData: PdvSearchProductoData = {
+    const dialogData: ComprasSearchProductoData = {
       texto: searchText,
-      cantidad: 1,
       mostrarStock: false,
-      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+    const dialogRef = this.dialog.open(ComprasSearchProductoDialogComponent, {
       height: "80%",
       data: dialogData,
     });
 
     dialogRef
       .afterClosed()
-      .subscribe((result: PdvSearchProductoResponseData) => {
-        if (result && result.producto && result.presentacion) {
-          console.log(result);
+      .subscribe((result: ComprasSearchProductoResponse) => {
+        if (result?.producto) {
           this.onProductoSelected(result.producto, result.presentacion);
         }
 
@@ -722,7 +724,73 @@ export class AddEditItemDialogComponent implements OnInit {
       });
   }
 
+  private loadProductoIdsEnPedido(): void {
+    if (this.data.productoIdsEnPedido?.length) {
+      this.productoIdsEnPedido = this.data.productoIdsEnPedido.map((id) => Number(id));
+      return;
+    }
+
+    if (!this.data.pedido?.id) {
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+        },
+        error: () => {
+          this.productoIdsEnPedido = [];
+        },
+      });
+  }
+
+  private extractProductoIds(items: PedidoItem[]): number[] {
+    return items
+      .map((item) => item.producto?.id)
+      .filter((id): id is number => id != null)
+      .map((id) => Number(id));
+  }
+
+  private productoYaEstaEnPedido(productoId?: number): boolean {
+    if (productoId == null) {
+      return false;
+    }
+
+    const idBuscado = Number(productoId);
+    return this.productoIdsEnPedido.some((id) => Number(id) === idBuscado);
+  }
+
+  private avisoProductoYaEnPedido(productoId?: number): void {
+    if (this.data.isEdit || productoId == null) {
+      return;
+    }
+
+    const mostrarAvisoSiCorresponde = () => {
+      if (this.productoYaEstaEnPedido(productoId)) {
+        this.notificacionService.openWarn(MENSAJE_PRODUCTO_YA_EN_PEDIDO);
+      }
+    };
+
+    if (this.productoIdsEnPedido.length > 0 || !this.data.pedido?.id) {
+      mostrarAvisoSiCorresponde();
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+          mostrarAvisoSiCorresponde();
+        },
+      });
+  }
+
   onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
+    this.avisoProductoYaEnPedido(producto?.id);
+
     this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
     
     this.selectedProducto = producto;
@@ -735,6 +803,7 @@ export class AddEditItemDialogComponent implements OnInit {
         if (productoCompleto?.presentaciones) {
           this.selectedProducto = { ...this.selectedProducto, ...productoCompleto };
           this.presentacionesDisponibles = productoCompleto.presentaciones;
+          this.syncPresentacionEnFormulario(presentacion);
           this.updateComputedProperties();
         }
       });
@@ -743,10 +812,11 @@ export class AddEditItemDialogComponent implements OnInit {
     // y hay exactamente una presentación disponible
     // Si se proporcionó una presentación, usarla (modo edición o selección previa)
     // Si NO se proporcionó y hay múltiples presentaciones, dejar null para que el usuario seleccione
-    const presentacionSeleccionada = presentacion ||
-      (this.presentacionesDisponibles.length === 1
+    const presentacionSeleccionada = presentacion
+      ? this.resolvePresentacionEnLista(presentacion)
+      : this.presentacionesDisponibles.length === 1
         ? this.presentacionesDisponibles[0]
-        : null);
+        : null;
 
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
@@ -1934,6 +2004,31 @@ export class AddEditItemDialogComponent implements OnInit {
       if (this.canSaveComputed) {
         this.guardarBtn?.focus();
       }
+    }
+  }
+
+  comparePresentaciones(a: Presentacion | null, b: Presentacion | null): boolean {
+    return !!a && !!b && a.id === b.id;
+  }
+
+  private resolvePresentacionEnLista(presentacion: Presentacion): Presentacion {
+    return (
+      this.presentacionesDisponibles.find((p) => p.id === presentacion.id) ||
+      presentacion
+    );
+  }
+
+  private syncPresentacionEnFormulario(presentacionFallback?: Presentacion): void {
+    const actual =
+      this.itemForm.get("presentacion")?.value || presentacionFallback;
+    if (!actual?.id) {
+      return;
+    }
+    const matched = this.presentacionesDisponibles.find(
+      (p) => p.id === actual.id
+    );
+    if (matched) {
+      this.itemForm.patchValue({ presentacion: matched }, { emitEvent: false });
     }
   }
 }

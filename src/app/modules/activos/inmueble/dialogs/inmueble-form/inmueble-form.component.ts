@@ -11,6 +11,12 @@ import { Pais } from '../../../../general/pais/pais.model';
 import { Ciudad } from '../../../../general/ciudad/ciudad.model';
 import { Persona } from '../../../../personas/persona/persona.model';
 import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
+import { EnteService } from '../../../ente/service/ente.service';
+import { TipoEnte } from '../../../ente/enums/tipo-ente.enum';
+import { CuotaDetalle } from '../../../shared/models/cuota-detalle.model';
+import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { EnteCuotasByEnteIdGQL } from '../../../ente/graphql/enteCuotasByEnteId';
+import { ARCHIVOS_INMUEBLE } from '../../../shared/constants/archivo-tipos.constants';
 
 @UntilDestroy()
 @Component({
@@ -23,7 +29,15 @@ export class InmuebleFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private inmuebleService = inject(InmuebleService);
   private inmuebleDialogService = inject(InmuebleDialogService);
+  private enteService = inject(EnteService);
+  private genericService = inject(GenericCrudService);
+  private enteCuotasGQL = inject(EnteCuotasByEnteIdGQL);
   private cdr = inject(ChangeDetectorRef);
+
+  enteId: number | null = null;
+  cuotasDetalle: CuotaDetalle[] = [];
+  archivosTipos = ARCHIVOS_INMUEBLE;
+  registroGuardado = false;
 
   form: FormGroup;
   inmueble: Inmueble;
@@ -59,15 +73,38 @@ export class InmuebleFormComponent implements OnInit {
     this.inicializarFormulario();
 
     if (this.inmueble?.id) {
+      this.registroGuardado = true;
       this.inmuebleService.onBuscarPorId(this.inmueble.id).pipe(untilDestroyed(this)).subscribe(res => {
         if (res) {
           this.inmueble = res;
           this.cargarDatos();
+          this.cargarEnteYCuotas(res.id);
         }
       });
     } else {
       this.cargarDatos();
     }
+  }
+
+  private cargarEnteYCuotas(referenciaId: number): void {
+    this.enteService.onGetByReferenciaId(TipoEnte.INMUEBLE, referenciaId).pipe(untilDestroyed(this)).subscribe(ente => {
+      if (!ente?.id) return;
+      this.enteId = ente.id;
+      this.genericService.onCustomQuery(this.enteCuotasGQL, { enteId: ente.id }).pipe(untilDestroyed(this)).subscribe(cuotas => {
+        if (cuotas?.length) {
+          this.cuotasDetalle = cuotas.map(c => ({
+            numeroCuota: c.numeroCuota || 0,
+            monto: c.monto || 0,
+            pagado: c.pagado,
+          }));
+        }
+        this.cdr.markForCheck();
+      });
+    });
+  }
+
+  onCuotasChange(cuotas: CuotaDetalle[]): void {
+    this.cuotasDetalle = cuotas;
   }
 
 
@@ -147,7 +184,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarPropietario((persona: Persona) => {
       this.propietarioSelected = persona;
       this.propietarioDescripcion = persona.nombre?.toUpperCase() || '';
-      this.form.controls['propietarioId'].setValue(persona.id);
+      this.form.controls['propietarioId'].setValue(Number(persona.id));
       this.cdr.markForCheck();
     });
   }
@@ -174,7 +211,7 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarPais((pais: Pais) => {
       this.paisSelected = pais;
       this.paisDescripcion = pais.descripcion?.toUpperCase() || '';
-      this.form.controls['paisId'].setValue(pais.id);
+      this.form.controls['paisId'].setValue(Number(pais.id));
       this.cdr.markForCheck();
     });
   }
@@ -183,7 +220,12 @@ export class InmuebleFormComponent implements OnInit {
     this.inmuebleDialogService.onBuscarCiudad((ciudad: Ciudad) => {
       this.ciudadSelected = ciudad;
       this.ciudadDescripcion = ciudad.descripcion?.toUpperCase() || '';
-      this.form.controls['ciudadId'].setValue(ciudad.id);
+      this.form.controls['ciudadId'].setValue(Number(ciudad.id));
+      if (ciudad.pais?.id) {
+        this.paisSelected = ciudad.pais;
+        this.paisDescripcion = ciudad.pais.descripcion?.toUpperCase() || '';
+        this.form.controls['paisId'].setValue(Number(ciudad.pais.id));
+      }
       this.cdr.markForCheck();
     });
   }
@@ -193,7 +235,17 @@ export class InmuebleFormComponent implements OnInit {
   }
 
   onGuardar(): void {
-    this.inmuebleDialogService.onGuardar(this.form, this.inmueble, this.dialogRef);
+    const cerrar = !!this.inmueble?.id && this.registroGuardado;
+    this.inmuebleDialogService.onGuardar(this.form, this.inmueble, this.dialogRef, this.cuotasDetalle, cerrar)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (!res?.id) return;
+        this.inmueble = { ...this.inmueble, ...res, id: res.id };
+        this.registroGuardado = true;
+        this.form.patchValue({ id: res.id });
+        this.cargarEnteYCuotas(res.id);
+        this.cdr.markForCheck();
+      });
   }
 
   private getProveedorNombre(proveedor: Proveedor | Persona): string {

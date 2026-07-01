@@ -19,7 +19,7 @@
       <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursal de Origen</mat-label>
-          <mat-select [formControl]="sucOrigenControl">
+          <mat-select [formControl]="sucOrigenControl" [compareWith]="compareSucursal">
             <mat-option
               *ngFor="let sucursal of (sucursalList$ | async)"
               [value]="sucursal"

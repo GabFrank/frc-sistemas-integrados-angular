@@ -15,6 +15,7 @@ import { DeliveryDashboardComponent } from '../../../modules/operaciones/deliver
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
@@ -55,6 +56,7 @@ import { ListMarcacionComponent } from '../../../modules/administrativo/marcacio
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
 
 
 interface BaseNavigationItem {
@@ -279,6 +281,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         },
         {
+          name: 'Lucro por funcionario',
+          icon: 'groups',
+          action: 'lucro-por-funcionario',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
           name: 'Lucro por producto',
           icon: 'trending_up',
           action: 'lucro-por-producto',
@@ -289,7 +297,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'qr_code_2',
           action: 'list-lote-de',
           visibilityRoles: [ROLES.ADMIN]
-        }
+        },
+        // {
+        //   name: 'Terminales POS',
+        //   icon: 'contactless',
+        //   action: 'list-terminal-pos',
+        //   visibilityRoles: [ROLES.ADMIN]
+        // }
       ]
     },
     {
@@ -696,8 +710,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
+      case "list-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTerminalPosComponent, "Terminales POS");
+        break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
+        break;
+      case "lucro-por-funcionario":
+        this.tabService.addTab(new Tab(LucroPorFuncionarioComponent, "Lucro por funcionario", null, null));
         break;
       case "lucro-por-producto":
         this.tabService.addTab(new Tab(LucroPorProductoComponent, "Lucro por producto", null, null));

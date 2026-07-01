@@ -1,42 +1,139 @@
-<div class="gasto-categoria-container">
-    <div class="filtros-container">
-        <mat-form-field appearance="outline">
-            <mat-label>Sucursal</mat-label>
-            <mat-select [formControl]="sucursalControl">
-                <mat-option [value]="null">Todas las Sucursales</mat-option>
-                <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
-                    {{sucursal.nombre}}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+<div class="gasto-categoria-container grafico-pantalla">
+  <div class="grafico-filtros">
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
+    >
+      <mat-label>Sucursales</mat-label>
+      <mat-select
+        [formControl]="filtroSucursales.control"
+        multiple
+        placeholder="Todas las sucursales"
+        (selectionChange)="filtroSucursales.onSeleccionChange($event.value, filtrar.bind(this))"
+      >
+        <mat-option [value]="filtroSucursales.todosValor">Todos</mat-option>
+        <mat-option
+          *ngFor="let sucursal of sucursales$ | async"
+          [value]="sucursal.id"
+        >
+          {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>store</mat-icon>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline">
-            <mat-label>Mes</mat-label>
-            <mat-select [formControl]="monthControl">
-                <mat-option *ngFor="let m of meses" [value]="m.value">
-                    {{ m.label }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--anho"
+    >
+      <mat-label>Años</mat-label>
+      <mat-select [formControl]="filtroPeriodo.anhoControl" multiple>
+        <mat-option
+          *ngFor="let y of filtroPeriodo.anhos"
+          [value]="y"
+        >
+          {{ y }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>calendar_today</mat-icon>
+    </mat-form-field>
 
-        <mat-form-field appearance="outline">
-            <mat-label>Año</mat-label>
-            <mat-select [formControl]="yearControl">
-                <mat-option *ngFor="let y of years" [value]="y">
-                    {{ y }}
-                </mat-option>
-            </mat-select>
-        </mat-form-field>
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--mes"
+    >
+      <mat-label>Meses</mat-label>
+      <mat-select
+        [formControl]="filtroPeriodo.mesControl"
+        multiple
+        (selectionChange)="filtroPeriodo.onMesesChange($event.value)"
+      >
+        <mat-option
+          *ngFor="let m of filtroPeriodo.meses"
+          [value]="m.valor"
+        >
+          {{ m.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-icon matPrefix>date_range</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--rango filter-rango"
+      [class.filter-rango--inactivo]="!filtroPeriodo.rangoDiasActivo"
+    >
+      <mat-label>Rango de días</mat-label>
+      <mat-date-range-input
+        [formGroup]="filtroPeriodo.fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+          [min]="filtroPeriodo.minFechaRango"
+          [max]="filtroPeriodo.maxFechaRango"
+        />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="pickerRango"></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
+
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+        [disabled]="cargando$ | async"
+        aria-label="Aplicar filtros"
+      >
+        Filtrar
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="grafico-filtros__btn-secundario"
+        (click)="exportarExcel()"
+        [disabled]="(cargando$ | async) || (exportando$ | async) || !(puedeExportar$ | async)"
+        matTooltip="Exportar gráfico y detalle a Excel"
+        aria-label="Exportar a Excel"
+      >
+        <mat-icon>download</mat-icon>
+        Excel
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="grafico-filtros__limpiar"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
     </div>
+  </div>
 
-    <div class="grafico-wrapper" *ngIf="!cargando; else cargandoTpl">
-        <div echarts [options]="echartsOption" class="chart"></div>
-    </div>
-
-    <ng-template #cargandoTpl>
-        <div class="loading-container">
-            <mat-spinner diameter="50"></mat-spinner>
-            <p>Cargando gastos por categoría...</p>
-        </div>
-    </ng-template>
+  <ng-container *ngIf="vista$ | async as vista">
+    <frc-grafico-shell
+      class="grafico-wrapper"
+      titulo="Gastos por Categoría"
+      [opciones]="vista.opciones"
+      [cargando]="vista.cargando"
+      [hayDatos]="vista.hayDatos"
+      [datosListos]="vista.datosListos"
+      alturaMinima="480px"
+    ></frc-grafico-shell>
+  </ng-container>
 </div>

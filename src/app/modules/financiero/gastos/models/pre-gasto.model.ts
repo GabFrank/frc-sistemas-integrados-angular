@@ -31,16 +31,41 @@ export class PreGastoGastoRendicion {
   vueltoDs: number;
 }
 
+export class GastoRendicion {
+  id: number;
+  montoTotal: number;
+  fotoFacturaUrl: string;
+  fotoProductoUrl: string;
+  fotosFacturaUrls?: string[];
+  fotosProductoUrls?: string[];
+  kmActual: number;
+  litros: number;
+  precioPorLitro: number;
+  ubicacionProvisoria: string;
+  establecimientoAlimentacion: string;
+  creadoEn: Date;
+  tipoGasto: TipoGasto;
+}
+
+export class EnteResumen {
+  id: number;
+  tipoEnte?: string;
+  referenciaId?: number;
+  descripcion?: string;
+}
+
 export class PreGasto {
   id: number;
   sucursalId: number;
   funcionario: Persona;
+  ente?: EnteResumen;
   tipoGasto: TipoGasto;
   descripcion: string;
   moneda: Moneda;
   montoSolicitado: number;
   sucursalCaja: Sucursal;
   cajaId: number;
+  gastoCajaRegistroId: number;
   estado: string;
   qrToken: string;
   autorizadoPor: Persona;
@@ -68,6 +93,8 @@ export class PreGasto {
   fechaRendicion: Date;
   finanzas: PreGastoDetalleFinanzas[];
   gasto: PreGastoGastoRendicion;
+  rendiciones: GastoRendicion[];
+  retiroConfirmadoEn: Date;
   creadoEn: Date;
 }
 

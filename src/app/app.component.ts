@@ -18,6 +18,7 @@ import { ConfiguracionService } from "./shared/services/configuracion.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
   NotificacionColor,
+  NotificacionSnackbarData,
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
 import { CargandoDialogService } from "./shared/components/cargando-dialog/cargando-dialog.service";
@@ -71,6 +72,8 @@ export class AppComponent implements OnInit, OnDestroy {
   lastStatus = false;
   timer = null;
   snackBarRef: any;
+  private pendingNotifications: NotificacionSnackbarData[] = [];
+  private isShowingNotification = false;
   keyPressed: any;
   dialogRef;
   dialogCount = 0;
@@ -95,20 +98,33 @@ export class AppComponent implements OnInit, OnDestroy {
     notificationService.notification$
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        let duracion = res.duracion != null ? res.duracion : 3;
-        if (this.snackBarRef == null) {
-          this.snackBarRef = snackBar.open(res.texto, null, {
-            horizontalPosition: "center",
-            duration: res.duracion * 1000,
-            verticalPosition: "bottom",
-            panelClass: res.color?.toString(),
-          });
-        }
-        setTimeout(() => {
-          this.snackBarRef = null;
-        }, res.duracion * 1000);
+        this.pendingNotifications.push(res);
+        this.drenarColaNotificaciones();
       });
   }
+
+  private drenarColaNotificaciones(): void {
+    if (this.isShowingNotification || this.pendingNotifications.length === 0) {
+      return;
+    }
+
+    const res = this.pendingNotifications.shift();
+    const duracion = res.duracion != null ? res.duracion : 3;
+    this.isShowingNotification = true;
+    this.snackBarRef = this.snackBar.open(res.texto, null, {
+      horizontalPosition: "center",
+      duration: duracion * 1000,
+      verticalPosition: "bottom",
+      panelClass: res.color?.toString(),
+    });
+
+    this.snackBarRef.afterDismissed().pipe(untilDestroyed(this)).subscribe(() => {
+      this.snackBarRef = null;
+      this.isShowingNotification = false;
+      this.drenarColaNotificaciones();
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     this.overlay.getContainerElement().classList.add("darkMode");
     this.startLoadingObserver();
@@ -127,6 +143,15 @@ export class AppComponent implements OnInit, OnDestroy {
         ipcRenderer.on('open-update-dialog', () => {
           this.matDialog.open(UpdateDialogComponent, {
             width: '450px',
+          });
+        });
+        // El proceso principal avisa cuando se intenta abrir una 3ra instancia
+        // (maximo permitido: 2). Enfoca esta ventana y notifica al usuario.
+        ipcRenderer.on('max-instances-reached', () => {
+          this.notificationService.notification$.next({
+            texto: "YA HAY 2 INSTANCIAS ABIERTAS. NO SE PERMITEN MÁS.",
+            color: NotificacionColor.warn,
+            duracion: 5
           });
         });
       }

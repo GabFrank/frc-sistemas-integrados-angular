@@ -282,6 +282,7 @@
               mat-menu-item
               (click)="onCancelar(pedido, i)"
               style="color: red"
+              *ngIf="pedido.etapaActualComputed !== 'CANCELADA'"
             >
               Cancelar
             </button>

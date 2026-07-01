@@ -3,6 +3,22 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ConfiguracionService } from './configuracion.service';
 
+export interface VentaStockCriticoItemPayload {
+    productoId: number;
+    productoDescripcion: string;
+    stockActual: number;
+    cantidadVendida: number;
+    stockResultante: number;
+}
+
+export interface VentaStockCriticoPayload {
+    ventaId: number;
+    sucursalId: number;
+    usuarioNombre?: string;
+    sucursalNombre?: string;
+    items: VentaStockCriticoItemPayload[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -20,17 +36,15 @@ export class NotificationHttpService {
         return `http://${centralIp}:${centralPort}`;
     }
 
-    sendVentaCreditoNotification(
-        ventaCreditoId: number,
+    sendCompraCreditoNotification(
+        ventaId: number,
         sucursalId: number,
         personaId: number,
         valorTotal: number,
-        usuarioNombre?: string,
         sucursalNombre?: string
     ): Observable<any> {
-        const url = `${this.baseUrl}/notification/venta-credito/${ventaCreditoId}/${sucursalId}/${personaId}/${valorTotal}`;
+        const url = `${this.baseUrl}/notification/compra-credito/${ventaId}/${sucursalId}/${personaId}/${valorTotal}`;
         let params: any = {};
-        if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
         return this.http.post(url, {}, { params });
     }
@@ -77,5 +91,10 @@ export class NotificationHttpService {
         if (usuarioNombre) params.usuarioNombre = usuarioNombre;
         if (sucursalNombre) params.sucursalNombre = sucursalNombre;
         return this.http.post(url, {}, { params });
+    }
+
+    sendVentaStockCriticoNotification(payload: VentaStockCriticoPayload): Observable<any> {
+        const url = `${this.baseUrl}/notification/venta-stock-critico`;
+        return this.http.post(url, payload);
     }
 }
