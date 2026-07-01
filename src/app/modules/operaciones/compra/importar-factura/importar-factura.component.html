@@ -68,8 +68,20 @@
                 ({{ proveedorSeleccionado.persona.documento }})
               </small>
             </span>
-            <span *ngIf="!proveedorSeleccionado" class="danger">Sin proveedor — buscalo</span>
-            <span class="chip" [ngClass]="confianzaClass(proveedorConfianza)" *ngIf="proveedorConfianza">
+            <span *ngIf="!proveedorSeleccionado" class="danger">
+              <ng-container *ngIf="preview?.emisorNombre; else sinDatosProveedor">
+                <mat-icon class="warn-inline">warning</mat-icon>
+                No vinculado: <strong>{{ preview.emisorNombre }}</strong>
+                <small *ngIf="preview.emisorRuc">({{ preview.emisorRuc }})</small>
+                — crealo o vinculalo
+              </ng-container>
+              <ng-template #sinDatosProveedor>Sin proveedor — buscalo</ng-template>
+            </span>
+            <span
+              class="chip"
+              [ngClass]="confianzaClass(proveedorConfianza)"
+              *ngIf="proveedorConfianza && proveedorConfianza !== 'NONE'"
+            >
               {{ proveedorConfianza }}
             </span>
             <button mat-icon-button color="primary" (click)="buscarProveedor()" matTooltip="Buscar proveedor">
@@ -92,7 +104,10 @@
         <div class="campo"><label>Moneda</label><span>{{ preview.moneda || '-' }}</span></div>
         <div class="campo">
           <label>Total factura</label>
-          <span class="total-general">{{ preview.totalGeneral | number: '1.0-2' }}</span>
+          <span class="total-general">
+            {{ preview.totalGeneral | number: formatoMoneda }}
+            <small *ngIf="preview.moneda">{{ preview.moneda }}</small>
+          </span>
         </div>
         <div class="campo">
           <label>Tipo</label>
@@ -110,8 +125,8 @@
     >
       <mat-icon>{{ cuadraActual === false ? 'warning' : (cuadraActual === true ? 'check_circle' : 'help') }}</mat-icon>
       <span>
-        Suma de ítems (incluidos): <b>{{ sumaItemsActual | number: '1.0-2' }}</b>
-        &nbsp;|&nbsp; Total factura: <b>{{ preview.totalGeneral | number: '1.0-2' }}</b>
+        Suma de ítems (incluidos): <b>{{ sumaItemsActual | number: formatoMoneda }}</b>
+        &nbsp;|&nbsp; Total factura: <b>{{ preview.totalGeneral | number: formatoMoneda }}</b>
         <ng-container *ngIf="cuadraActual === false">
           — <b>NO CUADRAN.</b> {{ preview.totalesAdvertencia || 'Revisá si faltan ítems o hay error de lectura.' }}
         </ng-container>
@@ -128,11 +143,17 @@
           <td mat-cell *matCellDef="let row; let i = index">
             <span
               class="chip"
+              *ngIf="getCtrl(i, 'productoConfianza').value && getCtrl(i, 'productoConfianza').value !== 'NONE'"
               [ngClass]="confianzaClass(getCtrl(i, 'productoConfianza').value)"
               [matTooltip]="getCtrl(i, 'productoRazon').value || ''"
             >
-              {{ getCtrl(i, 'productoConfianza').value || 'NONE' }}
+              {{ getCtrl(i, 'productoConfianza').value }}
             </span>
+            <span
+              *ngIf="!getCtrl(i, 'productoConfianza').value || getCtrl(i, 'productoConfianza').value === 'NONE'"
+              class="match-none"
+              >—</span
+            >
           </td>
         </ng-container>
 
@@ -181,7 +202,13 @@
           <th mat-header-cell *matHeaderCellDef>Precio unit.</th>
           <td mat-cell *matCellDef="let row; let i = index">
             <mat-form-field appearance="outline" class="num-field">
-              <input matInput type="number" [formControl]="getCtrl(i, 'precioUnitario')" />
+              <input
+                matInput
+                type="text"
+                currencyMask
+                [options]="opcionesMoneda"
+                [formControl]="getCtrl(i, 'precioUnitario')"
+              />
             </mat-form-field>
           </td>
         </ng-container>
@@ -190,15 +217,21 @@
           <th mat-header-cell *matHeaderCellDef>Desc.</th>
           <td mat-cell *matCellDef="let row; let i = index">
             <mat-form-field appearance="outline" class="num-field">
-              <input matInput type="number" [formControl]="getCtrl(i, 'descuento')" />
+              <input
+                matInput
+                type="text"
+                currencyMask
+                [options]="opcionesMoneda"
+                [formControl]="getCtrl(i, 'descuento')"
+              />
             </mat-form-field>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="totalItem">
           <th mat-header-cell *matHeaderCellDef>Total ítem</th>
-          <td mat-cell *matCellDef="let row; let i = index">
-            {{ getCtrl(i, 'totalItem').value | number: '1.0-2' }}
+          <td mat-cell *matCellDef="let row; let i = index" class="celda-num">
+            {{ getCtrl(i, 'totalItem').value | number: formatoMoneda }}
           </td>
         </ng-container>
 
@@ -231,7 +264,13 @@
         <button mat-stroked-button (click)="volverASubir()">
           <mat-icon>arrow_back</mat-icon> Volver
         </button>
-        <button mat-flat-button color="primary" (click)="confirmar()">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="confirmar()"
+          [disabled]="!puedeConfirmar"
+          [matTooltip]="!proveedorSeleccionado ? 'Vinculá o creá el proveedor' : (itemsIncluidos === 0 ? 'Asigná producto a al menos un ítem' : '')"
+        >
           <mat-icon>check</mat-icon> Confirmar y crear pedido
         </button>
       </div>

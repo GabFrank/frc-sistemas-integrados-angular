@@ -14,6 +14,7 @@ import {
   PdvSearchProductoResponseData,
 } from '../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
+import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
 import {
   EditProveedorComponent,
   EditProveedorData,
@@ -67,6 +68,7 @@ export class ImportarFacturaComponent implements OnInit {
   ];
 
   ESTADO = ESTADO_IMPORT;
+  private currencyMask = new CurrencyMask();
 
   constructor(
     private fb: FormBuilder,
@@ -330,6 +332,29 @@ export class ImportarFacturaComponent implements OnInit {
       if (!g.get('omitir').value && !g.get('productoId').value) c++;
     }
     return c;
+  }
+
+  /** true si la moneda de la factura es Guaraní (PYG) -> sin decimales. */
+  get esGuarani(): boolean {
+    const m = (this.preview?.moneda || '').toUpperCase();
+    return m === 'PYG' || m === 'GS' || m.includes('GUARAN');
+  }
+
+  /** Formato del pipe number segun moneda: Guaraní 3.500 ; otras 3.500,00 (locale es-PY). */
+  get formatoMoneda(): string {
+    return this.esGuarani ? '1.0-0' : '1.2-2';
+  }
+
+  /** Opciones de currencyMask segun moneda (mismo patron que gestion-compras). */
+  get opcionesMoneda() {
+    return this.esGuarani
+      ? this.currencyMask.currencyOptionsGuarani
+      : this.currencyMask.currencyOptionsNoGuarani;
+  }
+
+  /** El pedido no se puede confirmar sin proveedor o sin al menos un item con producto. */
+  get puedeConfirmar(): boolean {
+    return !!this.proveedorSeleccionado?.id && this.itemsIncluidos > 0;
   }
 
   confirmar(): void {
