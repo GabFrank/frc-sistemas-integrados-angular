@@ -6,11 +6,18 @@ import {
   Input,
   ElementRef,
 } from "@angular/core";
-import { FormBuilder, FormControl, FormGroup, Validators } from "@angular/forms";
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ValidationErrors,
+  Validators,
+} from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { Subject, forkJoin, Observable, of } from "rxjs";
-import { takeUntil, tap, map, catchError } from "rxjs/operators";
+import { takeUntil, tap, map, catchError, debounceTime, distinctUntilChanged, filter, switchMap, take } from "rxjs/operators";
 
 import {
   AddEditItemDialogComponent,
@@ -207,6 +214,19 @@ type TabState = "disabled" | "readonly" | "editable";
  * - Los otros tabs están deshabilitados hasta que se guarde el pedido
  * - Al guardar el pedido, se cambia automáticamente a modo edición
  */
+function proveedorSeleccionadoValidator(
+  control: AbstractControl
+): ValidationErrors | null {
+  const value = control.value;
+  if (value != null && typeof value === "object" && value.id != null) {
+    return null;
+  }
+  if (value == null || value === "") {
+    return null;
+  }
+  return { proveedorNoSeleccionado: true };
+}
+
 @Component({
   selector: "app-gestion-compras",
   templateUrl: "./gestion-compras.component.html",
@@ -279,6 +299,8 @@ export class GestionComprasComponent
   isFormaPagoCreditoComputed = false;
   step1ButtonDisabledComputed = true;
   step1ButtonTextComputed = "Guardar y Continuar";
+  proveedorRequiredErrorComputed = false;
+  proveedorNoSeleccionadoErrorComputed = false;
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
   canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
@@ -484,6 +506,26 @@ export class GestionComprasComponent
 
     // Configurar navegación con teclado para productos del proveedor
     this.setupKeyboardNavigation();
+    this.setupCodigoPrefetch();
+  }
+
+  /**
+   * Precarga búsquedas mientras el usuario escribe en el campo de código,
+   * para que al presionar Enter los resultados ya estén en caché.
+   */
+  private setupCodigoPrefetch(): void {
+    this.codigoControl.valueChanges
+      .pipe(
+        debounceTime(250),
+        map((value) => (value ?? "").trim()),
+        distinctUntilChanged(),
+        filter((texto) => texto.length >= 2),
+        switchMap((texto) =>
+          this.buscadorComprasService.buscarProductosParaDialog(texto, 0, 20, true)
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({ error: () => undefined });
   }
 
   ngOnDestroy(): void {
@@ -498,7 +540,7 @@ export class GestionComprasComponent
 
   private initializeForms(): void {
     this.datosGeneralesForm = this.fb.group({
-      proveedor: [null, Validators.required],
+      proveedor: [null, [Validators.required, proveedorSeleccionadoValidator]],
       vendedor: [null],
       moneda: [null, Validators.required],
       cotizacion: [null],
@@ -559,6 +601,8 @@ export class GestionComprasComponent
             this.loadProductosProveedor();
           }
         } else {
+          this.selectedProveedorComputed = null;
+          this.showProveedorCard = false;
           // Si se remueve el proveedor, limpiar la lista de productos
           this.productosProveedorDataSource.data = [];
           this.ultimasComprasDataSource.data = [];
@@ -568,6 +612,11 @@ export class GestionComprasComponent
           this.selectedProductoProveedor = null;
         }
       });
+
+    this.datosGeneralesForm
+      .get("proveedor")
+      ?.statusChanges.pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateComputedProperties());
 
     this.datosGeneralesForm
       .get("moneda")
@@ -961,9 +1010,9 @@ export class GestionComprasComponent
     }
     cotizacionCtrl?.updateValueAndValidity({ emitEvent: false });
 
-    // Establecer proveedor seleccionado para mostrar la tarjeta
+    // Mostrar tarjeta solo si hay proveedor; si no, dejar visible el buscador
     this.selectedProveedorComputed = pedido.proveedor;
-    this.showProveedorCard = true;
+    this.showProveedorCard = !!pedido.proveedor;
   }
 
   private loadItemsIntoTable(items: PedidoItem[]): void {
@@ -1051,6 +1100,7 @@ export class GestionComprasComponent
       Object.keys(this.datosGeneralesForm.controls).forEach((key) => {
         this.datosGeneralesForm.get(key)?.markAsTouched();
       });
+      this.updateComputedProperties();
     }
   }
 
@@ -1273,6 +1323,15 @@ export class GestionComprasComponent
     this.isFormaPagoCreditoComputed = this.isFormaPagoCredito();
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
+
+    const proveedorCtrl = this.datosGeneralesForm.get("proveedor");
+    const proveedorInteracted = proveedorCtrl?.touched || proveedorCtrl?.dirty;
+    this.proveedorRequiredErrorComputed = !!(
+      proveedorCtrl?.hasError("required") && proveedorInteracted
+    );
+    this.proveedorNoSeleccionadoErrorComputed = !!(
+      proveedorCtrl?.hasError("proveedorNoSeleccionado") && proveedorInteracted
+    );
     
     // Moneda display
     const moneda = this.headerDataComputed?.moneda;
@@ -1714,6 +1773,7 @@ export class GestionComprasComponent
         // Solo marcar como cargado para el sistema de lazy loading
         break;
       case 1: // Tab 2: Ítems del Pedido
+        this.buscadorComprasService.warmupBusquedaProductos();
         if (this.currentPedido?.id) {
           // Pedido existente: cargar ítems del backend
           this.loadItemsData();
@@ -2285,8 +2345,17 @@ export class GestionComprasComponent
   }
 
   onAddItem(texto?: string): void {
+    const searchText = (texto || this.lastItemSearchText || "").trim();
+
+    if (searchText) {
+      this.buscadorComprasService
+        .buscarProductosParaDialog(searchText, 0, 20, true)
+        .pipe(take(1), takeUntil(this.destroy$))
+        .subscribe({ error: () => undefined });
+    }
+
     const searchData: ComprasSearchProductoData = {
-      texto: texto || this.lastItemSearchText || "",
+      texto: searchText,
       mostrarStock: true,
     };
 
