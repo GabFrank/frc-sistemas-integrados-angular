@@ -56,6 +56,9 @@ export interface ProveedorLite {
 export interface FacturaImportItemPreview {
   textoOcr?: string;
   codigoOcr?: string;
+  codigoBarras?: string;
+  iva?: number;
+  unidadMedida?: string;
   cantidad?: number;
   precioUnitario?: number;
   descuento?: number;

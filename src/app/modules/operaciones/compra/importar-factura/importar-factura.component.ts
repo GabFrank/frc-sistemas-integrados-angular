@@ -16,6 +16,11 @@ import {
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
 import {
+  CrearProductoRapidoComponent,
+  CrearProductoRapidoData,
+  CrearProductoRapidoResult,
+} from './crear-producto-rapido/crear-producto-rapido.component';
+import {
   EditProveedorComponent,
   EditProveedorData,
   EditProveedorResult,
@@ -239,6 +244,34 @@ export class ImportarFacturaComponent implements OnInit {
           this.getCtrl(index, 'presentacionId').setValue(res.presentacion?.id ?? null);
           this.getCtrl(index, 'productoConfianza').setValue('MANUAL');
           this.getCtrl(index, 'productoRazon').setValue('Seleccionado manualmente');
+        }
+      });
+  }
+
+  /** Abre el alta rápida de producto precargada con los datos de la línea de factura. */
+  crearProducto(index: number): void {
+    const item = this.preview?.items ? this.preview.items[index] : null;
+    const data: CrearProductoRapidoData = {
+      prefill: {
+        descripcion: this.getCtrl(index, 'textoOcr')?.value || item?.textoOcr,
+        codigoBarras: item?.codigoBarras,
+        iva: item?.iva,
+        unidadMedida: item?.unidadMedida,
+        precioCosto: this.getCtrl(index, 'precioUnitario')?.value ?? item?.precioUnitario,
+        esGuarani: this.esGuarani,
+      },
+    };
+    this.matDialog
+      .open(CrearProductoRapidoComponent, { width: '640px', data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: CrearProductoRapidoResult) => {
+        if (res && res.saved && res.producto) {
+          this.getCtrl(index, 'productoId').setValue(res.producto.id);
+          this.getCtrl(index, 'productoDescripcion').setValue(res.producto.descripcion);
+          this.getCtrl(index, 'presentacionId').setValue(res.presentacion?.id ?? null);
+          this.getCtrl(index, 'productoConfianza').setValue('MANUAL');
+          this.getCtrl(index, 'productoRazon').setValue('Creado desde la factura');
         }
       });
   }

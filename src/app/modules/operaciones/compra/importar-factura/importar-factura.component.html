@@ -178,6 +178,15 @@
               </button>
               <button
                 mat-icon-button
+                color="primary"
+                *ngIf="!getCtrl(i, 'productoId').value"
+                (click)="crearProducto(i)"
+                matTooltip="Crear producto con los datos de la factura"
+              >
+                <mat-icon>add_box</mat-icon>
+              </button>
+              <button
+                mat-icon-button
                 color="warn"
                 *ngIf="getCtrl(i, 'productoId').value"
                 (click)="limpiarProducto(i)"

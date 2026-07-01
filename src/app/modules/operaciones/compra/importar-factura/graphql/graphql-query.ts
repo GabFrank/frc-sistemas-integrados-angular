@@ -57,6 +57,9 @@ export const facturaImportPreviewQuery = gql`
       items {
         textoOcr
         codigoOcr
+        codigoBarras
+        iva
+        unidadMedida
         cantidad
         precioUnitario
         descuento

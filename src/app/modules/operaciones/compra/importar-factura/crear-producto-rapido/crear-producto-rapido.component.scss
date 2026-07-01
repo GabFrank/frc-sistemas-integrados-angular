@@ -1,0 +1,19 @@
+mat-dialog-content {
+  min-width: 520px;
+  max-width: 620px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  padding-top: 8px;
+
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}

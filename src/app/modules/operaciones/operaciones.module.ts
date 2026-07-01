@@ -74,6 +74,7 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
 import { ImportarFacturaComponent } from './compra/importar-factura/importar-factura.component';
 import { HistorialImportacionesComponent } from './compra/importar-factura/historial-importaciones.component';
+import { CrearProductoRapidoComponent } from './compra/importar-factura/crear-producto-rapido/crear-producto-rapido.component';
 import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
 import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 
@@ -143,6 +144,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     GestionPagoDialogComponent,
     GenericListVentaComponent,
     ImportarFacturaComponent,
+    CrearProductoRapidoComponent,
     HistorialImportacionesComponent,
     LucroPorFuncionarioComponent
   ],
