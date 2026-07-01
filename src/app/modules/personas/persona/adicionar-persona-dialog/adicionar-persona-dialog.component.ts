@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Ciudad } from '../../../general/ciudad/ciudad.model';
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
@@ -43,7 +44,8 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: AdicionarPersonaData,
     private matDialogRef: MatDialogRef<AdicionarPersonaDialogComponent>,
     private dialogoService: DialogosService,
-    private personaService: PersonaService
+    private personaService: PersonaService,
+    private notificacionService: NotificacionSnackbarService
   ) {
     if (data?.persona != null) {
       this.selectedPersona = data.persona;
@@ -99,6 +101,33 @@ export class AdicionarPersonaDialogComponent implements OnInit {
   }
 
   onSave() {
+    const documento = this.documentoControl.value?.toString().trim();
+    const personaId = this.selectedPersona?.id;
+
+    this.personaService.onGetPorDocumento(documento)
+      .pipe(untilDestroyed(this))
+      .subscribe(personaExistente => {
+        if (personaExistente?.id != null && personaExistente.id !== personaId) {
+          this.mostrarAvisoPersonaExistente(personaExistente);
+          return;
+        }
+        this.ejecutarGuardado();
+      });
+  }
+
+  private mostrarAvisoPersonaExistente(persona: Persona): void {
+    if (persona.isFuncionario && persona.isCliente) {
+      this.notificacionService.openWarn('La persona ya existe y ha sido registrada como cliente y funcionario');
+    } else if (persona.isFuncionario) {
+      this.notificacionService.openWarn('La persona ya existe y ha sido registrada como funcionario');
+    } else if (persona.isCliente) {
+      this.notificacionService.openWarn('La persona ya existe y ha sido registrada como cliente');
+    } else {
+      this.notificacionService.openWarn('La persona ya existe en el sistema');
+    }
+  }
+
+  private ejecutarGuardado(): void {
     let persona = new Persona();
     Object.assign(persona, this.selectedPersona)
     persona.nombre = this.nombreControl.value;
