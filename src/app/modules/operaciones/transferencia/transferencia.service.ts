@@ -12,7 +12,7 @@ import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia, HojaRuta, Acompanhante, AcompanhanteInput, HojaRutaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, Acompanhante, AcompanhanteInput, HojaRutaInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
@@ -41,6 +41,7 @@ import { GetHojasRutaConEntregasGQL } from './graphql/getHojasRutaConEntregas';
 import { GetTransferenciasPorHojaRutaGQL } from './graphql/getTransferenciasPorHojaRuta';
 import { Persona } from '../../personas/persona/persona.model';
 import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
+import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -81,7 +82,8 @@ export class TransferenciaService {
     private deleteAcompanhante: DeleteAcompanhanteGQL,
     private getHojasRutaConEntregas: GetHojasRutaConEntregasGQL,
     private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
-    private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL
+    private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL,
+    private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
@@ -118,6 +120,20 @@ export class TransferenciaService {
 
   onGetTransferenciaItensPorTransferenciaId(id, page?, size?, servidor = true): Observable<PageInfo<TransferenciaItem>> {
     return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size, servidor);
+  }
+
+  onAlertasTransferenciaItems(
+    transferenciaId: number,
+    itemIds: number[],
+    servidor = true
+  ): Observable<TransferenciaItemAlerta[]> {
+    return this.genericCrudService.onCustomQuery(
+      this.alertasTransferenciaItemsGQL,
+      { transferenciaId, itemIds },
+      servidor,
+      null,
+      true
+    );
   }
 
   onSaveTransferencia(input, responseOnError?: boolean, servidor = true): Observable<Transferencia> {
