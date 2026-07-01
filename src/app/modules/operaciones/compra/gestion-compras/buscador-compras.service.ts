@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Observable, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, shareReplay, switchMap, take } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { Producto } from '../../../productos/producto/producto.model';
 import { ProductoProveedor } from '../../../productos/producto-proveedor/producto-proveedor.model';
+import { ProductoService } from '../../../productos/producto/producto.service';
 import { SearchProductoWithFiltersGQL } from '../../../productos/producto/graphql/searchWithFilters';
 import {
   buscarProductoInteligenteQuery,
@@ -46,16 +47,106 @@ export class ProductoProveedorBusquedaInteligenteGQL extends Query<ProductoProve
   document = productoProveedorBusquedaInteligenteQuery;
 }
 
+const BUSQUEDA_DIALOG_PAGE_SIZE = 20;
+const BUSQUEDA_CACHE_TTL_MS = 60_000;
+
 @Injectable({
   providedIn: 'root',
 })
 export class BuscadorComprasService {
+  private busquedaDialogCache = new Map<string, Observable<Producto[]>>();
+
   constructor(
     private genericCrudService: GenericCrudService,
     private buscarProductoInteligenteGQL: BuscarProductoInteligenteGQL,
     private productoProveedorBusquedaInteligenteGQL: ProductoProveedorBusquedaInteligenteGQL,
-    private searchProductoWithFiltersGQL: SearchProductoWithFiltersGQL
+    private searchProductoWithFiltersGQL: SearchProductoWithFiltersGQL,
+    private productoService: ProductoService
   ) {}
+
+  /**
+   * Búsqueda de productos para el diálogo de compras.
+   * Usa caché compartida (shareReplay) para que prefetch y diálogo reutilicen la misma petición.
+   */
+  buscarProductosParaDialog(
+    texto: string,
+    page = 0,
+    size = BUSQUEDA_DIALOG_PAGE_SIZE,
+    silentLoad = true
+  ): Observable<Producto[]> {
+    const termino = (texto ?? '').trim();
+    if (!termino) {
+      return of([]);
+    }
+
+    const cacheKey = `${termino}|${page}|${size}`;
+    const cached = this.busquedaDialogCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.ejecutarBusquedaProductosDialog(
+      termino,
+      page,
+      size,
+      silentLoad
+    ).pipe(
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError(() => of([] as Producto[]))
+    );
+
+    this.busquedaDialogCache.set(cacheKey, request$);
+    setTimeout(() => this.busquedaDialogCache.delete(cacheKey), BUSQUEDA_CACHE_TTL_MS);
+
+    return request$;
+  }
+
+  /** Precalienta la conexión GraphQL al entrar al tab de ítems. */
+  warmupBusquedaProductos(): void {
+    this.buscarProductosParaDialog('a', 0, 1, true)
+      .pipe(take(1))
+      .subscribe({ error: () => undefined });
+  }
+
+  private ejecutarBusquedaProductosDialog(
+    termino: string,
+    page: number,
+    size: number,
+    silentLoad: boolean
+  ): Observable<Producto[]> {
+    if (this.pareceCodigoBarras(termino)) {
+      return this.buscarProducto(termino, page, size, undefined, silentLoad).pipe(
+        map((res) =>
+          (res.getContent ?? [])
+            .map((r) => r.producto)
+            .filter((p): p is Producto => p?.id != null)
+        )
+      );
+    }
+
+    return this.productoService.onSearch(
+      termino,
+      page * size,
+      null,
+      false,
+      true,
+      true,
+      silentLoad
+    );
+  }
+
+  private pareceCodigoBarras(termino: string): boolean {
+    if (!termino || termino.includes(' ')) {
+      return false;
+    }
+    if (/^\d{3,}$/.test(termino)) {
+      return true;
+    }
+    if (/^[A-Za-z]+$/.test(termino)) {
+      return false;
+    }
+    return /^[A-Za-z0-9\-._]{4,32}$/.test(termino);
+  }
 
   buscarProducto(
     texto: string,

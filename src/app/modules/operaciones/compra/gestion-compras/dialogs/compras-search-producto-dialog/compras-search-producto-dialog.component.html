@@ -293,7 +293,15 @@
             </div>
 
             <div
+              *ngIf="busquedaEnCurso"
+              class="estado-busqueda"
+            >
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+
+            <div
               *ngIf="
+                !busquedaEnCurso &&
                 dataSource.data.length === 0 &&
                 formGroup.get('buscarControl')?.value?.trim()
               "
