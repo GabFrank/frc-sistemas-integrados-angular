@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Query } from "apollo-angular";
 import { productosVencidosQuery } from "./graphql-query";
-import { InventarioProductoItem } from "../inventario.model";
+import { ProductoVencidoView } from "../inventario.model";
 
 export interface ProductosVencidosPage {
   getTotalPages: number;
@@ -15,7 +15,7 @@ export interface ProductosVencidosPage {
     getPageNumber: number;
     getPageSize: number;
   };
-  getContent: InventarioProductoItem[];
+  getContent: ProductoVencidoView[];
 }
 
 export interface ProductosVencidosResponse {

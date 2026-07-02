@@ -176,7 +176,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
     this.productoDetailList = [];
 
-    if (this.data.conservarUltimaBusqueda == true) {
+    if (this.data.conservarUltimaBusqueda == true && !this.data?.texto) {
       this.formGroup
         .get("buscarControl")
         .setValue(this.productoService.lastSearchText);

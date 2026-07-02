@@ -158,3 +158,35 @@ export enum TipoInventario {
   PRODUCTO = 'PRODUCTO',
   CATEGORIA = 'CATEGORIA'
 }
+
+export type FuenteVerdadVencimiento = 'INVENTARIO' | 'COMPRA' | 'TRANSFERENCIA';
+
+export interface ProductoVencidoView {
+  id: number;
+  presentacionId: number;
+  presentacionCantidad: number;
+  productoId: number;
+  productoDescripcion: string;
+  codigoBarras: string;
+  cantidad: number;
+  vencimiento: string;
+  inventarioProductoId: number;
+  sucursalId: number;
+  sucursalNombre: string;
+  sectorDescripcion: string;
+  zonaDescripcion: string;
+  usuarioId: number;
+  usuarioNickname: string;
+  fuenteVerdad: FuenteVerdadVencimiento;
+  origenId: number;
+  fechaFuente: string;
+  inventarioId: number;
+  cantidadInventario: number;
+  vencimientoInventario: string;
+  referenciaInventario: string;
+  detalleFuente: string;
+  diasVencimiento: number;
+  diasVencimientoTexto: string;
+  vencimientoColor: string;
+  diasVencimientoClase: string;
+}
