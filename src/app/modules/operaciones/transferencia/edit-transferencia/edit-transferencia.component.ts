@@ -48,6 +48,8 @@ import {
   Transferencia,
   TransferenciaEstado,
   TransferenciaItem,
+  TransferenciaItemAlerta,
+  TransferenciaItemView,
 } from "../transferencia.model";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { SelectionModel } from "@angular/cdk/collections";
@@ -57,7 +59,8 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
-import { Subscription } from "rxjs";
+import { Observable, Subscription, of } from "rxjs";
+import { map, switchMap } from "rxjs/operators";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -120,6 +123,7 @@ export class EditTransferenciaComponent implements OnInit {
     "precio",
     "vencimiento",
     "estado",
+    "vencido",
     "menu",
   ];
 
@@ -133,7 +137,7 @@ export class EditTransferenciaComponent implements OnInit {
 
   selectedProducto = new Producto();
 
-  dataSource = new MatTableDataSource<TransferenciaItem>([]);
+  dataSource = new MatTableDataSource<TransferenciaItemView>([]);
 
   expandedElement: TransferenciaItem;
 
@@ -403,18 +407,75 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   getTransferenciaItemList() {
-    this.transferenciaService
-      .onGetTransferenciaItensPorTransferenciaId(
+    this.cargarPaginaItems(
+      this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(
         this.selectedTransferencia.id,
         this.pageIndex,
         this.pageSize
       )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+    );
+  }
+
+  private cargarPaginaItems(items$: Observable<PageInfo<TransferenciaItem>>): void {
+    items$
+      .pipe(
+        switchMap((res) => {
+          const items = res?.getContent ?? [];
+          const itemIds = items
+            .map((item) => item.id)
+            .filter((id) => id != null);
+          if (!this.selectedTransferencia?.id || itemIds.length === 0) {
+            return of({ res, alertas: [] as TransferenciaItemAlerta[] });
+          }
+          return this.transferenciaService
+            .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
+            .pipe(map((alertas) => ({ res, alertas })));
+        }),
+        untilDestroyed(this)
+      )
+      .subscribe(({ res, alertas }) => {
         if (res != null) {
           this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
+          this.dataSource.data = this.combinarItemsConAlertas(
+            res.getContent,
+            alertas
+          );
         }
+      });
+  }
+
+  private combinarItemsConAlertas(
+    items: TransferenciaItem[],
+    alertas: TransferenciaItemAlerta[]
+  ): TransferenciaItemView[] {
+    const alertaPorItemId = new Map<number, TransferenciaItemAlerta>();
+    for (const alerta of alertas) {
+      alertaPorItemId.set(alerta.transferenciaItemId, alerta);
+    }
+
+    return items.map((item) => {
+      const alerta = alertaPorItemId.get(item.id);
+      const alertaVencido = alerta?.alertaVencido ?? false;
+      return Object.assign({}, item, {
+        alertaVencido,
+        alertaAveriado: alerta?.alertaAveriado ?? false,
+        textoVencido: alertaVencido ? "Si" : "No",
+      }) as TransferenciaItemView;
+    });
+  }
+
+  private actualizarAlertasPaginaActual(): void {
+    const items = this.dataSource.data ?? [];
+    const itemIds = items.map((item) => item.id).filter((id) => id != null);
+    if (!this.selectedTransferencia?.id || itemIds.length === 0) {
+      return;
+    }
+
+    this.transferenciaService
+      .onAlertasTransferenciaItems(this.selectedTransferencia.id, itemIds)
+      .pipe(untilDestroyed(this))
+      .subscribe((alertas) => {
+        this.dataSource.data = this.combinarItemsConAlertas(items, alertas);
       });
   }
 
@@ -634,6 +695,7 @@ export class EditTransferenciaComponent implements OnInit {
               this.dataSource.data.pop();
             this.paginator.length = this.paginator.length + 1;
           }
+          this.actualizarAlertasPaginaActual();
         }
       });
   }
@@ -759,6 +821,7 @@ export class EditTransferenciaComponent implements OnInit {
             item.id
           );
         }
+        this.actualizarAlertasPaginaActual();
         this.onVerificarConfirmados();
       });
   }
@@ -799,6 +862,7 @@ export class EditTransferenciaComponent implements OnInit {
             res.id
           );
         }
+        this.actualizarAlertasPaginaActual();
         this.onVerificarConfirmados();
       });
   }
@@ -882,6 +946,7 @@ export class EditTransferenciaComponent implements OnInit {
                   res2.id
                 );
               }
+              this.actualizarAlertasPaginaActual();
               this.onVerificarConfirmados();
             });
         }
@@ -1271,22 +1336,14 @@ export class EditTransferenciaComponent implements OnInit {
   onFilterProducto() {
     let texto: string = this.filtroProductoControl.value;
     if (texto != null && texto.trim().length > 0) {
-      this.transferenciaService
-        .onGetTransferenciaItensPorTransferenciaIdWithFilter(
+      this.cargarPaginaItems(
+        this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
           this.selectedTransferencia.id,
           texto,
           this.pageIndex,
           this.pageSize
         )
-        .pipe(untilDestroyed(this))
-        .subscribe((res: PageInfo<TransferenciaItem>) => {
-          if (res != null) {
-            console.log(res.getContent);
-
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent;
-          }
-        });
+      );
     }
   }
 

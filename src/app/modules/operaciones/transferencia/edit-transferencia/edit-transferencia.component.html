@@ -405,6 +405,15 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="vencido">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencido
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item.textoVencido }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="menu">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
         <td mat-cell *matCellDef="let item; let itemIndex = dataIndex" style="width: 5%; text-align: center">
@@ -435,6 +444,8 @@
       <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
       <tr mat-row *matRowDef="let element; columns: columnsToDisplay" class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
+        [class.producto-vencido]="element.alertaVencido"
+        [class.producto-averiado]="element.alertaAveriado"
         (click)="expandedElement = expandedElement === element ? null : element"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
@@ -559,6 +570,15 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="vencido">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencido
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item.textoVencido }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="menu">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
         <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
@@ -609,7 +629,9 @@
           element.motivoModificacionPreparacion == null &&
           element.motivoRechazoPreparacion == null
         " [class.con-cambios]="element.motivoModificacionPreparacion != null"
-        [class.rechazado]="element.motivoRechazoPreparacion != null"></tr>
+        [class.rechazado]="element.motivoRechazoPreparacion != null"
+        [class.producto-vencido]="element.alertaVencido"
+        [class.producto-averiado]="element.alertaAveriado"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
 
@@ -721,6 +743,15 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="vencido">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencido
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item.textoVencido }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="menu">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
         <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
@@ -774,7 +805,9 @@
           element.motivoModificacionTransporte != null && !isTransporteEnCamino
         " [class.rechazado]="
           element.motivoRechazoTransporte != null && !isTransporteEnCamino
-        "></tr>
+        "
+        [class.producto-vencido]="element.alertaVencido"
+        [class.producto-averiado]="element.alertaAveriado"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     <table *ngIf="isRecepcionEnVerificacion || isRecepcionConcluida" mat-table [dataSource]="dataSource"
@@ -882,6 +915,15 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="vencido">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencido
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item.textoVencido }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="menu">
         <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
         <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
@@ -931,7 +973,9 @@
           element.motivoModificacionRecepcion == null &&
           element.motivoRechazoRecepcion == null
         " [class.con-cambios]="element.motivoModificacionRecepcion != null"
-        [class.rechazado]="element.motivoRechazoRecepcion != null"></tr>
+        [class.rechazado]="element.motivoRechazoRecepcion != null"
+        [class.producto-vencido]="element.alertaVencido"
+        [class.producto-averiado]="element.alertaAveriado"></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
     <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"

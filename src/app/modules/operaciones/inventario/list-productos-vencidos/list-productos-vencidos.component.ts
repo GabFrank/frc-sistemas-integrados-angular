@@ -20,13 +20,7 @@ import {
   PdvSearchProductoResponseData,
 } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../../productos/producto/producto.model";
-import { InventarioProductoItem } from "../inventario.model";
-
-export type InventarioProductoItemView = InventarioProductoItem & {
-  vencimientoColor: string;
-  diasVencimientoTexto: string;
-  diasVencimientoClase: string;
-};
+import { ProductoVencidoView, FuenteVerdadVencimiento } from "../inventario.model";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { PageEvent } from "@angular/material/paginator";
@@ -39,6 +33,7 @@ import { TabData } from "../../../../layouts/tab/tab.service";
 import { Transferencia, TransferenciaEstado, TipoTransferencia, EtapaTransferencia, TransferenciaItem } from "../../transferencia/transferencia.model";
 import { TransferenciaService } from "../../transferencia/transferencia.service";
 import { SeleccionarSucursalDialogComponent } from "../../transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
+import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 
 export interface ProductosVencidosFilters {
   startDate?: string;
@@ -46,6 +41,7 @@ export interface ProductosVencidosFilters {
   sucursalIdList?: number[];
   usuarioIdList?: number[];
   productoIdList?: number[];
+  fuenteVerdadList?: FuenteVerdadVencimiento[];
   soloRealmenteVencidos?: boolean;
   page: number;
   size: number;
@@ -63,13 +59,19 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   @ViewChild("buscarUsuarioInput", { static: true }) buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  dataSource = new MatTableDataSource<InventarioProductoItemView>([]);
-  expandedInventarioProductoItem: InventarioProductoItem;
+  dataSource = new MatTableDataSource<ProductoVencidoView>([]);
+  expandedProductoVencido: ProductoVencidoView;
   fechaFormGroup: FormGroup;
   sucursalControl = new FormControl();
   buscarUsuarioControl = new FormControl();
   buscarProductoControl = new FormControl();
   soloRealmenteVencidosControl = new FormControl(false);
+  fuenteVerdadControl = new FormControl<FuenteVerdadVencimiento[]>([]);
+  readonly fuenteVerdadOpciones: { value: FuenteVerdadVencimiento; label: string }[] = [
+    { value: 'INVENTARIO', label: 'Inventario' },
+    { value: 'COMPRA', label: 'Compra' },
+    { value: 'TRANSFERENCIA', label: 'Transferencia' },
+  ];
   sucursalList: Sucursal[] = [];
   selectedUsuario: Usuario | null = null;
   selectedProducto: Producto | null = null;
@@ -77,9 +79,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   pageSize = 15;
   pageIndex = 0;
   readonly pageSizeOptions = [15, 25, 50, 100];
-  private readonly vencimientoColorCache = new Map<string, string>();
-  private readonly diasDiferenciaCache = new Map<string, number>();
-  inicioMinDate: Date | null = null;
 
   private filtersSubject = new BehaviorSubject<ProductosVencidosFilters>({
     page: 0,
@@ -87,6 +86,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   });
 
   private isDialogOpen = false;
+  private forceRefresh = false;
   readonly today = new Date();
   disableRetiroButton = true;
 
@@ -96,16 +96,11 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     "cantidadSistema",
     "vencimiento",
     "diasVencimiento",
+    "fuenteVerdad",
     "sucursal",
     "sector",
     "zona"
   ];
-  private readonly COLORS = {
-    SUCCESS: "#4caf50",
-    WARNING: "#ff9800",
-    DANGER: "#f44336",
-    DEFAULT: "#ffffff"
-  };
 
   constructor(
     private sucursalService: SucursalService,
@@ -144,29 +139,35 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.disableRetiroButton = !sucursalesIniciales || sucursalesIniciales.length !== 1;
   }
 
-  ngOnDestroy(): void {
-    this.vencimientoColorCache.clear();
-    this.diasDiferenciaCache.clear();
-  }
+  inicioMinDate: Date | null = null;
+
+  ngOnDestroy(): void {}
+
   trackBySucursalId(index: number, item: Sucursal): number {
     return item.id;
   }
 
-  trackByItemId(index: number, item: InventarioProductoItem): number {
+  trackByItemId(index: number, item: ProductoVencidoView): number {
     return item.id || index;
   }
-  onRowClick(row: InventarioProductoItem): void {
-    this.expandedInventarioProductoItem = this.expandedInventarioProductoItem === row ? null : row;
+
+  onRowClick(row: ProductoVencidoView): void {
+    this.expandedProductoVencido = this.expandedProductoVencido === row ? null : row;
   }
 
   private initializeSubscriptions(): void {
     this.filtersSubject.asObservable().pipe(
       debounceTime(300),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+      distinctUntilChanged((prev, curr) => {
+        if (this.forceRefresh) {
+          this.forceRefresh = false;
+          return false;
+        }
+        return JSON.stringify(prev) === JSON.stringify(curr);
+      }),
       switchMap((filters) => this.loadProductosVencidos(filters)),
       untilDestroyed(this)
     ).subscribe();
-
   }
 
   private loadInitialData(): void {
@@ -181,7 +182,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.updateFilters();
     this.loadSucursales();
   }
-  t
+
   private loadSucursales(): void {
     this.sucursalService.onGetAllSucursales()
       .pipe(untilDestroyed(this))
@@ -191,10 +192,21 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       });
   }
 
-
   private loadProductosVencidos(filters: ProductosVencidosFilters) {
-    return this.productosVencidosGQL.fetch(filters).pipe(
+    return this.productosVencidosGQL.fetch(filters, {
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all',
+    }).pipe(
       tap(result => {
+        if (result.errors?.length) {
+          console.error('Error en productosVencidos:', result.errors);
+          this.notificacion.openAlgoSalioMal(
+            result.errors[0]?.message || 'Error al buscar productos vencidos'
+          );
+          this.setEmptyData();
+          this.cdRef.detectChanges();
+          return;
+        }
         this.handleProductosVencidosResponse(result);
       })
     );
@@ -209,23 +221,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     }
 
     const pageData = result.data.productosVencidos;
-    const productosVencidos = pageData.getContent || [];
-    const enriched: InventarioProductoItemView[] = productosVencidos.map((item: InventarioProductoItem) => {
-      const dias = item?.vencimiento ? this.calculateDiasDiferencia(item.vencimiento) : null;
-      const vencimientoColor = this.resolveVencimientoColor(dias);
-      const diasVencimientoTexto = this.resolveDiasVencimientoTexto(dias);
-      const diasVencimientoClase = this.resolveDiasVencimientoClase(dias);
-      return {
-        ...item,
-        vencimientoColor,
-        diasVencimientoTexto,
-        diasVencimientoClase,
-      } as InventarioProductoItemView;
-    });
-
-    this.dataSource.data = enriched;
+    this.dataSource.data = pageData.getContent || [];
     this.length = pageData.getTotalElements || 0;
-
     this.cdRef.detectChanges();
   }
 
@@ -233,8 +230,10 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.dataSource.data = [];
     this.length = 0;
   }
+
   onFiltrar(): void {
     this.pageIndex = 0;
+    this.forceRefresh = true;
     this.updateFilters();
   }
 
@@ -248,11 +247,9 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.buscarProductoControl.setValue("");
     this.buscarUsuarioControl.setValue("");
     this.soloRealmenteVencidosControl.setValue(false);
+    this.fuenteVerdadControl.setValue([]);
     this.selectedProducto = null;
     this.selectedUsuario = null;
-    this.vencimientoColorCache.clear();
-    this.diasDiferenciaCache.clear();
-
     this.onFiltrar();
   }
 
@@ -303,7 +300,10 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
           const ops = items.map((it) => {
             const trItem = new TransferenciaItem();
             trItem.transferencia = t;
-            trItem.presentacionPreTransferencia = it.presentacion;
+            const presentacion = new Presentacion();
+            presentacion.id = it.presentacionId;
+            presentacion.cantidad = it.presentacionCantidad;
+            trItem.presentacionPreTransferencia = presentacion;
             trItem.cantidadPreTransferencia = it.cantidad;
             trItem.vencimientoPreTransferencia = it.vencimiento as any;
             trItem.poseeVencimiento = !!it.vencimiento;
@@ -320,14 +320,10 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
           forkJoin(ops).pipe(untilDestroyed(this)).subscribe({
             next: () => {
               this.actualizarFiltrosDespuesRetiro(res.sucursalOrigen as Sucursal, res.sucursalDestino as Sucursal);
-
-              this.vencimientoColorCache.clear();
-              this.diasDiferenciaCache.clear();
-
+              this.forceRefresh = true;
               this.updateFilters();
 
               this.notificacion.openSucess(`Transferencia ${t.id} creada exitosamente. Los productos han sido agregados.`);
-
               this.abrirTransferenciaTab(t.id);
             },
             error: (error) => {
@@ -342,12 +338,9 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   private actualizarFiltrosDespuesRetiro(sucursalOrigen: Sucursal, sucursalDestino: Sucursal): void {
     const sucursalesActuales: Sucursal[] = this.sucursalControl.value || [];
-
     const destinoYaIncluida = sucursalesActuales.some(s => s.id === sucursalDestino.id);
-
     if (!destinoYaIncluida) {
-      const nuevasSucursales = [...sucursalesActuales, sucursalDestino];
-      this.sucursalControl.setValue(nuevasSucursales);
+      this.sucursalControl.setValue([...sucursalesActuales, sucursalDestino]);
     }
   }
 
@@ -368,7 +361,9 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     if (this.isDialogOpen) return;
 
     this.isDialogOpen = true;
+    const texto = this.buscarProductoControl.value?.trim() || null;
     const data: PdvSearchProductoData = {
+      texto,
       mostrarOpciones: false,
       mostrarStock: true,
       conservarUltimaBusqueda: true,
@@ -386,6 +381,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         this.buscarProductoControl.setValue(
           `${result.producto.descripcion} - ${result.producto.codigoPrincipal}`
         );
+        this.pageIndex = 0;
+        this.forceRefresh = true;
         this.updateFilters();
       }
     });
@@ -394,6 +391,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   onClearProducto(): void {
     this.selectedProducto = null;
     this.buscarProductoControl.setValue("");
+    this.pageIndex = 0;
+    this.forceRefresh = true;
     this.updateFilters();
   }
 
@@ -426,6 +425,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         this.buscarUsuarioControl.setValue(
           `${result.persona.nombre} ${result.persona.apodo}`
         );
+        this.pageIndex = 0;
+        this.forceRefresh = true;
         this.updateFilters();
       }
     });
@@ -434,6 +435,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   onClearUsuario(): void {
     this.selectedUsuario = null;
     this.buscarUsuarioControl.setValue("");
+    this.pageIndex = 0;
+    this.forceRefresh = true;
     this.updateFilters();
   }
 
@@ -442,42 +445,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.pageSize = event.pageSize;
     this.updateFilters();
   }
-  private resolveVencimientoColor(diasDiferencia: number | null): string {
-    if (diasDiferencia == null) return this.COLORS.DEFAULT;
-    if (diasDiferencia < 0) return this.COLORS.DANGER;
-    if (diasDiferencia <= 7) return this.COLORS.WARNING;
-    return this.COLORS.SUCCESS;
-  }
 
-  private calculateDiasDiferencia(vencimiento: string | Date): number {
-    const cacheKey = typeof vencimiento === 'string' ? vencimiento : vencimiento.toISOString();
-
-    if (this.diasDiferenciaCache.has(cacheKey)) {
-      return this.diasDiferenciaCache.get(cacheKey)!;
-    }
-
-    const vencimientoDate = new Date(vencimiento);
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    vencimientoDate.setHours(0, 0, 0, 0);
-
-    const dias = Math.ceil((vencimientoDate.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
-    this.diasDiferenciaCache.set(cacheKey, dias);
-
-    return dias;
-  }
-  private resolveDiasVencimientoTexto(dias: number | null): string {
-    if (dias == null) return '-';
-    if (dias < 0) return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`;
-    if (dias === 0) return 'Vence hoy';
-    return `${dias} día${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`;
-  }
-  private resolveDiasVencimientoClase(dias: number | null): string {
-    if (dias == null) return '';
-    if (dias < 0) return 'dias-vencimiento-cell vencido';
-    if (dias <= 7) return 'dias-vencimiento-cell por-vencer';
-    return 'dias-vencimiento-cell vigente';
-  }
   private updateFilters(): void {
     const filters: ProductosVencidosFilters = {
       startDate: this.getStartDate(),
@@ -485,6 +453,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       sucursalIdList: this.sucursalIdList(),
       usuarioIdList: this.usuarioIdList(),
       productoIdList: this.productoIdList(),
+      fuenteVerdadList: this.fuenteVerdadList(),
       soloRealmenteVencidos: this.soloRealmenteVencidosControl.value,
       page: this.pageIndex,
       size: this.pageSize
@@ -514,16 +483,27 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   private sucursalIdList(): number[] | null {
-    const sucursales = this.sucursalControl.value;
-    return sucursales?.length > 0 ? sucursales.map((s: Sucursal) => s.id) : null;
+    const sucursales: Sucursal[] | null = this.sucursalControl.value;
+    if (!sucursales?.length) {
+      return null;
+    }
+    const ids = sucursales
+      .map((sucursal) => Number(sucursal?.id))
+      .filter((id) => !Number.isNaN(id));
+    return ids.length > 0 ? ids : null;
   }
-
 
   private usuarioIdList(): number[] | null {
     return this.selectedUsuario ? [this.selectedUsuario.id] : null;
   }
 
   private productoIdList(): number[] | null {
-    return this.selectedProducto ? [this.selectedProducto.id] : null;
+    const productoId = this.selectedProducto?.id;
+    return productoId != null ? [productoId] : null;
+  }
+
+  private fuenteVerdadList(): FuenteVerdadVencimiento[] | null {
+    const fuentes: FuenteVerdadVencimiento[] = this.fuenteVerdadControl.value || [];
+    return fuentes.length > 0 ? fuentes : null;
   }
 }
