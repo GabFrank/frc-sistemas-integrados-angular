@@ -274,7 +274,7 @@
           Ult. costo
         </th>
         <td mat-cell *matCellDef="let producto" style="text-align: center">
-          {{ puedeVerCostos ? (producto?.costo?.ultimoPrecioCompra | number : "1.0-0") : "-" }}
+          {{ puedeVerCostos ? (ultimoPrecioCompraEnGs(producto?.costo) | number : "1.0-0") : "-" }}
         </td>
       </ng-container>
 
