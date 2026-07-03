@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Observable, of } from 'rxjs';
-import { catchError, map, shareReplay, switchMap, take } from 'rxjs/operators';
+import { catchError, map, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { Producto } from '../../../productos/producto/producto.model';
@@ -55,6 +55,7 @@ const BUSQUEDA_CACHE_TTL_MS = 60_000;
 })
 export class BuscadorComprasService {
   private busquedaDialogCache = new Map<string, Observable<Producto[]>>();
+  private busquedaResultadosCache = new Map<string, Producto[]>();
 
   constructor(
     private genericCrudService: GenericCrudService,
@@ -91,14 +92,28 @@ export class BuscadorComprasService {
       size,
       silentLoad
     ).pipe(
+      tap((productos) => this.busquedaResultadosCache.set(cacheKey, productos)),
       shareReplay({ bufferSize: 1, refCount: false }),
       catchError(() => of([] as Producto[]))
     );
 
     this.busquedaDialogCache.set(cacheKey, request$);
-    setTimeout(() => this.busquedaDialogCache.delete(cacheKey), BUSQUEDA_CACHE_TTL_MS);
+    setTimeout(() => {
+      this.busquedaDialogCache.delete(cacheKey);
+      this.busquedaResultadosCache.delete(cacheKey);
+    }, BUSQUEDA_CACHE_TTL_MS);
 
     return request$;
+  }
+
+  /** Resultados ya resueltos en memoria (p. ej. tras prefetch al escribir). */
+  obtenerResultadosCacheados(
+    texto: string,
+    page = 0,
+    size = BUSQUEDA_DIALOG_PAGE_SIZE
+  ): Producto[] | null {
+    const cacheKey = `${(texto ?? '').trim()}|${page}|${size}`;
+    return this.busquedaResultadosCache.get(cacheKey) ?? null;
   }
 
   /** Precalienta la conexión GraphQL al entrar al tab de ítems. */
@@ -246,6 +261,44 @@ export class BuscadorComprasService {
       true,
       undefined,
       silentLoad
+    );
+  }
+
+  /**
+   * Devuelve el producto si hay una única coincidencia exacta por nombre o código.
+   */
+  encontrarCoincidenciaExacta(
+    productos: Producto[],
+    termino: string
+  ): Producto | null {
+    const terminoNormalizado = (termino ?? '').trim().toLowerCase();
+    if (!terminoNormalizado || !productos?.length) {
+      return null;
+    }
+
+    const coincidencias = productos.filter((producto) =>
+      this.esCoincidenciaExactaProducto(producto, terminoNormalizado)
+    );
+
+    return coincidencias.length === 1 ? coincidencias[0] : null;
+  }
+
+  private esCoincidenciaExactaProducto(
+    producto: Producto,
+    terminoNormalizado: string
+  ): boolean {
+    const descripcion = (producto.descripcion ?? '').trim().toLowerCase();
+    if (descripcion === terminoNormalizado) {
+      return true;
+    }
+
+    const codigoPrincipal = (producto.codigoPrincipal ?? '').trim().toLowerCase();
+    if (codigoPrincipal === terminoNormalizado) {
+      return true;
+    }
+
+    return (producto.codigos ?? []).some(
+      (codigo) => (codigo.codigo ?? '').trim().toLowerCase() === terminoNormalizado
     );
   }
 }

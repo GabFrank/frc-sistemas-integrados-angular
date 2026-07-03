@@ -516,7 +516,7 @@ export class GestionComprasComponent
   private setupCodigoPrefetch(): void {
     this.codigoControl.valueChanges
       .pipe(
-        debounceTime(250),
+        debounceTime(100),
         map((value) => (value ?? "").trim()),
         distinctUntilChanged(),
         filter((texto) => texto.length >= 2),
@@ -2341,19 +2341,65 @@ export class GestionComprasComponent
   }
 
   onCodigoFocus(): void {
+    const text = this.codigoControl.value?.trim();
+    if (text && text.length >= 2) {
+      this.buscadorComprasService
+        .buscarProductosParaDialog(text, 0, 20, true)
+        .pipe(take(1), takeUntil(this.destroy$))
+        .subscribe({ error: () => undefined });
+    }
     this.addItemInput?.nativeElement?.select();
   }
 
   onAddItem(texto?: string): void {
     const searchText = (texto || this.lastItemSearchText || "").trim();
 
-    if (searchText) {
-      this.buscadorComprasService
-        .buscarProductosParaDialog(searchText, 0, 20, true)
-        .pipe(take(1), takeUntil(this.destroy$))
-        .subscribe({ error: () => undefined });
+    if (!searchText) {
+      this.abrirDialogoBusquedaProducto(searchText);
+      return;
     }
 
+    const abrirProductoExacto = (producto: Producto) => {
+      this.lastItemSearchText = "";
+      this.openAddEditItemDialog(producto, undefined, undefined, true);
+      this.codigoControl.setValue(null);
+      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+    };
+
+    const procesarResultados = (productos: Producto[]) => {
+      const productoExacto = this.buscadorComprasService.encontrarCoincidenciaExacta(
+        productos,
+        searchText
+      );
+
+      if (productoExacto) {
+        abrirProductoExacto(productoExacto);
+        return;
+      }
+
+      this.abrirDialogoBusquedaProducto(searchText);
+    };
+
+    const resultadosCacheados = this.buscadorComprasService.obtenerResultadosCacheados(
+      searchText,
+      0,
+      20
+    );
+    if (resultadosCacheados !== null) {
+      procesarResultados(resultadosCacheados);
+      return;
+    }
+
+    this.buscadorComprasService
+      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe({
+        next: procesarResultados,
+        error: () => this.abrirDialogoBusquedaProducto(searchText),
+      });
+  }
+
+  private abrirDialogoBusquedaProducto(searchText: string): void {
     const searchData: ComprasSearchProductoData = {
       texto: searchText,
       mostrarStock: true,
@@ -2375,7 +2421,8 @@ export class GestionComprasComponent
         this.openAddEditItemDialog(
           searchResult.producto,
           searchResult.presentacion,
-          this.lastItemSearchText
+          searchResult.coincidenciaExacta ? undefined : this.lastItemSearchText,
+          searchResult.coincidenciaExacta === true
         );
       }
 
@@ -2387,18 +2434,33 @@ export class GestionComprasComponent
   private openAddEditItemDialog(
     producto: Producto,
     presentacion?: Presentacion,
-    searchText?: string
+    searchText?: string,
+    coincidenciaExacta = false
   ): void {
-    this.fetchProductoIdsEnPedido()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((productoIdsEnPedido) => {
-        this.openAddEditItemDialogInternal(
-          producto,
-          presentacion,
-          searchText,
-          productoIdsEnPedido
-        );
-      });
+    this.openAddEditItemDialogInternal(
+      producto,
+      presentacion,
+      searchText,
+      this.obtenerProductoIdsEnPedidoDisponibles(),
+      coincidenciaExacta
+    );
+  }
+
+  private obtenerProductoIdsEnPedidoDisponibles(): number[] {
+    const itemsCargados = this.itemsDataSource.data;
+    if (itemsCargados.length === 0) {
+      return [];
+    }
+
+    const totalConocido = this.itemsTotalElements;
+    if (totalConocido > 0 && totalConocido > itemsCargados.length) {
+      return [];
+    }
+
+    return itemsCargados
+      .map((item) => item.producto?.id)
+      .filter((id): id is number => id != null)
+      .map((id) => Number(id));
   }
 
   private fetchProductoIdsEnPedido(): Observable<number[]> {
@@ -2421,13 +2483,15 @@ export class GestionComprasComponent
     producto: Producto,
     presentacion?: Presentacion,
     searchText?: string,
-    productoIdsEnPedido: number[] = []
+    productoIdsEnPedido: number[] = [],
+    coincidenciaExacta = false
   ): void {
     const dialogData: AddEditItemDialogData = {
       pedido: this.currentPedido as Pedido,
       isEdit: false,
       title: "Añadir Nuevo Ítem al Pedido",
-      lastSearchText: searchText || this.lastItemSearchText,
+      lastSearchText: coincidenciaExacta ? undefined : (searchText || this.lastItemSearchText),
+      coincidenciaExacta,
       producto,
       presentacion,
       productoIdsEnPedido,
@@ -4355,32 +4419,29 @@ export class GestionComprasComponent
       return;
     }
 
-    this.fetchProductoIdsEnPedido()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((productoIdsEnPedido) => {
-        const dialogData: AddEditItemDialogData = {
-          pedido: this.currentPedido as Pedido,
-          isEdit: false,
-          title: "Añadir Nuevo Ítem al Pedido",
-          productoIdsEnPedido,
-        };
+    const dialogData: AddEditItemDialogData = {
+      pedido: this.currentPedido as Pedido,
+      isEdit: false,
+      title: "Añadir Nuevo Ítem al Pedido",
+      productoIdsEnPedido: this.obtenerProductoIdsEnPedidoDisponibles(),
+    };
 
-        const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
-          width: "65%",
-          height: "70%",
-          data: dialogData,
-          disableClose: true,
-        });
+    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+      width: "65%",
+      height: "70%",
+      data: dialogData,
+      disableClose: true,
+    });
 
-        // Después de abrir el diálogo, precargar el producto
-        dialogRef.afterOpened().subscribe(() => {
-          const dialogComponent = dialogRef.componentInstance;
-          if (dialogComponent && producto) {
-            dialogComponent.onProductoSelected(producto);
-          }
-        });
+    // Después de abrir el diálogo, precargar el producto
+    dialogRef.afterOpened().subscribe(() => {
+      const dialogComponent = dialogRef.componentInstance;
+      if (dialogComponent && producto) {
+        dialogComponent.onProductoSelected(producto);
+      }
+    });
 
-        dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
           if (result && result.action === "save") {
             if (result.item?.producto?.id) {
               this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
@@ -4404,7 +4465,6 @@ export class GestionComprasComponent
             }, 300);
           }
         });
-      });
   }
 
   /**

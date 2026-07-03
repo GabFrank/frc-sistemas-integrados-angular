@@ -48,6 +48,7 @@ export interface ComprasSearchProductoResponse {
   producto?: Producto;
   presentacion?: Presentacion;
   searchText?: string;
+  coincidenciaExacta?: boolean;
 }
 
 const PAGE_SIZE = 20;
@@ -137,6 +138,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
       .subscribe({
         next: (productos) => {
           this.dataSource.data = productos;
+          this.intentarSeleccionPorCoincidenciaExacta(productos);
           this.cdr.markForCheck();
         },
         error: () => {
@@ -170,6 +172,28 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     this.selectedRowIndex = -1;
     this.selectedPresentacionRowIndex = -1;
     this.selectedPresentacion = null;
+  }
+
+  private intentarSeleccionPorCoincidenciaExacta(productos: Producto[]): void {
+    const termino = (this.formGroup.get('buscarControl')?.value ?? '').trim();
+    if (!termino) {
+      return;
+    }
+
+    const productoExacto = this.buscadorComprasService.encontrarCoincidenciaExacta(
+      productos,
+      termino
+    );
+
+    if (!productoExacto) {
+      return;
+    }
+
+    this.dialogRef.close({
+      producto: productoExacto,
+      searchText: termino,
+      coincidenciaExacta: true,
+    } as ComprasSearchProductoResponse);
   }
 
   ejecutarBusqueda(texto: string, page: number, append: boolean): void {
@@ -207,6 +231,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
             this.dataSource.data = [...this.dataSource.data, ...nuevos];
           } else {
             this.dataSource.data = productos;
+            this.intentarSeleccionPorCoincidenciaExacta(productos);
           }
 
           this.cdr.markForCheck();
