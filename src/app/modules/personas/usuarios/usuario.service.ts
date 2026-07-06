@@ -25,6 +25,7 @@ import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
 import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMarcacion";
 import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -128,7 +129,11 @@ export class UsuarioService {
     );
   }
 
-  onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<any> {
+  onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<PageInfo<Usuario>> {
     return this.genericService.onCustomQuery(this.usuariosSearchPaginatedGQL, { texto, page, size }, servidor);
+  }
+
+  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Usuario>> {
+    return this.onSearchUsuarioPaginated(texto, pageIndex, pageSize, servidor);
   }
 }
