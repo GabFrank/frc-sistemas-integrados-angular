@@ -100,10 +100,6 @@ import {
   ListDeliveryComponent,
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
-import {
-  DescuentoDialogComponent,
-  DescuentoDialogData,
-} from "./pago-touch/descuento-dialog/descuento-dialog.component";
 import { FormControl } from "@angular/forms";
 import { catchError, map, startWith, switchMap } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
@@ -791,29 +787,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   editItem(event: any) {
-    let item = new VentaItem();
     this.mostrarPrecios = false;
-    Object.assign(item, event["item"]);
-    let index = event["i"];
-
-    let data: DescuentoDialogData = {
-      valorTotal: item.precioVenta.precio,
-      saldo: 0,
-      cambioDs: this.cambioDs,
-      cambioRs: this.cambioRs,
-    };
-    this.matDialog
-      .open(DescuentoDialogComponent, {
-        data: data,
-      })
-      .afterClosed()
-      .subscribe((res) => {
-        if (res > 0) {
-          item.valorDescuento = res;
-          this.selectedItemList[index] = item;
-          this.calcularTotales();
-        }
-      });
+    this.notificacionSnackbar.openWarn(
+      "El descuento debe aplicarse desde la pantalla de pago (F12)."
+    );
   }
 
   crearItem(eventData: any, index?) {
