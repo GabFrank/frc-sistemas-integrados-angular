@@ -54,6 +54,7 @@ import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacio
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
+import { ListConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 
 
 interface BaseNavigationItem {
@@ -137,6 +138,21 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'list_alt',
           action: 'list-marcacion',
           visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS]
+        }
+      ]
+    },
+    {
+      name: 'R.R.H.H.',
+      icon: 'groups',
+      isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+      items: [
+        {
+          name: 'Configuración RRHH',
+          icon: 'settings',
+          action: 'list-configuracion-rrhh',
+          visibilityRoles: [ROLES.RRHH_CONFIG, ROLES.ADMIN]
         }
       ]
     },
@@ -716,6 +732,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-solicitud-pago":
         this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
+        break;
+      case "list-configuracion-rrhh":
+        this.openTabIfAuthorized(ROLES.RRHH_CONFIG, ListConfiguracionRrhhComponent, "Configuración RRHH");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
