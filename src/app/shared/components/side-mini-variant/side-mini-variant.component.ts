@@ -55,6 +55,8 @@ import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
 import { ListConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
+import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado/list-feriado.component';
+import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
 
 
 interface BaseNavigationItem {
@@ -148,6 +150,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
       items: [
+        {
+          name: 'Feriados',
+          icon: 'event',
+          action: 'list-feriado',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Penalizaciones',
+          icon: 'gavel',
+          action: 'list-penalizacion',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
         {
           name: 'Configuración RRHH',
           icon: 'settings',
@@ -735,6 +749,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-configuracion-rrhh":
         this.openTabIfAuthorized(ROLES.RRHH_CONFIG, ListConfiguracionRrhhComponent, "Configuración RRHH");
+        break;
+      case "list-feriado":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListFeriadoComponent, "Feriados");
+        break;
+      case "list-penalizacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListPenalizacionComponent, "Penalizaciones");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

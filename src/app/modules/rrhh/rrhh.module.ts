@@ -6,11 +6,19 @@ import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { ListConfiguracionRrhhComponent } from './configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 import { EditConfiguracionRrhhDialogComponent } from './configuracion-rrhh/edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
+import { ListFeriadoComponent } from './feriado/list-feriado/list-feriado.component';
+import { EditFeriadoDialogComponent } from './feriado/edit-feriado-dialog/edit-feriado-dialog.component';
+import { ListPenalizacionComponent } from './penalizacion/list-penalizacion/list-penalizacion.component';
+import { EditPenalizacionDialogComponent } from './penalizacion/edit-penalizacion-dialog/edit-penalizacion-dialog.component';
 
 @NgModule({
   declarations: [
     ListConfiguracionRrhhComponent,
-    EditConfiguracionRrhhDialogComponent
+    EditConfiguracionRrhhDialogComponent,
+    ListFeriadoComponent,
+    EditFeriadoDialogComponent,
+    ListPenalizacionComponent,
+    EditPenalizacionDialogComponent
   ],
   imports: [
     CommonModule,

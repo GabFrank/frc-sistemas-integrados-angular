@@ -1,0 +1,101 @@
+<div class="penalizacion-container" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
+    <h2>Penalizaciones</h2>
+    <button mat-raised-button color="primary" (click)="onNueva()">
+      <mat-icon>add</mat-icon> Nueva
+    </button>
+  </div>
+
+  <div class="filtros" fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="260px">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl">
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="150px">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
+      <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
+      <mat-datepicker #dp1></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="150px">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" />
+      <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
+      <mat-datepicker #dp2></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="onBuscar()">
+      <mat-icon>search</mat-icon> Buscar
+    </button>
+  </div>
+
+  <div class="generar" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="170px">
+      <mat-label>Fecha a procesar</mat-label>
+      <input matInput [matDatepicker]="dp3" [formControl]="fechaGenerarControl" />
+      <mat-datepicker-toggle matSuffix [for]="dp3"></mat-datepicker-toggle>
+      <mat-datepicker #dp3></mat-datepicker>
+    </mat-form-field>
+    <button mat-stroked-button color="accent" (click)="onGenerarAuto()" matTooltip="Genera penalizaciones automáticas por tardanza de la fecha">
+      <mat-icon>bolt</mat-icon> Generar automáticas
+    </button>
+  </div>
+
+  <div class="tabla-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="auto">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.autoGenerada" class="chip-auto">AUTO</span>
+          <span *ngIf="!row.autoGenerada">MANUAL</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.anulada" class="chip-anulada">ANULADA</span>
+          <span *ngIf="!row.anulada">VIGENTE</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="warn" *ngIf="!row.anulada" (click)="onAnular(row)" matTooltip="Anular">
+            <mat-icon>block</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</div>
