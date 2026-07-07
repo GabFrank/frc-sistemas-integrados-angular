@@ -2,6 +2,8 @@ import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { Moneda } from "../../moneda/moneda.model";
+import { MonedaService } from "../../moneda/moneda.service";
 import { TerminalPos } from "../terminal-pos.model";
 import { TerminalPosService } from "../terminal-pos.service";
 
@@ -20,16 +22,18 @@ export class AddTerminalPosDialogComponent implements OnInit {
   formGroup: FormGroup;
   isEditting = false;
 
-  //Form Controls
   descripcionControl = new FormControl(null, Validators.required);
   codigoControl = new FormControl(null, Validators.required);
+  monedaControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(true);
   selectedTerminalPos: TerminalPos;
+  monedas: Moneda[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
     private matDialogRef: MatDialogRef<AddTerminalPosDialogComponent>,
-    private terminalPosService: TerminalPosService
+    private terminalPosService: TerminalPosService,
+    private monedaService: MonedaService
   ) {
     if (data?.terminalPos != null) {
       this.selectedTerminalPos = data.terminalPos;
@@ -40,16 +44,19 @@ export class AddTerminalPosDialogComponent implements OnInit {
     this.formGroup = new FormGroup({
       descripcion: this.descripcionControl,
       codigo: this.codigoControl,
+      moneda: this.monedaControl,
       activo: this.activoControl,
     });
 
+    this.monedaService.onGetAll(true)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => { this.monedas = res ?? []; });
+
     if (this.selectedTerminalPos != null) {
       this.cargarDatos();
-      // Editar: arranca en modo lectura hasta que el usuario habilite la edicion
       this.isEditting = false;
       this.formGroup.disable();
     } else {
-      // Nuevo: edicion habilitada de entrada
       this.isEditting = true;
       this.formGroup.enable();
     }
@@ -58,6 +65,7 @@ export class AddTerminalPosDialogComponent implements OnInit {
   cargarDatos() {
     this.descripcionControl.setValue(this.selectedTerminalPos.descripcion);
     this.codigoControl.setValue(this.selectedTerminalPos.codigo);
+    this.monedaControl.setValue(this.selectedTerminalPos.moneda?.id ?? null);
     this.activoControl.setValue(this.selectedTerminalPos.activo);
   }
 
@@ -75,8 +83,11 @@ export class AddTerminalPosDialogComponent implements OnInit {
     terminalPos.codigo = this.codigoControl.value?.toUpperCase();
     terminalPos.activo = this.activoControl.value;
 
+    const input = terminalPos.toInput();
+    input.monedaId = this.monedaControl.value ?? undefined;
+
     this.terminalPosService
-      .onSave(terminalPos.toInput())
+      .onSave(input)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {

@@ -75,10 +75,19 @@
           {{terminalPos.descripcion}} 
         </td>
       </ng-container>
-      <ng-container matColumnDef="codigo" style="width: 20%">
-        <th mat-header-cell *matHeaderCellDef style="width: 20%">Código</th>
-        <td mat-cell *matCellDef="let terminalPos" style="width: 20%"> 
-          {{terminalPos.codigo}} 
+      <ng-container matColumnDef="codigo" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="width: 15%">Código</th>
+        <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
+          {{terminalPos.codigo}}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="moneda" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="width: 15%">Moneda</th>
+        <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
+          <span *ngIf="terminalPos.moneda"> 
+            {{ terminalPos.moneda.denominacion }}
+          </span>
+          <span *ngIf="!terminalPos.moneda" style="color: gray">-</span>
         </td>
       </ng-container>
       <ng-container matColumnDef="creadoEn" style="width: 10%">

@@ -2,6 +2,8 @@
   <div style="text-align: center" *ngIf="isQrShow">
     <ngx-qrcode [value]="value" [scale]="6"> </ngx-qrcode>
     <br />
+    <div *ngIf="data?.nombre" class="nombre">{{ data.nombre }}</div>
+    <div *ngIf="data?.subtitulo" class="subtitulo">{{ data.subtitulo }}</div>
     <div>Utilice la camara del smartphone</div>
     <div>para capturar imagenes</div>
     <!-- <a [href]="value">
