@@ -57,6 +57,8 @@ import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-p
 import { ListConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado/list-feriado.component';
 import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
+import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-hora-extra/list-hora-extra.component';
+import { ListJornadaNovedadComponent } from '../../../modules/rrhh/jornada-novedad/list-jornada-novedad/list-jornada-novedad.component';
 
 
 interface BaseNavigationItem {
@@ -160,6 +162,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Penalizaciones',
           icon: 'gavel',
           action: 'list-penalizacion',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Horas extra',
+          icon: 'more_time',
+          action: 'list-hora-extra',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Novedades',
+          icon: 'event_note',
+          action: 'list-jornada-novedad',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
@@ -755,6 +769,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-penalizacion":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPenalizacionComponent, "Penalizaciones");
+        break;
+      case "list-hora-extra":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListHoraExtraComponent, "Horas extra");
+        break;
+      case "list-jornada-novedad":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListJornadaNovedadComponent, "Novedades");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
