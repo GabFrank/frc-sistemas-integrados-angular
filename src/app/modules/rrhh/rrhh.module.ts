@@ -35,6 +35,7 @@ import { CambioCargoDialogComponent } from './legajo/cambio-cargo-dialog/cambio-
 import { CambioSalarioDialogComponent } from './legajo/cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from './legajo/egresar-funcionario-dialog/egresar-funcionario-dialog.component';
 import { SubirDocumentoDialogComponent } from './legajo/subir-documento-dialog/subir-documento-dialog.component';
+import { LiquidacionFinalDialogComponent } from './liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 
 @NgModule({
   declarations: [
@@ -68,7 +69,8 @@ import { SubirDocumentoDialogComponent } from './legajo/subir-documento-dialog/s
     CambioCargoDialogComponent,
     CambioSalarioDialogComponent,
     EgresarFuncionarioDialogComponent,
-    SubirDocumentoDialogComponent
+    SubirDocumentoDialogComponent,
+    LiquidacionFinalDialogComponent
   ],
   imports: [
     CommonModule,

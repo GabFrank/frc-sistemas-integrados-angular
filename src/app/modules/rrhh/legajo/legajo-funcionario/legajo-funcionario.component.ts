@@ -13,6 +13,7 @@ import { CambioCargoDialogComponent } from '../cambio-cargo-dialog/cambio-cargo-
 import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
+import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 
 interface FuncionarioOpcion { id: number; label: string; }
 
@@ -93,6 +94,13 @@ export class LegajoFuncionarioComponent implements OnInit {
         this.notificacion.notification$.next({ texto: 'Funcionario egresado', color: NotificacionColor.success, duracion: 3 });
       }
     });
+  }
+
+  onLiquidacionFinal() {
+    this.dialog.open(LiquidacionFinalDialogComponent, {
+      data: { funcionarioId: this.funcionario.id, nombre: this.funcionario.persona?.nombre, monedaId: null },
+      width: '720px', disableClose: false
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onSeleccionar(); });
   }
 
   onSubirDocumento() {

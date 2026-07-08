@@ -23,6 +23,7 @@
       <button mat-stroked-button color="primary" (click)="onCambiarSalario()"><mat-icon>payments</mat-icon> Cambiar salario</button>
       <button mat-stroked-button color="primary" (click)="onSubirDocumento()"><mat-icon>upload_file</mat-icon> Subir documento</button>
       <button mat-stroked-button color="warn" *ngIf="funcionario.activo" (click)="onEgresar()"><mat-icon>logout</mat-icon> Egresar</button>
+      <button mat-stroked-button color="accent" (click)="onLiquidacionFinal()"><mat-icon>receipt_long</mat-icon> Liquidación final</button>
     </div>
 
     <!-- Histórico de cargos -->
