@@ -67,6 +67,7 @@ import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-agu
 import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
 import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
 import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
+import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
 
 
 interface BaseNavigationItem {
@@ -160,6 +161,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
       items: [
+        {
+          name: 'Dashboard RRHH',
+          icon: 'dashboard',
+          action: 'dashboard-rrhh',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
         {
           name: 'Legajo funcionario',
           icon: 'folder_shared',
@@ -855,6 +862,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "legajo-funcionario":
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
+        break;
+      case "dashboard-rrhh":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, DashboardRrhhComponent, "Dashboard RRHH");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
