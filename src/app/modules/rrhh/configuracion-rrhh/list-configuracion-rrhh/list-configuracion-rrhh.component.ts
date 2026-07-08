@@ -9,6 +9,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { ConfiguracionRrhh } from '../configuracion-rrhh.model';
 import { ConfiguracionRrhhService } from '../configuracion-rrhh.service';
 import { EditConfiguracionRrhhDialogComponent } from '../edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
+import { ConfigInfoDialogComponent } from '../config-info-dialog/config-info-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -75,6 +76,13 @@ export class ListConfiguracionRrhhComponent implements OnInit {
       if (res != null) {
         this.onBuscar();
       }
+    });
+  }
+
+  onInfo(configuracion: ConfiguracionRrhh) {
+    this.dialog.open(ConfigInfoDialogComponent, {
+      data: { clave: configuracion.clave, valor: configuracion.valor, descripcion: configuracion.descripcion },
+      width: '560px'
     });
   }
 

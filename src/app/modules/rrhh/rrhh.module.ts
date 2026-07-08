@@ -6,6 +6,7 @@ import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { ListConfiguracionRrhhComponent } from './configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 import { EditConfiguracionRrhhDialogComponent } from './configuracion-rrhh/edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
+import { ConfigInfoDialogComponent } from './configuracion-rrhh/config-info-dialog/config-info-dialog.component';
 import { ListFeriadoComponent } from './feriado/list-feriado/list-feriado.component';
 import { EditFeriadoDialogComponent } from './feriado/edit-feriado-dialog/edit-feriado-dialog.component';
 import { ListPenalizacionComponent } from './penalizacion/list-penalizacion/list-penalizacion.component';
@@ -41,6 +42,7 @@ import { LiquidacionFinalDialogComponent } from './liquidacion-final/liquidacion
   declarations: [
     ListConfiguracionRrhhComponent,
     EditConfiguracionRrhhDialogComponent,
+    ConfigInfoDialogComponent,
     ListFeriadoComponent,
     EditFeriadoDialogComponent,
     ListPenalizacionComponent,

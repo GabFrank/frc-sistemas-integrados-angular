@@ -1,0 +1,27 @@
+<div class="info-container" fxLayout="column" fxLayoutGap="12px">
+  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <mat-icon color="primary">info</mat-icon>
+    <h2 mat-dialog-title>{{ help.titulo }}</h2>
+  </div>
+
+  <div class="clave-row" fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="start center">
+    <span class="clave">{{ clave }}</span>
+    <span class="valor">Valor actual: <b>{{ valor }}</b></span>
+  </div>
+
+  <p class="descripcion">{{ help.descripcion }}</p>
+
+  <div class="bloque" *ngIf="help.ejemplo">
+    <span class="etiqueta">Ejemplo</span>
+    <p>{{ help.ejemplo }}</p>
+  </div>
+
+  <div class="bloque" *ngIf="help.impacto">
+    <span class="etiqueta">Impacto</span>
+    <p>{{ help.impacto }}</p>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
+    <button mat-raised-button color="primary" (click)="onCerrar()">Entendido</button>
+  </div>
+</div>
