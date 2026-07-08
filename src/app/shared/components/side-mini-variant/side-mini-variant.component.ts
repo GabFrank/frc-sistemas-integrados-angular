@@ -66,6 +66,7 @@ import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacac
 import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-aguinaldo/list-aguinaldo.component';
 import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
 import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
+import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 
 
 interface BaseNavigationItem {
@@ -159,6 +160,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
       items: [
+        {
+          name: 'Legajo funcionario',
+          icon: 'folder_shared',
+          action: 'legajo-funcionario',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
         {
           name: 'Feriados',
           icon: 'event',
@@ -845,6 +852,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-liquidacion":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");
+        break;
+      case "legajo-funcionario":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

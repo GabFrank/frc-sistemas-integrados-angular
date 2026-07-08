@@ -1,0 +1,65 @@
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { CargoHistoricosGQL } from './graphql/CargoHistoricos';
+import { SalarioHistoricosGQL } from './graphql/SalarioHistoricos';
+import { DocumentosGQL } from './graphql/Documentos';
+import { DocumentoContenidoGQL } from './graphql/DocumentoContenido';
+import { CambiarCargoGQL } from './graphql/CambiarCargo';
+import { CambiarSalarioGQL } from './graphql/CambiarSalario';
+import { EgresarFuncionarioGQL } from './graphql/EgresarFuncionario';
+import { SaveDocumentoGQL } from './graphql/SaveDocumento';
+import { AnularDocumentoGQL } from './graphql/AnularDocumento';
+
+@Injectable({ providedIn: 'root' })
+export class LegajoService {
+
+  constructor(
+    private genericService: GenericCrudService,
+    private cargoHistoricosGQL: CargoHistoricosGQL,
+    private salarioHistoricosGQL: SalarioHistoricosGQL,
+    private documentosGQL: DocumentosGQL,
+    private documentoContenidoGQL: DocumentoContenidoGQL,
+    private cambiarCargoGQL: CambiarCargoGQL,
+    private cambiarSalarioGQL: CambiarSalarioGQL,
+    private egresarFuncionarioGQL: EgresarFuncionarioGQL,
+    private saveDocumentoGQL: SaveDocumentoGQL,
+    private anularDocumentoGQL: AnularDocumentoGQL
+  ) { }
+
+  onGetCargoHistoricos(funcionarioId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.cargoHistoricosGQL, { funcionarioId }, servidor);
+  }
+
+  onGetSalarioHistoricos(funcionarioId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.salarioHistoricosGQL, { funcionarioId }, servidor);
+  }
+
+  onGetDocumentos(funcionarioId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.documentosGQL, { funcionarioId }, servidor);
+  }
+
+  onGetDocumentoContenido(id: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.documentoContenidoGQL, { id }, servidor);
+  }
+
+  onCambiarCargo(input: any, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.cambiarCargoGQL, { input }, servidor);
+  }
+
+  onCambiarSalario(input: any, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.cambiarSalarioGQL, { input }, servidor);
+  }
+
+  onEgresar(funcionarioId: number, fecha: string, motivo: string, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.egresarFuncionarioGQL, { funcionarioId, fecha, motivo }, servidor);
+  }
+
+  onSaveDocumento(input: any, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.saveDocumentoGQL, { input }, servidor);
+  }
+
+  onAnularDocumento(id: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.anularDocumentoGQL, { id }, servidor);
+  }
+}

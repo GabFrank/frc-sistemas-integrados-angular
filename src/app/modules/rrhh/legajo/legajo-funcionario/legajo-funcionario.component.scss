@@ -1,0 +1,13 @@
+.legajo-container {
+  padding: 16px;
+
+  h3 { margin: 4px 0; font-size: 15px; opacity: 0.9; }
+
+  .resumen { font-size: 14px; }
+  .activo { color: #66bb6a; }
+  .inactivo { color: #ef5350; }
+
+  .tabla-container { overflow-x: auto; }
+  table { width: 100%; text-align: center; }
+  th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+}

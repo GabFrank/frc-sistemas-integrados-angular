@@ -1,0 +1,114 @@
+<div class="legajo-container" fxLayout="column" fxLayoutGap="16px">
+
+  <div class="selector" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="360px">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl" (selectionChange)="onSeleccionar()">
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <ng-container *ngIf="funcionario != null">
+    <div class="resumen" fxLayout="row wrap" fxLayoutGap="24px" fxLayoutAlign="start center">
+      <span>Cargo actual: <b>{{ funcionario.cargo?.nombre || '—' }}</b></span>
+      <span>Salario: <b>{{ funcionario.sueldo | number:'1.0-2' }}</b></span>
+      <span>Estado:
+        <b [ngClass]="funcionario.activo ? 'activo' : 'inactivo'">{{ funcionario.activo ? 'ACTIVO' : 'INACTIVO' }}</b>
+      </span>
+    </div>
+
+    <div class="acciones" fxLayout="row wrap" fxLayoutGap="10px">
+      <button mat-stroked-button color="primary" (click)="onCambiarCargo()"><mat-icon>badge</mat-icon> Cambiar cargo</button>
+      <button mat-stroked-button color="primary" (click)="onCambiarSalario()"><mat-icon>payments</mat-icon> Cambiar salario</button>
+      <button mat-stroked-button color="primary" (click)="onSubirDocumento()"><mat-icon>upload_file</mat-icon> Subir documento</button>
+      <button mat-stroked-button color="warn" *ngIf="funcionario.activo" (click)="onEgresar()"><mat-icon>logout</mat-icon> Egresar</button>
+    </div>
+
+    <!-- Histórico de cargos -->
+    <h3>Histórico de cargos</h3>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="cargoHistoricos" class="mat-elevation-z1">
+        <ng-container matColumnDef="cargo">
+          <th mat-header-cell *matHeaderCellDef>Cargo</th>
+          <td mat-cell *matCellDef="let row">{{ row.cargo?.nombre }}</td>
+        </ng-container>
+        <ng-container matColumnDef="fechaDesde">
+          <th mat-header-cell *matHeaderCellDef>Desde</th>
+          <td mat-cell *matCellDef="let row">{{ row.fechaDesde }}</td>
+        </ng-container>
+        <ng-container matColumnDef="fechaHasta">
+          <th mat-header-cell *matHeaderCellDef>Hasta</th>
+          <td mat-cell *matCellDef="let row">{{ row.fechaHasta || 'Vigente' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="motivo">
+          <th mat-header-cell *matHeaderCellDef>Motivo</th>
+          <td mat-cell *matCellDef="let row">{{ row.motivo }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="cargoColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: cargoColumns"></tr>
+      </table>
+    </div>
+
+    <!-- Histórico de salarios -->
+    <h3>Histórico de salarios</h3>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="salarioHistoricos" class="mat-elevation-z1">
+        <ng-container matColumnDef="salarioAnterior">
+          <th mat-header-cell *matHeaderCellDef>Anterior</th>
+          <td mat-cell *matCellDef="let row">{{ row.salarioAnterior | number:'1.0-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="salarioNuevo">
+          <th mat-header-cell *matHeaderCellDef>Nuevo</th>
+          <td mat-cell *matCellDef="let row">{{ row.salarioNuevo | number:'1.0-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="moneda">
+          <th mat-header-cell *matHeaderCellDef>Moneda</th>
+          <td mat-cell *matCellDef="let row">{{ row.moneda?.denominacion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="fechaVigencia">
+          <th mat-header-cell *matHeaderCellDef>Vigencia</th>
+          <td mat-cell *matCellDef="let row">{{ row.fechaVigencia }}</td>
+        </ng-container>
+        <ng-container matColumnDef="motivo">
+          <th mat-header-cell *matHeaderCellDef>Motivo</th>
+          <td mat-cell *matCellDef="let row">{{ row.motivo }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="salarioColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: salarioColumns"></tr>
+      </table>
+    </div>
+
+    <!-- Documentos -->
+    <h3>Documentos</h3>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="documentos" class="mat-elevation-z1">
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="nombreArchivo">
+          <th mat-header-cell *matHeaderCellDef>Archivo</th>
+          <td mat-cell *matCellDef="let row">{{ row.nombreArchivo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+          <td mat-cell *matCellDef="let row">{{ row.vencimiento || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="observacion">
+          <th mat-header-cell *matHeaderCellDef>Observación</th>
+          <td mat-cell *matCellDef="let row">{{ row.observacion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row">
+            <button mat-icon-button color="primary" (click)="onVerDocumento(row)" matTooltip="Ver"><mat-icon>visibility</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="onAnularDocumento(row)" matTooltip="Anular"><mat-icon>delete</mat-icon></button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="documentoColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: documentoColumns"></tr>
+      </table>
+    </div>
+  </ng-container>
+</div>
