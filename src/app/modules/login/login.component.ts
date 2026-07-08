@@ -176,7 +176,10 @@ export class LoginComponent implements OnInit, AfterViewInit {
             }, 2000);
           } else if (res.error != null) {
             this.mainService.authenticationSub.next(false);
-            this.errorMessage = res.error.message || 'Error de conexión al servidor. Verifique la configuración.';
+            this.errorMessage =
+              res.error?.error?.message ||
+              res.error?.message ||
+              'Error de conexión al servidor. Verifique la configuración.';
           }
         });
     }

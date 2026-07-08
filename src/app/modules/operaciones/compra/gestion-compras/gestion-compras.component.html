@@ -153,14 +153,11 @@
                     >
                       <mat-icon>search</mat-icon>
                     </button>
-                    <mat-error
-                      *ngIf="
-                        datosGeneralesForm
-                          .get('proveedor')
-                          ?.hasError('required')
-                      "
-                    >
+                    <mat-error *ngIf="proveedorRequiredErrorComputed">
                       El proveedor es requerido
+                    </mat-error>
+                    <mat-error *ngIf="proveedorNoSeleccionadoErrorComputed">
+                      Debe seleccionar un proveedor válido de la lista
                     </mat-error>
                   </mat-form-field>
                 </div>

@@ -246,9 +246,11 @@ export const usuariosSearchPaginated = gql`
         id
         nickname
         activo
+        creadoEn
         persona {
           id
           nombre
+          telefono
           documento
           imagenes
         }

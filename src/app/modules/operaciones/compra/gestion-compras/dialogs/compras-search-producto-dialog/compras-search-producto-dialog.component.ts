@@ -25,9 +25,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, of } from 'rxjs';
 import {
-  catchError,
   distinctUntilChanged,
-  map,
+  finalize,
   startWith,
   switchMap,
   tap,
@@ -49,6 +48,7 @@ export interface ComprasSearchProductoResponse {
   producto?: Producto;
   presentacion?: Presentacion;
   searchText?: string;
+  coincidenciaExacta?: boolean;
 }
 
 const PAGE_SIZE = 20;
@@ -83,6 +83,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
   selectedPresentacionRowIndex = -1;
   selectedPresentacion: Presentacion | null = null;
   mostrarStockColumna = false;
+  busquedaEnCurso = false;
   private paginaActual = 0;
   private terminoBusqueda = '';
 
@@ -119,17 +120,25 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
           this.paginaActual = 0;
 
           if (!termino) {
+            this.busquedaEnCurso = false;
             this.dataSource.data = [];
             return of([] as Producto[]);
           }
 
-          return this.crearBusqueda$(termino, 0);
+          this.busquedaEnCurso = true;
+          return this.crearBusqueda$(termino, 0).pipe(
+            finalize(() => {
+              this.busquedaEnCurso = false;
+              this.cdr.markForCheck();
+            })
+          );
         }),
         untilDestroyed(this)
       )
       .subscribe({
         next: (productos) => {
           this.dataSource.data = productos;
+          this.intentarSeleccionPorCoincidenciaExacta(productos);
           this.cdr.markForCheck();
         },
         error: () => {
@@ -150,31 +159,12 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
       return of([]);
     }
 
-    const esCodigo = this.pareceCodigoBarras(termino);
-
-    if (esCodigo) {
-      return this.buscadorComprasService
-        .buscarProducto(termino, page, PAGE_SIZE, undefined, true)
-        .pipe(
-          map((res) =>
-            (res.getContent ?? [])
-              .map((r) => r.producto)
-              .filter((p): p is Producto => p?.id != null)
-          ),
-          catchError(() => of([] as Producto[]))
-        );
-    }
-
-    return this.productoService
-      .onSearch(termino, page * PAGE_SIZE, null, false, true, true, true)
-      .pipe(catchError(() => of([] as Producto[])));
-  }
-
-  private pareceCodigoBarras(termino: string): boolean {
-    if (!termino || termino.includes(' ')) {
-      return false;
-    }
-    return /^\d{3,}$/.test(termino) || /^[A-Za-z0-9\-._]{4,32}$/.test(termino);
+    return this.buscadorComprasService.buscarProductosParaDialog(
+      termino,
+      page,
+      PAGE_SIZE,
+      true
+    );
   }
 
   private reiniciarSeleccion(): void {
@@ -182,6 +172,28 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     this.selectedRowIndex = -1;
     this.selectedPresentacionRowIndex = -1;
     this.selectedPresentacion = null;
+  }
+
+  private intentarSeleccionPorCoincidenciaExacta(productos: Producto[]): void {
+    const termino = (this.formGroup.get('buscarControl')?.value ?? '').trim();
+    if (!termino) {
+      return;
+    }
+
+    const productoExacto = this.buscadorComprasService.encontrarCoincidenciaExacta(
+      productos,
+      termino
+    );
+
+    if (!productoExacto) {
+      return;
+    }
+
+    this.dialogRef.close({
+      producto: productoExacto,
+      searchText: termino,
+      coincidenciaExacta: true,
+    } as ComprasSearchProductoResponse);
   }
 
   ejecutarBusqueda(texto: string, page: number, append: boolean): void {
@@ -196,13 +208,21 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     }
 
     if (!termino) {
+      this.busquedaEnCurso = false;
       this.dataSource.data = [];
       this.cdr.markForCheck();
       return;
     }
 
+    this.busquedaEnCurso = true;
     this.crearBusqueda$(termino, append ? page : 0)
-      .pipe(untilDestroyed(this))
+      .pipe(
+        finalize(() => {
+          this.busquedaEnCurso = false;
+          this.cdr.markForCheck();
+        }),
+        untilDestroyed(this)
+      )
       .subscribe({
         next: (productos) => {
           if (append) {
@@ -211,6 +231,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
             this.dataSource.data = [...this.dataSource.data, ...nuevos];
           } else {
             this.dataSource.data = productos;
+            this.intentarSeleccionPorCoincidenciaExacta(productos);
           }
 
           this.cdr.markForCheck();

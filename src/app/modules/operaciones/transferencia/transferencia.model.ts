@@ -167,6 +167,19 @@ export class TransferenciaItem {
   }
 }
 
+export class TransferenciaItemAlerta {
+  transferenciaItemId: number;
+  alertaVencido: boolean;
+  alertaAveriado: boolean;
+  fechaVencimientoReferencia?: Date;
+}
+
+export type TransferenciaItemView = TransferenciaItem & {
+  alertaVencido: boolean;
+  alertaAveriado: boolean;
+  textoVencido: string;
+};
+
 export class TransferenciaItemInput {
   id: number;
   transferenciaId: number

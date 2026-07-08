@@ -1306,3 +1306,17 @@ export const saveConfiguracionTransferencia = gql`
   }
 `;
 
+export const alertasTransferenciaItemsQuery = gql`
+  query ($transferenciaId: ID!, $itemIds: [ID!]!) {
+    data: alertasTransferenciaItems(
+      transferenciaId: $transferenciaId
+      itemIds: $itemIds
+    ) {
+      transferenciaItemId
+      alertaVencido
+      alertaAveriado
+      fechaVencimientoReferencia
+    }
+  }
+`;
+
