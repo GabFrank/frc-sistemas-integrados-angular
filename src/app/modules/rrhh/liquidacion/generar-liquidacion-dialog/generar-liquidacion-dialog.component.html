@@ -1,0 +1,32 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>Generar liquidación</h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <mat-form-field style="width: 100%">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl" required>
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+      <mat-error *ngIf="funcionarioControl.hasError('required')">Seleccione un funcionario</mat-error>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Período</mat-label>
+        <input matInput [formControl]="periodoControl" placeholder="YYYY-MM" required />
+        <mat-error *ngIf="periodoControl.hasError('pattern')">Formato YYYY-MM</mat-error>
+      </mat-form-field>
+      <mat-form-field fxFlex="50%">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaControl">
+          <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </form>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGenerar()">Generar borrador</button>
+  </div>
+</div>

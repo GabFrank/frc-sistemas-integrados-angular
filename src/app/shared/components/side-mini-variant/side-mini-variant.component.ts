@@ -65,6 +65,7 @@ import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prest
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
 import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-aguinaldo/list-aguinaldo.component';
 import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
+import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
 
 
 interface BaseNavigationItem {
@@ -217,6 +218,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'card_giftcard',
           action: 'list-bono',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Liquidaciones',
+          icon: 'receipt_long',
+          action: 'list-liquidacion',
+          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.ADMIN]
         },
         {
           name: 'Configuración RRHH',
@@ -835,6 +842,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-bono":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
+        break;
+      case "list-liquidacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

@@ -1,0 +1,73 @@
+<div class="liquidacion-container" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
+    <h2>Liquidaciones de sueldo</h2>
+    <button mat-raised-button color="primary" (click)="onNueva()">
+      <mat-icon>add</mat-icon> Nueva
+    </button>
+  </div>
+
+  <div class="filtros" fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="260px">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl">
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-raised-button color="primary" (click)="onBuscarPorFuncionario()">
+      <mat-icon>search</mat-icon> Por funcionario
+    </button>
+
+    <mat-form-field fxFlex="130px">
+      <mat-label>Período</mat-label>
+      <input matInput [formControl]="periodoControl" placeholder="YYYY-MM" />
+    </mat-form-field>
+    <button mat-stroked-button color="primary" (click)="onBuscarPorPeriodo()">
+      <mat-icon>search</mat-icon> Por período
+    </button>
+    <button mat-stroked-button color="accent" (click)="onGenerarMes()">
+      <mat-icon>groups</mat-icon> Generar mes
+    </button>
+  </div>
+
+  <div class="tabla-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+      <ng-container matColumnDef="periodo">
+        <th mat-header-cell *matHeaderCellDef>Período</th>
+        <td mat-cell *matCellDef="let row">{{ row.periodo }}</td>
+      </ng-container>
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalHaberes">
+        <th mat-header-cell *matHeaderCellDef>Haberes</th>
+        <td mat-cell *matCellDef="let row">{{ row.totalHaberes | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalDescuentos">
+        <th mat-header-cell *matHeaderCellDef>Descuentos</th>
+        <td mat-cell *matCellDef="let row">{{ row.totalDescuentos | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalNeto">
+        <th mat-header-cell *matHeaderCellDef>Neto</th>
+        <td mat-cell *matCellDef="let row"><b>{{ row.totalNeto | number:'1.0-2' }}</b></td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="chip" [ngClass]="'chip-' + row.estado">{{ row.estado }}</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-stroked-button color="primary" (click)="onDetalle(row)">
+            <mat-icon>receipt</mat-icon> Detalle
+          </button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</div>
