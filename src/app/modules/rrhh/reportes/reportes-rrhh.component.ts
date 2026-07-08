@@ -19,7 +19,10 @@ export class ReportesRrhhComponent implements OnInit {
 
   reportes: ReporteOpcion[] = [
     { titulo: 'Nómina del mes', descripcion: 'Liquidaciones aprobadas/pagadas del período con haberes, descuentos y neto.', icon: 'receipt_long', accion: 'nomina' },
-    { titulo: 'Resumen IPS', descripcion: 'Base salarial y aportes al IPS (funcionario y patronal) por funcionario.', icon: 'account_balance', accion: 'ips' }
+    { titulo: 'Resumen IPS', descripcion: 'Base salarial y aportes al IPS (funcionario y patronal) por funcionario.', icon: 'account_balance', accion: 'ips' },
+    { titulo: 'Vales pendientes', descripcion: 'Vales solicitados/confirmados sin descontar, con su monto.', icon: 'request_quote', accion: 'vales' },
+    { titulo: 'Préstamos activos', descripcion: 'Préstamos a funcionarios con saldo pendiente.', icon: 'account_balance_wallet', accion: 'prestamos' },
+    { titulo: 'Aguinaldo del año', descripcion: 'Aguinaldos calculados del año del período seleccionado.', icon: 'card_giftcard', accion: 'aguinaldo' }
   ];
 
   constructor(
@@ -33,14 +36,21 @@ export class ReportesRrhhComponent implements OnInit {
   }
 
   onGenerar(accion: string) {
-    if (!this.periodoControl.value) {
+    const periodo = this.periodoControl.value;
+    const necesitaPeriodo = accion === 'nomina' || accion === 'ips' || accion === 'aguinaldo';
+    if (necesitaPeriodo && !periodo) {
       this.notificacion.notification$.next({ texto: 'Ingrese el período (YYYY-MM)', color: NotificacionColor.warn, duracion: 3 });
       return;
     }
-    const periodo = this.periodoControl.value;
-    const obs = accion === 'nomina'
-      ? this.reportesService.onNominaMes(periodo)
-      : this.reportesService.onResumenIps(periodo);
+    let obs;
+    switch (accion) {
+      case 'nomina': obs = this.reportesService.onNominaMes(periodo); break;
+      case 'ips': obs = this.reportesService.onResumenIps(periodo); break;
+      case 'vales': obs = this.reportesService.onValesPendientes(); break;
+      case 'prestamos': obs = this.reportesService.onPrestamosActivos(); break;
+      case 'aguinaldo': obs = this.reportesService.onAguinaldoAnual(Number(periodo.substring(0, 4))); break;
+      default: return;
+    }
     this.generando = true;
     obs.pipe(untilDestroyed(this)).subscribe((base64: string) => {
       this.generando = false;

@@ -8,6 +8,7 @@ import { AprobarLiquidacionFinalGQL } from './graphql/AprobarLiquidacionFinal';
 import { VolverBorradorLiquidacionFinalGQL } from './graphql/VolverBorradorLiquidacionFinal';
 import { PagarLiquidacionFinalGQL } from './graphql/PagarLiquidacionFinal';
 import { AnularLiquidacionFinalGQL } from './graphql/AnularLiquidacionFinal';
+import { ImprimirReciboFinalGQL } from './graphql/ImprimirReciboFinal';
 
 @Injectable({ providedIn: 'root' })
 export class LiquidacionFinalService {
@@ -20,7 +21,8 @@ export class LiquidacionFinalService {
     private aprobarGQL: AprobarLiquidacionFinalGQL,
     private volverBorradorGQL: VolverBorradorLiquidacionFinalGQL,
     private pagarGQL: PagarLiquidacionFinalGQL,
-    private anularGQL: AnularLiquidacionFinalGQL
+    private anularGQL: AnularLiquidacionFinalGQL,
+    private imprimirReciboFinalGQL: ImprimirReciboFinalGQL
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
@@ -49,5 +51,9 @@ export class LiquidacionFinalService {
 
   onAnular(id: number, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.anularGQL, { id }, servidor);
+  }
+
+  onImprimirRecibo(id: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboFinalGQL, { id }, servidor);
   }
 }

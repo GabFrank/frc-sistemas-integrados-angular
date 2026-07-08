@@ -60,7 +60,9 @@ export class DashboardRrhhComponent implements OnInit {
       { titulo: 'Penalizaciones del mes', valor: k.penalizacionesMesCantidad || 0, icon: 'gavel', color: 'rojo', sub: 'Monto', subValor: k.penalizacionesMesMonto || 0 },
       { titulo: 'Horas extra del mes', valor: k.horasExtraMesCantidad || 0, icon: 'more_time', color: 'verde', sub: 'Monto', subValor: k.horasExtraMesMonto || 0 },
       { titulo: 'Cuotas vencidas', valor: k.cuotasVencidasCantidad || 0, icon: 'event_busy', color: 'rojo' },
-      { titulo: 'Aguinaldo estimado (año)', valor: k.aguinaldoEstimadoAnio || 0, icon: 'card_giftcard', color: 'ambar' }
+      { titulo: 'Aguinaldo estimado (año)', valor: k.aguinaldoEstimadoAnio || 0, icon: 'card_giftcard', color: 'ambar' },
+      { titulo: 'Cumpleaños del mes', valor: k.cumpleanosDelMes || 0, icon: 'cake', color: 'azul' },
+      { titulo: 'Vacaciones por vencer', valor: k.vacacionesPorVencer || 0, icon: 'beach_access', color: 'ambar' }
     ];
   }
 }

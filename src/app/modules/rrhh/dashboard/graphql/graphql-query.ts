@@ -7,6 +7,7 @@ const KPIS = `
   penalizacionesMesCantidad penalizacionesMesMonto
   horasExtraMesCantidad horasExtraMesMonto
   cuotasVencidasCantidad aguinaldoEstimadoAnio
+  cumpleanosDelMes vacacionesPorVencer
 `;
 
 export const dashboardRrhhKpisQuery = gql`

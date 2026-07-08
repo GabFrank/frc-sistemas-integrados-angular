@@ -13,4 +13,6 @@ export interface DashboardRrhhKpis {
   horasExtraMesMonto?: number;
   cuotasVencidasCantidad?: number;
   aguinaldoEstimadoAnio?: number;
+  cumpleanosDelMes?: number;
+  vacacionesPorVencer?: number;
 }

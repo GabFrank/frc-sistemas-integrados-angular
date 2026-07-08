@@ -181,6 +181,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
+          name: 'Historial de marcaciones',
+          icon: 'fingerprint',
+          action: 'historial-marcaciones',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
           name: 'Feriados',
           icon: 'event',
           action: 'list-feriado',
@@ -875,6 +881,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "reportes-rrhh":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ReportesRrhhComponent, "Reportes RRHH");
+        break;
+      case "historial-marcaciones":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListMarcacionComponent, "Historial de marcaciones");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

@@ -32,3 +32,7 @@ export const pagarLiquidacionFinalMutation = gql`
 export const anularLiquidacionFinalMutation = gql`
   mutation anularLiquidacionFinal($id: ID!) { data: anularLiquidacionFinal(id: $id) { ${LF} } }
 `;
+
+export const imprimirReciboFinalQuery = gql`
+  query ($id: ID!) { data: imprimirReciboFinal(id: $id) }
+`;
