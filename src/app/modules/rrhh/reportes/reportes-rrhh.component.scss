@@ -1,0 +1,15 @@
+.reportes-container {
+  padding: 16px;
+
+  .cards {
+    .card {
+      border-radius: 10px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border-left: 4px solid #42a5f5;
+
+      .card-top { .titulo { font-size: 16px; font-weight: 600; } }
+      .descripcion { font-size: 13px; opacity: 0.8; margin: 8px 0 12px 0; }
+    }
+  }
+}

@@ -38,6 +38,7 @@ import { EgresarFuncionarioDialogComponent } from './legajo/egresar-funcionario-
 import { SubirDocumentoDialogComponent } from './legajo/subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from './liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { DashboardRrhhComponent } from './dashboard/dashboard-rrhh.component';
+import { ReportesRrhhComponent } from './reportes/reportes-rrhh.component';
 
 @NgModule({
   declarations: [
@@ -74,7 +75,8 @@ import { DashboardRrhhComponent } from './dashboard/dashboard-rrhh.component';
     EgresarFuncionarioDialogComponent,
     SubirDocumentoDialogComponent,
     LiquidacionFinalDialogComponent,
-    DashboardRrhhComponent
+    DashboardRrhhComponent,
+    ReportesRrhhComponent
   ],
   imports: [
     CommonModule,
