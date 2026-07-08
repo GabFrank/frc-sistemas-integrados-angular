@@ -79,6 +79,9 @@
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA'" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA'" (click)="onPagar()">Pagar</button>
       <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA'" (click)="onAnular()">Anular</button>
+      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
+        <mat-icon>print</mat-icon> Recibo
+      </button>
     </div>
     <button mat-raised-button (click)="onCerrar()">Cerrar</button>
   </div>

@@ -145,6 +145,18 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     });
   }
 
+  onImprimirRecibo() {
+    this.liquidacionService.onImprimirRecibo(this.liq.id).pipe(untilDestroyed(this)).subscribe((base64: string) => {
+      if (!base64) {
+        this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
+        return;
+      }
+      const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
+      const win = window.open();
+      if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
+    });
+  }
+
   onCerrar() {
     this.dialogRef.close(this.cambiado);
   }
