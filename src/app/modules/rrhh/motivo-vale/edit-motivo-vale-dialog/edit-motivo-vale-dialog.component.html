@@ -1,0 +1,20 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>{{ selectedMotivo.id ? 'Editar' : 'Nuevo' }} motivo de vale</h2>
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <mat-form-field style="width: 100%">
+      <mat-label>Nombre</mat-label>
+      <input matInput [formControl]="nombreControl" required />
+      <mat-error *ngIf="nombreControl.hasError('required')">El nombre es obligatorio</mat-error>
+    </mat-form-field>
+    <mat-form-field style="width: 100%">
+      <mat-label>Descripción</mat-label>
+      <input matInput [formControl]="descripcionControl" />
+    </mat-form-field>
+    <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
+  </form>
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button *ngIf="!isEditting" mat-raised-button color="primary" (click)="onHabilitarEdicion()">Editar</button>
+    <button *ngIf="isEditting" mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

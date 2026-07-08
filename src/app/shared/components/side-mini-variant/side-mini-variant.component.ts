@@ -59,6 +59,9 @@ import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado
 import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
 import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-hora-extra/list-hora-extra.component';
 import { ListJornadaNovedadComponent } from '../../../modules/rrhh/jornada-novedad/list-jornada-novedad/list-jornada-novedad.component';
+import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
+import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
 
 
 interface BaseNavigationItem {
@@ -174,6 +177,24 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Novedades',
           icon: 'event_note',
           action: 'list-jornada-novedad',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Vales',
+          icon: 'request_quote',
+          action: 'list-vale',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Motivos de vale',
+          icon: 'label',
+          action: 'list-motivo-vale',
+          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Préstamos',
+          icon: 'payments',
+          action: 'list-prestamo',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
@@ -775,6 +796,15 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-jornada-novedad":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListJornadaNovedadComponent, "Novedades");
+        break;
+      case "list-vale":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListValeComponent, "Vales");
+        break;
+      case "list-motivo-vale":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-prestamo":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");

@@ -1,0 +1,62 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>Nuevo préstamo</h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <mat-form-field style="width: 100%">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl" required>
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+      <mat-error *ngIf="funcionarioControl.hasError('required')">Seleccione un funcionario</mat-error>
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Descripción</mat-label>
+      <input matInput [formControl]="descripcionControl" />
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Monto total</mat-label>
+        <input matInput type="number" [formControl]="montoTotalControl" required />
+      </mat-form-field>
+      <mat-form-field fxFlex="50%">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaControl" required>
+          <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Fecha inicio</mat-label>
+        <input matInput [matDatepicker]="picker" [formControl]="fechaInicioControl" required />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field fxFlex="50%">
+        <mat-label>Cantidad de cuotas</mat-label>
+        <input matInput type="number" [formControl]="cantidadCuotasControl" required />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Caja Mayor (desembolso)</mat-label>
+      <mat-select [formControl]="cajaControl" required>
+        <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
+      </mat-select>
+      <mat-error *ngIf="cajaControl.hasError('required')">Seleccione la caja</mat-error>
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Observación</mat-label>
+      <input matInput [formControl]="observacionControl" />
+    </mat-form-field>
+  </form>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Crear y desembolsar</button>
+  </div>
+</div>

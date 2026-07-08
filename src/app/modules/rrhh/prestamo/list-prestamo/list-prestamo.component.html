@@ -1,0 +1,62 @@
+<div class="prestamo-container" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
+    <h2>Préstamos a funcionarios</h2>
+    <button mat-raised-button color="primary" (click)="onNuevo()">
+      <mat-icon>add</mat-icon> Nuevo
+    </button>
+  </div>
+
+  <div class="filtros" fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="280px">
+      <mat-label>Funcionario</mat-label>
+      <mat-select [formControl]="funcionarioControl">
+        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button mat-raised-button color="primary" (click)="onBuscar()">
+      <mat-icon>search</mat-icon> Buscar
+    </button>
+  </div>
+
+  <div class="tabla-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+      <ng-container matColumnDef="fechaInicio">
+        <th mat-header-cell *matHeaderCellDef>Inicio</th>
+        <td mat-cell *matCellDef="let row">{{ row.fechaInicio | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoTotal">
+        <th mat-header-cell *matHeaderCellDef>Monto total</th>
+        <td mat-cell *matCellDef="let row">{{ row.montoTotal | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoPagado">
+        <th mat-header-cell *matHeaderCellDef>Cobrado</th>
+        <td mat-cell *matCellDef="let row">{{ row.montoPagado | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="cantidadCuotas">
+        <th mat-header-cell *matHeaderCellDef>Cuotas</th>
+        <td mat-cell *matCellDef="let row">{{ row.cantidadCuotas }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="chip" [ngClass]="'chip-' + row.estado">{{ row.estado }}</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="primary" (click)="onVerCuotas(row)" matTooltip="Ver cuotas / cobrar">
+            <mat-icon>receipt_long</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</div>

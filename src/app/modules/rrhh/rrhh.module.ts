@@ -14,6 +14,14 @@ import { ListHoraExtraComponent } from './hora-extra/list-hora-extra/list-hora-e
 import { EditHoraExtraDialogComponent } from './hora-extra/edit-hora-extra-dialog/edit-hora-extra-dialog.component';
 import { ListJornadaNovedadComponent } from './jornada-novedad/list-jornada-novedad/list-jornada-novedad.component';
 import { EditJornadaNovedadDialogComponent } from './jornada-novedad/edit-jornada-novedad-dialog/edit-jornada-novedad-dialog.component';
+import { ListMotivoValeComponent } from './motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { EditMotivoValeDialogComponent } from './motivo-vale/edit-motivo-vale-dialog/edit-motivo-vale-dialog.component';
+import { ListValeComponent } from './vale/list-vale/list-vale.component';
+import { EditValeDialogComponent } from './vale/edit-vale-dialog/edit-vale-dialog.component';
+import { ConfirmarValeDialogComponent } from './vale/confirmar-vale-dialog/confirmar-vale-dialog.component';
+import { ListPrestamoComponent } from './prestamo/list-prestamo/list-prestamo.component';
+import { EditPrestamoDialogComponent } from './prestamo/edit-prestamo-dialog/edit-prestamo-dialog.component';
+import { PrestamoCuotasDialogComponent } from './prestamo/prestamo-cuotas-dialog/prestamo-cuotas-dialog.component';
 
 @NgModule({
   declarations: [
@@ -26,7 +34,15 @@ import { EditJornadaNovedadDialogComponent } from './jornada-novedad/edit-jornad
     ListHoraExtraComponent,
     EditHoraExtraDialogComponent,
     ListJornadaNovedadComponent,
-    EditJornadaNovedadDialogComponent
+    EditJornadaNovedadDialogComponent,
+    ListMotivoValeComponent,
+    EditMotivoValeDialogComponent,
+    ListValeComponent,
+    EditValeDialogComponent,
+    ConfirmarValeDialogComponent,
+    ListPrestamoComponent,
+    EditPrestamoDialogComponent,
+    PrestamoCuotasDialogComponent
   ],
   imports: [
     CommonModule,

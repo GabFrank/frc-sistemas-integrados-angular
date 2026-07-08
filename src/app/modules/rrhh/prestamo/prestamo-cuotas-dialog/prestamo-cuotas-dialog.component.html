@@ -1,0 +1,49 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Cuotas del préstamo</h2>
+
+  <mat-form-field style="width: 300px">
+    <mat-label>Caja Mayor (para cobros)</mat-label>
+    <mat-select [formControl]="cajaControl">
+      <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <div class="tabla-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>#</th>
+        <td mat-cell *matCellDef="let row">{{ row.numero }}</td>
+      </ng-container>
+      <ng-container matColumnDef="fechaVencimiento">
+        <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+        <td mat-cell *matCellDef="let row">{{ row.fechaVencimiento | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoPagado">
+        <th mat-header-cell *matHeaderCellDef>Pagado</th>
+        <td mat-cell *matCellDef="let row">{{ row.montoPagado | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="chip" [ngClass]="'chip-' + row.estado">{{ row.estado }}</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-stroked-button color="primary" *ngIf="puedeCobrar(row)" (click)="onCobrar(row)">Cobrar</button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
+    <button mat-raised-button color="primary" (click)="onCerrar()">Cerrar</button>
+  </div>
+</div>
