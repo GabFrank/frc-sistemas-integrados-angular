@@ -1,0 +1,88 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="14px">
+  <h2 mat-dialog-title>Vacaciones — año de servicio {{ vacacion.anioServicio }}</h2>
+
+  <div class="resumen">Disponibles: <b>{{ disponibles }}</b> de {{ vacacion.diasGenerados }} días</div>
+
+  <div class="seccion">
+    <h3>Programar período</h3>
+    <div fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex="160px">
+        <mat-label>Desde</mat-label>
+        <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
+        <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
+        <mat-datepicker #dp1></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field fxFlex="160px">
+        <mat-label>Hasta</mat-label>
+        <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" />
+        <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
+        <mat-datepicker #dp2></mat-datepicker>
+      </mat-form-field>
+      <button mat-raised-button color="primary" [disabled]="desdeControl.invalid || hastaControl.invalid" (click)="onProgramar()">Programar</button>
+    </div>
+
+    <table mat-table [dataSource]="periodos" class="mat-elevation-z1 tabla">
+      <ng-container matColumnDef="fechaDesde">
+        <th mat-header-cell *matHeaderCellDef>Desde</th>
+        <td mat-cell *matCellDef="let row">{{ row.fechaDesde | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="fechaHasta">
+        <th mat-header-cell *matHeaderCellDef>Hasta</th>
+        <td mat-cell *matCellDef="let row">{{ row.fechaHasta | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="diasUsados">
+        <th mat-header-cell *matHeaderCellDef>Días</th>
+        <td mat-cell *matCellDef="let row">{{ row.diasUsados }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">{{ row.estado }}</td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA'" (click)="onAprobar(row)" matTooltip="Aprobar"><mat-icon>check</mat-icon></button>
+          <button mat-icon-button color="accent" *ngIf="row.estado === 'PROGRAMADA'" (click)="onMarcarGozada(row)" matTooltip="Marcar gozada"><mat-icon>beach_access</mat-icon></button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="periodosColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: periodosColumns"></tr>
+    </table>
+  </div>
+
+  <div class="seccion">
+    <h3>Venta de días</h3>
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex="140px">
+        <mat-label>Días a vender</mat-label>
+        <input matInput type="number" [formControl]="diasVentaControl" />
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="onVenderDias()">Vender</button>
+    </div>
+
+    <table mat-table [dataSource]="ventas" class="mat-elevation-z1 tabla">
+      <ng-container matColumnDef="dias">
+        <th mat-header-cell *matHeaderCellDef>Días</th>
+        <td mat-cell *matCellDef="let row">{{ row.dias }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">{{ row.estado }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="ventasColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: ventasColumns"></tr>
+    </table>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
+    <button mat-raised-button color="primary" (click)="onCerrar()">Cerrar</button>
+  </div>
+</div>

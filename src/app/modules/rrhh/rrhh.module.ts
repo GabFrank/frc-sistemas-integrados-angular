@@ -22,6 +22,11 @@ import { ConfirmarValeDialogComponent } from './vale/confirmar-vale-dialog/confi
 import { ListPrestamoComponent } from './prestamo/list-prestamo/list-prestamo.component';
 import { EditPrestamoDialogComponent } from './prestamo/edit-prestamo-dialog/edit-prestamo-dialog.component';
 import { PrestamoCuotasDialogComponent } from './prestamo/prestamo-cuotas-dialog/prestamo-cuotas-dialog.component';
+import { ListVacacionComponent } from './vacacion/list-vacacion/list-vacacion.component';
+import { GestionVacacionDialogComponent } from './vacacion/gestion-vacacion-dialog/gestion-vacacion-dialog.component';
+import { ListAguinaldoComponent } from './aguinaldo/list-aguinaldo/list-aguinaldo.component';
+import { ListBonoComponent } from './bono/list-bono/list-bono.component';
+import { EditBonoDialogComponent } from './bono/edit-bono-dialog/edit-bono-dialog.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +47,12 @@ import { PrestamoCuotasDialogComponent } from './prestamo/prestamo-cuotas-dialog
     ConfirmarValeDialogComponent,
     ListPrestamoComponent,
     EditPrestamoDialogComponent,
-    PrestamoCuotasDialogComponent
+    PrestamoCuotasDialogComponent,
+    ListVacacionComponent,
+    GestionVacacionDialogComponent,
+    ListAguinaldoComponent,
+    ListBonoComponent,
+    EditBonoDialogComponent
   ],
   imports: [
     CommonModule,

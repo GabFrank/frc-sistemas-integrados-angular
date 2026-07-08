@@ -62,6 +62,9 @@ import { ListJornadaNovedadComponent } from '../../../modules/rrhh/jornada-noved
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
+import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
+import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-aguinaldo/list-aguinaldo.component';
+import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
 
 
 interface BaseNavigationItem {
@@ -195,6 +198,24 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Préstamos',
           icon: 'payments',
           action: 'list-prestamo',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Vacaciones',
+          icon: 'beach_access',
+          action: 'list-vacacion',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Aguinaldos',
+          icon: 'redeem',
+          action: 'list-aguinaldo',
+          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Bonos',
+          icon: 'card_giftcard',
+          action: 'list-bono',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
@@ -805,6 +826,15 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-prestamo":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");
+        break;
+      case "list-vacacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListVacacionComponent, "Vacaciones");
+        break;
+      case "list-aguinaldo":
+        this.openTabIfAuthorized(ROLES.RRHH_LIQUIDAR, ListAguinaldoComponent, "Aguinaldos");
+        break;
+      case "list-bono":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
