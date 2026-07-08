@@ -136,6 +136,20 @@
       </p>
     </div>
 
+    <!-- Requisitos del gasto continuo: define explícitamente qué se captura según el módulo padre -->
+    <div *ngIf="mostrarRequisitosContinuo" class="dialogo-seccion requisitos-seccion" fxLayout="column" fxLayoutGap="10px">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+        <mat-icon class="requisitos-icono">fact_check</mat-icon>
+        <span class="dialogo-seccion-titulo">Datos que se pedirán al registrar este gasto continuo</span>
+      </div>
+      <div class="requisitos-chips" fxLayout="row wrap" fxLayoutGap="8px grid">
+        <div class="requisito-chip" *ngFor="let campo of requisitosContinuo">
+          <mat-icon>{{ campo.icono }}</mat-icon>
+          <span>{{ campo.etiqueta }}</span>
+        </div>
+      </div>
+    </div>
+
     <div *ngIf="selectedTipoGasto?.id != null" class="dialogo-seccion" fxLayout="column" fxLayoutGap="12px">
       <span class="dialogo-seccion-titulo">Auditoría</span>
       <mat-form-field appearance="outline">

@@ -4,12 +4,15 @@ import { WindowInfoService } from '../../../../../shared/services/window-info.se
 import { GastoService } from '../../service/gasto.service';
 import { TipoGasto } from '../../models/tipo-gasto.model';
 import { AdicionarTipoGastoDialogComponent } from '../../dialogs/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
-import { UntilDestroy } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MODULOS_PADRE_OPCIONES } from '../../utils/tipo-gasto-modulo-reglas.util';
+import { ModuloGastoService } from '../../service/modulo-gasto.service';
+import { etiquetaModuloPadre, ModuloGastoInfo } from '../../utils/tipo-gasto-modulo-reglas.util';
+
+type TipoGastoVista = TipoGasto & { moduloPadreEtiqueta: string };
 
 @UntilDestroy()
 @Component({
@@ -20,6 +23,7 @@ import { MODULOS_PADRE_OPCIONES } from '../../utils/tipo-gasto-modulo-reglas.uti
 })
 export class ListTipoGastosComponent implements OnInit {
   private gastoService = inject(GastoService);
+  private moduloGastoService = inject(ModuloGastoService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
 
@@ -28,7 +32,7 @@ export class ListTipoGastosComponent implements OnInit {
 
   tabNaturalezas = [null, 'CONTINUO', 'RECURRENTE', 'VARIABLE'];
   tabEtiquetas = ['Todos', 'Continuos', 'Recurrentes', 'Variables'];
-  modulosPadreOpciones = MODULOS_PADRE_OPCIONES;
+  modulosPadreOpciones: ModuloGastoInfo[] = [];
 
   coloresNaturaleza: Record<string, string> = {
     CONTINUO: '#42a5f5',
@@ -37,8 +41,10 @@ export class ListTipoGastosComponent implements OnInit {
   };
 
   columnasVisibles = [
-    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
+    'id', 'descripcion', 'tipoNaturaleza', 'moduloPadre', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
+
+  private catalogoModulos$ = this.moduloGastoService.obtenerModulos();
 
   private tabActivaSubject = new BehaviorSubject<number>(0);
   public tabActiva$ = this.tabActivaSubject.asObservable();
@@ -58,13 +64,14 @@ export class ListTipoGastosComponent implements OnInit {
     moduloPadre: new FormControl<string | null>(null),
   });
 
-  public listaFiltrada$: Observable<TipoGasto[]> = combineLatest([
+  public listaFiltrada$: Observable<TipoGastoVista[]> = combineLatest([
     this.tabActiva$,
     this.refetchSubject,
-    this.pagination$
+    this.pagination$,
+    this.catalogoModulos$
   ]).pipe(
     tap(() => this.cargandoSubject.next(true)),
-    switchMap(([tabIndex, _, pag]) => {
+    switchMap(([tabIndex, _, pag, catalogo]) => {
       const naturaleza = this.tabNaturalezas[tabIndex];
       const texto = this.searchFormGroup.controls.texto.value || null;
       const moduloPadre = this.searchFormGroup.controls.moduloPadre.value || null;
@@ -76,23 +83,30 @@ export class ListTipoGastosComponent implements OnInit {
         pag.pageSize,
         moduloPadre
       ).pipe(
+        map(res => ({ res, catalogo })),
         catchError(err => {
           console.error('Error fetching tipo_gastos:', err);
-          return of(null);
+          return of({ res: null, catalogo });
         })
       );
     }),
-    tap(res => {
+    tap(({ res }) => {
       this.cargandoSubject.next(false);
       if (res) {
         this.totalElements$.next(res.getTotalElements || 0);
       }
     }),
-    map(res => res?.getContent || []),
+    map(({ res, catalogo }) => (res?.getContent || []).map(item => ({
+      ...item,
+      moduloPadreEtiqueta: etiquetaModuloPadre(catalogo, item.moduloPadre),
+    }))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
   ngOnInit(): void {
+    this.catalogoModulos$.pipe(untilDestroyed(this)).subscribe(modulos => {
+      this.modulosPadreOpciones = modulos;
+    });
   }
 
   cambiarTab(indice: number): void {

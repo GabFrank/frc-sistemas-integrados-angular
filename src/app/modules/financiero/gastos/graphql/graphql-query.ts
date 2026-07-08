@@ -250,15 +250,11 @@ export const tipoGastoQuery = gql`
       autorizacion
       activo
       activoEnSucursales
-      isClasificacion
       tipoNaturaleza
       moduloPadre
       afectaFinanzasActivo
       esPagoCuotaActivo
       cargo {
-        id
-      }
-      clasificacionGasto {
         id
       }
       usuario {
@@ -268,6 +264,23 @@ export const tipoGastoQuery = gql`
         }
       }
       creadoEn
+    }
+  }
+`;
+
+export const modulosGastoQuery = gql`
+  query {
+    data: modulosGasto {
+      valor
+      etiqueta
+      grupo
+      esServicioContinuo
+      tieneCuotasActivo
+      requiereEnteActivo
+      tipoEnteEsperado
+      diaVencimientoEnContinuo
+      lecturaMedidorEnContinuo
+      nisEnContinuo
     }
   }
 `;
@@ -293,15 +306,11 @@ export const saveTipoGasto = gql`
       autorizacion
       activo
       activoEnSucursales
-      isClasificacion
       tipoNaturaleza
       moduloPadre
       afectaFinanzasActivo
       esPagoCuotaActivo
       cargo {
-        id
-      }
-      clasificacionGasto {
         id
       }
       usuario {
@@ -496,17 +505,12 @@ export const filterTipoGastosQuery = gql`
         autorizacion
         activo
         activoEnSucursales
-        isClasificacion
         tipoNaturaleza
         moduloPadre
         afectaFinanzasActivo
         esPagoCuotaActivo
         cargo {
           id
-        }
-        clasificacionGasto {
-          id
-          descripcion
         }
         usuario {
           id

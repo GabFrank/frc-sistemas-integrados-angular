@@ -18,11 +18,14 @@ import { SolicitudGastoSimpleData } from '../../interface/solicitud-gasto-simple
 import { SolicitudGastoSimpleMontoLinea } from '../../interface/solicitud-gasto-simple-monto-linea.interface';
 import { SolicitudGastoSimpleResult } from '../../interface/solicitud-gasto-simple-result.interface';
 import {
-  mostrarTarjetaCuotasActivoEnSolicitud,
+  ModuloGastoInfo,
+  buscarModuloInfo,
   etiquetaModuloPadre,
+  mostrarTarjetaCuotasActivoEnSolicitud,
   requiereEnteActivo,
-  tipoEnteDesdeModuloPadre,
+  tipoEnteDesdeModuloInfo,
 } from '../../utils/tipo-gasto-modulo-reglas.util';
+import { ModuloGastoService } from '../../service/modulo-gasto.service';
 import { EnteFinancialSummaryGQL } from '../../graphql/getEnteFinancialSummary';
 import { SolicitudGastoData } from '../../models/solicitud-gasto-data.model';
 import {
@@ -71,6 +74,8 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   notificacionVencimiento: string | null = null;
   cargandoResumenEnte = false;
   mostrarTarjetaCuotasActivo = false;
+  private catalogoModulos: ModuloGastoInfo[] = [];
+  private moduloInfo: ModuloGastoInfo | null = null;
 
   constructor(
     private matDialogRef: MatDialogRef<SolicitudGastoSimpleDialogComponent>,
@@ -81,6 +86,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
     private proveedoresSearchByPersonaPageGQL: ProveedoresSearchByPersonaPageGQL,
     private enteService: EnteService,
     private enteFinancialSummaryGQL: EnteFinancialSummaryGQL,
+    private moduloGastoService: ModuloGastoService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -90,8 +96,14 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
       this.solicitanteNombreControl.setValue(this.data.solicitanteNombre);
     }
 
-    this.inicializarPropiedadesEnteActivo();
-    this.actualizarValidadoresEnte();
+    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe(modulos => {
+      this.catalogoModulos = modulos;
+      this.moduloInfo = buscarModuloInfo(modulos, this.data?.moduloPadre);
+      this.inicializarPropiedadesEnteActivo();
+      this.actualizarValidadoresEnte();
+      this.cdr.markForCheck();
+    });
+
     this.suscribirEstadoFormulario();
 
     if (this.mainService.sucursalActual) {
@@ -251,10 +263,10 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
 
   private inicializarPropiedadesEnteActivo(): void {
     const modulo = this.data?.moduloPadre;
-    this.requiereEnteActivo = requiereEnteActivo(modulo);
-    this.etiquetaEnteActivo = etiquetaModuloPadre(modulo);
+    this.requiereEnteActivo = requiereEnteActivo(this.moduloInfo);
+    this.etiquetaEnteActivo = etiquetaModuloPadre(this.catalogoModulos, modulo);
     this.mostrarTarjetaCuotasActivo = mostrarTarjetaCuotasActivoEnSolicitud(
-      modulo,
+      this.moduloInfo,
       this.data?.tipoNaturaleza,
       this.data?.esPagoCuotaActivo,
     );
@@ -317,7 +329,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   }
 
   private tipoEnteDesdeModuloPadre(): TipoEnte | null {
-    const tipo = tipoEnteDesdeModuloPadre(this.data?.moduloPadre);
+    const tipo = tipoEnteDesdeModuloInfo(this.moduloInfo);
     if (tipo == null) {
       return null;
     }
@@ -376,7 +388,7 @@ export class SolicitudGastoSimpleDialogComponent implements OnInit {
   }
 
   private aplicarAutocompletado(summary: EnteFinancialSummaryResponse): void {
-    const tipoBien = tipoEnteDesdeModuloPadre(this.data?.moduloPadre);
+    const tipoBien = tipoEnteDesdeModuloInfo(this.moduloInfo);
     if (this.mostrarTarjetaCuotasActivo) {
       this.resumenEnte = mapearSummaryASolicitudGastoData(summary, tipoBien);
       this.notificacionVencimiento = construirNotificacionVencimiento(summary.diasParaVencer);

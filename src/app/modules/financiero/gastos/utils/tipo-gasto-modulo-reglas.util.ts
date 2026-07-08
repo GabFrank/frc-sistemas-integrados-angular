@@ -1,24 +1,24 @@
-export type ModuloPadreGasto =
-  | 'MUEBLE'
-  | 'INMUEBLE'
-  | 'PERSONAS'
-  | 'VEHICULO'
-  | 'EQUIPOS'
-  | 'ANDE'
-  | 'JUNTA_SANEAMIENTO'
-  | 'IMPUESTO'
-  | 'INTERNET'
-  | 'SEGURIDAD'
-  | 'BASURA'
-  | 'SEGURO'
-  | 'OTRO';
+export type ModuloPadreGasto = string;
 
 export type TipoNaturalezaGasto = 'VARIABLE' | 'CONTINUO' | 'RECURRENTE';
 
-export interface ModuloPadreOpcion {
-  valor: ModuloPadreGasto;
+export type GrupoModuloGasto = 'ACTIVO' | 'SERVICIO' | 'OTRO';
+
+/**
+ * Catálogo de módulo padre provisto por el backend (query modulosGasto).
+ * Es la única fuente de verdad: el frontend no vuelve a hardcodear reglas.
+ */
+export interface ModuloGastoInfo {
+  valor: string;
   etiqueta: string;
-  grupo: 'ACTIVO' | 'SERVICIO' | 'OTRO';
+  grupo: GrupoModuloGasto;
+  esServicioContinuo: boolean;
+  tieneCuotasActivo: boolean;
+  requiereEnteActivo: boolean;
+  tipoEnteEsperado: string | null;
+  diaVencimientoEnContinuo: boolean;
+  lecturaMedidorEnContinuo: boolean;
+  nisEnContinuo: boolean;
 }
 
 export interface ReglasTipoGastoModulo {
@@ -34,76 +34,47 @@ export interface ReglasTipoGastoModulo {
   hintConfiguracion: string;
 }
 
-export const MODULOS_PADRE_OPCIONES: ModuloPadreOpcion[] = [
-  { valor: 'INMUEBLE', etiqueta: 'Inmueble', grupo: 'ACTIVO' },
-  { valor: 'VEHICULO', etiqueta: 'Vehículo', grupo: 'ACTIVO' },
-  { valor: 'MUEBLE', etiqueta: 'Mueble', grupo: 'ACTIVO' },
-  { valor: 'EQUIPOS', etiqueta: 'Equipo', grupo: 'ACTIVO' },
-  { valor: 'PERSONAS', etiqueta: 'Persona', grupo: 'ACTIVO' },
-  { valor: 'ANDE', etiqueta: 'ANDE (energía eléctrica)', grupo: 'SERVICIO' },
-  { valor: 'JUNTA_SANEAMIENTO', etiqueta: 'Junta de Saneamiento (agua)', grupo: 'SERVICIO' },
-  { valor: 'INTERNET', etiqueta: 'Internet', grupo: 'SERVICIO' },
-  { valor: 'SEGURIDAD', etiqueta: 'Seguridad privada', grupo: 'SERVICIO' },
-  { valor: 'BASURA', etiqueta: 'Recolección de basura', grupo: 'SERVICIO' },
-  { valor: 'SEGURO', etiqueta: 'Seguro', grupo: 'SERVICIO' },
-  { valor: 'IMPUESTO', etiqueta: 'Impuesto', grupo: 'SERVICIO' },
-  { valor: 'OTRO', etiqueta: 'Otro', grupo: 'OTRO' },
-];
-
-const MODULOS_SERVICIO_CONTINUO: ModuloPadreGasto[] = [
-  'ANDE',
-  'JUNTA_SANEAMIENTO',
-  'IMPUESTO',
-  'INTERNET',
-  'SEGURIDAD',
-  'BASURA',
-  'SEGURO',
-];
-
-const MODULOS_PADRE_CON_CUOTAS_ACTIVO: ModuloPadreGasto[] = [
-  'INMUEBLE',
-  'MUEBLE',
-  'VEHICULO',
-  'EQUIPOS',
-];
-
 export function esGastoContinuoRecurrente(naturaleza?: string | null): boolean {
   return naturaleza === 'CONTINUO' || naturaleza === 'RECURRENTE';
 }
 
-export function esModuloServicioContinuo(modulo?: ModuloPadreGasto | string | null): boolean {
-  return MODULOS_SERVICIO_CONTINUO.includes(modulo as ModuloPadreGasto);
+export function buscarModuloInfo(
+  catalogo: ModuloGastoInfo[] | null | undefined,
+  modulo?: string | null,
+): ModuloGastoInfo | null {
+  if (!catalogo || modulo == null) {
+    return null;
+  }
+  return catalogo.find((item) => item.valor === modulo) ?? null;
+}
+
+export function esModuloServicioContinuo(info?: ModuloGastoInfo | null): boolean {
+  return info?.esServicioContinuo === true;
 }
 
 export function calcularReglasTipoGastoModulo(
-  modulo?: ModuloPadreGasto | string | null,
-  naturaleza?: TipoNaturalezaGasto | string | null
+  info: ModuloGastoInfo | null | undefined,
+  naturaleza?: TipoNaturalezaGasto | string | null,
 ): ReglasTipoGastoModulo {
-  const mod = (modulo ?? 'OTRO') as ModuloPadreGasto;
   const nat = (naturaleza ?? 'VARIABLE') as TipoNaturalezaGasto;
   const continuo = esGastoContinuoRecurrente(nat);
-  const servicio = esModuloServicioContinuo(mod);
+  const servicio = info?.esServicioContinuo === true;
+  const tieneCuotas = info?.tieneCuotasActivo === true;
 
-  const esPagoCuotaActivo =
-    continuo && MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod);
-
-  const afectaFinanzasActivo =
-    servicio ||
-    (continuo && MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod));
-
-  const requiereDiaVencimiento = continuo && (servicio || mod === 'INMUEBLE');
-  const requiereLecturaMedidor =
-    continuo && (mod === 'ANDE' || mod === 'JUNTA_SANEAMIENTO');
-  const requiereNis = continuo && mod === 'ANDE';
+  const esPagoCuotaActivo = continuo && tieneCuotas;
+  const afectaFinanzasActivo = servicio || (continuo && tieneCuotas);
+  const requiereDiaVencimiento = continuo && info?.diaVencimientoEnContinuo === true;
+  const requiereLecturaMedidor = continuo && info?.lecturaMedidorEnContinuo === true;
+  const requiereNis = continuo && info?.nisEnContinuo === true;
   const montoVariableEnContinuo = continuo && servicio;
 
   let hintConfiguracion = '';
   if (servicio) {
     hintConfiguracion =
       'Gasto continuo con monto variable mensual. Al registrar el gasto continuo se pedirá día de vencimiento';
-    if (mod === 'ANDE') {
+    if (info?.valor === 'ANDE') {
       hintConfiguracion += ', NIS, nro. de reloj y lecturas.';
-    } else if (mod === 'JUNTA_SANEAMIENTO') {
+    } else if (info?.valor === 'JUNTA_SANEAMIENTO') {
       hintConfiguracion += ' y lecturas del medidor de agua.';
     } else {
       hintConfiguracion += '.';
@@ -111,7 +82,7 @@ export function calcularReglasTipoGastoModulo(
   } else if (esPagoCuotaActivo) {
     hintConfiguracion =
       'Gasto continuo con cuotas del activo. Al vincular el inmueble/vehículo/mueble se tomarán las cuotas pendientes.';
-  } else if (mod === 'INMUEBLE' && nat === 'VARIABLE') {
+  } else if (info?.valor === 'INMUEBLE' && nat === 'VARIABLE') {
     hintConfiguracion =
       'Gasto ocasional del inmueble (ej. mantenimiento). No aplica cuotas ni día de vencimiento fijo.';
   }
@@ -119,9 +90,8 @@ export function calcularReglasTipoGastoModulo(
   return {
     esPagoCuotaActivo,
     afectaFinanzasActivo,
-    mostrarCuotas: MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod),
-    mostrarAfectaFinanzas:
-      MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(mod) || servicio,
+    mostrarCuotas: tieneCuotas,
+    mostrarAfectaFinanzas: tieneCuotas || servicio,
     requiereDiaVencimiento,
     requiereLecturaMedidor,
     requiereNis,
@@ -131,40 +101,104 @@ export function calcularReglasTipoGastoModulo(
   };
 }
 
-export function etiquetaModuloPadre(modulo?: ModuloPadreGasto | string | null): string {
-  const opcion = MODULOS_PADRE_OPCIONES.find((item) => item.valor === modulo);
-  return opcion?.etiqueta ?? 'Otro';
+export interface CampoCapturaContinuo {
+  icono: string;
+  etiqueta: string;
 }
 
-export function tipoEnteDesdeModuloPadre(
-  modulo?: ModuloPadreGasto | string | null
+/**
+ * Define explícitamente qué campos se capturan al crear un gasto continuo de este módulo padre.
+ * Es puramente presentacional (íconos y etiquetas), por eso vive en el frontend.
+ */
+export function camposCapturaGastoContinuo(
+  modulo?: string | null,
+): CampoCapturaContinuo[] {
+  const base: CampoCapturaContinuo[] = [
+    { icono: 'event_repeat', etiqueta: 'Periodicidad (mensual, trimestral, etc.)' },
+    { icono: 'today', etiqueta: 'Día de vencimiento' },
+    { icono: 'payments', etiqueta: 'Moneda de pago' },
+  ];
+
+  switch (modulo) {
+    case 'ANDE':
+      return [
+        ...base,
+        { icono: 'badge', etiqueta: 'Titular de la factura' },
+        { icono: 'tag', etiqueta: 'NIS' },
+        { icono: 'speed', etiqueta: 'Nro. de reloj / medidor' },
+        { icono: 'straighten', etiqueta: 'Lectura inicial' },
+      ];
+    case 'JUNTA_SANEAMIENTO':
+      return [
+        ...base,
+        { icono: 'badge', etiqueta: 'Titular de la factura' },
+        { icono: 'speed', etiqueta: 'Nro. de medidor de agua' },
+        { icono: 'straighten', etiqueta: 'Lectura inicial' },
+      ];
+    case 'INTERNET':
+      return [
+        ...base,
+        { icono: 'attach_money', etiqueta: 'Valor fijo mensual' },
+        { icono: 'download', etiqueta: 'Velocidad de bajada' },
+        { icono: 'upload', etiqueta: 'Velocidad de subida' },
+      ];
+    case 'SEGURIDAD':
+      return [
+        ...base,
+        { icono: 'attach_money', etiqueta: 'Valor fijo mensual' },
+        { icono: 'schedule', etiqueta: 'Horario de entrada y salida' },
+      ];
+    case 'BASURA':
+      return [
+        ...base,
+        { icono: 'attach_money', etiqueta: 'Valor fijo mensual' },
+        { icono: 'calendar_month', etiqueta: 'Días de recolección' },
+      ];
+    case 'SEGURO':
+      return [
+        ...base,
+        { icono: 'attach_money', etiqueta: 'Valor fijo por período' },
+        { icono: 'description', etiqueta: 'Nro. de póliza' },
+        { icono: 'event_available', etiqueta: 'Vigencia del contrato' },
+      ];
+    case 'IMPUESTO':
+      return [
+        ...base,
+        { icono: 'attach_money', etiqueta: 'Monto de la boleta' },
+        { icono: 'history', etiqueta: 'Fecha del último pago' },
+      ];
+    default:
+      return base;
+  }
+}
+
+export function etiquetaModuloPadre(
+  catalogo: ModuloGastoInfo[] | null | undefined,
+  modulo?: string | null,
+): string {
+  return buscarModuloInfo(catalogo, modulo)?.etiqueta ?? 'Otro';
+}
+
+export function tipoEnteDesdeModuloInfo(
+  info?: ModuloGastoInfo | null,
 ): 'VEHICULO' | 'MUEBLE' | 'INMUEBLE' | 'EQUIPO' | null {
-  if (modulo === 'VEHICULO' || modulo === 'MUEBLE' || modulo === 'INMUEBLE') {
-    return modulo;
-  }
-  if (modulo === 'EQUIPOS') {
-    return 'EQUIPO';
-  }
-  if (esModuloServicioContinuo(modulo)) {
-    return 'INMUEBLE';
+  const tipo = info?.tipoEnteEsperado;
+  if (tipo === 'VEHICULO' || tipo === 'MUEBLE' || tipo === 'INMUEBLE' || tipo === 'EQUIPO') {
+    return tipo;
   }
   return null;
 }
 
-export function requiereEnteActivo(modulo?: ModuloPadreGasto | string | null): boolean {
-  return tipoEnteDesdeModuloPadre(modulo) != null;
-}
-
-export function esModuloPadreConCuotasActivo(modulo?: ModuloPadreGasto | string | null): boolean {
-  return MODULOS_PADRE_CON_CUOTAS_ACTIVO.includes(modulo as ModuloPadreGasto);
+export function requiereEnteActivo(info?: ModuloGastoInfo | null): boolean {
+  return info?.requiereEnteActivo === true;
 }
 
 export function mostrarTarjetaCuotasActivoEnSolicitud(
-  modulo?: ModuloPadreGasto | string | null,
+  info: ModuloGastoInfo | null | undefined,
   naturaleza?: TipoNaturalezaGasto | string | null,
   esPagoCuotaActivo?: boolean | null,
 ): boolean {
-  if (!esModuloPadreConCuotasActivo(modulo)) {
+  if (info?.tieneCuotasActivo !== true) {
     return false;
   }
   if (typeof esPagoCuotaActivo === 'boolean') {

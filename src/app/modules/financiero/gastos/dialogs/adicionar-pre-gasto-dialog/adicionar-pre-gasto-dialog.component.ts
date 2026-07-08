@@ -145,7 +145,7 @@ export class AdicionarPreGastoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
+        this.listaTipoGasto = res.filter((tg: TipoGasto) => tg.activo);
         this.autoSeleccionarTipoGasto();
         this.cdr.markForCheck();
       }

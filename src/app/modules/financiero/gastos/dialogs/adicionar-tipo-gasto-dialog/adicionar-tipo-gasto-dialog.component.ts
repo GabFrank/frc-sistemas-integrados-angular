@@ -8,13 +8,15 @@ import { Cargo } from '../../../../empresarial/cargo/cargo.model';
 import { CargoService } from '../../../../empresarial/cargo/cargo.service';
 import { TipoGasto, TipoGastoInput } from '../../models/tipo-gasto.model';
 import { GastoService } from '../../service/gasto.service';
+import { ModuloGastoService } from '../../service/modulo-gasto.service';
 import {
-  MODULOS_PADRE_OPCIONES,
-  ModuloPadreGasto,
-  ModuloPadreOpcion,
+  CampoCapturaContinuo,
+  ModuloGastoInfo,
   ReglasTipoGastoModulo,
+  buscarModuloInfo,
   calcularReglasTipoGastoModulo,
-  esModuloServicioContinuo,
+  camposCapturaGastoContinuo,
+  esGastoContinuoRecurrente,
 } from '../../utils/tipo-gasto-modulo-reglas.util';
 
 export class AdicionarTipoGastoData {
@@ -34,7 +36,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   descripcionControl = new FormControl(null, Validators.required);
   autorizacionControl = new FormControl(true, Validators.required);
   cargoControl = new FormControl();
-  moduloPadreControl = new FormControl<ModuloPadreGasto | null>(null, Validators.required);
+  moduloPadreControl = new FormControl<string | null>(null, Validators.required);
   activoControl = new FormControl(true);
   activoEnSucursalesControl = new FormControl(true);
   naturezaControl = new FormControl('VARIABLE');
@@ -44,17 +46,20 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   usuarioControl = new FormControl();
   selectedTipoGasto: TipoGasto;
   listCargo: Cargo[] = [];
-  moduloPadreList = MODULOS_PADRE_OPCIONES;
-  modulosActivos: ModuloPadreOpcion[] = [];
-  modulosServicio: ModuloPadreOpcion[] = [];
-  modulosOtros: ModuloPadreOpcion[] = [];
+  moduloPadreList: ModuloGastoInfo[] = [];
+  modulosActivos: ModuloGastoInfo[] = [];
+  modulosServicio: ModuloGastoInfo[] = [];
+  modulosOtros: ModuloGastoInfo[] = [];
   reglas: ReglasTipoGastoModulo = calcularReglasTipoGastoModulo(null, 'VARIABLE');
   naturalezaServicioForzada = false;
+  requisitosContinuo: CampoCapturaContinuo[] = [];
+  mostrarRequisitosContinuo = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarTipoGastoData,
     private matDialogRef: MatDialogRef<AdicionarTipoGastoDialogComponent>,
     private gastoService: GastoService,
+    private moduloGastoService: ModuloGastoService,
     private cargoService: CargoService,
     private cargandoService: CargandoDialogService,
     private cdr: ChangeDetectorRef
@@ -62,9 +67,6 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     if (data.tipoGasto != null) {
       this.selectedTipoGasto = data.tipoGasto;
     }
-    this.modulosActivos = this.moduloPadreList.filter((item) => item.grupo === 'ACTIVO');
-    this.modulosServicio = this.moduloPadreList.filter((item) => item.grupo === 'SERVICIO');
-    this.modulosOtros = this.moduloPadreList.filter((item) => item.grupo === 'OTRO');
   }
 
   ngOnInit(): void {
@@ -80,6 +82,15 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       .pipe(startWith(this.naturezaControl.value), untilDestroyed(this))
       .subscribe(() => this.actualizarReglasModulo());
 
+    this.moduloGastoService.obtenerModulos().pipe(untilDestroyed(this)).subscribe(modulos => {
+      this.moduloPadreList = modulos;
+      this.modulosActivos = modulos.filter((item) => item.grupo === 'ACTIVO');
+      this.modulosServicio = modulos.filter((item) => item.grupo === 'SERVICIO');
+      this.modulosOtros = modulos.filter((item) => item.grupo === 'OTRO');
+      this.actualizarReglasModulo();
+      this.cdr.markForCheck();
+    });
+
     this.cargoService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.listCargo = res;
@@ -93,7 +104,8 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
 
   private actualizarReglasModulo(): void {
     const modulo = this.moduloPadreControl.value;
-    const servicio = esModuloServicioContinuo(modulo);
+    const info = buscarModuloInfo(this.moduloPadreList, modulo);
+    const servicio = info?.esServicioContinuo === true;
 
     if (servicio && this.naturezaControl.value !== 'CONTINUO') {
       this.naturalezaServicioForzada = true;
@@ -102,7 +114,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       this.naturalezaServicioForzada = false;
     }
 
-    this.reglas = calcularReglasTipoGastoModulo(modulo, this.naturezaControl.value);
+    this.reglas = calcularReglasTipoGastoModulo(info, this.naturezaControl.value);
 
     if (this.reglas.mostrarCuotas) {
       this.esPagoCuotaControl.setValue(this.reglas.esPagoCuotaActivo, { emitEvent: false });
@@ -116,6 +128,12 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       this.afectaFinanzasControl.setValue(false, { emitEvent: false });
     }
 
+    const esContinuo = esGastoContinuoRecurrente(this.naturezaControl.value);
+    this.mostrarRequisitosContinuo = servicio || (esContinuo && modulo != null && modulo !== 'OTRO');
+    this.requisitosContinuo = this.mostrarRequisitosContinuo
+      ? camposCapturaGastoContinuo(modulo)
+      : [];
+
     this.cdr.markForCheck();
   }
 
@@ -126,7 +144,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     this.activoEnSucursalesControl.setValue(this.selectedTipoGasto?.activoEnSucursales ?? true);
     this.autorizacionControl.setValue(this.selectedTipoGasto?.autorizacion);
     this.cargoControl.setValue(this.selectedTipoGasto?.cargo?.id);
-    this.moduloPadreControl.setValue((this.selectedTipoGasto?.moduloPadre as ModuloPadreGasto) ?? null);
+    this.moduloPadreControl.setValue(this.selectedTipoGasto?.moduloPadre ?? null);
     this.naturezaControl.setValue(this.selectedTipoGasto?.tipoNaturaleza || 'VARIABLE');
     this.esPagoCuotaControl.setValue(this.selectedTipoGasto?.esPagoCuotaActivo ?? false);
     this.afectaFinanzasControl.setValue(this.selectedTipoGasto?.afectaFinanzasActivo ?? false);
@@ -141,11 +159,6 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       input.id = this.selectedTipoGasto.id;
       input.creadoEn = this.selectedTipoGasto.creadoEn;
       input.usuarioId = this.selectedTipoGasto?.usuario?.id;
-      input.isClasificacion = this.selectedTipoGasto?.isClasificacion;
-      input.clasificacionGastoId = this.selectedTipoGasto?.clasificacionGasto?.id;
-    } else {
-      input.isClasificacion = false;
-      input.clasificacionGastoId = null;
     }
     input.moduloPadre = this.moduloPadreControl.value;
     input.descripcion = this.descripcionControl.value;
