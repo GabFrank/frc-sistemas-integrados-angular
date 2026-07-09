@@ -131,10 +131,11 @@
       >
         <div fxFlex style="text-align: start; color: #f57c00">Costo medio:</div>
         <div fxFlex style="text-align: start">
-          {{
-            (selectedProducto?.costo?.costoMedio | number : "1.0-2") ||
-              "No posee"
-          }}
+          <app-costo-display
+            [valor]="selectedProducto?.costo?.costoMedio"
+            digitos="1.0-2"
+            placeholder="No posee"
+          ></app-costo-display>
         </div>
       </div>
 
@@ -147,10 +148,13 @@
           Costo ult. compra:
         </div>
         <div fxFlex style="text-align: start">
-          {{
-            (selectedProducto?.costo?.ultimoPrecioCompra | number : "1.0-2") ||
-              "No posee"
-          }}
+          <app-costo-display
+            [valor]="selectedProducto?.costo?.ultimoPrecioCompra"
+            [moneda]="selectedProducto?.costo?.moneda"
+            [cotizacion]="selectedProducto?.costo?.cotizacion"
+            digitos="1.0-2"
+            placeholder="No posee"
+          ></app-costo-display>
         </div>
       </div>
     </mat-card>
@@ -1101,16 +1105,21 @@
                 <div fxFlex="25" fxLayout="column">
                   <div class="title" fxFlex="50">Costo medio</div>
                   <div class="item" fxFlex="50">
-                    {{ selectedProducto?.costo?.costoMedio | number : "1.0-2" }}
+                    <app-costo-display
+                      [valor]="selectedProducto?.costo?.costoMedio"
+                      digitos="1.0-2"
+                    ></app-costo-display>
                   </div>
                 </div>
                 <div fxFlex="25" fxLayout="column">
                   <div class="title" fxFlex="50">Última compra</div>
                   <div class="item" fxFlex="50">
-                    {{
-                      selectedProducto?.costo?.ultimoPrecioCompra
-                        | number : "1.0-2"
-                    }}
+                    <app-costo-display
+                      [valor]="selectedProducto?.costo?.ultimoPrecioCompra"
+                      [moneda]="selectedProducto?.costo?.moneda"
+                      [cotizacion]="selectedProducto?.costo?.cotizacion"
+                      digitos="1.0-2"
+                    ></app-costo-display>
                   </div>
                 </div>
                 <div fxFlex="25" fxLayout="column">

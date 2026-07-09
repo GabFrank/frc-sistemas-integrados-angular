@@ -227,6 +227,7 @@ export const searchProductoWithFilters = gql`
           moneda {
             id
             denominacion
+            simbolo
             cambio
           }
         }

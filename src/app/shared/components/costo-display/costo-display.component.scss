@@ -1,0 +1,18 @@
+.costo-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+
+  &--extranjera {
+    cursor: help;
+  }
+
+  &__icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    opacity: 0.55;
+  }
+}

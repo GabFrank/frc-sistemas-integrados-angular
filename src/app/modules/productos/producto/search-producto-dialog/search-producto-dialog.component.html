@@ -34,7 +34,7 @@
 
       <ng-container matColumnDef="precioUltimaCompra">
         <th mat-header-cell *matHeaderCellDef > Precio Última Compra </th>
-        <td mat-cell *matCellDef="let producto" style="text-align: start;">{{producto.sucursales[sucursalActualIndex]?.precioUltimaCompra | number}} Gs. </td>
+        <td mat-cell *matCellDef="let producto" style="text-align: start;"><app-costo-display [valor]="producto.sucursales[sucursalActualIndex]?.precioUltimaCompra"></app-costo-display></td>
       </ng-container>
 
       <ng-container matColumnDef="cantidadUltimaCompra">
