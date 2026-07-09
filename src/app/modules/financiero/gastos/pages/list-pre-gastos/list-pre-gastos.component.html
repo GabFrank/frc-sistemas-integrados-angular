@@ -258,7 +258,7 @@
   <ng-template #imageDialogTemplate>
     <div style="position: relative; width: 100%; height: 100%; max-width: 95vw; max-height: 95vh; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: zoom-out;" (click)="cerrarFotoAmpliada()">
       
-      <button mat-icon-button (click)="cambiarFoto(-1, $event)" *ngIf="fotosDialog.length > 1"
+      <button mat-icon-button (click)="cambiarFoto(-1, $event)" *ngIf="fotosDialog.length > 1 && indiceFotoDialog > 0"
         style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #fff; background-color: rgba(0,0,0,0.5); z-index: 10;">
         <mat-icon style="font-size: 36px; width: 36px; height: 36px;">chevron_left</mat-icon>
       </button>
@@ -268,7 +268,7 @@
         <mat-icon>close</mat-icon>
       </button>
 
-      <button mat-icon-button (click)="cambiarFoto(1, $event)" *ngIf="fotosDialog.length > 1"
+      <button mat-icon-button (click)="cambiarFoto(1, $event)" *ngIf="fotosDialog.length > 1 && indiceFotoDialog < fotosDialog.length - 1"
         style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #fff; background-color: rgba(0,0,0,0.5); z-index: 10;">
         <mat-icon style="font-size: 36px; width: 36px; height: 36px;">chevron_right</mat-icon>
       </button>

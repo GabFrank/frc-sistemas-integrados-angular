@@ -186,12 +186,9 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   cambiarFoto(delta: number, event: Event): void {
     event.stopPropagation();
     let newIndex = this.indiceFotoDialog + delta;
-    if (newIndex < 0) {
-      newIndex = this.fotosDialog.length - 1;
-    } else if (newIndex >= this.fotosDialog.length) {
-      newIndex = 0;
+    if (newIndex >= 0 && newIndex < this.fotosDialog.length) {
+      this.indiceFotoDialog = newIndex;
     }
-    this.indiceFotoDialog = newIndex;
   }
 
   private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
