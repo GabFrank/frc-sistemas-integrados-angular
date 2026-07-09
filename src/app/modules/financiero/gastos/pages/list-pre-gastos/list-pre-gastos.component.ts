@@ -60,6 +60,15 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
+
+  public mostrarRendicionSubject = new BehaviorSubject<boolean>(false);
+  public mostrarRendicion$ = this.mostrarRendicionSubject.asObservable();
+
+  public fotoAmpliadaSubject = new BehaviorSubject<string | null>(null);
+  public fotoAmpliada$ = this.fotoAmpliadaSubject.asObservable();
+
+  public fotosRendicion$: Observable<{ url: string; etiqueta: string }[]> =
+    this.preGastoSeleccionado$.pipe(map(pg => this.extraerFotosRendicion(pg)));
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(ListPreGastosComponent.fechaInicioRangoPorDefecto()),
     fin: new FormControl<Date | null>(new Date()),
@@ -142,11 +151,48 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
     this.preGastoSeleccionadoSubject.next(null);
+    this.mostrarRendicionSubject.next(false);
+    this.fotoAmpliadaSubject.next(null);
     this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
   seleccionarPreGasto(preGasto: PreGasto): void {
+    const actual = this.preGastoSeleccionadoSubject.value;
+    if (actual?.id !== preGasto?.id) {
+      this.mostrarRendicionSubject.next(false);
+      this.fotoAmpliadaSubject.next(null);
+    }
     this.preGastoSeleccionadoSubject.next(preGasto);
+  }
+
+  toggleRendicion(): void {
+    this.mostrarRendicionSubject.next(!this.mostrarRendicionSubject.value);
+  }
+
+  ampliarFoto(url: string): void {
+    this.fotoAmpliadaSubject.next(url);
+  }
+
+  cerrarFotoAmpliada(): void {
+    this.fotoAmpliadaSubject.next(null);
+  }
+
+  private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
+    const fotos: { url: string; etiqueta: string }[] = [];
+    const rendiciones = preGasto?.rendiciones || [];
+    rendiciones.forEach((r) => {
+      const facturas = (r?.fotosFacturaUrls?.length ? r.fotosFacturaUrls : (r?.fotoFacturaUrl ? [r.fotoFacturaUrl] : []));
+      const productos = (r?.fotosProductoUrls?.length ? r.fotosProductoUrls : (r?.fotoProductoUrl ? [r.fotoProductoUrl] : []));
+      facturas.filter(Boolean).forEach((url, i) => {
+        const num = facturas.length > 1 ? ` ${i + 1}` : '';
+        fotos.push({ url, etiqueta: `Rendición #${r.id} · Factura${num}` });
+      });
+      productos.filter(Boolean).forEach((url, i) => {
+        const num = productos.length > 1 ? ` ${i + 1}` : '';
+        fotos.push({ url, etiqueta: `Rendición #${r.id} · Producto${num}` });
+      });
+    });
+    return fotos;
   }
 
   autorizarGasto(preGasto: PreGasto): void {

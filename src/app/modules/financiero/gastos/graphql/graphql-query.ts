@@ -483,6 +483,21 @@ export const filterPreGastosQuery = gql`
           vueltoRs
           vueltoDs
         }
+        rendiciones {
+          id
+          montoTotal
+          fotoFacturaUrl
+          fotoProductoUrl
+          fotosFacturaUrls
+          fotosProductoUrls
+          kmActual
+          litros
+          precioPorLitro
+          ubicacionProvisoria
+          establecimientoAlimentacion
+          creadoEn
+          tipoGasto { descripcion }
+        }
         creadoEn
       }
     }
