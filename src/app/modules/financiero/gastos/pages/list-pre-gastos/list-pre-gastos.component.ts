@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject, ViewChild, TemplateRef } from '@angular/core';
 import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
@@ -64,8 +64,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   public mostrarRendicionSubject = new BehaviorSubject<boolean>(false);
   public mostrarRendicion$ = this.mostrarRendicionSubject.asObservable();
 
-  public fotoAmpliadaSubject = new BehaviorSubject<string | null>(null);
-  public fotoAmpliada$ = this.fotoAmpliadaSubject.asObservable();
+  @ViewChild('imageDialogTemplate') imageDialogTemplate!: TemplateRef<any>;
+  public fotoAmpliadaDialogUrl: string | null = null;
 
   public fotosRendicion$: Observable<{ url: string; etiqueta: string }[]> =
     this.preGastoSeleccionado$.pipe(map(pg => this.extraerFotosRendicion(pg)));
@@ -152,7 +152,6 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     this.tabActivaSubject.next(indice);
     this.preGastoSeleccionadoSubject.next(null);
     this.mostrarRendicionSubject.next(false);
-    this.fotoAmpliadaSubject.next(null);
     this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
@@ -160,7 +159,6 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     const actual = this.preGastoSeleccionadoSubject.value;
     if (actual?.id !== preGasto?.id) {
       this.mostrarRendicionSubject.next(false);
-      this.fotoAmpliadaSubject.next(null);
     }
     this.preGastoSeleccionadoSubject.next(preGasto);
   }
@@ -170,11 +168,17 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   ampliarFoto(url: string): void {
-    this.fotoAmpliadaSubject.next(url);
+    this.fotoAmpliadaDialogUrl = url;
+    this.matDialog.open(this.imageDialogTemplate, {
+      panelClass: 'transparent-dialog-panel',
+      backdropClass: 'dark-backdrop',
+      maxWidth: '95vw',
+      maxHeight: '95vh'
+    });
   }
 
   cerrarFotoAmpliada(): void {
-    this.fotoAmpliadaSubject.next(null);
+    this.matDialog.closeAll();
   }
 
   private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
