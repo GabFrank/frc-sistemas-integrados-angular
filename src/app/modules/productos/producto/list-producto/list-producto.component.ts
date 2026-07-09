@@ -66,7 +66,6 @@ import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedore
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { distinctUntilChanged, filter } from "rxjs/operators";
-import { ultimoPrecioCompraEnGs } from "../../../operaciones/costo-por-producto/costo-por-producto.util";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -86,7 +85,6 @@ import { ultimoPrecioCompraEnGs } from "../../../operaciones/costo-por-producto/
 })
 export class ListProductoComponent implements OnInit, AfterViewInit {
   readonly ROLES = ROLES;
-  readonly ultimoPrecioCompraEnGs = ultimoPrecioCompraEnGs;
   titulo = 'Lista de productos';
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("filtroProductoInput") filtroProductoInput: ElementRef;

@@ -66,6 +66,7 @@ import { NotificationBoardComponent } from '../modules/notificaciones/components
 import { NgxEchartsModule } from 'ngx-echarts';
 import { GraficoShellComponent } from './components/grafico-shell/grafico-shell.component';
 import { GraficoFiltrosFechaComponent } from './components/grafico-filtros-fecha/grafico-filtros-fecha.component';
+import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -115,7 +116,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     SideMiniVariantComponent,
     CellFormatPipe,
     GraficoShellComponent,
-    GraficoFiltrosFechaComponent
+    GraficoFiltrosFechaComponent,
+    CostoDisplayComponent
   ],
   imports: [
     CommonModule,
@@ -172,7 +174,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NotificationBoardComponent,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
-    NgxEchartsModule
+    NgxEchartsModule,
+    CostoDisplayComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })
