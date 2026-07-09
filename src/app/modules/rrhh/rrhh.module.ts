@@ -39,6 +39,7 @@ import { SubirDocumentoDialogComponent } from './legajo/subir-documento-dialog/s
 import { LiquidacionFinalDialogComponent } from './liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { DashboardRrhhComponent } from './dashboard/dashboard-rrhh.component';
 import { ReportesRrhhComponent } from './reportes/reportes-rrhh.component';
+import { ManualRrhhComponent } from './manual/manual-rrhh.component';
 
 @NgModule({
   declarations: [
@@ -76,7 +77,8 @@ import { ReportesRrhhComponent } from './reportes/reportes-rrhh.component';
     SubirDocumentoDialogComponent,
     LiquidacionFinalDialogComponent,
     DashboardRrhhComponent,
-    ReportesRrhhComponent
+    ReportesRrhhComponent,
+    ManualRrhhComponent
   ],
   imports: [
     CommonModule,

@@ -69,6 +69,7 @@ import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list
 import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
 import { ReportesRrhhComponent } from '../../../modules/rrhh/reportes/reportes-rrhh.component';
+import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 
 
 interface BaseNavigationItem {
@@ -162,6 +163,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
       items: [
+        {
+          name: 'Manual de uso',
+          icon: 'menu_book',
+          action: 'manual-rrhh',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+        },
         {
           name: 'Dashboard RRHH',
           icon: 'dashboard',
@@ -875,6 +882,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "legajo-funcionario":
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
+        break;
+      case "manual-rrhh":
+        if (this.hasAnyRole([ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ManualRrhhComponent, "Manual de uso RRHH", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "dashboard-rrhh":
         this.openTabIfAuthorized(ROLES.RRHH_VER, DashboardRrhhComponent, "Dashboard RRHH");
