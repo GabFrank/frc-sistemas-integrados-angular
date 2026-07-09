@@ -65,7 +65,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   public mostrarRendicion$ = this.mostrarRendicionSubject.asObservable();
 
   @ViewChild('imageDialogTemplate') imageDialogTemplate!: TemplateRef<any>;
-  public fotoAmpliadaDialogUrl: string | null = null;
+  public fotosDialog: { url: string; etiqueta: string }[] = [];
+  public indiceFotoDialog = 0;
 
   public fotosRendicion$: Observable<{ url: string; etiqueta: string }[]> =
     this.preGastoSeleccionado$.pipe(map(pg => this.extraerFotosRendicion(pg)));
@@ -167,8 +168,9 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     this.mostrarRendicionSubject.next(!this.mostrarRendicionSubject.value);
   }
 
-  ampliarFoto(url: string): void {
-    this.fotoAmpliadaDialogUrl = url;
+  ampliarFoto(fotos: { url: string; etiqueta: string }[], index: number): void {
+    this.fotosDialog = fotos;
+    this.indiceFotoDialog = index;
     this.matDialog.open(this.imageDialogTemplate, {
       panelClass: 'transparent-dialog-panel',
       backdropClass: 'dark-backdrop',
@@ -179,6 +181,17 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   cerrarFotoAmpliada(): void {
     this.matDialog.closeAll();
+  }
+
+  cambiarFoto(delta: number, event: Event): void {
+    event.stopPropagation();
+    let newIndex = this.indiceFotoDialog + delta;
+    if (newIndex < 0) {
+      newIndex = this.fotosDialog.length - 1;
+    } else if (newIndex >= this.fotosDialog.length) {
+      newIndex = 0;
+    }
+    this.indiceFotoDialog = newIndex;
   }
 
   private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
