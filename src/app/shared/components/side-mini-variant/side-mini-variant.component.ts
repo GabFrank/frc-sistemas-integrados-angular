@@ -54,6 +54,8 @@ import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacio
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
+import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
+import { RetiroProveedorComponent } from '../../../modules/operaciones/devolucion/retiro-proveedor/retiro-proveedor.component';
 
 
 interface BaseNavigationItem {
@@ -217,6 +219,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ADMIN]
             }
           ]
+        },
+        {
+          name: 'Devoluciones',
+          icon: 'assignment_return',
+          action: 'devoluciones',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Retiro de proveedor',
+          icon: 'local_shipping',
+          action: 'retiro-proveedor',
+          visibilityRoles: [ROLES.ADMIN]
         }
       ]
     },
@@ -810,6 +824,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "devoluciones":
+        this.openTabIfAuthorized(ROLES.ADMIN, DevolucionComponent, "Devoluciones");
+        break;
+      case "retiro-proveedor":
+        this.openTabIfAuthorized(ROLES.ADMIN, RetiroProveedorComponent, "Retiro de proveedor");
         break;
     }
   }
