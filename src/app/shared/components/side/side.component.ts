@@ -33,6 +33,7 @@ import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.servic
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
+import { DevolucionComponent } from './../../../modules/operaciones/devolucion/devolucion.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
 import { SolicitudPagoDashboardComponent } from "../../../modules/operaciones/solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
@@ -346,6 +347,19 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(TransferenciaComponent, "Transferencia", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "list-devoluciones":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_TRANSFERENCIA) ||
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) ||
+          this.mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)
+        ) {
+          this.tabService.addTab(
+            new Tab(DevolucionComponent, "Devoluciones", null, null)
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')

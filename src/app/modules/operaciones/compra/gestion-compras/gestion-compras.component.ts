@@ -91,6 +91,7 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
@@ -455,7 +456,8 @@ export class GestionComprasComponent
     private tabService: TabService,
     public mainService: MainService,
     private reporteService: ReporteService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private devolucionService: DevolucionService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -591,6 +593,7 @@ export class GestionComprasComponent
         if (typeof value === "object" && value !== null) {
           this.selectedProveedorComputed = value;
           this.showProveedorCard = true;
+          this.onVerificarDevolucionesPendientes(value?.id);
           this.vendedorDisplayTextComputed = value.vendedor?.persona?.nombre;
           this.datosGeneralesForm
             .get("vendedor")
@@ -1859,6 +1862,24 @@ export class GestionComprasComponent
    */
   private markTabAsUnloaded(tabIndex: number): void {
     this.loadedTabs.delete(tabIndex);
+  }
+
+  // Alerta: devoluciones pendientes del proveedor seleccionado
+  onVerificarDevolucionesPendientes(proveedorId: number): void {
+    if (proveedorId == null) return;
+    this.devolucionService
+      .onGetDevolucionesPendientesPorProveedor(proveedorId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((devoluciones) => {
+        if (devoluciones != null && devoluciones.length > 0) {
+          this.notificacionService.openWarn(
+            "Atención: este proveedor tiene " +
+              devoluciones.length +
+              " devolución(es) pendiente(s) de gestionar.",
+            5
+          );
+        }
+      });
   }
 
   // Step 1: Datos Generales methods

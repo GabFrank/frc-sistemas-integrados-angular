@@ -1,0 +1,15 @@
+<div fxLayout="row" style="width: 100%; height: 80%" fxLayoutAlign="center center">
+  <div fxFlex="60" fxLayout="column">
+    <div fxFlex fxLayout="row wrap" fxLayoutAlign="start start" fxLayoutGap="10px">
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton nombre="Histórico de devoluciones" icon="manage_search" [iconSize]="4"
+          (clickEvent)="onListDevoluciones()"></app-boton>
+      </div>
+      <div fxFlex="30%" style="height: 250px"
+        *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || mainService.usuarioActual?.roles.includes(ROLES.CREAR_TRANSFERENCIA)">
+        <app-boton nombre="Nueva Devolución" icon="assignment_return" [iconSize]="4"
+          (clickEvent)="onNuevaDevolucion()"></app-boton>
+      </div>
+    </div>
+  </div>
+</div>

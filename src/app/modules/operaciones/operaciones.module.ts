@@ -74,6 +74,10 @@ import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
 import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
 import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
+import { DevolucionComponent } from './devolucion/devolucion.component';
+import { ListDevolucionComponent } from './devolucion/list-devolucion/list-devolucion.component';
+import { EditDevolucionComponent } from './devolucion/edit-devolucion/edit-devolucion.component';
+import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from './devolucion/create-item-dialog/create-item-dialog.component';
 
 @NgModule({
   declarations: [
@@ -140,7 +144,11 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
     GenericListVentaComponent,
-    LucroPorFuncionarioComponent
+    LucroPorFuncionarioComponent,
+    DevolucionComponent,
+    ListDevolucionComponent,
+    EditDevolucionComponent,
+    CreateDevolucionItemDialogComponent
   ],
   imports: [
     CommonModule,
