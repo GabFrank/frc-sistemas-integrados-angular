@@ -4,6 +4,7 @@ import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
 import { ROLES } from "../../personas/roles/roles.enum";
 import { EditDevolucionComponent } from "./edit-devolucion/edit-devolucion.component";
+import { GuiaDevolucionComponent } from "./guia-devolucion/guia-devolucion.component";
 import { ListDevolucionComponent } from "./list-devolucion/list-devolucion.component";
 
 @Component({
@@ -37,6 +38,17 @@ export class DevolucionComponent implements OnInit {
       new Tab(
         EditDevolucionComponent,
         "Nueva devolución",
+        null,
+        DevolucionComponent
+      )
+    );
+  }
+
+  onAbrirGuia() {
+    this.tabService.addTab(
+      new Tab(
+        GuiaDevolucionComponent,
+        "Guía del módulo",
         null,
         DevolucionComponent
       )

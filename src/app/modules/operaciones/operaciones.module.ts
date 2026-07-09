@@ -78,6 +78,7 @@ import { DevolucionComponent } from './devolucion/devolucion.component';
 import { ListDevolucionComponent } from './devolucion/list-devolucion/list-devolucion.component';
 import { EditDevolucionComponent } from './devolucion/edit-devolucion/edit-devolucion.component';
 import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from './devolucion/create-item-dialog/create-item-dialog.component';
+import { GuiaDevolucionComponent } from './devolucion/guia-devolucion/guia-devolucion.component';
 
 @NgModule({
   declarations: [
@@ -148,7 +149,8 @@ import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from
     DevolucionComponent,
     ListDevolucionComponent,
     EditDevolucionComponent,
-    CreateDevolucionItemDialogComponent
+    CreateDevolucionItemDialogComponent,
+    GuiaDevolucionComponent
   ],
   imports: [
     CommonModule,
