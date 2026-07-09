@@ -49,7 +49,7 @@
         </ng-container>
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef>Concepto</th>
-          <td mat-cell *matCellDef="let item">{{ item.descripcion }}</td>
+          <td mat-cell *matCellDef="let item" class="celda-descripcion">{{ item.descripcionLimpia || item.descripcion }}</td>
         </ng-container>
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>

@@ -145,7 +145,13 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         this.totalElements$.next(res.getTotalElements || 0);
       }
     }),
-    map(res => res?.getContent || []),
+    map(res => {
+      const list = res?.getContent || [];
+      list.forEach(item => {
+        (item as any).descripcionLimpia = this.limpiarDescripcion(item.descripcion);
+      });
+      return list;
+    }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -189,6 +195,11 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     if (newIndex >= 0 && newIndex < this.fotosDialog.length) {
       this.indiceFotoDialog = newIndex;
     }
+  }
+
+  limpiarDescripcion(descripcion: string | undefined | null): string {
+    if (!descripcion) return '';
+    return descripcion.replace(/\s*\|\s*\[URGENCIA:.*?\]/i, '').trim();
   }
 
   private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
