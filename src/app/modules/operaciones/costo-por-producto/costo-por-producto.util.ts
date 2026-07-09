@@ -1,13 +1,10 @@
 import { CostoPorProducto } from './costo-por-producto.model';
 
 /**
- * Convierte ultimoPrecioCompra a guaraníes usando la cotización guardada en el registro de costo.
- * costoMedio siempre está en Gs; ultimoPrecioCompra se guarda en la moneda de la última compra.
+ * ultimoPrecioCompra ya se persiste en Gs desde el backend (igual que costoMedio); moneda/cotizacion
+ * quedan solo como referencia de la moneda original de la compra. Esta función es un passthrough que se
+ * conserva para no cambiar los call-sites y como punto único si la semántica volviera a cambiar.
  */
 export function ultimoPrecioCompraEnGs(costo: CostoPorProducto | null | undefined): number | null {
-  if (costo?.ultimoPrecioCompra == null) {
-    return null;
-  }
-  const cotizacion = costo.cotizacion ?? costo.moneda?.cambio ?? 1;
-  return costo.ultimoPrecioCompra * cotizacion;
+  return costo?.ultimoPrecioCompra ?? null;
 }
