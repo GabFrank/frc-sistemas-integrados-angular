@@ -29,6 +29,13 @@ export interface TopMotivoDevolucion {
   cantidad?: number;
 }
 
+export interface TopProveedorDevolucion {
+  proveedorId?: string;
+  nombre?: string;
+  devoluciones?: number;
+  valor?: number;
+}
+
 export interface DevolucionSeriePunto {
   fecha?: string;
   cantidad?: number;

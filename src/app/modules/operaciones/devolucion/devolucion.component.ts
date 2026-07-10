@@ -78,6 +78,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
 
   // Rankings.
   topProductos: DashRankingItem[] = [];
+  topProveedores: DashRankingItem[] = [];
   topMotivos: DashRankingItem[] = [];
 
   // Estancadas (PENDIENTE/SEPARADO hace mucho). Umbral configurable.
@@ -165,6 +166,19 @@ export class DevolucionComponent implements OnInit, OnDestroy {
           (data || []).map((p) => ({
             nombre: p.descripcion,
             principal: p.cantidad,
+            secundario: p.valor,
+          }))
+        );
+      });
+
+    this.dashboardService
+      .onGetTopProveedores(f, 5)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data) => {
+        this.topProveedores = this.mapTop(
+          (data || []).map((p) => ({
+            nombre: p.nombre,
+            principal: p.devoluciones,
             secundario: p.valor,
           }))
         );

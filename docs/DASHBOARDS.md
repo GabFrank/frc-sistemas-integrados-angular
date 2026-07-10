@@ -149,10 +149,10 @@ escala). El backend ya tiene tres patrones probados:
 
 En el ejemplo de Devoluciones (`central`):
 `resumenDevoluciones`, `topProductosDevueltos`, `topMotivosDevolucion`,
-`devolucionesSeriePorMes` (serie mensual del chart, últimos 12 meses),
-`devolucionesEstancadas` (PENDIENTE/SEPARADO con antigüedad mayor a un umbral
-configurable) y `devolucionesSeriePorDia` / `devolucionesPorEstadoResumen`
-(disponibles, no usadas hoy en la UI). Todo en
+`topProveedoresDevolucion`, `devolucionesSeriePorMes` (serie mensual del chart,
+últimos 12 meses), `devolucionesEstancadas` (PENDIENTE/SEPARADO con antigüedad
+mayor a un umbral configurable) y `devolucionesSeriePorDia` /
+`devolucionesPorEstadoResumen` (disponibles, no usadas hoy en la UI). Todo en
 `graphql/operaciones/devolucion-dashboard.graphqls`, aditivo, sin migración.
 
 En el cliente:

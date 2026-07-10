@@ -7,6 +7,7 @@ import {
   resumenDevolucionesQuery,
   topMotivosDevolucionQuery,
   topProductosDevueltosQuery,
+  topProveedoresDevolucionQuery,
 } from "./graphql-query";
 
 @Injectable({ providedIn: "root" })
@@ -27,6 +28,11 @@ export class TopProductosDevueltosGQL extends Query {
 @Injectable({ providedIn: "root" })
 export class TopMotivosDevolucionGQL extends Query {
   document = topMotivosDevolucionQuery;
+}
+
+@Injectable({ providedIn: "root" })
+export class TopProveedoresDevolucionGQL extends Query {
+  document = topProveedoresDevolucionQuery;
 }
 
 @Injectable({ providedIn: "root" })

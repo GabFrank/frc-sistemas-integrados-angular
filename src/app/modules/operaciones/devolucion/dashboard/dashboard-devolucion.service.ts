@@ -8,6 +8,7 @@ import {
   ResumenDevoluciones,
   TopMotivoDevolucion,
   TopProductoDevuelto,
+  TopProveedorDevolucion,
 } from "./dashboard-devolucion.model";
 import {
   DevolucionesEstancadasGQL,
@@ -16,6 +17,7 @@ import {
   ResumenDevolucionesGQL,
   TopMotivosDevolucionGQL,
   TopProductosDevueltosGQL,
+  TopProveedoresDevolucionGQL,
 } from "./graphql/dashboard-devolucion.gql";
 
 export interface FiltroDashboard {
@@ -33,6 +35,7 @@ export class DashboardDevolucionService {
     private porEstadoGQL: DevolucionesPorEstadoResumenGQL,
     private topProductosGQL: TopProductosDevueltosGQL,
     private topMotivosGQL: TopMotivosDevolucionGQL,
+    private topProveedoresGQL: TopProveedoresDevolucionGQL,
     private serieMesGQL: DevolucionesSeriePorMesGQL,
     private estancadasGQL: DevolucionesEstancadasGQL
   ) {}
@@ -57,6 +60,13 @@ export class DashboardDevolucionService {
     limite = 5
   ): Observable<TopMotivoDevolucion[]> {
     return this.query(this.topMotivosGQL, { ...this.vars(f), limite });
+  }
+
+  onGetTopProveedores(
+    f: FiltroDashboard,
+    limite = 5
+  ): Observable<TopProveedorDevolucion[]> {
+    return this.query(this.topProveedoresGQL, { ...this.vars(f), limite });
   }
 
   onGetSeriePorMes(f: FiltroDashboard): Observable<DevolucionSeriePunto[]> {

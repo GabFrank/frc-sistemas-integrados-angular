@@ -74,6 +74,27 @@ export const topMotivosDevolucionQuery = gql`
   }
 `;
 
+export const topProveedoresDevolucionQuery = gql`
+  query (
+    $fechaInicio: String!
+    $fechaFin: String!
+    $sucursalId: ID
+    $limite: Int
+  ) {
+    data: topProveedoresDevolucion(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalId: $sucursalId
+      limite: $limite
+    ) {
+      proveedorId
+      nombre
+      devoluciones
+      valor
+    }
+  }
+`;
+
 export const devolucionesSeriePorMesQuery = gql`
   query ($fechaInicio: String!, $fechaFin: String!, $sucursalId: ID) {
     data: devolucionesSeriePorMes(
