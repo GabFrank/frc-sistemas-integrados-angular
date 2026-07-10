@@ -64,6 +64,21 @@ export class CreateItemDialogComponent implements OnInit {
   ngOnInit(): void {
     this.motivosAveria = this.data?.motivosAveria ?? [];
 
+    // Costo unitario sugerido por el sistema: costo medio del producto x factor de
+    // la presentacion. Solo autocompleta si el campo esta vacio, para no pisar un
+    // costo ya cargado (edicion de item o edicion manual del usuario).
+    this.presentacionControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((pres: Presentacion) => {
+        if (
+          this.costoUnitarioControl.value == null ||
+          this.costoUnitarioControl.value === ""
+        ) {
+          const costo = this.costoSistema(pres);
+          if (costo != null) this.costoUnitarioControl.setValue(costo);
+        }
+      });
+
     if (this.data?.item != null) {
       this.cargarItem(this.data.item);
     } else if (this.data?.presentacion != null) {
@@ -116,6 +131,14 @@ export class CreateItemDialogComponent implements OnInit {
       item.vencimiento != null ? new Date(item.vencimiento) : null
     );
     this.cargarPresentaciones(item.producto?.id, item.presentacion);
+  }
+
+  /** Costo unitario segun el sistema: costo medio del producto x factor de presentacion. */
+  private costoSistema(presentacion: Presentacion): number | null {
+    const costoMedio = presentacion?.producto?.costo?.costoMedio;
+    if (costoMedio == null) return null;
+    const factor = presentacion?.cantidad ?? 1;
+    return costoMedio * factor;
   }
 
   onCancelar() {

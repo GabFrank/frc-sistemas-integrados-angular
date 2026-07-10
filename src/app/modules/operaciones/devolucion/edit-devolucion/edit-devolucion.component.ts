@@ -28,6 +28,10 @@ import {
 } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { CreateItemDialogComponent } from "../create-item-dialog/create-item-dialog.component";
 import {
+  ReingresoCanjeDialogComponent,
+  ReingresoCanjeDialogResult,
+} from "../reingreso-canje-dialog/reingreso-canje-dialog.component";
+import {
   Devolucion,
   DevolucionEstado,
   DevolucionItem,
@@ -58,7 +62,6 @@ export class EditDevolucionComponent implements OnInit {
   tipoControl = new FormControl(TipoDevolucion.SIN_PROVEEDOR, Validators.required);
   sucursalControl = new FormControl(null, Validators.required);
   observacionControl = new FormControl(null);
-  motivoControl = new FormControl(null);
 
   nroNotaCreditoControl = new FormControl(null);
   montoAcreditadoControl = new FormControl(null);
@@ -101,6 +104,7 @@ export class EditDevolucionComponent implements OnInit {
     "cantidad",
     "cantidadReingresada",
     "vencimientoReingreso",
+    "accionReingreso",
   ];
 
   constructor(
@@ -172,7 +176,6 @@ export class EditDevolucionComponent implements OnInit {
             this.selectedDevolucion.proveedor?.persona?.nombre ?? "";
           this.sucursalControl.setValue(this.selectedDevolucion.sucursalOrigen);
           this.observacionControl.setValue(this.selectedDevolucion.observacion);
-          this.motivoControl.setValue(this.selectedDevolucion.motivo);
           this.nroNotaCreditoControl.setValue(
             this.selectedDevolucion.nroNotaCredito
           );
@@ -287,10 +290,6 @@ export class EditDevolucionComponent implements OnInit {
         this.observacionControl.value != null
           ? ("" + this.observacionControl.value).toUpperCase()
           : null;
-      aux.motivo =
-        this.motivoControl.value != null
-          ? ("" + this.motivoControl.value).toUpperCase()
-          : null;
       aux.usuario = this.mainService.usuarioActual;
       if (aux.fecha == null) aux.fecha = new Date();
       if (aux.estado == null) aux.estado = DevolucionEstado.PENDIENTE;
@@ -332,6 +331,9 @@ export class EditDevolucionComponent implements OnInit {
       mostrarOpciones: false,
       mostrarStock: true,
       conservarUltimaBusqueda: true,
+      // Filtrar/mostrar stock por la sucursal de origen de la devolucion (no sucursalActual,
+      // que en el server cloud administrativo no aplica). Coincide con lo que valida el backend.
+      sucursalFiltro: this.sucursalControl.value,
     };
     this.matDialog
       .open(PdvSearchProductoDialogComponent, {
@@ -454,6 +456,28 @@ export class EditDevolucionComponent implements OnInit {
     this.acreditarMode = false;
   }
 
+  /** Abre el dialogo de reingreso para un item y guarda el resultado en el item. */
+  onRegistrarReingreso(item: DevolucionItem) {
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(ReingresoCanjeDialogComponent, {
+        data: { item },
+        width: "30%",
+        disableClose: true,
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: ReingresoCanjeDialogResult) => {
+        this.isDialogOpen = false;
+        if (res != null) {
+          item.cantidadReingresada = res.cantidadReingresada;
+          item.vencimientoReingreso = res.vencimientoReingreso;
+          // Nueva referencia para refrescar la tabla.
+          this.dataSource.data = [...this.dataSource.data];
+        }
+      });
+  }
+
   onConfirmarCanje() {
     const items = this.dataSource.data ?? [];
     if (items.length == 0) {
@@ -520,12 +544,7 @@ export class EditDevolucionComponent implements OnInit {
       .subscribe((confirmado) => {
         if (confirmado) {
           this.devolucionService
-            .onCancelar(
-              this.selectedDevolucion.id,
-              this.motivoControl.value != null
-                ? ("" + this.motivoControl.value).toUpperCase()
-                : null
-            )
+            .onCancelar(this.selectedDevolucion.id, null)
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res != null) {

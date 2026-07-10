@@ -49,28 +49,18 @@
   </div>
 
   <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
-    <mat-form-field fxFlex="45">
-      <mat-label>Motivo</mat-label>
-      <input matInput [formControl]="motivoControl" [readonly]="!puedeEditarCabecera" />
-    </mat-form-field>
-    <mat-form-field fxFlex="45">
+    <mat-form-field fxFlex="90">
       <mat-label>Observación</mat-label>
       <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera" />
     </mat-form-field>
   </div>
 
-  <div fxLayout="row" fxLayoutGap="10px" *ngIf="puedeEditarCabecera">
-    <button mat-raised-button color="accent" (click)="onGuardarCabecera()">
-      <mat-icon>save</mat-icon> Guardar datos
-    </button>
-    <button mat-raised-button color="primary" (click)="onAddItem()">
+  <!-- Acciones: agregar item + máquina de estados (arriba de la tabla, a la derecha) -->
+  <div fxLayout="row wrap" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
+    *ngIf="selectedDevolucion?.id != null || puedeEditarCabecera">
+    <button mat-raised-button color="primary" *ngIf="puedeEditarCabecera" (click)="onAddItem()">
       <mat-icon>add</mat-icon> Agregar producto
     </button>
-  </div>
-
-  <!-- Acciones de estado -->
-  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%"
-    *ngIf="selectedDevolucion?.id != null">
     <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado"
       (click)="onAvanzar(DevolucionEstado.SEPARADO)">
       Marcar como separado
@@ -90,9 +80,6 @@
     <button mat-raised-button color="accent" *ngIf="canAcreditar && !acreditarMode"
       (click)="onIniciarAcreditar()">
       Acreditar (nota de crédito)
-    </button>
-    <button mat-stroked-button color="warn" *ngIf="canCancelar" (click)="onCancelar()">
-      Cancelar devolución
     </button>
   </div>
 
@@ -134,7 +121,7 @@
         </td>
       </ng-container>
       <ng-container matColumnDef="motivoAveria">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">Motivo avería</th>
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Motivo devolución</th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{ item?.motivoAveria?.descripcion | uppercase }}
         </td>
@@ -199,30 +186,45 @@
         <ng-container matColumnDef="cantidadReingresada">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">Cant. reingresada</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
-            <mat-form-field style="width: 100px">
-              <input matInput type="number" [(ngModel)]="item.cantidadReingresada" />
-            </mat-form-field>
+            {{ item?.cantidadReingresada != null ? (item.cantidadReingresada | number : "1.0-3") : "—" }}
           </td>
         </ng-container>
         <ng-container matColumnDef="vencimientoReingreso">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">Venc. reingreso</th>
           <td mat-cell *matCellDef="let item" style="text-align: center">
-            <mat-form-field style="width: 150px">
-              <input matInput [matDatepicker]="pickerReingreso" [(ngModel)]="item.vencimientoReingreso" />
-              <mat-datepicker-toggle matSuffix [for]="pickerReingreso"></mat-datepicker-toggle>
-              <mat-datepicker #pickerReingreso></mat-datepicker>
-            </mat-form-field>
+            {{ item?.vencimientoReingreso != null ? (item.vencimientoReingreso | date : "dd/MM/yyyy") : "—" }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="accionReingreso">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">Reingreso</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center; width: 15%">
+            <button mat-stroked-button color="accent" (click)="onRegistrarReingreso(item)">
+              <mat-icon>{{ item?.cantidadReingresada != null ? "edit" : "add" }}</mat-icon>
+              {{ item?.cantidadReingresada != null ? "Editar" : "Registrar" }}
+            </button>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columnsCanje; sticky: true"></tr>
         <tr mat-row *matRowDef="let row; columns: columnsCanje"></tr>
       </table>
-      <div fxLayout="row" fxLayoutGap="10px">
+      <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px"
+        style="width: 100%; margin-top: 12px">
+        <button mat-stroked-button (click)="canjeMode = false">Cancelar</button>
         <button mat-raised-button color="accent" (click)="onConfirmarCanje()">
           Confirmar canje
         </button>
-        <button mat-stroked-button (click)="canjeMode = false">Cancelar</button>
       </div>
     </div>
+  </div>
+
+  <!-- Guardar / Cancelar (abajo, a la derecha) -->
+  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
+    *ngIf="puedeEditarCabecera || canCancelar">
+    <button mat-raised-button color="accent" *ngIf="puedeEditarCabecera" (click)="onGuardarCabecera()">
+      <mat-icon>save</mat-icon> Guardar datos
+    </button>
+    <button mat-stroked-button color="warn" *ngIf="canCancelar" (click)="onCancelar()">
+      Cancelar devolución
+    </button>
   </div>
 </div>

@@ -80,6 +80,7 @@ import { EditDevolucionComponent } from './devolucion/edit-devolucion/edit-devol
 import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from './devolucion/create-item-dialog/create-item-dialog.component';
 import { GuiaDevolucionComponent } from './devolucion/guia-devolucion/guia-devolucion.component';
 import { RetiroProveedorComponent } from './devolucion/retiro-proveedor/retiro-proveedor.component';
+import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dialog/reingreso-canje-dialog.component';
 
 @NgModule({
   declarations: [
@@ -152,7 +153,8 @@ import { RetiroProveedorComponent } from './devolucion/retiro-proveedor/retiro-p
     EditDevolucionComponent,
     CreateDevolucionItemDialogComponent,
     GuiaDevolucionComponent,
-    RetiroProveedorComponent
+    RetiroProveedorComponent,
+    ReingresoCanjeDialogComponent
   ],
   imports: [
     CommonModule,
