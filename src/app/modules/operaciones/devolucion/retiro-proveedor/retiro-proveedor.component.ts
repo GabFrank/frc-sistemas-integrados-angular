@@ -15,6 +15,8 @@ import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
 import { ReporteService } from "../../../reportes/reporte.service";
@@ -30,6 +32,7 @@ import {
 } from "./retiro-proveedor.model";
 import { RetiroProveedorConsolidadoGQL } from "./graphql/retiroProveedorConsolidado";
 import { RemitoRetiroProveedorGQL } from "./graphql/remitoRetiroProveedor";
+import { ImprimirTicketRetiroProveedorGQL } from "./graphql/imprimirTicketRetiroProveedor";
 import { RetirarDevolucionesEnBloqueGQL } from "./graphql/retirarDevolucionesEnBloque";
 
 @Component({
@@ -49,6 +52,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   buscando = false;
   guardando = false;
   imprimiendo = false;
+  imprimiendoTicket = false;
 
   consolidado: RetiroProveedorConsolidado | null = null;
   grupos: RetiroSucursalGrupoView[] = [];
@@ -65,12 +69,25 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   // Resultados del último retiro en bloque
   resultados: RetiroResultadoView[] = [];
 
+  // Sucursal física del puesto. Cuando el desktop habla con central, el backend
+  // responde la sucursal "SERVIDOR" (id 0) y mainService.isServidor queda true:
+  // ahí se ven todas las sucursales. Si en cambio estamos contra una filial, el
+  // retiro se restringe a esa sucursal: la mercadería está físicamente ahí y el
+  // stock se descuenta por devolucion.sucursalOrigen. Ver main.service.ts:170.
+  sucursalFija: Sucursal | null = null;
+  nombreSucursalFija = "";
+
+  // TODO: leer del módulo de registro de impresoras cuando exista.
+  private readonly anchoTicketMmDefault = 58;
+
   constructor(
     private genericService: GenericCrudService,
     private proveedorSearchGQL: ProveedoresSearchByPersonaGQL,
     private retiroConsolidadoGQL: RetiroProveedorConsolidadoGQL,
     private remitoGQL: RemitoRetiroProveedorGQL,
+    private ticketRetiroGQL: ImprimirTicketRetiroProveedorGQL,
     private retirarEnBloqueGQL: RetirarDevolucionesEnBloqueGQL,
+    private configService: ConfiguracionService,
     private notificacionService: NotificacionSnackbarService,
     private reporteService: ReporteService,
     private tabService: TabService,
@@ -78,7 +95,17 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.resolverSucursalFija();
     this.setupProveedorAutocomplete();
+  }
+
+  /** Fija la sucursal cuando el puesto está en una filial (no en el servidor central). */
+  private resolverSucursalFija(): void {
+    const sucursal = this.mainService.sucursalActual;
+    if (!this.mainService.isServidor && sucursal?.id != null) {
+      this.sucursalFija = sucursal;
+      this.nombreSucursalFija = sucursal.nombre;
+    }
   }
 
   ngOnDestroy(): void {
@@ -152,7 +179,9 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
     this.genericService
       .onCustomQuery(this.retiroConsolidadoGQL, {
         proveedorId: this.proveedorSeleccionado.id,
-        sucursalId: null,
+        // Filtro en el servidor, no en el HTML: si el puesto está en una filial,
+        // no debe siquiera traer devoluciones de otras sucursales.
+        sucursalId: this.sucursalFija?.id ?? null,
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -234,6 +263,37 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
         grupo.devoluciones.every((dev) => dev.seleccionado);
     });
     this.totalDevoluciones = total;
+  }
+
+  // ===== Imprimir ticket térmico (el backend imprime, devuelve ok) =====
+  onImprimirTicket(): void {
+    if (this.imprimiendoTicket || this.selectedDevolucionIdsArray.length === 0) {
+      return;
+    }
+    this.imprimiendoTicket = true;
+    this.genericService
+      .onCustomMutation(this.ticketRetiroGQL, {
+        devolucionIds: this.selectedDevolucionIdsArray,
+        printerName: this.configService?.getConfig()?.printers?.ticket,
+        anchoMm: this.anchoTicketMmDefault,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (ok: boolean) => {
+          this.imprimiendoTicket = false;
+          if (ok) {
+            this.notificacionService.openSucess("Ticket enviado a la impresora");
+          } else {
+            this.notificacionService.openWarn("No se pudo imprimir el ticket");
+          }
+        },
+        error: () => {
+          this.imprimiendoTicket = false;
+          this.notificacionService.openAlgoSalioMal(
+            "Error al imprimir el ticket de retiro"
+          );
+        },
+      });
   }
 
   // ===== Imprimir remito (PDF Base64) =====

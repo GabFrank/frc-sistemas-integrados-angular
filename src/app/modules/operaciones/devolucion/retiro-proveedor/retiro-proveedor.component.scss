@@ -9,6 +9,24 @@
       margin: 0;
       font-weight: 600;
     }
+
+    .sucursal-fija {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.8;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  .aviso-sucursal {
+    opacity: 0.7;
+    font-size: 0.9rem;
   }
 
   .proveedor-row {

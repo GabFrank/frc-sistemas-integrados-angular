@@ -1,16 +1,38 @@
 <div class="retiro-proveedor">
   <!-- Encabezado + acciones operativas (arriba a la derecha) -->
   <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center">
-    <h3 class="titulo">Retiro consolidado de devoluciones</h3>
-    <button
-      mat-raised-button
-      color="primary"
-      [disabled]="imprimiendo || selectedDevolucionIdsArray.length === 0"
-      (click)="onImprimirRemito()"
-    >
-      <mat-icon>print</mat-icon>
-      Imprimir remito
-    </button>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <h3 class="titulo">Retiro consolidado de devoluciones</h3>
+      <span class="sucursal-fija" *ngIf="sucursalFija">
+        <mat-icon>store</mat-icon>
+        {{ nombreSucursalFija }}
+      </span>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+      <button
+        mat-stroked-button
+        color="primary"
+        [disabled]="imprimiendoTicket || selectedDevolucionIdsArray.length === 0"
+        (click)="onImprimirTicket()"
+      >
+        <mat-icon>receipt_long</mat-icon>
+        Imprimir ticket
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="imprimiendo || selectedDevolucionIdsArray.length === 0"
+        (click)="onImprimirRemito()"
+      >
+        <mat-icon>print</mat-icon>
+        Imprimir remito
+      </button>
+    </div>
+  </div>
+
+  <!-- La mercadería está físicamente en esta sucursal: no se listan otras. -->
+  <div class="aviso-sucursal" *ngIf="sucursalFija">
+    Sólo se muestran devoluciones separadas en {{ nombreSucursalFija }}.
   </div>
 
   <!-- Selector de proveedor -->

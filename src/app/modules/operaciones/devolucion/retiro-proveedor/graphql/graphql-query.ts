@@ -34,6 +34,18 @@ export const remitoRetiroProveedorQuery = gql`
   }
 `;
 
+// Mutation: imprime el comprobante de retiro en impresora térmica.
+// anchoMm: 58 u 80. El backend deriva el layout del ancho.
+export const imprimirTicketRetiroProveedorMutation = gql`
+  mutation ($devolucionIds: [ID!]!, $printerName: String, $anchoMm: Int) {
+    data: imprimirTicketRetiroProveedor(
+      devolucionIds: $devolucionIds
+      printerName: $printerName
+      anchoMm: $anchoMm
+    )
+  }
+`;
+
 // Mutation: retira en bloque las devoluciones seleccionadas.
 // Devuelve un resultado por devolución (ok/mensaje) sin frenar las demás.
 export const retirarDevolucionesEnBloqueMutation = gql`
