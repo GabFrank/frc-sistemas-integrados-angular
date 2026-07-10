@@ -10,6 +10,11 @@
         <app-boton nombre="Nueva Devolución" icon="assignment_return" [iconSize]="4"
           (clickEvent)="onNuevaDevolucion()"></app-boton>
       </div>
+      <div fxFlex="30%" style="height: 250px"
+        *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || mainService.usuarioActual?.roles.includes(ROLES.CREAR_TRANSFERENCIA)">
+        <app-boton nombre="Retiro de proveedor" icon="local_shipping" [iconSize]="4"
+          (clickEvent)="onRetiroProveedor()"></app-boton>
+      </div>
       <div fxFlex="30%" style="height: 250px">
         <app-boton nombre="Guía del módulo" icon="menu_book" [iconSize]="4"
           (clickEvent)="onAbrirGuia()"></app-boton>

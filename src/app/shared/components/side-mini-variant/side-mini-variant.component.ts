@@ -55,7 +55,6 @@ import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
-import { RetiroProveedorComponent } from '../../../modules/operaciones/devolucion/retiro-proveedor/retiro-proveedor.component';
 
 
 interface BaseNavigationItem {
@@ -171,6 +170,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'swap_vert',
               action: 'list-movimiento',
               visibilityRoles: [ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.VER_INVENTARIO]
+            },
+            {
+              name: 'Devoluciones',
+              icon: 'assignment_return',
+              action: 'devoluciones',
+              visibilityRoles: [ROLES.VER_TRANSFERENCIA]
             }
           ]
         },
@@ -219,18 +224,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ADMIN]
             }
           ]
-        },
-        {
-          name: 'Devoluciones',
-          icon: 'assignment_return',
-          action: 'devoluciones',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Retiro de proveedor',
-          icon: 'local_shipping',
-          action: 'retiro-proveedor',
-          visibilityRoles: [ROLES.ADMIN]
         }
       ]
     },
@@ -826,10 +819,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "devoluciones":
-        this.openTabIfAuthorized(ROLES.ADMIN, DevolucionComponent, "Devoluciones");
-        break;
-      case "retiro-proveedor":
-        this.openTabIfAuthorized(ROLES.ADMIN, RetiroProveedorComponent, "Retiro de proveedor");
+        this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");
         break;
     }
   }

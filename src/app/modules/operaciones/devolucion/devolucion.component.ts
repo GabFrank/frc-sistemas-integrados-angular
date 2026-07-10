@@ -6,6 +6,7 @@ import { ROLES } from "../../personas/roles/roles.enum";
 import { EditDevolucionComponent } from "./edit-devolucion/edit-devolucion.component";
 import { GuiaDevolucionComponent } from "./guia-devolucion/guia-devolucion.component";
 import { ListDevolucionComponent } from "./list-devolucion/list-devolucion.component";
+import { RetiroProveedorComponent } from "./retiro-proveedor/retiro-proveedor.component";
 
 @Component({
   selector: "app-devolucion",
@@ -38,6 +39,17 @@ export class DevolucionComponent implements OnInit {
       new Tab(
         EditDevolucionComponent,
         "Nueva devolución",
+        null,
+        DevolucionComponent
+      )
+    );
+  }
+
+  onRetiroProveedor() {
+    this.tabService.addTab(
+      new Tab(
+        RetiroProveedorComponent,
+        "Retiro de proveedor",
         null,
         DevolucionComponent
       )
