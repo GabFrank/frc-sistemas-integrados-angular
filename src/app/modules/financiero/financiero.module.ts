@@ -49,6 +49,8 @@ import { ListTerminalPosComponent } from "./terminal-pos/list-terminal-pos/list-
 import { AddTerminalPosDialogComponent } from "./terminal-pos/add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
+import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
+import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
 
 @NgModule({
   declarations: [
@@ -93,7 +95,9 @@ import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos
     ListTerminalPosComponent,
     AddTerminalPosDialogComponent,
     PrintTerminalPosDialogComponent,
-    ScanTerminalPosDialogComponent
+    ScanTerminalPosDialogComponent,
+    TerminalPosDashboard,
+    ListVentaTarjetaComponent
 
   ],
   providers: [

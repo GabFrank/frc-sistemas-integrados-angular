@@ -16,6 +16,7 @@ import {
 } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { Subject } from "rxjs";
+import { take } from "rxjs/operators";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -55,6 +56,7 @@ import { ListRetiroComponent } from "../../../retiro/list-retiro/list-retiro.com
 import { ROLES } from "../../../../personas/roles/roles.enum";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
 import { GastoService } from "../../../gastos/service/gasto.service";
+import { VentaTarjetaService } from "../../../venta-tarjeta/venta-tarjeta.service";
 
 @UntilDestroy()
 @Component({
@@ -121,6 +123,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isDeliveryAbierto = false;
   isSolicitudPendienteOAutorizado = false;
+  hayVentasTarjetaPendientes = false;
 
   verificarMaletinTimeout = null;
 
@@ -139,7 +142,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private deliveryService: DeliveryService,
     private gastoService: GastoService,
     private tabService: TabService,
-    public mainService: MainService
+    public mainService: MainService,
+    private ventaTarjetaService: VentaTarjetaService
   ) {
 
   }
@@ -197,6 +201,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
                 this.isSolicitudPendienteOAutorizado =
                   (solicitudRes?.getNumberOfElements ?? 0) > 0 ||
                   (solicitudRes?.getContent?.length ?? 0) > 0;
+              });
+
+            this.ventaTarjetaService.onCountSinRegistrar(this.selectedCaja.id, this.selectedCaja.sucursalId)
+              .pipe(untilDestroyed(this))
+              .subscribe(count => {
+                this.hayVentasTarjetaPendientes = count > 0;
               });
           }
         });
@@ -444,9 +454,26 @@ export class AdicionarCajaDialogComponent implements OnInit {
             "Posee solicitudes en estado pendiente o autorizado"
           );
         } else {
-          this.stepper.selectedIndex = 1;
-          this.stepper.selectedIndex = 2;
-          this.focusToCierreSub.next(null);
+          this.ventaTarjetaService.onCountSinRegistrar(this.selectedCaja.id, this.selectedCaja.sucursalId)
+            .pipe(take(1))
+            .subscribe({
+              next: (pendientes) => {
+                if (pendientes > 0) {
+                  this.notificacionBar.openWarn(
+                    `Posee ${pendientes} venta(s) con tarjeta sin registrar en la app móvil`
+                  );
+                } else {
+                  this.stepper.selectedIndex = 1;
+                  this.stepper.selectedIndex = 2;
+                  this.focusToCierreSub.next(null);
+                }
+              },
+              error: () => {
+                this.notificacionBar.openWarn(
+                  "No se pudo verificar el estado de las ventas con tarjeta. Intente nuevamente."
+                );
+              }
+            });
         }
 
         break;

@@ -34,6 +34,8 @@ import { ListTimbradoComponent } from '../../modules/financiero/timbrado/list-ti
 import { GestionComprasComponent } from '../../modules/operaciones/compra/gestion-compras/gestion-compras.component';
 import { ListCompraComponent } from '../../modules/operaciones/compra/list-compra/list-compra.component';
 import { CompraDashboardComponent } from '../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component';
+import { ListTerminalPosComponent } from '../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
+import { ListVentaTarjetaComponent } from '../../modules/financiero/venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -68,6 +70,7 @@ export class TabService implements OnInit {
     this.tabs = [
       // new Tab(VentaTouchComponent, 'Venta', null, null),
       // new Tab(AnalisisDiferenciaComponent, 'Análisis de diferencias', null, null)
+      new Tab(ListVentaTarjetaComponent, 'Venta tarjeta', null, null)
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))

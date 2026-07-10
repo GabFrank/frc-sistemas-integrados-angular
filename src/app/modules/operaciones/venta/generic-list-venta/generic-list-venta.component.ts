@@ -25,6 +25,7 @@ import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.serv
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -115,7 +116,8 @@ export class GenericListVentaComponent implements OnInit {
     private formaPagoService: FormaPagoService,
     private clienteSearch: ClientesSearchConFiltrosGQL,
     private ventaObservacionService: VentaObservacionService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private ventaTarjetaService: VentaTarjetaService
   ) { }
 
   ngOnInit(): void {
@@ -418,6 +420,7 @@ export class GenericListVentaComponent implements OnInit {
       .confirm("Atención!!", "Realmente desea cancelar esta venta?")
       .subscribe((res) => {
         if (res) {
+          const estabaCancelada = venta.estado == VentaEstado.CANCELADA;
           this.ventaService
             .onCancelarVenta(venta.id, venta.sucursalId)
             .subscribe((res1) => {
@@ -425,10 +428,14 @@ export class GenericListVentaComponent implements OnInit {
                 this.notificacionService.openSucess(
                   "Venta cancelada con éxito"
                 );
-                if (venta.estado == VentaEstado.CANCELADA) {
+                if (estabaCancelada) {
                   venta.estado = VentaEstado.CONCLUIDA;
                 } else {
                   venta.estado = VentaEstado.CANCELADA;
+                  this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+                    next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
+                    error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                  });
                 }
                 this.ventaDataSource.data = updateDataSource(
                   this.ventaDataSource.data,

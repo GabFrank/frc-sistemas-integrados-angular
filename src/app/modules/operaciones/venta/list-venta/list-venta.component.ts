@@ -40,6 +40,7 @@ import { VentaObservacionDashboardComponent } from "../../venta-observacion/vent
 import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
 import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-categoria-observacion.model";
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -126,7 +127,8 @@ export class ListVentaComponent implements OnInit {
     private monedaService: MonedaService,
     private mainService: MainService,
     private ventaObservacionService: VentaObservacionService,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private ventaTarjetaService: VentaTarjetaService
   ) { }
 
   ngOnInit(): void {
@@ -371,6 +373,7 @@ export class ListVentaComponent implements OnInit {
       .confirm("Atención!!", "Realmente desea cancelar esta venta?")
       .subscribe((res) => {
         if (res) {
+          const estabaCancelada = venta.estado == VentaEstado.CANCELADA;
           this.ventaService
             .onCancelarVenta(venta.id, venta.sucursalId)
             .subscribe((res1) => {
@@ -378,10 +381,14 @@ export class ListVentaComponent implements OnInit {
                 this.notificacionService.openSucess(
                   "Venta cancelada con éxito"
                 );
-                if (venta.estado == VentaEstado.CANCELADA) {
+                if (estabaCancelada) {
                   venta.estado = VentaEstado.CONCLUIDA;
                 } else {
                   venta.estado = VentaEstado.CANCELADA;
+                  this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+                    next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
+                    error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                  });
                 }
                 this.ventaDataSource.data = updateDataSource(
                   this.ventaDataSource.data,
