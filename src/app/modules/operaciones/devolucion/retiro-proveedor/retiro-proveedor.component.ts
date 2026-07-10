@@ -314,7 +314,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
             const nombreProveedor =
               this.proveedorSeleccionado?.persona?.nombre || "proveedor";
             this.reporteService.onAdd(
-              `Remito retiro ${nombreProveedor}`,
+              `Comprobante retiro ${nombreProveedor}`,
               pdfBase64
             );
             this.tabService.addTab(
@@ -322,14 +322,14 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
             );
           } else {
             this.notificacionService.openWarn(
-              "No se pudo generar el remito"
+              "No se pudo generar el comprobante"
             );
           }
         },
         error: () => {
           this.imprimiendo = false;
           this.notificacionService.openAlgoSalioMal(
-            "Error al generar el remito"
+            "Error al generar el comprobante"
           );
         },
       });
