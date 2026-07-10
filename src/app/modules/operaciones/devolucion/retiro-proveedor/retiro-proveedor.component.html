@@ -132,53 +132,6 @@
         <tr mat-row *matRowDef="let row; columns: lineasColumns"></tr>
       </table>
 
-      <!-- Desglose de cajas -->
-      <span class="subtitulo" *ngIf="grupo.cajas.length > 0">Cajas</span>
-      <table
-        mat-table
-        [dataSource]="grupo.cajas"
-        class="tabla-centrada"
-        *ngIf="grupo.cajas.length > 0"
-      >
-        <ng-container matColumnDef="seleccionar">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let c">
-            <mat-icon
-              class="estado-icon"
-              [class.incluida]="c.seleccionado"
-              [class.excluida]="!c.seleccionado"
-            >
-              {{ c.seleccionado ? "check_circle" : "remove_circle_outline" }}
-            </mat-icon>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="identificador">
-          <th mat-header-cell *matHeaderCellDef>Identificador</th>
-          <td mat-cell *matCellDef="let c">{{ c.identificador }}</td>
-        </ng-container>
-        <ng-container matColumnDef="descripcion">
-          <th mat-header-cell *matHeaderCellDef>Descripción</th>
-          <td mat-cell *matCellDef="let c">{{ c.descripcion }}</td>
-        </ng-container>
-        <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef>Cantidad</th>
-          <td mat-cell *matCellDef="let c">{{ c.cantidad }}</td>
-        </ng-container>
-        <ng-container matColumnDef="lote">
-          <th mat-header-cell *matHeaderCellDef>Lote</th>
-          <td mat-cell *matCellDef="let c">{{ c.lote }}</td>
-        </ng-container>
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
-          <td mat-cell *matCellDef="let c">{{ c.vencimiento | date: "dd/MM/yyyy" }}</td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="cajasColumns"></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: cajasColumns"
-          [class.fila-excluida]="!row.seleccionado"
-        ></tr>
-      </table>
     </mat-card>
   </div>
 

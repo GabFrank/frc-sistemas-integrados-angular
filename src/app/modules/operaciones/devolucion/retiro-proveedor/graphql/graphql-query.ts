@@ -22,15 +22,6 @@ export const retiroProveedorConsolidadoQuery = gql`
           presentacion
           cantidadTotal
         }
-        cajas {
-          identificador
-          devolucionId
-          productoId
-          descripcion
-          cantidad
-          lote
-          vencimiento
-        }
       }
     }
   }

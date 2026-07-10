@@ -22,7 +22,6 @@ import { ReportesComponent } from "../../../reportes/reportes/reportes.component
 
 import {
   RetiroBloqueResultado,
-  RetiroCajaView,
   RetiroDevolucionView,
   RetiroProveedorConsolidado,
   RetiroResultadoView,
@@ -56,14 +55,6 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
 
   // Columnas de las tablas
   lineasColumns = ["codigo", "descripcion", "presentacion", "cantidadTotal"];
-  cajasColumns = [
-    "seleccionar",
-    "identificador",
-    "descripcion",
-    "cantidad",
-    "lote",
-    "vencimiento",
-  ];
   resultadosColumns = ["id", "estado", "mensaje"];
 
   // Selección (a nivel devolución, por devolucionIds)
@@ -193,16 +184,10 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
         seleccionado: true,
       }));
 
-      const cajas: RetiroCajaView[] = (grupo.cajas || []).map((caja) => ({
-        ...caja,
-        seleccionado: true,
-      }));
-
       return {
         sucursalId: grupo.sucursalId,
         sucursalNombre: grupo.sucursalNombre,
         lineas: grupo.lineas || [],
-        cajas,
         devoluciones,
         todasSeleccionadas: devoluciones.length > 0,
       };
@@ -247,12 +232,6 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
       grupo.todasSeleccionadas =
         grupo.devoluciones.length > 0 &&
         grupo.devoluciones.every((dev) => dev.seleccionado);
-      // Marca visual de las cajas cuya devolución quedó fuera de la selección.
-      grupo.cajas.forEach((caja) => {
-        caja.seleccionado =
-          caja.devolucionId != null &&
-          this.selectedDevolucionIds.has(String(caja.devolucionId));
-      });
     });
     this.totalDevoluciones = total;
   }

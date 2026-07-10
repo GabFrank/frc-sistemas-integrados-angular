@@ -9,21 +9,13 @@ export interface RetiroLineaConsolidada {
   cantidadTotal?: number;
 }
 
-export interface RetiroCaja {
-  identificador?: string;
-  devolucionId?: string;
-  productoId?: string;
-  descripcion?: string;
-  cantidad?: number;
-  lote?: string;
-  vencimiento?: string;
-}
-
+// Nota: el backend tambien expone `cajas` (una fila por item, etiquetada con el
+// identificador DEV-{suc}-{id}). El desktop no la pide: duplica la tabla
+// consolidada. Solo el mobile la usa, para verificar bultos por escaneo.
 export interface RetiroSucursalGrupo {
   sucursalId?: string;
   sucursalNombre?: string;
   lineas?: RetiroLineaConsolidada[];
-  cajas?: RetiroCaja[];
   devolucionIds?: string[];
 }
 
@@ -52,15 +44,10 @@ export interface RetiroDevolucionView {
   seleccionado: boolean;
 }
 
-export interface RetiroCajaView extends RetiroCaja {
-  seleccionado: boolean;
-}
-
 export interface RetiroSucursalGrupoView {
   sucursalId?: string;
   sucursalNombre?: string;
   lineas: RetiroLineaConsolidada[];
-  cajas: RetiroCajaView[];
   devoluciones: RetiroDevolucionView[];
   todasSeleccionadas: boolean;
 }

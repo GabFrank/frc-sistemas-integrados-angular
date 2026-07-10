@@ -106,20 +106,6 @@
       padding: 4px 8px;
     }
 
-    .fila-excluida {
-      opacity: 0.45;
-      text-decoration: line-through;
-    }
-
-    .estado-icon {
-      &.incluida {
-        color: #4caf50;
-      }
-      &.excluida {
-        opacity: 0.5;
-      }
-    }
-
     mat-icon.ok {
       color: #4caf50;
     }
