@@ -377,13 +377,13 @@ input {
 }
 
 /* Global warn color configuration */
-.mat-warn,
-.mat-mdc-button.mat-warn,
-.mat-mdc-raised-button.mat-warn,
-.mat-mdc-outlined-button.mat-warn,
-.mat-mdc-fab.mat-warn,
-.mat-mdc-mini-fab.mat-warn,
-.mat-mdc-icon-button.mat-warn {
+.mat-warn:not([disabled]),
+.mat-mdc-button.mat-warn:not([disabled]),
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-outlined-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]),
+.mat-mdc-icon-button.mat-warn:not([disabled]) {
   --mdc-filled-button-container-color: #f57c00 !important;
   --mdc-protected-button-container-color: #f57c00 !important;
   --mdc-outlined-button-outline-color: #f57c00 !important;
@@ -391,15 +391,6 @@ input {
   --mdc-text-button-label-text-color: #f57c00 !important;
   --mdc-fab-container-color: #f57c00 !important;
   --mdc-icon-button-icon-color: #f57c00 !important;
-  color: #f57c00 !important;
-}
-
-.mat-mdc-button.mat-warn:not([disabled]),
-.mat-mdc-raised-button.mat-warn:not([disabled]),
-.mat-mdc-outlined-button.mat-warn:not([disabled]),
-.mat-mdc-fab.mat-warn:not([disabled]),
-.mat-mdc-mini-fab.mat-warn:not([disabled]),
-.mat-mdc-icon-button.mat-warn:not([disabled]) {
   color: #f57c00 !important;
 }
 

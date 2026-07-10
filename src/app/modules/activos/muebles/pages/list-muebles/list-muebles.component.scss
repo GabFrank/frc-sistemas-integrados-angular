@@ -2,6 +2,11 @@ table {
     width: 100%;
 }
 
+.filtro-busqueda {
+    width: 240px;
+    max-width: 240px;
+}
+
 :host {
     ::ng-deep {
         .mat-mdc-text-field-wrapper {

@@ -14,6 +14,7 @@ import { MainService } from '../../../../../main.service';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 import { AssetCommonDialogService } from '../../../../../shared/services/asset-common-dialog.service';
+import { sanitizarCuotasDetalle } from '../../../shared/models/cuota-detalle.model';
 
 @Injectable({
   providedIn: 'root'
@@ -113,7 +114,7 @@ export class VehiculoDialogService {
       proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
       monedaId: values.monedaId ? Number(values.monedaId) : undefined,
       usuarioId: this.mainService.usuarioActual?.id || vehiculo?.usuario?.id,
-      cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+      cuotasDetalle: values.situacionPago === 'PAGANDO' ? sanitizarCuotasDetalle(cuotasDetalle) : undefined,
     };
 
     return this.vehiculoService.onGuardar(input).pipe(

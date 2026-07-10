@@ -217,6 +217,11 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  limpiarDescripcion(descripcion: string | undefined | null): string {
+    if (!descripcion) return '';
+    return descripcion.replace(/\s*\|\s*\[URGENCIA:.*?\]/i, '').trim();
+  }
+
   private buildResumenMontosPorMoneda(): ResumenMontoPorMoneda[] {
     const finanzas = this.preGasto?.finanzas ?? [];
     if (finanzas.length === 0) {

@@ -211,6 +211,31 @@ export const enteCuotasByEnteIdQuery = gql`
   }
 `;
 
+export const calcularCuotasDetalleQuery = gql`
+  query calcularCuotasDetalle(
+    $cantidadCuotas: Int
+    $cantidadCuotasPagadas: Int
+    $montoTotal: Float
+    $montoYaPagado: Float
+    $cuotasDetalle: [CuotaDetalleInput]
+  ) {
+    data: calcularCuotasDetalle(
+      cantidadCuotas: $cantidadCuotas
+      cantidadCuotasPagadas: $cantidadCuotasPagadas
+      montoTotal: $montoTotal
+      montoYaPagado: $montoYaPagado
+      cuotasDetalle: $cuotasDetalle
+    ) {
+      cuotas {
+        numeroCuota
+        monto
+        pagado
+      }
+      montoTotal
+    }
+  }
+`;
+
 export const enteVinculacionesBySucursalQuery = gql`
   query enteVinculacionesBySucursal($sucursalId: ID!) {
     data: enteVinculacionesBySucursal(sucursalId: $sucursalId) {

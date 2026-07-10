@@ -184,12 +184,19 @@ export class GastoService {
     return this.genericService.onGetByTexto(this.tipoGastoSearch, texto, servidor);
   }
 
-  tipoGastoFilter(naturaleza?: string, texto?: string, page?: number, size?: number): Observable<PageInfo<TipoGasto>> {
+  tipoGastoFilter(
+    naturaleza?: string,
+    texto?: string,
+    page?: number,
+    size?: number,
+    moduloPadre?: string | null
+  ): Observable<PageInfo<TipoGasto>> {
     return this.genericService.onCustomQuery(this.filterTipoGastosGQL, {
       naturaleza,
       texto,
       page,
-      size
+      size,
+      moduloPadre: moduloPadre ?? null,
     });
   }
 

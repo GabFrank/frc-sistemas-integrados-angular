@@ -14,6 +14,7 @@ import { Equipo } from '../models/equipo.model';
 import { TipoEquipo } from '../models/tipo-equipo.model';
 import { ModeloEquipo } from '../models/modelo-equipo.model';
 import { EquiposService } from './equipos.service';
+import { sanitizarCuotasDetalle } from '../../shared/models/cuota-detalle.model';
 
 @Injectable({
   providedIn: 'root'
@@ -133,7 +134,7 @@ export class EquipoDialogService {
         cantidadCuotas: values.cantidadCuotas,
         cantidadCuotasPagadas: values.cantidadCuotasPagadas,
         diaVencimiento: values.diaVencimiento,
-        cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+        cuotasDetalle: values.situacionPago === 'PAGANDO' ? sanitizarCuotasDetalle(cuotasDetalle) : undefined,
       },
     };
 
