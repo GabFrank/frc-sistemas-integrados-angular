@@ -63,7 +63,7 @@
             </div>
             <div class="sidebar-info-row" *ngIf="selectedProducto?.costo?.costoMedio">
               <span class="sidebar-label">Costo Medio:</span>
-              <span>{{ selectedProducto?.costo?.costoMedio | number:'1.0-0' }} Gs.</span>
+              <app-costo-display [valor]="selectedProducto?.costo?.costoMedio"></app-costo-display>
             </div>
             <div class="sidebar-precios-section" *ngIf="presentacionesDisponibles.length > 0">
               <div class="sidebar-section-title">Precios de Venta</div>
