@@ -74,9 +74,9 @@ export const topMotivosDevolucionQuery = gql`
   }
 `;
 
-export const devolucionesSeriePorDiaQuery = gql`
+export const devolucionesSeriePorMesQuery = gql`
   query ($fechaInicio: String!, $fechaFin: String!, $sucursalId: ID) {
-    data: devolucionesSeriePorDia(
+    data: devolucionesSeriePorMes(
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
       sucursalId: $sucursalId
@@ -84,6 +84,24 @@ export const devolucionesSeriePorDiaQuery = gql`
       fecha
       cantidad
       valor
+    }
+  }
+`;
+
+export const devolucionesEstancadasQuery = gql`
+  query ($diasMinimos: Int, $sucursalId: ID, $limite: Int) {
+    data: devolucionesEstancadas(
+      diasMinimos: $diasMinimos
+      sucursalId: $sucursalId
+      limite: $limite
+    ) {
+      devolucionId
+      identificador
+      producto
+      sucursal
+      estado
+      fecha
+      dias
     }
   }
 `;

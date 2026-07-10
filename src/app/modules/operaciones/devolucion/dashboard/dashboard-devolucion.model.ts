@@ -34,3 +34,13 @@ export interface DevolucionSeriePunto {
   cantidad?: number;
   valor?: number;
 }
+
+export interface DevolucionEstancada {
+  devolucionId?: string;
+  identificador?: string;
+  producto?: string;
+  sucursal?: string;
+  estado?: string;
+  fecha?: string;
+  dias?: number;
+}

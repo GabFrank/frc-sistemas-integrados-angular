@@ -36,9 +36,18 @@ interface AccesoRapido {
   action: () => void;
 }
 
+interface EstancadaVista {
+  producto: string;
+  detalle: string;
+  dias: number;
+  diasTexto: string;
+  antiguo: boolean;
+  porcentaje: number;
+}
+
 /**
  * Dashboard del módulo de devoluciones. Sigue el patrón de dashboards del
- * sistema (ver docs/DASHBOARDS.md): filtros → KPIs → accesos → chart + rankings.
+ * sistema (ver docs/DASHBOARDS.md): filtros → KPIs → accesos → chart + listas.
  * Los valores se precalculan en el .ts (nunca se llaman funciones desde el HTML).
  */
 @Component({
@@ -52,7 +61,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
 
   cargando = false;
 
-  // Filtro de fecha (inputs type=date, formato YYYY-MM-DD).
+  // Filtro de fecha (inputs type=date, formato YYYY-MM-DD). Default: este mes.
   desde = "";
   hasta = "";
 
@@ -63,14 +72,23 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   kpis: KpiVista[] = [];
   accesos: AccesoRapido[] = [];
 
-  // Chart de serie por día.
+  // Chart: serie por mes (últimos 12 meses, independiente del filtro de fecha).
   serieOpciones: EChartsOption | null = null;
   serieHayDatos = false;
 
-  // Rankings y desglose (precalculados como items de la lista genérica).
-  porEstado: DashRankingItem[] = [];
+  // Rankings.
   topProductos: DashRankingItem[] = [];
   topMotivos: DashRankingItem[] = [];
+
+  // Estancadas (PENDIENTE/SEPARADO hace mucho). Umbral configurable.
+  diasEstancado = 30;
+  opcionesDias = [
+    { label: "+15 días", value: 15 },
+    { label: "+1 mes", value: 30 },
+    { label: "+2 meses", value: 60 },
+    { label: "+3 meses", value: 90 },
+  ];
+  estancadas: EstancadaVista[] = [];
 
   constructor(
     private tabService: TabService,
@@ -83,6 +101,8 @@ export class DevolucionComponent implements OnInit, OnDestroy {
     this.armarAccesos();
     this.inicializarRango();
     this.cargar();
+    this.cargarSerie();
+    this.cargarEstancadas();
   }
 
   ngOnDestroy(): void {
@@ -99,25 +119,28 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   }
 
   private inicializarRango(): void {
-    // Por defecto: últimos 30 días hasta hoy.
+    // Por defecto: este mes (día 1 hasta hoy).
     const hoy = new Date();
-    const inicio = new Date();
-    inicio.setDate(hoy.getDate() - 29);
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     this.hasta = this.aInputDate(hoy);
     this.desde = this.aInputDate(inicio);
+  }
+
+  private get sucursalId(): number | null {
+    return this.sucursalFija && this.mainService.sucursalActual?.id != null
+      ? this.mainService.sucursalActual.id
+      : null;
   }
 
   private get filtro(): FiltroDashboard {
     return {
       fechaInicio: `${this.desde} 00:00:00`,
       fechaFin: `${this.hasta} 23:59:59`,
-      sucursalId:
-        this.sucursalFija && this.mainService.sucursalActual?.id != null
-          ? this.mainService.sucursalActual.id
-          : null,
+      sucursalId: this.sucursalId,
     };
   }
 
+  // ===== Carga =====
   cargar(): void {
     if (!this.desde || !this.hasta) return;
     this.cargando = true;
@@ -133,11 +156,6 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         },
         error: () => (this.cargando = false),
       });
-
-    this.dashboardService
-      .onGetPorEstado(f)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((data) => (this.porEstado = this.mapEstado(data || [])));
 
     this.dashboardService
       .onGetTopProductos(f, 5)
@@ -165,11 +183,31 @@ export class DevolucionComponent implements OnInit, OnDestroy {
           }))
         );
       });
+  }
 
+  /** Serie por mes: últimos 12 meses, para ver la tendencia. */
+  private cargarSerie(): void {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1);
     this.dashboardService
-      .onGetSerie(f)
+      .onGetSeriePorMes({
+        fechaInicio: `${this.aInputDate(inicio)} 00:00:00`,
+        fechaFin: `${this.aInputDate(hoy)} 23:59:59`,
+        sucursalId: this.sucursalId,
+      })
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => this.armarSerie(data || []));
+  }
+
+  cargarEstancadas(): void {
+    this.dashboardService
+      .onGetEstancadas(this.diasEstancado, this.sucursalId, 10)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data) => this.armarEstancadas(data || []));
+  }
+
+  onCambioDiasEstancado(): void {
+    this.cargarEstancadas();
   }
 
   // ===== KPIs =====
@@ -204,18 +242,6 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   }
 
   // ===== Rankings =====
-  private mapEstado(data: { estado?: string; cantidad?: number }[]): DashRankingItem[] {
-    const max = Math.max(1, ...data.map((d) => d.cantidad || 0));
-    return data
-      .slice()
-      .sort((a, b) => (b.cantidad || 0) - (a.cantidad || 0))
-      .map((d) => ({
-        nombre: this.titulo(d.estado),
-        valorPrincipal: `${d.cantidad || 0}`,
-        porcentaje: ((d.cantidad || 0) / max) * 100,
-      }));
-  }
-
   private mapTop(
     rows: {
       nombre?: string;
@@ -236,14 +262,36 @@ export class DevolucionComponent implements OnInit, OnDestroy {
     }));
   }
 
+  // ===== Estancadas =====
+  private armarEstancadas(
+    data: {
+      producto?: string;
+      sucursal?: string;
+      estado?: string;
+      dias?: number;
+    }[]
+  ): void {
+    const max = Math.max(1, ...data.map((d) => d.dias || 0));
+    this.estancadas = data.map((d) => ({
+      producto: d.producto || "—",
+      detalle: `${this.titulo(d.estado)} · ${d.sucursal || "—"}`,
+      dias: d.dias || 0,
+      diasTexto: `${d.dias || 0} d`,
+      antiguo: (d.dias || 0) >= 60,
+      porcentaje: ((d.dias || 0) / max) * 100,
+    }));
+  }
+
   // ===== Chart =====
-  private armarSerie(data: { fecha?: string; cantidad?: number; valor?: number }[]): void {
+  private armarSerie(
+    data: { fecha?: string; cantidad?: number; valor?: number }[]
+  ): void {
     this.serieHayDatos = data.length > 0;
     if (!this.serieHayDatos) {
       this.serieOpciones = null;
       return;
     }
-    const fechas = data.map((d) => (d.fecha || "").slice(5)); // MM-DD
+    const meses = data.map((d) => d.fecha || "");
     const cantidades = data.map((d) => d.cantidad || 0);
     const valores = data.map((d) => d.valor || 0);
 
@@ -253,25 +301,26 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       tooltip: { trigger: "axis" },
       legend: {
         data: ["Cantidad", "Valor"],
-        textStyle: { color: GRAFICO_COLORES.textSecondary },
+        textStyle: { color: GRAFICO_COLORES.textSecondary, fontSize: 13 },
         top: 0,
       },
       xAxis: {
         type: "category",
-        data: fechas,
-        axisLabel: { color: GRAFICO_COLORES.textSecondary },
+        data: meses,
+        axisLabel: { color: GRAFICO_COLORES.textSecondary, fontSize: 13 },
         axisLine: { lineStyle: { color: GRAFICO_COLORES.axisLine } },
       },
       yAxis: [
         {
           type: "value",
-          axisLabel: { color: GRAFICO_COLORES.textSecondary },
+          axisLabel: { color: GRAFICO_COLORES.textSecondary, fontSize: 13 },
           splitLine: { lineStyle: { color: GRAFICO_COLORES.splitLine } },
         },
         {
           type: "value",
           axisLabel: {
             color: GRAFICO_COLORES.textSecondary,
+            fontSize: 13,
             formatter: (v: number) => formatoEjeCompacto(v),
           },
           splitLine: { show: false },
@@ -282,8 +331,11 @@ export class DevolucionComponent implements OnInit, OnDestroy {
           name: "Cantidad",
           type: "bar",
           data: cantidades,
-          itemStyle: { color: GRAFICO_COLORES.primary, borderRadius: [3, 3, 0, 0] },
-          barMaxWidth: 22,
+          itemStyle: {
+            color: GRAFICO_COLORES.primary,
+            borderRadius: [3, 3, 0, 0],
+          },
+          barMaxWidth: 28,
         },
         {
           name: "Valor",

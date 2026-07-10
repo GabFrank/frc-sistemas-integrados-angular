@@ -44,12 +44,11 @@ $dash-info: #2196f3;
   }
   .dash-title {
     margin: 0;
-    font-size: 1.7rem;
     font-weight: 600;
     color: $dash-text;
   }
   .dash-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.9rem; // menor: 90%
     color: $dash-text-2;
   }
   .dash-header-actions {
@@ -119,7 +118,7 @@ $dash-info: #2196f3;
     min-width: 0;
   }
   .dash-stat-value {
-    font-size: 1.25rem;
+    font-size: 120%; // destacado
     font-weight: 600;
     color: $dash-text;
     white-space: nowrap;
@@ -127,9 +126,9 @@ $dash-info: #2196f3;
     text-overflow: ellipsis;
   }
   .dash-stat-label {
-    font-size: 0.72rem;
+    font-size: 90%; // menor
     color: $dash-text-2;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.5px;
   }
 }
@@ -150,7 +149,6 @@ $dash-info: #2196f3;
   border: 1px solid $dash-border;
   background: $dash-card;
   color: $dash-text;
-  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -222,7 +220,6 @@ $dash-info: #2196f3;
     height: 20px;
   }
   .dash-section-title {
-    font-size: 1rem;
     font-weight: 600;
     color: $dash-text;
   }
@@ -230,7 +227,7 @@ $dash-info: #2196f3;
     flex: 1;
   }
   .dash-badge {
-    font-size: 0.72rem;
+    font-size: 0.9rem; // menor: 90%
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 10px;
@@ -246,6 +243,28 @@ $dash-info: #2196f3;
       color: $dash-error;
     }
   }
+}
+
+// Select compacto dentro de un header de card (ej. umbral de "Estancadas").
+.dash-inline-select {
+  width: 120px;
+  font-size: 90%;
+
+  .mat-mdc-form-field-infix {
+    min-height: 34px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+.dash-estancada-alerta {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: $dash-warning;
 }
 
 // -------- Ranking (top N) --------
@@ -266,7 +285,7 @@ $dash-info: #2196f3;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  font-size: 0.78rem;
+  font-size: 0.9rem; // menor: 90%
   font-weight: 700;
   background: rgba(255, 255, 255, 0.06);
   color: $dash-text-2;
@@ -297,7 +316,7 @@ $dash-info: #2196f3;
   gap: 8px;
 }
 .dash-ranking-name {
-  font-size: 0.82rem;
+  font-size: 90%; // menor
   font-weight: 500;
   color: $dash-text;
   white-space: nowrap;
@@ -305,7 +324,6 @@ $dash-info: #2196f3;
   text-overflow: ellipsis;
 }
 .dash-ranking-secondary {
-  font-size: 0.8rem;
   color: $dash-text;
   white-space: nowrap;
 }
@@ -322,7 +340,6 @@ $dash-info: #2196f3;
   transition: width 0.4s ease;
 }
 .dash-ranking-total {
-  font-size: 0.72rem;
   color: $dash-text-2;
 }
 
@@ -353,7 +370,7 @@ $dash-info: #2196f3;
   border: 1px solid $dash-border;
   background: transparent;
   color: $dash-text-2;
-  font-size: 0.78rem;
+  font-size: 0.9rem; // menor: 90%
   cursor: pointer;
   transition: all 0.2s;
 

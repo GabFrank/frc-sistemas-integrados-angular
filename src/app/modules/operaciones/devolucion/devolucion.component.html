@@ -4,11 +4,19 @@
     <div class="dash-header-title">
       <h1 class="dash-title">Devoluciones</h1>
       <span class="dash-subtitle">
-        Panel de control
+        Dashboard de devoluciones
         <ng-container *ngIf="sucursalFija"> · {{ nombreSucursalFija }}</ng-container>
       </span>
     </div>
     <div class="dash-header-actions">
+      <button
+        mat-icon-button
+        [disabled]="cargando"
+        matTooltip="Actualizar"
+        (click)="cargar()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
       <div class="dash-filtros">
         <mat-form-field appearance="outline">
           <mat-label>Desde</mat-label>
@@ -53,24 +61,68 @@
     ></dash-quick-action>
   </div>
 
-  <!-- Contenido: chart + por estado (izq) · rankings (der) -->
+  <!-- Contenido: chart + estancadas (izq) · rankings (der) -->
   <div class="dash-main">
     <div class="dash-col">
       <dash-chart-card
         icon="stacked_bar_chart"
-        title="Devoluciones por día"
+        title="Devoluciones por mes (últimos 12)"
         [opciones]="serieOpciones"
         [cargando]="cargando"
         [hayDatos]="serieHayDatos"
         alturaMinima="300px"
       ></dash-chart-card>
 
-      <dash-ranking-list
-        icon="donut_small"
-        title="Por estado"
-        [items]="porEstado"
-        emptyText="Sin devoluciones en el período"
-      ></dash-ranking-list>
+      <!-- Estancadas: PENDIENTE/SEPARADO sin avanzar hace mucho -->
+      <div class="dash-card">
+        <div class="dash-section-header">
+          <mat-icon>hourglass_bottom</mat-icon>
+          <span class="dash-section-title">Estancadas</span>
+          <span class="dash-section-spacer"></span>
+          <mat-form-field appearance="outline" class="dash-inline-select">
+            <mat-select
+              [(ngModel)]="diasEstancado"
+              (selectionChange)="onCambioDiasEstancado()"
+            >
+              <mat-option *ngFor="let o of opcionesDias" [value]="o.value">
+                {{ o.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="!estancadas.length" class="dash-empty">
+          <mat-icon>check_circle</mat-icon>
+          <span>Nada estancado en el período</span>
+        </div>
+
+        <div class="dash-ranking-list" *ngIf="estancadas.length">
+          <div
+            *ngFor="let e of estancadas; let i = index"
+            class="dash-ranking-item"
+          >
+            <div class="dash-ranking-rank" [class.rank-bronze]="e.antiguo">
+              <mat-icon *ngIf="e.antiguo" class="dash-estancada-alerta"
+                >priority_high</mat-icon
+              >
+              <ng-container *ngIf="!e.antiguo">{{ i + 1 }}</ng-container>
+            </div>
+            <div class="dash-ranking-info">
+              <div class="dash-ranking-name-row">
+                <span class="dash-ranking-name">{{ e.producto }}</span>
+                <span class="dash-ranking-secondary">{{ e.diasTexto }}</span>
+              </div>
+              <div class="dash-ranking-bar-container">
+                <div
+                  class="dash-ranking-bar"
+                  [style.width.%]="e.porcentaje"
+                ></div>
+              </div>
+              <span class="dash-ranking-total">{{ e.detalle }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="dash-col">

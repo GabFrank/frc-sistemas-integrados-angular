@@ -1,8 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Query } from "apollo-angular";
 import {
+  devolucionesEstancadasQuery,
   devolucionesPorEstadoResumenQuery,
-  devolucionesSeriePorDiaQuery,
+  devolucionesSeriePorMesQuery,
   resumenDevolucionesQuery,
   topMotivosDevolucionQuery,
   topProductosDevueltosQuery,
@@ -29,6 +30,11 @@ export class TopMotivosDevolucionGQL extends Query {
 }
 
 @Injectable({ providedIn: "root" })
-export class DevolucionesSeriePorDiaGQL extends Query {
-  document = devolucionesSeriePorDiaQuery;
+export class DevolucionesSeriePorMesGQL extends Query {
+  document = devolucionesSeriePorMesQuery;
+}
+
+@Injectable({ providedIn: "root" })
+export class DevolucionesEstancadasGQL extends Query {
+  document = devolucionesEstancadasQuery;
 }
