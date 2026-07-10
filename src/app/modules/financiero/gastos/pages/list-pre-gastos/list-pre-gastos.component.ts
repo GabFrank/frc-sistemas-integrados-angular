@@ -224,7 +224,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     this.matDialog
       .open(AutorizarGastoDialogComponent, {
         data: { preGasto },
-        width: '50%',
+        width: '100%',
+        maxWidth: '600px',
         disableClose: true,
         restoreFocus: true,
         autoFocus: true,
