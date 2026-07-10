@@ -181,6 +181,12 @@ Servicio de cotizaciones: `src/app/shared/services/cotizacion-header.service.ts`
 
 Detalle completo + cómo extender: [docs/refactor/HEADER_REFACTOR_v2.md](docs/refactor/HEADER_REFACTOR_v2.md).
 
+## Sidebar / navegación
+
+El **único** menú lateral es `SideMiniVariantComponent` (`src/app/shared/components/side-mini-variant/`), renderizado por `default.component.html`. El viejo `SideComponent` (`components/side/`, selector `app-side`) era legacy no renderizado y fue **eliminado (2026-07)** — no re-cablear entradas de menú ahí.
+
+**Agregar una entrada de menú = 3 ediciones en `side-mini-variant.component.ts`** (si falta una, el módulo queda inalcanzable): (1) `import` del componente entry; (2) item en el árbol de menú (`name`/`icon`/`action`/`visibilityRoles`) bajo el grupo correcto; (3) `case "<action>":` en `onItemClick()` con `this.openTabIfAuthorized(ROLES.X, Component, "Title")` (permite rol `X` o `ADMIN`).
+
 ## Estructura de módulos (`src/app/modules/`)
 
 19 módulos por dominio funcional: `administrativo`, `configuracion`, `dashboard`, `empresarial`, `financiero`, `general`, `login`, `notificaciones`, `operaciones`, `pdv`, `personas`, `print`, `productos`, `reportes`, `sistema`, `transferencias`. Cada uno sigue el patrón list/edit/graphql descripto arriba.

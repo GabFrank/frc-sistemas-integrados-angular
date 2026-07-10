@@ -21,7 +21,6 @@ import { HeaderComponent } from './components/header/header.component';
 import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
-import { SideComponent } from './components/side/side.component';
 import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
 import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/digitar-contrasena-dialog.component';
@@ -72,7 +71,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 @NgModule({
   declarations: [
     HeaderComponent,
-    SideComponent,
     FooterComponent,
     CardComponent,
     FileUploadComponent,
@@ -136,7 +134,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
   ],
   exports: [
     HeaderComponent,
-    SideComponent,
     SideMiniVariantComponent,
     FooterComponent,
     CardComponent,
