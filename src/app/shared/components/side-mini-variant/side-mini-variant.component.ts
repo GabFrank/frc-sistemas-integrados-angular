@@ -30,7 +30,6 @@ import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.servic
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
-import { DevolucionComponent } from './../../../modules/operaciones/devolucion/devolucion.component';
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
 import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
@@ -172,12 +171,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'swap_vert',
               action: 'list-movimiento',
               visibilityRoles: [ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.VER_INVENTARIO]
-            },
-            {
-              name: 'Devoluciones',
-              icon: 'assignment_return',
-              action: 'list-devoluciones',
-              visibilityRoles: [ROLES.VER_TRANSFERENCIA]
             }
           ]
         },
@@ -707,9 +700,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-transferencias":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, TransferenciaComponent, "Transferencia");
-        break;
-      case "list-devoluciones":
-        this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");
         break;
       case "list-cotizacion":
         this.openTabIfAuthorized(ROLES.CAMBIAR_COTIZACION, CambioComponent, "Cotizaciónes");
