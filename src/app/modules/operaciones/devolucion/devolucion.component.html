@@ -1,24 +1,90 @@
-<div fxLayout="row" style="width: 100%; height: 80%" fxLayoutAlign="center center">
-  <div fxFlex="60" fxLayout="column">
-    <div fxFlex fxLayout="row wrap" fxLayoutAlign="start start" fxLayoutGap="10px">
-      <div fxFlex="30%" style="height: 250px">
-        <app-boton nombre="Histórico de devoluciones" icon="manage_search" [iconSize]="4"
-          (clickEvent)="onListDevoluciones()"></app-boton>
+<div class="dash-container">
+  <!-- Header + filtros -->
+  <div class="dash-header">
+    <div class="dash-header-title">
+      <h1 class="dash-title">Devoluciones</h1>
+      <span class="dash-subtitle">
+        Panel de control
+        <ng-container *ngIf="sucursalFija"> · {{ nombreSucursalFija }}</ng-container>
+      </span>
+    </div>
+    <div class="dash-header-actions">
+      <div class="dash-filtros">
+        <mat-form-field appearance="outline">
+          <mat-label>Desde</mat-label>
+          <input matInput type="date" [(ngModel)]="desde" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Hasta</mat-label>
+          <input matInput type="date" [(ngModel)]="hasta" />
+        </mat-form-field>
       </div>
-      <div fxFlex="30%" style="height: 250px"
-        *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || mainService.usuarioActual?.roles.includes(ROLES.CREAR_TRANSFERENCIA)">
-        <app-boton nombre="Nueva Devolución" icon="assignment_return" [iconSize]="4"
-          (clickEvent)="onNuevaDevolucion()"></app-boton>
-      </div>
-      <div fxFlex="30%" style="height: 250px"
-        *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || mainService.usuarioActual?.roles.includes(ROLES.CREAR_TRANSFERENCIA)">
-        <app-boton nombre="Retiro de proveedor" icon="local_shipping" [iconSize]="4"
-          (clickEvent)="onRetiroProveedor()"></app-boton>
-      </div>
-      <div fxFlex="30%" style="height: 250px">
-        <app-boton nombre="Guía del módulo" icon="menu_book" [iconSize]="4"
-          (clickEvent)="onAbrirGuia()"></app-boton>
-      </div>
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="cargando"
+        (click)="cargar()"
+      >
+        <mat-icon>filter_alt</mat-icon> Aplicar
+      </button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="dash-stats-row">
+    <dash-stat-chip
+      *ngFor="let kpi of kpis"
+      [icon]="kpi.icon"
+      [color]="kpi.color"
+      [label]="kpi.label"
+      [value]="kpi.value"
+      [loading]="cargando"
+    ></dash-stat-chip>
+  </div>
+
+  <!-- Accesos rápidos -->
+  <div class="dash-quick-actions">
+    <dash-quick-action
+      *ngFor="let a of accesos"
+      [icon]="a.icon"
+      [title]="a.title"
+      [color]="a.color"
+      (action)="a.action()"
+    ></dash-quick-action>
+  </div>
+
+  <!-- Contenido: chart + por estado (izq) · rankings (der) -->
+  <div class="dash-main">
+    <div class="dash-col">
+      <dash-chart-card
+        icon="stacked_bar_chart"
+        title="Devoluciones por día"
+        [opciones]="serieOpciones"
+        [cargando]="cargando"
+        [hayDatos]="serieHayDatos"
+        alturaMinima="300px"
+      ></dash-chart-card>
+
+      <dash-ranking-list
+        icon="donut_small"
+        title="Por estado"
+        [items]="porEstado"
+        emptyText="Sin devoluciones en el período"
+      ></dash-ranking-list>
+    </div>
+
+    <div class="dash-col">
+      <dash-ranking-list
+        icon="inventory_2"
+        title="Top productos devueltos"
+        [items]="topProductos"
+      ></dash-ranking-list>
+
+      <dash-ranking-list
+        icon="report_problem"
+        title="Top motivos"
+        [items]="topMotivos"
+      ></dash-ranking-list>
     </div>
   </div>
 </div>
