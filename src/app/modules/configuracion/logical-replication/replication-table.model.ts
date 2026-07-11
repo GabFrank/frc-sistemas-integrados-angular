@@ -1,5 +1,4 @@
 import { Usuario } from '../../personas/usuarios/usuario.model';
-import { dateToString } from '../../../commons/core/utils/dateUtils';
 
 /**
  * Enum para las direcciones de replicación
@@ -65,12 +64,11 @@ export class ReplicationTableModel {
   toInput(): any {
     return {
       id: this.id,
-      tableName: this.tableName?.toUpperCase(),
+      tableName: this.tableName,
       direction: this.direction,
       enabled: this.enabled,
-      description: this.description?.toUpperCase(),
+      description: this.description,
       usuarioId: this.usuario?.id,
-      creadoEn: dateToString(this.creadoEn),
       branchIds: this.branchIds ?? [],
       replicateCentralToBranchWithFilter: this.replicateCentralToBranchWithFilter ?? false
     };
