@@ -309,7 +309,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     }
     this.compartiendo = true;
     this.cdr.markForCheck();
-    this.electronService.shareLocalPrinter(colaLocal, cred.password)
+    this.electronService.shareLocalPrinter(colaLocal, cred.password, cred.centralIp)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -324,6 +324,14 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
             });
             this.cdr.markForCheck();
             return;
+          }
+          // Aviso no bloqueante si el hardening de firewall no se pudo aplicar.
+          if (res.aviso) {
+            this.notificacion.notification$.next({
+              texto: res.aviso,
+              color: NotificacionColor.warn,
+              duracion: 7,
+            });
           }
           // Armamos la URI con la IP de esta PC elegida (puede diferir de la auto-detectada).
           const cola = this.sanearCola(d.ref?.name || d.nombre);

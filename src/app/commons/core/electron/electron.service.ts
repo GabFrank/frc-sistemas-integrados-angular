@@ -37,6 +37,7 @@ export interface ShareResult {
   ip: string | null;
   uri: string | null;
   error?: string;
+  aviso?: string;
 }
 
 @Injectable({
@@ -193,8 +194,8 @@ export class ElectronService {
    * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
    * servidor central. Requiere permisos de administración de CUPS. Solo Linux.
    */
-  shareLocalPrinter(queue: string, password?: string): Observable<ShareResult> {
-    return from(ipcRenderer.invoke('share-local-printer', { queue, password })) as Observable<ShareResult>;
+  shareLocalPrinter(queue: string, password?: string, centralIp?: string): Observable<ShareResult> {
+    return from(ipcRenderer.invoke('share-local-printer', { queue, password, centralIp })) as Observable<ShareResult>;
   }
 
   /**

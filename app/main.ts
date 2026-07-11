@@ -554,7 +554,8 @@ function detectarIpsLocales(): {
 function compartirImpresoraLocal(
   queue: string,
   password?: string,
-): Promise<{ success: boolean; ip: string | null; uri: string | null; error?: string }> {
+  centralIp?: string,
+): Promise<{ success: boolean; ip: string | null; uri: string | null; error?: string; aviso?: string }> {
   return new Promise((resolve) => {
     const { mejor } = detectarIpsLocales();
     const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
@@ -620,12 +621,43 @@ function compartirImpresoraLocal(
           resolve({ success: false, ip: mejor, uri, error: msg });
           return;
         }
-        resolve({ success: true, ip: mejor, uri });
+        // 3) Hardening (best-effort, no bloqueante): abrir el puerto 631 SOLO para el central.
+        // Con VPN, restringe quién puede alcanzar tu CUPS. Si no hay firewalld o falla, seguimos.
+        const aviso = await restringirCupsAlCentral(run, centralIp);
+        resolve({ success: true, ip: mejor, uri, aviso });
       } catch (e: any) {
         resolve({ success: false, ip: mejor, uri, error: e && e.message ? e.message : 'error compartiendo' });
       }
     })();
   });
+}
+
+/**
+ * Best-effort: restringe el acceso al CUPS local (puerto 631) SOLO a la IP del central via
+ * firewalld (Fedora/RHEL). Agrega una rich rule que acepta 631/tcp desde esa IP. No abre 631
+ * de forma amplia, así solo el central lo alcanza. Si no hay firewalld o falla, devuelve un aviso
+ * (no es fatal: el compartir ya funcionó).
+ */
+async function restringirCupsAlCentral(
+  run: (args: string[], useSudo: boolean) => Promise<{ code: number; stdout: string; stderr: string }>,
+  centralIp?: string,
+): Promise<string | undefined> {
+  const ipValida = centralIp && /^\d{1,3}(\.\d{1,3}){3}$/.test(centralIp);
+  if (!ipValida) {
+    return 'No se aplicó restricción de firewall (IP del central inválida o vacía).';
+  }
+  // ¿Hay firewalld?
+  const cual = await run(['sh', '-c', 'command -v firewall-cmd || true'], false);
+  if (!cual.stdout.trim()) {
+    return 'CUPS compartido sin restricción de firewall (no se encontró firewalld). Restringí el puerto 631 al central a mano.';
+  }
+  const regla = `rule family="ipv4" source address="${centralIp}" port port="631" protocol="tcp" accept`;
+  const add = await run(['firewall-cmd', '--permanent', `--add-rich-rule=${regla}`], true);
+  if (add.code !== 0) {
+    return 'No se pudo aplicar la restricción de firewall (' + ((add.stderr || '').trim() || 'error') + '). CUPS quedó compartido igual.';
+  }
+  await run(['firewall-cmd', '--reload'], true);
+  return undefined; // aplicado OK
 }
 
 function registerPrinterIpcHandlers() {
@@ -639,7 +671,8 @@ function registerPrinterIpcHandlers() {
   ipcMain.handle('share-local-printer', async (_event: any, arg: any) => {
     const queue = typeof arg === 'string' ? arg : arg?.queue;
     const password = typeof arg === 'string' ? undefined : arg?.password;
-    return compartirImpresoraLocal(queue, password);
+    const centralIp = typeof arg === 'string' ? undefined : arg?.centralIp;
+    return compartirImpresoraLocal(queue, password, centralIp);
   });
 
   ipcMain.handle('get-system-printers', async () => {
