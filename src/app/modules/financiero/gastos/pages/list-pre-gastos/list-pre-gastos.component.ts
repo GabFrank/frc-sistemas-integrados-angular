@@ -408,12 +408,42 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   private getRendidoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    if (preGasto?.estado !== 'COMPLETADO') {
+      return { GS: 0, RS: 0, DS: 0 };
+    }
     const gasto = preGasto?.gasto;
     return {
       GS: Math.max(Number(gasto?.retiroGs ?? 0) - Number(gasto?.vueltoGs ?? 0), 0),
       RS: Math.max(Number(gasto?.retiroRs ?? 0) - Number(gasto?.vueltoRs ?? 0), 0),
       DS: Math.max(Number(gasto?.retiroDs ?? 0) - Number(gasto?.vueltoDs ?? 0), 0),
     };
+  }
+  
+  tuvoVuelto(preGasto: PreGasto): boolean {
+    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+      return Number(preGasto?.saldoDevolver ?? 0) > 0;
+    }
+    const gasto = preGasto?.gasto;
+    if (!gasto) return false;
+    return Number(gasto.vueltoGs ?? 0) > 0 || Number(gasto.vueltoRs ?? 0) > 0 || Number(gasto.vueltoDs ?? 0) > 0;
+  }
+
+  montoVueltoPorMoneda(preGasto: PreGasto): string {
+    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+       const saldo = Number(preGasto?.saldoDevolver ?? 0);
+       if (saldo > 0) {
+          const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';
+          return `${key}: ${this.formatMontoPorMoneda(key, saldo)}`;
+       }
+       return 'GS: 0';
+    }
+    const gasto = preGasto?.gasto;
+    if (!gasto) return 'GS: 0';
+    const parts = [];
+    if (Number(gasto.vueltoGs ?? 0) > 0) parts.push(`GS: ${this.formatMontoPorMoneda('GS', Number(gasto.vueltoGs))}`);
+    if (Number(gasto.vueltoRs ?? 0) > 0) parts.push(`R$: ${this.formatMontoPorMoneda('RS', Number(gasto.vueltoRs))}`);
+    if (Number(gasto.vueltoDs ?? 0) > 0) parts.push(`USD: ${this.formatMontoPorMoneda('DS', Number(gasto.vueltoDs))}`);
+    return parts.length > 0 ? parts.join(' | ') : 'GS: 0';
   }
 
   private resolveMonedaKey(simbolo?: string, denominacion?: string): 'GS' | 'RS' | 'DS' | null {

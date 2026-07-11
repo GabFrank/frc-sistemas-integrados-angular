@@ -185,11 +185,11 @@
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Tuvo vuelto:</span>
-            <span>{{ (seleccionado.saldoDevolver || 0) > 0 ? 'Sí' : 'No' }}</span>
+            <span>{{ tuvoVuelto(seleccionado) ? 'Sí' : 'No' }}</span>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Monto vuelto:</span>
-            <span>{{ (seleccionado.saldoDevolver || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+            <span>{{ montoVueltoPorMoneda(seleccionado) }}</span>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">¿Rindió?</span>
