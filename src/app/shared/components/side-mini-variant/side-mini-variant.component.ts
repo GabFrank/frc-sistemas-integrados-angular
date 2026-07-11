@@ -37,7 +37,7 @@ import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-l
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
@@ -422,9 +422,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       visibilityRoles: [ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE],
       items: [
         {
-          name: 'Impresoras Térmicas',
+          name: 'Impresoras',
           icon: 'print',
-          action: 'thermal-printer',
+          action: 'impresoras',
           visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
         },
         {
@@ -765,10 +765,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-proveedor":
         this.tabService.addTab(new Tab(ListProveedorComponent, "Proveedores", null, null));
         break;
-      case "thermal-printer":
+      case "impresoras":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
           || this.mainService.usuarioActual?.roles.includes("CONFIGURACION")) {
-          this.tabService.addTab(new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null));
+          this.tabService.addTab(new Tab(ListImpresorasComponent, "Impresoras", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

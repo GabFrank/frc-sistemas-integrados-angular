@@ -23,9 +23,13 @@ import { EditReplicationTableDialogComponent } from './logical-replication/edit-
 import { SetupReplicationDialogComponent } from './logical-replication/setup-replication-dialog/setup-replication-dialog.component';
 import { RemoveReplicationDialogComponent } from './logical-replication/remove-replication-dialog/remove-replication-dialog.component';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
+import { ListImpresorasComponent } from './impresoras/list-impresoras/list-impresoras.component';
+import { AdicionarImpresoraDialogComponent } from './impresoras/adicionar-impresora-dialog/adicionar-impresora-dialog.component';
 
 @NgModule({
   declarations: [
+    ListImpresorasComponent,
+    AdicionarImpresoraDialogComponent,
     ConfigurarServidorDialogComponent, 
     ListActualizacionComponent, 
     EditActualizacionComponent, 

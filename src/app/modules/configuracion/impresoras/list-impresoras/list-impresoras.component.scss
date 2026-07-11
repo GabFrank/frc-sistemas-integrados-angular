@@ -1,0 +1,152 @@
+.impresoras-container {
+  padding: 20px;
+}
+
+.header-row {
+  margin-bottom: 20px;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtitulo {
+  opacity: 0.6;
+  font-size: 13px;
+}
+
+.grupo-sucursal {
+  margin-bottom: 28px;
+}
+
+.grupo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+
+  mat-icon {
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+  }
+}
+
+.cards-grid {
+  width: 100%;
+}
+
+.impresora-card {
+  width: 300px;
+  padding: 14px;
+  border-radius: 12px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &.inactiva {
+    opacity: 0.55;
+  }
+}
+
+.card-top {
+  margin-bottom: 12px;
+}
+
+.tipo-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(63, 81, 181, 0.18);
+
+  mat-icon {
+    color: #7986cb;
+  }
+}
+
+.card-title {
+  min-width: 0;
+
+  .nombre {
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tipo-uso {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+}
+
+.estrella {
+  color: #ffca28;
+}
+
+.card-info {
+  margin-bottom: 10px;
+
+  .info-linea {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 3px 0;
+    opacity: 0.85;
+
+    .info-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+      opacity: 0.7;
+    }
+  }
+}
+
+.card-estado {
+  margin-bottom: 10px;
+}
+
+.chip-estado {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.chip-activa {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.chip-inactiva {
+  background: rgba(158, 158, 158, 0.2);
+  color: #bdbdbd;
+}
+
+.card-acciones {
+  margin-top: 8px;
+}
+
+.sin-datos {
+  margin-top: 60px;
+  gap: 12px;
+  opacity: 0.8;
+
+  .icono-vacio {
+    font-size: 56px;
+    height: 56px;
+    width: 56px;
+    opacity: 0.4;
+  }
+}

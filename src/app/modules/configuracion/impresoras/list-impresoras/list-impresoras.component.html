@@ -1,0 +1,136 @@
+<div class="impresoras-container">
+
+  <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center">
+    <div>
+      <h2 class="titulo">Impresoras</h2>
+      <span class="subtitulo">{{ total }} registrada(s)</span>
+    </div>
+    <div fxLayout="row" fxLayoutGap="8px">
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="cargar()"
+        aria-label="Actualizar lista de impresoras"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="agregarNuevo()"
+        aria-label="Agregar nueva impresora"
+      >
+        <mat-icon>add</mat-icon>
+        Nueva impresora
+      </button>
+    </div>
+  </div>
+
+  <div
+    *ngFor="let grupo of grupos"
+    class="grupo-sucursal"
+  >
+    <div class="grupo-header">
+      <mat-icon>store</mat-icon>
+      <span>{{ grupo.sucursalNombre }}</span>
+    </div>
+
+    <div class="cards-grid" fxLayout="row wrap" fxLayoutGap="16px grid">
+      <mat-card
+        *ngFor="let imp of grupo.impresoras"
+        class="impresora-card"
+        [class.inactiva]="!imp.activo"
+      >
+        <div class="card-top" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+          <div class="tipo-badge">
+            <mat-icon>{{ imp.iconoTipo }}</mat-icon>
+          </div>
+          <div class="card-title" fxFlex>
+            <div class="nombre">{{ imp.nombre }}</div>
+            <div class="tipo-uso">{{ imp.tipoLabel }} · {{ imp.usoLabel }}</div>
+          </div>
+          <mat-icon
+            *ngIf="imp.esPredeterminada"
+            class="estrella"
+            title="Predeterminada"
+          >
+            star
+          </mat-icon>
+        </div>
+
+        <div class="card-info">
+          <div class="info-linea">
+            <mat-icon class="info-icon">{{ imp.iconoConexion }}</mat-icon>
+            <span>{{ imp.conexionDetalle }}</span>
+          </div>
+          <div class="info-linea">
+            <mat-icon class="info-icon">description</mat-icon>
+            <span>{{ imp.perfil }}</span>
+          </div>
+        </div>
+
+        <div class="card-estado">
+          <span
+            class="chip-estado"
+            [class.chip-activa]="imp.activo"
+            [class.chip-inactiva]="!imp.activo"
+          >
+            {{ imp.activo ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="card-acciones" fxLayout="row" fxLayoutAlign="space-between center">
+          <button
+            mat-button
+            color="primary"
+            (click)="probar(imp.ref)"
+          >
+            <mat-icon>print</mat-icon>
+            Probar
+          </button>
+          <div>
+            <button
+              mat-icon-button
+              (click)="editarItem(imp.ref)"
+              aria-label="Editar impresora"
+              title="Editar"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="eliminarItem(imp.ref)"
+              aria-label="Eliminar impresora"
+              title="Eliminar"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+
+  <div
+    *ngIf="!cargando && total === 0"
+    class="sin-datos"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+  >
+    <mat-icon class="icono-vacio">print_disabled</mat-icon>
+    <p>No hay impresoras registradas.</p>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="agregarNuevo()"
+    >
+      <mat-icon>add</mat-icon>
+      Agregar la primera
+    </button>
+  </div>
+
+</div>
