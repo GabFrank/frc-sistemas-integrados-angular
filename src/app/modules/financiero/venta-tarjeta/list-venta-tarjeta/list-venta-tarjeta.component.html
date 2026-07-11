@@ -1,0 +1,185 @@
+<app-generic-list
+  titulo="Ventas con Tarjeta"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onLimpiarFiltros()"
+  [isAdicionar]="false"
+  [isCustom]="true"
+  customName="Generar Pdf"
+  (customFunction)="onGenerarPdf()"
+  [data]="dataSource.data"
+  style="height: 100%"
+>
+  <div filtros>
+    <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0;">
+
+      <mat-form-field appearance="outline" fxFlex="7%">
+        <mat-label>ID</mat-label>
+        <input matInput type="number" [formControl]="idControl" (keyup.enter)="onFilter()">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="7%">
+        <mat-label>Venta ID</mat-label>
+        <input matInput type="number" [formControl]="ventaIdControl" (keyup.enter)="onFilter()">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="20%">
+        <mat-label>Sucursal</mat-label>
+        <mat-select [formControl]="sucursalIdControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="15%">
+        <mat-label>Terminal</mat-label>
+        <mat-select [formControl]="terminalDescripcionControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let d of terminalesDescripciones" [value]="d">{{ d }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="12%">
+        <mat-label>Código POS</mat-label>
+        <mat-select [formControl]="terminalCodigoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let c of terminalesCodigos" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="10%">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let e of estados" [value]="e">{{ e }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="15%">
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input
+          [formGroup]="fechaFormGroup"
+          [rangePicker]="picker"
+          style="width: 100%"
+        >
+          <input
+            matStartDate
+            formControlName="inicio"
+            placeholder="Inicio"
+            [max]="today"
+          />
+          <input
+            matEndDate
+            formControlName="fin"
+            placeholder="Fin"
+            [max]="fechaDesdeControl.value"
+          />
+        </mat-date-range-input>
+        <mat-datepicker-toggle
+          matSuffix
+          [for]="picker"
+        ></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+
+        <mat-error
+          *ngIf="
+            fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+          "
+          >Fecha inicial inválida</mat-error
+        >
+        <mat-error
+          *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+          >Fecha final inválida</mat-error
+        >
+      </mat-form-field>
+
+    </div>
+  </div>
+
+  <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%;">
+    <div fxFlex style="overflow: auto; min-height: 0;">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 6%;">ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 6%;">{{ item.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="ventaId">
+          <th mat-header-cell *matHeaderCellDef style="width: 8%;">Venta ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 8%;">{{ item.venta?.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="sucursal">
+          <th mat-header-cell *matHeaderCellDef style="width: 14%;">Sucursal</th>
+          <td mat-cell *matCellDef="let item" style="width: 14%;">
+            <span *ngIf="item.sucursal">{{ item.sucursal.nombre }}</span>
+            <span *ngIf="!item.sucursal">{{ item.sucursalId }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="terminal">
+          <th mat-header-cell *matHeaderCellDef style="width: 15%;">Terminal</th>
+          <td mat-cell *matCellDef="let item" style="width: 15%;">
+            <span *ngIf="item.terminalPos">{{ item.terminalPos.descripcion }}</span>
+            <span *ngIf="!item.terminalPos">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef style="width: 10%;">Código</th>
+          <td mat-cell *matCellDef="let item" style="width: 10%;">
+            <span *ngIf="item.terminalPos">{{ item.terminalPos.codigo }}</span>
+            <span *ngIf="!item.terminalPos">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%;">Monto</th>
+          <td mat-cell *matCellDef="let item" style="width: 12%;">
+            {{ item.monto | number:'1.0-2' }}
+            <span>{{ item.terminalPos?.moneda?.simbolo || 'Gs.' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="montoEscaneado">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%;">Monto escaneado</th>
+          <td mat-cell *matCellDef="let item" style="width: 12%;">
+            <span *ngIf="item.montoEscaneado != null">{{ item.montoEscaneado | number:'1.0-2' }}
+              <span>{{ item.terminalPos?.moneda?.simbolo || 'Gs.' }}</span>
+            </span>
+           
+            <span *ngIf="item.montoEscaneado == null">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef style="width: 10%;">Estado</th>
+          <td mat-cell *matCellDef="let item" style="width: 10%;">
+            <mat-chip [ngClass]="{
+              'pendiente': item.estado === 'PENDIENTE',
+              'cancelado': item.estado === 'CANCELADO',
+              'completado': item.estado === 'COMPLETADO'
+            }">
+              {{ item.estado }}</mat-chip>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%;">Fecha</th>
+          <td mat-cell *matCellDef="let item" style="width: 12%;">{{ item.creadoEn | date:'dd/MM/yyyy HH:mm' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+    <mat-paginator
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      showFirstLastButtons
+      style="width: 100%"
+    ></mat-paginator>
+  </div>
+</app-generic-list>

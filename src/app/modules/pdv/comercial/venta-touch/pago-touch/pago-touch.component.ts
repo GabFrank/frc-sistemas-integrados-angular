@@ -40,6 +40,12 @@ export interface PagoData {
   isCredito?: boolean;
 }
 
+export interface TarjetaPago {
+  terminalPosId: number | null;
+  monto: number;
+  terminalDescripcion?: string;
+}
+
 export interface PagoResponseData {
   cobroDetalleList: CobroDetalle[];
   facturado?: boolean;
@@ -47,6 +53,7 @@ export interface PagoResponseData {
   itens?: VentaCreditoCuotaInput[];
   ticket?: boolean;
   cliente?: Cliente;
+  tarjetaPagos?: TarjetaPago[];
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -68,6 +75,7 @@ import { CobroDetalle } from "../../../../operaciones/venta/cobro/cobro-detalle.
 import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { BotonComponent } from "../../../../../shared/components/boton/boton.component";
 import { MonedaService } from "../../../../financiero/moneda/moneda.service";
+import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -594,13 +602,55 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     itens?: VentaCreditoCuotaInput[],
     ticket?: boolean
   ) {
-    let response: PagoResponseData = {
+    const tarjetaCobros = this.cobroDetalleList.filter(
+      cd => cd.formaPago?.descripcion === 'TARJETA' && cd.pago && !cd.vuelto && !cd.descuento
+    );
+
+    if (tarjetaCobros.length === 0) {
+      this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+      return;
+    }
+
+    const tarjetaPagos: TarjetaPago[] = [];
+
+    const abrirDialogPara = (index: number) => {
+      if (index >= tarjetaCobros.length) {
+        this.cerrarConRespuesta(ventaCredito, itens, ticket, tarjetaPagos);
+        return;
+      }
+      this.matDialog.open(ScanTerminalPosDialogComponent, {
+        width: '380px',
+        disableClose: true,
+        data: {}
+      }).afterClosed().subscribe((result: ScanTerminalPosResult) => {
+        if (!result?.terminalPos) return; // cancelado — abortar todo el flujo
+        const tp = result.terminalPos;
+        tarjetaPagos.push({
+          terminalPosId: tp.id,
+          monto: tarjetaCobros[index].valor,
+          terminalDescripcion: [tp.descripcion, tp.codigo].filter(Boolean).join(' - ')
+        });
+        abrirDialogPara(index + 1);
+      });
+    };
+
+    abrirDialogPara(0);
+  }
+
+  private cerrarConRespuesta(
+    ventaCredito?: VentaCredito,
+    itens?: VentaCreditoCuotaInput[],
+    ticket?: boolean,
+    tarjetaPagos: TarjetaPago[] = []
+  ) {
+    const response: PagoResponseData = {
       cobroDetalleList: this.cobroDetalleList,
       facturado: this.facturado,
-      ventaCredito: ventaCredito,
-      itens: itens,
-      ticket: ticket,
+      ventaCredito,
+      itens,
+      ticket,
       cliente: this.selectedCliente,
+      tarjetaPagos,
     };
     this.dialogRef.close(response);
   }

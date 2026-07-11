@@ -10,7 +10,6 @@ import { AddTerminalPosDialogComponent } from "../add-terminal-pos-dialog/add-te
 import { PrintTerminalPosDialogComponent } from "../print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { PageInfo } from "../../../../app.component";
 import { TerminalPosService } from "../terminal-pos.service";
-import { ScanTerminalPosDialogComponent } from "../scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 
 @UntilDestroy()
 @Component({
@@ -44,6 +43,7 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
       'id',
       'descripcion',
       'codigo',
+      'moneda',
       'creadoEn',
       'creadoPor',
       'activo',
@@ -51,15 +51,14 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
     ];
   }
 
-
-  cargarMasDatos(): void {
-    this.onGetData();
-   }
-
   ngOnInit(): void {
     this.onGetData();
   }
-
+  
+  cargarMasDatos(): void {
+    this.onGetData();
+   }
+  
   onGetData(): void {
     setTimeout(() => {
       this.terminalPosService
@@ -85,6 +84,7 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
     this.pageSize = e.pageSize;
     this.onGetData();
   }
+
   onRowClick(entity: TerminalPos, index: any): void {
     throw new Error('Method not implemented.');
   }
@@ -101,7 +101,7 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
   }
 
   onAddOrEdit(entity?: TerminalPos, index?: any): void {
-    this.matDialog.open(ScanTerminalPosDialogComponent, {
+    this.matDialog.open(AddTerminalPosDialogComponent, {
       data: {
         terminalPos: entity,
       },

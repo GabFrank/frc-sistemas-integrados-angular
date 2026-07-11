@@ -46,6 +46,7 @@ import { Presentacion } from "../../../productos/presentacion/presentacion.model
 import {
   PagoResponseData,
   PagoTouchComponent,
+  TarjetaPago,
 } from "./pago-touch/pago-touch.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
@@ -112,6 +113,9 @@ import {
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
+import { QrCodeComponent, QrData } from "../../../../shared/qr-code/qr-code.component";
+import { TipoEntidad } from "../../../../generics/tipo-entidad.enum";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -159,6 +163,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cantidadControl = new FormControl();
   modoConsulta = false;
   isDialogOpen = false;
+  private _pendingTarjetaPagos: TarjetaPago[] = [];
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
@@ -185,7 +190,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private notificationHttpService: NotificationHttpService,
     private gastoService: GastoService,
     private movimientoStockService: MovimientoStockService,
-    private puntoDeVentaService: PuntoDeVentaService
+    private puntoDeVentaService: PuntoDeVentaService,
+    private ventaTarjetaService: VentaTarjetaService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -974,6 +980,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               //   this.calcularTotales();
               // });
             } else {
+              this._pendingTarjetaPagos = response?.tarjetaPagos ?? [];
               this.onSaveVenta(
                 venta,
                 cobro,
@@ -1167,6 +1174,59 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                         ),
                     });
                 });
+            }
+
+            const tarjetaPagos = this._pendingTarjetaPagos;
+            this._pendingTarjetaPagos = [];
+
+            if (tarjetaPagos.length > 0 && res.id) {
+              const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+              const cajaIdQr = this.cajaService.selectedCaja?.id;
+              const usuarioId = this.mainService.usuarioActual?.id;
+
+              forkJoin(tarjetaPagos.map(pago =>
+                this.ventaTarjetaService.onSavePendiente({
+                  sucursalId: sucursalIdQr,
+                  ventaId: res.id,
+                  cajaId: cajaIdQr,
+                  monto: pago.monto,
+                  estado: 'PENDIENTE',
+                  terminalPosId: pago.terminalPosId || undefined,
+                  usuarioId
+                })
+              )).subscribe({
+                next: (resultados) => {
+                  const mostrarQr = (index: number) => {
+                    if (index >= resultados.length) return;
+                    const vt = resultados[index];
+                    const qrPayload: QrData = {
+                      sucursalId: sucursalIdQr,
+                      tipoEntidad: TipoEntidad.VENTA_TARJETA,
+                      idOrigen: res.id,
+                      idCentral: res.id,
+                      componentToOpen: 'RegistroVentaTarjetaComponent',
+                      data: cajaIdQr + '|' + tarjetaPagos[index].monto + '|' + vt?.id,
+                      timestamp: Date.now()
+                    };
+                    const pago = tarjetaPagos[index];
+                    const montoFmt = pago.monto.toLocaleString('es-PY');
+                    const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
+                    this.matDialog.open(QrCodeComponent, {
+                      data: {
+                        codigo: qrPayload,
+                        nombre: resultados.length > 1
+                          ? `Venta con Tarjeta (${index + 1}/${resultados.length})`
+                          : 'Venta con Tarjeta',
+                        subtitulo,
+                        segundos: 120
+                      },
+                      disableClose: false
+                    }).afterClosed().subscribe(() => mostrarQr(index + 1));
+                  };
+                  mostrarQr(0);
+                },
+                error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
+              });
             }
 
             this.resetForm();

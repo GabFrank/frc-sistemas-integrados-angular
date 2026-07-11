@@ -1,20 +1,23 @@
 import gql from "graphql-tag";
 
+const terminalPosFields = `
+  id
+  descripcion
+  codigo
+  moneda { id denominacion simbolo }
+  activo
+  creadoEn
+  usuario {
+    id
+    nickname
+    persona { nombre }
+  }
+`;
+
 export const terminalesPosQuery = gql`
   query ($page: Int, $size: Int) {
     data: terminalesPos(page: $page, size: $size) {
-      id
-      descripcion
-      codigo
-      activo
-      creadoEn
-      usuario {
-        id
-        nickname
-        persona {
-          nombre
-        }
-      }
+      ${terminalPosFields}
     }
   }
 `;
@@ -22,18 +25,7 @@ export const terminalesPosQuery = gql`
 export const terminalPosQuery = gql`
   query ($id: ID!) {
     data: terminalPos(id: $id) {
-      id
-      descripcion
-      codigo
-      activo
-      creadoEn
-      usuario {
-        id
-        nickname
-        persona {
-          nombre
-        }
-      }
+      ${terminalPosFields}
     }
   }
 `;
@@ -41,18 +33,7 @@ export const terminalPosQuery = gql`
 export const searchTerminalPosQuery = gql`
   query ($texto: String) {
     data: searchTerminalPos(texto: $texto) {
-      id
-      descripcion
-      codigo
-      activo
-      creadoEn
-      usuario {
-        id
-        nickname
-        persona {
-          nombre
-        }
-      }
+      ${terminalPosFields}
     }
   }
 `;
@@ -68,18 +49,7 @@ export const filterTerminalPosQuery = gql`
       hasNext
       hasPrevious
       getContent {
-        id
-        descripcion
-        codigo
-        activo
-        creadoEn
-        usuario {
-          id
-          nickname
-          persona {
-            nombre
-          }
-        }
+        ${terminalPosFields}
       }
     }
   }
@@ -88,18 +58,7 @@ export const filterTerminalPosQuery = gql`
 export const saveTerminalPos = gql`
   mutation saveTerminalPos($entity: TerminalPosInput!) {
     data: saveTerminalPos(terminalPos: $entity) {
-      id
-      descripcion
-      codigo
-      activo
-      creadoEn
-      usuario {
-        id
-        nickname
-        persona {
-          nombre
-        }
-      }
+      ${terminalPosFields}
     }
   }
 `;
