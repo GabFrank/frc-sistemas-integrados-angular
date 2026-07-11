@@ -14,7 +14,7 @@
         <mat-hint>Nombre de la tabla en la base de datos (Se guardará en mayúsculas)</mat-hint>
         <mat-error *ngIf="tableForm.get('tableName').invalid">
           <ng-container *ngIf="tableForm.get('tableName').hasError('required')">Este campo es obligatorio</ng-container>
-          <ng-container *ngIf="tableForm.get('tableName').hasError('pattern')">Solo se permiten letras, números y guiones bajos</ng-container>
+          <ng-container *ngIf="tableForm.get('tableName').hasError('pattern')">Solo se permiten letras, números, guiones bajos y un punto (esquema.tabla)</ng-container>
         </mat-error>
       </mat-form-field>
       
