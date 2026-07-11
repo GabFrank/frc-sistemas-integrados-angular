@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { DispositivoDetectado, Impresora, ImpresoraInput } from './impresora.model';
 import { DispositivosParaInstalarGQL } from './graphql/dispositivosParaInstalar';
@@ -18,6 +20,7 @@ export class ImpresoraService {
 
   constructor(
     private genericService: GenericCrudService,
+    private http: HttpClient,
     private impresorasGQL: ImpresorasGQL,
     private impresoraByIdGQL: ImpresoraByIdGQL,
     private saveImpresoraGQL: SaveImpresoraGQL,
@@ -85,6 +88,42 @@ export class ImpresoraService {
       this.instalarImpresoraCupsGQL,
       { nombreCola, uri, raw },
       servidor
+    );
+  }
+
+  /**
+   * Instala una cola CUPS en el servidor central apuntado por IP (no la config de Apollo).
+   * Manda la mutation por HTTP directo a http://<centralIp>:<centralPort>/graphql con el token.
+   * Permite elegir a qué central instalar (ej. el central real 172.25.1.200) desde el desktop.
+   */
+  instalarEnCentralPorIp(
+    nombreCola: string,
+    uri: string,
+    raw: boolean,
+    centralIp: string,
+    centralPort: string | number,
+  ): Observable<boolean> {
+    const url = `http://${centralIp}:${centralPort}/graphql`;
+    const token = localStorage.getItem('token_central') || localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query:
+        'mutation($nombreCola: String!, $uri: String!, $raw: Boolean) { '
+        + 'instalarImpresoraCups(nombreCola: $nombreCola, uri: $uri, raw: $raw) }',
+      variables: { nombreCola, uri, raw },
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        // Si el central respondió con errores GraphQL (ej. versión vieja sin la mutation, o
+        // sin permisos) los propagamos para mostrar el motivo real, no un "false" opaco.
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en el central');
+        }
+        return res?.data?.instalarImpresoraCups === true;
+      }),
     );
   }
 }

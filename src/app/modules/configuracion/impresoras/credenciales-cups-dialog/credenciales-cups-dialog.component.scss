@@ -1,0 +1,34 @@
+:host {
+  display: block;
+  min-width: 360px;
+}
+
+// El estilo global fuerza uppercase en TODOS los inputs; acá NO queremos (usuario/contraseña/IP
+// son sensibles a mayúsculas). Mostramos exactamente lo que se tipea y se envía.
+:host ::ng-deep input {
+  text-transform: none !important;
+}
+
+.detalle {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.campo {
+  width: 100%;
+}
+
+.fila-central {
+  display: flex;
+  gap: 12px;
+
+  .campo-ip {
+    flex: 1 1 auto;
+  }
+
+  .campo-puerto {
+    flex: 0 0 90px;
+  }
+}

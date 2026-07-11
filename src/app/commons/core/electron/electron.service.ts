@@ -26,6 +26,19 @@ export interface PrintResult {
   error?: string;
 }
 
+export interface NetworkInfo {
+  mejor: string | null;
+  todas: { iface: string; ip: string }[];
+  usuario: string | null;
+}
+
+export interface ShareResult {
+  success: boolean;
+  ip: string | null;
+  uri: string | null;
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -166,6 +179,22 @@ export class ElectronService {
   }
   getPrinters(): Observable<PrinterInfo[]> {
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
+  }
+
+  /**
+   * Detecta las IPs LAN de esta máquina (para compartir la impresora local al servidor
+   * central: el central alcanza la impresora por la IP de esta PC).
+   */
+  getLocalIp(): Observable<NetworkInfo> {
+    return from(ipcRenderer.invoke('get-local-ip')) as Observable<NetworkInfo>;
+  }
+
+  /**
+   * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
+   * servidor central. Requiere permisos de administración de CUPS. Solo Linux.
+   */
+  shareLocalPrinter(queue: string, password?: string): Observable<ShareResult> {
+    return from(ipcRenderer.invoke('share-local-printer', { queue, password })) as Observable<ShareResult>;
   }
 
   /**

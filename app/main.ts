@@ -2,7 +2,8 @@ import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "ele
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
-import { exec } from "child_process";
+import * as os from "os";
+import { exec, spawn } from "child_process";
 import { Buffer } from 'buffer';
 import { PosPrinter } from 'electron-pos-printer';
 
@@ -512,7 +513,135 @@ ipcMain.handle('print-receipt', async (event, { printerId, order, orderItems }) 
   }
 });
 
+/**
+ * Detecta las IPs LAN (IPv4 no internas) de esta maquina. Se usa para compartir la
+ * impresora local al servidor central: el central alcanza la impresora por la IP de esta PC.
+ * Prefiere la interfaz en la subred del servidor FRC (172.25.x), luego cualquier rango privado.
+ */
+function detectarIpsLocales(): {
+  mejor: string | null;
+  todas: { iface: string; ip: string }[];
+  usuario: string | null;
+} {
+  const todas: { iface: string; ip: string }[] = [];
+  const ifaces = os.networkInterfaces();
+  Object.keys(ifaces).forEach((nombre) => {
+    (ifaces[nombre] || []).forEach((info: any) => {
+      if (info.family === 'IPv4' && !info.internal) {
+        todas.push({ iface: nombre, ip: info.address });
+      }
+    });
+  });
+  const preferida =
+    todas.find((t) => t.ip.startsWith('172.25.')) ||
+    todas.find((t) => /^(10\.|192\.168\.|172\.)/.test(t.ip)) ||
+    todas[0];
+  let usuario: string | null = null;
+  try {
+    usuario = os.userInfo().username;
+  } catch {
+    usuario = null;
+  }
+  return { mejor: preferida ? preferida.ip : null, todas, usuario };
+}
+
+/**
+ * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
+ * servidor central. Habilita el compartir en cupsd (cupsctl --share-printers --remote-any) y
+ * marca la cola como compartida. Requiere permisos de administracion de CUPS (grupo lpadmin).
+ * Solo Linux (CUPS); en otras plataformas devuelve la IP para uso manual.
+ */
+function compartirImpresoraLocal(
+  queue: string,
+  password?: string,
+): Promise<{ success: boolean; ip: string | null; uri: string | null; error?: string }> {
+  return new Promise((resolve) => {
+    const { mejor } = detectarIpsLocales();
+    const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
+    const uri = mejor && colaSegura ? `ipp://${mejor}:631/printers/${colaSegura}` : null;
+    if (process.platform !== 'linux') {
+      resolve({ success: false, ip: mejor, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
+      return;
+    }
+    if (!colaSegura) {
+      resolve({ success: false, ip: mejor, uri: null, error: 'Nombre de cola invalido' });
+      return;
+    }
+    // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}.
+    // sudo: -S lee el password de stdin · -k fuerza reautenticación · -p '' sin texto de prompt.
+    const run = (args: string[], useSudo: boolean): Promise<{ code: number; stdout: string; stderr: string }> =>
+      new Promise((res) => {
+        const proc = useSudo
+          ? spawn('sudo', ['-S', '-k', '-p', '', ...args])
+          : spawn(args[0], args.slice(1));
+        let stdout = '';
+        let stderr = '';
+        proc.stdout.on('data', (d: any) => { stdout += d.toString(); });
+        proc.stderr.on('data', (d: any) => { stderr += d.toString(); });
+        proc.on('error', (err: any) => res({ code: 1, stdout, stderr: stderr || err.message }));
+        proc.on('close', (code: number) => res({ code: code == null ? 1 : code, stdout, stderr }));
+        if (useSudo && password) {
+          proc.stdin.write(password + '\n');
+        }
+        proc.stdin.end();
+      });
+    const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    (async () => {
+      try {
+        // 1) Solo habilitamos compartir/acceso remoto si aún no está activo (evita reiniciar cupsd al pedo).
+        const estado = await run(['cupsctl'], false);
+        const yaCompartido = /_share_printers=1/.test(estado.stdout) && /_remote_any=1/.test(estado.stdout);
+        if (!yaCompartido) {
+          const c1 = await run(['cupsctl', '--share-printers', '--remote-any'], !!password);
+          if (c1.code !== 0) {
+            const msg = (c1.stderr || '').trim() || 'No se pudo habilitar el compartir en CUPS';
+            console.error('[CUPS] cupsctl falló:', msg);
+            resolve({ success: false, ip: mejor, uri, error: msg });
+            return;
+          }
+          await espera(1000); // cupsd puede reiniciarse tras el cambio de config
+        }
+        // 2) Marcamos la cola como compartida; reintentamos si cupsd está reiniciando (Service unavailable).
+        let ultimo = { code: 1, stdout: '', stderr: '' };
+        for (let i = 0; i < 6; i++) {
+          ultimo = await run(['lpadmin', '-p', colaSegura, '-o', 'printer-is-shared=true'], !!password);
+          if (ultimo.code === 0) {
+            break;
+          }
+          if (!/no disponible|unavailable|503|refus|connect/i.test(ultimo.stderr)) {
+            break; // error real (no es el reinicio) → no tiene sentido reintentar
+          }
+          await espera(800);
+        }
+        if (ultimo.code !== 0) {
+          const msg = (ultimo.stderr || '').trim() || 'lpadmin no pudo compartir la cola';
+          console.error('[CUPS] lpadmin falló:', msg);
+          resolve({ success: false, ip: mejor, uri, error: msg });
+          return;
+        }
+        resolve({ success: true, ip: mejor, uri });
+      } catch (e: any) {
+        resolve({ success: false, ip: mejor, uri, error: e && e.message ? e.message : 'error compartiendo' });
+      }
+    })();
+  });
+}
+
 function registerPrinterIpcHandlers() {
+  // IP LAN de esta maquina (para compartir la impresora local al central por IP).
+  ipcMain.handle('get-local-ip', async () => {
+    return detectarIpsLocales();
+  });
+
+  // Comparte la cola CUPS local en la red y devuelve la URI IPP lista para instalar en el central.
+  // arg: { queue, password } (o string queue por retrocompat). El password corre los comandos como root.
+  ipcMain.handle('share-local-printer', async (_event: any, arg: any) => {
+    const queue = typeof arg === 'string' ? arg : arg?.queue;
+    const password = typeof arg === 'string' ? undefined : arg?.password;
+    return compartirImpresoraLocal(queue, password);
+  });
+
   ipcMain.handle('get-system-printers', async () => {
     try {
       console.log('Getting system printers');

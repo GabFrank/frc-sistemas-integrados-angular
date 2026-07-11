@@ -21,9 +21,11 @@ contextBridge.exposeInMainWorld(
       invoke: (channel: string, ...args: any[]) => {
         // Whitelist channels for invoking IPC handlers
         const validChannels = [
-          'get-app-version', 
+          'get-app-version',
           'get-system-printers',
-          'print-with-pos-printer'
+          'print-with-pos-printer',
+          'get-local-ip',
+          'share-local-printer'
         ];
         
         if (validChannels.includes(channel)) {

@@ -25,11 +25,13 @@ import { RemoveReplicationDialogComponent } from './logical-replication/remove-r
 import { EmpresarialModule } from '../empresarial/empresarial.module';
 import { ListImpresorasComponent } from './impresoras/list-impresoras/list-impresoras.component';
 import { AdicionarImpresoraDialogComponent } from './impresoras/adicionar-impresora-dialog/adicionar-impresora-dialog.component';
+import { CredencialesCupsDialogComponent } from './impresoras/credenciales-cups-dialog/credenciales-cups-dialog.component';
 
 @NgModule({
   declarations: [
     ListImpresorasComponent,
     AdicionarImpresoraDialogComponent,
+    CredencialesCupsDialogComponent,
     ConfigurarServidorDialogComponent, 
     ListActualizacionComponent, 
     EditActualizacionComponent, 

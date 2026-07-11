@@ -12,6 +12,9 @@
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
           <mat-icon>usb</mat-icon>
           <span>Impresoras detectadas en esta máquina</span>
+          <span *ngIf="miIp" class="chip-ip" title="IP LAN de esta PC (usada para compartir al central)">
+            <mat-icon inline>lan</mat-icon> {{ miIp }}
+          </span>
         </div>
         <button
           mat-icon-button
@@ -33,19 +36,39 @@
         *ngIf="!detectando && detectadas.length > 0"
         class="deteccion-lista"
       >
-        <button
+        <div
           *ngFor="let d of detectadas"
-          mat-button
-          type="button"
-          class="item-detectada"
-          (click)="usarDetectada(d)"
+          class="item-detectada-row"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+          fxLayoutGap="6px"
         >
-          <mat-icon class="item-icono">{{ d.icono }}</mat-icon>
-          <span class="item-text">
-            <span class="item-nombre">{{ d.nombre }}</span>
-            <span class="item-desc">{{ d.descripcion }}</span>
-          </span>
-        </button>
+          <button
+            mat-button
+            type="button"
+            class="item-detectada"
+            (click)="usarDetectada(d)"
+            title="Usar esta impresora (local)"
+          >
+            <mat-icon class="item-icono">{{ d.icono }}</mat-icon>
+            <span class="item-text">
+              <span class="item-nombre">{{ d.nombre }}</span>
+              <span class="item-desc">{{ d.descripcion }}</span>
+            </span>
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            color="primary"
+            class="btn-compartir"
+            (click)="compartirAlCentral(d)"
+            [disabled]="compartiendo"
+            title="Compartir esta impresora al servidor central por la IP de esta PC"
+          >
+            <mat-icon>cloud_upload</mat-icon>
+            Compartir al central
+          </button>
+        </div>
       </div>
 
       <p

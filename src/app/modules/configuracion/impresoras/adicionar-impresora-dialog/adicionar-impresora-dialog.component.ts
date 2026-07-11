@@ -7,9 +7,10 @@ import {
   inject,
 } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ElectronService, PrinterInfo } from '../../../../commons/core/electron/electron.service';
+import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -26,6 +27,10 @@ import {
   UsoImpresora,
 } from '../impresora.model';
 import { ImpresoraService } from '../impresora.service';
+import {
+  CredencialesCupsDialogComponent,
+  CredencialesCupsResult,
+} from '../credenciales-cups-dialog/credenciales-cups-dialog.component';
 
 interface Opcion {
   value: string;
@@ -52,6 +57,10 @@ interface DispositivoVista {
 // Palabras que sugieren que una impresora es termica / de tickets.
 const REGEX_TERMICA = /ticket|term|thermal|\btm[-\s]?\d|xprinter|xp[-\s]?\d|pos.?58|pos.?80|58\s?mm|80\s?mm|receipt|bematech|epson\s?tm/i;
 
+// Host del SERVIDOR CENTRAL (sucursalId=0). Es el host donde corre el backend central, no la
+// "sucursal central" (que es una sucursal común). El router imprime local aquí para sus impresoras.
+const HOST_SERVIDOR_CENTRAL_ID = 0;
+
 @UntilDestroy()
 @Component({
   selector: 'app-adicionar-impresora-dialog',
@@ -64,8 +73,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   private sucursalService = inject(SucursalService);
   private impresoraService = inject(ImpresoraService);
   private electronService = inject(ElectronService);
+  private configuracionService = inject(ConfiguracionService);
   private notificacion = inject(NotificacionSnackbarService);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
   private dialogRef = inject(MatDialogRef<AdicionarImpresoraDialogComponent>);
 
   formGroup: FormGroup;
@@ -124,6 +135,9 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   colasSistema: string[] = [];
   detectadas: DetectadaVista[] = [];
   detectando = false;
+  miIp: string = null;
+  miUsuario: string = null;
+  compartiendo = false;
   dispositivos: DispositivoVista[] = [];
   buscandoDispositivos = false;
   instalando = false;
@@ -168,6 +182,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     this.detectarPlataforma();
     this.cargarSucursales();
     this.detectarImpresorasLocales();
+    this.detectarMiIp();
 
     if (this.data?.impresora != null) {
       this.editando = true;
@@ -235,6 +250,145 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     this.tipoControl.setValue(d.esTermica ? 'TERMICA' : 'NORMAL');
     this.perfilPapelControl.setValue(d.esTermica ? 'MM_58' : 'A4');
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Comparte esta impresora local (conectada a esta PC) al SERVIDOR CENTRAL por la IP de esta PC:
+   * 1) Electron habilita el compartir en el CUPS local y devuelve la URI IPP (ipp://<mi-ip>:631/printers/<cola>).
+   * 2) El central instala una cola CUPS apuntando a esa URI (RAW si es térmica) → alcanza la impresora por la red.
+   * 3) Autocompleta el formulario para registrar la impresora en el host servidor central (sucursalId=0).
+   */
+  compartirAlCentral(d: DetectadaVista): void {
+    const colaLocal = d.ref?.name;
+    if (!colaLocal) {
+      this.notificacion.notification$.next({
+        texto: 'La impresora detectada no tiene una cola local para compartir.',
+        color: NotificacionColor.warn,
+        duracion: 5,
+      });
+      return;
+    }
+    // Pedimos la contraseña de admin de esta PC (sudo) + la IP del central donde instalar la cola.
+    const config = this.configuracionService.getConfig();
+    this.dialog
+      .open(CredencialesCupsDialogComponent, {
+        autoFocus: true,
+        restoreFocus: true,
+        data: {
+          usuario: this.miUsuario,
+          ip: this.miIp,
+          cola: colaLocal,
+          centralIp: config?.serverCentralIp ?? '',
+          centralPort: config?.serverCentralPort ?? '8081',
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((cred: CredencialesCupsResult | undefined) => {
+        if (cred == null) {
+          return; // canceló
+        }
+        const centralPort = cred.centralPort || config?.serverCentralPort || '8081';
+        this.ejecutarCompartir(d, colaLocal, cred, centralPort);
+      });
+  }
+
+  private ejecutarCompartir(
+    d: DetectadaVista,
+    colaLocal: string,
+    cred: CredencialesCupsResult,
+    centralPort: string,
+  ): void {
+    if (!cred.centralIp) {
+      this.notificacion.notification$.next({
+        texto: 'Ingresá la IP del servidor central.',
+        color: NotificacionColor.warn,
+        duracion: 5,
+      });
+      return;
+    }
+    this.compartiendo = true;
+    this.cdr.markForCheck();
+    this.electronService.shareLocalPrinter(colaLocal, cred.password)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          if (!res || !res.success) {
+            this.compartiendo = false;
+            this.notificacion.notification$.next({
+              texto: res?.error
+                ? 'No se pudo compartir la impresora local: ' + res.error
+                : 'No se pudo compartir la impresora local (verificá permisos de CUPS).',
+              color: NotificacionColor.warn,
+              duracion: 6,
+            });
+            this.cdr.markForCheck();
+            return;
+          }
+          // Armamos la URI con la IP de esta PC elegida (puede diferir de la auto-detectada).
+          const cola = this.sanearCola(d.ref?.name || d.nombre);
+          const pcIp = cred.pcIp || res.ip || this.miIp;
+          const uri = `ipp://${pcIp}:631/printers/${cola}`;
+          this.instalarEnCentralPorIp(d, cola, uri, cred.centralIp, centralPort);
+        },
+        error: () => {
+          this.compartiendo = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /** Instala en el servidor central (por IP) una cola CUPS que apunta a la URI IPP de esta PC. */
+  private instalarEnCentralPorIp(
+    d: DetectadaVista,
+    cola: string,
+    uri: string,
+    centralIp: string,
+    centralPort: string,
+  ): void {
+    const esTermica = d.esTermica;
+    this.impresoraService.instalarEnCentralPorIp(cola, uri, esTermica, centralIp, centralPort)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          this.compartiendo = false;
+          if (ok) {
+            this.notificacion.notification$.next({
+              texto: 'Impresora compartida e instalada en el central (' + centralIp + '): ' + cola,
+              color: NotificacionColor.success,
+              duracion: 4,
+            });
+            if (!this.nombreControl.value) {
+              this.nombreControl.setValue(d.nombre);
+            }
+            this.sucursalControl.setValue(HOST_SERVIDOR_CENTRAL_ID);
+            this.conexionControl.setValue('CUPS');
+            this.colaCupsControl.setValue(cola);
+            this.tipoControl.setValue(esTermica ? 'TERMICA' : 'NORMAL');
+            this.perfilPapelControl.setValue(esTermica ? 'MM_58' : 'A4');
+          } else {
+            this.notificacion.notification$.next({
+              texto: 'Se compartió la cola local pero el central (' + centralIp + ') no pudo instalarla. '
+                + 'Verificá permisos de CUPS del backend central y que alcance esta PC.',
+              color: NotificacionColor.warn,
+              duracion: 8,
+            });
+          }
+          this.cdr.markForCheck();
+        },
+        error: (e) => {
+          this.compartiendo = false;
+          const detalle = e?.message || (e?.status === 0
+            ? 'no se pudo contactar al central (' + centralIp + ':' + centralPort + ')'
+            : 'error desconocido');
+          this.notificacion.notification$.next({
+            texto: 'El central (' + centralIp + ') rechazó la instalación: ' + detalle,
+            color: NotificacionColor.warn,
+            duracion: 10,
+          });
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /**
@@ -348,8 +502,23 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     this.sucursalService.onGetAllSucursales(true)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.sucursales = (res ?? []).filter((s) => s.id !== 0);
+        // Incluimos la sucursal central (id 0) para poder registrar impresoras del servidor central.
+        this.sucursales = res ?? [];
         this.cdr.markForCheck();
+      });
+  }
+
+  /** Detecta la IP LAN de esta PC (para compartir la impresora local al servidor central). */
+  private detectarMiIp(): void {
+    this.electronService.getLocalIp()
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (info) => {
+          this.miIp = info?.mejor ?? null;
+          this.miUsuario = info?.usuario ?? null;
+          this.cdr.markForCheck();
+        },
+        error: () => { /* sin IP detectada: se puede cargar a mano */ },
       });
   }
 
