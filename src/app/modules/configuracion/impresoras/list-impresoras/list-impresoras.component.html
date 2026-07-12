@@ -1,15 +1,22 @@
-<div class="impresoras-container">
+<div class="impresoras-container" fxLayout="column">
 
-  <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center">
+  <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center" fxLayout.lt-sm="column" fxLayoutGap="16px">
     <div>
       <h2 class="titulo">Impresoras</h2>
       <span class="subtitulo">{{ total }} registrada(s)</span>
     </div>
+    
+    <mat-form-field appearance="outline" class="search-field" fxFlex>
+      <mat-label>Buscar por nombre o sucursal</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Ej. Cocina, Central..." autocomplete="off">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+    
     <div fxLayout="row" fxLayoutGap="8px">
       <button
         mat-stroked-button
         color="primary"
-        (click)="cargar()"
+        (click)="recargar()"
         aria-label="Actualizar lista de impresoras"
       >
         <mat-icon>refresh</mat-icon>
@@ -27,21 +34,18 @@
     </div>
   </div>
 
-  <div
-    *ngFor="let grupo of grupos"
-    class="grupo-sucursal"
-  >
-    <div class="grupo-header">
-      <mat-icon>store</mat-icon>
-      <span>{{ grupo.sucursalNombre }}</span>
-    </div>
-
-    <div class="cards-grid" fxLayout="row wrap" fxLayoutGap="16px grid">
+  <cdk-virtual-scroll-viewport itemSize="260" class="viewport-container" (scrolledIndexChange)="nextBatch($event, 2)">
+    <div *cdkVirtualFor="let fila of filas" class="fila-grid" fxLayout="row" fxLayoutGap="16px">
       <mat-card
-        *ngFor="let imp of grupo.impresoras"
-        class="impresora-card"
+        *ngFor="let imp of fila"
+        class="impresora-card theme-color-{{ imp.colorIndex }}"
         [class.inactiva]="!imp.activo"
       >
+        <div class="sucursal-badge">
+          <mat-icon>store</mat-icon>
+          <span>{{ imp.sucursalNombre }}</span>
+        </div>
+
         <div class="card-top" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
           <div class="tipo-badge">
             <mat-icon>{{ imp.iconoTipo }}</mat-icon>
@@ -113,7 +117,7 @@
         </div>
       </mat-card>
     </div>
-  </div>
+  </cdk-virtual-scroll-viewport>
 
   <div
     *ngIf="!cargando && total === 0"
@@ -122,14 +126,14 @@
     fxLayoutAlign="center center"
   >
     <mat-icon class="icono-vacio">print_disabled</mat-icon>
-    <p>No hay impresoras registradas.</p>
+    <p>No hay impresoras que coincidan con la búsqueda.</p>
     <button
       mat-raised-button
       color="primary"
       (click)="agregarNuevo()"
     >
       <mat-icon>add</mat-icon>
-      Agregar la primera
+      Agregar nueva
     </button>
   </div>
 

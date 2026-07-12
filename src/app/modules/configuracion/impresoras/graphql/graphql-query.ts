@@ -32,6 +32,20 @@ export const impresorasQuery = gql`
   }
 `;
 
+export const impresoraSearchPageQuery = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: impresoraSearchPage(texto: $texto, page: $page, size: $size) {
+      content {
+        ${CAMPOS}
+      }
+      totalElements
+      totalPages
+      size
+      number
+    }
+  }
+`;
+
 export const impresoraQuery = gql`
   query ($id: ID!) {
     data: impresora(id: $id) {

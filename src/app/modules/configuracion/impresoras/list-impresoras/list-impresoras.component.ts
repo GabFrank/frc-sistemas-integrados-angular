@@ -3,10 +3,14 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
+  ViewChild,
   inject,
 } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -31,11 +35,8 @@ interface ImpresoraVista {
   perfil: string;
   activo: boolean;
   esPredeterminada: boolean;
-}
-
-interface GrupoSucursal {
   sucursalNombre: string;
-  impresoras: ImpresoraVista[];
+  colorIndex: number;
 }
 
 const PERFIL_LABEL: Record<PerfilPapel, string> = {
@@ -81,26 +82,79 @@ export class ListImpresorasComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private notificacion = inject(NotificacionSnackbarService);
 
-  grupos: GrupoSucursal[] = [];
+  @ViewChild(CdkVirtualScrollViewport) viewport: CdkVirtualScrollViewport;
+
+  impresoras: ImpresoraVista[] = [];
+  filas: ImpresoraVista[][] = [];
+  columnas = 3;
   cargando = false;
   total = 0;
+  
+  page = 0;
+  size = 20;
+  isLastPage = false;
+  
+  searchControl = new FormControl('');
 
   ngOnInit(): void {
+    this.searchControl.valueChanges
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
+      .subscribe(() => {
+        this.recargar();
+      });
+
+    this.cargar();
+  }
+
+  recargar(): void {
+    this.page = 0;
+    this.impresoras = [];
+    this.filas = [];
+    this.isLastPage = false;
     this.cargar();
   }
 
   cargar(): void {
+    if (this.cargando || this.isLastPage) return;
+    
     this.cargando = true;
     this.cdr.markForCheck();
-    this.impresoraService.todas(0, 300)
+    
+    const texto = this.searchControl.value || '';
+    
+    this.impresoraService.buscarConPagina(texto, this.page, this.size)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        const lista = res ?? [];
-        this.total = lista.length;
-        this.grupos = this.agrupar(lista.map((i) => this.aVista(i)));
+        const lista = res?.content ?? [];
+        this.total = res?.totalElements ?? 0;
+        
+        const nuevasVistas = lista.map((i) => this.aVista(i));
+        this.impresoras = [...this.impresoras, ...nuevasVistas];
+        this.filas = this.chunkArray(this.impresoras, this.columnas);
+        
+        if (this.impresoras.length >= this.total || lista.length === 0) {
+          this.isLastPage = true;
+        }
+        
+        this.page++;
         this.cargando = false;
         this.cdr.markForCheck();
       });
+  }
+
+  nextBatch(e: number, offset: number): void {
+    if (this.isLastPage) {
+      return;
+    }
+    const end = this.viewport.getRenderedRange().end;
+    const total = this.viewport.getDataLength();
+    if (end >= total - offset) {
+      this.cargar();
+    }
   }
 
   agregarNuevo(): void {
@@ -110,7 +164,7 @@ export class ListImpresorasComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.cargar();
+          this.recargar();
         }
       });
   }
@@ -122,7 +176,7 @@ export class ListImpresorasComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.cargar();
+          this.recargar();
         }
       });
   }
@@ -132,7 +186,7 @@ export class ListImpresorasComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
         if (ok) {
-          this.cargar();
+          this.recargar();
         }
       });
   }
@@ -157,25 +211,8 @@ export class ListImpresorasComponent implements OnInit {
       });
   }
 
-  private agrupar(vistas: ImpresoraVista[]): GrupoSucursal[] {
-    const mapa = new Map<string, ImpresoraVista[]>();
-    for (const v of vistas) {
-      const clave = v.ref?.sucursal
-        ? `${v.ref.sucursal.id} - ${v.ref.sucursal.nombre}`
-        : 'Sin sucursal asignada';
-      if (!mapa.has(clave)) {
-        mapa.set(clave, []);
-      }
-      mapa.get(clave).push(v);
-    }
-    const grupos: GrupoSucursal[] = [];
-    mapa.forEach((impresoras, sucursalNombre) => {
-      grupos.push({ sucursalNombre, impresoras });
-    });
-    return grupos;
-  }
-
   private aVista(i: Impresora): ImpresoraVista {
+    const sucursalId = i?.sucursal?.id ?? 0;
     return {
       ref: i,
       nombre: i?.nombre,
@@ -187,6 +224,8 @@ export class ListImpresorasComponent implements OnInit {
       perfil: i?.perfilPapel ? PERFIL_LABEL[i.perfilPapel] : '',
       activo: i?.activo === true,
       esPredeterminada: i?.esPredeterminada === true,
+      sucursalNombre: i?.sucursal ? `${i.sucursal.id} - ${i.sucursal.nombre}` : 'Sin sucursal',
+      colorIndex: sucursalId % 6
     };
   }
 
@@ -196,5 +235,13 @@ export class ListImpresorasComponent implements OnInit {
       return `${i?.ip ?? ''}:${puerto}`;
     }
     return i?.colaCups ?? (i?.conexion ?? '');
+  }
+
+  private chunkArray(array: ImpresoraVista[], size: number): ImpresoraVista[][] {
+    const result = [];
+    for (let i = 0; i < array.length; i += size) {
+      result.push(array.slice(i, i + size));
+    }
+    return result;
   }
 }

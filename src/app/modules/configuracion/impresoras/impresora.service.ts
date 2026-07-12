@@ -7,6 +7,7 @@ import { DispositivoDetectado, Impresora, ImpresoraInput } from './impresora.mod
 import { DispositivosParaInstalarGQL } from './graphql/dispositivosParaInstalar';
 import { InstalarImpresoraCupsGQL } from './graphql/instalarImpresoraCups';
 import { ImpresorasGQL } from './graphql/impresorasQuery';
+import { ImpresoraSearchPageGQL, ImpresoraPageResponse } from './graphql/impresoraSearchPage.query';
 import { ImpresoraByIdGQL } from './graphql/impresoraById';
 import { SaveImpresoraGQL } from './graphql/saveImpresora';
 import { DeleteImpresoraGQL } from './graphql/deleteImpresora';
@@ -22,6 +23,7 @@ export class ImpresoraService {
     private genericService: GenericCrudService,
     private http: HttpClient,
     private impresorasGQL: ImpresorasGQL,
+    private impresoraSearchPageGQL: ImpresoraSearchPageGQL,
     private impresoraByIdGQL: ImpresoraByIdGQL,
     private saveImpresoraGQL: SaveImpresoraGQL,
     private deleteImpresoraGQL: DeleteImpresoraGQL,
@@ -34,6 +36,12 @@ export class ImpresoraService {
   /** Registro de impresoras. Vive en el servidor central (administrativo). */
   todas(page?: number, size?: number): Observable<Impresora[]> {
     return this.genericService.onGetAll(this.impresorasGQL, page, size, true);
+  }
+
+  buscarConPagina(texto: string, page: number, size: number, servidor = true): Observable<ImpresoraPageResponse['data']> {
+    return this.impresoraSearchPageGQL
+      .fetch({ texto, page, size }, { fetchPolicy: 'network-only' })
+      .pipe(map((res) => res.data.data));
   }
 
   porId(id: number): Observable<Impresora> {
