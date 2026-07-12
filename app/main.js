@@ -614,6 +614,207 @@ function restringirCupsAlCentral(run, centralIp) {
         return undefined; // aplicado OK
     });
 }
+/** Etiqueta de protocolo legible a partir de un puerto de impresion de red. */
+function etiquetaPuerto(puerto) {
+    if (puerto === 9100)
+        return 'raw:9100';
+    if (puerto === 631)
+        return 'ipp';
+    if (puerto === 515)
+        return 'lpd';
+    return String(puerto);
+}
+function obtenerOCrearEntrada(mapa, ip) {
+    let e = mapa.get(ip);
+    if (!e) {
+        e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set() };
+        mapa.set(ip, e);
+    }
+    return e;
+}
+/** Descubre impresoras que se anuncian por mDNS/DNS-SD (Bonjour). */
+function descubrirImpresorasMdns(timeoutMs, locales) {
+    return new Promise((resolve) => {
+        const mapa = new Map();
+        let bonjour = null;
+        try {
+            const { Bonjour } = require('bonjour-service');
+            bonjour = new Bonjour();
+        }
+        catch (e) {
+            console.error('mDNS (bonjour-service) no disponible:', e);
+            resolve(mapa);
+            return;
+        }
+        const tipoAProtocolo = {
+            ipp: 'ipp', ipps: 'ipps', 'pdl-datastream': 'raw:9100', printer: 'lpd',
+        };
+        const browsers = Object.keys(tipoAProtocolo).map((type) => bonjour.find({ type }));
+        const primeraIpv4 = (s) => {
+            const dir = ((s && s.addresses) || []).find((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a));
+            return dir || null;
+        };
+        const limpiarNombre = (n) => (n || '').replace(/\s*@.*$/, '').trim();
+        const limpiarModelo = (m) => (m ? String(m).replace(/[()]/g, '').trim() : null);
+        browsers.forEach((br) => {
+            br.on('up', (s) => {
+                const ip = primeraIpv4(s);
+                if (!ip || locales.has(ip)) {
+                    return; // sin IPv4 utilizable o es esta misma PC (ya cubierta por la deteccion local)
+                }
+                const e = obtenerOCrearEntrada(mapa, ip);
+                if (typeof s.port === 'number' && s.port > 0) {
+                    e.puertos.add(s.port);
+                }
+                e.protocolos.add(tipoAProtocolo[s.type] || s.type);
+                const txt = (s && s.txt) || {};
+                const modelo = limpiarModelo(txt.ty || txt.product || txt.usb_MDL);
+                if (!e.modelo && modelo) {
+                    e.modelo = modelo;
+                }
+                if (!e.host && s.host) {
+                    e.host = s.host;
+                }
+                const nombre = limpiarNombre(s.name);
+                if (!e.nombre && nombre) {
+                    e.nombre = nombre;
+                }
+            });
+        });
+        setTimeout(() => {
+            browsers.forEach((br) => { try {
+                br.stop();
+            }
+            catch ( /* noop */_a) { /* noop */ } });
+            try {
+                bonjour.destroy();
+            }
+            catch ( /* noop */_a) { /* noop */ }
+            resolve(mapa);
+        }, timeoutMs);
+    });
+}
+/**
+ * Escanea la(s) subred(es) /24 locales probando los puertos de impresion (raw 9100, IPP 631,
+ * LPD 515). Encuentra impresoras que NO se anuncian por mDNS/CUPS. Best-effort, acotado a /24
+ * y a los rangos privados para no saturar la red. El nombre se resuelve por PTR (reverse DNS).
+ * Solo consideramos impresora a la IP con el puerto RAW 9100 abierto: el 631 (IPP/CUPS) solo lo
+ * tiene abierto cualquier PC con CUPS, asi que filtrarlo evita falsos positivos. Las impresoras
+ * que solo exponen IPP igual se descubren por mDNS.
+ */
+function escanearImpresorasRed(connectTimeoutMs, locales) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const net = require('net');
+        const dnsp = require('dns').promises;
+        const PUERTOS_IMPRESORA = [9100, 515]; // señales fuertes de impresora (631 lo tiene cualquier PC con CUPS)
+        const MAX_SUBREDES = 3;
+        // Barrido de vida: mayormente son hosts ausentes esperando el temporizador (no estresan a las
+        // impresoras), asi que la concurrencia alta acelera sin perder fiabilidad. El reintento sobre los
+        // hosts vivos va gentil (poca concurrencia, mas timeout).
+        const CONC_VIDA = 256;
+        const CONC_RETRY = 32;
+        // Bases /24 unicas de las interfaces IPv4 privadas de esta PC.
+        const bases = [];
+        detectarIpsLocales().todas.forEach((t) => {
+            if (!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(t.ip)) {
+                return; // solo rangos privados (evita escanear redes publicas/VPN amplias)
+            }
+            const base = t.ip.replace(/\.\d+$/, '.');
+            if (!bases.includes(base)) {
+                bases.push(base);
+            }
+        });
+        const objetivos = [];
+        bases.slice(0, MAX_SUBREDES).forEach((base) => {
+            for (let h = 1; h <= 254; h++) {
+                const ip = base + h;
+                if (!locales.has(ip)) {
+                    objetivos.push(ip); // esta misma PC excluida
+                }
+            }
+        });
+        const sondear = (ip, puerto, timeoutMs) => new Promise((resolve) => {
+            const sock = new net.Socket();
+            let resuelto = false;
+            // Temporizador explicito: net.Socket.setTimeout NO dispara 'timeout' durante la fase de
+            // connect, asi que sin esto los hosts ausentes esperarian el timeout del SO (~2 min).
+            const temporizador = setTimeout(() => terminar(false), timeoutMs);
+            const terminar = (abierto) => {
+                if (resuelto) {
+                    return;
+                }
+                resuelto = true;
+                clearTimeout(temporizador);
+                try {
+                    sock.destroy();
+                }
+                catch ( /* noop */_a) { /* noop */ }
+                resolve(abierto);
+            };
+            sock.once('connect', () => terminar(true));
+            sock.once('error', () => terminar(false));
+            sock.connect(puerto, ip);
+        });
+        const abiertosPorIp = new Map();
+        const registrar = (ip, puerto) => {
+            const s = abiertosPorIp.get(ip) || new Set();
+            s.add(puerto);
+            abiertosPorIp.set(ip, s);
+        };
+        // Pool de concurrencia sobre una lista de tareas.
+        const correr = (tareas, concurrencia, timeoutMs) => __awaiter(this, void 0, void 0, function* () {
+            let idx = 0;
+            const worker = () => __awaiter(this, void 0, void 0, function* () {
+                while (idx < tareas.length) {
+                    const t = tareas[idx++];
+                    // eslint-disable-next-line no-await-in-loop
+                    if (yield sondear(t.ip, t.puerto, timeoutMs)) {
+                        registrar(t.ip, t.puerto);
+                    }
+                }
+            });
+            yield Promise.all(Array.from({ length: Math.min(concurrencia, tareas.length || 1) }, worker));
+        });
+        // Barrido de vida: solo puertos de impresora, con 9100 sondeado dos veces para tolerar un SYN
+        // perdido en WiFi (clave para impresoras raw-only que si no se pierden intermitentemente).
+        const tareasVida = [];
+        [9100, 515, 9100].forEach((puerto) => objetivos.forEach((ip) => tareasVida.push({ ip, puerto })));
+        yield correr(tareasVida, CONC_VIDA, connectTimeoutMs);
+        // Enriquecer/reintentar SOLO en hosts que ya dieron señal: agrega IPP (631) para saber si se
+        // puede instalar por CUPS, y reintenta gentil los puertos de impresora que no abrieron.
+        const tareasDetalle = [];
+        abiertosPorIp.forEach((puertos, ip) => {
+            [631, ...PUERTOS_IMPRESORA].forEach((puerto) => { if (!puertos.has(puerto)) {
+                tareasDetalle.push({ ip, puerto });
+            } });
+        });
+        if (tareasDetalle.length) {
+            yield correr(tareasDetalle, CONC_RETRY, connectTimeoutMs + 500);
+        }
+        const mapa = new Map();
+        yield Promise.all(Array.from(abiertosPorIp.keys()).map((ip) => __awaiter(this, void 0, void 0, function* () {
+            const puertos = abiertosPorIp.get(ip) || new Set();
+            if (!PUERTOS_IMPRESORA.some((p) => puertos.has(p))) {
+                return; // solo 631 abierto: es una PC con CUPS, no una impresora
+            }
+            const e = obtenerOCrearEntrada(mapa, ip);
+            puertos.forEach((p) => { e.puertos.add(p); e.protocolos.add(etiquetaPuerto(p)); });
+            try {
+                // Reverse DNS con tope de 1s para no colgar el escaneo si el DNS no responde.
+                const hosts = yield Promise.race([
+                    dnsp.reverse(ip),
+                    new Promise((r) => setTimeout(() => r(null), 1000)),
+                ]);
+                if (hosts && hosts[0]) {
+                    e.host = hosts[0];
+                    e.nombre = hosts[0].replace(/\.local$/i, '').split('.')[0];
+                }
+            }
+            catch ( /* sin PTR: se queda sin nombre y la UI muestra la IP */_a) { /* sin PTR: se queda sin nombre y la UI muestra la IP */ }
+        })));
+        return mapa;
+    });
+}
 function registerPrinterIpcHandlers() {
     // IP LAN de esta maquina (para compartir la impresora local al central por IP).
     ipcMain.handle('get-local-ip', () => __awaiter(this, void 0, void 0, function* () {
@@ -641,6 +842,72 @@ function registerPrinterIpcHandlers() {
         }
         catch (error) {
             console.error('Error getting system printers:', error);
+            return [];
+        }
+    }));
+    // Descubre impresoras de RED (Wi-Fi/Ethernet) por mDNS/DNS-SD (Bonjour). Detecta Epson, HP,
+    // Brother, Canon, etc. que anuncian _ipp / _ipps / _pdl-datastream (raw 9100) / _printer (LPD).
+    // La deteccion la hace el frontend (este proceso Electron), NO el backend, y es independiente de
+    // la deteccion por cable/USB (que sigue corriendo por lpinfo en el backend). No instala nada:
+    // solo devuelve la lista para que la UI autocomplete conexion RED (ip:9100) o instale una cola
+    // CUPS via el backend existente (uri socket://ip:puerto).
+    ipcMain.handle('detect-network-printers', (_event, opts) => __awaiter(this, void 0, void 0, function* () {
+        const timeoutMs = Math.min(Math.max(Number(opts && opts.timeoutMs) || 4000, 1000), 15000);
+        const connectTimeoutMs = Math.min(Math.max(Number(opts && opts.connectTimeoutMs) || 1000, 150), 4000);
+        const escanearRed = !opts || opts.escanearRed !== false; // por defecto barre la subred ademas de mDNS
+        try {
+            const locales = new Set(detectarIpsLocales().todas.map((t) => t.ip));
+            const [mdns, red] = yield Promise.all([
+                descubrirImpresorasMdns(timeoutMs, locales),
+                escanearRed ? escanearImpresorasRed(connectTimeoutMs, locales) : Promise.resolve(new Map()),
+            ]);
+            // Fusion por IP: mDNS aporta nombre/modelo; el barrido aporta puertos abiertos reales.
+            const fusion = new Map(mdns);
+            red.forEach((e, ip) => {
+                const base = fusion.get(ip);
+                if (!base) {
+                    fusion.set(ip, e);
+                    return;
+                }
+                e.puertos.forEach((p) => base.puertos.add(p));
+                e.protocolos.forEach((p) => base.protocolos.add(p));
+                if (!base.nombre && e.nombre) {
+                    base.nombre = e.nombre;
+                }
+                if (!base.host && e.host) {
+                    base.host = e.host;
+                }
+            });
+            return Array.from(fusion.values()).map((p) => {
+                // Puerto para conexion RED directa (raw/ESC-POS). 9100 si esta abierto; si no, el primero.
+                const puerto = p.puertos.has(9100) ? 9100 : (Array.from(p.puertos)[0] || 9100);
+                // URI para instalar cola CUPS via backend: raw > IPP > LPD segun lo disponible.
+                let uri;
+                if (p.puertos.has(9100)) {
+                    uri = `socket://${p.ip}:9100`;
+                }
+                else if (p.puertos.has(631)) {
+                    uri = `ipp://${p.ip}:631/ipp/print`;
+                }
+                else if (p.puertos.has(515)) {
+                    uri = `lpd://${p.ip}/queue`;
+                }
+                else {
+                    uri = `socket://${p.ip}:9100`;
+                }
+                return {
+                    nombre: p.nombre || `Impresora de red ${p.ip}`,
+                    ip: p.ip,
+                    host: p.host,
+                    modelo: p.modelo,
+                    puerto,
+                    uri,
+                    protocolos: Array.from(p.protocolos),
+                };
+            });
+        }
+        catch (error) {
+            console.error('Error detecting network printers:', error);
             return [];
         }
     }));

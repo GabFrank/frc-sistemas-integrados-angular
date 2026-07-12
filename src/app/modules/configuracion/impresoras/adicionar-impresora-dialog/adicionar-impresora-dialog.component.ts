@@ -9,7 +9,7 @@ import {
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { ElectronService, PrinterInfo } from '../../../../commons/core/electron/electron.service';
+import { ElectronService, NetworkPrinter, PrinterInfo } from '../../../../commons/core/electron/electron.service';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import {
   NotificacionColor,
@@ -52,6 +52,13 @@ interface DispositivoVista {
   puedeIp: boolean;
   ip: string;
   puerto: number;
+}
+
+interface RedVista {
+  ref: NetworkPrinter;
+  nombre: string;
+  detalle: string;
+  esTermica: boolean;
 }
 
 // Palabras que sugieren que una impresora es termica / de tickets.
@@ -140,6 +147,8 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   compartiendo = false;
   dispositivos: DispositivoVista[] = [];
   buscandoDispositivos = false;
+  impresorasRed: RedVista[] = [];
+  buscandoRed = false;
   instalando = false;
   esConexionRed = false;
   esPapelHoja = false;
@@ -495,6 +504,123 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
           this.cdr.markForCheck();
         },
       });
+  }
+
+  /**
+   * Descubre impresoras de RED (Wi-Fi/Ethernet) por mDNS/DNS-SD desde el frontend (Electron).
+   * Independiente de la detección por cable/USB (que sigue corriendo en el backend por lpinfo).
+   * Detecta Epson, HP, Brother, Canon, etc. sin instalar nada: la UI decide usarla por IP o
+   * instalarla como cola CUPS.
+   */
+  detectarImpresorasRed(): void {
+    this.buscandoRed = true;
+    this.cdr.markForCheck();
+    this.electronService.detectNetworkPrinters()
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          this.impresorasRed = (res ?? []).map((p) => this.mapearRed(p));
+          this.buscandoRed = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.impresorasRed = [];
+          this.buscandoRed = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private mapearRed(p: NetworkPrinter): RedVista {
+    const esTermica = REGEX_TERMICA.test(`${p.nombre || ''} ${p.modelo || ''}`);
+    const protocolos = (p.protocolos && p.protocolos.length) ? p.protocolos.join(', ') : 'red';
+    const modelo = p.modelo ? ` · ${p.modelo}` : '';
+    return {
+      ref: p,
+      nombre: p.nombre,
+      detalle: `${p.ip}:${p.puerto}${modelo} · ${protocolos}`,
+      esTermica,
+    };
+  }
+
+  /** Usa la impresora de red directo por IP (conexión RED, sin instalar cola CUPS). */
+  usarPorIpRed(v: RedVista): void {
+    if (!this.nombreControl.value) {
+      this.nombreControl.setValue(v.nombre);
+    }
+    this.conexionControl.setValue('RED');
+    this.ipControl.setValue(v.ref.ip);
+    this.puertoControl.setValue(v.ref.puerto);
+    this.tipoControl.setValue(v.esTermica ? 'TERMICA' : 'NORMAL');
+    this.perfilPapelControl.setValue(v.esTermica ? 'MM_58' : 'A4');
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Instala la impresora de red como cola CUPS via el backend existente. La forma de instalar
+   * depende del tipo, porque el backend hace `lpadmin -m {raw|everywhere}`:
+   *  - Térmica → cola RAW (`-m raw`) sobre `socket://ip:9100` (ESC/POS crudo).
+   *  - Normal  → driverless IPP Everywhere (`-m everywhere`) sobre `ipp://ip:631/ipp/print`, que es
+   *    la instalación "de forma normal" (imprime documentos con el driver de la impresora). OJO:
+   *    `-m everywhere` NO funciona con `socket://`, necesita una URI IPP.
+   */
+  instalarRed(v: RedVista): void {
+    const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
+    const cola = this.sanearCola(v.nombre || v.ref.ip);
+    const { uri, raw } = this.resolverInstalacionRed(v);
+    this.instalando = true;
+    this.cdr.markForCheck();
+    this.impresoraService.instalar(cola, uri, raw, enCentral)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          this.instalando = false;
+          if (ok) {
+            this.notificacion.notification$.next({
+              texto: 'Impresora de red instalada: ' + cola,
+              color: NotificacionColor.success,
+              duracion: 3,
+            });
+            if (!this.nombreControl.value) {
+              this.nombreControl.setValue(v.nombre || cola);
+            }
+            this.colaCupsControl.setValue(cola);
+            this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
+            this.tipoControl.setValue(v.esTermica ? 'TERMICA' : 'NORMAL');
+            this.perfilPapelControl.setValue(v.esTermica ? 'MM_58' : 'A4');
+            this.detectarImpresorasLocales();
+          } else {
+            this.notificacion.notification$.next({
+              texto: 'No se pudo instalar (verificá permisos de CUPS del backend).',
+              color: NotificacionColor.warn,
+              duracion: 5,
+            });
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.instalando = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /**
+   * URI + modo para instalar una impresora de red como cola del sistema. Se instala como cola RAW
+   * (`-m raw`) sobre `socket://ip:9100` — la forma directa "como agrega Linux una impresora de red"
+   * sin depender de IPP. Si solo expone LPD (515), usa `lpd://`. Último recurso: la URI del backend.
+   */
+  private resolverInstalacionRed(v: RedVista): { uri: string; raw: boolean } {
+    const p = v.ref;
+    const tieneRaw = p.protocolos?.includes('raw:9100');
+    const tieneLpd = p.protocolos?.includes('lpd');
+    if (tieneRaw) {
+      return { uri: `socket://${p.ip}:9100`, raw: true };
+    }
+    if (tieneLpd) {
+      return { uri: `lpd://${p.ip}/queue`, raw: true };
+    }
+    return { uri: p.uri, raw: true };
   }
 
   private sanearCola(texto: string): string {

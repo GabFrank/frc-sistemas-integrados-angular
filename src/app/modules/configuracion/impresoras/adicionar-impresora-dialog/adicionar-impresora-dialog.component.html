@@ -85,7 +85,7 @@
       <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
           <mat-icon>add_to_queue</mat-icon>
-          <span>Instalar / detectar impresora nueva (USB o red)</span>
+          <span>Instalar / detectar impresora por cable (USB)</span>
         </div>
         <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="8px">
           <mat-form-field appearance="outline" class="origen-select">
@@ -155,8 +155,76 @@
       </div>
 
       <p class="deteccion-vacia">
-        Enchufá la impresora (USB o red) y tocá <b>Detectar</b>. Las térmicas se instalan como cola RAW.
+        Enchufá la impresora por USB y tocá <b>Detectar</b>. Las térmicas se instalan como cola RAW.
         Requiere permisos de CUPS en el backend.
+      </p>
+    </div>
+
+    <!-- Detectar impresoras de RED (Wi-Fi/Ethernet) por mDNS/Bonjour — lo hace el frontend (Electron) -->
+    <div class="instalar-panel">
+      <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>wifi</mat-icon>
+          <span>Detectar impresora por red (Wi-Fi / Ethernet)</span>
+        </div>
+        <button
+          mat-stroked-button
+          type="button"
+          color="primary"
+          (click)="detectarImpresorasRed()"
+          [disabled]="buscandoRed"
+        >
+          <mat-icon>wifi_find</mat-icon>
+          Detectar en red
+        </button>
+      </div>
+
+      <div *ngIf="buscandoRed" class="deteccion-cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Buscando impresoras en la red…</span>
+      </div>
+
+      <div
+        *ngIf="!buscandoRed && impresorasRed.length > 0"
+        class="deteccion-lista"
+      >
+        <div
+          *ngFor="let r of impresorasRed"
+          class="item-dispositivo"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <span class="item-text">
+            <span class="item-nombre">{{ r.nombre }}</span>
+            <span class="item-desc">{{ r.detalle }}</span>
+          </span>
+          <div fxLayout="row" fxLayoutGap="6px">
+            <button
+              mat-stroked-button
+              type="button"
+              color="primary"
+              (click)="usarPorIpRed(r)"
+              title="Agregar directo por IP en la misma red (sin cola del sistema, anda en Linux y Windows)"
+            >
+              Usar por IP
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="instalarRed(r)"
+              [disabled]="instalando"
+              title="Instalar como cola del sistema (Linux/CUPS, raw)"
+            >
+              Instalar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="deteccion-vacia">
+        Tocá <b>Detectar en red</b> para buscar impresoras Wi-Fi/Ethernet (Epson, HP, Brother, etc.).
+        <b>Usar por IP</b> la agrega directo en tu misma red (recomendado, anda en Linux y Windows);
+        <b>Instalar</b> crea una cola del sistema (Linux/CUPS).
       </p>
     </div>
 

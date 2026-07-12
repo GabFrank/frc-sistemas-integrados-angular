@@ -40,6 +40,17 @@ export interface ShareResult {
   aviso?: string;
 }
 
+/** Impresora de red descubierta por mDNS/DNS-SD (Bonjour) desde el proceso Electron. */
+export interface NetworkPrinter {
+  nombre: string;
+  ip: string;
+  host: string | null;
+  modelo: string | null;
+  puerto: number;
+  uri: string;
+  protocolos: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -180,6 +191,15 @@ export class ElectronService {
   }
   getPrinters(): Observable<PrinterInfo[]> {
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
+  }
+
+  /**
+   * Descubre impresoras de red (Wi-Fi/Ethernet) por mDNS/DNS-SD (Bonjour). La detección la hace
+   * este proceso Electron (frontend), independiente de la detección por cable/USB del backend.
+   * Detecta Epson, HP, Brother, Canon, etc. que anuncian _ipp / _pdl-datastream (9100) / _printer.
+   */
+  detectNetworkPrinters(timeoutMs?: number): Observable<NetworkPrinter[]> {
+    return from(ipcRenderer.invoke('detect-network-printers', { timeoutMs })) as Observable<NetworkPrinter[]>;
   }
 
   /**
