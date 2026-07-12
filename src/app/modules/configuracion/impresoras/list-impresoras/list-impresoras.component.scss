@@ -48,7 +48,7 @@
 }
 
 .impresora-card {
-  width: 320px;
+  min-width: 320px;
   padding: 14px;
   border-radius: 12px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;

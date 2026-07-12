@@ -4,6 +4,7 @@ import {
   Component,
   OnInit,
   ViewChild,
+  HostListener,
   inject,
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
@@ -85,7 +86,7 @@ export class ListImpresorasComponent implements OnInit {
   @ViewChild(CdkVirtualScrollViewport) viewport: CdkVirtualScrollViewport;
 
   impresoras: ImpresoraVista[] = [];
-  filas: ImpresoraVista[][] = [];
+  filas: (ImpresoraVista | null)[][] = [];
   columnas = 3;
   cargando = false;
   total = 0;
@@ -97,6 +98,8 @@ export class ListImpresorasComponent implements OnInit {
   searchControl = new FormControl('');
 
   ngOnInit(): void {
+    this.calcularColumnas();
+
     this.searchControl.valueChanges
       .pipe(
         debounceTime(400),
@@ -237,10 +240,37 @@ export class ListImpresorasComponent implements OnInit {
     return i?.colaCups ?? (i?.conexion ?? '');
   }
 
-  private chunkArray(array: ImpresoraVista[], size: number): ImpresoraVista[][] {
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.calcularColumnas();
+  }
+
+  private calcularColumnas() {
+    // Estimación del ancho del contenedor (viewport width - aprox sidebar y paddings)
+    const sidebarWidth = 250; 
+    const padding = 60;
+    const availableWidth = window.innerWidth - sidebarWidth - padding;
+    const minCardWidth = 320;
+    const gap = 16;
+    
+    let newColumnas = Math.floor((availableWidth + gap) / (minCardWidth + gap));
+    if (newColumnas < 1) newColumnas = 1;
+    
+    if (this.columnas !== newColumnas) {
+      this.columnas = newColumnas;
+      this.filas = this.chunkArray(this.impresoras, this.columnas);
+      this.cdr.markForCheck();
+    }
+  }
+
+  private chunkArray(array: ImpresoraVista[], size: number): (ImpresoraVista | null)[][] {
     const result = [];
     for (let i = 0; i < array.length; i += size) {
-      result.push(array.slice(i, i + size));
+      const chunk: (ImpresoraVista | null)[] = array.slice(i, i + size);
+      while (chunk.length < size) {
+        chunk.push(null);
+      }
+      result.push(chunk);
     }
     return result;
   }
