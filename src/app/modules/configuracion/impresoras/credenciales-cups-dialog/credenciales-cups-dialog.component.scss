@@ -1,34 +1,131 @@
 :host {
   display: block;
-  min-width: 360px;
+  min-width: 520px;
 }
 
-// El estilo global fuerza uppercase en TODOS los inputs; acá NO queremos (usuario/contraseña/IP
-// son sensibles a mayúsculas). Mostramos exactamente lo que se tipea y se envía.
 :host ::ng-deep input {
   text-transform: none !important;
 }
 
-.detalle {
-  font-size: 13px;
-  opacity: 0.85;
-  margin-bottom: 16px;
-  line-height: 1.4;
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+  
+  .close-btn {
+    opacity: 0.6;
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.dialog-content-modern {
+  padding: 20px 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.info-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(33, 150, 243, 0.08);
+  border-left: 4px solid #2196F3;
+  padding: 14px 16px;
+  border-radius: 4px;
+  
+  .info-icon {
+    color: #2196F3;
+    margin-top: 2px;
+  }
+  
+  .detalle {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #3f51b5;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+    }
+  }
 }
 
 .campo {
   width: 100%;
 }
 
-.fila-central {
+.campo-puerto {
+  max-width: 140px;
+}
+
+.credentials-row {
+  margin-top: 12px;
+  margin-bottom: -4px;
+}
+
+.hint-global {
   display: flex;
-  gap: 12px;
-
-  .campo-ip {
-    flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 8px;
+  
+  mat-icon {
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+    margin-top: 2px;
   }
+}
 
-  .campo-puerto {
-    flex: 0 0 90px;
+.dialog-actions-modern {
+  padding: 16px 24px 24px !important;
+  margin-bottom: 0;
+  
+  .btn-cancelar {
+    margin-right: 8px;
   }
+  
+  .btn-aceptar {
+    padding: 0 24px;
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+::ng-deep .mat-form-field-prefix .mat-icon {
+  margin-right: 8px;
+  opacity: 0.6;
 }

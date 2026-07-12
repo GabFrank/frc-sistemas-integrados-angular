@@ -1,78 +1,83 @@
-<h2 mat-dialog-title>Compartir impresora al central</h2>
+<div class="dialog-header">
+  <h2 mat-dialog-title>Compartir Impresora al Central</h2>
+  <button mat-icon-button (click)="cancelar()" class="close-btn" tabindex="-1">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
 
-<mat-dialog-content>
-  <p class="detalle">
-    Se comparte la impresora <b>{{ data?.cola || 'local' }}</b> en el CUPS de esta PC y se instala en el
-    servidor central por la IP de esta PC. Necesita permisos de administrador de CUPS.
-  </p>
-
-  <div class="fila-central">
-    <mat-form-field appearance="outline" class="campo campo-ip">
-      <mat-label>IP del servidor central</mat-label>
-      <input
-        matInput
-        [formControl]="centralIpControl"
-        autocomplete="off"
-        placeholder="172.25.1.200"
-      />
-      <mat-hint>Servidor donde se instala la cola</mat-hint>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="campo campo-puerto">
-      <mat-label>Puerto</mat-label>
-      <input
-        matInput
-        [formControl]="centralPortControl"
-        autocomplete="off"
-        placeholder="8081"
-      />
-      <mat-hint>8081 prod · 8082 beta · 8083 alpha</mat-hint>
-    </mat-form-field>
+<mat-dialog-content class="dialog-content-modern">
+  <div class="info-alert">
+    <mat-icon class="info-icon">info</mat-icon>
+    <p class="detalle">
+      Se compartirá la impresora <strong>{{ data?.cola || 'local' }}</strong> en el CUPS local para ser instalada en el servidor central. Requiere permisos de administrador de CUPS.
+    </p>
   </div>
 
-  <mat-form-field appearance="outline" class="campo">
-    <mat-label>IP de esta PC (la que verá el central)</mat-label>
-    <input
-      matInput
-      [formControl]="pcIpControl"
-      autocomplete="off"
-      placeholder="172.25.1.x"
-    />
-    <mat-hint>Debe ser una IP de esta PC alcanzable desde el central</mat-hint>
-  </mat-form-field>
+  <div class="form-section">
+    <div class="section-title">
+      <mat-icon>cloud</mat-icon>
+      <span>Servidor Central</span>
+    </div>
+    
+    <div class="fila-central" fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>IP del servidor central</mat-label>
+        <mat-icon matPrefix>dns</mat-icon>
+        <input matInput [formControl]="centralIpControl" autocomplete="off" placeholder="Ej. 172.25.1.200" />
+        <mat-hint>Servidor donde se instala la cola</mat-hint>
+      </mat-form-field>
 
-  <mat-form-field appearance="outline" class="campo">
-    <mat-label>Usuario de esta PC</mat-label>
-    <input
-      matInput
-      [formControl]="usuarioControl"
-      autocomplete="off"
-    />
-    <mat-hint>Usuario administrador (sudo) de esta PC</mat-hint>
-  </mat-form-field>
+      <mat-form-field appearance="outline" class="campo campo-puerto">
+        <mat-label>Puerto</mat-label>
+        <mat-icon matPrefix>settings_ethernet</mat-icon>
+        <input matInput [formControl]="centralPortControl" autocomplete="off" placeholder="8081" />
+        <mat-hint>8081 prod · 8082 beta</mat-hint>
+      </mat-form-field>
+    </div>
+  </div>
 
-  <mat-form-field appearance="outline" class="campo">
-    <mat-label>Contraseña</mat-label>
-    <input
-      matInput
-      [type]="ocultar ? 'password' : 'text'"
-      [formControl]="passwordControl"
-      autocomplete="off"
-      (keyup.enter)="aceptar()"
-    />
-    <button
-      mat-icon-button
-      matSuffix
-      type="button"
-      (click)="ocultar = !ocultar"
-      [attr.aria-label]="'Mostrar contraseña'"
-    >
-      <mat-icon>{{ ocultar ? 'visibility_off' : 'visibility' }}</mat-icon>
-    </button>
-    <mat-hint>Dejá vacío si esta PC no pide contraseña para administrar impresoras</mat-hint>
-  </mat-form-field>
+  <div class="form-section">
+    <div class="section-title">
+      <mat-icon>computer</mat-icon>
+      <span>Configuración de esta PC</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>IP de esta PC visible para el central</mat-label>
+      <mat-icon matPrefix>lan</mat-icon>
+      <input matInput [formControl]="pcIpControl" autocomplete="off" placeholder="Ej. 172.25.1.x" />
+      <mat-hint>Debe ser una IP de esta PC alcanzable desde el central</mat-hint>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="16px" fxLayout.lt-sm="column" class="credentials-row">
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>Usuario administrador</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput [formControl]="usuarioControl" autocomplete="off" />
+        <mat-hint>Usuario (sudo) de esta PC</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>Contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input matInput [type]="ocultar ? 'password' : 'text'" [formControl]="passwordControl" autocomplete="off" (keyup.enter)="aceptar()" />
+        <button mat-icon-button matSuffix type="button" (click)="ocultar = !ocultar" [attr.aria-label]="'Mostrar contraseña'">
+          <mat-icon>{{ ocultar ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+    
+    <div class="hint-global">
+      <mat-icon>help_outline</mat-icon>
+      <span>Dejá la contraseña vacía si tu PC no la requiere para administrar impresoras.</span>
+    </div>
+  </div>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="cancelar()">Cancelar</button>
-  <button mat-raised-button color="primary" (click)="aceptar()">Compartir</button>
+<mat-dialog-actions align="end" class="dialog-actions-modern">
+  <button mat-button (click)="cancelar()" class="btn-cancelar">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="aceptar()" class="btn-aceptar">
+    <mat-icon>share</mat-icon>
+    Compartir
+  </button>
 </mat-dialog-actions>
