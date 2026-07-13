@@ -61,6 +61,10 @@
     <button mat-raised-button color="primary" *ngIf="puedeEditarCabecera" (click)="onAddItem()">
       <mat-icon>add</mat-icon> Agregar producto
     </button>
+    <button mat-stroked-button color="primary" *ngIf="puedeImprimirEtiquetas"
+      (click)="onImprimirEtiquetas()">
+      <mat-icon>label</mat-icon> Imprimir etiquetas
+    </button>
     <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado"
       (click)="onAvanzar(DevolucionEstado.SEPARADO)">
       Marcar como separado

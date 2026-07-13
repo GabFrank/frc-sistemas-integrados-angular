@@ -11,6 +11,13 @@ import {
 } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { EtiquetasDevolucionService } from "../etiquetas/etiquetas-devolucion.service";
+import {
+  ImprimirEtiquetasDialogComponent,
+  ImprimirEtiquetasDialogResult,
+} from "../etiquetas/imprimir-etiquetas-dialog/imprimir-etiquetas-dialog.component";
 import { MainService } from "../../../../main.service";
 import {
   NotificacionSnackbarService,
@@ -116,7 +123,9 @@ export class EditDevolucionComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService,
     private sucursalService: SucursalService,
     private proveedorService: ProveedorService,
-    private tabService: TabService
+    private tabService: TabService,
+    private reporteService: ReporteService,
+    private etiquetasService: EtiquetasDevolucionService
   ) {}
 
   ngOnInit(): void {
@@ -447,6 +456,77 @@ export class EditDevolucionComponent implements OnInit {
           this.canjeMode = false;
           this.acreditarMode = false;
           this.computeEstadoFlags();
+          // Al separar, ofrecer imprimir las etiquetas de las cajas.
+          if (estado === DevolucionEstado.SEPARADO) {
+            this.onImprimirEtiquetas();
+          }
+        }
+      });
+  }
+
+  /** Muestra si ya está separada o más avanzada (para el botón de reimpresión). */
+  get puedeImprimirEtiquetas(): boolean {
+    const e = this.selectedDevolucion?.estado;
+    return (
+      e === DevolucionEstado.SEPARADO ||
+      e === DevolucionEstado.RETIRADO ||
+      e === DevolucionEstado.CANJEADO ||
+      e === DevolucionEstado.ACREDITADO ||
+      e === DevolucionEstado.DESCARTADO
+    );
+  }
+
+  /** Abre el diálogo de impresión de etiquetas de separado. */
+  onImprimirEtiquetas() {
+    const items = this.dataSource?.data || [];
+    if (!this.selectedDevolucion?.id || items.length === 0) return;
+    this.matDialog
+      .open(ImprimirEtiquetasDialogComponent, {
+        data: {
+          devolucionId: this.selectedDevolucion.id,
+          identificador: this.selectedDevolucion.identificador,
+          items,
+        },
+        width: "560px",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: ImprimirEtiquetasDialogResult) => {
+        if (res?.accion === "ticket") {
+          this.etiquetasService
+            .onImprimirTicket(this.selectedDevolucion.id)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (ok) =>
+                ok
+                  ? this.notificacionService.openSucess("Etiquetas enviadas")
+                  : this.notificacionService.openWarn("No se pudo imprimir"),
+              error: () =>
+                this.notificacionService.openAlgoSalioMal(
+                  "Error al imprimir las etiquetas"
+                ),
+            });
+        } else if (res?.accion === "pdf") {
+          this.etiquetasService
+            .onGetPdf(this.selectedDevolucion.id)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (pdf) => {
+                if (pdf) {
+                  this.reporteService.onAdd(
+                    `Etiquetas ${this.selectedDevolucion.identificador}`,
+                    pdf
+                  );
+                  this.tabService.addTab(
+                    new Tab(ReportesComponent, "Reportes", null, null)
+                  );
+                }
+              },
+              error: () =>
+                this.notificacionService.openAlgoSalioMal(
+                  "Error al generar las etiquetas"
+                ),
+            });
         }
       });
   }
