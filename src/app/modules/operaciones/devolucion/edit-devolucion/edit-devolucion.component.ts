@@ -14,6 +14,11 @@ import { TabService } from "../../../../layouts/tab/tab.service";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { EtiquetasDevolucionService } from "../etiquetas/etiquetas-devolucion.service";
+import { ColectaDevolucionService } from "../colecta/colecta-devolucion.service";
+import {
+  ColectarDialogComponent,
+  ColectarDialogResult,
+} from "../colecta/colectar-dialog/colectar-dialog.component";
 import {
   ImprimirEtiquetasDialogComponent,
   ImprimirEtiquetasDialogResult,
@@ -88,6 +93,7 @@ export class EditDevolucionComponent implements OnInit {
   canAvanzarSeparado = false;
   canAvanzarRetirado = false;
   canAvanzarDescartado = false;
+  canColectar = false;
   canCanjear = false;
   canAcreditar = false;
   canCancelar = false;
@@ -125,7 +131,8 @@ export class EditDevolucionComponent implements OnInit {
     private proveedorService: ProveedorService,
     private tabService: TabService,
     private reporteService: ReporteService,
-    private etiquetasService: EtiquetasDevolucionService
+    private etiquetasService: EtiquetasDevolucionService,
+    private colectaService: ColectaDevolucionService
   ) {}
 
   ngOnInit(): void {
@@ -220,6 +227,7 @@ export class EditDevolucionComponent implements OnInit {
     this.canAvanzarSeparado = false;
     this.canAvanzarRetirado = false;
     this.canAvanzarDescartado = false;
+    this.canColectar = false;
     this.canCanjear = false;
     this.canAcreditar = false;
     this.canCancelar = false;
@@ -236,10 +244,15 @@ export class EditDevolucionComponent implements OnInit {
       case DevolucionEstado.SEPARADO:
         if (conProveedor) {
           this.canAvanzarRetirado = true;
+          this.canColectar = true; // enviar a un depósito antes del retiro
         } else {
           this.canAvanzarDescartado = true;
         }
         this.canCancelar = true;
+        break;
+      case DevolucionEstado.COLECTADO:
+        // Ya en el depósito: falta que el proveedor retire.
+        this.canAvanzarRetirado = true;
         break;
       case DevolucionEstado.RETIRADO:
         this.canCanjear = true;
@@ -528,6 +541,36 @@ export class EditDevolucionComponent implements OnInit {
                 ),
             });
         }
+      });
+  }
+
+  /** Envía la devolución separada a un depósito (colecta interna -> COLECTADO). */
+  onColectar() {
+    this.matDialog
+      .open(ColectarDialogComponent, { data: {}, width: "420px" })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: ColectarDialogResult) => {
+        if (!res?.sucursalDestinoId) return;
+        const usuarioId = this.mainService.usuarioActual?.id;
+        this.colectaService
+          .onColectar(this.selectedDevolucion.id, res.sucursalDestinoId, usuarioId)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: (dev) => {
+              if (dev != null) {
+                Object.assign(this.selectedDevolucion, dev);
+                this.computeEstadoFlags();
+                this.notificacionService.openSucess(
+                  "Enviado a " + res.sucursalDestinoNombre
+                );
+              }
+            },
+            error: () =>
+              this.notificacionService.openAlgoSalioMal(
+                "No se pudo colectar la devolución"
+              ),
+          });
       });
   }
 

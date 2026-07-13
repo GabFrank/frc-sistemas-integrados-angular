@@ -1,0 +1,71 @@
+<div class="colecta">
+  <div class="colecta-header" fxLayout="row" fxLayoutAlign="space-between center">
+    <div>
+      <h2 class="colecta-titulo">Colecta interna</h2>
+      <span class="colecta-sub">
+        Enviar devoluciones separadas a un depósito para el retiro del proveedor
+      </span>
+    </div>
+    <button mat-icon-button matTooltip="Actualizar" (click)="cargarSeparadas()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="colecta-controles" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
+    <mat-form-field appearance="outline" class="colecta-destino">
+      <mat-label>Depósito destino</mat-label>
+      <mat-select [(ngModel)]="destino">
+        <mat-option *ngFor="let s of sucursales" [value]="s">
+          {{ s.id }} - {{ s.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="colectando || !destino"
+      (click)="onColectar()"
+    >
+      <mat-icon>local_shipping</mat-icon>
+      Colectar seleccionadas ({{ seleccionadas.length }})
+    </button>
+  </div>
+
+  <div *ngIf="!cargando && filas.length === 0" class="colecta-vacio">
+    <mat-icon>inbox</mat-icon>
+    <span>No hay devoluciones separadas para colectar</span>
+  </div>
+
+  <table
+    *ngIf="filas.length > 0"
+    mat-table
+    [dataSource]="filas"
+    class="mat-elevation-z2 colecta-tabla"
+  >
+    <ng-container matColumnDef="check">
+      <th mat-header-cell *matHeaderCellDef>
+        <mat-checkbox
+          [checked]="seleccionadas.length === filas.length"
+          (change)="toggleTodas($event.checked)"
+        ></mat-checkbox>
+      </th>
+      <td mat-cell *matCellDef="let f">
+        <mat-checkbox [(ngModel)]="f.seleccionada"></mat-checkbox>
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>Devolución</th>
+      <td mat-cell *matCellDef="let f">{{ f.identificador || "#" + f.id }}</td>
+    </ng-container>
+    <ng-container matColumnDef="origen">
+      <th mat-header-cell *matHeaderCellDef>Origen</th>
+      <td mat-cell *matCellDef="let f">{{ f.origen }}</td>
+    </ng-container>
+    <ng-container matColumnDef="proveedor">
+      <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+      <td mat-cell *matCellDef="let f">{{ f.proveedor }}</td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="['check', 'id', 'origen', 'proveedor']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['check', 'id', 'origen', 'proveedor']"></tr>
+  </table>
+</div>

@@ -17,6 +17,7 @@ import { EditDevolucionComponent } from "./edit-devolucion/edit-devolucion.compo
 import { GuiaDevolucionComponent } from "./guia-devolucion/guia-devolucion.component";
 import { ListDevolucionComponent } from "./list-devolucion/list-devolucion.component";
 import { RetiroProveedorComponent } from "./retiro-proveedor/retiro-proveedor.component";
+import { ColectaComponent } from "./colecta/colecta.component";
 import {
   DashboardDevolucionService,
   FiltroDashboard,
@@ -448,6 +449,12 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         title: "Retiro de proveedor",
         color: "#ff9800",
         action: () => this.abrir(RetiroProveedorComponent, "Retiro de proveedor"),
+      });
+      this.accesos.push({
+        icon: "move_to_inbox",
+        title: "Colecta interna",
+        color: "#00bcd4",
+        action: () => this.abrir(ColectaComponent, "Colecta interna"),
       });
     }
     this.accesos.push({

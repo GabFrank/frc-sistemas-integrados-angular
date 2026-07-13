@@ -8,6 +8,12 @@
     <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
       <span style="font-weight: bold">Estado:</span>
       <span>{{ selectedDevolucion?.estado | enumToString | titlecase }}</span>
+      <span
+        *ngIf="selectedDevolucion?.estado === DevolucionEstado.COLECTADO && selectedDevolucion?.sucursalUbicacion"
+        style="color: #9e9e9e"
+      >
+        · en {{ selectedDevolucion.sucursalUbicacion.nombre }}
+      </span>
       <button mat-stroked-button (click)="onVolver()">
         <mat-icon>list</mat-icon> Lista
       </button>
@@ -68,6 +74,10 @@
     <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado"
       (click)="onAvanzar(DevolucionEstado.SEPARADO)">
       Marcar como separado
+    </button>
+    <button mat-stroked-button color="primary" *ngIf="canColectar"
+      (click)="onColectar()">
+      <mat-icon>local_shipping</mat-icon> Enviar a depósito
     </button>
     <button mat-raised-button color="primary" *ngIf="canAvanzarRetirado"
       (click)="onAvanzar(DevolucionEstado.RETIRADO)">

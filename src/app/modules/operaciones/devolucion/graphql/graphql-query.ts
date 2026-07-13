@@ -54,6 +54,11 @@ const devolucionFields = `
     id
     nombre
   }
+  sucursalUbicacion {
+    id
+    nombre
+  }
+  colectadoEn
   usuario {
     id
     persona {

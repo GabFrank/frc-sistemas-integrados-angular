@@ -75,6 +75,8 @@ import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/
 import { DevolucionesPendientesDialogComponent } from './compra/gestion-compras/dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component';
 import { ConfiguracionDevolucionDialogComponent } from './devolucion/configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component';
 import { ImprimirEtiquetasDialogComponent } from './devolucion/etiquetas/imprimir-etiquetas-dialog/imprimir-etiquetas-dialog.component';
+import { ColectarDialogComponent } from './devolucion/colecta/colectar-dialog/colectar-dialog.component';
+import { ColectaComponent } from './devolucion/colecta/colecta.component';
 import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
 import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { DevolucionComponent } from './devolucion/devolucion.component';
@@ -139,6 +141,8 @@ import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dial
     DevolucionesPendientesDialogComponent,
     ConfiguracionDevolucionDialogComponent,
     ImprimirEtiquetasDialogComponent,
+    ColectarDialogComponent,
+    ColectaComponent,
     ComprasSearchProductoDialogComponent,
     RecepcionMercaderiaComponent,
     RecepcionMercaderiaVerificarItemDialogComponent,

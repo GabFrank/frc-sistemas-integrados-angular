@@ -13,6 +13,7 @@ export enum TipoDevolucion {
 export enum DevolucionEstado {
   PENDIENTE = "PENDIENTE",
   SEPARADO = "SEPARADO",
+  COLECTADO = "COLECTADO",
   RETIRADO = "RETIRADO",
   CANJEADO = "CANJEADO",
   ACREDITADO = "ACREDITADO",
@@ -38,6 +39,8 @@ export class Devolucion {
   tipo: TipoDevolucion;
   proveedor: Proveedor;
   sucursalOrigen: Sucursal;
+  sucursalUbicacion: Sucursal;
+  colectadoEn: Date;
   fecha: Date;
   motivo: string;
   estado: DevolucionEstado;
