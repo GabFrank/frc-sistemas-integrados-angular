@@ -16,6 +16,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { DevolucionConfiguracionService } from "../configuracion/devolucion-configuracion.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { ProveedoresSearchByPersonaGQL } from "../../../personas/proveedor/graphql/proveedorSearchByPersona";
@@ -82,7 +83,8 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   nombreSucursalFija = "";
 
   // TODO: leer del módulo de registro de impresoras cuando exista.
-  private readonly anchoTicketMmDefault = 58;
+  // Se sobrescribe con la config del módulo al iniciar.
+  private anchoTicketMmDefault = 58;
 
   constructor(
     private genericService: GenericCrudService,
@@ -92,6 +94,7 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
     private ticketRetiroGQL: ImprimirTicketRetiroProveedorGQL,
     private retirarEnBloqueGQL: RetirarDevolucionesEnBloqueGQL,
     private configService: ConfiguracionService,
+    private devolucionConfigService: DevolucionConfiguracionService,
     private notificacionService: NotificacionSnackbarService,
     private reporteService: ReporteService,
     private tabService: TabService,
@@ -102,6 +105,13 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
     this.resolverSucursalFija();
     this.setupProveedorAutocomplete();
     this.precargarProveedor();
+    // Ancho de ticket desde la config del módulo.
+    this.devolucionConfigService
+      .onGet()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((c) => {
+        if (c?.ticketAnchoMm != null) this.anchoTicketMmDefault = c.ticketAnchoMm;
+      });
   }
 
   /** Si llegó un proveedor por Tab (ej. aviso de Compras), lo filtra de una. */

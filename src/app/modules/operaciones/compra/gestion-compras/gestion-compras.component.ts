@@ -99,6 +99,7 @@ import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { DevolucionEstado } from "../../devolucion/devolucion.model";
 import { RetiroProveedorComponent } from "../../devolucion/retiro-proveedor/retiro-proveedor.component";
+import { DevolucionConfiguracionService } from "../../devolucion/configuracion/devolucion-configuracion.service";
 import {
   DevolucionesPendientesDialogComponent,
   DevolucionesPendientesDialogResult,
@@ -463,7 +464,8 @@ export class GestionComprasComponent
     public mainService: MainService,
     private reporteService: ReporteService,
     private configService: ConfiguracionService,
-    private devolucionService: DevolucionService
+    private devolucionService: DevolucionService,
+    private devolucionConfigService: DevolucionConfiguracionService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -487,7 +489,21 @@ export class GestionComprasComponent
     this.initializeForms();
   }
 
+  // Config del aviso de devoluciones (default = conducta previa por si no carga aún).
+  private devolucionAlertaIncluyeRetirado = false;
+  private devolucionAlertaBloqueante = true;
+
   ngOnInit(): void {
+    this.devolucionConfigService
+      .onGet()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((c) => {
+        if (c?.alertaIncluyeRetirado != null)
+          this.devolucionAlertaIncluyeRetirado = c.alertaIncluyeRetirado;
+        if (c?.alertaBloqueante != null)
+          this.devolucionAlertaBloqueante = c.alertaBloqueante;
+      });
+
     const pedidoId = this.data?.tabData?.id || this.data?.tabData?.data?.id;
     
     if (pedidoId) {
@@ -1870,25 +1886,40 @@ export class GestionComprasComponent
     this.loadedTabs.delete(tabIndex);
   }
 
-  // Alerta bloqueante: al comprar/recibir de un proveedor con devoluciones en
-  // espera de entrega (PENDIENTE/SEPARADO), se abre un diálogo que obliga a
-  // elegir entre ir a gestionarlas o continuar. RETIRADO no cuenta: ya se
-  // entregó físicamente, solo falta cerrar el canje/nota de crédito.
+  // Aviso al comprar/recibir de un proveedor con devoluciones en espera. Los
+  // estados que cuentan y si el aviso es bloqueante salen de la configuración
+  // del módulo (devolucion_configuracion): por defecto PENDIENTE/SEPARADO y
+  // diálogo bloqueante; con alertaIncluyeRetirado también cuenta RETIRADO.
   onVerificarDevolucionesPendientes(proveedorId: number): void {
     if (proveedorId == null) return;
     this.devolucionService
       .onGetDevolucionesPendientesPorProveedor(proveedorId)
       .pipe(takeUntil(this.destroy$))
       .subscribe((devoluciones) => {
-        const enEspera = (devoluciones || []).filter(
-          (d) =>
-            d.estado === DevolucionEstado.PENDIENTE ||
-            d.estado === DevolucionEstado.SEPARADO
+        const estadosEnEspera = [
+          DevolucionEstado.PENDIENTE,
+          DevolucionEstado.SEPARADO,
+          ...(this.devolucionAlertaIncluyeRetirado
+            ? [DevolucionEstado.RETIRADO]
+            : []),
+        ];
+        const enEspera = (devoluciones || []).filter((d) =>
+          estadosEnEspera.includes(d.estado)
         );
         if (enEspera.length === 0) return;
 
         const proveedorNombre =
           this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
+
+        // No bloqueante: solo notifica y no interrumpe.
+        if (!this.devolucionAlertaBloqueante) {
+          this.notificacionService.openWarn(
+            `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
+            5
+          );
+          return;
+        }
+
         this.dialog
           .open(DevolucionesPendientesDialogComponent, {
             data: { proveedorNombre, devoluciones: enEspera },

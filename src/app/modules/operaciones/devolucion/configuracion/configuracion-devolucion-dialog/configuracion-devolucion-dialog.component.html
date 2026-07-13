@@ -1,0 +1,112 @@
+<div class="config-dialog">
+  <h2 mat-dialog-title>Configuración de devoluciones</h2>
+
+  <div mat-dialog-content [formGroup]="form" class="config-content">
+    <div *ngIf="cargando" class="config-cargando">
+      <mat-spinner diameter="28"></mat-spinner>
+    </div>
+
+    <ng-container *ngIf="!cargando">
+      <!-- Dashboard / umbrales -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>dashboard</mat-icon> Dashboard
+        </h3>
+        <div class="config-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Días para "estancada"</mat-label>
+            <input matInput type="number" formControlName="diasEstancada" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Días "urgente"</mat-label>
+            <input matInput type="number" formControlName="diasEstancadaUrgente" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Ítems en rankings (Top N)</mat-label>
+            <input matInput type="number" formControlName="rankingTopN" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Rango de fecha por defecto</mat-label>
+            <mat-select formControlName="dashboardRangoDefault">
+              <mat-option *ngFor="let r of rangos" [value]="r.value">
+                {{ r.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Impresión -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>print</mat-icon> Impresión
+        </h3>
+        <div class="config-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Ancho de ticket</mat-label>
+            <mat-select formControlName="ticketAnchoMm">
+              <mat-option *ngFor="let a of anchos" [value]="a.value">
+                {{ a.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Impresora térmica</mat-label>
+            <input matInput formControlName="impresoraTicket" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Título del comprobante</mat-label>
+            <input matInput formControlName="comprobanteTitulo" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Texto de firma</mat-label>
+            <input matInput formControlName="comprobanteTextoFirma" />
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Merma / gasto -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>delete_sweep</mat-icon> Merma / gasto
+        </h3>
+        <mat-slide-toggle formControlName="mermaRespetaMotivo">
+          Respetar el flag "genera gasto" de cada motivo
+        </mat-slide-toggle>
+        <p class="config-ayuda">
+          Si está activo, al descartar solo se genera gasto de merma para los
+          ítems cuyo motivo lo indica. Si está inactivo, siempre se genera.
+        </p>
+        <mat-form-field appearance="outline" class="config-full">
+          <mat-label>Tipo de gasto de merma</mat-label>
+          <input matInput formControlName="tipoGastoMerma" />
+        </mat-form-field>
+      </div>
+
+      <!-- Alerta de compras -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>warning</mat-icon> Aviso en compras
+        </h3>
+        <mat-slide-toggle formControlName="alertaIncluyeRetirado">
+          Incluir devoluciones ya retiradas (sin cerrar) en el aviso
+        </mat-slide-toggle>
+        <mat-slide-toggle formControlName="alertaBloqueante" class="config-toggle">
+          Aviso bloqueante (diálogo que obliga a decidir)
+        </mat-slide-toggle>
+      </div>
+    </ng-container>
+  </div>
+
+  <div mat-dialog-actions class="config-actions">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="guardando || cargando"
+      (click)="onGuardar()"
+    >
+      <mat-icon>save</mat-icon> Guardar
+    </button>
+  </div>
+</div>

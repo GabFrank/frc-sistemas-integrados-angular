@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
+import { MatDialog } from "@angular/material/dialog";
 import { Subject } from "rxjs";
 import { takeUntil } from "rxjs/operators";
 import { EChartsOption } from "echarts";
@@ -21,6 +22,8 @@ import {
   FiltroDashboard,
 } from "./dashboard/dashboard-devolucion.service";
 import { DashRankingItem } from "../../../shared/components/dashboard/dash-ranking-list/dash-ranking-list.component";
+import { DevolucionConfiguracionService } from "./configuracion/devolucion-configuracion.service";
+import { ConfiguracionDevolucionDialogComponent } from "./configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component";
 
 interface KpiVista {
   icon: string;
@@ -91,19 +94,59 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   ];
   estancadas: EstancadaVista[] = [];
 
+  // Config (leída del backend). Defaults = conducta previa por si falla la carga.
+  private diasUrgente = 60;
+  private topN = 5;
+  private rangoDefault = "MES_ACTUAL";
+
   constructor(
     private tabService: TabService,
     public mainService: MainService,
-    private dashboardService: DashboardDevolucionService
+    private dashboardService: DashboardDevolucionService,
+    private configService: DevolucionConfiguracionService,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
     this.resolverSucursalFija();
     this.armarAccesos();
+    // La config define umbrales / top-N / rango por defecto; se carga antes.
+    this.configService.onGet().subscribe({
+      next: (c) => {
+        this.aplicarConfig(c);
+        this.iniciar();
+      },
+      error: () => this.iniciar(),
+    });
+  }
+
+  private aplicarConfig(c: any): void {
+    if (!c) return;
+    if (c.diasEstancada != null) this.diasEstancado = c.diasEstancada;
+    if (c.diasEstancadaUrgente != null) this.diasUrgente = c.diasEstancadaUrgente;
+    if (c.rankingTopN != null) this.topN = c.rankingTopN;
+    if (c.dashboardRangoDefault != null) this.rangoDefault = c.dashboardRangoDefault;
+  }
+
+  private iniciar(): void {
     this.inicializarRango();
     this.cargar();
     this.cargarSerie();
     this.cargarEstancadas();
+  }
+
+  /** Abre el diálogo de configuración; si se guardó, recarga el dashboard. */
+  onConfigurar(): void {
+    this.matDialog
+      .open(ConfiguracionDevolucionDialogComponent, { width: "660px" })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((guardada) => {
+        if (guardada) {
+          this.aplicarConfig(guardada);
+          this.iniciar();
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -120,10 +163,24 @@ export class DevolucionComponent implements OnInit, OnDestroy {
   }
 
   private inicializarRango(): void {
-    // Por defecto: este mes (día 1 hasta hoy).
     const hoy = new Date();
-    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    this.hasta = this.aInputDate(hoy);
+    let inicio: Date;
+    let fin = hoy;
+    switch (this.rangoDefault) {
+      case "ULTIMOS_30":
+        inicio = new Date();
+        inicio.setDate(hoy.getDate() - 29);
+        break;
+      case "MES_ANTERIOR":
+        inicio = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+        fin = new Date(hoy.getFullYear(), hoy.getMonth(), 0); // último día del mes anterior
+        break;
+      case "MES_ACTUAL":
+      default:
+        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        break;
+    }
+    this.hasta = this.aInputDate(fin);
     this.desde = this.aInputDate(inicio);
   }
 
@@ -159,7 +216,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       });
 
     this.dashboardService
-      .onGetTopProductos(f, 5)
+      .onGetTopProductos(f, this.topN)
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => {
         this.topProductos = this.mapTop(
@@ -172,7 +229,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       });
 
     this.dashboardService
-      .onGetTopProveedores(f, 5)
+      .onGetTopProveedores(f, this.topN)
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => {
         this.topProveedores = this.mapTop(
@@ -185,7 +242,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       });
 
     this.dashboardService
-      .onGetTopMotivos(f, 5)
+      .onGetTopMotivos(f, this.topN)
       .pipe(takeUntil(this.destroy$))
       .subscribe((data) => {
         this.topMotivos = this.mapTop(
@@ -291,7 +348,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
       detalle: `${this.titulo(d.estado)} · ${d.sucursal || "—"}`,
       dias: d.dias || 0,
       diasTexto: `${d.dias || 0} d`,
-      antiguo: (d.dias || 0) >= 60,
+      antiguo: (d.dias || 0) >= this.diasUrgente,
       porcentaje: ((d.dias || 0) / max) * 100,
     }));
   }
