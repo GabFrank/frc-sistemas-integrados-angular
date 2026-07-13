@@ -23,7 +23,7 @@
   <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
     <mat-form-field fxFlex="20">
       <mat-label>Tipo</mat-label>
-      <mat-select [formControl]="tipoControl" [disabled]="!puedeEditarCabecera">
+      <mat-select [formControl]="tipoControl">
         <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
           {{ tipo | enumToString }}
         </mat-option>
@@ -46,7 +46,7 @@
 
     <mat-form-field fxFlex="25">
       <mat-label>Sucursal de origen</mat-label>
-      <mat-select [formControl]="sucursalControl" [disabled]="!puedeEditarCabecera">
+      <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal">
         <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
           {{ sucursal.id }} - {{ sucursal.nombre }}
         </mat-option>

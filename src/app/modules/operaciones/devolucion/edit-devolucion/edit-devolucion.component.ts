@@ -73,6 +73,10 @@ export class EditDevolucionComponent implements OnInit {
 
   tipoControl = new FormControl(TipoDevolucion.SIN_PROVEEDOR, Validators.required);
   sucursalControl = new FormControl(null, Validators.required);
+
+  // El mat-select compara por referencia; la sucursal cargada es otra instancia
+  // que las de sucursalList, así que se compara por id.
+  compareSucursal = (a: Sucursal, b: Sucursal): boolean => a?.id === b?.id;
   observacionControl = new FormControl(null);
 
   nroNotaCreditoControl = new FormControl(null);
@@ -215,6 +219,21 @@ export class EditDevolucionComponent implements OnInit {
       });
   }
 
+  /**
+   * Habilita/deshabilita los controles reactivos de la cabecera desde el
+   * componente (no con [disabled] en el HTML, que dispara el warning de
+   * reactive forms y el "changed after checked").
+   */
+  private actualizarHabilitacionCabecera() {
+    if (this.puedeEditarCabecera) {
+      this.tipoControl.enable({ emitEvent: false });
+      this.sucursalControl.enable({ emitEvent: false });
+    } else {
+      this.tipoControl.disable({ emitEvent: false });
+      this.sucursalControl.disable({ emitEvent: false });
+    }
+  }
+
   computeEstadoFlags() {
     const estado = this.selectedDevolucion?.estado;
     const conProveedor =
@@ -223,6 +242,7 @@ export class EditDevolucionComponent implements OnInit {
 
     this.esPendiente = estado == null || estado == DevolucionEstado.PENDIENTE;
     this.puedeEditarCabecera = this.esNuevo || this.esPendiente;
+    this.actualizarHabilitacionCabecera();
 
     this.canAvanzarSeparado = false;
     this.canAvanzarRetirado = false;
