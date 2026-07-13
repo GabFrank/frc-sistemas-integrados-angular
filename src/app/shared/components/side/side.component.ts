@@ -43,6 +43,7 @@ import { MainVentaObservacionComponent } from "../../../modules/operaciones/vent
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
@@ -482,6 +483,18 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "impresoras":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) ||
+          this.mainService.usuarioActual?.roles.includes("CONFIGURACION")
+        ) {
+          this.tabService.addTab(
+            new Tab(ListImpresorasComponent, "Impresoras", null, null)
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')

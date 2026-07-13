@@ -1,0 +1,476 @@
+<h2 mat-dialog-title>{{ titulo }}</h2>
+
+<mat-dialog-content>
+  <form
+    [formGroup]="formGroup"
+    class="form-impresora"
+  >
+
+    <!-- Deteccion automatica de impresoras del sistema (incluye USB) -->
+    <div class="deteccion-panel">
+      <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>usb</mat-icon>
+          <span>Impresoras detectadas en esta máquina</span>
+          <span *ngIf="miIp" class="chip-ip" title="IP LAN de esta PC (usada para compartir al central)">
+            <mat-icon inline>lan</mat-icon> {{ miIp }}
+          </span>
+        </div>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="detectarImpresorasLocales()"
+          aria-label="Volver a detectar"
+          title="Volver a detectar"
+        >
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+
+      <div *ngIf="detectando" class="deteccion-cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Detectando impresoras…</span>
+      </div>
+
+      <div
+        *ngIf="!detectando && detectadas.length > 0"
+        class="deteccion-lista"
+      >
+        <div
+          *ngFor="let d of detectadas"
+          class="item-detectada-row"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+          fxLayoutGap="6px"
+        >
+          <button
+            mat-button
+            type="button"
+            class="item-detectada"
+            (click)="usarDetectada(d)"
+            title="Usar esta impresora (local)"
+          >
+            <mat-icon class="item-icono">{{ d.icono }}</mat-icon>
+            <span class="item-text">
+              <span class="item-nombre">{{ d.nombre }}</span>
+              <span class="item-desc">{{ d.descripcion }}</span>
+            </span>
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            color="primary"
+            class="btn-compartir"
+            (click)="compartirAServidor(d)"
+            [disabled]="compartiendo"
+            title="Compartir esta impresora a un servidor (central o filial) por la IP de esta PC"
+          >
+            <mat-icon>cloud_upload</mat-icon>
+            Compartir al servidor
+          </button>
+        </div>
+      </div>
+
+      <p
+        *ngIf="!detectando && detectadas.length === 0"
+        class="deteccion-vacia"
+      >
+        No se detectaron impresoras instaladas. Conectá la impresora por USB (o instalala en el sistema) y tocá
+        <mat-icon inline>refresh</mat-icon>.
+      </p>
+    </div>
+
+    <!-- Detectar dispositivos NO instalados para instalarlos (CUPS via backend) -->
+    <div class="instalar-panel">
+      <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>add_to_queue</mat-icon>
+          <span>Instalar / detectar impresora por cable (USB)</span>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="8px">
+          <mat-form-field appearance="outline" class="origen-select">
+            <mat-label>Buscar en</mat-label>
+            <mat-select [formControl]="origenBusquedaControl">
+              <mat-option
+                *ngFor="let o of origenesBusqueda"
+                [value]="o.value"
+              >
+                {{ o.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            type="button"
+            color="primary"
+            (click)="detectarParaInstalar()"
+            [disabled]="buscandoDispositivos"
+          >
+            <mat-icon>search</mat-icon>
+            Detectar
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="buscandoDispositivos" class="deteccion-cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Buscando dispositivos conectados…</span>
+      </div>
+
+      <div
+        *ngIf="!buscandoDispositivos && dispositivos.length > 0"
+        class="deteccion-lista"
+      >
+        <div
+          *ngFor="let d of dispositivos"
+          class="item-dispositivo"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <span class="item-text">
+            <span class="item-nombre">{{ d.nombre }}</span>
+            <span class="item-desc">{{ d.detalle }}</span>
+          </span>
+          <div fxLayout="row" fxLayoutGap="6px">
+            <button
+              *ngIf="d.puedeIp"
+              mat-stroked-button
+              type="button"
+              (click)="usarPorIp(d)"
+              title="Usar directo por IP (sin instalar cola)"
+            >
+              Usar por IP
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              color="primary"
+              (click)="instalarDispositivo(d)"
+              [disabled]="instalando"
+            >
+              Instalar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="deteccion-vacia">
+        Enchufá la impresora por USB y tocá <b>Detectar</b>. Las térmicas se instalan como cola RAW.
+        Requiere permisos de CUPS en el backend.
+      </p>
+    </div>
+
+    <!-- Detectar impresoras de RED (Wi-Fi/Ethernet) por mDNS/Bonjour — lo hace el frontend (Electron) -->
+    <div class="instalar-panel">
+      <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>wifi</mat-icon>
+          <span>Detectar impresora por red (Wi-Fi / Ethernet)</span>
+        </div>
+        <button
+          mat-stroked-button
+          type="button"
+          color="primary"
+          (click)="detectarImpresorasRed()"
+          [disabled]="buscandoRed"
+        >
+          <mat-icon>wifi_find</mat-icon>
+          Detectar en red
+        </button>
+      </div>
+
+      <div *ngIf="buscandoRed" class="deteccion-cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Buscando impresoras en la red…</span>
+      </div>
+
+      <div
+        *ngIf="!buscandoRed && impresorasRed.length > 0"
+        class="deteccion-lista"
+      >
+        <div
+          *ngFor="let r of impresorasRed"
+          class="item-dispositivo"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <span class="item-text">
+            <span class="item-nombre">{{ r.nombre }}</span>
+            <span class="item-desc">{{ r.detalle }}</span>
+          </span>
+          <div fxLayout="row" fxLayoutGap="6px">
+            <button
+              mat-stroked-button
+              type="button"
+              color="primary"
+              (click)="usarPorIpRed(r)"
+              title="Agregar directo por IP en la misma red (sin cola del sistema, anda en Linux y Windows)"
+            >
+              Usar por IP
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="instalarRed(r)"
+              [disabled]="instalando"
+              title="Instalar como cola del sistema (Linux/CUPS, raw)"
+            >
+              Instalar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="deteccion-vacia">
+        Tocá <b>Detectar en red</b> para buscar impresoras Wi-Fi/Ethernet (Epson, HP, Brother, etc.).
+        <b>Usar por IP</b> la agrega directo en tu misma red (recomendado, anda en Linux y Windows);
+        <b>Instalar</b> crea una cola del sistema (Linux/CUPS).
+      </p>
+    </div>
+
+    <!-- Datos generales -->
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex="50%" appearance="outline">
+        <mat-label>Nombre</mat-label>
+        <input
+          matInput
+          formControlName="nombre"
+          autocomplete="off"
+        />
+      </mat-form-field>
+      <mat-form-field fxFlex="50%" appearance="outline">
+        <mat-label>Sucursal (host donde está conectada)</mat-label>
+        <mat-select formControlName="sucursal">
+          <mat-option
+            *ngFor="let sucursal of sucursales"
+            [value]="sucursal.id"
+          >
+            {{ sucursal.id }} - {{ sucursal.nombre | titlecase }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex="33%" appearance="outline">
+        <mat-label>Tipo</mat-label>
+        <mat-select formControlName="tipo">
+          <mat-option
+            *ngFor="let t of tipos"
+            [value]="t.value"
+          >
+            {{ t.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field fxFlex="33%" appearance="outline">
+        <mat-label>Uso</mat-label>
+        <mat-select formControlName="uso">
+          <mat-option
+            *ngFor="let u of usos"
+            [value]="u.value"
+          >
+            {{ u.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field fxFlex="33%" appearance="outline">
+        <mat-label>Marca</mat-label>
+        <input
+          matInput
+          formControlName="marca"
+          autocomplete="off"
+          placeholder="EPSON, STAR, HP..."
+        />
+      </mat-form-field>
+    </div>
+
+    <!-- Conexión -->
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex="50%" appearance="outline">
+        <mat-label>Conexión</mat-label>
+        <mat-select formControlName="conexion">
+          <mat-option
+            *ngFor="let c of conexiones"
+            [value]="c.value"
+          >
+            {{ c.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field
+        *ngIf="!esConexionRed"
+        fxFlex="50%"
+        appearance="outline"
+      >
+        <mat-label>{{ etiquetaCola }}</mat-label>
+        <input
+          matInput
+          formControlName="colaCups"
+          autocomplete="off"
+        />
+      </mat-form-field>
+
+      <mat-form-field
+        *ngIf="esConexionRed"
+        fxFlex="35%"
+        appearance="outline"
+      >
+        <mat-label>Dirección IP</mat-label>
+        <input
+          matInput
+          formControlName="ip"
+          autocomplete="off"
+          placeholder="192.168.0.50"
+        />
+      </mat-form-field>
+      <mat-form-field
+        *ngIf="esConexionRed"
+        fxFlex="15%"
+        appearance="outline"
+      >
+        <mat-label>Puerto</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="puerto"
+        />
+      </mat-form-field>
+    </div>
+
+    <!-- Descubrir colas del sistema -->
+    <div
+      *ngIf="!esConexionRed"
+      class="descubrir"
+      fxLayout="row"
+      fxLayoutGap="16px"
+      fxLayoutAlign="start center"
+    >
+      <mat-form-field fxFlex="40%" appearance="outline">
+        <mat-label>Buscar colas en</mat-label>
+        <mat-select [formControl]="origenBusquedaControl">
+          <mat-option
+            *ngFor="let o of origenesBusqueda"
+            [value]="o.value"
+          >
+            {{ o.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-stroked-button
+        type="button"
+        color="primary"
+        (click)="cargarColasSistema()"
+      >
+        <mat-icon>search</mat-icon>
+        Cargar colas del sistema
+      </button>
+    </div>
+
+    <div
+      *ngIf="colasSistema.length > 0"
+      class="chips-colas"
+      fxLayout="row wrap"
+      fxLayoutGap="8px"
+    >
+      <button
+        *ngFor="let cola of colasSistema"
+        mat-stroked-button
+        type="button"
+        class="chip-cola"
+        (click)="seleccionarCola(cola)"
+      >
+        {{ cola }}
+      </button>
+    </div>
+
+    <!-- Papel -->
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex="33%" appearance="outline">
+        <mat-label>Perfil de papel</mat-label>
+        <mat-select formControlName="perfilPapel">
+          <mat-option
+            *ngFor="let p of perfiles"
+            [value]="p.value"
+          >
+            {{ p.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field
+        *ngIf="!esPapelHoja"
+        fxFlex="33%"
+        appearance="outline"
+      >
+        <mat-label>Columnas</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="columnas"
+        />
+      </mat-form-field>
+
+      <mat-form-field
+        *ngIf="esPapelHoja"
+        fxFlex="33%"
+        appearance="outline"
+      >
+        <mat-label>Ancho (mm)</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="anchoMm"
+        />
+      </mat-form-field>
+      <mat-form-field
+        *ngIf="esPapelHoja"
+        fxFlex="33%"
+        appearance="outline"
+      >
+        <mat-label>Alto (mm)</mat-label>
+        <input
+          matInput
+          type="number"
+          formControlName="altoMm"
+        />
+      </mat-form-field>
+    </div>
+
+    <!-- Opciones -->
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex="50%" appearance="outline">
+        <mat-label>Code-page (ESC/POS)</mat-label>
+        <input
+          matInput
+          formControlName="codepage"
+          autocomplete="off"
+        />
+      </mat-form-field>
+      <div fxFlex="50%" fxLayout="column" fxLayoutAlign="center start">
+        <mat-checkbox formControlName="activo">Activa</mat-checkbox>
+        <mat-checkbox formControlName="esPredeterminada">Predeterminada para su uso</mat-checkbox>
+      </div>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    (click)="cancelar()"
+  >
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!formGroup.valid"
+    (click)="guardar()"
+  >
+    Guardar
+  </button>
+</mat-dialog-actions>
