@@ -89,10 +89,7 @@ export class EditReplicationTableDialogComponent implements OnInit {
     
     // Convert form value to ReplicationTable
     const replicationTable: ReplicationTable = this.tableForm.value;
-    
-    // Convert tableName to UPPERCASE as per requirements
-    replicationTable.tableName = replicationTable.tableName.toUpperCase();
-    
+
     this.replicationTableService.saveReplicationTable(replicationTable)
       .pipe(untilDestroyed(this))
       .subscribe({
