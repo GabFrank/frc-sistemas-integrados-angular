@@ -97,6 +97,12 @@ import { DialogosService } from "../../../../shared/components/dialogos/dialogos
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
+import { DevolucionEstado } from "../../devolucion/devolucion.model";
+import { DevolucionComponent } from "../../devolucion/devolucion.component";
+import {
+  DevolucionesPendientesDialogComponent,
+  DevolucionesPendientesDialogResult,
+} from "./dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component";
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
@@ -1864,21 +1870,40 @@ export class GestionComprasComponent
     this.loadedTabs.delete(tabIndex);
   }
 
-  // Alerta: devoluciones pendientes del proveedor seleccionado
+  // Alerta bloqueante: al comprar/recibir de un proveedor con devoluciones en
+  // espera de entrega (PENDIENTE/SEPARADO), se abre un diálogo que obliga a
+  // elegir entre ir a gestionarlas o continuar. RETIRADO no cuenta: ya se
+  // entregó físicamente, solo falta cerrar el canje/nota de crédito.
   onVerificarDevolucionesPendientes(proveedorId: number): void {
     if (proveedorId == null) return;
     this.devolucionService
       .onGetDevolucionesPendientesPorProveedor(proveedorId)
       .pipe(takeUntil(this.destroy$))
       .subscribe((devoluciones) => {
-        if (devoluciones != null && devoluciones.length > 0) {
-          this.notificacionService.openWarn(
-            "Atención: este proveedor tiene " +
-              devoluciones.length +
-              " devolución(es) pendiente(s) de gestionar.",
-            5
-          );
-        }
+        const enEspera = (devoluciones || []).filter(
+          (d) =>
+            d.estado === DevolucionEstado.PENDIENTE ||
+            d.estado === DevolucionEstado.SEPARADO
+        );
+        if (enEspera.length === 0) return;
+
+        const proveedorNombre =
+          this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
+        this.dialog
+          .open(DevolucionesPendientesDialogComponent, {
+            data: { proveedorNombre, devoluciones: enEspera },
+            disableClose: true,
+            width: "640px",
+          })
+          .afterClosed()
+          .pipe(takeUntil(this.destroy$))
+          .subscribe((res: DevolucionesPendientesDialogResult) => {
+            if (res?.accion === "ir") {
+              this.tabService.addTab(
+                new Tab(DevolucionComponent, "Devoluciones", null, null)
+              );
+            }
+          });
       });
   }
 
