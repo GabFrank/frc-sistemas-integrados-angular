@@ -512,7 +512,7 @@ function detectarIpsLocales() {
  * Un socket UDP con `connect` no envía paquetes: solo fija la ruta y expone la IP local que el
  * kernel elige. Así la URI IPP siempre usa la interfaz que realmente rutea al servidor destino
  * (ZeroTier en cualquier subred, Tailscale 100.x, LAN, o varias NICs), en vez de adivinar por
- * prefijo `172.25.`. Devuelve null si no hay destino o no se pudo resolver.
+ * prefijo `172.25.`. Devuelve null si no hay destino o no se pudo resolver (cae al heurístico).
  */
 function ipLocalHaciaDestino(destIp) {
     return new Promise((resolve) => {
@@ -527,7 +527,10 @@ function ipLocalHaciaDestino(destIp) {
             if (done)
                 return;
             done = true;
-            try { socket.close(); } catch (_a) { /* noop */ }
+            try {
+                socket.close();
+            }
+            catch ( /* noop */_a) { /* noop */ }
             resolve(ip);
         };
         socket.on('error', () => finish(null));
@@ -538,12 +541,12 @@ function ipLocalHaciaDestino(destIp) {
                     const dir = socket.address();
                     finish(dir && dir.address ? dir.address : null);
                 }
-                catch (_b) {
+                catch (_a) {
                     finish(null);
                 }
             });
         }
-        catch (_c) {
+        catch (_a) {
             finish(null);
         }
         setTimeout(() => finish(null), 1500);
@@ -556,80 +559,84 @@ function ipLocalHaciaDestino(destIp) {
  * Solo Linux (CUPS); en otras plataformas devuelve la IP para uso manual.
  */
 function compartirImpresoraLocal(queue, password, centralIp) {
-    return ipLocalHaciaDestino(centralIp).then((ipPc) => new Promise((resolve) => {
-        // ipPc se DERIVA de la ruta real hacia el centralIp (nunca se adivina por prefijo). Si es
-        // null (sin destino o no resuelto), el frontend pedirá la IP manual antes de instalar.
-        const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
-        const uri = ipPc && colaSegura ? `ipp://${ipPc}:631/printers/${colaSegura}` : null;
-        if (process.platform !== 'linux') {
-            resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
-            return;
-        }
-        if (!colaSegura) {
-            resolve({ success: false, ip: ipPc, uri: null, error: 'Nombre de cola invalido' });
-            return;
-        }
-        // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}.
-        // sudo: -S lee el password de stdin · -k fuerza reautenticación · -p '' sin texto de prompt.
-        const run = (args, useSudo) => new Promise((res) => {
-            const proc = useSudo
-                ? (0, child_process_1.spawn)('sudo', ['-S', '-k', '-p', '', ...args])
-                : (0, child_process_1.spawn)(args[0], args.slice(1));
-            let stdout = '';
-            let stderr = '';
-            proc.stdout.on('data', (d) => { stdout += d.toString(); });
-            proc.stderr.on('data', (d) => { stderr += d.toString(); });
-            proc.on('error', (err) => res({ code: 1, stdout, stderr: stderr || err.message }));
-            proc.on('close', (code) => res({ code: code == null ? 1 : code, stdout, stderr }));
-            if (useSudo && password) {
-                proc.stdin.write(password + '\n');
+    return __awaiter(this, void 0, void 0, function* () {
+        // IP de esta PC que el servidor destino puede rutear: se DERIVA de la ruta real hacia el
+        // centralIp que el usuario indicó (nunca se adivina por prefijo). Si no hay destino o no se
+        // pudo resolver, ipPc queda null y el frontend pedirá la IP manual antes de instalar.
+        const ipPc = yield ipLocalHaciaDestino(centralIp);
+        return new Promise((resolve) => {
+            const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
+            const uri = ipPc && colaSegura ? `ipp://${ipPc}:631/printers/${colaSegura}` : null;
+            if (process.platform !== 'linux') {
+                resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
+                return;
             }
-            proc.stdin.end();
-        });
-        const espera = (ms) => new Promise((r) => setTimeout(r, ms));
-        (() => __awaiter(this, void 0, void 0, function* () {
-            try {
-                // 1) Solo habilitamos compartir/acceso remoto si aún no está activo (evita reiniciar cupsd al pedo).
-                const estado = yield run(['cupsctl'], false);
-                const yaCompartido = /_share_printers=1/.test(estado.stdout) && /_remote_any=1/.test(estado.stdout);
-                if (!yaCompartido) {
-                    const c1 = yield run(['cupsctl', '--share-printers', '--remote-any'], !!password);
-                    if (c1.code !== 0) {
-                        const msg = (c1.stderr || '').trim() || 'No se pudo habilitar el compartir en CUPS';
-                        console.error('[CUPS] cupsctl falló:', msg);
+            if (!colaSegura) {
+                resolve({ success: false, ip: ipPc, uri: null, error: 'Nombre de cola invalido' });
+                return;
+            }
+            // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}.
+            // sudo: -S lee el password de stdin · -k fuerza reautenticación · -p '' sin texto de prompt.
+            const run = (args, useSudo) => new Promise((res) => {
+                const proc = useSudo
+                    ? (0, child_process_1.spawn)('sudo', ['-S', '-k', '-p', '', ...args])
+                    : (0, child_process_1.spawn)(args[0], args.slice(1));
+                let stdout = '';
+                let stderr = '';
+                proc.stdout.on('data', (d) => { stdout += d.toString(); });
+                proc.stderr.on('data', (d) => { stderr += d.toString(); });
+                proc.on('error', (err) => res({ code: 1, stdout, stderr: stderr || err.message }));
+                proc.on('close', (code) => res({ code: code == null ? 1 : code, stdout, stderr }));
+                if (useSudo && password) {
+                    proc.stdin.write(password + '\n');
+                }
+                proc.stdin.end();
+            });
+            const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+            (() => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    // 1) Solo habilitamos compartir/acceso remoto si aún no está activo (evita reiniciar cupsd al pedo).
+                    const estado = yield run(['cupsctl'], false);
+                    const yaCompartido = /_share_printers=1/.test(estado.stdout) && /_remote_any=1/.test(estado.stdout);
+                    if (!yaCompartido) {
+                        const c1 = yield run(['cupsctl', '--share-printers', '--remote-any'], !!password);
+                        if (c1.code !== 0) {
+                            const msg = (c1.stderr || '').trim() || 'No se pudo habilitar el compartir en CUPS';
+                            console.error('[CUPS] cupsctl falló:', msg);
+                            resolve({ success: false, ip: ipPc, uri, error: msg });
+                            return;
+                        }
+                        yield espera(1000); // cupsd puede reiniciarse tras el cambio de config
+                    }
+                    // 2) Marcamos la cola como compartida; reintentamos si cupsd está reiniciando (Service unavailable).
+                    let ultimo = { code: 1, stdout: '', stderr: '' };
+                    for (let i = 0; i < 6; i++) {
+                        ultimo = yield run(['lpadmin', '-p', colaSegura, '-o', 'printer-is-shared=true'], !!password);
+                        if (ultimo.code === 0) {
+                            break;
+                        }
+                        if (!/no disponible|unavailable|503|refus|connect/i.test(ultimo.stderr)) {
+                            break; // error real (no es el reinicio) → no tiene sentido reintentar
+                        }
+                        yield espera(800);
+                    }
+                    if (ultimo.code !== 0) {
+                        const msg = (ultimo.stderr || '').trim() || 'lpadmin no pudo compartir la cola';
+                        console.error('[CUPS] lpadmin falló:', msg);
                         resolve({ success: false, ip: ipPc, uri, error: msg });
                         return;
                     }
-                    yield espera(1000); // cupsd puede reiniciarse tras el cambio de config
+                    // 3) Hardening (best-effort, no bloqueante): abrir el puerto 631 SOLO para el central.
+                    // Con VPN, restringe quién puede alcanzar tu CUPS. Si no hay firewalld o falla, seguimos.
+                    const aviso = yield restringirCupsAlCentral(run, centralIp);
+                    resolve({ success: true, ip: ipPc, uri, aviso });
                 }
-                // 2) Marcamos la cola como compartida; reintentamos si cupsd está reiniciando (Service unavailable).
-                let ultimo = { code: 1, stdout: '', stderr: '' };
-                for (let i = 0; i < 6; i++) {
-                    ultimo = yield run(['lpadmin', '-p', colaSegura, '-o', 'printer-is-shared=true'], !!password);
-                    if (ultimo.code === 0) {
-                        break;
-                    }
-                    if (!/no disponible|unavailable|503|refus|connect/i.test(ultimo.stderr)) {
-                        break; // error real (no es el reinicio) → no tiene sentido reintentar
-                    }
-                    yield espera(800);
+                catch (e) {
+                    resolve({ success: false, ip: ipPc, uri, error: e && e.message ? e.message : 'error compartiendo' });
                 }
-                if (ultimo.code !== 0) {
-                    const msg = (ultimo.stderr || '').trim() || 'lpadmin no pudo compartir la cola';
-                    console.error('[CUPS] lpadmin falló:', msg);
-                    resolve({ success: false, ip: ipPc, uri, error: msg });
-                    return;
-                }
-                // 3) Hardening (best-effort, no bloqueante): abrir el puerto 631 SOLO para el central.
-                // Con VPN, restringe quién puede alcanzar tu CUPS. Si no hay firewalld o falla, seguimos.
-                const aviso = yield restringirCupsAlCentral(run, centralIp);
-                resolve({ success: true, ip: ipPc, uri, aviso });
-            }
-            catch (e) {
-                resolve({ success: false, ip: ipPc, uri, error: e && e.message ? e.message : 'error compartiendo' });
-            }
-        }))();
-    }));
+            }))();
+        });
+    });
 }
 /**
  * Best-effort: restringe el acceso al CUPS local (puerto 631) SOLO a la IP del central via
