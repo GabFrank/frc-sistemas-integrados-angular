@@ -508,22 +508,65 @@ function detectarIpsLocales() {
     return { mejor: preferida ? preferida.ip : null, todas, usuario };
 }
 /**
+ * Devuelve la IP de origen que ESTA PC usa para alcanzar `destIp` (equivalente a `ip route get`).
+ * Un socket UDP con `connect` no envía paquetes: solo fija la ruta y expone la IP local que el
+ * kernel elige. Así la URI IPP siempre usa la interfaz que realmente rutea al servidor destino
+ * (ZeroTier en cualquier subred, Tailscale 100.x, LAN, o varias NICs), en vez de adivinar por
+ * prefijo `172.25.`. Devuelve null si no hay destino o no se pudo resolver.
+ */
+function ipLocalHaciaDestino(destIp) {
+    return new Promise((resolve) => {
+        if (!destIp) {
+            resolve(null);
+            return;
+        }
+        let done = false;
+        const dgram = require('dgram');
+        const socket = dgram.createSocket('udp4');
+        const finish = (ip) => {
+            if (done)
+                return;
+            done = true;
+            try { socket.close(); } catch (_a) { /* noop */ }
+            resolve(ip);
+        };
+        socket.on('error', () => finish(null));
+        try {
+            // Puerto 9 (discard): connect no transmite, solo resuelve la ruta de origen.
+            socket.connect(9, destIp, () => {
+                try {
+                    const dir = socket.address();
+                    finish(dir && dir.address ? dir.address : null);
+                }
+                catch (_b) {
+                    finish(null);
+                }
+            });
+        }
+        catch (_c) {
+            finish(null);
+        }
+        setTimeout(() => finish(null), 1500);
+    });
+}
+/**
  * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
  * servidor central. Habilita el compartir en cupsd (cupsctl --share-printers --remote-any) y
  * marca la cola como compartida. Requiere permisos de administracion de CUPS (grupo lpadmin).
  * Solo Linux (CUPS); en otras plataformas devuelve la IP para uso manual.
  */
 function compartirImpresoraLocal(queue, password, centralIp) {
-    return new Promise((resolve) => {
-        const { mejor } = detectarIpsLocales();
+    return ipLocalHaciaDestino(centralIp).then((ipPc) => new Promise((resolve) => {
+        // ipPc se DERIVA de la ruta real hacia el centralIp (nunca se adivina por prefijo). Si es
+        // null (sin destino o no resuelto), el frontend pedirá la IP manual antes de instalar.
         const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
-        const uri = mejor && colaSegura ? `ipp://${mejor}:631/printers/${colaSegura}` : null;
+        const uri = ipPc && colaSegura ? `ipp://${ipPc}:631/printers/${colaSegura}` : null;
         if (process.platform !== 'linux') {
-            resolve({ success: false, ip: mejor, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
+            resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
             return;
         }
         if (!colaSegura) {
-            resolve({ success: false, ip: mejor, uri: null, error: 'Nombre de cola invalido' });
+            resolve({ success: false, ip: ipPc, uri: null, error: 'Nombre de cola invalido' });
             return;
         }
         // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}.
@@ -554,7 +597,7 @@ function compartirImpresoraLocal(queue, password, centralIp) {
                     if (c1.code !== 0) {
                         const msg = (c1.stderr || '').trim() || 'No se pudo habilitar el compartir en CUPS';
                         console.error('[CUPS] cupsctl falló:', msg);
-                        resolve({ success: false, ip: mejor, uri, error: msg });
+                        resolve({ success: false, ip: ipPc, uri, error: msg });
                         return;
                     }
                     yield espera(1000); // cupsd puede reiniciarse tras el cambio de config
@@ -574,19 +617,19 @@ function compartirImpresoraLocal(queue, password, centralIp) {
                 if (ultimo.code !== 0) {
                     const msg = (ultimo.stderr || '').trim() || 'lpadmin no pudo compartir la cola';
                     console.error('[CUPS] lpadmin falló:', msg);
-                    resolve({ success: false, ip: mejor, uri, error: msg });
+                    resolve({ success: false, ip: ipPc, uri, error: msg });
                     return;
                 }
                 // 3) Hardening (best-effort, no bloqueante): abrir el puerto 631 SOLO para el central.
                 // Con VPN, restringe quién puede alcanzar tu CUPS. Si no hay firewalld o falla, seguimos.
                 const aviso = yield restringirCupsAlCentral(run, centralIp);
-                resolve({ success: true, ip: mejor, uri, aviso });
+                resolve({ success: true, ip: ipPc, uri, aviso });
             }
             catch (e) {
-                resolve({ success: false, ip: mejor, uri, error: e && e.message ? e.message : 'error compartiendo' });
+                resolve({ success: false, ip: ipPc, uri, error: e && e.message ? e.message : 'error compartiendo' });
             }
         }))();
-    });
+    }));
 }
 /**
  * Best-effort: restringe el acceso al CUPS local (puerto 631) SOLO a la IP del central via
@@ -612,6 +655,93 @@ function restringirCupsAlCentral(run, centralIp) {
         }
         yield run(['firewall-cmd', '--reload'], true);
         return undefined; // aplicado OK
+    });
+}
+/**
+ * Instala la impresora en el CUPS/spooler LOCAL de esta PC (NO en el servidor). Es la vía por
+ * defecto: cada PC instala su propia impresora sin depender del backend; luego opcionalmente la
+ * comparte al filial/central por IP. Los datos de la impresora se siguen guardando en la BD (que
+ * replica a las filiales) por separado.
+ *  - Linux: `lpadmin -p <cola> -E -v <uri> -m raw` (térmica ESC/POS crudo) o `-m everywhere`
+ *    (driverless IPP). Requiere permisos de admin de CUPS: se intenta sin sudo y, si CUPS lo
+ *    rechaza, se devuelve needsPassword para reintentar con la contraseña.
+ *  - Windows: `Add-PrinterPort` (TCP/IP raw) + `Add-Printer` (driver "Generic / Text Only").
+ */
+function instalarImpresoraLocal(cola, uri, raw, password) {
+    return new Promise((resolve) => {
+        const colaSegura = (cola || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+        if (!colaSegura) {
+            resolve({ success: false, error: 'Nombre de cola inválido' });
+            return;
+        }
+        if (!uri) {
+            resolve({ success: false, error: 'URI de impresora vacía' });
+            return;
+        }
+        // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}. Igual que compartir.
+        const run = (args, useSudo) => new Promise((res) => {
+            const proc = useSudo
+                ? (0, child_process_1.spawn)('sudo', ['-S', '-k', '-p', '', ...args])
+                : (0, child_process_1.spawn)(args[0], args.slice(1));
+            let stdout = '';
+            let stderr = '';
+            proc.stdout.on('data', (d) => { stdout += d.toString(); });
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('error', (err) => res({ code: 1, stdout, stderr: stderr || err.message }));
+            proc.on('close', (code) => res({ code: code == null ? 1 : code, stdout, stderr }));
+            if (useSudo && password) {
+                proc.stdin.write(password + '\n');
+            }
+            proc.stdin.end();
+        });
+        (() => __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (process.platform === 'win32') {
+                    // Windows: crea el puerto TCP/IP raw y agrega la impresora con driver de texto genérico.
+                    const m = (uri || '').match(/^(socket|ipp|ipps|lpd):\/\/([^:/]+)(?::(\d+))?/i);
+                    const host = m ? m[2] : null;
+                    const puerto = m && m[3] ? m[3] : '9100';
+                    if (!host) {
+                        resolve({ success: false, error: 'URI no soportada en Windows: ' + uri });
+                        return;
+                    }
+                    const portName = ('FRC_' + host + '_' + puerto).replace(/[^A-Za-z0-9_]/g, '');
+                    const ps = `if (-not (Get-PrinterPort -Name '${portName}' -ErrorAction SilentlyContinue)) { `
+                        + `Add-PrinterPort -Name '${portName}' -PrinterHostAddress '${host}' -PortNumber ${puerto} }; `
+                        + `Add-Printer -Name '${colaSegura}' -DriverName 'Generic / Text Only' -PortName '${portName}'`;
+                    const r = yield run(['powershell', '-NoProfile', '-NonInteractive', '-Command', ps], false);
+                    if (r.code !== 0) {
+                        resolve({ success: false, cola: colaSegura, error: (r.stderr || '').trim() || 'Add-Printer falló' });
+                        return;
+                    }
+                    resolve({ success: true, cola: colaSegura, uri });
+                    return;
+                }
+                if (process.platform !== 'linux') {
+                    resolve({ success: false, error: 'Instalación local solo disponible en Linux y Windows' });
+                    return;
+                }
+                // Linux/CUPS. raw para térmicas (ESC/POS); everywhere solo aplica a URIs IPP.
+                const modelo = raw ? 'raw' : (/^ipps?:/i.test(uri) ? 'everywhere' : 'raw');
+                const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo];
+                const r = yield run(args, !!password);
+                if (r.code !== 0) {
+                    const stderr = (r.stderr || '').trim();
+                    const esPermisos = /forbid|denied|permission|not allowed|unauthor|password|contrase/i.test(stderr);
+                    if (esPermisos && !password) {
+                        // Sin sudo no alcanza: pedimos la contraseña de admin y reintentamos.
+                        resolve({ success: false, cola: colaSegura, needsPassword: true, error: stderr });
+                        return;
+                    }
+                    resolve({ success: false, cola: colaSegura, error: stderr || 'lpadmin no pudo instalar la cola' });
+                    return;
+                }
+                resolve({ success: true, cola: colaSegura, uri });
+            }
+            catch (e) {
+                resolve({ success: false, cola: colaSegura, error: e && e.message ? e.message : 'error instalando' });
+            }
+        }))();
     });
 }
 /** Etiqueta de protocolo legible a partir de un puerto de impresion de red. */
@@ -827,6 +957,16 @@ function registerPrinterIpcHandlers() {
         const password = typeof arg === 'string' ? undefined : arg === null || arg === void 0 ? void 0 : arg.password;
         const centralIp = typeof arg === 'string' ? undefined : arg === null || arg === void 0 ? void 0 : arg.centralIp;
         return compartirImpresoraLocal(queue, password, centralIp);
+    }));
+    // Instala la impresora en el CUPS/spooler LOCAL de esta PC (sin pasar por el servidor).
+    // arg: { cola, uri, raw, password }. Si CUPS pide permisos devuelve { needsPassword: true }.
+    ipcMain.handle('install-local-printer', (_event, arg) => __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const cola = (_a = arg === null || arg === void 0 ? void 0 : arg.cola) !== null && _a !== void 0 ? _a : arg === null || arg === void 0 ? void 0 : arg.queue;
+        const uri = arg === null || arg === void 0 ? void 0 : arg.uri;
+        const raw = (arg === null || arg === void 0 ? void 0 : arg.raw) !== false; // por defecto raw (térmica ESC/POS)
+        const password = arg === null || arg === void 0 ? void 0 : arg.password;
+        return instalarImpresoraLocal(cola, uri, raw, password);
     }));
     ipcMain.handle('get-system-printers', () => __awaiter(this, void 0, void 0, function* () {
         try {

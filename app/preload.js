@@ -43,7 +43,8 @@ contextBridge.exposeInMainWorld(
         'detect-network-printers',
         'print-with-pos-printer',
         'get-local-ip',
-        'share-local-printer'
+        'share-local-printer',
+        'install-local-printer'
       ];
 
       if (validChannels.includes(channel)) {

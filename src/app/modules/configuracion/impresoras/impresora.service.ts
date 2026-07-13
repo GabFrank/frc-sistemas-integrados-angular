@@ -100,19 +100,28 @@ export class ImpresoraService {
   }
 
   /**
-   * Instala una cola CUPS en el servidor central apuntado por IP (no la config de Apollo).
-   * Manda la mutation por HTTP directo a http://<centralIp>:<centralPort>/graphql con el token.
-   * Permite elegir a qué central instalar (ej. el central real 172.25.1.200) desde el desktop.
+   * Instala una cola CUPS en un servidor apuntado por IP (no la config de Apollo). Manda la
+   * mutation por HTTP directo a http://<servidorIp>:<servidorPort>/graphql con el token del
+   * servidor destino. Se usa al COMPARTIR la impresora local: el servidor (central o filial)
+   * instala una cola que apunta a la URI IPP de esta PC.
+   *
+   * El token depende del destino (mismo criterio que graphql-connection.service):
+   *   - central → token_central (fallback token)
+   *   - filial  → token (el login local/filial)
+   * Así se autentica bien según a qué servidor se comparte.
    */
-  instalarEnCentralPorIp(
+  instalarEnServidorPorIp(
     nombreCola: string,
     uri: string,
     raw: boolean,
-    centralIp: string,
-    centralPort: string | number,
+    servidorIp: string,
+    servidorPort: string | number,
+    esCentral: boolean,
   ): Observable<boolean> {
-    const url = `http://${centralIp}:${centralPort}/graphql`;
-    const token = localStorage.getItem('token_central') || localStorage.getItem('token') || '';
+    const url = `http://${servidorIp}:${servidorPort}/graphql`;
+    const token = (esCentral
+      ? localStorage.getItem('token_central') || localStorage.getItem('token')
+      : localStorage.getItem('token')) || '';
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       Authorization: `Token ${token}`,
@@ -128,7 +137,7 @@ export class ImpresoraService {
         // Si el central respondió con errores GraphQL (ej. versión vieja sin la mutation, o
         // sin permisos) los propagamos para mostrar el motivo real, no un "false" opaco.
         if (res?.errors?.length) {
-          throw new Error(res.errors[0]?.message || 'Error GraphQL en el central');
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en el servidor');
         }
         return res?.data?.instalarImpresoraCups === true;
       }),

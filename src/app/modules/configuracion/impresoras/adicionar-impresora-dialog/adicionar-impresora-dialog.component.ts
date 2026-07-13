@@ -262,12 +262,14 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   }
 
   /**
-   * Comparte esta impresora local (conectada a esta PC) al SERVIDOR CENTRAL por la IP de esta PC:
+   * Comparte esta impresora local (conectada a esta PC) a un SERVIDOR (central o filial) por la IP
+   * de esta PC:
    * 1) Electron habilita el compartir en el CUPS local y devuelve la URI IPP (ipp://<mi-ip>:631/printers/<cola>).
-   * 2) El central instala una cola CUPS apuntando a esa URI (RAW si es térmica) → alcanza la impresora por la red.
-   * 3) Autocompleta el formulario para registrar la impresora en el host servidor central (sucursalId=0).
+   * 2) El servidor destino instala una cola CUPS apuntando a esa URI (RAW si es térmica) → alcanza
+   *    la impresora por la red. El token se elige según el destino (central → token_central).
+   * 3) Autocompleta el formulario para registrar la impresora en el host destino.
    */
-  compartirAlCentral(d: DetectadaVista): void {
+  compartirAServidor(d: DetectadaVista): void {
     const colaLocal = d.ref?.name;
     if (!colaLocal) {
       this.notificacion.notification$.next({
@@ -277,18 +279,24 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       });
       return;
     }
-    // Pedimos la contraseña de admin de esta PC (sudo) + la IP del central donde instalar la cola.
+    // Pedimos la contraseña de admin de esta PC (sudo) + el servidor destino (central o filial).
     const config = this.configuracionService.getConfig();
     this.dialog
       .open(CredencialesCupsDialogComponent, {
         autoFocus: true,
         restoreFocus: true,
         data: {
+          modo: 'compartir',
           usuario: this.miUsuario,
-          ip: this.miIp,
+          // Vacío a propósito: la IP de esta PC se DERIVA de la ruta hacia el servidor destino
+          // (no se adivina). Este campo es override manual opcional.
+          ip: '',
           cola: colaLocal,
           centralIp: config?.serverCentralIp ?? '',
           centralPort: config?.serverCentralPort ?? '8081',
+          filialIp: config?.serverIp ?? '',
+          filialPort: config?.serverPort ?? '8082',
+          destino: 'CENTRAL',
         },
       })
       .afterClosed()
@@ -297,8 +305,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
         if (cred == null) {
           return; // canceló
         }
-        const centralPort = cred.centralPort || config?.serverCentralPort || '8081';
-        this.ejecutarCompartir(d, colaLocal, cred, centralPort);
+        this.ejecutarCompartir(d, colaLocal, cred);
       });
   }
 
@@ -306,11 +313,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     d: DetectadaVista,
     colaLocal: string,
     cred: CredencialesCupsResult,
-    centralPort: string,
   ): void {
-    if (!cred.centralIp) {
+    if (!cred.servidorIp) {
       this.notificacion.notification$.next({
-        texto: 'Ingresá la IP del servidor central.',
+        texto: 'Ingresá la IP del servidor destino.',
         color: NotificacionColor.warn,
         duracion: 5,
       });
@@ -318,7 +324,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     }
     this.compartiendo = true;
     this.cdr.markForCheck();
-    this.electronService.shareLocalPrinter(colaLocal, cred.password, cred.centralIp)
+    this.electronService.shareLocalPrinter(colaLocal, cred.password, cred.servidorIp)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -342,11 +348,24 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
               duracion: 7,
             });
           }
-          // Armamos la URI con la IP de esta PC elegida (puede diferir de la auto-detectada).
+          // IP de esta PC que el servidor puede rutear: prioridad al override manual que el usuario
+          // escribió; si no, la DERIVADA de la ruta hacia el servidor destino (res.ip). Nunca se
+          // adivina por prefijo: si no hay ninguna, se aborta pidiendo la IP a mano.
           const cola = this.sanearCola(d.ref?.name || d.nombre);
-          const pcIp = cred.pcIp || res.ip || this.miIp;
+          const pcIp = (cred.pcIp || res.ip || '').trim();
+          if (!pcIp) {
+            this.compartiendo = false;
+            this.notificacion.notification$.next({
+              texto: 'No se pudo determinar la IP de esta PC hacia el servidor ('
+                + (cred.servidorIp || 's/IP') + '). Ingresá la IP de esta PC manualmente en el diálogo.',
+              color: NotificacionColor.warn,
+              duracion: 9,
+            });
+            this.cdr.markForCheck();
+            return;
+          }
           const uri = `ipp://${pcIp}:631/printers/${cola}`;
-          this.instalarEnCentralPorIp(d, cola, uri, cred.centralIp, centralPort);
+          this.instalarEnServidorPorIp(d, cola, uri, cred);
         },
         error: () => {
           this.compartiendo = false;
@@ -355,38 +374,51 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       });
   }
 
-  /** Instala en el servidor central (por IP) una cola CUPS que apunta a la URI IPP de esta PC. */
-  private instalarEnCentralPorIp(
+  /** Instala en el servidor destino (por IP) una cola CUPS que apunta a la URI IPP de esta PC. */
+  private instalarEnServidorPorIp(
     d: DetectadaVista,
     cola: string,
     uri: string,
-    centralIp: string,
-    centralPort: string,
+    cred: CredencialesCupsResult,
   ): void {
     const esTermica = d.esTermica;
-    this.impresoraService.instalarEnCentralPorIp(cola, uri, esTermica, centralIp, centralPort)
+    const servidorIp = cred.servidorIp;
+    const servidorPort = cred.servidorPort || (cred.esCentral ? '8081' : '8082');
+    const destino = cred.esCentral ? 'central' : 'filial';
+    this.impresoraService
+      .instalarEnServidorPorIp(cola, uri, esTermica, servidorIp, servidorPort, cred.esCentral)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (ok) => {
           this.compartiendo = false;
           if (ok) {
             this.notificacion.notification$.next({
-              texto: 'Impresora compartida e instalada en el central (' + centralIp + '): ' + cola,
+              texto: 'Impresora compartida e instalada en el ' + destino + ' (' + servidorIp + '): ' + cola,
               color: NotificacionColor.success,
               duracion: 4,
             });
             if (!this.nombreControl.value) {
               this.nombreControl.setValue(d.nombre);
             }
-            this.sucursalControl.setValue(HOST_SERVIDOR_CENTRAL_ID);
+            // Routing: la impresora "vive" en el host que instaló la cola. Para el central es la
+            // sucursal 0; para una filial no conocemos su sucursalId acá, así que lo elige el usuario.
+            if (cred.esCentral) {
+              this.sucursalControl.setValue(HOST_SERVIDOR_CENTRAL_ID);
+            } else {
+              this.notificacion.notification$.next({
+                texto: 'Elegí la sucursal de la filial destino antes de guardar (para el ruteo de impresión).',
+                color: NotificacionColor.warn,
+                duracion: 7,
+              });
+            }
             this.conexionControl.setValue('CUPS');
             this.colaCupsControl.setValue(cola);
             this.tipoControl.setValue(esTermica ? 'TERMICA' : 'NORMAL');
             this.perfilPapelControl.setValue(esTermica ? 'MM_58' : 'A4');
           } else {
             this.notificacion.notification$.next({
-              texto: 'Se compartió la cola local pero el central (' + centralIp + ') no pudo instalarla. '
-                + 'Verificá permisos de CUPS del backend central y que alcance esta PC.',
+              texto: 'Se compartió la cola local pero el ' + destino + ' (' + servidorIp + ') no pudo instalarla. '
+                + 'Verificá permisos de CUPS del backend y que alcance esta PC.',
               color: NotificacionColor.warn,
               duracion: 8,
             });
@@ -396,10 +428,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
         error: (e) => {
           this.compartiendo = false;
           const detalle = e?.message || (e?.status === 0
-            ? 'no se pudo contactar al central (' + centralIp + ':' + centralPort + ')'
+            ? 'no se pudo contactar al ' + destino + ' (' + servidorIp + ':' + servidorPort + ')'
             : 'error desconocido');
           this.notificacion.notification$.next({
-            texto: 'El central (' + centralIp + ') rechazó la instalación: ' + detalle,
+            texto: 'El ' + destino + ' (' + servidorIp + ') rechazó la instalación: ' + detalle,
             color: NotificacionColor.warn,
             duracion: 10,
           });
@@ -462,34 +494,123 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  /** Instala el dispositivo como cola CUPS (RAW si parece térmica) y lo deja listo. */
+  /**
+   * Instala el dispositivo como cola CUPS (RAW si parece térmica). Por defecto lo instala en ESTA
+   * PC vía Electron (sin pasar por el servidor). Si el origen de búsqueda es el CENTRAL (el
+   * dispositivo está conectado al host central), lo instala el backend central.
+   */
   instalarDispositivo(v: DispositivoVista): void {
     const d = v.ref;
     const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
     const cola = this.sanearCola(d.nombre || d.uri);
     const esTermica = REGEX_TERMICA.test(`${d.nombre || ''} ${d.descripcion || ''}`);
+    const autocompletar = (colaFinal: string) => {
+      if (!this.nombreControl.value) {
+        this.nombreControl.setValue(d.nombre || colaFinal);
+      }
+      this.colaCupsControl.setValue(colaFinal);
+      this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
+      this.tipoControl.setValue(esTermica ? 'TERMICA' : 'NORMAL');
+      this.perfilPapelControl.setValue(esTermica ? 'MM_58' : 'A4');
+      this.detectarImpresorasLocales();
+      this.detectarParaInstalar();
+    };
+    if (enCentral) {
+      // El dispositivo está conectado al host central → lo instala el backend central.
+      this.instalarEnBackend(cola, d.uri, esTermica, true, 'Impresora instalada: ' + cola, autocompletar);
+      return;
+    }
+    // Por defecto: instala en esta PC vía Electron (sin pasar por el servidor).
+    this.instalarEnEstaPc(cola, d.uri, esTermica, null, autocompletar);
+  }
+
+  /**
+   * Instala la impresora en ESTA PC vía Electron (lpadmin en Linux / Add-Printer en Windows), sin
+   * pasar por el servidor. Si CUPS necesita permisos de admin, pide la contraseña de sudo y
+   * reintenta. onOk recibe el nombre de cola realmente creado.
+   */
+  private instalarEnEstaPc(
+    cola: string,
+    uri: string,
+    raw: boolean,
+    password: string | null,
+    onOk: (cola: string) => void,
+  ): void {
     this.instalando = true;
     this.cdr.markForCheck();
-    this.impresoraService.instalar(cola, d.uri, esTermica, enCentral)
+    this.electronService.installLocalPrinter(cola, uri, raw, password ?? undefined)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.instalando = false;
+            this.notificacion.notification$.next({
+              texto: 'Impresora instalada en esta PC: ' + (res.cola || cola),
+              color: NotificacionColor.success,
+              duracion: 3,
+            });
+            onOk(res.cola || cola);
+            this.cdr.markForCheck();
+            return;
+          }
+          // Linux: CUPS necesita permisos de admin → pedimos la contraseña de sudo y reintentamos.
+          if (res?.needsPassword && !password) {
+            this.instalando = false;
+            this.cdr.markForCheck();
+            this.dialog
+              .open(CredencialesCupsDialogComponent, {
+                autoFocus: true,
+                restoreFocus: true,
+                data: { modo: 'instalar-local', usuario: this.miUsuario, cola },
+              })
+              .afterClosed()
+              .pipe(untilDestroyed(this))
+              .subscribe((cred: CredencialesCupsResult | undefined) => {
+                if (cred == null) {
+                  return; // canceló
+                }
+                this.instalarEnEstaPc(cola, uri, raw, cred.password, onOk);
+              });
+            return;
+          }
+          this.instalando = false;
+          this.notificacion.notification$.next({
+            texto: 'No se pudo instalar en esta PC: ' + (res?.error || 'verificá permisos de CUPS'),
+            color: NotificacionColor.warn,
+            duracion: 6,
+          });
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.instalando = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /** Instala la cola en el backend (central/filial) vía GraphQL — solo para el host del servidor. */
+  private instalarEnBackend(
+    cola: string,
+    uri: string,
+    raw: boolean,
+    enCentral: boolean,
+    textoOk: string,
+    onOk: (cola: string) => void,
+  ): void {
+    this.instalando = true;
+    this.cdr.markForCheck();
+    this.impresoraService.instalar(cola, uri, raw, enCentral)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (ok) => {
           this.instalando = false;
           if (ok) {
             this.notificacion.notification$.next({
-              texto: 'Impresora instalada: ' + cola,
+              texto: textoOk,
               color: NotificacionColor.success,
               duracion: 3,
             });
-            if (!this.nombreControl.value) {
-              this.nombreControl.setValue(d.nombre || cola);
-            }
-            this.colaCupsControl.setValue(cola);
-            this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
-            this.tipoControl.setValue(esTermica ? 'TERMICA' : 'NORMAL');
-            this.perfilPapelControl.setValue(esTermica ? 'MM_58' : 'A4');
-            this.detectarImpresorasLocales();
-            this.detectarParaInstalar();
+            onOk(cola);
           } else {
             this.notificacion.notification$.next({
               texto: 'No se pudo instalar (verificá permisos de CUPS del backend).',
@@ -568,41 +689,23 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
     const cola = this.sanearCola(v.nombre || v.ref.ip);
     const { uri, raw } = this.resolverInstalacionRed(v);
-    this.instalando = true;
-    this.cdr.markForCheck();
-    this.impresoraService.instalar(cola, uri, raw, enCentral)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (ok) => {
-          this.instalando = false;
-          if (ok) {
-            this.notificacion.notification$.next({
-              texto: 'Impresora de red instalada: ' + cola,
-              color: NotificacionColor.success,
-              duracion: 3,
-            });
-            if (!this.nombreControl.value) {
-              this.nombreControl.setValue(v.nombre || cola);
-            }
-            this.colaCupsControl.setValue(cola);
-            this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
-            this.tipoControl.setValue(v.esTermica ? 'TERMICA' : 'NORMAL');
-            this.perfilPapelControl.setValue(v.esTermica ? 'MM_58' : 'A4');
-            this.detectarImpresorasLocales();
-          } else {
-            this.notificacion.notification$.next({
-              texto: 'No se pudo instalar (verificá permisos de CUPS del backend).',
-              color: NotificacionColor.warn,
-              duracion: 5,
-            });
-          }
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.instalando = false;
-          this.cdr.markForCheck();
-        },
-      });
+    const autocompletar = (colaFinal: string) => {
+      if (!this.nombreControl.value) {
+        this.nombreControl.setValue(v.nombre || colaFinal);
+      }
+      this.colaCupsControl.setValue(colaFinal);
+      this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
+      this.tipoControl.setValue(v.esTermica ? 'TERMICA' : 'NORMAL');
+      this.perfilPapelControl.setValue(v.esTermica ? 'MM_58' : 'A4');
+      this.detectarImpresorasLocales();
+    };
+    if (enCentral) {
+      // Instala la cola de red en el host central (el central nunca tiene USB, imprime por red).
+      this.instalarEnBackend(cola, uri, raw, true, 'Impresora de red instalada: ' + cola, autocompletar);
+      return;
+    }
+    // Por defecto: instala en esta PC vía Electron (sin pasar por el servidor).
+    this.instalarEnEstaPc(cola, uri, raw, null, autocompletar);
   }
 
   /**

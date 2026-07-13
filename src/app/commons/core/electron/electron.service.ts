@@ -40,6 +40,15 @@ export interface ShareResult {
   aviso?: string;
 }
 
+/** Resultado de instalar la impresora en el CUPS/spooler local de esta PC (sin pasar por el servidor). */
+export interface InstallResult {
+  success: boolean;
+  cola?: string;
+  uri?: string;
+  needsPassword?: boolean; // Linux: CUPS necesita permisos de admin → la UI reintenta con contraseña
+  error?: string;
+}
+
 /** Impresora de red descubierta por mDNS/DNS-SD (Bonjour) desde el proceso Electron. */
 export interface NetworkPrinter {
   nombre: string;
@@ -216,6 +225,15 @@ export class ElectronService {
    */
   shareLocalPrinter(queue: string, password?: string, centralIp?: string): Observable<ShareResult> {
     return from(ipcRenderer.invoke('share-local-printer', { queue, password, centralIp })) as Observable<ShareResult>;
+  }
+
+  /**
+   * Instala la impresora en el CUPS/spooler LOCAL de esta PC (sin pasar por el servidor). Linux:
+   * lpadmin (raw térmica / everywhere). Windows: Add-Printer. Si CUPS necesita permisos de admin
+   * devuelve { needsPassword: true } para reintentar con la contraseña.
+   */
+  installLocalPrinter(cola: string, uri: string, raw = true, password?: string): Observable<InstallResult> {
+    return from(ipcRenderer.invoke('install-local-printer', { cola, uri, raw, password })) as Observable<InstallResult>;
   }
 
   /**
