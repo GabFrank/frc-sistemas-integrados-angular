@@ -952,6 +952,133 @@ function escanearImpresorasRed(connectTimeoutMs, locales) {
         return mapa;
     });
 }
+/**
+ * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin backend.
+ *   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+ *   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin. `lp` habla
+ *     directo con cupsd (no depende de PrintServiceLookup) y `-o raw` garantiza passthrough.
+ * Devuelve { success, error? }. No lanza: cualquier fallo vuelve como { success:false, error }.
+ */
+function imprimirLocalRaw(arg) {
+    return new Promise((resolve) => {
+        const conexion = String((arg === null || arg === void 0 ? void 0 : arg.conexion) || '').toUpperCase();
+        const payloadB64 = arg === null || arg === void 0 ? void 0 : arg.payloadBase64;
+        if (!payloadB64) {
+            resolve({ success: false, error: 'Payload de impresión vacío' });
+            return;
+        }
+        let buffer;
+        try {
+            buffer = buffer_1.Buffer.from(payloadB64, 'base64');
+        }
+        catch (_a) {
+            resolve({ success: false, error: 'Payload base64 inválido' });
+            return;
+        }
+        if (conexion === 'RED') {
+            const net = require('net');
+            const ip = arg === null || arg === void 0 ? void 0 : arg.ip;
+            const puerto = Number(arg === null || arg === void 0 ? void 0 : arg.puerto) || 9100;
+            if (!ip) {
+                resolve({ success: false, error: 'IP de la impresora de red vacía' });
+                return;
+            }
+            const socket = new net.Socket();
+            let terminado = false;
+            const finish = (r) => {
+                if (terminado)
+                    return;
+                terminado = true;
+                try {
+                    socket.destroy();
+                }
+                catch ( /* noop */_a) { /* noop */ }
+                resolve(r);
+            };
+            socket.setTimeout(8000);
+            socket.on('error', (e) => finish({ success: false, error: e && e.message ? e.message : 'error de socket' }));
+            socket.on('timeout', () => finish({ success: false, error: 'timeout conectando a ' + ip + ':' + puerto }));
+            socket.connect(puerto, ip, () => {
+                socket.write(buffer, () => {
+                    socket.end();
+                    finish({ success: true });
+                });
+            });
+            return;
+        }
+        // CUPS / USB / BLUETOOTH: cola local via `lp -d <cola> -o raw`.
+        const cola = String((arg === null || arg === void 0 ? void 0 : arg.cola) || '').trim();
+        if (!cola) {
+            resolve({ success: false, error: 'Cola CUPS vacía' });
+            return;
+        }
+        if (process.platform === 'win32') {
+            resolve({ success: false, error: 'Impresión CUPS local aún no soportada en Windows' });
+            return;
+        }
+        try {
+            const proc = (0, child_process_1.spawn)('lp', ['-d', cola, '-o', 'raw']);
+            let stderr = '';
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('error', (e) => resolve({ success: false, error: e && e.message ? e.message : 'no se pudo ejecutar lp' }));
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    resolve({ success: true });
+                }
+                else {
+                    resolve({ success: false, error: stderr.trim() || ('lp terminó con código ' + code) });
+                }
+            });
+            proc.stdin.write(buffer);
+            proc.stdin.end();
+        }
+        catch (e) {
+            resolve({ success: false, error: e && e.message ? e.message : 'error ejecutando lp' });
+        }
+    });
+}
+/** Columnas por defecto según el perfil de papel (fuente A). Replica PerfilPapelHelper del backend. */
+function columnasPorPerfil(perfil) {
+    switch (String(perfil || '').toUpperCase()) {
+        case 'MM_48':
+        case 'MM_58': return 32;
+        case 'MM_72': return 42;
+        case 'MM_80': return 48;
+        default: return 32; // A4 / CARTA / CUSTOM / desconocido
+    }
+}
+/**
+ * Genera el ESC/POS del ticket de PRUEBA en el frontend (sin backend): título centrado en negrita,
+ * separadores y datos de la impresora. Se imprime local con `print-local`.
+ */
+function construirTicketPruebaEscPos(meta) {
+    const cols = Number(meta === null || meta === void 0 ? void 0 : meta.columnas) > 0 ? Number(meta.columnas) : columnasPorPerfil(meta === null || meta === void 0 ? void 0 : meta.perfil);
+    const ESC = 0x1b;
+    const GS = 0x1d;
+    const LF = 0x0a;
+    const partes = [];
+    const ctrl = (arr) => partes.push(buffer_1.Buffer.from(arr));
+    const linea = (s) => partes.push(buffer_1.Buffer.from(s + '\n', 'latin1'));
+    const sep = '-'.repeat(cols);
+    ctrl([ESC, 0x40]); // init
+    ctrl([ESC, 0x61, 0x01]); // centrar
+    ctrl([ESC, 0x45, 0x01]); // negrita on
+    linea('PRUEBA DE IMPRESION');
+    ctrl([ESC, 0x45, 0x00]); // negrita off
+    ctrl([ESC, 0x61, 0x00]); // izquierda
+    linea(sep);
+    linea('Impresora: ' + ((meta === null || meta === void 0 ? void 0 : meta.nombre) || ''));
+    if (meta === null || meta === void 0 ? void 0 : meta.sucursal) {
+        linea('Sucursal: ' + meta.sucursal);
+    }
+    linea('Conexion: ' + ((meta === null || meta === void 0 ? void 0 : meta.conexion) || ''));
+    linea('Columnas: ' + cols);
+    linea('Perfil: ' + ((meta === null || meta === void 0 ? void 0 : meta.perfil) || ''));
+    linea(sep);
+    ctrl([LF, LF, LF]); // feed
+    ctrl([GS, 0x56, 0x00]); // corte total
+    return buffer_1.Buffer.concat(partes);
+}
 function registerPrinterIpcHandlers() {
     // IP LAN de esta maquina (para compartir la impresora local al central por IP).
     ipcMain.handle('get-local-ip', () => __awaiter(this, void 0, void 0, function* () {
@@ -974,6 +1101,19 @@ function registerPrinterIpcHandlers() {
         const raw = (arg === null || arg === void 0 ? void 0 : arg.raw) !== false; // por defecto raw (térmica ESC/POS)
         const password = arg === null || arg === void 0 ? void 0 : arg.password;
         return instalarImpresoraLocal(cola, uri, raw, password);
+    }));
+    // Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, SIN pasar por ningún
+    // backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
+    // alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente, así que imprime acá.
+    //   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+    //   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin.
+    // arg: { conexion, cola, ip, puerto, payloadBase64 } → { success, error? }
+    ipcMain.handle('print-local', (_event, arg) => __awaiter(this, void 0, void 0, function* () { return imprimirLocalRaw(arg); }));
+    // Imprime el ticket de PRUEBA generado 100% en el frontend (ESC/POS), sin ningún backend.
+    // arg: { conexion, cola, ip, puerto, nombre, sucursal, columnas, perfil } → { success, error? }
+    ipcMain.handle('print-test-local', (_event, arg) => __awaiter(this, void 0, void 0, function* () {
+        const payload = construirTicketPruebaEscPos(arg);
+        return imprimirLocalRaw(Object.assign(Object.assign({}, arg), { payloadBase64: payload.toString('base64') }));
     }));
     ipcMain.handle('get-system-printers', () => __awaiter(this, void 0, void 0, function* () {
         try {

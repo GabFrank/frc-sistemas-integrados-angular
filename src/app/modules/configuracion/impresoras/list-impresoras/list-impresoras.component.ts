@@ -24,6 +24,7 @@ import {
 } from '../impresora.model';
 import { ImpresoraService } from '../impresora.service';
 import { AdicionarImpresoraDialogComponent } from '../adicionar-impresora-dialog/adicionar-impresora-dialog.component';
+import { ElectronService } from '../../../../commons/core/electron/electron.service';
 
 interface ImpresoraVista {
   ref: Impresora;
@@ -82,6 +83,7 @@ export class ListImpresorasComponent implements OnInit {
   private matDialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private notificacion = inject(NotificacionSnackbarService);
+  private electronService = inject(ElectronService);
 
   @ViewChild(CdkVirtualScrollViewport) viewport: CdkVirtualScrollViewport;
 
@@ -195,23 +197,51 @@ export class ListImpresorasComponent implements OnInit {
   }
 
   probar(impresora: Impresora): void {
-    this.impresoraService.probar(impresora.id)
+    // El ticket de prueba se genera e imprime 100% en el frontend (Electron), SIN ningún backend:
+    // el ESC/POS lo arma Electron con los datos de la impresora y lo manda a la impresora local a
+    // esta PC (RED por socket TCP, CUPS/USB por `lp -d <cola> -o raw`). El backend solo instala
+    // impresoras compartidas; nunca genera ni imprime.
+    if (!this.electronService.isElectron) {
+      this.notificarFallo(impresora, 'la impresión requiere la app de escritorio');
+      return;
+    }
+    this.electronService.printTestLocal({
+      conexion: impresora.conexion,
+      cola: impresora.colaCups,
+      ip: impresora.ip,
+      puerto: impresora.puerto,
+      nombre: impresora.nombre,
+      sucursal: impresora.sucursal?.nombre,
+      columnas: impresora.columnas,
+      perfil: impresora.perfilPapel,
+    })
       .pipe(untilDestroyed(this))
-      .subscribe((ok) => {
-        if (ok) {
-          this.notificacion.notification$.next({
-            texto: 'Ticket de prueba enviado a ' + impresora.nombre,
-            color: NotificacionColor.success,
-            duracion: 3,
-          });
-        } else {
-          this.notificacion.notification$.next({
-            texto: 'No se pudo imprimir en ' + impresora.nombre,
-            color: NotificacionColor.warn,
-            duracion: 4,
-          });
-        }
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.notificarEnviado(impresora);
+          } else {
+            this.notificarFallo(impresora, res?.error);
+          }
+        },
+        error: (e) => this.notificarFallo(impresora, e?.message),
       });
+  }
+
+  private notificarEnviado(impresora: Impresora): void {
+    this.notificacion.notification$.next({
+      texto: 'Ticket de prueba enviado a ' + impresora.nombre,
+      color: NotificacionColor.success,
+      duracion: 3,
+    });
+  }
+
+  private notificarFallo(impresora: Impresora, detalle?: string): void {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo imprimir en ' + impresora.nombre + (detalle ? ': ' + detalle : ''),
+      color: NotificacionColor.warn,
+      duracion: 4,
+    });
   }
 
   private aVista(i: Impresora): ImpresoraVista {
