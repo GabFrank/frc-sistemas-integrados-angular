@@ -98,7 +98,7 @@ import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { DevolucionEstado } from "../../devolucion/devolucion.model";
-import { DevolucionComponent } from "../../devolucion/devolucion.component";
+import { RetiroProveedorComponent } from "../../devolucion/retiro-proveedor/retiro-proveedor.component";
 import {
   DevolucionesPendientesDialogComponent,
   DevolucionesPendientesDialogResult,
@@ -1899,8 +1899,14 @@ export class GestionComprasComponent
           .pipe(takeUntil(this.destroy$))
           .subscribe((res: DevolucionesPendientesDialogResult) => {
             if (res?.accion === "ir") {
+              // Abre el retiro consolidado con el proveedor ya filtrado.
               this.tabService.addTab(
-                new Tab(DevolucionComponent, "Devoluciones", null, null)
+                new Tab(
+                  RetiroProveedorComponent,
+                  "Retiro de proveedor",
+                  new TabData(undefined, this.selectedProveedorComputed),
+                  null
+                )
               );
             }
           });

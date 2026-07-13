@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { Observable, of, Subject } from "rxjs";
 import {
@@ -41,6 +41,10 @@ import { RetirarDevolucionesEnBloqueGQL } from "./graphql/retirarDevolucionesEnB
   styleUrls: ["./retiro-proveedor.component.scss"],
 })
 export class RetiroProveedorComponent implements OnInit, OnDestroy {
+  // Proveedor opcional pasado por Tab (ej. desde el aviso de Compras): se
+  // precarga el consolidado con ese proveedor ya filtrado.
+  @Input() data?: Tab;
+
   private destroy$ = new Subject<void>();
 
   // Autocomplete de proveedor (patrón gestion-compras: ProveedoresSearchByPersonaGQL).
@@ -97,6 +101,17 @@ export class RetiroProveedorComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.resolverSucursalFija();
     this.setupProveedorAutocomplete();
+    this.precargarProveedor();
+  }
+
+  /** Si llegó un proveedor por Tab (ej. aviso de Compras), lo filtra de una. */
+  private precargarProveedor(): void {
+    const proveedor: Proveedor | undefined = this.data?.tabData?.data;
+    if (proveedor?.id != null) {
+      this.proveedorSeleccionado = proveedor;
+      this.proveedorControl.setValue(proveedor, { emitEvent: false });
+      this.cargarConsolidado();
+    }
   }
 
   /** Fija la sucursal cuando el puesto está en una filial (no en el servidor central). */
