@@ -500,9 +500,11 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
    * dispositivo está conectado al host central), lo instala el backend central.
    */
   instalarDispositivo(v: DispositivoVista): void {
+    if (!this.exigirNombreParaInstalar()) { return; }
     const d = v.ref;
     const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
-    const cola = this.sanearCola(d.nombre || d.uri);
+    // La cola CUPS toma el Nombre que definió el usuario, para identificarla igual en CUPS.
+    const cola = this.sanearCola(this.nombreControl.value);
     const esTermica = REGEX_TERMICA.test(`${d.nombre || ''} ${d.descripcion || ''}`);
     const autocompletar = (colaFinal: string) => {
       if (!this.nombreControl.value) {
@@ -686,8 +688,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
    *    `-m everywhere` NO funciona con `socket://`, necesita una URI IPP.
    */
   instalarRed(v: RedVista): void {
+    if (!this.exigirNombreParaInstalar()) { return; }
     const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
-    const cola = this.sanearCola(v.nombre || v.ref.ip);
+    // La cola CUPS toma el Nombre que definió el usuario, para identificarla igual en CUPS.
+    const cola = this.sanearCola(this.nombreControl.value);
     const { uri, raw } = this.resolverInstalacionRed(v);
     const autocompletar = (colaFinal: string) => {
       if (!this.nombreControl.value) {
@@ -724,6 +728,22 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       return { uri: `lpd://${p.ip}/queue`, raw: true };
     }
     return { uri: p.uri, raw: true };
+  }
+
+  /**
+   * Exige que el usuario haya escrito un Nombre antes de instalar: ese Nombre se usa como nombre de
+   * la cola CUPS, para que la impresora se identifique con el mismo nombre en la interfaz de CUPS.
+   */
+  private exigirNombreParaInstalar(): boolean {
+    if (!(this.nombreControl.value || '').trim()) {
+      this.notificacion.notification$.next({
+        texto: 'Escribí primero el Nombre de la impresora: se usará como nombre de la cola en CUPS.',
+        color: NotificacionColor.warn,
+        duracion: 6,
+      });
+      return false;
+    }
+    return true;
   }
 
   private sanearCola(texto: string): string {
