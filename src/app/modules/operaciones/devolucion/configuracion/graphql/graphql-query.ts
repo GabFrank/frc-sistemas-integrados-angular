@@ -14,6 +14,7 @@ const configFields = `
   tipoGastoMerma
   alertaIncluyeRetirado
   alertaBloqueante
+  permitirStockNegativo
 `;
 
 export const devolucionConfiguracionQuery = gql`

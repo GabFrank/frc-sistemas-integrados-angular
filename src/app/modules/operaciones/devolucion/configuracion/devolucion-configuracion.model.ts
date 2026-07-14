@@ -18,4 +18,6 @@ export interface DevolucionConfiguracion {
   // Alerta de compras
   alertaIncluyeRetirado?: boolean;
   alertaBloqueante?: boolean;
+  // Stock
+  permitirStockNegativo?: boolean;
 }

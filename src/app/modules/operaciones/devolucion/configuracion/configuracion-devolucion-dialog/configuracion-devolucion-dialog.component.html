@@ -95,6 +95,21 @@
           Aviso bloqueante (diálogo que obliga a decidir)
         </mat-slide-toggle>
       </div>
+
+      <!-- Stock -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>inventory</mat-icon> Stock
+        </h3>
+        <mat-slide-toggle formControlName="permitirStockNegativo">
+          Permitir devoluciones con stock negativo
+        </mat-slide-toggle>
+        <p class="config-ayuda">
+          Si está activo, se puede separar/devolver aunque el stock del producto
+          quede en negativo. Si está inactivo, se bloquea cuando no hay saldo
+          suficiente al separar.
+        </p>
+      </div>
     </ng-container>
   </div>
 

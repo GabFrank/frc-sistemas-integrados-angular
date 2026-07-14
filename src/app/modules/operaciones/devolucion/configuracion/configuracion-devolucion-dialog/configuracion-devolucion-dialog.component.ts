@@ -49,6 +49,7 @@ export class ConfiguracionDevolucionDialogComponent implements OnInit {
       tipoGastoMerma: ["MERMA/AVERIA DE PRODUCTO"],
       alertaIncluyeRetirado: [false],
       alertaBloqueante: [true],
+      permitirStockNegativo: [true],
     });
   }
 
