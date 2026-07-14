@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>Configuración de Venta con Tarjeta</h2>
+
+<mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="15px" style="margin-top: 10px;">
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-title">Habilitar venta con tarjeta</div>
+                <div class="config-item-desc">
+                    Cuando está activado, las sucursales podrán registrar ventas con tarjeta escaneando la
+                    terminal POS desde el desktop y confirmando el registro desde la aplicación móvil.
+                    Si está desactivado, el cobro con tarjeta funciona como un medio de pago normal, sin el
+                    escaneo de terminal ni el registro adicional.
+                </div>
+            </div>
+            <div class="config-item-toggle">
+                <mat-slide-toggle
+                    [checked]="config.habilitado"
+                    (change)="onToggleHabilitado()"
+                    color="accent">
+                </mat-slide-toggle>
+                <span class="toggle-label" [class.active]="config.habilitado" [class.desactive]="!config.habilitado">
+                    {{ config.habilitado ? 'ACTIVADO' : 'DESACTIVADO' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()">
+        <mat-icon>save</mat-icon> Guardar
+    </button>
+</mat-dialog-actions>
