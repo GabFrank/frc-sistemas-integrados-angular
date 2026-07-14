@@ -381,7 +381,11 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     uri: string,
     cred: CredencialesCupsResult,
   ): void {
-    const esTermica = d.esTermica;
+    // La térmica se decide por el Tipo que elegís (default Térmica), NO por el nombre: si renombrás
+    // la impresora, el regex de nombre ya no la reconoce y el backend instalaría con -m everywhere,
+    // que falla en una térmica RAW ("Printer does not support required IPP attributes"). Una térmica
+    // debe instalarse siempre RAW (-m raw).
+    const esTermica = this.tipoControl.value === 'TERMICA';
     const servidorIp = cred.servidorIp;
     const servidorPort = cred.servidorPort || (cred.esCentral ? '8081' : '8082');
     const destino = cred.esCentral ? 'central' : 'filial';
