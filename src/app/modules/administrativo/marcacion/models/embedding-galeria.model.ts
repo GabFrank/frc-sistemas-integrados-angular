@@ -13,7 +13,7 @@ const POSES_CAPTURA = ['left', 'right', 'front'];
 
 export const UMBRAL_SIMILITUD_FACIAL = 0.55;
 /** Umbral 1:1 en pantalla de marcación (usuario ya seleccionado), sin importar cómo se llegó. */
-export const UMBRAL_SIMILITUD_VERIFICACION = 0.75;
+export const UMBRAL_SIMILITUD_VERIFICACION = 0.60;
 export const SCORE_MINIMO_DETECCION = 0.45;
 export const SCORE_MINIMO_FRAME = 0.55;
 export const SCORE_MINIMO_FRAME_VERIFICACION = 0.6;
