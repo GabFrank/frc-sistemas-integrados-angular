@@ -50,6 +50,7 @@ export class ConfiguracionDevolucionDialogComponent implements OnInit {
       alertaIncluyeRetirado: [false],
       alertaBloqueante: [true],
       permitirStockNegativo: [true],
+      retiroPermitirSeleccionManual: [true],
     });
   }
 

@@ -20,4 +20,6 @@ export interface DevolucionConfiguracion {
   alertaBloqueante?: boolean;
   // Stock
   permitirStockNegativo?: boolean;
+  // Retiro
+  retiroPermitirSeleccionManual?: boolean;
 }

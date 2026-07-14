@@ -110,6 +110,21 @@
           suficiente al separar.
         </p>
       </div>
+
+      <!-- Retiro -->
+      <div class="config-seccion">
+        <h3 class="config-seccion-titulo">
+          <mat-icon>local_shipping</mat-icon> Retiro
+        </h3>
+        <mat-slide-toggle formControlName="retiroPermitirSeleccionManual">
+          Permitir selección manual en el retiro (sin escanear)
+        </mat-slide-toggle>
+        <p class="config-ayuda">
+          Si está activo, en el retiro se puede marcar una caja como verificada
+          tocándola, sin escanear su QR. Si está inactivo, solo se verifica por
+          escaneo.
+        </p>
+      </div>
     </ng-container>
   </div>
 

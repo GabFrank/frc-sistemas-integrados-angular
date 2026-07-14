@@ -15,6 +15,7 @@ const configFields = `
   alertaIncluyeRetirado
   alertaBloqueante
   permitirStockNegativo
+  retiroPermitirSeleccionManual
 `;
 
 export const devolucionConfiguracionQuery = gql`
