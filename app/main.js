@@ -730,7 +730,10 @@ function instalarImpresoraLocal(cola, uri, raw, password) {
                 }
                 // Linux/CUPS. raw para térmicas (ESC/POS); everywhere solo aplica a URIs IPP.
                 const modelo = raw ? 'raw' : (/^ipps?:/i.test(uri) ? 'everywhere' : 'raw');
-                const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo];
+                // printer-error-policy=retry-current-job: ante un error del backend la cola NO se pausa
+                // (evita el "stop-printer" por defecto que deja la impresora inactiva y los jobs pendientes).
+                const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo,
+                    '-o', 'printer-error-policy=retry-current-job'];
                 const r = yield run(args, !!password);
                 if (r.code !== 0) {
                     const stderr = (r.stderr || '').trim();
@@ -764,7 +767,7 @@ function etiquetaPuerto(puerto) {
 function obtenerOCrearEntrada(mapa, ip) {
     let e = mapa.get(ip);
     if (!e) {
-        e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set() };
+        e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set(), rp: null };
         mapa.set(ip, e);
     }
     return e;
@@ -808,6 +811,11 @@ function descubrirImpresorasMdns(timeoutMs, locales) {
                 const modelo = limpiarModelo(txt.ty || txt.product || txt.usb_MDL);
                 if (!e.modelo && modelo) {
                     e.modelo = modelo;
+                }
+                // Resource path IPP anunciado (ej. 'printers/ticket_soporte' de una cola CUPS compartida,
+                // o 'ipp/print' de una impresora IPP real). Se usa para armar la URI correcta al instalar.
+                if (!e.rp && typeof txt.rp === 'string' && txt.rp.trim()) {
+                    e.rp = txt.rp.trim().replace(/^\/+/, '');
                 }
                 if (!e.host && s.host) {
                     e.host = s.host;
@@ -1168,13 +1176,19 @@ function registerPrinterIpcHandlers() {
             return Array.from(fusion.values()).map((p) => {
                 // Puerto para conexion RED directa (raw/ESC-POS). 9100 si esta abierto; si no, el primero.
                 const puerto = p.puertos.has(9100) ? 9100 : (Array.from(p.puertos)[0] || 9100);
-                // URI para instalar cola CUPS via backend: raw > IPP > LPD segun lo disponible.
+                // URI para instalar cola CUPS via backend. Si el equipo anuncia una cola CUPS COMPARTIDA
+                // (rp=printers/<cola>), apuntamos a esa cola exacta — no al endpoint IPP generico /ipp/print,
+                // que falla con "la impresora ya no existe". Si no, raw > IPP > LPD segun lo disponible.
                 let uri;
-                if (p.puertos.has(9100)) {
+                const rpColaCups = p.rp && /^printers\//i.test(p.rp) ? p.rp : null;
+                if (rpColaCups) {
+                    uri = `ipp://${p.ip}:631/${rpColaCups}`;
+                }
+                else if (p.puertos.has(9100)) {
                     uri = `socket://${p.ip}:9100`;
                 }
                 else if (p.puertos.has(631)) {
-                    uri = `ipp://${p.ip}:631/ipp/print`;
+                    uri = `ipp://${p.ip}:631/${p.rp || 'ipp/print'}`;
                 }
                 else if (p.puertos.has(515)) {
                     uri = `lpd://${p.ip}/queue`;
