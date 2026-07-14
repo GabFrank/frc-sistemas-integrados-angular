@@ -65,3 +65,33 @@ export const imprimirReporteVentaTarjetaQuery = gql`
     )
   }
 `;
+
+export const configuracionVentaTarjetaQuery = gql`
+  {
+    data: configuracionVentaTarjeta {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const saveConfiguracionVentaTarjeta = gql`
+  mutation saveConfiguracionVentaTarjeta($entity: ConfiguracionVentaTarjetaInput!) {
+    data: saveConfiguracionVentaTarjeta(input: $entity) {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
