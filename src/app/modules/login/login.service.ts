@@ -147,7 +147,7 @@ export class LoginService {
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
                   this.usuarioService
-                    .onGetUsuario(res["usuarioId"], !config.isLocal)
+                    .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe((res) => {
                       if (res?.id != null) {

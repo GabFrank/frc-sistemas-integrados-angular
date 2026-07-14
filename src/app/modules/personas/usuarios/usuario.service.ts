@@ -1,5 +1,6 @@
 import { Injectable, Injector } from "@angular/core";
 import { UsuarioPorIdGQL } from "./graphql/usuarioPorId";
+import { UsuarioLoginGQL } from "./graphql/usuarioLogin";
 import { Usuario } from "./usuario.model";
 import { UsuarioSearchGQL } from "./graphql/usuarioSearch";
 import {
@@ -37,6 +38,7 @@ export class UsuarioService {
 
   constructor(
     private getUsuario: UsuarioPorIdGQL,
+    private getUsuarioLogin: UsuarioLoginGQL,
     private getUsuarioPorPersonaId: UsuarioPorPersonaIdGQL,
     private saveUsuario: SaveUsuarioGQL,
     private searchUsuario: UsuarioSearchGQL,
@@ -62,6 +64,12 @@ export class UsuarioService {
 
   onGetUsuario(id: number, servidor: boolean = true): Observable<any> {
     return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
+  }
+
+  // Usa la query de login (sin `persona.embeddingFacial`) para ser compatible
+  // con servidores en `release/beta` que aun no tienen ese campo en el schema.
+  onGetUsuarioParaLogin(id: number, servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioLogin, { id }, servidor);
   }
 
   onGetUsuarioPorPersonaId(id: number, servidor: boolean = true, errorConf?: any): Observable<any> {
