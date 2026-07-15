@@ -4,6 +4,7 @@ import { takeUntil } from "rxjs/operators";
 
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { DevolucionService } from "../devolucion.service";
@@ -42,7 +43,8 @@ export class ColectaComponent implements OnInit, OnDestroy {
     private sucursalService: SucursalService,
     private devolucionService: DevolucionService,
     private colectaService: ColectaDevolucionService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService
   ) {}
 
   ngOnInit(): void {
@@ -81,13 +83,17 @@ export class ColectaComponent implements OnInit, OnDestroy {
         next: (page) => {
           this.cargando = false;
           const data = page?.getContent || (page as any)?.content || [];
-          this.filas = (data || []).map((d: any) => ({
-            id: d.id,
-            identificador: d.identificador,
-            origen: d.sucursalOrigen?.nombre || "—",
-            proveedor: d.proveedor?.persona?.nombre || "—",
-            seleccionada: true,
-          }));
+          // Solo las CON proveedor pueden colectarse (las sin proveedor van a
+          // DESCARTADO). Se filtran para no ofrecer filas que el backend rechaza.
+          this.filas = (data || [])
+            .filter((d: any) => d.proveedor != null)
+            .map((d: any) => ({
+              id: d.id,
+              identificador: d.identificador,
+              origen: d.sucursalOrigen?.nombre || "—",
+              proveedor: d.proveedor?.persona?.nombre || "—",
+              seleccionada: true,
+            }));
         },
         error: () => {
           this.cargando = false;
@@ -113,6 +119,28 @@ export class ColectaComponent implements OnInit, OnDestroy {
       this.notificacionService.openWarn("Seleccioná al menos una devolución");
       return;
     }
+    // Una colecta = un viaje origen -> destino: el backend crea una operación por
+    // cada sucursal de origen distinta. Avisar si la selección cruza varios orígenes.
+    const origenes = new Set(
+      this.filas.filter((f) => f.seleccionada).map((f) => f.origen)
+    );
+    if (origenes.size > 1) {
+      this.dialogosService
+        .confirm(
+          "Atención!!",
+          `La selección incluye ${origenes.size} sucursales de origen distintas.`,
+          "Se generará una operación de colecta separada por cada origen. ¿Continuar?"
+        )
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((ok) => {
+          if (ok) this.ejecutarColecta(ids);
+        });
+    } else {
+      this.ejecutarColecta(ids);
+    }
+  }
+
+  private ejecutarColecta(ids: number[]): void {
     this.colectando = true;
     const usuarioId = this.mainService.usuarioActual?.id;
     this.colectaService
@@ -121,10 +149,18 @@ export class ColectaComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.colectando = false;
-          const ok = (res?.resultados || []).filter((r: any) => r.ok).length;
-          this.notificacionService.openSucess(
-            `${ok} devolución(es) enviada(s) a ${this.destino?.nombre}`
-          );
+          const resultados = res?.resultados || [];
+          const ok = resultados.filter((r: any) => r.ok).length;
+          const fail = resultados.length - ok;
+          if (fail > 0) {
+            this.notificacionService.openWarn(
+              `${ok} colectada(s), ${fail} con error a ${this.destino?.nombre}`
+            );
+          } else {
+            this.notificacionService.openSucess(
+              `${ok} devolución(es) enviada(s) a ${this.destino?.nombre}`
+            );
+          }
           this.cargarSeparadas();
         },
         error: () => {
