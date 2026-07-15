@@ -15,6 +15,7 @@ import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { EtiquetasDevolucionService } from "../etiquetas/etiquetas-devolucion.service";
 import { ColectaDevolucionService } from "../colecta/colecta-devolucion.service";
+import { OperacionDevolucionService } from "../operacion-devolucion/operacion-devolucion.service";
 import {
   ColectarDialogComponent,
   ColectarDialogResult,
@@ -101,6 +102,7 @@ export class EditDevolucionComponent implements OnInit {
   canCanjear = false;
   canAcreditar = false;
   canCancelar = false;
+  canRevertir = false;
   canjeMode = false;
   acreditarMode = false;
 
@@ -136,7 +138,8 @@ export class EditDevolucionComponent implements OnInit {
     private tabService: TabService,
     private reporteService: ReporteService,
     private etiquetasService: EtiquetasDevolucionService,
-    private colectaService: ColectaDevolucionService
+    private colectaService: ColectaDevolucionService,
+    private operacionService: OperacionDevolucionService
   ) {}
 
   ngOnInit(): void {
@@ -251,6 +254,7 @@ export class EditDevolucionComponent implements OnInit {
     this.canCanjear = false;
     this.canAcreditar = false;
     this.canCancelar = false;
+    this.canRevertir = false;
 
     if (this.selectedDevolucion?.id == null) {
       return;
@@ -269,14 +273,17 @@ export class EditDevolucionComponent implements OnInit {
           this.canAvanzarDescartado = true;
         }
         this.canCancelar = true;
+        this.canRevertir = true; // SEPARADO -> PENDIENTE (reingresa stock)
         break;
       case DevolucionEstado.COLECTADO:
         // Ya en el depósito: falta que el proveedor retire.
         this.canAvanzarRetirado = true;
+        this.canRevertir = true; // COLECTADO -> SEPARADO
         break;
       case DevolucionEstado.RETIRADO:
         this.canCanjear = true;
         this.canAcreditar = true;
+        this.canRevertir = true; // RETIRADO -> COLECTADO/SEPARADO
         break;
       default:
         break;
@@ -494,6 +501,27 @@ export class EditDevolucionComponent implements OnInit {
             this.onImprimirEtiquetas();
           }
         }
+      });
+  }
+
+  /** Revierte la devolución un estado hacia atrás (transición segura del backend). */
+  onRevertir() {
+    this.dialogosService
+      .confirm("Atención!!", "¿Revertir la devolución un estado hacia atrás?")
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        if (!confirmado) return;
+        this.operacionService
+          .onRevertirEstado(this.selectedDevolucion.id)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null) {
+              Object.assign(this.selectedDevolucion, res);
+              this.canjeMode = false;
+              this.acreditarMode = false;
+              this.computeEstadoFlags();
+            }
+          });
       });
   }
 

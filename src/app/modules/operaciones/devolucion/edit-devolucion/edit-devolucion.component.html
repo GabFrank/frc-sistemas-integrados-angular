@@ -95,6 +95,9 @@
       (click)="onIniciarAcreditar()">
       Acreditar (nota de crédito)
     </button>
+    <button mat-stroked-button color="warn" *ngIf="canRevertir" (click)="onRevertir()">
+      <mat-icon>undo</mat-icon> Revertir
+    </button>
   </div>
 
   <!-- Acreditar inline -->

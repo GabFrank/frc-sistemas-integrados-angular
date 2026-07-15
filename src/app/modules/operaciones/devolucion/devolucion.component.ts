@@ -25,6 +25,12 @@ import {
 import { DashRankingItem } from "../../../shared/components/dashboard/dash-ranking-list/dash-ranking-list.component";
 import { DevolucionConfiguracionService } from "./configuracion/devolucion-configuracion.service";
 import { ConfiguracionDevolucionDialogComponent } from "./configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component";
+import { HistorialColectasComponent } from "./historial-colectas/historial-colectas.component";
+import { HistorialRetirosComponent } from "./historial-retiros/historial-retiros.component";
+import {
+  HistoricoDevolucionDialogComponent,
+  HistoricoDevolucionDialogResult,
+} from "./historico-devolucion-dialog/historico-devolucion-dialog.component";
 
 interface KpiVista {
   icon: string;
@@ -434,7 +440,7 @@ export class DevolucionComponent implements OnInit, OnDestroy {
         icon: "manage_search",
         title: "Histórico",
         color: "#2196f3",
-        action: () => this.abrir(ListDevolucionComponent, "Lista de devoluciones"),
+        action: () => this.onHistorico(),
       },
     ];
     if (puedeCrear) {
@@ -467,6 +473,28 @@ export class DevolucionComponent implements OnInit, OnDestroy {
 
   private abrir(component: any, title: string): void {
     this.tabService.addTab(new Tab(component, title, null, DevolucionComponent));
+  }
+
+  /** Elige qué histórico abrir: devoluciones, colectas o retiros. */
+  onHistorico(): void {
+    this.matDialog
+      .open(HistoricoDevolucionDialogComponent, { width: "400px" })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((res: HistoricoDevolucionDialogResult | undefined) => {
+        if (!res) return;
+        switch (res.opcion) {
+          case "devoluciones":
+            this.abrir(ListDevolucionComponent, "Lista de devoluciones");
+            break;
+          case "colectas":
+            this.abrir(HistorialColectasComponent, "Histórico de colectas");
+            break;
+          case "retiros":
+            this.abrir(HistorialRetirosComponent, "Histórico de retiros");
+            break;
+        }
+      });
   }
 
   // ===== Utils (no se llaman desde el HTML) =====

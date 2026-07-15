@@ -86,6 +86,9 @@ import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from
 import { GuiaDevolucionComponent } from './devolucion/guia-devolucion/guia-devolucion.component';
 import { RetiroProveedorComponent } from './devolucion/retiro-proveedor/retiro-proveedor.component';
 import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dialog/reingreso-canje-dialog.component';
+import { HistorialColectasComponent } from './devolucion/historial-colectas/historial-colectas.component';
+import { HistorialRetirosComponent } from './devolucion/historial-retiros/historial-retiros.component';
+import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devolucion-dialog/historico-devolucion-dialog.component';
 
 @NgModule({
   declarations: [
@@ -160,6 +163,9 @@ import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dial
     LucroPorFuncionarioComponent,
     DevolucionComponent,
     ListDevolucionComponent,
+    HistorialColectasComponent,
+    HistorialRetirosComponent,
+    HistoricoDevolucionDialogComponent,
     EditDevolucionComponent,
     CreateDevolucionItemDialogComponent,
     GuiaDevolucionComponent,
