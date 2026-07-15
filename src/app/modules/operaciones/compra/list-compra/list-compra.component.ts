@@ -24,13 +24,16 @@ import { ProveedorService } from "../../../personas/proveedor/proveedor.service"
 import { Producto } from "../../../productos/producto/producto.model";
 import { PedidoService } from "../pedido.service";
 import { Pedido } from "../gestion-compras/pedido.model";
-import { ProcesoEtapaTipo } from "../gestion-compras/proceso-etapa.model";
+import { ProcesoEtapaTipo, ProcesoEtapaEstado } from "../gestion-compras/proceso-etapa.model";
 import { GestionComprasComponent } from "../gestion-compras/gestion-compras.component";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
-import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+import {
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "../gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import { interval } from "rxjs";
 import { SucursalRecepcionFisica } from "../gestion-compras/graphql/getPedidoRecepcionFisicaResumen";
@@ -388,16 +391,16 @@ export class ListCompraComponent implements OnInit {
     // Obtener el texto del campo si existe
     const searchText = this.productoControl.value?.trim() || "";
     
-    const dialogRef = this.matDialog.open(PdvSearchProductoDialogComponent, {
+    const dialogRef = this.matDialog.open(ComprasSearchProductoDialogComponent, {
       width: "80%",
       height: "80%",
       data: {
         texto: searchText,
-        conservarUltimaBusqueda: true
+        mostrarStock: false,
       },
     });
 
-    dialogRef.afterClosed().subscribe((result: PdvSearchProductoResponseData) => {
+    dialogRef.afterClosed().subscribe((result: ComprasSearchProductoResponse) => {
       if (result && result.producto) {
         this.selectedProducto = result.producto;
         this.productoControl.setValue(`${result.producto.id} - ${result.producto.descripcion}`);
@@ -466,10 +469,17 @@ export class ListCompraComponent implements OnInit {
     if (!pedido?.procesoEtapas || pedido.procesoEtapas.length === 0) {
       return "CREACION";
     }
+
+    const pedidoCancelado = pedido.procesoEtapas.every(
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.CANCELADA
+    );
+    if (pedidoCancelado) {
+      return "CANCELADA";
+  }
     
     // Buscar etapa en proceso
     const etapaEnProceso = pedido.procesoEtapas.find(
-      (e) => e.estadoEtapa === "EN_PROCESO"
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO
     );
     if (etapaEnProceso) {
       return etapaEnProceso.tipoEtapa;
@@ -477,7 +487,7 @@ export class ListCompraComponent implements OnInit {
     
     // Buscar primera etapa pendiente
     const etapaPendiente = pedido.procesoEtapas.find(
-      (e) => e.estadoEtapa === "PENDIENTE"
+      (e) => e.estadoEtapa === ProcesoEtapaEstado.PENDIENTE
     );
     if (etapaPendiente) {
       return etapaPendiente.tipoEtapa;

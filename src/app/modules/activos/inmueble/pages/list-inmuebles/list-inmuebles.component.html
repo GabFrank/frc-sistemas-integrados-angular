@@ -4,7 +4,7 @@
     <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="45">
         <mat-form-field style="width: 100%">
-          <mat-label>Filtro r?pido (Nombre o direcci?n)</mat-label>
+          <mat-label>Nombre o direccion</mat-label>
           <input type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" placeholder="Ej: Local Centro" />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
@@ -27,12 +27,12 @@
       </ng-container>
 
       <ng-container matColumnDef="direccion">
-        <th mat-header-cell *matHeaderCellDef>Direcci?n</th>
+        <th mat-header-cell *matHeaderCellDef>Direccion</th>
         <td mat-cell *matCellDef="let row">{{ row.direccion }}</td>
       </ng-container>
 
       <ng-container matColumnDef="paisCity">
-        <th mat-header-cell *matHeaderCellDef>Ubicaci?n</th>
+        <th mat-header-cell *matHeaderCellDef>Ubicacion</th>
         <td mat-cell *matCellDef="let row">{{ row.ciudad?.descripcion }}, {{ row.pais?.descripcion }}</td>
       </ng-container>
 
@@ -76,7 +76,7 @@
             <span style="font-weight: 600;">{{ row.valorTasacion | currency:'USD':'symbol':'1.0-0' }}</span>
             <br *ngIf="row.valorTasacionPyg || row.valorTasacionBrl">
             <span *ngIf="row.valorTasacionPyg || row.valorTasacionBrl" style="font-size: 0.75em; opacity: 0.6;">
-                <span *ngIf="row.valorTasacionPyg">ÿÿÿ {{ row.valorTasacionPyg | number:'1.0-0' }}</span>
+                <span *ngIf="row.valorTasacionPyg">{{ row.valorTasacionPyg | number:'1.0-0' }}</span>
                 <span *ngIf="row.valorTasacionPyg && row.valorTasacionBrl"> | </span>
                 <span *ngIf="row.valorTasacionBrl">R$ {{ row.valorTasacionBrl | number:'1.2-2' }}</span>
             </span>

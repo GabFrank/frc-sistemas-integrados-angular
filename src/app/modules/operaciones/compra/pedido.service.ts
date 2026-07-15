@@ -5,6 +5,7 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 
 // GraphQL imports
 import { SavePedidoFullGQL } from './gestion-compras/graphql/savePedidoFull';
+import { DeletePedidoGQL } from './gestion-compras/graphql/deletePedido';
 import { GetPedidoGQL } from './gestion-compras/graphql/getPedido';
 import { GetPedidoItemsGQL } from './gestion-compras/graphql/getPedidoItems';
 import { SavePedidoItemGQL } from './gestion-compras/graphql/savePedidoItem';
@@ -88,6 +89,7 @@ export class PedidoService {
   constructor(
     private genericCrudService: GenericCrudService,
     private savePedidoFullGQL: SavePedidoFullGQL,
+    private deletePedidoGQL: DeletePedidoGQL,
     private getPedidoGQL: GetPedidoGQL,
     private getPedidoItemsGQL: GetPedidoItemsGQL,
     private getPedidoItemPorPedidoPageGQL: GetPedidoItemPorPedidoPageGQL,
@@ -166,8 +168,8 @@ export class PedidoService {
    * @param pedidoId - ID del pedido
    * @returns Observable<PedidoItem[]>
    */
-  onGetPedidoItemsByPedidoId(pedidoId: number): Observable<PedidoItem[]> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId });
+  onGetPedidoItemsByPedidoId(pedidoId: number, silentLoad = false): Observable<PedidoItem[]> {
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId }, true, undefined, silentLoad);
   }
 
   onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto?: string, soloPendientes?: boolean): Observable<PageInfo<PedidoItem>> {
@@ -235,7 +237,7 @@ export class PedidoService {
    */
   onDeletePedido(id: number, showDialog: boolean = true): Observable<any> {
     return this.genericCrudService.onDelete(
-      this.savePedidoFullGQL, // Usar el mismo GQL service para eliminar
+      this.deletePedidoGQL,
       id,
       'Eliminar Pedido',
       null,
@@ -765,13 +767,13 @@ export class PedidoService {
   }
 
   /**
-   * Cancela un pedido (usa deletePedido)
+   * Cancela un pedido (marca etapas como CANCELADA vía deletePedido)
    * @param id - ID del pedido a cancelar
    * @returns Observable<boolean>
    */
   onCancelarPedido(id: number): Observable<boolean> {
     return this.genericCrudService.onDelete(
-      this.savePedidoFullGQL,
+      this.deletePedidoGQL,
       id,
       '¿Cancelar pedido?',
       null,

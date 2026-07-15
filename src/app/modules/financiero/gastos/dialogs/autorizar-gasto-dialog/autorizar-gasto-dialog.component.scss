@@ -93,17 +93,17 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.boton-autorizar {
+.boton-autorizar:not(:disabled) {
   background-color: #43a047 !important;
   color: white !important;
 }
 
-.boton-tramite {
+.boton-tramite:not(:disabled) {
   background-color: #1e88e5 !important;
   color: white !important;
 }
 
-.boton-finalizar {
+.boton-finalizar:not(:disabled) {
   background-color: #00897b !important;
   color: white !important;
 }

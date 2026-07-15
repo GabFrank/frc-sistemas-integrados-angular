@@ -1,17 +1,12 @@
 .side-nav-container {
   height: 100%;
-  width: 60px;
+  width: 100%;
   position: relative;
-  transition: width 0.3s ease;
   background-color: #424242;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   overflow-x: hidden;
   overflow-y: auto;
   z-index: 1000;
-
-  &.expanded {
-    width: 250px;
-  }
 
   .side-nav-content {
     height: 100%;

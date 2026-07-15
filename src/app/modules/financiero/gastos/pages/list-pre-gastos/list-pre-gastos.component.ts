@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DoCheck, OnInit, inject, ViewChild, TemplateRef } from '@angular/core';
 import { TabData, TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { AdicionarPreGastoComponent } from '../adicionar-pre-gasto/adicionar-pre-gasto.component';
@@ -60,6 +60,16 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
 
   public preGastoSeleccionadoSubject = new BehaviorSubject<PreGasto | null>(null);
   public preGastoSeleccionado$ = this.preGastoSeleccionadoSubject.asObservable();
+
+  public mostrarRendicionSubject = new BehaviorSubject<boolean>(false);
+  public mostrarRendicion$ = this.mostrarRendicionSubject.asObservable();
+
+  @ViewChild('imageDialogTemplate') imageDialogTemplate!: TemplateRef<any>;
+  public fotosDialog: { url: string; etiqueta: string }[] = [];
+  public indiceFotoDialog = 0;
+
+  public fotosRendicion$: Observable<{ url: string; etiqueta: string }[]> =
+    this.preGastoSeleccionado$.pipe(map(pg => this.extraerFotosRendicion(pg)));
   fechaFormGroup = new FormGroup({
     inicio: new FormControl<Date | null>(ListPreGastosComponent.fechaInicioRangoPorDefecto()),
     fin: new FormControl<Date | null>(new Date()),
@@ -135,25 +145,87 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
         this.totalElements$.next(res.getTotalElements || 0);
       }
     }),
-    map(res => res?.getContent || []),
+    map(res => {
+      const list = res?.getContent || [];
+      list.forEach(item => {
+        (item as any).descripcionLimpia = this.limpiarDescripcion(item.descripcion);
+      });
+      return list;
+    }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
   cambiarTab(indice: number): void {
     this.tabActivaSubject.next(indice);
     this.preGastoSeleccionadoSubject.next(null);
+    this.mostrarRendicionSubject.next(false);
     this.paginationSubject.next({ ...this.paginationSubject.value, pageIndex: 0 });
   }
 
   seleccionarPreGasto(preGasto: PreGasto): void {
+    const actual = this.preGastoSeleccionadoSubject.value;
+    if (actual?.id !== preGasto?.id) {
+      this.mostrarRendicionSubject.next(false);
+    }
     this.preGastoSeleccionadoSubject.next(preGasto);
+  }
+
+  toggleRendicion(): void {
+    this.mostrarRendicionSubject.next(!this.mostrarRendicionSubject.value);
+  }
+
+  ampliarFoto(fotos: { url: string; etiqueta: string }[], index: number): void {
+    this.fotosDialog = fotos;
+    this.indiceFotoDialog = index;
+    this.matDialog.open(this.imageDialogTemplate, {
+      panelClass: 'transparent-dialog-panel',
+      backdropClass: 'dark-backdrop',
+      maxWidth: '95vw',
+      maxHeight: '95vh'
+    });
+  }
+
+  cerrarFotoAmpliada(): void {
+    this.matDialog.closeAll();
+  }
+
+  cambiarFoto(delta: number, event: Event): void {
+    event.stopPropagation();
+    let newIndex = this.indiceFotoDialog + delta;
+    if (newIndex >= 0 && newIndex < this.fotosDialog.length) {
+      this.indiceFotoDialog = newIndex;
+    }
+  }
+
+  limpiarDescripcion(descripcion: string | undefined | null): string {
+    if (!descripcion) return '';
+    return descripcion.replace(/\s*\|\s*\[URGENCIA:.*?\]/i, '').trim();
+  }
+
+  private extraerFotosRendicion(preGasto: PreGasto | null): { url: string; etiqueta: string }[] {
+    const fotos: { url: string; etiqueta: string }[] = [];
+    const rendiciones = preGasto?.rendiciones || [];
+    rendiciones.forEach((r) => {
+      const facturas = (r?.fotosFacturaUrls?.length ? r.fotosFacturaUrls : (r?.fotoFacturaUrl ? [r.fotoFacturaUrl] : []));
+      const productos = (r?.fotosProductoUrls?.length ? r.fotosProductoUrls : (r?.fotoProductoUrl ? [r.fotoProductoUrl] : []));
+      facturas.filter(Boolean).forEach((url, i) => {
+        const num = facturas.length > 1 ? ` ${i + 1}` : '';
+        fotos.push({ url, etiqueta: `Rendición #${r.id} · Factura${num}` });
+      });
+      productos.filter(Boolean).forEach((url, i) => {
+        const num = productos.length > 1 ? ` ${i + 1}` : '';
+        fotos.push({ url, etiqueta: `Rendición #${r.id} · Producto${num}` });
+      });
+    });
+    return fotos;
   }
 
   autorizarGasto(preGasto: PreGasto): void {
     this.matDialog
       .open(AutorizarGastoDialogComponent, {
         data: { preGasto },
-        width: '50%',
+        width: '100%',
+        maxWidth: '700px',
         disableClose: true,
         restoreFocus: true,
         autoFocus: true,
@@ -336,12 +408,42 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   }
 
   private getRendidoPorMoneda(preGasto: PreGasto): Record<string, number> {
+    if (preGasto?.estado !== 'COMPLETADO') {
+      return { GS: 0, RS: 0, DS: 0 };
+    }
     const gasto = preGasto?.gasto;
     return {
       GS: Math.max(Number(gasto?.retiroGs ?? 0) - Number(gasto?.vueltoGs ?? 0), 0),
       RS: Math.max(Number(gasto?.retiroRs ?? 0) - Number(gasto?.vueltoRs ?? 0), 0),
       DS: Math.max(Number(gasto?.retiroDs ?? 0) - Number(gasto?.vueltoDs ?? 0), 0),
     };
+  }
+  
+  tuvoVuelto(preGasto: PreGasto): boolean {
+    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+      return Number(preGasto?.saldoDevolver ?? 0) > 0;
+    }
+    const gasto = preGasto?.gasto;
+    if (!gasto) return false;
+    return Number(gasto.vueltoGs ?? 0) > 0 || Number(gasto.vueltoRs ?? 0) > 0 || Number(gasto.vueltoDs ?? 0) > 0;
+  }
+
+  montoVueltoPorMoneda(preGasto: PreGasto): string {
+    if (preGasto?.estado === 'TRAMITE' && preGasto?.rindioGasto) {
+       const saldo = Number(preGasto?.saldoDevolver ?? 0);
+       if (saldo > 0) {
+          const key = this.resolveMonedaKey(preGasto?.moneda?.simbolo, preGasto?.moneda?.denominacion) || 'GS';
+          return `${key}: ${this.formatMontoPorMoneda(key, saldo)}`;
+       }
+       return 'GS: 0';
+    }
+    const gasto = preGasto?.gasto;
+    if (!gasto) return 'GS: 0';
+    const parts = [];
+    if (Number(gasto.vueltoGs ?? 0) > 0) parts.push(`GS: ${this.formatMontoPorMoneda('GS', Number(gasto.vueltoGs))}`);
+    if (Number(gasto.vueltoRs ?? 0) > 0) parts.push(`R$: ${this.formatMontoPorMoneda('RS', Number(gasto.vueltoRs))}`);
+    if (Number(gasto.vueltoDs ?? 0) > 0) parts.push(`USD: ${this.formatMontoPorMoneda('DS', Number(gasto.vueltoDs))}`);
+    return parts.length > 0 ? parts.join(' | ') : 'GS: 0';
   }
 
   private resolveMonedaKey(simbolo?: string, denominacion?: string): 'GS' | 'RS' | 'DS' | null {

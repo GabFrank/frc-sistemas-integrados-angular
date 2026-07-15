@@ -16,7 +16,7 @@ export class ListVehiculosComponent implements OnInit {
     public vehiculoService = inject(VehiculoService);
     private cdr = inject(ChangeDetectorRef);
     vehiculos$ = this.vehiculoService.filteredVehiculos$;
-    tipoVehiculoDescripcion: string = 'TODOS LOS TIPOS';
+    tipoVehiculoDescripcion = '';
     displayedColumns = ['id', 'chapa', 'marca', 'modelo', 'tipo', 'anho', 'color', 'acciones'];
 
     filtroControl = new FormControl('');
@@ -79,14 +79,14 @@ export class ListVehiculosComponent implements OnInit {
     resetTipoFilter(event?: MouseEvent): void {
         if (event) event.stopPropagation();
         this.tipoControl.setValue(null);
-        this.tipoVehiculoDescripcion = 'TODOS LOS TIPOS';
+        this.tipoVehiculoDescripcion = '';
         this.cdr.markForCheck();
     }
 
     resetFiltro(): void {
         this.filtroControl.setValue('');
         this.tipoControl.setValue(null);
-        this.tipoVehiculoDescripcion = 'TODOS LOS TIPOS';
+        this.tipoVehiculoDescripcion = '';
         this.vehiculoService.updateTipoFilter(null);
         this.vehiculoService.refrescar();
     }

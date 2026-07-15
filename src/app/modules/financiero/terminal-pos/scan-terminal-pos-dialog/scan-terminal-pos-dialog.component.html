@@ -1,0 +1,46 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title style="padding-left: 0;">Terminal POS</h2>
+  <p style="margin: 0 0 8px; color: gray; font-size: 1.7rem;">
+    Escanee o ingrese el código impreso en la terminal POS utilizada.
+  </p>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="15px" (ngSubmit)="onConfirmar()">
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Código de la terminal</mat-label>
+          <input
+            matInput
+            [formControl]="codigoControl"
+            required
+            autofocus
+            placeholder="Ej: POS-001"
+          />
+          <mat-error *ngIf="codigoControl.hasError('required')">
+            El código es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <mat-error *ngIf="noEncontrado" style="font-size: 0.9rem;">
+      No se encontró ninguna terminal activa con ese código.
+    </mat-error>
+  </form>
+
+  <div 
+    fxLayout="row" 
+    fxLayoutAlign="center" 
+    fxLayoutGap="10px" 
+    style="margin-top: 10px;"
+  >
+    <button 
+      mat-raised-button 
+      class="btn-salir"
+      color="primary"  
+      (click)="onCancel()"
+    >
+      Cancelar
+    </button>
+  </div>
+</div>

@@ -1,16 +1,17 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
-import { WindowInfoService } from '../../../../shared/services/window-info.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { ROLES } from '../../roles/roles.enum';
 import { AdicionarUsuarioDialogComponent } from '../adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
-import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 @UntilDestroy()
 @Component({
@@ -33,17 +34,19 @@ export class ListUsuarioComponent implements OnInit {
   readonly ROLES = ROLES
 
   @ViewChild('buscar', { static: true }) buscar: ElementRef;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   dataSource = new MatTableDataSource<Usuario>([]);
   selectedUsuario: Usuario;
   displayedColumns: string[] = ['id', 'nombre', 'nickname', 'telefono', 'activo', 'creadoEn', 'acciones'];
   expandedUsuario: Usuario;
 
-  page = -1;
-  isLastPage = false;
-  isSearching = false;
+  pageSize = 25;
+  pageIndex = 0;
+  selectedPageInfo: PageInfo<Usuario>;
+  timer: ReturnType<typeof setTimeout>;
 
-  buscarControl = new FormControl(null, Validators.required)
+  buscarControl = new FormControl(null);
 
   constructor(
     public service: UsuarioService,
@@ -53,28 +56,51 @@ export class ListUsuarioComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargarMasDatos()
+    setTimeout(() => {
+      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
+      this.pageSize = this.paginator.pageSizeOptions[1];
+      this.onFiltrar();
+    }, 0);
+
+    this.buscarControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((valor) => {
+        this.pageIndex = 0;
+        if (this.timer != null) {
+          clearTimeout(this.timer);
+        }
+        this.timer = setTimeout(() => {
+          this.onFiltrar();
+        }, 500);
+      });
   }
 
   rowSelectedEvent(e) {
   }
 
-  onFiltrar() {
-    if (this.buscarControl.valid) {
-      this.isSearching = true;
-      this.service.onSeachUsuario(this.buscarControl.value)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.isSearching = false;
-          this.isLastPage = true;
-          this.buscar.nativeElement.select()
-          this.dataSource.data = res;
-        })
-    } else {
-      this.page = -1;
-      this.isLastPage = false;
-      this.cargarMasDatos()
-    }
+  onFiltrar(): void {
+    const texto = this.buscarControl.value?.toString().trim() || null;
+    this.service.onSearchConFiltros(texto, this.pageIndex, this.pageSize)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedPageInfo = res;
+          this.dataSource.data = this.selectedPageInfo?.getContent || [];
+        }
+      });
+  }
+
+  resetFiltro(): void {
+    this.pageIndex = 0;
+    this.dataSource.data = [];
+    this.selectedPageInfo = null;
+    this.buscarControl.setValue(null);
+  }
+
+  handlePageEvent(e: PageEvent): void {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onAddUsuario(usuario?: Usuario, index?) {
@@ -89,18 +115,6 @@ export class ListUsuarioComponent implements OnInit {
 
   onEditRoles(usuario, i) {
 
-  }
-
-  cargarMasDatos() {
-    this.isSearching = true;
-    this.page++;
-    this.service.onGetUsuarios(this.page)
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res.length == 0) this.isLastPage = true;
-        this.isSearching = false;
-        this.dataSource.data = this.dataSource.data.concat(res)
-      })
   }
 
   onInitPassword(usuario: Usuario, i) {

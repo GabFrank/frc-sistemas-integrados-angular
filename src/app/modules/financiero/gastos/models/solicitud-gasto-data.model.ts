@@ -25,5 +25,6 @@ export interface SolicitudGastoData {
   porcentajePagado?: number;
   montoSugerido?: number;
   proveedorNombre?: string;
+  proveedorId?: number;
   monedaId?: number;
 }

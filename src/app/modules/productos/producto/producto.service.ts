@@ -138,12 +138,12 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor);
   }
 
-  onGetProductoPorCodigo(texto, servidor: boolean = true): Observable<Producto> {
-    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor);
+  onGetProductoPorCodigo(texto, servidor: boolean = true, silentLoad: boolean = false): Observable<Producto> {
+    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor, undefined, silentLoad);
   }
 
-  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor);
+  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true, silentLoad: boolean = false): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor, undefined, silentLoad);
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {

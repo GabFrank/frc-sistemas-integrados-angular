@@ -3,8 +3,20 @@
         <video #video autoplay playsinline muted></video>
         <canvas #snapshotCanvas class="canvas-hidden"></canvas>
         <div class="detecting-overlay">
-            <mat-spinner *ngIf="detecting && mensajeReconocimiento === 'Buscando...'" diameter="28" color="accent"></mat-spinner>
+            <mat-spinner *ngIf="detecting && mensajeReconocimiento === 'Buscando coincidencia...'" diameter="28" color="accent"></mat-spinner>
             <span>{{ mensajeReconocimiento }}</span>
+        </div>
+    </div>
+    <div *ngIf="porcentajeSimilitud != null" class="similitud-panel" aria-live="polite">
+        <div class="similitud-label">Similitud: {{ porcentajeSimilitud }}%</div>
+        <div class="similitud-barra">
+            <div
+                class="similitud-relleno"
+                [class.similitud-alta]="barraSimilitudClase === 'similitud-alta'"
+                [class.similitud-media]="barraSimilitudClase === 'similitud-media'"
+                [class.similitud-baja]="barraSimilitudClase === 'similitud-baja'"
+                [style.width.%]="porcentajeSimilitud"
+            ></div>
         </div>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="detecting"></mat-progress-bar>
@@ -25,10 +37,28 @@
         <video #video autoplay playsinline muted></video>
         <canvas #canvas class="canvas-hidden"></canvas>
         <div class="liveness-overlay" *ngIf="detecting">
-            <mat-icon [class.success]="livenessStep === 'DONE'">{{ livenessStep === 'DONE' ? 'check_circle' : 'visibility' }}</mat-icon>
+            <mat-icon>face</mat-icon>
             <span>{{ mensajeReconocimiento }}</span>
         </div>
     </div>
+    <div *ngIf="detecting && porcentajeSimilitud != null" class="similitud-panel" aria-live="polite">
+        <div class="similitud-label">Similitud: {{ porcentajeSimilitud }}%</div>
+        <div class="similitud-barra">
+            <div
+                class="similitud-relleno"
+                [class.similitud-alta]="barraSimilitudClase === 'similitud-alta'"
+                [class.similitud-media]="barraSimilitudClase === 'similitud-media'"
+                [class.similitud-baja]="barraSimilitudClase === 'similitud-baja'"
+                [style.width.%]="porcentajeSimilitud"
+            ></div>
+        </div>
+    </div>
+    <mat-progress-bar
+        *ngIf="detecting && progresoVerificacion > 0"
+        mode="determinate"
+        [value]="progresoVerificacion"
+        color="accent"
+    ></mat-progress-bar>
     <div class="camera-container snapshot-container" *ngIf="verificacionSnapshotUrl">
         <img [src]="verificacionSnapshotUrl" class="snapshot-image" alt="Foto verificada" />
     </div>

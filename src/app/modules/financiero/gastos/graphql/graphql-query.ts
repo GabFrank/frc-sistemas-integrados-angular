@@ -250,13 +250,11 @@ export const tipoGastoQuery = gql`
       autorizacion
       activo
       activoEnSucursales
-      isClasificacion
       tipoNaturaleza
       moduloPadre
+      afectaFinanzasActivo
+      esPagoCuotaActivo
       cargo {
-        id
-      }
-      clasificacionGasto {
         id
       }
       usuario {
@@ -266,6 +264,23 @@ export const tipoGastoQuery = gql`
         }
       }
       creadoEn
+    }
+  }
+`;
+
+export const modulosGastoQuery = gql`
+  query {
+    data: modulosGasto {
+      valor
+      etiqueta
+      grupo
+      esServicioContinuo
+      tieneCuotasActivo
+      requiereEnteActivo
+      tipoEnteEsperado
+      diaVencimientoEnContinuo
+      lecturaMedidorEnContinuo
+      nisEnContinuo
     }
   }
 `;
@@ -291,13 +306,11 @@ export const saveTipoGasto = gql`
       autorizacion
       activo
       activoEnSucursales
-      isClasificacion
       tipoNaturaleza
       moduloPadre
+      afectaFinanzasActivo
+      esPagoCuotaActivo
       cargo {
-        id
-      }
-      clasificacionGasto {
         id
       }
       usuario {
@@ -470,6 +483,21 @@ export const filterPreGastosQuery = gql`
           vueltoRs
           vueltoDs
         }
+        rendiciones {
+          id
+          montoTotal
+          fotoFacturaUrl
+          fotoProductoUrl
+          fotosFacturaUrls
+          fotosProductoUrls
+          kmActual
+          litros
+          precioPorLitro
+          ubicacionProvisoria
+          establecimientoAlimentacion
+          creadoEn
+          tipoGasto { descripcion }
+        }
         creadoEn
       }
     }
@@ -477,8 +505,8 @@ export const filterPreGastosQuery = gql`
 `;
 
 export const filterTipoGastosQuery = gql`
-  query ($naturaleza: String, $texto: String, $page: Int, $size: Int) {
-    data: filterTipoGastos(naturaleza: $naturaleza, texto: $texto, page: $page, size: $size) {
+  query ($naturaleza: String, $texto: String, $moduloPadre: TipoPadreGastoModulo, $page: Int, $size: Int) {
+    data: filterTipoGastos(naturaleza: $naturaleza, texto: $texto, moduloPadre: $moduloPadre, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -492,15 +520,12 @@ export const filterTipoGastosQuery = gql`
         autorizacion
         activo
         activoEnSucursales
-        isClasificacion
         tipoNaturaleza
         moduloPadre
+        afectaFinanzasActivo
+        esPagoCuotaActivo
         cargo {
           id
-        }
-        clasificacionGasto {
-          id
-          descripcion
         }
         usuario {
           id

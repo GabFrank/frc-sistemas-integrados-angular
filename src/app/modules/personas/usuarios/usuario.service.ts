@@ -1,5 +1,6 @@
 import { Injectable, Injector } from "@angular/core";
 import { UsuarioPorIdGQL } from "./graphql/usuarioPorId";
+import { UsuarioLoginGQL } from "./graphql/usuarioLogin";
 import { Usuario } from "./usuario.model";
 import { UsuarioSearchGQL } from "./graphql/usuarioSearch";
 import {
@@ -22,7 +23,10 @@ import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inic
 import { GetUsuarioImagesGQL } from "./graphql/getUsuarioImages";
 import { SaveUsuarioImageGQL } from "./graphql/saveUsuarioImage";
 import { UsuarioPorEmbeddingGQL } from "./graphql/usuarioPorEmbedding";
+import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMarcacion";
+import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -34,6 +38,7 @@ export class UsuarioService {
 
   constructor(
     private getUsuario: UsuarioPorIdGQL,
+    private getUsuarioLogin: UsuarioLoginGQL,
     private getUsuarioPorPersonaId: UsuarioPorPersonaIdGQL,
     private saveUsuario: SaveUsuarioGQL,
     private searchUsuario: UsuarioSearchGQL,
@@ -46,6 +51,7 @@ export class UsuarioService {
     private getUsuarioImages: GetUsuarioImagesGQL,
     private saveUsuarioImage: SaveUsuarioImageGQL,
     private getUsuarioPorEmbedding: UsuarioPorEmbeddingGQL,
+    private incorporarEmbeddingMarcacion: IncorporarEmbeddingMarcacionGQL,
     private usuariosSearchPaginatedGQL: UsuariosSearchPaginatedGQL
 
   ) {
@@ -58,6 +64,12 @@ export class UsuarioService {
 
   onGetUsuario(id: number, servidor: boolean = true): Observable<any> {
     return this.genericService.onCustomQuery(this.getUsuario, { id }, servidor);
+  }
+
+  // Usa la query de login (sin `persona.embeddingFacial`) para ser compatible
+  // con servidores en `release/beta` que aun no tienen ese campo en el schema.
+  onGetUsuarioParaLogin(id: number, servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.getUsuarioLogin, { id }, servidor);
   }
 
   onGetUsuarioPorPersonaId(id: number, servidor: boolean = true, errorConf?: any): Observable<any> {
@@ -92,15 +104,44 @@ export class UsuarioService {
     return this.genericService.onCustomQuery(this.getUsuarioImages, { id, type }, servidor, errorConf);
   }
 
-  onSaveUsuarioImage(id: number, type: string, image: string, embedding: number[], servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.saveUsuarioImage, { id, type, image, embedding }, servidor);
+  onSaveUsuarioImage(
+    id: number,
+    type: string,
+    image: string,
+    embedding: number[],
+    servidor: boolean = true,
+    embeddingGaleriaJson?: string
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.saveUsuarioImage,
+      { id, type, image, embedding, embeddingGaleriaJson },
+      servidor
+    );
   }
 
   onGetUsuarioPorEmbedding(embedding: number[], excludeIds: number[] = [], servidor: boolean = true): Observable<any> {
     return this.genericService.onCustomQuery(this.getUsuarioPorEmbedding, { embedding, excludeIds }, servidor, null, true);
   }
 
-  onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<any> {
+  onIncorporarEmbeddingMarcacion(
+    usuarioId: number,
+    embedding: number[],
+    score: number,
+    servidor: boolean = true
+  ): Observable<IncorporarEmbeddingMarcacionResult> {
+    return this.genericService.onCustomMutation(
+      this.incorporarEmbeddingMarcacion,
+      { usuarioId, embedding, score },
+      servidor,
+      true
+    );
+  }
+
+  onSearchUsuarioPaginated(texto: string, page: number, size: number, servidor: boolean = true): Observable<PageInfo<Usuario>> {
     return this.genericService.onCustomQuery(this.usuariosSearchPaginatedGQL, { texto, page, size }, servidor);
+  }
+
+  onSearchConFiltros(texto: string, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Usuario>> {
+    return this.onSearchUsuarioPaginated(texto, pageIndex, pageSize, servidor);
   }
 }

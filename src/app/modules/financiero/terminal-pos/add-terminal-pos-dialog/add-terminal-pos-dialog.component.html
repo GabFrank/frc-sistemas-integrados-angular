@@ -1,0 +1,83 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>Nueva Terminal POS</h2>
+  
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="15px">
+    <!-- Nombre -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%" style="margin-bottom: 10px;">
+        <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 10px;">
+          <mat-label>Descripción</mat-label>
+          <input
+            matInput
+            [formControl]="descripcionControl"
+            required
+            #nombre
+          />
+          <mat-error *ngIf="descripcionControl.hasError('required')">
+            Descripción es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Codigo -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 10px;">
+          <mat-label>Código</mat-label>
+          <input
+            matInput
+            [formControl]="codigoControl"
+            required
+          />
+          <mat-error *ngIf="codigoControl.hasError('required')">
+            Código es obligatorio
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Moneda -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Moneda</mat-label>
+          <mat-select [formControl]="monedaControl">
+            <mat-option [value]="null">Cancelar</mat-option>
+            <mat-option *ngFor="let m of monedas" [value]="m.id">
+              {{ m.denominacion }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Checkbox -->
+    <div fxLayout="column" fxLayoutGap="10px">
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-checkbox
+            [formControl]="activoControl"
+            [checked]="activoControl.value">
+            Activo
+          </mat-checkbox>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Action Buttons -->
+  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="margin-top: 20px;">
+    <button mat-raised-button color="primary" (click)="onCancel()">
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      [disabled]="isEditting && formGroup.invalid"
+      (click)="isEditting ? onSave() : onHabilitarEdicion()"
+    >
+      {{ isEditting ? 'Guardar' : 'Editar' }}
+    </button>
+  </div>
+</div> 

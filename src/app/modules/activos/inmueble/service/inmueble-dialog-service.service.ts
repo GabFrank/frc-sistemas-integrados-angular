@@ -14,7 +14,7 @@ import { MainService } from '../../../../main.service';
 import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormGroup } from '@angular/forms';
-import { CuotaDetalle } from '../../shared/models/cuota-detalle.model';
+import { CuotaDetalle, sanitizarCuotasDetalle } from '../../shared/models/cuota-detalle.model';
 
 @Injectable({
   providedIn: 'root'
@@ -75,7 +75,7 @@ export class InmuebleDialogService {
     const values = form.getRawValue();
     const input: InmuebleInput = {
       ...values,
-      cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+      cuotasDetalle: values.situacionPago === 'PAGANDO' ? sanitizarCuotasDetalle(cuotasDetalle) : undefined,
       id: values.id ? Number(values.id) : undefined,
       nombreAsignado: values.nombreAsignado?.toUpperCase() || '',
       direccion: values.direccion?.toUpperCase() || '',

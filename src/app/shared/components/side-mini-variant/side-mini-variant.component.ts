@@ -37,7 +37,7 @@ import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-l
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
@@ -53,6 +53,8 @@ import { ListMarcacionComponent } from '../../../modules/administrativo/marcacio
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
+import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -291,6 +293,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'qr_code_2',
           action: 'list-lote-de',
           visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Terminales POS',
+          icon: 'contactless',
+          action: 'terminal-pos-dashboard',
+          visibilityRoles: [ROLES.ADMIN]
         }
       ]
     },
@@ -415,9 +423,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       visibilityRoles: [ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE],
       items: [
         {
-          name: 'Impresoras Térmicas',
+          name: 'Impresoras',
           icon: 'print',
-          action: 'thermal-printer',
+          action: 'impresoras',
           visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
         },
         {
@@ -692,6 +700,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
+      case "terminal-pos-dashboard":
+        this.openTabIfAuthorized(ROLES.ADMIN, TerminalPosDashboard, "Terminal Dashboard");
+        break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
         break;
@@ -755,10 +766,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-proveedor":
         this.tabService.addTab(new Tab(ListProveedorComponent, "Proveedores", null, null));
         break;
-      case "thermal-printer":
+      case "impresoras":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
           || this.mainService.usuarioActual?.roles.includes("CONFIGURACION")) {
-          this.tabService.addTab(new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null));
+          this.tabService.addTab(new Tab(ListImpresorasComponent, "Impresoras", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

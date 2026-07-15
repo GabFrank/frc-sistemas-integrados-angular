@@ -49,7 +49,7 @@
         </ng-container>
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef>Concepto</th>
-          <td mat-cell *matCellDef="let item">{{ item.descripcion }}</td>
+          <td mat-cell *matCellDef="let item" class="celda-descripcion">{{ item.descripcionLimpia || item.descripcion }}</td>
         </ng-container>
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>
@@ -108,7 +108,7 @@
         style="width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1);" showFirstLastButtons>
       </mat-paginator>
     </div>
-    <div fxFlex="35%" style="height: 100%; background-color: rgb(52, 52, 52); padding: 16px; border-radius: 4px;">
+    <div fxFlex="35%" style="height: 100%; background-color: rgb(52, 52, 52); padding: 16px; border-radius: 4px; overflow-y: auto;">
       <div *ngIf="(preGastoSeleccionado$ | async) as seleccionado; else sinSeleccion" fxLayout="column"
         fxLayoutGap="16px">
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
@@ -185,11 +185,11 @@
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Tuvo vuelto:</span>
-            <span>{{ (seleccionado.saldoDevolver || 0) > 0 ? 'Sí' : 'No' }}</span>
+            <span>{{ tuvoVuelto(seleccionado) ? 'Sí' : 'No' }}</span>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">Monto vuelto:</span>
-            <span>{{ (seleccionado.saldoDevolver || 0) | number:'1.0-0' }} {{ seleccionado.moneda?.simbolo }}</span>
+            <span>{{ montoVueltoPorMoneda(seleccionado) }}</span>
           </div>
           <div fxLayout="row" fxLayoutAlign="space-between start">
             <span style="color: #aaa">¿Rindió?</span>
@@ -223,6 +223,26 @@
           </div>
         </div>
 
+        <div *ngIf="(fotosRendicion$ | async) as fotos" style="margin-top: 8px;">
+          <button *ngIf="fotos.length" mat-stroked-button color="primary" style="width: 100%;"
+            (click)="toggleRendicion()">
+            <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">photo_library</mat-icon>
+            {{ (mostrarRendicion$ | async) ? 'OCULTAR RENDICIÓN' : 'VER RENDICIÓN' }} ({{ fotos.length }})
+          </button>
+
+          <div *ngIf="(mostrarRendicion$ | async) && fotos.length" fxLayout="row wrap" fxLayoutAlign="start start"
+            fxLayoutGap="8px grid" style="margin-top: 12px;">
+            <div *ngFor="let foto of fotos; let i = index" fxFlex="50%" fxFlex.lt-md="100%">
+              <div fxLayout="column" fxLayoutGap="4px"
+                style="background-color: rgb(40, 40, 40); border-radius: 4px; padding: 6px;">
+                <img [src]="foto.url" [alt]="foto.etiqueta" loading="lazy" (click)="ampliarFoto(fotos, i)"
+                  style="width: 100%; height: 130px; object-fit: cover; border-radius: 4px; cursor: pointer;" />
+                <span style="color: #bbb; font-size: 0.75em; text-align: center;">{{ foto.etiqueta }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <ng-template #sinSeleccion>
@@ -234,4 +254,33 @@
       </ng-template>
     </div>
   </div>
+
+  <ng-template #imageDialogTemplate>
+    <div style="position: relative; width: 100%; height: 100%; max-width: 95vw; max-height: 95vh; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: zoom-out;" (click)="cerrarFotoAmpliada()">
+      
+      <button mat-icon-button (click)="cambiarFoto(-1, $event)" *ngIf="fotosDialog.length > 1 && indiceFotoDialog > 0"
+        style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #fff; background-color: rgba(0,0,0,0.5); z-index: 10;">
+        <mat-icon style="font-size: 36px; width: 36px; height: 36px;">chevron_left</mat-icon>
+      </button>
+
+      <button mat-icon-button (click)="cerrarFotoAmpliada()"
+        style="position: absolute; top: 16px; right: 16px; color: #fff; background-color: rgba(0,0,0,0.5); z-index: 10;">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <button mat-icon-button (click)="cambiarFoto(1, $event)" *ngIf="fotosDialog.length > 1 && indiceFotoDialog < fotosDialog.length - 1"
+        style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #fff; background-color: rgba(0,0,0,0.5); z-index: 10;">
+        <mat-icon style="font-size: 36px; width: 36px; height: 36px;">chevron_right</mat-icon>
+      </button>
+
+      <div style="position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <img [src]="fotosDialog[indiceFotoDialog]?.url" alt="Rendición" (click)="$event.stopPropagation()"
+          style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 24px rgba(0,0,0,0.6); cursor: default;" />
+        <div style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 4px; display: flex; align-items: center; gap: 8px;">
+           <span style="font-weight: 500;">{{ fotosDialog[indiceFotoDialog]?.etiqueta }}</span>
+           <span style="opacity: 0.7; font-size: 0.8em;">({{ indiceFotoDialog + 1 }} / {{ fotosDialog.length }})</span>
+        </div>
+      </div>
+    </div>
+  </ng-template>
 </app-generic-list>

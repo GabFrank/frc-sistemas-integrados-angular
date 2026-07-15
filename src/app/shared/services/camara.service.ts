@@ -13,15 +13,30 @@ export class CamaraService {
         if (this.stream) {
             this.detenerCamara();
         }
+        const constraints: MediaStreamConstraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        };
         try {
-            this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             return this.stream;
         } catch (err) {
-            throw new Error('No se pudo acceder a la cámara: ' + err);
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                return this.stream;
+            } catch (fallbackErr) {
+                throw new Error('No se pudo acceder a la cámara: ' + fallbackErr);
+            }
         }
     }
 
-    detenerCamara(): void {
+    detenerCamara(video?: HTMLVideoElement | null): void {
+        if (video) {
+            video.srcObject = null;
+        }
         if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop());
             this.stream = null;

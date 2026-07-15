@@ -13,7 +13,8 @@ export enum ProcesoEtapaEstado {
   PENDIENTE = 'PENDIENTE',
   EN_PROCESO = 'EN_PROCESO',
   COMPLETADA = 'COMPLETADA',
-  OMITIDA = 'OMITIDA'
+  OMITIDA = 'OMITIDA',
+  CANCELADA = 'CANCELADA'
 }
 
 export class ProcesoEtapa {

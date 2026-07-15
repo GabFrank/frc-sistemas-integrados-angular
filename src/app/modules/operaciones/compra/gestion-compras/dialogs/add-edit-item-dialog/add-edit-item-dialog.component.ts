@@ -16,10 +16,12 @@ import { MatSelect } from "@angular/material/select";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
 import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+  ComprasSearchProductoData,
+  ComprasSearchProductoDialogComponent,
+  ComprasSearchProductoResponse,
+} from "../compras-search-producto-dialog/compras-search-producto-dialog.component";
+import { BuscadorComprasService } from "../../buscador-compras.service";
+import { take } from "rxjs/operators";
 import {
   PedidoItem,
   PedidoItemInput,
@@ -48,9 +50,13 @@ export interface AddEditItemDialogData {
   pedido: Pedido;
   item?: PedidoItem;
   lastSearchText?: string;
+  coincidenciaExacta?: boolean;
   producto?: Producto;
   presentacion?: Presentacion;
+  productoIdsEnPedido?: number[];
 }
+
+const MENSAJE_PRODUCTO_YA_EN_PEDIDO = "Ya existe un producto cargado en la lista";
 
 export interface AddEditItemDialogResult {
   item: PedidoItem;
@@ -91,6 +97,7 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Product data
   private originalSearchText = '';
+  private productoIdsEnPedido: number[] = [];
   selectedProducto: Producto | null = null;
   presentacionesDisponibles: Presentacion[] = [];
 
@@ -228,6 +235,7 @@ export class AddEditItemDialogComponent implements OnInit {
     private dialogosService: DialogosService,
     private productoService: ProductoService,
     private movimientoStockService: MovimientoStockService,
+    private buscadorComprasService: BuscadorComprasService,
     @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
   ) {
     this.initializeForm();
@@ -240,12 +248,17 @@ export class AddEditItemDialogComponent implements OnInit {
     
     if (!this.data.isEdit) {
       this.updateComputedProperties();
+      this.loadProductoIdsEnPedido();
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
 
     if (!this.data.isEdit && this.data.producto) {
-      this.onProductoSelected(this.data.producto, this.data.presentacion);
+      this.onProductoSelected(
+        this.data.producto,
+        this.data.presentacion,
+        this.data.coincidenciaExacta === true
+      );
     }
 
     this.setInitialFocus();
@@ -293,7 +306,10 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   private initializeForm(): void {
-    const initialSearch = (!this.data.isEdit && this.data.lastSearchText) ? this.data.lastSearchText : "";
+    const initialSearch =
+      !this.data.isEdit && this.data.lastSearchText && !this.data.coincidenciaExacta
+        ? this.data.lastSearchText
+        : "";
     this.originalSearchText = initialSearch;
     this.itemForm = this.formBuilder.group({
       productoSearch: [initialSearch],
@@ -679,50 +695,156 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Product search functionality similar to edit-transferencia.component.ts
   onSearchProducto(): void {
-    const searchText = this.itemForm.get("productoSearch")?.value || "";
+    const searchText = (this.itemForm.get("productoSearch")?.value || "").trim();
     this.originalSearchText = searchText;
 
-    const dialogData: PdvSearchProductoData = {
+    if (!searchText) {
+      this.abrirDialogoBusquedaProducto(searchText);
+      return;
+    }
+
+    this.buscadorComprasService
+      .buscarProductosParaDialog(searchText, 0, 20, true)
+      .pipe(take(1))
+      .subscribe({
+        next: (productos) => {
+          const productoExacto = this.buscadorComprasService.encontrarCoincidenciaExacta(
+            productos,
+            searchText
+          );
+
+          if (productoExacto) {
+            this.onProductoSelected(productoExacto, undefined, true);
+            this.enfocarTrasSeleccionProducto({
+              producto: productoExacto,
+              coincidenciaExacta: true,
+            });
+            return;
+          }
+
+          this.abrirDialogoBusquedaProducto(searchText);
+        },
+        error: () => this.abrirDialogoBusquedaProducto(searchText),
+      });
+  }
+
+  private abrirDialogoBusquedaProducto(searchText: string): void {
+    const dialogData: ComprasSearchProductoData = {
       texto: searchText,
-      cantidad: 1,
       mostrarStock: false,
-      conservarUltimaBusqueda: true,
     };
 
-    const dialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
+    const dialogRef = this.dialog.open(ComprasSearchProductoDialogComponent, {
       height: "80%",
       data: dialogData,
     });
 
     dialogRef
       .afterClosed()
-      .subscribe((result: PdvSearchProductoResponseData) => {
-        if (result && result.producto && result.presentacion) {
-          console.log(result);
-          this.onProductoSelected(result.producto, result.presentacion);
+      .subscribe((result: ComprasSearchProductoResponse) => {
+        if (result?.producto) {
+          this.onProductoSelected(
+            result.producto,
+            result.presentacion,
+            result.coincidenciaExacta === true
+          );
         }
 
-        // based on some condition, move focus
-        setTimeout(() => {
-          if (!result.producto) {
-            this.productoInput?.nativeElement.select();
-          } else if (!result.presentacion) {
-            this.presentacionSelect?.focus();
-            setTimeout(() => {
-              this.presentacionSelect?.open();
-            }, 100);
-          } else {
-            // Si hay producto y presentación, ir a precio
-            if (!this.isBonificacionComputed) {
-              this.precioPorPresentacionInput?.nativeElement.focus();
-              this.precioPorPresentacionInput?.nativeElement.select();
-            }
-          }
-        }, 500);
+        this.enfocarTrasSeleccionProducto(result);
       });
   }
 
-  onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
+  private enfocarTrasSeleccionProducto(result?: ComprasSearchProductoResponse): void {
+    if (result?.coincidenciaExacta) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (!result?.producto) {
+        this.productoInput?.nativeElement.select();
+      } else if (!result.presentacion) {
+        this.presentacionSelect?.focus();
+        setTimeout(() => {
+          this.presentacionSelect?.open();
+        }, 100);
+      } else if (!this.isBonificacionComputed) {
+        this.precioPorPresentacionInput?.nativeElement.focus();
+        this.precioPorPresentacionInput?.nativeElement.select();
+      }
+    }, 500);
+  }
+
+  private loadProductoIdsEnPedido(): void {
+    if (this.data.productoIdsEnPedido?.length) {
+      this.productoIdsEnPedido = this.data.productoIdsEnPedido.map((id) => Number(id));
+      return;
+    }
+
+    if (!this.data.pedido?.id) {
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+        },
+        error: () => {
+          this.productoIdsEnPedido = [];
+        },
+      });
+  }
+
+  private extractProductoIds(items: PedidoItem[]): number[] {
+    return items
+      .map((item) => item.producto?.id)
+      .filter((id): id is number => id != null)
+      .map((id) => Number(id));
+  }
+
+  private productoYaEstaEnPedido(productoId?: number): boolean {
+    if (productoId == null) {
+      return false;
+    }
+
+    const idBuscado = Number(productoId);
+    return this.productoIdsEnPedido.some((id) => Number(id) === idBuscado);
+  }
+
+  private avisoProductoYaEnPedido(productoId?: number): void {
+    if (this.data.isEdit || productoId == null) {
+      return;
+    }
+
+    const mostrarAvisoSiCorresponde = () => {
+      if (this.productoYaEstaEnPedido(productoId)) {
+        this.notificacionService.openWarn(MENSAJE_PRODUCTO_YA_EN_PEDIDO);
+      }
+    };
+
+    if (this.productoIdsEnPedido.length > 0 || !this.data.pedido?.id) {
+      mostrarAvisoSiCorresponde();
+      return;
+    }
+
+    this.pedidoService
+      .onGetPedidoItemsByPedidoId(this.data.pedido.id, true)
+      .subscribe({
+        next: (items) => {
+          this.productoIdsEnPedido = this.extractProductoIds(items);
+          mostrarAvisoSiCorresponde();
+        },
+      });
+  }
+
+  onProductoSelected(
+    producto: Producto,
+    presentacion?: Presentacion,
+    coincidenciaExacta = false
+  ): void {
+    this.avisoProductoYaEnPedido(producto?.id);
+
     this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
     
     this.selectedProducto = producto;
@@ -770,7 +892,7 @@ export class AddEditItemDialogComponent implements OnInit {
     
     this.itemForm.patchValue(
       {
-        productoSearch: producto.descripcion,
+        productoSearch: coincidenciaExacta ? "" : producto.descripcion,
         producto: producto,
         presentacion: presentacionSeleccionada,
         precioUnitarioSolicitado: precioInicial,

@@ -27,6 +27,7 @@ export class ExportarGraficoExcelGQL extends Query<{ data: string }> {
           ? input.usuarioIds.map(String)
           : null,
         familiaId: input.familiaId != null ? String(input.familiaId) : null,
+        subfamiliaId: input.subfamiliaId != null ? String(input.subfamiliaId) : null,
         productoIds: input.productoIds?.length
           ? input.productoIds.map(String)
           : null,

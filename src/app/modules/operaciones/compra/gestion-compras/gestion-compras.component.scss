@@ -991,12 +991,18 @@
   .items-actions {
     margin-right: 16px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
 
+    .add-item-search-wrapper {
+      position: relative;
+      min-width: 280px;
+    }
+
     .add-item-search-field {
-      min-width: 260px;
+      min-width: 280px;
       margin: 0;
+      width: 100%;
     }
   }
 }
@@ -1161,6 +1167,7 @@
 
           .search-field {
             flex-shrink: 0;
+            width: 100%;
           }
 
           .table-container-small {

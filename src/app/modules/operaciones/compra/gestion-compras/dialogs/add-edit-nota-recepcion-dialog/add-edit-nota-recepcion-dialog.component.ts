@@ -1,13 +1,21 @@
-import { Component, Inject, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Inject,
+  OnInit,
+  ViewChild,
+  AfterViewInit,
+} from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
-import { Subject } from 'rxjs';
+import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, first } from 'rxjs/operators';
 
-import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta, NotaRecepcionInput } from '../../nota-recepcion.model';
+import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta } from '../../nota-recepcion.model';
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
 import { Pedido } from '../../pedido.model';
 import { Moneda } from '../../../../../financiero/moneda/moneda.model';
@@ -37,13 +45,14 @@ export interface AddEditNotaRecepcionDialogResult {
   success: boolean;
   message?: string;
   changesMade: boolean;
-  operation?: 'created' | 'updated' | 'deleted_item' | 'no_changes';
+  operation?: 'created' | 'updated' | 'deleted_item' | 'deleted' | 'no_changes';
 }
 
 @Component({
   selector: 'app-add-edit-nota-recepcion-dialog',
   templateUrl: './add-edit-nota-recepcion-dialog.component.html',
-  styleUrls: ['./add-edit-nota-recepcion-dialog.component.scss']
+  styleUrls: ['./add-edit-nota-recepcion-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
@@ -111,21 +120,32 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades computadas para items (se actualizan cuando cambia itemsDataSource)
   computedItemsData: any[] = [];
 
-  // Símbolo y formato de la moneda actual de la nota — usados por el HTML para prefix y decimales.
-  get notaSimbolo(): string {
-    return this.notaRecepcionForm?.get('moneda')?.value?.simbolo || '';
-  }
-  get notaDecimalFormat(): string {
-    return this.notaRecepcionForm?.get('moneda')?.value?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
-  }
+  // Moneda y estado de acciones — precalculados, no usar getters en template
+  notaSimbolo = '';
+  notaDecimalFormat = '1.0-0';
+  mostrarHintCotizacionMercado = false;
+  hayCambiosPendientes = false;
+  tieneItemsPendientesConciliacion = false;
+  puedeGuardar = false;
+  puedeCancelar = false;
+  textoBotonSalir = 'Salir';
 
   // Propiedades para asignación automática
   assignmentStatusText: string = '';
   assignmentStatusClass: string = '';
+  assignmentStatusClassFull: string = 'assignment-text';
   showAssignmentStatus: boolean = false;
 
-  // Bandera para saber si ya se creó la nota
+  // Bandera para saber si ya se creó la nota en esta sesión del diálogo
   private notaCreada: boolean = false;
+  /** Si el diálogo se abrió en modo edición (nota ya existente). */
+  private readonly initialIsEdit: boolean;
+
+  /** IDs de ítems agregados en esta sesión (modo edición ABM). */
+  private itemsAgregadosEnSesion: number[] = [];
+
+  /** Snapshot del formulario para revertir cambios del encabezado. */
+  private notaFormSnapshot: Record<string, unknown> | null = null;
   
   // Bandera para rastrear si se hicieron cambios en el diálogo
   private changesMade: boolean = false;
@@ -143,6 +163,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   loadingMonedas = false;
   loadingItems = false;
   savingNota = false;
+  deletingNota = false;
   
   // Estados para manejo de selects en navegación
   tipoBoletaSelectOpen = false;
@@ -158,9 +179,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private dialogosService: DialogosService,
     private dialog: MatDialog,
     private cambioService: CambioService,
-    private mainService: MainService
+    private mainService: MainService,
+    private cdr: ChangeDetectorRef
   ) {
     this.readOnly = !!data.readOnly;
+    this.textoBotonSalir = this.readOnly ? 'Cerrar' : 'Salir';
+    this.initialIsEdit = data.isEdit;
     this.dialogTitle = this.readOnly ? 'Ver Nota de Recepción' : (data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción');
     this.actionButtonText = data.isEdit ? 'Actualizar' : 'Crear';
     this.notaCreada = false;
@@ -206,6 +230,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
                 { emitEvent: false }
               );
             }
+            this.updateComputedProperties();
           }
         },
         error: (error) => {
@@ -277,6 +302,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // En modo solo lectura, no mostrar columna de acciones en la tabla de ítems
     if (this.readOnly) {
       this.displayedColumns = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'distribucion'];
+    }
+
+    if (this.initialIsEdit) {
+      setTimeout(() => this.saveFormSnapshot(), 0);
     }
   }
 
@@ -497,7 +526,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   onGuardarButtonKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (this.notaRecepcionForm.valid) {
+      if (this.puedeGuardar) {
         this.onSave();
       } else {
         // Marcar todos los campos como touched para mostrar errores
@@ -510,17 +539,61 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   updateComputedProperties(): void {
-    // Actualizar error states
     this.updateErrorStates();
-    
-    // Actualizar propiedades del card informativo
     this.updateCardProperties();
-    
-    // Actualizar datos computados de items
     this.updateItemsComputedData();
-    
-    // Actualizar estado de asignación automática
     this.updateAssignmentStatus();
+    this.actualizarEstadoAcciones();
+    this.cdr.markForCheck();
+  }
+
+  private actualizarEstadoAcciones(): void {
+    const formularioListo = !!this.notaRecepcionForm;
+    this.hayCambiosPendientes = formularioListo
+      && (this.notaRecepcionForm.dirty || this.itemsAgregadosEnSesion.length > 0);
+    this.tieneItemsPendientesConciliacion = this.evaluarItemsPendientesConciliacion();
+
+    if (
+      !formularioListo
+      || this.notaRecepcionForm.invalid
+      || this.esNotaRechazoComputed
+      || this.deletingNota
+      || this.savingNota
+      || this.tieneItemsPendientesConciliacion
+    ) {
+      this.puedeGuardar = false;
+    } else if (!this.initialIsEdit && !this.notaCreada) {
+      this.puedeGuardar = true;
+    } else {
+      this.puedeGuardar = this.hayCambiosPendientes;
+    }
+
+    if (this.readOnly || this.deletingNota) {
+      this.puedeCancelar = false;
+    } else if (!this.initialIsEdit && this.notaCreada && !!this.data.nota?.id) {
+      this.puedeCancelar = true;
+    } else {
+      this.puedeCancelar = this.initialIsEdit && this.hayCambiosPendientes;
+    }
+  }
+
+  /**
+   * Ítems agregados en sesión con distribución o conciliación incompleta.
+   */
+  private evaluarItemsPendientesConciliacion(): boolean {
+    if (this.itemsAgregadosEnSesion.length === 0) {
+      return false;
+    }
+
+    return this.itemsDataSource.data.some(item => {
+      if (!item.id || !this.itemsAgregadosEnSesion.includes(item.id)) {
+        return false;
+      }
+      if (item.estado === NotaRecepcionItemEstado.RECHAZADO) {
+        return false;
+      }
+      return !item.distribucionConcluida;
+    });
   }
 
   private updateErrorStates(): void {
@@ -586,6 +659,13 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.esNotaRechazoComputed = this.data.nota?.esNotaRechazo || false;
     this.notaRechazoDisplayText = this.esNotaRechazoComputed ? 'Nota de Rechazo' : '';
     this.notaRechazoChipClass = this.esNotaRechazoComputed ? 'estado-cancelado' : '';
+
+    const moneda = this.notaRecepcionForm.get('moneda')?.value;
+    this.notaSimbolo = moneda?.simbolo || '';
+    this.notaDecimalFormat = moneda?.denominacion === 'GUARANI' ? '1.0-0' : '1.0-2';
+
+    const cotizacion = this.notaRecepcionForm.get('cotizacion')?.value;
+    this.mostrarHintCotizacionMercado = cotizacion > 1;
   }
 
   private updateItemsComputedData(): void {
@@ -627,6 +707,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       this.assignmentStatusText = '';
       this.assignmentStatusClass = '';
     }
+
+    this.assignmentStatusClassFull = this.showAssignmentStatus
+      ? `assignment-text ${this.assignmentStatusClass}`
+      : 'assignment-text';
   }
 
   // Métodos internos para computar valores (NO usar en templates)
@@ -751,12 +835,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     });
 
     // Manejar resultado del diálogo
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.notificacionService.openSucess('Ítem agregado exitosamente');
-        // Marcar que se hicieron cambios (esto puede afectar el estado de la nota)
+    dialogRef.afterClosed().subscribe((result: NotaRecepcionItem) => {
+      if (result?.id) {
+        if (this.initialIsEdit || this.notaCreada) {
+          this.itemsAgregadosEnSesion.push(result.id);
+        }
         this.changesMade = true;
-        // Recargar la tabla de ítems
         this.loadItems();
       }
     });
@@ -950,20 +1034,279 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     });
   }
 
-  onCancel(): void {
-    // Devolver resultado indicando si se hicieron cambios
+  private saveFormSnapshot(): void {
+    this.notaFormSnapshot = this.notaRecepcionForm.getRawValue();
+    this.notaRecepcionForm.markAsPristine();
+    this.actualizarEstadoAcciones();
+  }
+
+  private revertirFormulario(): void {
+    if (this.notaFormSnapshot) {
+      this.notaRecepcionForm.patchValue(this.notaFormSnapshot);
+      this.notaRecepcionForm.markAsPristine();
+      this.updateComputedProperties();
+    }
+  }
+
+  onSalir(): void {
+    if (!this.hayCambiosPendientes) {
+      this.cerrarDialogo();
+      return;
+    }
+
+    const cantidadItems = this.itemsAgregadosEnSesion.length;
+    const encabezadoModificado = this.notaRecepcionForm.dirty;
+    let mensaje: string;
+
+    if (cantidadItems > 0 && encabezadoModificado) {
+      mensaje = 'Hay ítems agregados sin confirmar y cambios en el encabezado sin guardar. '
+        + 'Si sale ahora, los productos no se cargarán y se perderán los datos. ¿Desea salir de todas formas?';
+    } else if (cantidadItems > 0) {
+      mensaje = `Hay ${cantidadItems} ítem(s) agregado(s) sin confirmar con Actualizar. `
+        + 'Si sale ahora, esos productos no se cargarán en la nota. ¿Desea salir de todas formas?';
+    } else {
+      mensaje = 'Hay cambios en el encabezado sin guardar. '
+        + 'Si sale ahora, se perderán los datos. ¿Desea salir de todas formas?';
+    }
+
+    this.dialogosService.confirm(
+      'Confirmar salida',
+      mensaje,
+      undefined,
+      undefined,
+      true,
+      'Salir',
+      'Permanecer'
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe(confirmed => {
+        if (confirmed) {
+          this.limpiarCambiosPendientesYcerrar();
+        }
+      });
+  }
+
+  private limpiarCambiosPendientesYcerrar(): void {
+    const idsAEliminar = [...this.itemsAgregadosEnSesion];
+
+    if (idsAEliminar.length === 0) {
+      this.cerrarDialogo();
+      return;
+    }
+
+    this.deletingNota = true;
+    this.actualizarEstadoAcciones();
+    this.cdr.markForCheck();
+
+    const eliminaciones = idsAEliminar.map(id =>
+      this.pedidoService.onDeleteNotaRecepcionItem(id)
+    );
+
+    forkJoin(eliminaciones)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resultados) => {
+          const huboError = resultados.some(success => !success);
+          this.itemsAgregadosEnSesion = [];
+          this.deletingNota = false;
+
+          if (huboError) {
+            this.notificacionService.openAlgoSalioMal('No se pudieron eliminar todos los ítems. No se cerró el diálogo.');
+            this.actualizarEstadoAcciones();
+            this.cdr.markForCheck();
+            return;
+          }
+
+          this.changesMade = true;
+          this.cerrarDialogo();
+        },
+        error: (error) => {
+          console.error('Error al limpiar ítems antes de salir:', error);
+          this.deletingNota = false;
+          this.actualizarEstadoAcciones();
+          this.cdr.markForCheck();
+          this.notificacionService.openAlgoSalioMal('Error al limpiar ítems antes de salir');
+        }
+      });
+  }
+
+  private cerrarDialogo(): void {
     const result: AddEditNotaRecepcionDialogResult = {
       success: true,
       changesMade: this.changesMade,
       operation: this.changesMade ? 'updated' : 'no_changes',
-      message: this.changesMade ? 
-        (this.autoAssignItems && this.selectedItemsToAssign.length > 0 ? 
-          `Nota creada y ${this.selectedItemsToAssign.length} ítems asignados exitosamente` : 
-          'Cambios realizados en la nota de recepción') : 
+      message: this.changesMade ?
+        (this.autoAssignItems && this.selectedItemsToAssign.length > 0 ?
+          `Nota creada y ${this.selectedItemsToAssign.length} ítems asignados exitosamente` :
+          'Cambios realizados en la nota de recepción') :
         'No se realizaron cambios'
     };
-    
+
     this.dialogRef.close(result);
+  }
+
+  onCancelar(): void {
+    if (!this.initialIsEdit && this.notaCreada) {
+      this.onCancelarCreacion();
+      return;
+    }
+    if (this.initialIsEdit && this.hayCambiosPendientes) {
+      this.onCancelarCambiosEdicion();
+    }
+  }
+
+  private onCancelarCambiosEdicion(): void {
+    const cantidadItems = this.itemsAgregadosEnSesion.length;
+    const mensaje = cantidadItems > 0
+      ? `¿Desea cancelar los cambios? Se eliminarán ${cantidadItems} ítem(s) agregado(s) y se revertirán los cambios del encabezado.`
+      : '¿Desea cancelar los cambios del encabezado?';
+
+    this.dialogosService.confirm('Cancelar Cambios', mensaje)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(confirmed => {
+        if (!confirmed) {
+          return;
+        }
+        this.revertirCambiosPendientes();
+      });
+  }
+
+  private revertirCambiosPendientes(): void {
+    this.deletingNota = true;
+    this.actualizarEstadoAcciones();
+    this.cdr.markForCheck();
+    const idsAEliminar = [...this.itemsAgregadosEnSesion];
+
+    if (idsAEliminar.length === 0) {
+      this.revertirFormulario();
+      this.deletingNota = false;
+      this.changesMade = false;
+      this.actualizarEstadoAcciones();
+      this.cdr.markForCheck();
+      this.notificacionService.openSucess('Cambios cancelados');
+      return;
+    }
+
+    const eliminaciones = idsAEliminar.map(id =>
+      this.pedidoService.onDeleteNotaRecepcionItem(id)
+    );
+
+    forkJoin(eliminaciones)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resultados) => {
+          const huboError = resultados.some(success => !success);
+          this.itemsAgregadosEnSesion = [];
+          this.revertirFormulario();
+          this.loadItems();
+          this.deletingNota = false;
+          this.changesMade = !huboError;
+          this.updateComputedProperties();
+
+          if (huboError) {
+            this.notificacionService.openWarn('Algunos ítems no pudieron eliminarse');
+          } else {
+            this.notificacionService.openSucess('Cambios cancelados');
+          }
+        },
+        error: (error) => {
+          console.error('Error al cancelar cambios:', error);
+          this.deletingNota = false;
+          this.actualizarEstadoAcciones();
+          this.cdr.markForCheck();
+          this.notificacionService.openAlgoSalioMal('Error al cancelar los cambios');
+        }
+      });
+  }
+
+  private onCancelarCreacion(): void {
+    if (this.initialIsEdit || !this.notaCreada || !this.data.nota?.id) {
+      return;
+    }
+
+    const numeroNota = this.data.nota.numero;
+    this.dialogosService.confirm(
+      'Cancelar Creación',
+      `¿Está seguro de cancelar la creación de la nota ${numeroNota}? Se eliminará la nota y todos sus ítems.`
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe(confirmed => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingNota = true;
+        this.actualizarEstadoAcciones();
+        this.cdr.markForCheck();
+        this.pedidoService.onDeleteNotaRecepcion(this.data.nota!.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (success) => {
+              this.deletingNota = false;
+              if (success) {
+                this.changesMade = true;
+                this.notificacionService.openSucess('Creación de nota cancelada');
+                this.reiniciarDespuesCancelarCreacion();
+              } else {
+                this.actualizarEstadoAcciones();
+                this.cdr.markForCheck();
+                this.notificacionService.openAlgoSalioMal('No se pudo cancelar la creación de la nota');
+              }
+            },
+            error: (error) => {
+              console.error('Error al cancelar creación de nota:', error);
+              this.deletingNota = false;
+              this.actualizarEstadoAcciones();
+              this.cdr.markForCheck();
+              this.notificacionService.openAlgoSalioMal('Error al cancelar la creación de la nota');
+            }
+          });
+      });
+  }
+
+  private reiniciarDespuesCancelarCreacion(): void {
+    this.notaCreada = false;
+    this.data.nota = undefined;
+    this.data.isEdit = false;
+    this.itemsAgregadosEnSesion = [];
+    this.notaFormSnapshot = null;
+
+    if (this.autoAssignItems && this.selectedItemsToAssign.length > 0) {
+      this.dialogTitle = `Nueva Nota de Recepción (${this.selectedItemsToAssign.length} ítems seleccionados)`;
+    } else {
+      this.dialogTitle = 'Nueva Nota de Recepción';
+    }
+    this.actionButtonText = 'Crear';
+
+    const pedidoMonedaId = this.data.pedido?.moneda?.id;
+    const monedaPedido = pedidoMonedaId ? this.monedas.find(m => m.id === pedidoMonedaId) : null;
+    const monedaDefault = monedaPedido || this.monedas[0];
+
+    this.notaRecepcionForm.reset({
+      numero: '',
+      timbrado: '',
+      tipoBoleta: TipoBoleta.FACTURA,
+      fecha: new Date(),
+      moneda: monedaDefault,
+      cotizacion: 1,
+      estado: NotaRecepcionEstado.PENDIENTE_CONCILIACION,
+      pagado: false
+    });
+    this.notaRecepcionForm.markAsPristine();
+    this.notaRecepcionForm.enable();
+
+    if (monedaDefault?.denominacion !== 'GUARANI' && this.data.pedido?.cotizacion) {
+      this.notaRecepcionForm.patchValue({ cotizacion: this.data.pedido.cotizacion });
+    } else if (monedaDefault?.denominacion !== 'GUARANI') {
+      this.loadCotizacionFromCambio(monedaDefault?.id);
+    }
+
+    this.itemsDataSource.data = [];
+    this.updateComputedProperties();
+
+    setTimeout(() => {
+      if (this.numeroInput?.nativeElement) {
+        this.numeroInput.nativeElement.focus();
+      }
+    }, 100);
   }
 
   async onSave(): Promise<void> {
@@ -992,7 +1335,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       }
       
       this.savingNota = true;
-      
+      this.actualizarEstadoAcciones();
+      this.cdr.markForCheck();
+
       if (this.data.isEdit && this.data.nota) {
         // Edit existing nota
         const nota = Object.assign(new NotaRecepcion(), this.data.nota);
@@ -1017,11 +1362,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               
               // Actualizar datos con la nota actualizada
               this.data.nota = notaActualizada;
-              
-              // Marcar que se hicieron cambios
+
               this.changesMade = true;
-              
-              // Recargar ítems después de actualizar
+              this.itemsAgregadosEnSesion = [];
+              this.saveFormSnapshot();
+
               this.loadItemsAfterCreation();
               
               this.notificacionService.openSucess('Nota de recepción actualizada exitosamente');
@@ -1029,6 +1374,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
             error: (error) => {
               console.error('Error al actualizar nota de recepción:', error);
               this.savingNota = false;
+              this.actualizarEstadoAcciones();
+              this.cdr.markForCheck();
               this.notificacionService.openAlgoSalioMal('Error al actualizar la nota de recepción');
             }
           });
@@ -1073,14 +1420,13 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               // Actualizar datos con la nota creada
               this.data.nota = notaCreada;
               this.data.isEdit = true;
-              
-              // Marcar que se hicieron cambios
+
               this.changesMade = true;
-              
-              // Recargar ítems después de crear la nota
+              this.itemsAgregadosEnSesion = [];
+              this.saveFormSnapshot();
+
               this.loadItemsAfterCreation();
-              
-              // Dar foco al botón Cancelar
+
               this.focusCancelButton();
               
               this.notificacionService.openSucess('Nota de recepción creada exitosamente');
@@ -1088,6 +1434,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
             error: (error) => {
               console.error('Error al crear nota de recepción:', error);
               this.savingNota = false;
+              this.actualizarEstadoAcciones();
+              this.cdr.markForCheck();
               this.notificacionService.openAlgoSalioMal('Error al crear la nota de recepción');
             }
           });

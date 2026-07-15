@@ -223,6 +223,13 @@ export const searchProductoWithFilters = gql`
         costo {
           costoMedio
           ultimoPrecioCompra
+          cotizacion
+          moneda {
+            id
+            denominacion
+            simbolo
+            cambio
+          }
         }
         precioPrincipal
         codigoPrincipal

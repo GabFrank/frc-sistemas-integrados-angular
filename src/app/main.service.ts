@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, Injector, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { BehaviorSubject, Observable, Subscription } from "rxjs";
 import { ConfigFile } from "../environments/conectionConfig";
@@ -16,8 +16,8 @@ import { IpcRenderer } from "electron";
 import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
-import { PuntoDeVentaService } from "./modules/financiero/punto-de-venta/punto-de-venta.service";
 import { ConfiguracionService } from "./shared/services/configuracion.service";
+import { LoginService } from "./modules/login/login.service";
 
 @UntilDestroy()
 @Injectable({
@@ -53,7 +53,7 @@ export class MainService implements OnDestroy {
     public sucursalService: SucursalService,
     private usuarioService: UsuarioService,
     private configService: ConfiguracionService,
-    private puntoDeVentaService: PuntoDeVentaService
+    private injector: Injector
   ) {
     // Get server IP from ConfiguracionService instead of environment
     const config = this.configService.getConfig();
@@ -170,11 +170,6 @@ export class MainService implements OnDestroy {
               if (this.sucursalActual?.id == 0) {
                 this.isServidor = true;
               }
-              // Si no es local (solo servidor central) y hay pdvId configurado,
-              // resolver la sucursal real usando el pdvId
-              if (!isLocal && config.pdvId) {
-                this.resolverSucursalPorPdvId(config.pdvId);
-              }
               resolve(true);
             } else {
               resolve(false);
@@ -187,31 +182,6 @@ export class MainService implements OnDestroy {
           }
         });
     });
-  }
-
-  /**
-   * Resuelve la sucursal actual usando el pdvId cuando se usa solo el servidor central.
-   * Consulta el punto de venta por ID en el servidor central y extrae la sucursal asociada.
-   * Esto permite que el frontend sepa a qué sucursal pertenece sin necesidad de un servidor local.
-   * @param pdvId ID del punto de venta configurado
-   */
-  private resolverSucursalPorPdvId(pdvId: number): void {
-    this.puntoDeVentaService.onGetPuntoDeVentaPorId(pdvId, true)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (puntoDeVenta) => {
-          if (puntoDeVenta?.sucursal) {
-            console.log(`Sucursal resuelta por pdvId ${pdvId}: ${puntoDeVenta.sucursal.nombre} (ID: ${puntoDeVenta.sucursal.id})`);
-            this.sucursalActual = puntoDeVenta.sucursal;
-            this.isServidor = false;
-          } else {
-            console.warn(`No se encontró sucursal para pdvId ${pdvId}`);
-          }
-        },
-        error: (err) => {
-          console.error(`Error al resolver sucursal por pdvId ${pdvId}:`, err);
-        }
-      });
   }
 
   /**
@@ -242,7 +212,12 @@ export class MainService implements OnDestroy {
    * This will force a re-authentication on next app start
    */
   logout(): void {
-    // Clear authentication tokens
+    try {
+      this.injector.get(LoginService).cerrarSesionActiva();
+    } catch (error) {
+      console.warn("No se pudo cerrar la sesión activa en el servidor", error);
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("token_central");
     localStorage.removeItem("usuarioId");

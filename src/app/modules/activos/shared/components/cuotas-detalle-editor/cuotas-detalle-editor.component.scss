@@ -13,8 +13,33 @@
   font-size: 0.85rem;
 }
 
+.cuotas-table-wrapper {
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.cuotas-table {
+  width: 100%;
+}
+
+.detail-row {
+  height: 0;
+}
+
+.detail-row td {
+  border-bottom-width: 0;
+  padding: 0;
+}
+
+.editing-row {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .edicion-cuota {
   padding: 12px;
+  margin: 4px 0 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
 }

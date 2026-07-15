@@ -29,6 +29,9 @@ export class AjustarCostoDialogComponent implements OnInit {
 
   costoActual: number = 0;
   ultimoPrecioCompra: number = 0;
+  // Moneda/cotización de la última compra, para el tooltip de moneda original en "Última compra".
+  costoMoneda: any = null;
+  costoCotizacion: number | null = null;
   isLoadingCosto = false;
   diferenciaCosto: number = 0;
   variacionPorcentual: number = 0;
@@ -67,7 +70,9 @@ export class AjustarCostoDialogComponent implements OnInit {
     
     this.costoActual = this.data.producto.costo?.costoMedio || 0;
     this.ultimoPrecioCompra = this.data.producto.costo?.ultimoPrecioCompra || 0;
-    
+    this.costoMoneda = this.data.producto.costo?.moneda || null;
+    this.costoCotizacion = this.data.producto.costo?.cotizacion ?? null;
+
     this.costoControl.setValue(this.costoActual);
     this.isLoadingCosto = false;
     

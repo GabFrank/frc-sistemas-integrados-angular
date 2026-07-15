@@ -167,7 +167,8 @@
                             [montoTotal]="form.controls['montoTotal'].value"
                             [montoYaPagado]="form.controls['montoYaPagado'].value"
                             [cuotas]="cuotasDetalle"
-                            (cuotasChange)="onCuotasChange($event)">
+                            (cuotasChange)="onCuotasChange($event)"
+                            (montoTotalChange)="onMontoTotalCuotasChange($event)">
                         </app-cuotas-detalle-editor>
                     </div>
                 </div>

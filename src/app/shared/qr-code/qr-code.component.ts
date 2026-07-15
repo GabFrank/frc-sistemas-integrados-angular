@@ -20,6 +20,7 @@ export interface QrCodeDialogData {
   segundos?: number;
   imprimir?: boolean;
   textoCustom?: string;
+  subtitulo?: string;
 }
 
 import { UntilDestroy } from '@ngneat/until-destroy';

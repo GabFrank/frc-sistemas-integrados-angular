@@ -329,7 +329,7 @@ export class AnalisisProductoComponent implements OnInit {
     const ascendente = modo === 'menos';
 
     this.graficoService.obtenerProductosMasVendidos(
-      rango.inicio, rango.fin, sucId, famId, limit, ascendente, undefined,
+      rango.inicio, rango.fin, sucId, famId, undefined, limit, ascendente, undefined,
       productoIdsFiltro.length > 0 ? productoIdsFiltro : undefined
     ).pipe(
       catchError(() => of([])),

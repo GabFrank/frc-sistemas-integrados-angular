@@ -1,0 +1,96 @@
+<div class="dialog-header">
+  <h2 mat-dialog-title>{{ esLocal ? 'Instalar Impresora en esta PC' : 'Compartir Impresora al Servidor' }}</h2>
+  <button mat-icon-button (click)="cancelar()" class="close-btn" tabindex="-1">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content class="dialog-content-modern">
+  <div class="info-alert">
+    <mat-icon class="info-icon">info</mat-icon>
+    <p class="detalle" *ngIf="!esLocal">
+      Se compartirá la impresora <strong>{{ data?.cola || 'local' }}</strong> en el CUPS local para ser instalada en el servidor destino. Requiere permisos de administrador de CUPS.
+    </p>
+    <p class="detalle" *ngIf="esLocal">
+      Se instalará la impresora <strong>{{ data?.cola || 'local' }}</strong> en esta PC (sin pasar por el servidor). Requiere permisos de administrador de CUPS.
+    </p>
+  </div>
+
+  <div class="form-section" *ngIf="!esLocal">
+    <div class="section-title">
+      <mat-icon>cloud</mat-icon>
+      <span>Servidor destino</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Compartir a</mat-label>
+      <mat-icon matPrefix>dns</mat-icon>
+      <mat-select [formControl]="destinoControl" (selectionChange)="aplicarDestino($event.value)">
+        <mat-option value="CENTRAL">Servidor central</mat-option>
+        <mat-option value="FILIAL">Filial / servidor local</mat-option>
+      </mat-select>
+      <mat-hint>Decide con qué token se autentica</mat-hint>
+    </mat-form-field>
+
+    <div class="fila-central" fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>IP del servidor</mat-label>
+        <mat-icon matPrefix>dns</mat-icon>
+        <input matInput [formControl]="servidorIpControl" autocomplete="off" placeholder="Ej. 172.25.1.200" />
+        <mat-hint>Servidor donde se instala la cola</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo campo-puerto">
+        <mat-label>Puerto</mat-label>
+        <mat-icon matPrefix>settings_ethernet</mat-icon>
+        <input matInput [formControl]="servidorPortControl" autocomplete="off" placeholder="8081" />
+        <mat-hint>8081 central · 8082 filial</mat-hint>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">
+      <mat-icon>computer</mat-icon>
+      <span>Configuración de esta PC</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="campo" *ngIf="!esLocal">
+      <mat-label>IP de esta PC visible para el servidor (opcional)</mat-label>
+      <mat-icon matPrefix>lan</mat-icon>
+      <input matInput [formControl]="pcIpControl" autocomplete="off" placeholder="Se detecta hacia la IP del servidor" />
+      <mat-hint>Se deriva automáticamente de la ruta hacia el servidor. Completá solo para forzar otra IP.</mat-hint>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="16px" fxLayout.lt-sm="column" class="credentials-row">
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>Usuario administrador</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput [formControl]="usuarioControl" autocomplete="off" />
+        <mat-hint>Usuario (sudo) de esta PC</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>Contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input matInput [type]="ocultar ? 'password' : 'text'" [formControl]="passwordControl" autocomplete="off" (keyup.enter)="aceptar()" />
+        <button mat-icon-button matSuffix type="button" (click)="ocultar = !ocultar" [attr.aria-label]="'Mostrar contraseña'">
+          <mat-icon>{{ ocultar ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+
+    <div class="hint-global">
+      <mat-icon>help_outline</mat-icon>
+      <span>Dejá la contraseña vacía si tu PC no la requiere para administrar impresoras.</span>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions-modern">
+  <button mat-button (click)="cancelar()" class="btn-cancelar">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="aceptar()" class="btn-aceptar">
+    <mat-icon>{{ esLocal ? 'print' : 'share' }}</mat-icon>
+    {{ esLocal ? 'Instalar' : 'Compartir' }}
+  </button>
+</mat-dialog-actions>

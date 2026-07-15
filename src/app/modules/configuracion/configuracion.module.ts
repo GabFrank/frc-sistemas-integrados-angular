@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { ConfigurarServidorDialogComponent } from './configurar-servidor-dialog/configurar-servidor-dialog.component';
@@ -23,9 +24,15 @@ import { EditReplicationTableDialogComponent } from './logical-replication/edit-
 import { SetupReplicationDialogComponent } from './logical-replication/setup-replication-dialog/setup-replication-dialog.component';
 import { RemoveReplicationDialogComponent } from './logical-replication/remove-replication-dialog/remove-replication-dialog.component';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
+import { ListImpresorasComponent } from './impresoras/list-impresoras/list-impresoras.component';
+import { AdicionarImpresoraDialogComponent } from './impresoras/adicionar-impresora-dialog/adicionar-impresora-dialog.component';
+import { CredencialesCupsDialogComponent } from './impresoras/credenciales-cups-dialog/credenciales-cups-dialog.component';
 
 @NgModule({
   declarations: [
+    ListImpresorasComponent,
+    AdicionarImpresoraDialogComponent,
+    CredencialesCupsDialogComponent,
     ConfigurarServidorDialogComponent, 
     ListActualizacionComponent, 
     EditActualizacionComponent, 
@@ -47,6 +54,7 @@ import { EmpresarialModule } from '../empresarial/empresarial.module';
     FlexLayoutModule,
     ReactiveFormsModule,
     FormsModule,
+    ScrollingModule,
     MaterialModule,
     SharedModule,
     ThermalPrinterModule,
