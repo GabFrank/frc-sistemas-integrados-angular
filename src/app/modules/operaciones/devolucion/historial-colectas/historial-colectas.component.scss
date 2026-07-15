@@ -121,3 +121,15 @@ mat-paginator {
   background: transparent;
   margin-top: 8px;
 }
+
+.hist-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  mat-form-field {
+    width: 160px;
+  }
+}

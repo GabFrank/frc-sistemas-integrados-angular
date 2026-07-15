@@ -17,6 +17,10 @@ import { EtiquetasDevolucionService } from "../etiquetas/etiquetas-devolucion.se
 import { ColectaDevolucionService } from "../colecta/colecta-devolucion.service";
 import { OperacionDevolucionService } from "../operacion-devolucion/operacion-devolucion.service";
 import {
+  CancelarDevolucionDialogComponent,
+  CancelarDevolucionDialogResult,
+} from "../cancelar-devolucion-dialog/cancelar-devolucion-dialog.component";
+import {
   ColectarDialogComponent,
   ColectarDialogResult,
 } from "../colecta/colectar-dialog/colectar-dialog.component";
@@ -103,6 +107,7 @@ export class EditDevolucionComponent implements OnInit {
   canAcreditar = false;
   canCancelar = false;
   canRevertir = false;
+  procesando = false; // evita doble-submit de las acciones de estado
   canjeMode = false;
   acreditarMode = false;
 
@@ -487,21 +492,27 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   ejecutarAvanzar(estado: DevolucionEstado) {
+    if (this.procesando) return;
+    this.procesando = true;
     this.devolucionService
       .onAvanzarEstado(this.selectedDevolucion.id, estado)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          Object.assign(this.selectedDevolucion, res);
-          this.canjeMode = false;
-          this.acreditarMode = false;
-          this.computeEstadoFlags();
-          // Al separar, ofrecer imprimir las etiquetas de las cajas.
-          if (estado === DevolucionEstado.SEPARADO) {
-            this.onImprimirEtiquetas();
+      .subscribe(
+        (res) => {
+          this.procesando = false;
+          if (res != null) {
+            Object.assign(this.selectedDevolucion, res);
+            this.canjeMode = false;
+            this.acreditarMode = false;
+            this.computeEstadoFlags();
+            // Al separar, ofrecer imprimir las etiquetas de las cajas.
+            if (estado === DevolucionEstado.SEPARADO) {
+              this.onImprimirEtiquetas();
+            }
           }
-        }
-      });
+        },
+        () => (this.procesando = false)
+      );
   }
 
   /** Revierte la devolución un estado hacia atrás (transición segura del backend). */
@@ -511,17 +522,23 @@ export class EditDevolucionComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((confirmado) => {
         if (!confirmado) return;
+        if (this.procesando) return;
+        this.procesando = true;
         this.operacionService
           .onRevertirEstado(this.selectedDevolucion.id)
           .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res != null) {
-              Object.assign(this.selectedDevolucion, res);
-              this.canjeMode = false;
-              this.acreditarMode = false;
-              this.computeEstadoFlags();
-            }
-          });
+          .subscribe(
+            (res) => {
+              this.procesando = false;
+              if (res != null) {
+                Object.assign(this.selectedDevolucion, res);
+                this.canjeMode = false;
+                this.acreditarMode = false;
+                this.computeEstadoFlags();
+              }
+            },
+            () => (this.procesando = false)
+          );
       });
   }
 
@@ -600,12 +617,15 @@ export class EditDevolucionComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res: ColectarDialogResult) => {
         if (!res?.sucursalDestinoId) return;
+        if (this.procesando) return;
+        this.procesando = true;
         const usuarioId = this.mainService.usuarioActual?.id;
         this.colectaService
           .onColectar(this.selectedDevolucion.id, res.sucursalDestinoId, usuarioId)
           .pipe(untilDestroyed(this))
           .subscribe({
             next: (dev) => {
+              this.procesando = false;
               if (dev != null) {
                 Object.assign(this.selectedDevolucion, dev);
                 this.computeEstadoFlags();
@@ -614,10 +634,12 @@ export class EditDevolucionComponent implements OnInit {
                 );
               }
             },
-            error: () =>
+            error: () => {
+              this.procesando = false;
               this.notificacionService.openAlgoSalioMal(
                 "No se pudo colectar la devolución"
-              ),
+              );
+            },
           });
       });
   }
@@ -690,6 +712,8 @@ export class EditDevolucionComponent implements OnInit {
   }
 
   onConfirmarAcreditar() {
+    if (this.procesando) return;
+    this.procesando = true;
     this.devolucionService
       .onAcreditar(
         this.selectedDevolucion.id,
@@ -699,31 +723,41 @@ export class EditDevolucionComponent implements OnInit {
         this.montoAcreditadoControl.value
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          Object.assign(this.selectedDevolucion, res);
-          this.acreditarMode = false;
-          this.computeEstadoFlags();
-        }
-      });
+      .subscribe(
+        (res) => {
+          this.procesando = false;
+          if (res != null) {
+            Object.assign(this.selectedDevolucion, res);
+            this.acreditarMode = false;
+            this.computeEstadoFlags();
+          }
+        },
+        () => (this.procesando = false)
+      );
   }
 
   onCancelar() {
-    this.dialogosService
-      .confirm("Atención!!", "¿Confirma cancelar esta devolución?")
+    this.matDialog
+      .open(CancelarDevolucionDialogComponent, { width: "460px" })
+      .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((confirmado) => {
-        if (confirmado) {
-          this.devolucionService
-            .onCancelar(this.selectedDevolucion.id, null)
-            .pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (res != null) {
-                Object.assign(this.selectedDevolucion, res);
+      .subscribe((res: CancelarDevolucionDialogResult | undefined) => {
+        if (!res) return; // cerró sin confirmar
+        if (this.procesando) return;
+        this.procesando = true;
+        this.devolucionService
+          .onCancelar(this.selectedDevolucion.id, res.motivo)
+          .pipe(untilDestroyed(this))
+          .subscribe(
+            (dev) => {
+              this.procesando = false;
+              if (dev != null) {
+                Object.assign(this.selectedDevolucion, dev);
                 this.computeEstadoFlags();
               }
-            });
-        }
+            },
+            () => (this.procesando = false)
+          );
       });
   }
 

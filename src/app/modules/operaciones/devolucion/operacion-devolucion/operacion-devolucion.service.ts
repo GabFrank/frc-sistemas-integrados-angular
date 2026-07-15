@@ -28,12 +28,32 @@ export class OperacionDevolucionService {
     private revertirColectaGQL: RevertirColectaDevolucionGQL
   ) {}
 
-  onGetRetiros(page = 0, size = 20): Observable<PageInfo<RetiroDevolucionOp>> {
-    return this.genericCrudService.onCustomQuery(this.getRetirosGQL, { page, size });
+  onGetRetiros(
+    page = 0,
+    size = 20,
+    fechaInicio?: string,
+    fechaFin?: string
+  ): Observable<PageInfo<RetiroDevolucionOp>> {
+    return this.genericCrudService.onCustomQuery(this.getRetirosGQL, {
+      page,
+      size,
+      fechaInicio: fechaInicio ?? null,
+      fechaFin: fechaFin ?? null,
+    });
   }
 
-  onGetColectas(page = 0, size = 20): Observable<PageInfo<ColectaDevolucionOp>> {
-    return this.genericCrudService.onCustomQuery(this.getColectasGQL, { page, size });
+  onGetColectas(
+    page = 0,
+    size = 20,
+    fechaInicio?: string,
+    fechaFin?: string
+  ): Observable<PageInfo<ColectaDevolucionOp>> {
+    return this.genericCrudService.onCustomQuery(this.getColectasGQL, {
+      page,
+      size,
+      fechaInicio: fechaInicio ?? null,
+      fechaFin: fechaFin ?? null,
+    });
   }
 
   onGetRemitoRetiro(retiroId: number): Observable<string> {

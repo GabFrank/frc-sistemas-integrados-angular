@@ -1,6 +1,20 @@
 <div class="hist-wrap">
   <div class="hist-header">
     <h2>Histórico de colectas internas</h2>
+    <div class="hist-filtros">
+      <mat-form-field appearance="outline">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" [(ngModel)]="desde" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" [(ngModel)]="hasta" />
+      </mat-form-field>
+      <button mat-stroked-button color="primary" (click)="onFiltrar()">
+        <mat-icon>filter_list</mat-icon> Filtrar
+      </button>
+      <button mat-button (click)="onLimpiar()" *ngIf="desde || hasta">Limpiar</button>
+    </div>
   </div>
 
   <div class="hist-cargando" *ngIf="cargando">

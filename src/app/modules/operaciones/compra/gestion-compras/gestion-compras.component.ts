@@ -1899,6 +1899,8 @@ export class GestionComprasComponent
         const estadosEnEspera = [
           DevolucionEstado.PENDIENTE,
           DevolucionEstado.SEPARADO,
+          // COLECTADO también está a la espera de que el proveedor retire.
+          DevolucionEstado.COLECTADO,
           ...(this.devolucionAlertaIncluyeRetirado
             ? [DevolucionEstado.RETIRADO]
             : []),

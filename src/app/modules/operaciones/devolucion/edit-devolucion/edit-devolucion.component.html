@@ -71,31 +71,31 @@
       (click)="onImprimirEtiquetas()">
       <mat-icon>label</mat-icon> Imprimir etiquetas
     </button>
-    <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado"
+    <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado" [disabled]="procesando"
       (click)="onAvanzar(DevolucionEstado.SEPARADO)">
       Marcar como separado
     </button>
-    <button mat-stroked-button color="primary" *ngIf="canColectar"
+    <button mat-stroked-button color="primary" *ngIf="canColectar" [disabled]="procesando"
       (click)="onColectar()">
       <mat-icon>local_shipping</mat-icon> Enviar a depósito
     </button>
-    <button mat-raised-button color="primary" *ngIf="canAvanzarRetirado"
+    <button mat-raised-button color="primary" *ngIf="canAvanzarRetirado" [disabled]="procesando"
       (click)="onAvanzar(DevolucionEstado.RETIRADO)">
       Marcar como retirado
     </button>
-    <button mat-raised-button color="warn" *ngIf="canAvanzarDescartado"
+    <button mat-raised-button color="warn" *ngIf="canAvanzarDescartado" [disabled]="procesando"
       (click)="onAvanzar(DevolucionEstado.DESCARTADO)">
       Descartar
     </button>
-    <button mat-raised-button color="accent" *ngIf="canCanjear && !canjeMode"
+    <button mat-raised-button color="accent" *ngIf="canCanjear && !canjeMode" [disabled]="procesando"
       (click)="onIniciarCanje()">
       Registrar canje
     </button>
-    <button mat-raised-button color="accent" *ngIf="canAcreditar && !acreditarMode"
+    <button mat-raised-button color="accent" *ngIf="canAcreditar && !acreditarMode" [disabled]="procesando"
       (click)="onIniciarAcreditar()">
       Acreditar (nota de crédito)
     </button>
-    <button mat-stroked-button color="warn" *ngIf="canRevertir" (click)="onRevertir()">
+    <button mat-stroked-button color="warn" *ngIf="canRevertir" [disabled]="procesando" (click)="onRevertir()">
       <mat-icon>undo</mat-icon> Revertir
     </button>
   </div>

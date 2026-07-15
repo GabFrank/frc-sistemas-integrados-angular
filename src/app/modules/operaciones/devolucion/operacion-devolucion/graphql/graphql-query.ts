@@ -16,8 +16,8 @@ const lineaFields = `
 `;
 
 export const retirosDevolucionQuery = gql`
-  query ($page: Int, $size: Int) {
-    data: retirosDevolucion(page: $page, size: $size) {
+  query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
+    data: retirosDevolucion(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       getTotalElements
       getTotalPages
       hasNext
@@ -31,8 +31,8 @@ export const retirosDevolucionQuery = gql`
 `;
 
 export const colectasDevolucionQuery = gql`
-  query ($page: Int, $size: Int) {
-    data: colectasDevolucion(page: $page, size: $size) {
+  query ($fechaInicio: String, $fechaFin: String, $page: Int, $size: Int) {
+    data: colectasDevolucion(fechaInicio: $fechaInicio, fechaFin: $fechaFin, page: $page, size: $size) {
       getTotalElements
       getTotalPages
       hasNext

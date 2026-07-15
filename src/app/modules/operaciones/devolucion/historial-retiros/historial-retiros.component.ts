@@ -26,6 +26,8 @@ export class HistorialRetirosComponent implements OnInit {
   totalElements = 0;
   cargando = false;
   procesando = false;
+  desde: string | null = null; // yyyy-MM-dd
+  hasta: string | null = null;
 
   constructor(
     private operacionService: OperacionDevolucionService,
@@ -39,10 +41,24 @@ export class HistorialRetirosComponent implements OnInit {
     this.cargar();
   }
 
+  onFiltrar(): void {
+    this.pageIndex = 0;
+    this.cargar();
+  }
+
+  onLimpiar(): void {
+    this.desde = null;
+    this.hasta = null;
+    this.pageIndex = 0;
+    this.cargar();
+  }
+
   cargar(): void {
     this.cargando = true;
+    const fi = this.desde ? this.desde + " 00:00" : undefined;
+    const ff = this.hasta ? this.hasta + " 23:59" : undefined;
     this.operacionService
-      .onGetRetiros(this.pageIndex, this.pageSize)
+      .onGetRetiros(this.pageIndex, this.pageSize, fi, ff)
       .pipe(untilDestroyed(this))
       .subscribe((res: any) => {
         this.cargando = false;
