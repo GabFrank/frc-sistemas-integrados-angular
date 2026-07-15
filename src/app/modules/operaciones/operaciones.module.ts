@@ -89,6 +89,7 @@ import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dial
 import { HistorialColectasComponent } from './devolucion/historial-colectas/historial-colectas.component';
 import { HistorialRetirosComponent } from './devolucion/historial-retiros/historial-retiros.component';
 import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devolucion-dialog/historico-devolucion-dialog.component';
+import { CancelarDevolucionDialogComponent } from './devolucion/cancelar-devolucion-dialog/cancelar-devolucion-dialog.component';
 
 @NgModule({
   declarations: [
@@ -166,6 +167,7 @@ import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devol
     HistorialColectasComponent,
     HistorialRetirosComponent,
     HistoricoDevolucionDialogComponent,
+    CancelarDevolucionDialogComponent,
     EditDevolucionComponent,
     CreateDevolucionItemDialogComponent,
     GuiaDevolucionComponent,
