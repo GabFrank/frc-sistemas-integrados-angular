@@ -74,12 +74,6 @@ export const deleteImpresoraQuery = gql`
   }
 `;
 
-export const imprimirPruebaMutation = gql`
-  mutation ($impresoraId: ID!) {
-    imprimirPruebaEnImpresora(impresoraId: $impresoraId)
-  }
-`;
-
 export const dispositivosParaInstalarQuery = gql`
   query {
     data: dispositivosParaInstalar {

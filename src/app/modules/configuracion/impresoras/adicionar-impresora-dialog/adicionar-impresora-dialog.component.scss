@@ -180,3 +180,11 @@
   align-items: center;
   gap: 4px;
 }
+
+// Anula el text-transform: uppercase global de los inputs en este diálogo: los nombres de cola
+// CUPS son case-sensitive y ver mayúsculas mientras el valor real es minúscula confunde. Mostramos
+// el texto tal cual se escribe.
+:host ::ng-deep input,
+:host ::ng-deep .mat-mdc-input-element {
+  text-transform: none !important;
+}
