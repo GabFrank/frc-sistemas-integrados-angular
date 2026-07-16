@@ -9,6 +9,10 @@ import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { TerminalPosService } from '../../terminal-pos/terminal-pos.service';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { MatDialog } from '@angular/material/dialog';
+import { ConfiguracionVentaTarjetaDialogComponent } from '../configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -17,6 +21,8 @@ import { TerminalPosService } from '../../terminal-pos/terminal-pos.service';
   styleUrls: ['./list-venta-tarjeta.component.scss']
 })
 export class ListVentaTarjetaComponent implements OnInit {
+
+  ROLES = ROLES;
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
@@ -50,7 +56,9 @@ export class ListVentaTarjetaComponent implements OnInit {
   constructor(
     private ventaTarjetaService: VentaTarjetaService,
     private sucursalService: SucursalService,
-    private terminalPosService: TerminalPosService
+    private terminalPosService: TerminalPosService,
+    public mainService: MainService,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -154,5 +162,13 @@ export class ListVentaTarjetaComponent implements OnInit {
     }
 
     this.ventaTarjetaService.onImprimirReporteVentaTarjeta(params);
+  }
+
+  onAbrirConfiguracion(): void {
+    this.matDialog.open(ConfiguracionVentaTarjetaDialogComponent, {
+      width: '560px',
+      disableClose: false,
+      panelClass: 'custom-dialog-container'
+    });
   }
 }

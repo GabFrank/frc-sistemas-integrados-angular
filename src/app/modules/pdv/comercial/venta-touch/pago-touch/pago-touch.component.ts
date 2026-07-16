@@ -76,6 +76,7 @@ import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { BotonComponent } from "../../../../../shared/components/boton/boton.component";
 import { MonedaService } from "../../../../financiero/moneda/moneda.service";
 import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
+import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -166,7 +167,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private notificacionSnackbar: NotificacionSnackbarService,
     private formaPagoService: FormaPagoService,
     private cargandoDialog: CargandoDialogService,
-    private ventaService: VentaService
+    private ventaService: VentaService,
+    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -611,6 +613,31 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
+    this.configuracionVentaTarjetaService.onGetConfiguracion().subscribe({
+      next: (config) => {
+        if (!config?.habilitado) {
+          // Flujo de registro de venta con tarjeta deshabilitado: el cobro con
+          // TARJETA sigue funcionando como un medio de pago normal, sin escaneo
+          // de terminal ni generación de QR.
+          this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+          return;
+        }
+        this.iniciarEscaneoTarjetaCobros(tarjetaCobros, ventaCredito, itens, ticket);
+      },
+      error: () => {
+        // Ante un error de configuración, no bloqueamos el cobro: se comporta
+        // como si el flujo estuviera deshabilitado.
+        this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+      }
+    });
+  }
+
+  private iniciarEscaneoTarjetaCobros(
+    tarjetaCobros: CobroDetalle[],
+    ventaCredito?: VentaCredito,
+    itens?: VentaCreditoCuotaInput[],
+    ticket?: boolean
+  ) {
     const tarjetaPagos: TarjetaPago[] = [];
 
     const abrirDialogPara = (index: number) => {

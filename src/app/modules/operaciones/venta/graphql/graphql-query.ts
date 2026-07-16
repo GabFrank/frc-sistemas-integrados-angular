@@ -425,6 +425,10 @@ export const ventasGenericFilterQuery = gql`
         totalGs
         totalRs
         totalDs
+        usuario {
+          id
+          nickname
+        }
         ventaObservacionList {
           id
         }
