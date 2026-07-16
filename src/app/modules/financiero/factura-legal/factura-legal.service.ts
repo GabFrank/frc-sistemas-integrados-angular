@@ -32,6 +32,7 @@ import { DescargarXmlFacturaElectronicaGQL } from "./graphql/descargarXmlFactura
 import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFacturaElectronica";
 import { ImprimirTicketFacturaEnImpresoraGQL } from "./graphql/imprimirTicketFacturaEnImpresora";
 import { ImprimirPdfFacturaEnImpresoraGQL } from "./graphql/imprimirPdfFacturaEnImpresora";
+import { VincularFacturaLegalAVentaGQL } from "./graphql/vincularFacturaLegalAVenta";
 
 @Injectable({
   providedIn: "root",
@@ -59,8 +60,21 @@ export class FacturaLegalService {
     private descargarXmlFacturaElectronicaGQL: DescargarXmlFacturaElectronicaGQL,
     private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL,
     private imprimirTicketFacturaEnImpresoraGQL: ImprimirTicketFacturaEnImpresoraGQL,
-    private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL
+    private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL,
+    private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL
   ) {}
+
+  onVincularFacturaAVenta(
+    facturaLegalId: number,
+    ventaId: number,
+    servidor: boolean = false
+  ): Observable<any> {
+    return this.genericService.onCustomMutation(
+      this.vincularFacturaLegalAVentaGQL,
+      { facturaLegalId, ventaId },
+      servidor
+    );
+  }
 
   onSaveFactura(
     input: FacturaLegalInput,

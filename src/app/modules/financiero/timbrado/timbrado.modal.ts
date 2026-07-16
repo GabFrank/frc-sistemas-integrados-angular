@@ -136,6 +136,7 @@ export class TimbradoDetalle {
     barrio: string
     direccion: string
     telefono: string
+    facturaLegalId: number
 
     toInput(): TimbradoDetallInput {
         let input = new TimbradoDetallInput;

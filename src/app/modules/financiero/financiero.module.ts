@@ -54,6 +54,8 @@ import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/term
 import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
+import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
+import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
 
 @NgModule({
   declarations: [
@@ -102,7 +104,9 @@ import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
     ScanTerminalPosDialogComponent,
     TerminalPosDashboard,
     ListVentaTarjetaComponent,
-    ConfiguracionVentaTarjetaDialogComponent
+    ConfiguracionVentaTarjetaDialogComponent,
+    ConfiguracionFacturaConVentaDialogComponent,
+    FacturaLegalDashboard
 
   ],
   providers: [

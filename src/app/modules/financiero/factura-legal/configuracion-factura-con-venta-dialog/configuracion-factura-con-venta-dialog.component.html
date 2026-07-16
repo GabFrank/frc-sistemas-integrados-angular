@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>Configuración de Facturación</h2>
+
+<mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="15px" style="margin-top: 10px;">
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-title">Finalizar venta al facturar</div>
+                <div class="config-item-desc">
+                    Cuando está activado, el botón de factura del punto de venta pasa a ser
+                    "Finalizar con Factura". Al generar la factura, la venta se finaliza
+                    automáticamente en la misma operación, evitando que una factura quede
+                    impresa sin que la venta se haya procesado.
+                    Si está desactivado, la factura se puede finalizar sin tener una venta realizada.
+                </div>
+            </div>
+            <div class="config-item-toggle">
+                <mat-slide-toggle
+                    [checked]="config.habilitado"
+                    (change)="onToggleHabilitado()"
+                    color="accent">
+                </mat-slide-toggle>
+                <span class="toggle-label" [class.active]="config.habilitado" [class.desactive]="!config.habilitado">
+                    {{ config.habilitado ? 'ACTIVADO' : 'DESACTIVADO' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()">
+        <mat-icon>save</mat-icon> Guardar
+    </button>
+</mat-dialog-actions>

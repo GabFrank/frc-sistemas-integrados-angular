@@ -54,6 +54,7 @@ export interface FacturaLegalData {
   ventaItemList: VentaItem[];
   descuento: number;
   isServidor?: boolean;
+  ligarAVenta?: boolean;
 }
 
 @UntilDestroy()
@@ -106,6 +107,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   isNuevoCliente = false;
 
   isServidor = false;
+
+  guardando = false;
   
   // Listas para modo filial
   sucursalList: Sucursal[] = [];
@@ -675,6 +678,13 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   }
 
   onGuardar() {
+    if (this.guardando) {
+      // Evita disparar un segundo guardado (factura duplicada, con su propio
+      // número correlativo) si el cajero toca el botón más de una vez
+      // mientras la primera solicitud todavía está en curso.
+      return;
+    }
+    this.guardando = true;
     // Si es modo filial, preguntar si desea imprimir (pero el guardado siempre ocurre)
     if (this.isServidor) {
       this.dialogoService
@@ -686,6 +696,11 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         .subscribe((deseaImprimir) => {
           this.onSaveFactura(deseaImprimir);
         });
+    } else if (this.data?.ligarAVenta) {
+      // La venta está ligada a la factura por configuración: se guarda e
+      // imprime siempre, sin preguntar, para evitar una factura impresa
+      // sin que la venta se haya finalizado.
+      this.onSaveFactura();
     } else {
       // Modo normal (desde venta)
       this.dialogoService
@@ -697,6 +712,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         .subscribe((res) => {
           if (res) {
             this.onSaveFactura(false);
+          } else {
+            this.guardando = false;
           }
         });
     }
@@ -882,10 +899,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
               });
             }
           } else {
+            this.guardando = false;
             this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial");
           }
         },
         error: (error) => {
+          this.guardando = false;
           console.error("Error al guardar factura en filial:", error);
           this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial: " + (error.message || "Error desconocido"));
         },
@@ -945,7 +964,13 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         next: (resLocal: TimbradoDetalle) => {
           if (resLocal != null) {
             this.handleFacturaSuccess(resLocal);
+          } else {
+            this.guardando = false;
           }
+        },
+        error: () => {
+          this.guardando = false;
+          this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor local");
         },
       });
   }
@@ -956,6 +981,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.matDialogRef.close({
       facturado: true,
       cliente: this.selectedCliente,
+      facturaLegalId: res?.facturaLegalId,
     });
   }
 }

@@ -277,7 +277,19 @@ export const saveFacturaLegal = gql`
         rangoDesde
         rangoHasta
         numeroActual
+        facturaLegalId
       }
+  }
+`;
+
+export const vincularFacturaLegalAVenta = gql`
+  mutation vincularFacturaLegalAVenta($facturaLegalId: ID!, $ventaId: ID!) {
+    data: vincularFacturaLegalAVenta(facturaLegalId: $facturaLegalId, ventaId: $ventaId) {
+      id
+      venta {
+        id
+      }
+    }
   }
 `;
 
@@ -417,6 +429,36 @@ export const imprimirPdfFacturaEnImpresoraMutation = gql`
       sucId: $sucId
       impresoraId: $impresoraId
     )
+  }
+`;
+
+export const configuracionFacturaConVentaQuery = gql`
+  {
+    data: configuracionFacturaConVenta {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const saveConfiguracionFacturaConVenta = gql`
+  mutation saveConfiguracionFacturaConVenta($entity: ConfiguracionFacturaConVentaInput!) {
+    data: saveConfiguracionFacturaConVenta(input: $entity) {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
   }
 `;
 
