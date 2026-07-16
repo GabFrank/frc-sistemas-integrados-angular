@@ -54,6 +54,7 @@ export interface PagoResponseData {
   ticket?: boolean;
   cliente?: Cliente;
   tarjetaPagos?: TarjetaPago[];
+  facturaLegalId?: number;
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -77,6 +78,7 @@ import { BotonComponent } from "../../../../../shared/components/boton/boton.com
 import { MonedaService } from "../../../../financiero/moneda/moneda.service";
 import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
+import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -122,6 +124,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   facturado = false;
   selectedCliente: Cliente;
   isCredito = false;
+  finalizarConFacturaHabilitado = false;
+  facturaLegalId: number;
 
   selectedCurrency: any;
 
@@ -168,7 +172,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private formaPagoService: FormaPagoService,
     private cargandoDialog: CargandoDialogService,
     private ventaService: VentaService,
-    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService
+    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
+    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -184,6 +189,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setPrecios();
     this.getFormaPagos();
     this.createForm();
+    this.configuracionFacturaConVentaService.onGetConfiguracion().subscribe({
+      next: (res) => {
+        this.finalizarConFacturaHabilitado = res?.habilitado === true;
+      },
+      error: () => {
+        this.finalizarConFacturaHabilitado = false;
+      }
+    });
     setTimeout(() => {
       this.setFocusToValorInput();
       this.cargandoDialog.closeDialog();
@@ -678,6 +691,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       ticket,
       cliente: this.selectedCliente,
       tarjetaPagos,
+      facturaLegalId: this.facturaLegalId,
     };
     this.dialogRef.close(response);
   }
@@ -773,6 +787,20 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onPresupuesto() { }
 
   onFactura() {
+    if (this.isDialogOpen) {
+      // Evita abrir dos veces el diálogo de factura si el cajero toca el
+      // botón repetidas veces antes de que se registre el primer click.
+      return;
+    }
+    if (
+      this.finalizarConFacturaHabilitado &&
+      this.formGroup.controls.saldo.value != 0
+    ) {
+      this.notificacionSnackbar.openWarn(
+        "Debe completar el pago antes de finalizar con factura"
+      );
+      return;
+    }
     this.isDialogOpen = true;
     let venta = new Venta();
     let descuento = 0;
@@ -791,6 +819,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           venta,
           ventaItemList: this.data.itemList,
           descuento,
+          ligarAVenta: this.finalizarConFacturaHabilitado,
         },
         width: "100%",
         height: "80vh",
@@ -800,8 +829,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (res) {
           this.facturado = res?.facturado;
           this.selectedCliente = res?.cliente;
+          this.facturaLegalId = res?.facturaLegalId;
         }
         this.isDialogOpen = false;
+        if (res?.facturado && this.finalizarConFacturaHabilitado) {
+          this.onFinalizar();
+          return;
+        }
         setTimeout(() => {
           this.setFocusToValorInput();
         }, 0);
