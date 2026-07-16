@@ -27,7 +27,7 @@ export const valesPorEstadoQuery = gql`
 `;
 
 export const saveValeMutation = gql`
-  mutation saveVale($entity: ValeInput!) {
+  mutation saveVale($entity: ValeRrhhInput!) {
     data: saveVale(vale: $entity) { ${VALE_FIELDS} }
   }
 `;
