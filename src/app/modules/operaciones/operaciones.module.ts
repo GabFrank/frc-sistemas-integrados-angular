@@ -72,8 +72,25 @@ import { AdicionarNotaDialogComponent } from './solicitud-pago/adicionar-nota-di
 import { AdicionarFormaPagoDialogComponent } from './solicitud-pago/adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 import { GestionPagoDialogComponent } from './solicitud-pago/gestion-pago-dialog/gestion-pago-dialog.component';
 import { ImprimirPedidoDialogComponent } from './compra/gestion-compras/dialogs/imprimir-pedido-dialog/imprimir-pedido-dialog.component';
+import { DevolucionesPendientesDialogComponent } from './compra/gestion-compras/dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component';
+import { ConfiguracionDevolucionDialogComponent } from './devolucion/configuracion/configuracion-devolucion-dialog/configuracion-devolucion-dialog.component';
+import { ImprimirEtiquetasDialogComponent } from './devolucion/etiquetas/imprimir-etiquetas-dialog/imprimir-etiquetas-dialog.component';
+import { ColectarDialogComponent } from './devolucion/colecta/colectar-dialog/colectar-dialog.component';
+import { ColectaComponent } from './devolucion/colecta/colecta.component';
 import { ComprasSearchProductoDialogComponent } from './compra/gestion-compras/dialogs/compras-search-producto-dialog/compras-search-producto-dialog.component';
 import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
+import { DevolucionComponent } from './devolucion/devolucion.component';
+import { ListDevolucionComponent } from './devolucion/list-devolucion/list-devolucion.component';
+import { EditDevolucionComponent } from './devolucion/edit-devolucion/edit-devolucion.component';
+import { CreateItemDialogComponent as CreateDevolucionItemDialogComponent } from './devolucion/create-item-dialog/create-item-dialog.component';
+import { GuiaDevolucionComponent } from './devolucion/guia-devolucion/guia-devolucion.component';
+import { RetiroProveedorComponent } from './devolucion/retiro-proveedor/retiro-proveedor.component';
+import { ReingresoCanjeDialogComponent } from './devolucion/reingreso-canje-dialog/reingreso-canje-dialog.component';
+import { HistorialColectasComponent } from './devolucion/historial-colectas/historial-colectas.component';
+import { HistorialRetirosComponent } from './devolucion/historial-retiros/historial-retiros.component';
+import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devolucion-dialog/historico-devolucion-dialog.component';
+import { CancelarDevolucionDialogComponent } from './devolucion/cancelar-devolucion-dialog/cancelar-devolucion-dialog.component';
+import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-dialog/acreditar-retiro-dialog.component';
 
 @NgModule({
   declarations: [
@@ -126,6 +143,11 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     RechazarItemDialogComponent,
     StockDetalladoDialogComponent,
     ImprimirPedidoDialogComponent,
+    DevolucionesPendientesDialogComponent,
+    ConfiguracionDevolucionDialogComponent,
+    ImprimirEtiquetasDialogComponent,
+    ColectarDialogComponent,
+    ColectaComponent,
     ComprasSearchProductoDialogComponent,
     RecepcionMercaderiaComponent,
     RecepcionMercaderiaVerificarItemDialogComponent,
@@ -140,7 +162,19 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     AdicionarFormaPagoDialogComponent,
     GestionPagoDialogComponent,
     GenericListVentaComponent,
-    LucroPorFuncionarioComponent
+    LucroPorFuncionarioComponent,
+    DevolucionComponent,
+    ListDevolucionComponent,
+    HistorialColectasComponent,
+    HistorialRetirosComponent,
+    HistoricoDevolucionDialogComponent,
+    CancelarDevolucionDialogComponent,
+    AcreditarRetiroDialogComponent,
+    EditDevolucionComponent,
+    CreateDevolucionItemDialogComponent,
+    GuiaDevolucionComponent,
+    RetiroProveedorComponent,
+    ReingresoCanjeDialogComponent
   ],
   imports: [
     CommonModule,

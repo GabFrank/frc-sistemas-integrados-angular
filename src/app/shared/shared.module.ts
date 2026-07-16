@@ -21,7 +21,6 @@ import { HeaderComponent } from './components/header/header.component';
 import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
-import { SideComponent } from './components/side/side.component';
 import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
 import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/digitar-contrasena-dialog.component';
@@ -66,13 +65,17 @@ import { NotificationBoardComponent } from '../modules/notificaciones/components
 import { NgxEchartsModule } from 'ngx-echarts';
 import { GraficoShellComponent } from './components/grafico-shell/grafico-shell.component';
 import { GraficoFiltrosFechaComponent } from './components/grafico-filtros-fecha/grafico-filtros-fecha.component';
+import { DashSectionHeaderComponent } from './components/dashboard/dash-section-header/dash-section-header.component';
+import { DashStatChipComponent } from './components/dashboard/dash-stat-chip/dash-stat-chip.component';
+import { DashQuickActionComponent } from './components/dashboard/dash-quick-action/dash-quick-action.component';
+import { DashRankingListComponent } from './components/dashboard/dash-ranking-list/dash-ranking-list.component';
+import { DashChartCardComponent } from './components/dashboard/dash-chart-card/dash-chart-card.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 @NgModule({
   declarations: [
     HeaderComponent,
-    SideComponent,
     FooterComponent,
     CardComponent,
     FileUploadComponent,
@@ -115,7 +118,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     SideMiniVariantComponent,
     CellFormatPipe,
     GraficoShellComponent,
-    GraficoFiltrosFechaComponent
+    GraficoFiltrosFechaComponent,
+    DashSectionHeaderComponent,
+    DashStatChipComponent,
+    DashQuickActionComponent,
+    DashRankingListComponent,
+    DashChartCardComponent
   ],
   imports: [
     CommonModule,
@@ -136,7 +144,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
   ],
   exports: [
     HeaderComponent,
-    SideComponent,
     SideMiniVariantComponent,
     FooterComponent,
     CardComponent,
@@ -172,7 +179,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NotificationBoardComponent,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
-    NgxEchartsModule
+    NgxEchartsModule,
+    DashSectionHeaderComponent,
+    DashStatChipComponent,
+    DashQuickActionComponent,
+    DashRankingListComponent,
+    DashChartCardComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

@@ -1,0 +1,249 @@
+<div fxLayout="column" style="width: 100%; height: 100%; padding: 10px" fxLayoutGap="10px">
+
+  <!-- Cabecera -->
+  <div fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%">
+    <div style="font-weight: bold; font-size: 1.2em">
+      Devolución {{ selectedDevolucion?.id != null ? "#" + selectedDevolucion.id : "(nueva)" }}
+    </div>
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+      <span style="font-weight: bold">Estado:</span>
+      <span>{{ selectedDevolucion?.estado | enumToString | titlecase }}</span>
+      <span
+        *ngIf="selectedDevolucion?.estado === DevolucionEstado.COLECTADO && selectedDevolucion?.sucursalUbicacion"
+        style="color: #9e9e9e"
+      >
+        · en {{ selectedDevolucion.sucursalUbicacion.nombre }}
+      </span>
+      <button mat-stroked-button (click)="onVolver()">
+        <mat-icon>list</mat-icon> Lista
+      </button>
+    </div>
+  </div>
+
+  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <mat-form-field fxFlex="20">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipoControl">
+        <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
+          {{ tipo | enumToString }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="30" *ngIf="esConProveedor">
+      <mat-label>Proveedor</mat-label>
+      <input matInput [(ngModel)]="proveedorTexto" placeholder="Buscar proveedor..."
+        [disabled]="!puedeEditarCabecera" (keyup.enter)="onBuscarProveedor()" />
+      <button mat-icon-button matSuffix type="button" [disabled]="!puedeEditarCabecera"
+        (click)="onBuscarProveedor()">
+        <mat-icon>search</mat-icon>
+      </button>
+      <button *ngIf="selectedProveedor != null" mat-icon-button matSuffix type="button"
+        [disabled]="!puedeEditarCabecera" (click)="onRemoverProveedor()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="25">
+      <mat-label>Sucursal de origen</mat-label>
+      <mat-select [formControl]="sucursalControl" [compareWith]="compareSucursal">
+        <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+          {{ sucursal.id }} - {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <mat-form-field fxFlex="90">
+      <mat-label>Observación</mat-label>
+      <input matInput [formControl]="observacionControl" [readonly]="!puedeEditarCabecera" />
+    </mat-form-field>
+  </div>
+
+  <!-- Acciones: agregar item + máquina de estados (arriba de la tabla, a la derecha) -->
+  <div fxLayout="row wrap" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
+    *ngIf="selectedDevolucion?.id != null || puedeEditarCabecera">
+    <button mat-raised-button color="primary" *ngIf="puedeEditarCabecera" (click)="onAddItem()">
+      <mat-icon>add</mat-icon> Agregar producto
+    </button>
+    <button mat-stroked-button color="primary" *ngIf="puedeImprimirEtiquetas"
+      (click)="onImprimirEtiquetas()">
+      <mat-icon>label</mat-icon> Imprimir etiquetas
+    </button>
+    <button mat-raised-button color="primary" *ngIf="canAvanzarSeparado" [disabled]="procesando"
+      (click)="onAvanzar(DevolucionEstado.SEPARADO)">
+      Marcar como separado
+    </button>
+    <button mat-stroked-button color="primary" *ngIf="canColectar" [disabled]="procesando"
+      (click)="onColectar()">
+      <mat-icon>local_shipping</mat-icon> Enviar a depósito
+    </button>
+    <button mat-raised-button color="primary" *ngIf="canAvanzarRetirado" [disabled]="procesando"
+      (click)="onAvanzar(DevolucionEstado.RETIRADO)">
+      Marcar como retirado
+    </button>
+    <button mat-raised-button color="warn" *ngIf="canAvanzarDescartado" [disabled]="procesando"
+      (click)="onAvanzar(DevolucionEstado.DESCARTADO)">
+      Descartar
+    </button>
+    <button mat-raised-button color="accent" *ngIf="canCanjear && !canjeMode" [disabled]="procesando"
+      (click)="onIniciarCanje()">
+      Registrar canje
+    </button>
+    <!-- Acreditar per-devolución DEPRECADO: la acreditación ahora es consolidada
+         por retiro (dialogo "Registrar crédito" en el histórico de retiros). -->
+    <button mat-raised-button color="accent" *ngIf="false && canAcreditar && !acreditarMode" [disabled]="procesando"
+      (click)="onIniciarAcreditar()">
+      Acreditar (nota de crédito)
+    </button>
+    <button mat-stroked-button color="warn" *ngIf="canRevertir" [disabled]="procesando" (click)="onRevertir()">
+      <mat-icon>undo</mat-icon> Revertir
+    </button>
+  </div>
+
+  <!-- Acreditar inline -->
+  <div fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%" *ngIf="acreditarMode">
+    <mat-form-field fxFlex="30">
+      <mat-label>Nro. nota de crédito</mat-label>
+      <input matInput [formControl]="nroNotaCreditoControl" />
+    </mat-form-field>
+    <mat-form-field fxFlex="30">
+      <mat-label>Monto acreditado</mat-label>
+      <input matInput type="number" [formControl]="montoAcreditadoControl" />
+    </mat-form-field>
+    <button mat-raised-button color="accent" (click)="onConfirmarAcreditar()">
+      Confirmar acreditación
+    </button>
+  </div>
+
+  <!-- Tabla de items (canje: reingreso editable) -->
+  <div style="width: 100%; flex: 1; overflow: auto">
+    <table *ngIf="!canjeMode" mat-table [dataSource]="dataSource" class="mat-elevation-z8"
+      style="width: 100%">
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Producto</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.producto?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Presentación</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.presentacion?.descripcion }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Cantidad</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.cantidad | number : "1.0-3" }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="motivoAveria">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Motivo devolución</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.motivoAveria?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="costo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Costo unit.</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.costoUnitario | number : "1.0-2" }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="lote">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Lote</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.lote }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Vencimiento</th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.vencimiento | date : "dd/MM/yyyy" }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="menu">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">...</th>
+        <td mat-cell *matCellDef="let item; let i = index" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" [disabled]="!esPendiente">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditItem(item)">Editar</button>
+            <button mat-menu-item (click)="onDeleteItem(item, i)" style="color: red">
+              Eliminar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="columnsToDisplay; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnsToDisplay"></tr>
+    </table>
+
+    <!-- Modo canje: registrar reingreso por item -->
+    <div *ngIf="canjeMode" fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+        <ng-container matColumnDef="producto">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Producto</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Presentación</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.presentacion?.descripcion }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Cantidad</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.cantidad | number : "1.0-3" }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="cantidadReingresada">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Cant. reingresada</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.cantidadReingresada != null ? (item.cantidadReingresada | number : "1.0-3") : "—" }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="vencimientoReingreso">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">Venc. reingreso</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.vencimientoReingreso != null ? (item.vencimientoReingreso | date : "dd/MM/yyyy") : "—" }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="accionReingreso">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">Reingreso</th>
+          <td mat-cell *matCellDef="let item" style="text-align: center; width: 15%">
+            <button mat-stroked-button color="accent" (click)="onRegistrarReingreso(item)">
+              <mat-icon>{{ item?.cantidadReingresada != null ? "edit" : "add" }}</mat-icon>
+              {{ item?.cantidadReingresada != null ? "Editar" : "Registrar" }}
+            </button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="columnsCanje; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnsCanje"></tr>
+      </table>
+      <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px"
+        style="width: 100%; margin-top: 12px">
+        <button mat-stroked-button (click)="canjeMode = false">Cancelar</button>
+        <button mat-raised-button color="accent" (click)="onConfirmarCanje()">
+          Confirmar canje
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guardar / Cancelar (abajo, a la derecha) -->
+  <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px" style="width: 100%"
+    *ngIf="puedeEditarCabecera || canCancelar">
+    <button mat-raised-button color="accent" *ngIf="puedeEditarCabecera" (click)="onGuardarCabecera()">
+      <mat-icon>save</mat-icon> Guardar datos
+    </button>
+    <button mat-stroked-button color="warn" *ngIf="canCancelar" (click)="onCancelar()">
+      Cancelar devolución
+    </button>
+  </div>
+</div>

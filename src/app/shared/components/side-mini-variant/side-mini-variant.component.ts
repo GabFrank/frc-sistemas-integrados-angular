@@ -70,6 +70,7 @@ import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
 import { ReportesRrhhComponent } from '../../../modules/rrhh/reportes/reportes-rrhh.component';
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
+import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 
 
 interface BaseNavigationItem {
@@ -296,6 +297,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'swap_vert',
               action: 'list-movimiento',
               visibilityRoles: [ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.VER_INVENTARIO]
+            },
+            {
+              name: 'Devoluciones',
+              icon: 'assignment_return',
+              action: 'devoluciones',
+              visibilityRoles: [ROLES.VER_TRANSFERENCIA]
             }
           ]
         },
@@ -992,6 +999,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "devoluciones":
+        this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");
         break;
     }
   }

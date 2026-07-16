@@ -463,9 +463,14 @@ mat-dialog-actions {
     font-weight: 600;
     min-width: 120px;
 
-    &.cancel-button {
+    &.exit-button {
       color: #f0f0f0;
       border: 1px solid #555555;
+    }
+
+    &.cancel-creation-button {
+      color: #ff8a80;
+      border: 1px solid #c62828;
     }
 
     &.save-button {

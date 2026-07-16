@@ -1,0 +1,117 @@
+<div class="hist-wrap">
+  <div class="hist-header">
+    <h2>Histórico de retiros a proveedor</h2>
+    <div class="hist-filtros">
+      <mat-form-field appearance="outline">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" [(ngModel)]="desde" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" [(ngModel)]="hasta" />
+      </mat-form-field>
+      <button mat-stroked-button color="primary" (click)="onFiltrar()">
+        <mat-icon>filter_list</mat-icon> Filtrar
+      </button>
+      <button mat-button (click)="onLimpiar()" *ngIf="desde || hasta">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="hist-cargando" *ngIf="cargando">
+    <mat-spinner diameter="30"></mat-spinner>
+  </div>
+
+  <div class="hist-vacio" *ngIf="!cargando && operaciones.length === 0">
+    <mat-icon>inbox</mat-icon>
+    <p>No hay retiros en el histórico</p>
+  </div>
+
+  <div class="hist-lista" *ngIf="operaciones.length > 0">
+    <mat-card class="op" *ngFor="let op of operaciones">
+      <div class="op-header">
+        <div class="op-tit">
+          <span class="op-nombre">{{ op._titulo }}</span>
+          <span class="op-sub">
+            {{ op.fecha | date: "dd/MM/yyyy HH:mm" }}
+            <span class="badge" *ngIf="op._revertida">Revertido</span>
+            <span class="badge badge-ok" *ngIf="op._acreditada">
+              Acreditado · NC {{ op.notaCredito?.nroNotaCredito }}
+            </span>
+          </span>
+        </div>
+        <button
+          mat-stroked-button
+          color="primary"
+          *ngIf="!op._revertida"
+          (click)="onReimprimir(op)"
+        >
+          <mat-icon>print</mat-icon> Remito
+        </button>
+      </div>
+
+      <table class="op-lineas">
+        <tr *ngFor="let d of op.devoluciones">
+          <td class="ln-id">{{ d.identificador || "#" + d.id }}</td>
+          <td class="ln-suc">{{ d.sucursalOrigen?.nombre }}</td>
+          <td class="ln-estado">{{ d.estado | titlecase }}</td>
+          <td class="ln-accion">
+            <button
+              mat-icon-button
+              color="warn"
+              *ngIf="d._rev"
+              [disabled]="procesando"
+              matTooltip="Revertir esta devolución"
+              (click)="onRevertirLinea(d)"
+            >
+              <mat-icon>undo</mat-icon>
+            </button>
+          </td>
+        </tr>
+      </table>
+
+      <div class="op-acciones" *ngIf="op._puedeAcreditar || op._revertible || op._acreditada">
+        <button
+          mat-raised-button
+          color="accent"
+          *ngIf="op._puedeAcreditar"
+          [disabled]="procesando"
+          (click)="onAcreditar(op)"
+        >
+          <mat-icon>request_quote</mat-icon> Registrar crédito
+        </button>
+        <button
+          mat-stroked-button
+          color="warn"
+          *ngIf="op._revertible"
+          [disabled]="procesando"
+          (click)="onRevertirOperacion(op)"
+        >
+          <mat-icon>undo</mat-icon> Revertir retiro completo
+        </button>
+        <button
+          mat-stroked-button
+          color="warn"
+          *ngIf="op._acreditada"
+          [disabled]="procesando"
+          (click)="onRevertirNotaCredito(op)"
+        >
+          <mat-icon>undo</mat-icon> Revertir crédito
+        </button>
+      </div>
+      <p class="op-nota" *ngIf="!op._revertida && !op._revertible && !op._acreditada && !op._puedeAcreditar">
+        <mat-icon>info</mat-icon>
+        No se puede revertir: alguna devolución ya fue canjeada.
+      </p>
+    </mat-card>
+  </div>
+
+  <mat-paginator
+    *ngIf="operaciones.length > 0"
+    [pageSizeOptions]="[15, 25, 50]"
+    [pageSize]="pageSize"
+    [pageIndex]="pageIndex"
+    [length]="totalElements"
+    (page)="handlePageEvent($event)"
+    showFirstLastButtons
+  ></mat-paginator>
+</div>
