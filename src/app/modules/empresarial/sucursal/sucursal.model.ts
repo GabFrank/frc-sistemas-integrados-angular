@@ -13,6 +13,9 @@ export class Sucursal {
   activo: boolean
   ip: string
   puerto: number
+  /** Puerto del backend GraphQL de esta sucursal (filial), usado por el servidor para rutear
+   * impresión y otras operaciones proxy. Puede variar por instalación (ver PrintRouterService). */
+  puertoServidor: number
   creadoEn: Date;
   usuario: Usuario;
   codigoEstablecimientoFactura: string
@@ -35,6 +38,7 @@ export class Sucursal {
       creadoEn: dateToString(this.creadoEn),
       ip: this.ip,
       puerto: this.puerto,
+      puertoServidor: this.puertoServidor,
       direccion: this.direccion,
       nroDelivery: this.nroDelivery,
       isConfigured: this.isConfigured

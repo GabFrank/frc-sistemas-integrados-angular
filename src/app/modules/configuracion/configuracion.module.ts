@@ -27,12 +27,14 @@ import { EmpresarialModule } from '../empresarial/empresarial.module';
 import { ListImpresorasComponent } from './impresoras/list-impresoras/list-impresoras.component';
 import { AdicionarImpresoraDialogComponent } from './impresoras/adicionar-impresora-dialog/adicionar-impresora-dialog.component';
 import { CredencialesCupsDialogComponent } from './impresoras/credenciales-cups-dialog/credenciales-cups-dialog.component';
+import { AgregarDesdeSucursalDialogComponent } from './impresoras/agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
 
 @NgModule({
   declarations: [
     ListImpresorasComponent,
     AdicionarImpresoraDialogComponent,
     CredencialesCupsDialogComponent,
+    AgregarDesdeSucursalDialogComponent,
     ConfigurarServidorDialogComponent, 
     ListActualizacionComponent, 
     EditActualizacionComponent, 

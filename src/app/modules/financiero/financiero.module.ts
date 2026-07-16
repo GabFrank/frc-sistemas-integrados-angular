@@ -25,6 +25,7 @@ import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/li
 import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
 import { EditFacturaLegalDialogComponent } from './factura-legal/edit-factura-legal-dialog/edit-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
+import { ImprimirEnSucursalDialogComponent } from './factura-legal/imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
 import { FinancieroConfiguracionDialogComponent } from './financiero-configuracion-dialog/financiero-configuracion-dialog.component';
@@ -52,6 +53,7 @@ import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos
 import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
 import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
+import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 
 @NgModule({
   declarations: [
@@ -76,6 +78,7 @@ import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/config
     AddFacturaLegalDialogComponent,
     EditFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
+    ImprimirEnSucursalDialogComponent,
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,
     FinancieroConfiguracionDialogComponent,
@@ -113,7 +116,8 @@ import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/config
     MaterialModule,
     SharedModule,
     FinancieroRoutingModule,
-    BootstrapModule
+    BootstrapModule,
+    NgxExtendedPdfViewerModule
   ],
 })
 export class FinancieroModule { }
