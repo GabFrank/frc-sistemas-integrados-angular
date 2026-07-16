@@ -12,7 +12,6 @@ import { ImpresoraByIdGQL } from './graphql/impresoraById';
 import { SaveImpresoraGQL } from './graphql/saveImpresora';
 import { DeleteImpresoraGQL } from './graphql/deleteImpresora';
 import { ImpresorasDelSistemaGQL } from './graphql/impresorasDelSistema';
-import { ImprimirPruebaGQL } from './graphql/imprimirPrueba';
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +27,6 @@ export class ImpresoraService {
     private saveImpresoraGQL: SaveImpresoraGQL,
     private deleteImpresoraGQL: DeleteImpresoraGQL,
     private impresorasDelSistemaGQL: ImpresorasDelSistemaGQL,
-    private imprimirPruebaGQL: ImprimirPruebaGQL,
     private dispositivosParaInstalarGQL: DispositivosParaInstalarGQL,
     private instalarImpresoraCupsGQL: InstalarImpresoraCupsGQL,
   ) { }
@@ -71,14 +69,6 @@ export class ImpresoraService {
    */
   delSistema(servidor = false): Observable<string[]> {
     return this.genericService.onGetAll(this.impresorasDelSistemaGQL, null, null, servidor);
-  }
-
-  /**
-   * Imprime un ticket de prueba en la impresora. Se envía al servidor central, que
-   * rutea al host dueño (local o filial) según la sucursal de la impresora.
-   */
-  probar(id: number, servidor = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.imprimirPruebaGQL, { impresoraId: id }, servidor);
   }
 
   /**

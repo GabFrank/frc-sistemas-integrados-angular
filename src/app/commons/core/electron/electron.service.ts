@@ -40,6 +40,33 @@ export interface ShareResult {
   aviso?: string;
 }
 
+/** Datos para imprimir un payload ESC/POS en una impresora local a esta PC, sin backend. */
+export interface PrintLocalArgs {
+  conexion: string; // 'CUPS' | 'USB' | 'RED' | 'BLUETOOTH'
+  cola?: string;    // cola CUPS (CUPS/USB/BLUETOOTH)
+  ip?: string;      // impresora de red (RED)
+  puerto?: number;  // impresora de red (RED), típico 9100
+  payloadBase64: string;
+}
+
+/** Datos para imprimir el ticket de PRUEBA local (Electron genera el ESC/POS, sin backend). */
+export interface PrintTestLocalArgs {
+  conexion: string;
+  cola?: string;
+  ip?: string;
+  puerto?: number;
+  nombre?: string;
+  sucursal?: string;
+  columnas?: number;
+  perfil?: string;
+}
+
+/** Resultado de imprimir localmente (print-local / print-test-local). */
+export interface PrintLocalResult {
+  success: boolean;
+  error?: string;
+}
+
 /** Resultado de instalar la impresora en el CUPS/spooler local de esta PC (sin pasar por el servidor). */
 export interface InstallResult {
   success: boolean;
@@ -234,6 +261,25 @@ export class ElectronService {
    */
   installLocalPrinter(cola: string, uri: string, raw = true, password?: string): Observable<InstallResult> {
     return from(ipcRenderer.invoke('install-local-printer', { cola, uri, raw, password })) as Observable<InstallResult>;
+  }
+
+  /**
+   * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin pasar por ningún
+   * backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
+   * alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente. RED → socket TCP a
+   * ip:puerto; CUPS/USB/BLUETOOTH → `lp -d <cola> -o raw` (Linux/mac).
+   */
+  printLocal(args: PrintLocalArgs): Observable<PrintLocalResult> {
+    return from(ipcRenderer.invoke('print-local', args)) as Observable<PrintLocalResult>;
+  }
+
+  /**
+   * Imprime el ticket de PRUEBA generado 100% en el frontend (Electron arma el ESC/POS) y lo manda
+   * a la impresora local a esta PC, sin ninguna llamada a servidores. RED → socket TCP; CUPS/USB →
+   * `lp -d <cola> -o raw`.
+   */
+  printTestLocal(args: PrintTestLocalArgs): Observable<PrintLocalResult> {
+    return from(ipcRenderer.invoke('print-test-local', args)) as Observable<PrintLocalResult>;
   }
 
   /**
