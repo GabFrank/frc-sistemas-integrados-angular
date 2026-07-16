@@ -400,6 +400,26 @@ export const descargarPdfFacturaElectronicaQuery = gql`
   }
 `;
 
+export const imprimirTicketFacturaEnImpresoraMutation = gql`
+  mutation ($facturaId: ID!, $sucId: ID!, $impresoraId: ID!) {
+    data: imprimirTicketFacturaEnImpresora(
+      facturaId: $facturaId
+      sucId: $sucId
+      impresoraId: $impresoraId
+    )
+  }
+`;
+
+export const imprimirPdfFacturaEnImpresoraMutation = gql`
+  mutation ($facturaId: ID!, $sucId: ID!, $impresoraId: ID!) {
+    data: imprimirPdfFacturaEnImpresora(
+      facturaId: $facturaId
+      sucId: $sucId
+      impresoraId: $impresoraId
+    )
+  }
+`;
+
 export const saveFacturaLegalToFilialQuery = gql`
   mutation saveFacturaLegalToFilial(
     $entity: FacturaLegalInput!

@@ -1,0 +1,133 @@
+:host {
+  display: block;
+  min-width: 480px;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  .close-btn {
+    opacity: 0.6;
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.dialog-content-modern {
+  padding: 20px 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+
+  &.con-vista-previa {
+    max-height: 75vh;
+  }
+}
+
+.vista-previa {
+  height: 55vh;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 8px;
+
+  .estado-vacio {
+    height: 100%;
+  }
+}
+
+.lista-impresoras {
+  overflow-y: auto;
+}
+
+.detalle {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 0;
+  opacity: 0.7;
+  text-align: center;
+
+  mat-icon {
+    font-size: 32px;
+    height: 32px;
+    width: 32px;
+  }
+}
+
+.impresora-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: rgba(63, 81, 181, 0.08);
+  }
+
+  &.seleccionada {
+    background: rgba(63, 81, 181, 0.15);
+    border-color: #3f51b5;
+  }
+
+  .impresora-icon {
+    opacity: 0.7;
+  }
+
+  .impresora-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .impresora-nombre {
+    font-weight: 500;
+  }
+
+  .impresora-sucursal {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  .check-icon {
+    color: #3f51b5;
+  }
+}
+
+.dialog-actions-modern {
+  padding: 16px 24px 24px !important;
+  margin-bottom: 0;
+
+  .btn-cancelar {
+    margin-right: 8px;
+  }
+
+  .btn-aceptar {
+    padding: 0 24px;
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
