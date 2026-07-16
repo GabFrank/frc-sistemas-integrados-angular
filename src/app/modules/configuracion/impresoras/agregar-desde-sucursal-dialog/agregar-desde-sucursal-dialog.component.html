@@ -1,0 +1,85 @@
+<div class="dialog-header">
+  <h2 mat-dialog-title>Agregar desde sucursal</h2>
+  <button mat-icon-button (click)="cancelar()" class="close-btn" tabindex="-1">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content class="dialog-content-modern">
+  <div class="info-alert">
+    <mat-icon class="info-icon">info</mat-icon>
+    <p class="detalle">
+      Se conecta directo al backend de la sucursal elegida (por IP) y trae las colas CUPS que ya
+      tiene instaladas, con tu sesión actual. No hace falta usuario ni contraseña del sistema
+      operativo de esa PC.
+    </p>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">
+      <mat-icon>store</mat-icon>
+      <span>Sucursal</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Sucursal</mat-label>
+      <mat-icon matPrefix>store</mat-icon>
+      <mat-select [formControl]="sucursalControl">
+        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.id }} - {{ s.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="fila-central" fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field appearance="outline" class="campo" fxFlex>
+        <mat-label>IP de la sucursal</mat-label>
+        <mat-icon matPrefix>dns</mat-icon>
+        <input matInput [formControl]="ipControl" autocomplete="off" placeholder="Ej. 172.25.0.172" />
+        <mat-hint>Autocompletada desde la sucursal, editable si hace falta corregirla</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo campo-puerto">
+        <mat-label>Puerto</mat-label>
+        <mat-icon matPrefix>settings_ethernet</mat-icon>
+        <input matInput [formControl]="puertoControl" autocomplete="off" placeholder="Ej. 8082" />
+        <mat-hint>Puede variar por sucursal</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <button mat-stroked-button color="primary" (click)="buscarColas()" [disabled]="buscando || !ipControl.value || !puertoControl.value">
+      <mat-icon>{{ buscando ? 'hourglass_empty' : 'search' }}</mat-icon>
+      {{ buscando ? 'Buscando…' : 'Buscar colas del sistema' }}
+    </button>
+  </div>
+
+  <div class="form-section" *ngIf="errorBusqueda">
+    <div class="error-alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorBusqueda }}</span>
+    </div>
+  </div>
+
+  <div class="form-section" *ngIf="buscoAlMenosUnaVez && !errorBusqueda">
+    <div class="section-title">
+      <mat-icon>print</mat-icon>
+      <span>Colas detectadas ({{ colas.length }})</span>
+    </div>
+
+    <p *ngIf="colas.length === 0" class="sin-colas">No se detectaron colas CUPS en esa sucursal.</p>
+
+    <div class="cola-item" *ngFor="let c of colas" (click)="toggle(c)">
+      <mat-checkbox [checked]="c.seleccionada" (click)="$event.stopPropagation(); toggle(c)"></mat-checkbox>
+      <mat-icon class="cola-icon">{{ c.esTermica ? 'receipt_long' : 'print' }}</mat-icon>
+      <span class="cola-nombre">{{ c.nombre }}</span>
+      <span class="cola-tipo">{{ c.esTermica ? 'Térmica' : 'Normal' }}</span>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions-modern">
+  <button mat-button (click)="cancelar()" class="btn-cancelar">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="agregarSeleccionadas()" class="btn-aceptar"
+    [disabled]="guardando || seleccionadas.length === 0">
+    <mat-icon>{{ guardando ? 'hourglass_empty' : 'add' }}</mat-icon>
+    {{ guardando ? 'Agregando…' : 'Agregar (' + seleccionadas.length + ')' }}
+  </button>
+</mat-dialog-actions>

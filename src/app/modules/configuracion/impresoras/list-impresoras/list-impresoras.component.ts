@@ -24,6 +24,7 @@ import {
 } from '../impresora.model';
 import { ImpresoraService } from '../impresora.service';
 import { AdicionarImpresoraDialogComponent } from '../adicionar-impresora-dialog/adicionar-impresora-dialog.component';
+import { AgregarDesdeSucursalDialogComponent } from '../agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
 import { ElectronService } from '../../../../commons/core/electron/electron.service';
 
 interface ImpresoraVista {
@@ -174,6 +175,18 @@ export class ListImpresorasComponent implements OnInit {
       });
   }
 
+  agregarDesdeSucursal(): void {
+    this.matDialog
+      .open(AgregarDesdeSucursalDialogComponent, { width: '640px', disableClose: true })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res === true) {
+          this.recargar();
+        }
+      });
+  }
+
   editarItem(impresora: Impresora): void {
     this.matDialog
       .open(AdicionarImpresoraDialogComponent, { data: { impresora }, width: '640px', disableClose: true })
@@ -197,12 +210,13 @@ export class ListImpresorasComponent implements OnInit {
   }
 
   probar(impresora: Impresora): void {
-    // El ticket de prueba se genera e imprime 100% en el frontend (Electron), SIN ningún backend:
-    // el ESC/POS lo arma Electron con los datos de la impresora y lo manda a la impresora local a
-    // esta PC (RED por socket TCP, CUPS/USB por `lp -d <cola> -o raw`). El backend solo instala
-    // impresoras compartidas; nunca genera ni imprime.
+    // El ticket de prueba se intenta primero 100% en el frontend (Electron): el ESC/POS lo arma
+    // Electron con los datos de la impresora y lo manda a la impresora local a esta PC (RED por
+    // socket TCP, CUPS/USB por `lp -d <cola> -o raw`). Si esa cola no existe en esta PC (típico de
+    // una impresora agregada vía "Agregar desde sucursal", que vive en el CUPS de otro host), se
+    // reintenta por el backend (`PrintRouterService`), que rutea al host dueño de la impresora.
     if (!this.electronService.isElectron) {
-      this.notificarFallo(impresora, 'la impresión requiere la app de escritorio');
+      this.probarPorBackend(impresora);
       return;
     }
     this.electronService.printTestLocal({
@@ -221,7 +235,23 @@ export class ListImpresorasComponent implements OnInit {
           if (res?.success) {
             this.notificarEnviado(impresora);
           } else {
-            this.notificarFallo(impresora, res?.error);
+            this.probarPorBackend(impresora);
+          }
+        },
+        error: () => this.probarPorBackend(impresora),
+      });
+  }
+
+  /** Respaldo de "Probar" vía backend, para impresoras que no viven físicamente en esta PC. */
+  private probarPorBackend(impresora: Impresora): void {
+    this.impresoraService.probarEnBackend(impresora.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (ok) {
+            this.notificarEnviado(impresora);
+          } else {
+            this.notificarFallo(impresora, 'verificá que la sucursal esté online y la cola exista');
           }
         },
         error: (e) => this.notificarFallo(impresora, e?.message),
@@ -270,7 +300,7 @@ export class ListImpresorasComponent implements OnInit {
     return i?.colaCups ?? (i?.conexion ?? '');
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize() {
     this.calcularColumnas();
   }

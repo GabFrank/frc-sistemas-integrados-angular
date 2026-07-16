@@ -12,6 +12,7 @@ import { ImpresoraByIdGQL } from './graphql/impresoraById';
 import { SaveImpresoraGQL } from './graphql/saveImpresora';
 import { DeleteImpresoraGQL } from './graphql/deleteImpresora';
 import { ImpresorasDelSistemaGQL } from './graphql/impresorasDelSistema';
+import { ImprimirPruebaEnImpresoraGQL } from './graphql/imprimirPruebaEnImpresora';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +30,7 @@ export class ImpresoraService {
     private impresorasDelSistemaGQL: ImpresorasDelSistemaGQL,
     private dispositivosParaInstalarGQL: DispositivosParaInstalarGQL,
     private instalarImpresoraCupsGQL: InstalarImpresoraCupsGQL,
+    private imprimirPruebaEnImpresoraGQL: ImprimirPruebaEnImpresoraGQL,
   ) { }
 
   /** Registro de impresoras. Vive en el servidor central (administrativo). */
@@ -90,6 +92,21 @@ export class ImpresoraService {
   }
 
   /**
+   * Imprime un ticket de prueba generado server-side y lo rutea al host dueño de la impresora
+   * (`PrintRouterService`, ya existente): si la impresora es de una filial, el central hace proxy
+   * automático a esa filial por `Sucursal.ip`/`puertoServidor`. Se usa como respaldo de "Probar"
+   * cuando la impresión local (Electron) falla porque la cola no existe en esta PC — el caso típico
+   * es una impresora agregada desde "Agregar desde sucursal", que vive en otro host.
+   */
+  probarEnBackend(impresoraId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.imprimirPruebaEnImpresoraGQL,
+      { impresoraId },
+      servidor
+    );
+  }
+
+  /**
    * Instala una cola CUPS en un servidor apuntado por IP (no la config de Apollo). Manda la
    * mutation por HTTP directo a http://<servidorIp>:<servidorPort>/graphql con el token del
    * servidor destino. Se usa al COMPARTIR la impresora local: el servidor (central o filial)
@@ -130,6 +147,33 @@ export class ImpresoraService {
           throw new Error(res.errors[0]?.message || 'Error GraphQL en el servidor');
         }
         return res?.data?.instalarImpresoraCups === true;
+      }),
+    );
+  }
+
+  /**
+   * Lista las colas CUPS ya instaladas en una SUCURSAL elegida, consultando directo por IP (no los
+   * dos Apollo clients fijos de central/local). Se usa para "Agregar desde sucursal": el backend
+   * filial de esa sucursal ya expone `impresorasDelSistema` con el mismo login del usuario (sin
+   * credenciales de sistema operativo, sin instalar nada). El puerto lo escribe el usuario porque
+   * puede variar entre sucursales.
+   */
+  delSistemaEnServidorPorIp(sucursalIp: string, sucursalPort: string | number): Observable<string[]> {
+    const url = `http://${sucursalIp}:${sucursalPort}/graphql`;
+    const token = localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query: 'query { data: impresorasDelSistema }',
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en la sucursal');
+        }
+        return res?.data?.data ?? [];
       }),
     );
   }

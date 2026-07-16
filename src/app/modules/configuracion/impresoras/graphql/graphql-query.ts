@@ -90,3 +90,9 @@ export const instalarImpresoraCupsMutation = gql`
     instalarImpresoraCups(nombreCola: $nombreCola, uri: $uri, raw: $raw)
   }
 `;
+
+export const imprimirPruebaEnImpresoraMutation = gql`
+  mutation ($impresoraId: ID!) {
+    data: imprimirPruebaEnImpresora(impresoraId: $impresoraId)
+  }
+`;
