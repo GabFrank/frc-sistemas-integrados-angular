@@ -71,6 +71,21 @@
       <mat-icon class="cola-icon">{{ c.esTermica ? 'receipt_long' : 'print' }}</mat-icon>
       <span class="cola-nombre">{{ c.nombre }}</span>
       <span class="cola-tipo">{{ c.esTermica ? 'Térmica' : 'Normal' }}</span>
+      <span class="chip-compartida" *ngIf="c.compartida">
+        <mat-icon inline>cloud_done</mat-icon> Compartida al central
+      </span>
+      <button
+        mat-stroked-button
+        type="button"
+        color="primary"
+        class="btn-compartir"
+        (click)="$event.stopPropagation(); compartir(c)"
+        [disabled]="c.compartiendo || c.compartida"
+        title="Compartir esta cola al servidor central (instala una cola proxy IPP en el central)"
+      >
+        <mat-icon>{{ c.compartiendo ? 'hourglass_empty' : 'cloud_upload' }}</mat-icon>
+        {{ c.compartiendo ? 'Compartiendo…' : (c.compartida ? 'Compartida' : 'Compartir') }}
+      </button>
     </div>
   </div>
 </mat-dialog-content>
