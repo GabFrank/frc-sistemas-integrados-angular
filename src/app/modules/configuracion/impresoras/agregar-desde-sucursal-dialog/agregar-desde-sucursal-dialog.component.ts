@@ -8,6 +8,7 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from '../../../../notificacion-snackbar.service';
+import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { ImpresoraInput } from '../impresora.model';
@@ -16,10 +17,17 @@ import { ImpresoraService } from '../impresora.service';
 // Palabras que sugieren que una impresora es termica / de tickets (mismo criterio que el resto del módulo).
 const REGEX_TERMICA = /ticket|term|thermal|\btm[-\s]?\d|xprinter|xp[-\s]?\d|pos.?58|pos.?80|58\s?mm|80\s?mm|receipt|bematech|epson\s?tm/i;
 
+// Host del SERVIDOR CENTRAL (sucursalId=0). Mismo criterio que adicionar-impresora-dialog: es el
+// host donde corre el backend central, no la "sucursal central" (que es una sucursal común).
+const HOST_SERVIDOR_CENTRAL_ID = 0;
+
 interface ColaVista {
   nombre: string;
   seleccionada: boolean;
   esTermica: boolean;
+  compartiendo: boolean;
+  /** true = ya se compartió e instaló como proxy en el central; se guarda apuntando ahí. */
+  compartida: boolean;
 }
 
 /**
@@ -39,6 +47,7 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
 
   private sucursalService = inject(SucursalService);
   private impresoraService = inject(ImpresoraService);
+  private configuracionService = inject(ConfiguracionService);
   private notificacion = inject(NotificacionSnackbarService);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<AgregarDesdeSucursalDialogComponent>);
@@ -105,6 +114,8 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
             nombre,
             seleccionada: false,
             esTermica: REGEX_TERMICA.test(nombre),
+            compartiendo: false,
+            compartida: false,
           }));
           this.buscando = false;
           this.buscoAlMenosUnaVez = true;
@@ -134,6 +145,94 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
   toggle(cola: ColaVista): void {
     cola.seleccionada = !cola.seleccionada;
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Comparte esta cola (ya instalada en la sucursal) al servidor CENTRAL, igual que "Compartir al
+   * servidor" hace con una impresora local de escritorio:
+   * 1) Habilita el compartir CUPS en el backend de la SUCURSAL (por IP, sin credenciales de SO).
+   * 2) El central instala una cola proxy que apunta por IPP a la sucursal.
+   * Al guardar, esta cola queda registrada apuntando al central (no a la sucursal), porque desde
+   * ahí es de donde efectivamente se imprime.
+   */
+  compartir(cola: ColaVista): void {
+    const ip = (this.ipControl.value ?? '').trim();
+    const puerto = (this.puertoControl.value ?? '').trim();
+    if (!ip || !puerto) {
+      return;
+    }
+    const config = this.configuracionService.getConfig();
+    const centralIp = config?.serverCentralIp ?? '';
+    const centralPort = config?.serverCentralPort ?? '8081';
+    if (!centralIp) {
+      this.notificacion.notification$.next({
+        texto: 'No hay IP del servidor central configurada.',
+        color: NotificacionColor.warn,
+        duracion: 5,
+      });
+      return;
+    }
+    cola.compartiendo = true;
+    this.cdr.markForCheck();
+    this.impresoraService.compartirColaEnServidorPorIp(cola.nombre, ip, puerto, centralIp)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (!ok) {
+            cola.compartiendo = false;
+            this.notificacion.notification$.next({
+              texto: 'No se pudo habilitar el compartir en la sucursal (verificá permisos de CUPS ahí).',
+              color: NotificacionColor.warn,
+              duracion: 7,
+            });
+            this.cdr.markForCheck();
+            return;
+          }
+          const uri = `ipp://${ip}:631/printers/${cola.nombre}`;
+          this.impresoraService
+            .instalarEnServidorPorIp(cola.nombre, uri, cola.esTermica, centralIp, centralPort, true)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (okInstalado) => {
+                cola.compartiendo = false;
+                if (okInstalado) {
+                  cola.compartida = true;
+                  cola.seleccionada = true;
+                  this.notificacion.notification$.next({
+                    texto: 'Cola compartida e instalada en el central: ' + cola.nombre,
+                    color: NotificacionColor.success,
+                    duracion: 4,
+                  });
+                } else {
+                  this.notificacion.notification$.next({
+                    texto: 'Se compartió en la sucursal pero el central no pudo instalarla.',
+                    color: NotificacionColor.warn,
+                    duracion: 7,
+                  });
+                }
+                this.cdr.markForCheck();
+              },
+              error: (e) => {
+                cola.compartiendo = false;
+                this.notificacion.notification$.next({
+                  texto: 'El central rechazó la instalación: ' + (e?.message || 'error desconocido'),
+                  color: NotificacionColor.warn,
+                  duracion: 8,
+                });
+                this.cdr.markForCheck();
+              },
+            });
+        },
+        error: (e) => {
+          cola.compartiendo = false;
+          this.notificacion.notification$.next({
+            texto: 'No se pudo contactar la sucursal para compartir: ' + (e?.message || 'error desconocido'),
+            color: NotificacionColor.warn,
+            duracion: 8,
+          });
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   get seleccionadas(): ColaVista[] {
@@ -184,7 +283,8 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
     input.nombre = cola.nombre.toUpperCase();
     input.activo = true;
     input.esPredeterminada = false;
-    input.sucursalId = sucursalId;
+    // Si se compartió, la cola vive en el central (cola proxy instalada ahí), no en la sucursal.
+    input.sucursalId = cola.compartida ? HOST_SERVIDOR_CENTRAL_ID : sucursalId;
     input.tipo = cola.esTermica ? 'TERMICA' : 'NORMAL';
     input.uso = 'TICKET';
     input.conexion = 'CUPS';
