@@ -24,6 +24,7 @@ export const retirosDevolucionQuery = gql`
       getContent {
         ${opFields}
         proveedor { id persona { nombre } }
+        notaCredito { id nroNotaCredito estado montoTotal }
         ${lineaFields}
       }
     }
@@ -76,5 +77,57 @@ export const revertirColectaDevolucionMutation = gql`
       id
       estado
     }
+  }
+`;
+
+export const acreditacionPreviewQuery = gql`
+  query ($retiroId: ID!) {
+    data: acreditacionPreview(retiroId: $retiroId) {
+      retiroId
+      proveedor { id persona { nombre } }
+      montoTotal
+      lineas {
+        productoId
+        productoDescripcion
+        cantidadBase
+        costoMedio
+        total
+        presentaciones {
+          id
+          descripcion
+          cantidad
+          principal
+        }
+      }
+    }
+  }
+`;
+
+export const acreditarRetiroMutation = gql`
+  mutation (
+    $retiroId: ID!
+    $nroNotaCredito: String
+    $fecha: String
+    $items: [NotaCreditoDevolucionItemInput!]!
+    $usuarioId: ID
+  ) {
+    data: acreditarRetiro(
+      retiroId: $retiroId
+      nroNotaCredito: $nroNotaCredito
+      fecha: $fecha
+      items: $items
+      usuarioId: $usuarioId
+    ) {
+      id
+      nroNotaCredito
+      montoTotal
+      estado
+    }
+  }
+`;
+
+export const revertirNotaCreditoDevolucionMutation = gql`
+  mutation ($id: ID!, $usuarioId: ID) {
+    data: revertirNotaCreditoDevolucion(id: $id, usuarioId: $usuarioId)
   }
 `;

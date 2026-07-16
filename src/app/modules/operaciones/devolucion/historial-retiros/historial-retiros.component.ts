@@ -1,4 +1,5 @@
 import { Component, OnInit } from "@angular/core";
+import { MatDialog } from "@angular/material/dialog";
 import { PageEvent } from "@angular/material/paginator";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -7,6 +8,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { AcreditarRetiroDialogComponent } from "../acreditar-retiro-dialog/acreditar-retiro-dialog.component";
 import { OperacionDevolucionService } from "../operacion-devolucion/operacion-devolucion.service";
 
 /**
@@ -34,7 +36,8 @@ export class HistorialRetirosComponent implements OnInit {
     private reporteService: ReporteService,
     private tabService: TabService,
     private dialogosService: DialogosService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -76,12 +79,19 @@ export class HistorialRetirosComponent implements OnInit {
       _rev: !revertida && d.estado === "RETIRADO",
     }));
     const revertible = !revertida && devs.length > 0 && devs.every((d: any) => d.estado === "RETIRADO");
+    const acreditada = !!op.notaCredito;
+    // Se puede acreditar un retiro confirmado, no revertido, aun no acreditado y
+    // con todas sus devoluciones en RETIRADO.
+    const puedeAcreditar =
+      !revertida && !acreditada && devs.length > 0 && devs.every((d: any) => d.estado === "RETIRADO");
     return {
       ...op,
       devoluciones: devs,
       _titulo: op.proveedor?.persona?.nombre || "Proveedor",
       _revertida: revertida,
-      _revertible: revertible,
+      _revertible: revertible && !acreditada,
+      _acreditada: acreditada,
+      _puedeAcreditar: puedeAcreditar,
     };
   }
 
@@ -114,6 +124,40 @@ export class HistorialRetirosComponent implements OnInit {
         this.procesando = true;
         this.operacionService
           .onRevertirRetiro(op.id)
+          .pipe(untilDestroyed(this))
+          .subscribe(
+            (r) => {
+              this.procesando = false;
+              if (r != null) this.cargar();
+            },
+            () => (this.procesando = false)
+          );
+      });
+  }
+
+  onAcreditar(op: any): void {
+    this.matDialog
+      .open(AcreditarRetiroDialogComponent, {
+        data: { retiroId: op.id, proveedorNombre: op._titulo },
+        disableClose: true,
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((ok) => {
+        if (ok) this.cargar();
+      });
+  }
+
+  onRevertirNotaCredito(op: any): void {
+    if (!op.notaCredito) return;
+    this.dialogosService
+      .confirm("Atención!!", "¿Revertir la nota de crédito? Las devoluciones vuelven a RETIRADO.")
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        if (!confirmado) return;
+        this.procesando = true;
+        this.operacionService
+          .onRevertirNotaCredito(op.notaCredito.id)
           .pipe(untilDestroyed(this))
           .subscribe(
             (r) => {

@@ -34,6 +34,9 @@
           <span class="op-sub">
             {{ op.fecha | date: "dd/MM/yyyy HH:mm" }}
             <span class="badge" *ngIf="op._revertida">Revertido</span>
+            <span class="badge badge-ok" *ngIf="op._acreditada">
+              Acreditado · NC {{ op.notaCredito?.nroNotaCredito }}
+            </span>
           </span>
         </div>
         <button
@@ -66,19 +69,38 @@
         </tr>
       </table>
 
-      <div class="op-acciones" *ngIf="op._revertible">
+      <div class="op-acciones" *ngIf="op._puedeAcreditar || op._revertible || op._acreditada">
+        <button
+          mat-raised-button
+          color="accent"
+          *ngIf="op._puedeAcreditar"
+          [disabled]="procesando"
+          (click)="onAcreditar(op)"
+        >
+          <mat-icon>request_quote</mat-icon> Registrar crédito
+        </button>
         <button
           mat-stroked-button
           color="warn"
+          *ngIf="op._revertible"
           [disabled]="procesando"
           (click)="onRevertirOperacion(op)"
         >
           <mat-icon>undo</mat-icon> Revertir retiro completo
         </button>
+        <button
+          mat-stroked-button
+          color="warn"
+          *ngIf="op._acreditada"
+          [disabled]="procesando"
+          (click)="onRevertirNotaCredito(op)"
+        >
+          <mat-icon>undo</mat-icon> Revertir crédito
+        </button>
       </div>
-      <p class="op-nota" *ngIf="!op._revertida && !op._revertible">
+      <p class="op-nota" *ngIf="!op._revertida && !op._revertible && !op._acreditada && !op._puedeAcreditar">
         <mat-icon>info</mat-icon>
-        No se puede revertir: alguna devolución ya fue canjeada o acreditada.
+        No se puede revertir: alguna devolución ya fue canjeada.
       </p>
     </mat-card>
   </div>

@@ -91,7 +91,9 @@
       (click)="onIniciarCanje()">
       Registrar canje
     </button>
-    <button mat-raised-button color="accent" *ngIf="canAcreditar && !acreditarMode" [disabled]="procesando"
+    <!-- Acreditar per-devolución DEPRECADO: la acreditación ahora es consolidada
+         por retiro (dialogo "Registrar crédito" en el histórico de retiros). -->
+    <button mat-raised-button color="accent" *ngIf="false && canAcreditar && !acreditarMode" [disabled]="procesando"
       (click)="onIniciarAcreditar()">
       Acreditar (nota de crédito)
     </button>

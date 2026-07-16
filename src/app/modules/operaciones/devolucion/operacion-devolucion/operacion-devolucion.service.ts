@@ -6,9 +6,12 @@ import { MainService } from "../../../../main.service";
 import { GetColectasDevolucionGQL } from "./graphql/getColectasDevolucion";
 import { GetRemitoRetiroGQL } from "./graphql/getRemitoRetiro";
 import { GetRetirosDevolucionGQL } from "./graphql/getRetirosDevolucion";
+import { GetAcreditacionPreviewGQL } from "./graphql/getAcreditacionPreview";
+import { AcreditarRetiroGQL } from "./graphql/acreditarRetiro";
 import { RevertirColectaDevolucionGQL } from "./graphql/revertirColectaDevolucion";
 import { RevertirEstadoDevolucionGQL } from "./graphql/revertirEstadoDevolucion";
 import { RevertirRetiroDevolucionGQL } from "./graphql/revertirRetiroDevolucion";
+import { RevertirNotaCreditoDevolucionGQL } from "./graphql/revertirNotaCreditoDevolucion";
 import { ColectaDevolucionOp, RetiroDevolucionOp } from "./operacion-devolucion.model";
 
 /**
@@ -25,7 +28,10 @@ export class OperacionDevolucionService {
     private getRemitoRetiroGQL: GetRemitoRetiroGQL,
     private revertirEstadoGQL: RevertirEstadoDevolucionGQL,
     private revertirRetiroGQL: RevertirRetiroDevolucionGQL,
-    private revertirColectaGQL: RevertirColectaDevolucionGQL
+    private revertirColectaGQL: RevertirColectaDevolucionGQL,
+    private acreditacionPreviewGQL: GetAcreditacionPreviewGQL,
+    private acreditarRetiroGQL: AcreditarRetiroGQL,
+    private revertirNotaCreditoGQL: RevertirNotaCreditoDevolucionGQL
   ) {}
 
   onGetRetiros(
@@ -77,6 +83,33 @@ export class OperacionDevolucionService {
   onRevertirColecta(colectaId: number): Observable<any> {
     return this.genericCrudService.onCustomMutation(this.revertirColectaGQL, {
       colectaId,
+      usuarioId: this.mainService.usuarioActual?.id,
+    });
+  }
+
+  /** Preview consolidado (por producto, a costo medio) para acreditar un retiro. */
+  onGetAcreditacionPreview(retiroId: number): Observable<any> {
+    return this.genericCrudService.onCustomQuery(this.acreditacionPreviewGQL, { retiroId });
+  }
+
+  onAcreditarRetiro(
+    retiroId: number,
+    nroNotaCredito: string | null,
+    fecha: string | null,
+    items: any[]
+  ): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.acreditarRetiroGQL, {
+      retiroId,
+      nroNotaCredito,
+      fecha,
+      items,
+      usuarioId: this.mainService.usuarioActual?.id,
+    });
+  }
+
+  onRevertirNotaCredito(id: number): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.revertirNotaCreditoGQL, {
+      id,
       usuarioId: this.mainService.usuarioActual?.id,
     });
   }

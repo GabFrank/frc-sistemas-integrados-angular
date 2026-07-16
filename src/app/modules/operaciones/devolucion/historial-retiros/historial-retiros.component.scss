@@ -70,6 +70,16 @@
     font-size: 11px;
   }
 
+  .badge-ok {
+    background: #1b5e20;
+  }
+
+  .op-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
   .op-lineas {
     width: 100%;
     border-collapse: collapse;

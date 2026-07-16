@@ -90,6 +90,7 @@ import { HistorialColectasComponent } from './devolucion/historial-colectas/hist
 import { HistorialRetirosComponent } from './devolucion/historial-retiros/historial-retiros.component';
 import { HistoricoDevolucionDialogComponent } from './devolucion/historico-devolucion-dialog/historico-devolucion-dialog.component';
 import { CancelarDevolucionDialogComponent } from './devolucion/cancelar-devolucion-dialog/cancelar-devolucion-dialog.component';
+import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-dialog/acreditar-retiro-dialog.component';
 
 @NgModule({
   declarations: [
@@ -168,6 +169,7 @@ import { CancelarDevolucionDialogComponent } from './devolucion/cancelar-devoluc
     HistorialRetirosComponent,
     HistoricoDevolucionDialogComponent,
     CancelarDevolucionDialogComponent,
+    AcreditarRetiroDialogComponent,
     EditDevolucionComponent,
     CreateDevolucionItemDialogComponent,
     GuiaDevolucionComponent,
