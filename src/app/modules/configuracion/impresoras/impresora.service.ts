@@ -177,4 +177,39 @@ export class ImpresoraService {
       }),
     );
   }
+
+  /**
+   * Habilita el compartir CUPS (por red, via IPP) de una cola ya instalada en una SUCURSAL, para
+   * que otro host (típicamente el central) pueda instalar una cola proxy que reenvíe hacia ella.
+   * Se usa desde "Agregar desde sucursal": la sucursal ya tiene la cola instalada localmente, pero
+   * no expuesta por red hasta que se llama esta mutation en SU PROPIO backend (por IP). Reutiliza
+   * el login actual, igual que {@link delSistemaEnServidorPorIp}.
+   */
+  compartirColaEnServidorPorIp(
+    nombreCola: string,
+    sucursalIp: string,
+    sucursalPort: string | number,
+    ipDestino: string,
+  ): Observable<boolean> {
+    const url = `http://${sucursalIp}:${sucursalPort}/graphql`;
+    const token = localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query:
+        'mutation($nombreCola: String!, $ipDestino: String) { '
+        + 'compartirColaCups(nombreCola: $nombreCola, ipDestino: $ipDestino) }',
+      variables: { nombreCola, ipDestino },
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en la sucursal');
+        }
+        return res?.data?.compartirColaCups === true;
+      }),
+    );
+  }
 }
