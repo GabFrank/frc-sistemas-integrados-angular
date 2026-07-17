@@ -17,16 +17,12 @@ import { ImpresoraService } from '../impresora.service';
 // Palabras que sugieren que una impresora es termica / de tickets (mismo criterio que el resto del módulo).
 const REGEX_TERMICA = /ticket|term|thermal|\btm[-\s]?\d|xprinter|xp[-\s]?\d|pos.?58|pos.?80|58\s?mm|80\s?mm|receipt|bematech|epson\s?tm/i;
 
-// Host del SERVIDOR CENTRAL (sucursalId=0). Mismo criterio que adicionar-impresora-dialog: es el
-// host donde corre el backend central, no la "sucursal central" (que es una sucursal común).
-const HOST_SERVIDOR_CENTRAL_ID = 0;
-
 interface ColaVista {
   nombre: string;
   seleccionada: boolean;
   esTermica: boolean;
   compartiendo: boolean;
-  /** true = ya se compartió e instaló como proxy en el central; se guarda apuntando ahí. */
+  /** true = ya se compartió e instaló como proxy IPP en el central (flag informativo). */
   compartida: boolean;
 }
 
@@ -151,9 +147,13 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
    * Comparte esta cola (ya instalada en la sucursal) al servidor CENTRAL, igual que "Compartir al
    * servidor" hace con una impresora local de escritorio:
    * 1) Habilita el compartir CUPS en el backend de la SUCURSAL (por IP, sin credenciales de SO).
-   * 2) El central instala una cola proxy que apunta por IPP a la sucursal.
-   * Al guardar, esta cola queda registrada apuntando al central (no a la sucursal), porque desde
-   * ahí es de donde efectivamente se imprime.
+   * 2) El central instala una cola proxy que apunta por IPP a la sucursal (util para imprimir
+   *    directo desde el SO de esa PC; la app NO depende de esta cola para imprimir).
+   * Al guardar, la impresora sigue registrada con `sucursalId` apuntando a la SUCURSAL real (no al
+   * central): así `PrintRouterService` sigue haciendo el proxy GraphQL correcto hacia la sucursal
+   * en vez de imprimir "local" contra la cola IPP-proxy del central (que quedaba colgada ante
+   * cualquier hiccup de red — "Unable to add document to print job"). `compartida` solo se guarda
+   * como flag informativo (`compartidaEnCentral`).
    */
   compartir(cola: ColaVista): void {
     const ip = (this.ipControl.value ?? '').trim();
@@ -283,14 +283,17 @@ export class AgregarDesdeSucursalDialogComponent implements OnInit {
     input.nombre = cola.nombre.toUpperCase();
     input.activo = true;
     input.esPredeterminada = false;
-    // Si se compartió, la cola vive en el central (cola proxy instalada ahí), no en la sucursal.
-    input.sucursalId = cola.compartida ? HOST_SERVIDOR_CENTRAL_ID : sucursalId;
+    // sucursalId siempre es el host REAL (donde vive físicamente la cola), se haya compartido o
+    // no: es lo que PrintRouterService usa para decidir si imprime local o hace proxy GraphQL.
+    input.sucursalId = sucursalId;
     input.tipo = cola.esTermica ? 'TERMICA' : 'NORMAL';
     input.uso = 'TICKET';
     input.conexion = 'CUPS';
     input.colaCups = cola.nombre;
     input.perfilPapel = cola.esTermica ? 'MM_58' : 'A4';
     input.columnas = 32;
+    // Solo informativo: indica que además existe una cola proxy IPP en el central.
+    input.compartidaEnCentral = cola.compartida;
     return input;
   }
 

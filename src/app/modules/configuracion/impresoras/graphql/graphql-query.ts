@@ -21,6 +21,7 @@ const CAMPOS = `
   altoMm
   marca
   codepage
+  compartidaEnCentral
   creadoEn
 `;
 
