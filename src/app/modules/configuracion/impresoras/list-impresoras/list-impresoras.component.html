@@ -37,6 +37,8 @@
           <div class="sucursal-badge">
             <mat-icon>store</mat-icon>
             <span>{{ imp.sucursalNombre }}</span>
+            <mat-icon *ngIf="imp.compartidaEnCentral"
+              title="Además tiene una cola proxy IPP instalada en el central">cloud_done</mat-icon>
           </div>
 
           <div class="card-top" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">

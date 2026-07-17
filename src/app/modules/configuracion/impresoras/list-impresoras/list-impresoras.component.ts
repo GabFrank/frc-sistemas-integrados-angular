@@ -40,6 +40,7 @@ interface ImpresoraVista {
   esPredeterminada: boolean;
   sucursalNombre: string;
   colorIndex: number;
+  compartidaEnCentral: boolean;
 }
 
 const PERFIL_LABEL: Record<PerfilPapel, string> = {
@@ -288,7 +289,8 @@ export class ListImpresorasComponent implements OnInit {
       activo: i?.activo === true,
       esPredeterminada: i?.esPredeterminada === true,
       sucursalNombre: i?.sucursal ? `${i.sucursal.id} - ${i.sucursal.nombre}` : 'Sin sucursal',
-      colorIndex: sucursalId % 6
+      colorIndex: sucursalId % 6,
+      compartidaEnCentral: i?.compartidaEnCentral === true,
     };
   }
 
