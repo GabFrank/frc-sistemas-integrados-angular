@@ -12,7 +12,7 @@ import { ImpresoraByIdGQL } from './graphql/impresoraById';
 import { SaveImpresoraGQL } from './graphql/saveImpresora';
 import { DeleteImpresoraGQL } from './graphql/deleteImpresora';
 import { ImpresorasDelSistemaGQL } from './graphql/impresorasDelSistema';
-import { ImprimirPruebaGQL } from './graphql/imprimirPrueba';
+import { ImprimirPruebaEnImpresoraGQL } from './graphql/imprimirPruebaEnImpresora';
 
 @Injectable({
   providedIn: 'root'
@@ -28,9 +28,9 @@ export class ImpresoraService {
     private saveImpresoraGQL: SaveImpresoraGQL,
     private deleteImpresoraGQL: DeleteImpresoraGQL,
     private impresorasDelSistemaGQL: ImpresorasDelSistemaGQL,
-    private imprimirPruebaGQL: ImprimirPruebaGQL,
     private dispositivosParaInstalarGQL: DispositivosParaInstalarGQL,
     private instalarImpresoraCupsGQL: InstalarImpresoraCupsGQL,
+    private imprimirPruebaEnImpresoraGQL: ImprimirPruebaEnImpresoraGQL,
   ) { }
 
   /** Registro de impresoras. Vive en el servidor central (administrativo). */
@@ -74,14 +74,6 @@ export class ImpresoraService {
   }
 
   /**
-   * Imprime un ticket de prueba en la impresora. Se envía al servidor central, que
-   * rutea al host dueño (local o filial) según la sucursal de la impresora.
-   */
-  probar(id: number, servidor = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.imprimirPruebaGQL, { impresoraId: id }, servidor);
-  }
-
-  /**
    * Dispositivos conectados (USB/red/serial) que todavía no tienen cola CUPS creada.
    * Corre en el host del backend consultado (servidor=false → filial local, donde está
    * físicamente la impresora).
@@ -95,6 +87,21 @@ export class ImpresoraService {
     return this.genericService.onCustomMutation(
       this.instalarImpresoraCupsGQL,
       { nombreCola, uri, raw },
+      servidor
+    );
+  }
+
+  /**
+   * Imprime un ticket de prueba generado server-side y lo rutea al host dueño de la impresora
+   * (`PrintRouterService`, ya existente): si la impresora es de una filial, el central hace proxy
+   * automático a esa filial por `Sucursal.ip`/`puertoServidor`. Se usa como respaldo de "Probar"
+   * cuando la impresión local (Electron) falla porque la cola no existe en esta PC — el caso típico
+   * es una impresora agregada desde "Agregar desde sucursal", que vive en otro host.
+   */
+  probarEnBackend(impresoraId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.imprimirPruebaEnImpresoraGQL,
+      { impresoraId },
       servidor
     );
   }
@@ -140,6 +147,68 @@ export class ImpresoraService {
           throw new Error(res.errors[0]?.message || 'Error GraphQL en el servidor');
         }
         return res?.data?.instalarImpresoraCups === true;
+      }),
+    );
+  }
+
+  /**
+   * Lista las colas CUPS ya instaladas en una SUCURSAL elegida, consultando directo por IP (no los
+   * dos Apollo clients fijos de central/local). Se usa para "Agregar desde sucursal": el backend
+   * filial de esa sucursal ya expone `impresorasDelSistema` con el mismo login del usuario (sin
+   * credenciales de sistema operativo, sin instalar nada). El puerto lo escribe el usuario porque
+   * puede variar entre sucursales.
+   */
+  delSistemaEnServidorPorIp(sucursalIp: string, sucursalPort: string | number): Observable<string[]> {
+    const url = `http://${sucursalIp}:${sucursalPort}/graphql`;
+    const token = localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query: 'query { data: impresorasDelSistema }',
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en la sucursal');
+        }
+        return res?.data?.data ?? [];
+      }),
+    );
+  }
+
+  /**
+   * Habilita el compartir CUPS (por red, via IPP) de una cola ya instalada en una SUCURSAL, para
+   * que otro host (típicamente el central) pueda instalar una cola proxy que reenvíe hacia ella.
+   * Se usa desde "Agregar desde sucursal": la sucursal ya tiene la cola instalada localmente, pero
+   * no expuesta por red hasta que se llama esta mutation en SU PROPIO backend (por IP). Reutiliza
+   * el login actual, igual que {@link delSistemaEnServidorPorIp}.
+   */
+  compartirColaEnServidorPorIp(
+    nombreCola: string,
+    sucursalIp: string,
+    sucursalPort: string | number,
+    ipDestino: string,
+  ): Observable<boolean> {
+    const url = `http://${sucursalIp}:${sucursalPort}/graphql`;
+    const token = localStorage.getItem('token') || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query:
+        'mutation($nombreCola: String!, $ipDestino: String) { '
+        + 'compartirColaCups(nombreCola: $nombreCola, ipDestino: $ipDestino) }',
+      variables: { nombreCola, ipDestino },
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en la sucursal');
+        }
+        return res?.data?.compartirColaCups === true;
       }),
     );
   }

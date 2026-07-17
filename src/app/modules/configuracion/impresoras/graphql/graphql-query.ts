@@ -21,6 +21,7 @@ const CAMPOS = `
   altoMm
   marca
   codepage
+  compartidaEnCentral
   creadoEn
 `;
 
@@ -74,12 +75,6 @@ export const deleteImpresoraQuery = gql`
   }
 `;
 
-export const imprimirPruebaMutation = gql`
-  mutation ($impresoraId: ID!) {
-    imprimirPruebaEnImpresora(impresoraId: $impresoraId)
-  }
-`;
-
 export const dispositivosParaInstalarQuery = gql`
   query {
     data: dispositivosParaInstalar {
@@ -94,5 +89,11 @@ export const dispositivosParaInstalarQuery = gql`
 export const instalarImpresoraCupsMutation = gql`
   mutation ($nombreCola: String!, $uri: String!, $raw: Boolean) {
     instalarImpresoraCups(nombreCola: $nombreCola, uri: $uri, raw: $raw)
+  }
+`;
+
+export const imprimirPruebaEnImpresoraMutation = gql`
+  mutation ($impresoraId: ID!) {
+    data: imprimirPruebaEnImpresora(impresoraId: $impresoraId)
   }
 `;

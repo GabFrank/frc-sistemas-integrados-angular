@@ -96,6 +96,7 @@ import { Delivery } from "../../../operaciones/delivery/delivery.model";
 import { DeliveryEstado } from "../../../operaciones/delivery/enums";
 import { VentaEstado } from "../../../operaciones/venta/enums/venta-estado.enums";
 import { VentaService } from "../../../operaciones/venta/venta.service";
+import { FacturaLegalService } from "../../../financiero/factura-legal/factura-legal.service";
 import { DeliveryService } from "./delivery-dialog/delivery.service";
 import {
   ListDeliveryComponent,
@@ -191,7 +192,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private gastoService: GastoService,
     private movimientoStockService: MovimientoStockService,
     private puntoDeVentaService: PuntoDeVentaService,
-    private ventaTarjetaService: VentaTarjetaService
+    private ventaTarjetaService: VentaTarjetaService,
+    private facturaLegalService: FacturaLegalService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -987,7 +989,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 response.ticket == true,
                 !response?.facturado,
                 ventaCredito?.toInput(),
-                ventaCreditoCuotaInputList
+                ventaCreditoCuotaInputList,
+                response?.facturaLegalId
               ).subscribe((ventaRes) => { });
             }
             this.dialogReference = undefined;
@@ -1073,7 +1076,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     ticket,
     facturar?,
     ventaCreditoInput?,
-    ventaCreditoCuotaInputList?
+    ventaCreditoCuotaInputList?,
+    facturaLegalId?: number
   ): Observable<Venta> {
     if (facturar == null) {
       facturar = ticket == true;
@@ -1099,6 +1103,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               texto: "Venta guardada con éxito",
               duracion: 2,
             });
+            if (facturaLegalId != null) {
+              // La factura se generó manualmente antes de que la venta existiera
+              // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+              this.facturaLegalService
+                .onVincularFacturaAVenta(facturaLegalId, res.id, false)
+                .pipe(untilDestroyed(this))
+                .subscribe({
+                  error: (err) =>
+                    console.error("Error al vincular factura a la venta:", err),
+                });
+            }
             if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
               const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
               const personaId = venta.cliente?.persona?.id;

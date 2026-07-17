@@ -1,3 +1,8 @@
 .shrinking-mat-form-field ::ng-deep .mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-form-field-infix {
   transform: translateY(-10px) !important;
 }
+
+::ng-deep .btn-factura button,
+::ng-deep .btn-factura button div {
+  white-space: unset !important;
+}

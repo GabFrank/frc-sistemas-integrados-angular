@@ -430,6 +430,17 @@
               <mat-icon>open_in_browser</mat-icon>
               <span>Abrir PDF</span>
             </button>
+            <button mat-menu-item (click)="onImprimirTicketEnSucursal(factura)">
+              <mat-icon>receipt_long</mat-icon>
+              <span>Imprimir ticket en sucursal</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onImprimirPdfEnSucursal(factura)"
+              [disabled]="!esElectronica(factura)">
+              <mat-icon>store</mat-icon>
+              <span>Imprimir PDF en sucursal</span>
+            </button>
           </mat-menu>
         </td>
       </ng-container>

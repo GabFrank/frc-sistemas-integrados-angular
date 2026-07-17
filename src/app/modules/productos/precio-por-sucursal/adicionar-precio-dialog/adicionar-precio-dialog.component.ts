@@ -104,13 +104,39 @@ export class AdicionarPrecioDialogComponent implements OnInit {
       return;
     }
 
-    this.cargandoDialog.openDialog();
-    
     this.precioInput.precio = this.precioControl.value;
     this.precioInput.activo = this.activoControl.value;
     this.precioInput.principal = this.principalControl.value;
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
+
+    if (this.precioInput.id == null) {
+      this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)
+        .pipe(untilDestroyed(this))
+        .subscribe((preciosExistentes: PrecioPorSucursal[]) => {
+          const yaExiste = (preciosExistentes || []).some(
+            precio => precio.tipoPrecio?.id === this.precioInput.tipoPrecioId
+          );
+
+          if (yaExiste) {
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ya existe un precio con ese tipo de precio para esta presentación.",
+              color: NotificacionColor.warn,
+              duracion: 3
+            });
+            return;
+          }
+
+          this.continuarGuardado();
+        });
+      return;
+    }
+
+    this.continuarGuardado();
+  }
+
+  private continuarGuardado() {
+    this.cargandoDialog.openDialog();
 
     if (this.principalControl.value === true) {
       this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)

@@ -31,6 +31,9 @@ export class Impresora {
   altoMm: number;
   marca: string;
   codepage: string;
+  /** true = ademas de vivir en `sucursal`, tiene una cola CUPS proxy (IPP) instalada en el
+   * central via "compartir al central" (informativo; `sucursal` sigue siendo el host real). */
+  compartidaEnCentral: boolean;
   creadoEn: Date;
   usuario: Usuario;
 
@@ -53,6 +56,7 @@ export class Impresora {
     input.altoMm = this?.altoMm;
     input.marca = this?.marca;
     input.codepage = this?.codepage;
+    input.compartidaEnCentral = this?.compartidaEnCentral;
     return input;
   }
 }
@@ -75,5 +79,6 @@ export class ImpresoraInput {
   altoMm?: number;
   marca?: string;
   codepage?: string;
+  compartidaEnCentral?: boolean;
   usuarioId?: number = null;
 }

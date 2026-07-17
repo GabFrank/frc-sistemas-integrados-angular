@@ -785,7 +785,10 @@ function instalarImpresoraLocal(
         }
         // Linux/CUPS. raw para térmicas (ESC/POS); everywhere solo aplica a URIs IPP.
         const modelo = raw ? 'raw' : (/^ipps?:/i.test(uri) ? 'everywhere' : 'raw');
-        const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo];
+        // printer-error-policy=retry-current-job: ante un error del backend la cola NO se pausa
+        // (evita el "stop-printer" por defecto que deja la impresora inactiva y los jobs pendientes).
+        const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo,
+          '-o', 'printer-error-policy=retry-current-job'];
         const r = await run(args, !!password);
         if (r.code !== 0) {
           const stderr = (r.stderr || '').trim();
@@ -820,6 +823,9 @@ interface EntradaRed {
   modelo: string | null;
   puertos: Set<number>;
   protocolos: Set<string>;
+  // Resource path IPP anunciado por DNS-SD (TXT `rp`): 'printers/<cola>' para una cola CUPS
+  // compartida, 'ipp/print' para una impresora IPP real. Se usa para armar la URI de instalación.
+  rp: string | null;
 }
 
 /** Etiqueta de protocolo legible a partir de un puerto de impresion de red. */
@@ -833,7 +839,7 @@ function etiquetaPuerto(puerto: number): string {
 function obtenerOCrearEntrada(mapa: Map<string, EntradaRed>, ip: string): EntradaRed {
   let e = mapa.get(ip);
   if (!e) {
-    e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set() };
+    e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set(), rp: null };
     mapa.set(ip, e);
   }
   return e;
@@ -878,6 +884,11 @@ function descubrirImpresorasMdns(timeoutMs: number, locales: Set<string>): Promi
         const modelo = limpiarModelo(txt.ty || txt.product || txt.usb_MDL);
         if (!e.modelo && modelo) {
           e.modelo = modelo;
+        }
+        // Resource path IPP anunciado (ej. 'printers/ticket_soporte' de una cola CUPS compartida,
+        // o 'ipp/print' de una impresora IPP real). Se usa para armar la URI correcta al instalar.
+        if (!e.rp && typeof txt.rp === 'string' && txt.rp.trim()) {
+          e.rp = txt.rp.trim().replace(/^\/+/, '');
         }
         if (!e.host && s.host) {
           e.host = s.host;
@@ -1017,6 +1028,130 @@ async function escanearImpresorasRed(connectTimeoutMs: number, locales: Set<stri
   return mapa;
 }
 
+/**
+ * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin backend.
+ *   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+ *   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin. `lp` habla
+ *     directo con cupsd (no depende de PrintServiceLookup) y `-o raw` garantiza passthrough.
+ * Devuelve { success, error? }. No lanza: cualquier fallo vuelve como { success:false, error }.
+ */
+function imprimirLocalRaw(arg: any): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    const conexion = String(arg?.conexion || '').toUpperCase();
+    const payloadB64 = arg?.payloadBase64;
+    if (!payloadB64) {
+      resolve({ success: false, error: 'Payload de impresión vacío' });
+      return;
+    }
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(payloadB64, 'base64');
+    } catch {
+      resolve({ success: false, error: 'Payload base64 inválido' });
+      return;
+    }
+
+    if (conexion === 'RED') {
+      const net = require('net');
+      const ip = arg?.ip;
+      const puerto = Number(arg?.puerto) || 9100;
+      if (!ip) {
+        resolve({ success: false, error: 'IP de la impresora de red vacía' });
+        return;
+      }
+      const socket = new net.Socket();
+      let terminado = false;
+      const finish = (r: { success: boolean; error?: string }) => {
+        if (terminado) return;
+        terminado = true;
+        try { socket.destroy(); } catch { /* noop */ }
+        resolve(r);
+      };
+      socket.setTimeout(8000);
+      socket.on('error', (e: any) => finish({ success: false, error: e && e.message ? e.message : 'error de socket' }));
+      socket.on('timeout', () => finish({ success: false, error: 'timeout conectando a ' + ip + ':' + puerto }));
+      socket.connect(puerto, ip, () => {
+        socket.write(buffer, () => {
+          socket.end();
+          finish({ success: true });
+        });
+      });
+      return;
+    }
+
+    // CUPS / USB / BLUETOOTH: cola local via `lp -d <cola> -o raw`.
+    const cola = String(arg?.cola || '').trim();
+    if (!cola) {
+      resolve({ success: false, error: 'Cola CUPS vacía' });
+      return;
+    }
+    if (process.platform === 'win32') {
+      resolve({ success: false, error: 'Impresión CUPS local aún no soportada en Windows' });
+      return;
+    }
+    try {
+      const proc = spawn('lp', ['-d', cola, '-o', 'raw']);
+      let stderr = '';
+      proc.stderr.on('data', (d: any) => { stderr += d.toString(); });
+      proc.on('error', (e: any) => resolve({ success: false, error: e && e.message ? e.message : 'no se pudo ejecutar lp' }));
+      proc.on('close', (code: number) => {
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: stderr.trim() || ('lp terminó con código ' + code) });
+        }
+      });
+      proc.stdin.write(buffer);
+      proc.stdin.end();
+    } catch (e: any) {
+      resolve({ success: false, error: e && e.message ? e.message : 'error ejecutando lp' });
+    }
+  });
+}
+
+/** Columnas por defecto según el perfil de papel (fuente A). Replica PerfilPapelHelper del backend. */
+function columnasPorPerfil(perfil?: string): number {
+  switch (String(perfil || '').toUpperCase()) {
+    case 'MM_48':
+    case 'MM_58': return 32;
+    case 'MM_72': return 42;
+    case 'MM_80': return 48;
+    default: return 32; // A4 / CARTA / CUSTOM / desconocido
+  }
+}
+
+/**
+ * Genera el ESC/POS del ticket de PRUEBA en el frontend (sin backend): título centrado en negrita,
+ * separadores y datos de la impresora. Se imprime local con `print-local`.
+ */
+function construirTicketPruebaEscPos(meta: any): Buffer {
+  const cols = Number(meta?.columnas) > 0 ? Number(meta.columnas) : columnasPorPerfil(meta?.perfil);
+  const ESC = 0x1b;
+  const GS = 0x1d;
+  const LF = 0x0a;
+  const partes: Buffer[] = [];
+  const ctrl = (arr: number[]) => partes.push(Buffer.from(arr));
+  const linea = (s: string) => partes.push(Buffer.from(s + '\n', 'latin1'));
+  const sep = '-'.repeat(cols);
+
+  ctrl([ESC, 0x40]);          // init
+  ctrl([ESC, 0x61, 0x01]);    // centrar
+  ctrl([ESC, 0x45, 0x01]);    // negrita on
+  linea('PRUEBA DE IMPRESION');
+  ctrl([ESC, 0x45, 0x00]);    // negrita off
+  ctrl([ESC, 0x61, 0x00]);    // izquierda
+  linea(sep);
+  linea('Impresora: ' + (meta?.nombre || ''));
+  if (meta?.sucursal) { linea('Sucursal: ' + meta.sucursal); }
+  linea('Conexion: ' + (meta?.conexion || ''));
+  linea('Columnas: ' + cols);
+  linea('Perfil: ' + (meta?.perfil || ''));
+  linea(sep);
+  ctrl([LF, LF, LF]);         // feed
+  ctrl([GS, 0x56, 0x00]);     // corte total
+  return Buffer.concat(partes);
+}
+
 function registerPrinterIpcHandlers() {
   // IP LAN de esta maquina (para compartir la impresora local al central por IP).
   ipcMain.handle('get-local-ip', async () => {
@@ -1040,6 +1175,21 @@ function registerPrinterIpcHandlers() {
     const raw = arg?.raw !== false; // por defecto raw (térmica ESC/POS)
     const password = arg?.password;
     return instalarImpresoraLocal(cola, uri, raw, password);
+  });
+
+  // Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, SIN pasar por ningún
+  // backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
+  // alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente, así que imprime acá.
+  //   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+  //   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin.
+  // arg: { conexion, cola, ip, puerto, payloadBase64 } → { success, error? }
+  ipcMain.handle('print-local', async (_event: any, arg: any) => imprimirLocalRaw(arg));
+
+  // Imprime el ticket de PRUEBA generado 100% en el frontend (ESC/POS), sin ningún backend.
+  // arg: { conexion, cola, ip, puerto, nombre, sucursal, columnas, perfil } → { success, error? }
+  ipcMain.handle('print-test-local', async (_event: any, arg: any) => {
+    const payload = construirTicketPruebaEscPos(arg);
+    return imprimirLocalRaw({ ...arg, payloadBase64: payload.toString('base64') });
   });
 
   ipcMain.handle('get-system-printers', async () => {
@@ -1091,10 +1241,14 @@ function registerPrinterIpcHandlers() {
       return Array.from(fusion.values()).map((p) => {
         // Puerto para conexion RED directa (raw/ESC-POS). 9100 si esta abierto; si no, el primero.
         const puerto = p.puertos.has(9100) ? 9100 : (Array.from(p.puertos)[0] || 9100);
-        // URI para instalar cola CUPS via backend: raw > IPP > LPD segun lo disponible.
+        // URI para instalar cola CUPS via backend. Si el equipo anuncia una cola CUPS COMPARTIDA
+        // (rp=printers/<cola>), apuntamos a esa cola exacta — no al endpoint IPP generico /ipp/print,
+        // que falla con "la impresora ya no existe". Si no, raw > IPP > LPD segun lo disponible.
         let uri: string;
-        if (p.puertos.has(9100)) { uri = `socket://${p.ip}:9100`; }
-        else if (p.puertos.has(631)) { uri = `ipp://${p.ip}:631/ipp/print`; }
+        const rpColaCups = p.rp && /^printers\//i.test(p.rp) ? p.rp : null;
+        if (rpColaCups) { uri = `ipp://${p.ip}:631/${rpColaCups}`; }
+        else if (p.puertos.has(9100)) { uri = `socket://${p.ip}:9100`; }
+        else if (p.puertos.has(631)) { uri = `ipp://${p.ip}:631/${p.rp || 'ipp/print'}`; }
         else if (p.puertos.has(515)) { uri = `lpd://${p.ip}/queue`; }
         else { uri = `socket://${p.ip}:9100`; }
         return {

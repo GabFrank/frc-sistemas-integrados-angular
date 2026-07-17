@@ -24,6 +24,8 @@ import {
 } from '../impresora.model';
 import { ImpresoraService } from '../impresora.service';
 import { AdicionarImpresoraDialogComponent } from '../adicionar-impresora-dialog/adicionar-impresora-dialog.component';
+import { AgregarDesdeSucursalDialogComponent } from '../agregar-desde-sucursal-dialog/agregar-desde-sucursal-dialog.component';
+import { ElectronService } from '../../../../commons/core/electron/electron.service';
 
 interface ImpresoraVista {
   ref: Impresora;
@@ -38,6 +40,7 @@ interface ImpresoraVista {
   esPredeterminada: boolean;
   sucursalNombre: string;
   colorIndex: number;
+  compartidaEnCentral: boolean;
 }
 
 const PERFIL_LABEL: Record<PerfilPapel, string> = {
@@ -82,6 +85,7 @@ export class ListImpresorasComponent implements OnInit {
   private matDialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private notificacion = inject(NotificacionSnackbarService);
+  private electronService = inject(ElectronService);
 
   @ViewChild(CdkVirtualScrollViewport) viewport: CdkVirtualScrollViewport;
 
@@ -172,6 +176,18 @@ export class ListImpresorasComponent implements OnInit {
       });
   }
 
+  agregarDesdeSucursal(): void {
+    this.matDialog
+      .open(AgregarDesdeSucursalDialogComponent, { width: '640px', disableClose: true })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res === true) {
+          this.recargar();
+        }
+      });
+  }
+
   editarItem(impresora: Impresora): void {
     this.matDialog
       .open(AdicionarImpresoraDialogComponent, { data: { impresora }, width: '640px', disableClose: true })
@@ -195,23 +211,68 @@ export class ListImpresorasComponent implements OnInit {
   }
 
   probar(impresora: Impresora): void {
-    this.impresoraService.probar(impresora.id)
+    // El ticket de prueba se intenta primero 100% en el frontend (Electron): el ESC/POS lo arma
+    // Electron con los datos de la impresora y lo manda a la impresora local a esta PC (RED por
+    // socket TCP, CUPS/USB por `lp -d <cola> -o raw`). Si esa cola no existe en esta PC (típico de
+    // una impresora agregada vía "Agregar desde sucursal", que vive en el CUPS de otro host), se
+    // reintenta por el backend (`PrintRouterService`), que rutea al host dueño de la impresora.
+    if (!this.electronService.isElectron) {
+      this.probarPorBackend(impresora);
+      return;
+    }
+    this.electronService.printTestLocal({
+      conexion: impresora.conexion,
+      cola: impresora.colaCups,
+      ip: impresora.ip,
+      puerto: impresora.puerto,
+      nombre: impresora.nombre,
+      sucursal: impresora.sucursal?.nombre,
+      columnas: impresora.columnas,
+      perfil: impresora.perfilPapel,
+    })
       .pipe(untilDestroyed(this))
-      .subscribe((ok) => {
-        if (ok) {
-          this.notificacion.notification$.next({
-            texto: 'Ticket de prueba enviado a ' + impresora.nombre,
-            color: NotificacionColor.success,
-            duracion: 3,
-          });
-        } else {
-          this.notificacion.notification$.next({
-            texto: 'No se pudo imprimir en ' + impresora.nombre,
-            color: NotificacionColor.warn,
-            duracion: 4,
-          });
-        }
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.notificarEnviado(impresora);
+          } else {
+            this.probarPorBackend(impresora);
+          }
+        },
+        error: () => this.probarPorBackend(impresora),
       });
+  }
+
+  /** Respaldo de "Probar" vía backend, para impresoras que no viven físicamente en esta PC. */
+  private probarPorBackend(impresora: Impresora): void {
+    this.impresoraService.probarEnBackend(impresora.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          if (ok) {
+            this.notificarEnviado(impresora);
+          } else {
+            this.notificarFallo(impresora, 'verificá que la sucursal esté online y la cola exista');
+          }
+        },
+        error: (e) => this.notificarFallo(impresora, e?.message),
+      });
+  }
+
+  private notificarEnviado(impresora: Impresora): void {
+    this.notificacion.notification$.next({
+      texto: 'Ticket de prueba enviado a ' + impresora.nombre,
+      color: NotificacionColor.success,
+      duracion: 3,
+    });
+  }
+
+  private notificarFallo(impresora: Impresora, detalle?: string): void {
+    this.notificacion.notification$.next({
+      texto: 'No se pudo imprimir en ' + impresora.nombre + (detalle ? ': ' + detalle : ''),
+      color: NotificacionColor.warn,
+      duracion: 4,
+    });
   }
 
   private aVista(i: Impresora): ImpresoraVista {
@@ -228,7 +289,8 @@ export class ListImpresorasComponent implements OnInit {
       activo: i?.activo === true,
       esPredeterminada: i?.esPredeterminada === true,
       sucursalNombre: i?.sucursal ? `${i.sucursal.id} - ${i.sucursal.nombre}` : 'Sin sucursal',
-      colorIndex: sucursalId % 6
+      colorIndex: sucursalId % 6,
+      compartidaEnCentral: i?.compartidaEnCentral === true,
     };
   }
 
@@ -240,7 +302,7 @@ export class ListImpresorasComponent implements OnInit {
     return i?.colaCups ?? (i?.conexion ?? '');
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize() {
     this.calcularColumnas();
   }

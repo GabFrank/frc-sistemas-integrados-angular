@@ -36,8 +36,13 @@ export class EditSucursalDialogComponent implements OnInit {
   ipControl = new FormControl(null, [
     Validators.pattern('^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
   ]);
-  // Puerto control with range validation
+  // Puerto Postgres (replicación) con validación de rango
   puertoControl = new FormControl(null, [
+    Validators.min(0),
+    Validators.max(65535)
+  ]);
+  // Puerto HTTP/GraphQL del backend de la filial
+  puertoServidorControl = new FormControl(null, [
     Validators.min(0),
     Validators.max(65535)
   ]);
@@ -74,6 +79,7 @@ export class EditSucursalDialogComponent implements OnInit {
       codigoEstablecimientoFactura: this.codigoEstablecimientoFacturaControl,
       ip: this.ipControl,
       puerto: this.puertoControl,
+      puertoServidor: this.puertoServidorControl,
       // Add new fields to form group
       direccion: this.direccionControl,
       nroDelivery: this.nroDeliveryControl,
@@ -125,6 +131,7 @@ export class EditSucursalDialogComponent implements OnInit {
     this.codigoEstablecimientoFacturaControl.setValue(this.selectedSucursal.codigoEstablecimientoFactura);
     this.ipControl.setValue(this.selectedSucursal.ip);
     this.puertoControl.setValue(this.selectedSucursal.puerto);
+    this.puertoServidorControl.setValue(this.selectedSucursal.puertoServidor);
     this.direccionControl.setValue(this.selectedSucursal.direccion);
     this.nroDeliveryControl.setValue(this.selectedSucursal.nroDelivery);
     this.isConfiguredControl.setValue(this.selectedSucursal.isConfigured ?? false);
@@ -160,6 +167,7 @@ export class EditSucursalDialogComponent implements OnInit {
     this.selectedSucursal.codigoEstablecimientoFactura = this.codigoEstablecimientoFacturaControl.value?.toUpperCase();
     this.selectedSucursal.ip = this.ipControl.value;
     this.selectedSucursal.puerto = this.puertoControl.value;
+    this.selectedSucursal.puertoServidor = this.puertoServidorControl.value;
     this.selectedSucursal.direccion = this.direccionControl.value?.toUpperCase();
     this.selectedSucursal.nroDelivery = this.nroDeliveryControl.value?.toUpperCase();
     this.selectedSucursal.isConfigured = this.isConfiguredControl.value ?? false;

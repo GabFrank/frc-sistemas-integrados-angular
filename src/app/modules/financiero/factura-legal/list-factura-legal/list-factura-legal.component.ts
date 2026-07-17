@@ -13,6 +13,7 @@ import { CargandoDialogService } from "../../../../shared/components/cargando-di
 import { ConfirmDialogComponent } from "../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { ImprimirEnSucursalDialogComponent } from "../imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
@@ -724,5 +725,25 @@ export class ListFacturaLegalComponent implements OnInit {
           this.notificacionService.openAlgoSalioMal('Error al cargar el PDF');
         }
       });
+  }
+
+  /** "Imprimir en la sucursal" (ticket): aditivo, no reemplaza onImprimir (Reimprimir). */
+  onImprimirTicketEnSucursal(factura: FacturaLegal): void {
+    this.matDialog.open(ImprimirEnSucursalDialogComponent, {
+      data: { tipo: 'TERMICA', factura },
+      width: '520px',
+    });
+  }
+
+  /** "Imprimir en la sucursal" (PDF A4): aditivo, no reemplaza onDescargarPdf/onAbrirPdf. */
+  onImprimirPdfEnSucursal(factura: FacturaLegal): void {
+    if (!this.esElectronica(factura)) {
+      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
+      return;
+    }
+    this.matDialog.open(ImprimirEnSucursalDialogComponent, {
+      data: { tipo: 'NORMAL', factura },
+      width: '900px',
+    });
   }
 }
