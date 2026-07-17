@@ -569,3 +569,26 @@ mat-form-field.transferencia-input-field {
   }
 }
 @import 'styles/dashboard';
+
+/* ---------------------------------------------------------------------------
+   RRHH — scroll de las tablas de listas.
+   La clase .tabla-container se usa SOLO en las listas del modulo RRHH. Su unico
+   estilo era `overflow-x: auto`, sin alto acotado ni scroll vertical, por lo que
+   al superar el alto del tab (el host tiene overflow:hidden) la tabla se cortaba
+   y no habia forma de ver todas las filas. Se le da alto acotado + scroll
+   vertical y encabezado sticky. !important para ganarle al estilo scoped del
+   componente. Convencion calc(100vh - N) ya usada en este archivo.
+   -------------------------------------------------------------------------- */
+.tabla-container {
+  overflow: auto !important;
+  max-height: calc(100vh - 230px);
+
+  table {
+    th.mat-header-cell {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background-color: #3c3c3c; // mismo tono que los headers sticky del proyecto (ver .mat-table-sticky)
+    }
+  }
+}
