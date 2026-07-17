@@ -57,6 +57,8 @@ import { ROLES } from "../../../../personas/roles/roles.enum";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
 import { GastoService } from "../../../gastos/service/gasto.service";
 import { VentaTarjetaService } from "../../../venta-tarjeta/venta-tarjeta.service";
+import { MonedaService } from "../../../moneda/moneda.service";
+import { NotificationHttpService } from "../../../../../shared/services/notification-http.service";
 
 @UntilDestroy()
 @Component({
@@ -143,7 +145,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private gastoService: GastoService,
     private tabService: TabService,
     public mainService: MainService,
-    private ventaTarjetaService: VentaTarjetaService
+    private ventaTarjetaService: VentaTarjetaService,
+    private monedaService: MonedaService,
+    private notificationHttpService: NotificationHttpService
   ) {
 
   }
@@ -389,6 +393,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.totalDsAper = +response.totalDs;
     if (response.apertura) {
       this.selectedConteoApertura = response.conteo;
+      this.verificarDiferenciaMaletinEnApertura();
     } else {
       this.selectedConteoCierre = response.conteo;
     }
@@ -407,6 +412,159 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.isCierre = true;
       }
     }
+  }
+
+  // La "diferencia en maletín" es el faltante/sobrante físico del maletín entre
+  // el cierre de la caja ANTERIOR que lo usó y la apertura de esta caja nueva.
+  // Es el MISMO cálculo que analisis-diferencia.component.ts (calculateMontos /
+  // calculateTotalesByConteo sobre conteoMonedaList sumando cantidad*valor por
+  // moneda) -- NO es CajaBalance.diferenciaGs, que es la reconciliación interna
+  // de ESTA caja contra sus propias ventas/gastos/retiros, un dato distinto.
+  // El dato solo existe una vez que la apertura de la caja nueva se contó, por
+  // eso se dispara acá y no en el cierre.
+  private diferenciaMaletinAperturaVerificada = false;
+
+  private verificarDiferenciaMaletinEnApertura() {
+    if (this.diferenciaMaletinAperturaVerificada) return;
+    if (!this.selectedCaja?.id || !this.selectedCaja?.sucursal?.id || !this.selectedMaletin?.id) return;
+    this.diferenciaMaletinAperturaVerificada = true;
+
+    this.pollCajaActualParaDiferenciaMaletin(0);
+  }
+
+  // cajasAnalisisDiferencias enriquece cajaAnteriorId/conteoApertura recién
+  // cuando esta caja replicó de filial a central -> se reintenta hasta que el
+  // conteoApertura que devuelve central coincide con lo efectivamente contado.
+  private pollCajaActualParaDiferenciaMaletin(intento: number) {
+    const MAX_INTENTOS = 15;
+    const INTERVALO_MS = 2000;
+
+    this.cajaService
+      .onGetCajasAnalisisDiferencias(
+        this.selectedCaja.id, null, null, null, null, null, null, null,
+        this.selectedCaja.sucursal.id, null, 0, 1, null, true
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (response: any) => {
+          const cajaActual = response?.getContent?.[0] || response?.data?.getContent?.[0];
+          if (cajaActual && this.aperturaReplicada(cajaActual)) {
+            this.buscarCajaAnteriorYNotificar(cajaActual);
+          } else if (intento < MAX_INTENTOS) {
+            setTimeout(() => this.pollCajaActualParaDiferenciaMaletin(intento + 1), INTERVALO_MS);
+          } else {
+            console.warn("No se pudo confirmar la replicación de la apertura para verificar diferencia de maletín.");
+          }
+        },
+        error: (err) => {
+          if (intento < MAX_INTENTOS) {
+            setTimeout(() => this.pollCajaActualParaDiferenciaMaletin(intento + 1), INTERVALO_MS);
+          } else {
+            console.error("Error al verificar diferencia en maletín:", err);
+          }
+        }
+      });
+  }
+
+  private aperturaReplicada(cajaActual: any): boolean {
+    if (!cajaActual.conteoApertura) return false;
+    const apertura = this.calculateTotalesByConteo(cajaActual.conteoApertura);
+    const EPSILON = 0.01;
+    return Math.abs(apertura.gs - this.totalGsAper) < EPSILON
+      && Math.abs(apertura.rs - this.totalRsaper) < EPSILON
+      && Math.abs(apertura.ds - this.totalDsAper) < EPSILON;
+  }
+
+  private buscarCajaAnteriorYNotificar(cajaActual: any) {
+    const cajaAnteriorId = cajaActual.cajaAnteriorId;
+    if (!cajaAnteriorId) return; // primer uso del maletín, no hay con qué comparar
+
+    this.cajaService
+      .onGetByIdSimp(cajaAnteriorId, this.selectedCaja.sucursal.id, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (cajaAnterior) => {
+          if (!cajaAnterior?.conteoCierre) return;
+
+          const cierreAnterior = this.calculateTotalesByConteo(cajaAnterior.conteoCierre);
+          const aperturaActual = this.calculateTotalesByConteo(cajaActual.conteoApertura);
+
+          const diferenciaGs = cierreAnterior.gs - aperturaActual.gs;
+          const diferenciaRs = cierreAnterior.rs - aperturaActual.rs;
+          const diferenciaDs = cierreAnterior.ds - aperturaActual.ds;
+
+          this.evaluarYNotificarDiferenciaMaletin(diferenciaGs, diferenciaRs, diferenciaDs);
+        },
+        error: (err) => console.error("Error al obtener la caja anterior del maletín:", err)
+      });
+  }
+
+  // Idéntico a analisis-diferencia.component.ts#calculateTotalesByConteo.
+  private calculateTotalesByConteo(conteo: any): { gs: number; rs: number; ds: number } {
+    const totales = { gs: 0, rs: 0, ds: 0 };
+    if (!conteo) return totales;
+
+    if (conteo.conteoMonedaList && conteo.conteoMonedaList.length > 0) {
+      conteo.conteoMonedaList.forEach((conteoMoneda: any) => {
+        const denominacion = conteoMoneda.monedaBilletes?.moneda?.denominacion;
+        const cantidad = conteoMoneda.cantidad || 0;
+        const valor = conteoMoneda.monedaBilletes?.valor || 0;
+        const total = cantidad * valor;
+        switch (denominacion) {
+          case "GUARANI":
+            totales.gs += total;
+            break;
+          case "REAL":
+            totales.rs += total;
+            break;
+          case "DOLAR":
+            totales.ds += total;
+            break;
+        }
+      });
+      return totales;
+    }
+
+    if (conteo.totalGs != null || conteo.totalRs != null || conteo.totalDs != null) {
+      totales.gs = conteo.totalGs || 0;
+      totales.rs = conteo.totalRs || 0;
+      totales.ds = conteo.totalDs || 0;
+    }
+    return totales;
+  }
+
+  private evaluarYNotificarDiferenciaMaletin(diferenciaGs: number, diferenciaRs: number, diferenciaDs: number) {
+    this.monedaService
+      .onGetAll()
+      .pipe(take(1))
+      .subscribe((monedas) => {
+        const cotizacionReal = monedas?.find((m) => m.denominacion === "REAL")?.cambio || 130;
+        const cotizacionDolar = monedas?.find((m) => m.denominacion === "DOLAR")?.cambio || 7000;
+
+        const diferenciaTotalGs =
+          Math.abs(diferenciaGs) +
+          Math.abs(diferenciaRs) * cotizacionReal +
+          Math.abs(diferenciaDs) * cotizacionDolar;
+
+        const UMBRAL_NOTIFICACION_DIFERENCIA = 20000;
+
+        if (diferenciaTotalGs > UMBRAL_NOTIFICACION_DIFERENCIA) {
+          this.notificationHttpService
+            .sendDiferenciaMaletinNotification(
+              this.selectedCaja.id,
+              this.selectedCaja.sucursal.id,
+              diferenciaTotalGs,
+              diferenciaGs,
+              diferenciaRs,
+              diferenciaDs,
+              this.selectedMaletin?.descripcion,
+              this.selectedCaja.sucursal.nombre
+            )
+            .subscribe({
+              error: (err) => console.error("Error al enviar notificación de diferencia en maletín:", err)
+            });
+        }
+      });
   }
 
   onAnterior() {
