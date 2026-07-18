@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -14,6 +14,7 @@ import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-sa
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
+import { LegajoMetricaDialogComponent } from '../legajo-metrica-dialog/legajo-metrica-dialog.component';
 
 interface FuncionarioOpcion { id: number; label: string; }
 
@@ -25,9 +26,22 @@ interface FuncionarioOpcion { id: number; label: string; }
 })
 export class LegajoFuncionarioComponent implements OnInit {
 
+  // Tab inyectado por TabContentComponent. Si se abre desde la lista de funcionarios
+  // (acción de fila), viene con tabData.data.id = funcionario a mostrar.
+  @Input() data: any;
+
   funcionarioControl = new FormControl(null);
   funcionarioOpciones: FuncionarioOpcion[] = [];
   funcionario: Funcionario = null;
+
+  // Métricas del dashboard. PLACEHOLDER hasta que existan los módulos que las alimentan
+  // (TODO-5 valoración, TODO-6 asistencia, TODO-7 metas/comisiones — ver plan de testeo RRHH).
+  puntuacionFuncionario = 7.6;   // 1..10
+  puntuacionAsistencia = 8.4;    // 1..10
+  metasLogradas = 4;
+  metasTotal = 11;
+
+  antiguedadTexto = '—';   // calculado al cargar el funcionario (no en template, regla del proyecto)
 
   cargoColumns = ['cargo', 'fechaDesde', 'fechaHasta', 'motivo'];
   salarioColumns = ['salarioAnterior', 'salarioNuevo', 'moneda', 'fechaVigencia', 'motivo'];
@@ -46,20 +60,57 @@ export class LegajoFuncionarioComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.funcionarioService.onGetAllFuncionarios(0, 500).pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
+    // El legajo se abre siempre apuntando a un funcionario (desde la lista de
+    // funcionarios → acción de fila). Ya no hay selector interno.
+    const preId = this.data?.tabData?.data?.id;
+    if (preId != null) {
+      this.funcionarioControl.setValue(preId);
+      this.onSeleccionar();
+    }
   }
 
   onSeleccionar() {
     if (this.funcionarioControl.value == null) { return; }
     this.funcionarioService.onGetFuncionarioById(this.funcionarioControl.value)
-      .pipe(untilDestroyed(this)).subscribe((f: Funcionario) => { this.funcionario = f; });
+      .pipe(untilDestroyed(this)).subscribe((f: Funcionario) => {
+        this.funcionario = f;
+        this.antiguedadTexto = this.calcularAntiguedad(f?.fechaIngreso);
+      });
     this.recargar();
+  }
+
+  private calcularAntiguedad(fechaIngreso: any): string {
+    if (!fechaIngreso) { return '—'; }
+    const ini = new Date(fechaIngreso);
+    if (isNaN(ini.getTime())) { return '—'; }
+    const hoy = new Date();
+    let meses = (hoy.getFullYear() - ini.getFullYear()) * 12 + (hoy.getMonth() - ini.getMonth());
+    if (hoy.getDate() < ini.getDate()) { meses--; }
+    if (meses < 0) { return '—'; }
+    const anios = Math.floor(meses / 12);
+    const m = meses % 12;
+    const partes = [];
+    if (anios > 0) { partes.push(anios + (anios === 1 ? ' año' : ' años')); }
+    partes.push(m + (m === 1 ? ' mes' : ' meses'));
+    return partes.join(' ');
+  }
+
+  onVerPuntuacion() {
+    this.dialog.open(LegajoMetricaDialogComponent, {
+      data: { tipo: 'puntuacion', nombre: this.funcionario?.persona?.nombre }, width: '460px'
+    });
+  }
+
+  onVerAsistencia() {
+    this.dialog.open(LegajoMetricaDialogComponent, {
+      data: { tipo: 'asistencia', nombre: this.funcionario?.persona?.nombre }, width: '460px'
+    });
+  }
+
+  onVerMetas() {
+    this.dialog.open(LegajoMetricaDialogComponent, {
+      data: { tipo: 'metas', nombre: this.funcionario?.persona?.nombre }, width: '460px'
+    });
   }
 
   recargar() {

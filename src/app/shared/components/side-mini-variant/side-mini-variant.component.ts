@@ -20,6 +20,8 @@ import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/vent
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
@@ -183,10 +185,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_LIQUIDAR, ROLES.ADMIN]
         },
         {
-          name: 'Legajo funcionario',
-          icon: 'folder_shared',
-          action: 'legajo-funcionario',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+          name: 'Funcionarios',
+          icon: 'badge',
+          action: 'list-funcionarios',
+          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Solicitudes de funcionarios',
+          icon: 'how_to_reg',
+          action: 'solicitudes-funcionarios',
+          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
           name: 'Historial de marcaciones',
@@ -489,8 +497,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
-      name: 'R.R.H.H.',
-      icon: 'people',
+      name: 'Administración',
+      icon: 'admin_panel_settings',
       isExpanded: false,
       requiresServerMode: false,
       visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS],
@@ -506,12 +514,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'manage_accounts',
           action: 'list-usuario',
           visibilityRoles: [ROLES.VER_USUARIOS]
-        },
-        {
-          name: 'Funcionarios',
-          icon: 'badge',
-          action: 'funcionario-dashboard',
-          visibilityRoles: [ROLES.VER_FUNCIONARIOS]
         },
         {
           name: 'Proveedores',
@@ -889,6 +891,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "legajo-funcionario":
         this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
+        break;
+      case "list-funcionarios":
+        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListFuncioarioComponent, "Funcionarios");
+        break;
+      case "solicitudes-funcionarios":
+        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
         break;
       case "manual-rrhh":
         if (this.hasAnyRole([ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN])) {

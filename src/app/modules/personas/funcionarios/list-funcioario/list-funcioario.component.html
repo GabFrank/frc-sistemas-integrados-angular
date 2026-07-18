@@ -36,6 +36,47 @@
         </mat-form-field>
       </div>
     </div>
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Estado</mat-label>
+          <mat-select [formControl]="estadoControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option [value]="true">Activos</mat-option>
+            <mat-option [value]="false">Inactivos</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Cargo</mat-label>
+          <mat-select [formControl]="cargoControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let cargo of cargoList" [value]="cargo?.id">{{ cargo?.nombre | titlecase }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Diarista</mat-label>
+          <mat-select [formControl]="diaristaControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option [value]="true">Sí</mat-option>
+            <mat-option [value]="false">No</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Fase de prueba</mat-label>
+          <mat-select [formControl]="fasePruebaControl" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option [value]="true">Sí</mat-option>
+            <mat-option [value]="false">No</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
   </div>
   <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
     fxLayoutAlign="space-between start">
@@ -123,7 +164,10 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onAddFuncionario(funcionario, i)">
-              Editar
+              <mat-icon>edit</mat-icon> Editar
+            </button>
+            <button mat-menu-item (click)="onVerLegajo(funcionario)">
+              <mat-icon>badge</mat-icon> Legajo funcionario
             </button>
           </mat-menu>
         </td>
