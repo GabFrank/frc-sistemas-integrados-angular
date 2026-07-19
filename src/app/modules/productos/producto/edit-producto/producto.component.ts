@@ -80,6 +80,7 @@ import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
 import { TipoConservacion } from "./producto-enums";
 import { ThermalPrinterService } from "../../../configuracion/thermal-printer/thermal-printer.service";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 export class ProductoDialogData {
   producto: Producto;
@@ -253,7 +254,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private familiasSearchGQL: FamiliasSearchGQL,
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
     private notificacionService: NotificacionSnackbarService,
-    private thermalPrinterService: ThermalPrinterService
+    private thermalPrinterService: ThermalPrinterService,
+    private configuracionService: ConfiguracionService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1247,11 +1249,28 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
       return;
     }
+    const impresoraConfig = (
+      this.configuracionService.getConfig()?.printers?.ticket || ""
+    ).trim();
+
     this.thermalPrinterService
       .getPrinters()
       .pipe(untilDestroyed(this))
       .subscribe((printers) => {
-        if (!printers?.length) {
+        const list = printers || [];
+        const match = impresoraConfig
+          ? list.find(
+              (p) =>
+                (p.name || "").toLowerCase() === impresoraConfig.toLowerCase()
+            )
+          : null;
+        const printerName =
+          match?.name ||
+          impresoraConfig ||
+          list[0]?.name ||
+          "";
+
+        if (!printerName) {
           this.notificacionService.notification$.next({
             texto: "No se encontraron impresoras térmicas",
             color: NotificacionColor.danger,
@@ -1261,7 +1280,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         }
         this.thermalPrinterService
           .printBarcodeLabel(
-            printers[0].name,
+            printerName,
             valor,
             "CODE128",
             true,

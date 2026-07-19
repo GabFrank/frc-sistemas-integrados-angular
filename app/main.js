@@ -1326,7 +1326,9 @@ function registerPrinterIpcHandlers() {
                         const push = (b) => chunks.push(buffer_1.Buffer.isBuffer(b) ? b : buffer_1.Buffer.from(b));
                         const textEnc = (s) => buffer_1.Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
                         push([0x1B, 0x40]);
-                        push(textEnc('\n\n')); // Double feed at top to completely prevent tear bar cutoff
+                        // Un solo avance al inicio (antes eran 2): evita hueco entre título y barcode
+                        // sin pegar el texto a la guillotina.
+                        push(textEnc('\n'));
                         for (const item of printData) {
                             if (item.type === 'text') {
                                 const center = item.style && item.style.textAlign === 'center';

@@ -16,6 +16,7 @@ import {
   ThermalPrinterService,
 } from "../../../configuracion/thermal-printer/thermal-printer.service";
 import { PrinterInfo } from "../../../../commons/core/electron/electron.service";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 export class AdicionarCodigoData {
   codigo: Codigo;
@@ -47,6 +48,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   printing = false;
   barcodePreviewUrl: string | null = null;
   printers: PrinterInfo[] = [];
+  /** Cola ticket de config/environment (impresora por defecto de la app). */
+  impresoraConfigNombre = "";
 
   /** Valor EAN-13; la impresora térmica lo emite como CODE128 (flujo existente). */
   readonly barcodePrintFormat = "CODE128";
@@ -58,7 +61,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     private notificacionSnackBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService,
     private barcodeQrService: BarcodeQrGeneratorService,
-    private thermalPrinterService: ThermalPrinterService
+    private thermalPrinterService: ThermalPrinterService,
+    private configuracionService: ConfiguracionService
   ) {}
 
   @HostListener("window:keydown", ["$event"])
@@ -118,15 +122,57 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   }
 
   loadPrinters() {
+    this.impresoraConfigNombre = (
+      this.configuracionService.getConfig()?.printers?.ticket || ""
+    ).trim();
+
     this.thermalPrinterService
       .getPrinters()
       .pipe(untilDestroyed(this))
       .subscribe((printers) => {
-        this.printers = printers || [];
-        if (this.printers.length > 0 && !this.printerControl.value) {
-          this.printerControl.setValue(this.printers[0].name);
+        const list = [...(printers || [])];
+        const configName = this.impresoraConfigNombre;
+
+        if (configName) {
+          const yaEsta = list.some(
+            (p) =>
+              (p.name || "").toLowerCase() === configName.toLowerCase()
+          );
+          if (!yaEsta) {
+            list.unshift({
+              name: configName,
+              displayName: `${configName} (app)`,
+              description: "Impresora configurada en la app",
+              status: 0,
+              isDefault: true,
+            });
+          }
+        }
+
+        this.printers = list;
+
+        // Por defecto: cola ticket de config; si no, la primera del sistema.
+        if (configName) {
+          const match = list.find(
+            (p) =>
+              (p.name || "").toLowerCase() === configName.toLowerCase()
+          );
+          this.printerControl.setValue(match?.name || configName);
+        } else if (list.length > 0 && !this.printerControl.value) {
+          this.printerControl.setValue(list[0].name);
         }
       });
+  }
+
+  etiquetaImpresora(p: PrinterInfo): string {
+    const esConfig =
+      this.impresoraConfigNombre &&
+      (p.name || "").toLowerCase() ===
+        this.impresoraConfigNombre.toLowerCase();
+    if (esConfig) {
+      return `${p.name} (por defecto)`;
+    }
+    return p.displayName || p.name;
   }
 
   async refreshBarcodePreview(codigo: string) {

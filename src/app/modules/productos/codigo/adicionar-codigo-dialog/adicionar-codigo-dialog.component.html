@@ -95,7 +95,7 @@
           <mat-label>Impresora térmica</mat-label>
           <mat-select [formControl]="printerControl">
             <mat-option *ngFor="let p of printers" [value]="p.name">
-              {{ p.name }}
+              {{ etiquetaImpresora(p) }}
             </mat-option>
           </mat-select>
         </mat-form-field>

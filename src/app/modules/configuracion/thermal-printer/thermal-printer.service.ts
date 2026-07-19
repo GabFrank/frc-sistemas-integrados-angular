@@ -165,30 +165,25 @@ export class ThermalPrinterService {
     const nombre = this.toPrinterAscii(productName || '');
     const nameLines = this.wrapPrinterText(nombre, maxChars, 3);
 
-    const data: any[] = [
-      // Margen superior (evita corte en cabezal / guillotina)
-      { type: 'text', value: '\n', style: { fontSize: '10px' } },
-    ];
+    const data: any[] = [];
 
     // El producto siempre tiene descripción; se imprime como encabezado de la etiqueta.
+    // Sin líneas vacías extra: el nombre queda pegado al código (mejor uso del papel).
     nameLines.forEach((line) =>
       data.push({ type: 'text', value: line, style: nameStyle })
     );
 
-    data.push(
-      { type: 'text', value: '\n' },
-      {
-        type: 'barCode',
-        value: barcodeData,
-        barcodeType: escPosType,
-        format: escPosType,
-        height: 120,
-        width: 3,
-        // HRI nativo de ESC/POS es chico; apagamos y imprimimos el número como texto grande.
-        displayValue: false,
-        position: 'OFF'
-      }
-    );
+    data.push({
+      type: 'barCode',
+      value: barcodeData,
+      barcodeType: escPosType,
+      format: escPosType,
+      height: 120,
+      width: 3,
+      // HRI nativo de ESC/POS es chico; apagamos y imprimimos el número como texto grande.
+      displayValue: false,
+      position: 'OFF'
+    });
 
     if (showHumanReadable) {
       data.push({
@@ -203,10 +198,7 @@ export class ThermalPrinterService {
       });
     }
 
-    data.push(
-      { type: 'text', value: '\n' },
-      { type: 'cut', position: 'full' }
-    );
+    data.push({ type: 'cut', position: 'full' });
     
     // Print options
     const options = {
