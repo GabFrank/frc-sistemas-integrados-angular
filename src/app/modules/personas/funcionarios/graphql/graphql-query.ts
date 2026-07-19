@@ -153,7 +153,12 @@ export const funcionarioQuery = gql`
       persona {
         id
         nombre
+        apodo
         telefono
+        email
+        direccion
+        sexo
+        socialMedia
         ciudad {
           id
           descripcion
@@ -204,7 +209,12 @@ export const funcionarioPorPersonaQuery = gql`
       persona {
         id
         nombre
+        apodo
         telefono
+        email
+        direccion
+        sexo
+        socialMedia
         ciudad {
           id
           descripcion
