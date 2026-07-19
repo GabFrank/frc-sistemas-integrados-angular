@@ -1,12 +1,13 @@
-<div style="padding: 20px">
+<div style="padding: 20px" class="codigo-dialog">
   <form [formGroup]="formGroup">
     <div fxLayout="column" fxLayoutAlign="start">
       <div fxFlex style="width: 100%; text-align: center">
         <h3 *ngIf="selectedCodigo?.id != null">Editar Código</h3>
         <h3 *ngIf="selectedCodigo?.id == null">Nuevo Código</h3>
       </div>
-      <div fxFlex>
-        <mat-form-field style="width: 100%">
+
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+        <mat-form-field style="width: 100%" fxFlex>
           <mat-label>Código</mat-label>
           <input
             #codigoInput
@@ -20,7 +21,30 @@
             >El código debe de tener 5 números</mat-error
           >
         </mat-form-field>
+        <button
+          *ngIf="!isPesable && isEditting"
+          mat-stroked-button
+          color="accent"
+          type="button"
+          [disabled]="generating"
+          (click)="onGenerarCodigo()"
+          matTooltip="Genera EAN-13 interno (2199…) e imprime como CODE128"
+        >
+          <mat-icon>qr_code_2</mat-icon>
+          {{ generating ? "Generando…" : "Generar" }}
+        </button>
       </div>
+
+      <div
+        *ngIf="barcodePreviewUrl"
+        class="barcode-preview"
+        fxLayout="column"
+        fxLayoutAlign="center center"
+      >
+        <img [src]="barcodePreviewUrl" alt="Vista previa CODE128" />
+        <span class="preview-hint">Vista previa (impresión CODE128)</span>
+      </div>
+
       <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
         <div
           fxFlex="50%"
@@ -45,6 +69,38 @@
           }}</mat-slide-toggle>
         </div>
       </div>
+
+      <div
+        *ngIf="!isPesable"
+        fxLayout="column"
+        fxLayoutGap="8px"
+        class="print-options"
+      >
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+          <mat-checkbox [formControl]="imprimirAlGuardarControl"
+            >Imprimir al guardar</mat-checkbox
+          >
+          <button
+            mat-stroked-button
+            type="button"
+            color="primary"
+            [disabled]="printing || !codigoControl.value"
+            (click)="onImprimirAhora()"
+          >
+            <mat-icon>print</mat-icon>
+            {{ printing ? "Imprimiendo…" : "Imprimir ahora" }}
+          </button>
+        </div>
+        <mat-form-field style="width: 100%">
+          <mat-label>Impresora térmica</mat-label>
+          <mat-select [formControl]="printerControl">
+            <mat-option *ngFor="let p of printers" [value]="p.name">
+              {{ p.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
       <br />
       <div fxFlex fxLayout="row">
         <div fxFlex="50%" style="text-align: center">
@@ -52,6 +108,7 @@
             style="width: 70%"
             mat-raised-button
             color="primary"
+            type="button"
             (click)="onCancelar()"
           >
             Cancelar
@@ -61,6 +118,7 @@
           <button
             style="width: 70%"
             mat-raised-button
+            type="button"
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
             (click)="

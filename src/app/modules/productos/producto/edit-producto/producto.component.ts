@@ -79,6 +79,7 @@ import { ProductoInput } from "../producto-input.model";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
 import { TipoConservacion } from "./producto-enums";
+import { ThermalPrinterService } from "../../../configuracion/thermal-printer/thermal-printer.service";
 
 export class ProductoDialogData {
   producto: Producto;
@@ -251,7 +252,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private cargandoDialog: CargandoDialogService,
     private familiasSearchGQL: FamiliasSearchGQL,
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private thermalPrinterService: ThermalPrinterService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1226,11 +1228,32 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onImprimirCodigoDeBarra(codigo) {
-    console.log(codigo);
-
-    this.productoService
-      .onImprimirCodigo(codigo)
-      .subscribe((res) => console.log(res));
+    const valor = (codigo?.codigo || "").toString().trim();
+    if (!valor) {
+      this.notificacionService.notification$.next({
+        texto: "El código no tiene valor para imprimir",
+        color: NotificacionColor.warn,
+        duracion: 3,
+      });
+      return;
+    }
+    this.thermalPrinterService
+      .getPrinters()
+      .pipe(untilDestroyed(this))
+      .subscribe((printers) => {
+        if (!printers?.length) {
+          this.notificacionService.notification$.next({
+            texto: "No se encontraron impresoras térmicas",
+            color: NotificacionColor.danger,
+            duracion: 3,
+          });
+          return;
+        }
+        this.thermalPrinterService
+          .printBarcodeLabel(printers[0].name, valor, "CODE128", true, true)
+          .pipe(untilDestroyed(this))
+          .subscribe();
+      });
   }
 
   onFilterFamilia() {

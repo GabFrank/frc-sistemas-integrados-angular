@@ -147,6 +147,12 @@ export class ThermalPrinterService {
     }
     
     // Create data for electron-pos-printer
+    const digitsOnly = barcodeData.replace(/[^0-9]/g, '');
+    // En ESC/POS, EAN13 de 12/13 dígitos es más fiable que CODE128 en muchas térmicas.
+    // La preview de la UI puede seguir en CODE128; al paper usamos el simbólico óptimo.
+    const escPosType =
+      /^\d{12,13}$/.test(digitsOnly) ? 'EAN13' : (barcodeType || 'CODE128').toUpperCase();
+
     const data = [
       // Title
       {
@@ -155,7 +161,8 @@ export class ThermalPrinterService {
         style: {
           fontWeight: 'bold',
           textAlign: 'center',
-          fontSize: '14px'
+          fontSize: '14px',
+          color: '#000000'
         }
       },
       // Spacing
@@ -164,11 +171,13 @@ export class ThermalPrinterService {
       {
         type: 'barCode',
         value: barcodeData,
-        height: 40,
+        barcodeType: escPosType,
+        format: escPosType,
+        height: 80,
         width: 2,
         displayValue: showHumanReadable,
         fontsize: 12,
-        position: 'center'
+        position: 'BELOW'
       },
       // Spacing
       { type: 'text', value: ' ' },
