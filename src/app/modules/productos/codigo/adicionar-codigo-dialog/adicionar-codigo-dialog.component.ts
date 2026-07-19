@@ -201,7 +201,14 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     }
     this.printing = true;
     this.thermalPrinterService
-      .printBarcodeLabel(printerName, codigo, this.barcodePrintFormat, true, true)
+      .printBarcodeLabel(
+        printerName,
+        codigo,
+        this.barcodePrintFormat,
+        true,
+        true,
+        this.productoNombre
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: () => {
@@ -211,6 +218,11 @@ export class AdicionarCodigoDialogComponent implements OnInit {
           this.printing = false;
         },
       });
+  }
+
+  /** Nombre del producto para la etiqueta térmica (siempre presente en un producto válido). */
+  get productoNombre(): string {
+    return this.data.presentacion.producto.descripcion;
   }
 
   onSave() {
@@ -270,7 +282,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
                   res2.codigo,
                   this.barcodePrintFormat,
                   true,
-                  true
+                  true,
+                  this.productoNombre
                 )
                 .pipe(untilDestroyed(this))
                 .subscribe({

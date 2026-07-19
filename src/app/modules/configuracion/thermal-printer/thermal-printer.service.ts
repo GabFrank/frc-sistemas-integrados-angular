@@ -124,13 +124,15 @@ export class ThermalPrinterService {
    * @param barcodeType The type of barcode (default: 'EAN13')
    * @param showHumanReadable Show human-readable text below barcode
    * @param showSnackbar Whether to show a snackbar with the result
+   * @param productName Nombre del producto (encabezado de la etiqueta)
    */
   printBarcodeLabel(
     printerName: string, 
     barcodeData: string,
     barcodeType: string = 'EAN13',
     showHumanReadable: boolean = true,
-    showSnackbar: boolean = true
+    showSnackbar: boolean = true,
+    productName: string = ''
   ): Observable<PrintResult> {
     console.log('[ThermalPrinterService] Printing barcode:', barcodeData);
     
@@ -153,37 +155,58 @@ export class ThermalPrinterService {
     const escPosType =
       /^\d{12,13}$/.test(digitsOnly) ? 'EAN13' : (barcodeType || 'CODE128').toUpperCase();
 
-    const data = [
-      // Title
-      {
-        type: 'text',
-        value: 'Código de Barras',
-        style: {
-          fontWeight: 'bold',
-          textAlign: 'center',
-          fontSize: '14px',
-          color: '#000000'
-        }
-      },
-      // Spacing
-      { type: 'text', value: ' ' },
-      // Barcode
+    const nameStyle = {
+      fontWeight: 'bold',
+      textAlign: 'center',
+      fontSize: '14px',
+      color: '#000000'
+    };
+    const maxChars = 28;
+    const nombre = this.toPrinterAscii(productName || '');
+    const nameLines = this.wrapPrinterText(nombre, maxChars, 3);
+
+    const data: any[] = [
+      // Margen superior (evita corte en cabezal / guillotina)
+      { type: 'text', value: '\n', style: { fontSize: '10px' } },
+    ];
+
+    // El producto siempre tiene descripción; se imprime como encabezado de la etiqueta.
+    nameLines.forEach((line) =>
+      data.push({ type: 'text', value: line, style: nameStyle })
+    );
+
+    data.push(
+      { type: 'text', value: '\n' },
       {
         type: 'barCode',
         value: barcodeData,
         barcodeType: escPosType,
         format: escPosType,
-        height: 80,
-        width: 2,
-        displayValue: showHumanReadable,
-        fontsize: 12,
-        position: 'BELOW'
-      },
-      // Spacing
-      { type: 'text', value: ' ' },
-      // Cut
+        height: 120,
+        width: 3,
+        // HRI nativo de ESC/POS es chico; apagamos y imprimimos el número como texto grande.
+        displayValue: false,
+        position: 'OFF'
+      }
+    );
+
+    if (showHumanReadable) {
+      data.push({
+        type: 'text',
+        value: barcodeData,
+        style: {
+          fontWeight: 'bold',
+          textAlign: 'center',
+          fontSize: '18px',
+          color: '#000000'
+        }
+      });
+    }
+
+    data.push(
+      { type: 'text', value: '\n' },
       { type: 'cut', position: 'full' }
-    ];
+    );
     
     // Print options
     const options = {
@@ -222,6 +245,54 @@ export class ThermalPrinterService {
         return of({ success: false, error: err.message });
       })
     );
+  }
+
+  /** ESC/POS textEnc usa ASCII: quita tildes y caracteres no imprimibles. */
+  private toPrinterAscii(text: string): string {
+    return (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ñ/gi, (m) => (m === 'Ñ' ? 'N' : 'n'))
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private wrapPrinterText(text: string, maxChars: number, maxLines: number): string[] {
+    const words = (text || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      return [];
+    }
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const next = current ? `${current} ${word}` : word;
+      if (next.length <= maxChars) {
+        current = next;
+        continue;
+      }
+      if (current) {
+        lines.push(current);
+      }
+      if (word.length > maxChars) {
+        let i = 0;
+        while (i < word.length && lines.length < maxLines) {
+          lines.push(word.substring(i, i + maxChars));
+          i += maxChars;
+        }
+        current = '';
+      } else {
+        current = word;
+      }
+      if (lines.length >= maxLines) {
+        current = '';
+        break;
+      }
+    }
+    if (current && lines.length < maxLines) {
+      lines.push(current);
+    }
+    return lines.slice(0, maxLines);
   }
   
   /**

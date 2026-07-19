@@ -1124,6 +1124,16 @@ export class ProductoComponent implements OnInit, OnDestroy {
     let data = new AdicionarCodigoData();
     data.codigo = index === null ? null : this.selectedCodigo;
     data.presentacion = presentacion;
+    // Asegurar nombre del producto en la etiqueta térmica del diálogo de código
+    if (data.presentacion && !data.presentacion.producto && this.selectedProducto) {
+      data.presentacion.producto = this.selectedProducto;
+    } else if (
+      data.presentacion?.producto &&
+      !data.presentacion.producto.descripcion &&
+      this.selectedProducto?.descripcion
+    ) {
+      data.presentacion.producto.descripcion = this.selectedProducto.descripcion;
+    }
     data.index = index;
     data.presentacionIndex = presentacionIndex;
     this.matDialog
@@ -1250,7 +1260,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
           return;
         }
         this.thermalPrinterService
-          .printBarcodeLabel(printers[0].name, valor, "CODE128", true, true)
+          .printBarcodeLabel(
+            printers[0].name,
+            valor,
+            "CODE128",
+            true,
+            true,
+            this.selectedProducto.descripcion
+          )
           .pipe(untilDestroyed(this))
           .subscribe();
       });
