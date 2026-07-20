@@ -2,14 +2,17 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { MatDialog } from '@angular/material/dialog';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
 import { GastoService } from '../../service/gasto.service';
-import { TipoGasto, TipoGastoInput } from '../../models/tipo-gasto.model';
+import { TipoGasto } from '../../models/tipo-gasto.model';
 import { AdicionarTipoGastoDialogComponent } from '../../dialogs/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
-import { UntilDestroy } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { switchMap, tap, map, shareReplay, catchError } from 'rxjs/operators';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl, FormGroup } from '@angular/forms';
+import { ModuloGastoService } from '../../service/modulo-gasto.service';
+import { etiquetaModuloPadre, ModuloGastoInfo } from '../../utils/tipo-gasto-modulo-reglas.util';
 
+type TipoGastoVista = TipoGasto & { moduloPadreEtiqueta: string };
 
 @UntilDestroy()
 @Component({
@@ -20,6 +23,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 })
 export class ListTipoGastosComponent implements OnInit {
   private gastoService = inject(GastoService);
+  private moduloGastoService = inject(ModuloGastoService);
   private windowInfoService = inject(WindowInfoService);
   private matDialog = inject(MatDialog);
 
@@ -28,16 +32,23 @@ export class ListTipoGastosComponent implements OnInit {
 
   tabNaturalezas = [null, 'CONTINUO', 'RECURRENTE', 'VARIABLE'];
   tabEtiquetas = ['Todos', 'Continuos', 'Recurrentes', 'Variables'];
+  modulosPadreOpciones: ModuloGastoInfo[] = [];
+
+  coloresNaturaleza: Record<string, string> = {
+    CONTINUO: '#42a5f5',
+    RECURRENTE: '#ffa726',
+    VARIABLE: '#66bb6a',
+  };
 
   columnasVisibles = [
-    'id', 'descripcion', 'tipoNaturaleza', 'clasificacion', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
+    'id', 'descripcion', 'tipoNaturaleza', 'moduloPadre', 'comportamiento', 'autorizacion', 'activo', 'activoEnSucursales', 'acciones'
   ];
 
-  // Tab activa (Naturaleza)
-  private tabActivaSubject = new BehaviorSubject<number>(0); // Todos por defecto
+  private catalogoModulos$ = this.moduloGastoService.obtenerModulos();
+
+  private tabActivaSubject = new BehaviorSubject<number>(0);
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
-  // Paginación
   private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
   public pagination$ = this.paginationSubject.asObservable();
 
@@ -48,44 +59,54 @@ export class ListTipoGastosComponent implements OnInit {
   public cargandoSubject = new BehaviorSubject<boolean>(false);
   public cargando$ = this.cargandoSubject.asObservable();
 
-  // Formulario de búsqueda por texto
   searchFormGroup = new FormGroup({
-    texto: new FormControl<string | null>('')
+    texto: new FormControl<string | null>(''),
+    moduloPadre: new FormControl<string | null>(null),
   });
 
-  public listaFiltrada$: Observable<TipoGasto[]> = combineLatest([
+  public listaFiltrada$: Observable<TipoGastoVista[]> = combineLatest([
     this.tabActiva$,
     this.refetchSubject,
-    this.pagination$
+    this.pagination$,
+    this.catalogoModulos$
   ]).pipe(
     tap(() => this.cargandoSubject.next(true)),
-    switchMap(([tabIndex, _, pag]) => {
+    switchMap(([tabIndex, _, pag, catalogo]) => {
       const naturaleza = this.tabNaturalezas[tabIndex];
       const texto = this.searchFormGroup.controls.texto.value || null;
+      const moduloPadre = this.searchFormGroup.controls.moduloPadre.value || null;
 
       return this.gastoService.tipoGastoFilter(
         naturaleza,
         texto,
         pag.pageIndex,
-        pag.pageSize
+        pag.pageSize,
+        moduloPadre
       ).pipe(
+        map(res => ({ res, catalogo })),
         catchError(err => {
           console.error('Error fetching tipo_gastos:', err);
-          return of(null);
+          return of({ res: null, catalogo });
         })
       );
     }),
-    tap(res => {
+    tap(({ res }) => {
       this.cargandoSubject.next(false);
       if (res) {
         this.totalElements$.next(res.getTotalElements || 0);
       }
     }),
-    map(res => res?.getContent || []),
+    map(({ res, catalogo }) => (res?.getContent || []).map(item => ({
+      ...item,
+      moduloPadreEtiqueta: etiquetaModuloPadre(catalogo, item.moduloPadre),
+    }))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
   ngOnInit(): void {
+    this.catalogoModulos$.pipe(untilDestroyed(this)).subscribe(modulos => {
+      this.modulosPadreOpciones = modulos;
+    });
   }
 
   cambiarTab(indice: number): void {
@@ -141,8 +162,6 @@ export class ListTipoGastosComponent implements OnInit {
       });
   }
 
-
-
   eliminarItem(tipoGasto: TipoGasto): void {
     this.gastoService.tipoGastoOnDelete(tipoGasto.id)
       .subscribe(res => {
@@ -156,12 +175,7 @@ export class ListTipoGastosComponent implements OnInit {
     this.paginationSubject.next({ pageIndex: e.pageIndex, pageSize: e.pageSize });
   }
 
-  colorNaturaleza(naturaleza: string): string {
-    const colores: Record<string, string> = {
-      'CONTINUO': '#42a5f5',
-      'RECURRENTE': '#ffa726',
-      'VARIABLE': '#66bb6a'
-    };
-    return colores[naturaleza] || '#9e9e9e';
+  esTabActiva(indice: number, tabActiva: number | null): boolean {
+    return tabActiva === indice;
   }
 }

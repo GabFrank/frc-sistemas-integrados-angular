@@ -27,6 +27,7 @@ export const usuariosSearch = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -39,6 +40,51 @@ export const usuariosSearch = gql`
 `;
 
 export const usuarioQuery = gql`
+  query ($id: ID!) {
+    data: usuario(id: $id) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+        imagenes
+        embeddingFacial
+      }
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+      roles
+      inicioSesion {
+        id
+        usuario {
+          id
+        }
+        sucursal {
+          id
+        }
+        tipoDespositivo
+        idDispositivo
+        token
+        horaInicio
+        horaFin
+        creadoEn
+      }
+    }
+  }
+`;
+
+// Version de la query de usuario usada EXCLUSIVAMENTE en el login.
+// Es identica a `usuarioQuery` pero SIN `persona.embeddingFacial`.
+// Motivo: el login corre contra cualquier servidor (central o filial), y los
+// servidores en `release/beta` todavia no tienen el campo `embeddingFacial` en
+// el type Persona -> GraphQL rechaza la query y el login falla.
+// El login no consume `embeddingFacial`; la busqueda/galeria facial de marcacion
+// sigue usando `usuarioQuery` (con el campo) contra el servidor que lo soporta.
+export const usuarioLoginQuery = gql`
   query ($id: ID!) {
     data: usuario(id: $id) {
       id
@@ -85,6 +131,7 @@ export const usuarioPorPersonaIdQuery = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -122,6 +169,7 @@ export const saveUsuario = gql`
         id
         nombre
         imagenes
+        embeddingFacial
       }
       creadoEn
       usuario {
@@ -242,9 +290,11 @@ export const usuariosSearchPaginated = gql`
         id
         nickname
         activo
+        creadoEn
         persona {
           id
           nombre
+          telefono
           documento
           imagenes
         }

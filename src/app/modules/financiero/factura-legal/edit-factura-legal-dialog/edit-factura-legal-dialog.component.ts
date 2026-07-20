@@ -52,7 +52,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private personaSearch: PersonaSearchGQL
   ) {
-    this.factura = data.factura;
+    this.factura = Object.assign(new FacturaLegal(), data.factura);
   }
 
   ngOnInit(): void {
@@ -62,7 +62,8 @@ export class EditFacturaLegalDialogComponent implements OnInit {
     this.facturaLegalService.onGetFacturaLegal(this.factura.id, this.factura.sucursalId)
       .pipe(untilDestroyed(this))
       .subscribe(facturaCompleta => {
-        this.factura = facturaCompleta;
+        // GraphQL devuelve un objeto plano; hay que instanciar la clase para usar toInput()
+        this.factura = Object.assign(new FacturaLegal(), facturaCompleta);
 
         // Actualizar los valores del formulario con los datos completos
         this.formGroup.patchValue({
@@ -211,34 +212,44 @@ export class EditFacturaLegalDialogComponent implements OnInit {
 
     this.cargandoService.openDialog();
 
-    const input = this.factura.toInput();
-    input.nombre = this.nombreControl.value?.toUpperCase();
-    input.ruc = this.rucControl.value?.toUpperCase();
-    input.direccion = this.direccionControl.value?.toUpperCase();
-    
-    if (this.selectedCliente) {
-      input.clienteId = this.selectedCliente.id;
-    }
+    try {
+      // Solo enviar campos editables: enviar toInput() completo falla porque
+      // fecha llega como "yyyy-MM-dd HH:mm" y el backend no puede parsearlo a LocalDateTime.
+      const input = new FacturaLegalInput();
+      input.id = this.factura.id;
+      input.sucursalId = this.factura.sucursalId;
+      input.nombre = this.nombreControl.value?.toUpperCase();
+      input.ruc = this.rucControl.value?.toUpperCase();
+      input.direccion = this.direccionControl.value?.toUpperCase() || null;
+      input.clienteId = this.selectedCliente?.id ?? this.factura.cliente?.id ?? null;
 
-    this.facturaLegalService.onUpdateFacturaLegal(input)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (updatedFactura) => {
-          // If electronic and we assigned a cliente, nominate
-          if (this.esElectronicaComputed && input.clienteId && !this.factura.cliente) {
-            this.nominarFactura(input.clienteId);
-          } else {
+      this.facturaLegalService.onUpdateFacturaLegal(input)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (updatedFactura) => {
+            // If electronic and we assigned a cliente, nominate
+            if (this.esElectronicaComputed && input.clienteId && !this.factura.cliente) {
+              this.nominarFactura(input.clienteId);
+            } else {
+              this.cargandoService.closeDialog();
+              this.notificacionSnackbar.openGuardadoConExito();
+              this.dialogRef.close(updatedFactura);
+            }
+          },
+          error: (err) => {
             this.cargandoService.closeDialog();
-            this.notificacionSnackbar.openGuardadoConExito();
-            this.dialogRef.close(updatedFactura);
+            console.error('Error updating factura:', err);
+            const mensaje = Array.isArray(err)
+              ? err[0]?.message
+              : err?.message;
+            this.notificacionSnackbar.openAlgoSalioMal(mensaje || 'Error al actualizar factura');
           }
-        },
-        error: (err) => {
-          this.cargandoService.closeDialog();
-          console.error('Error updating factura:', err);
-          this.notificacionSnackbar.openAlgoSalioMal(err?.message || 'Error al actualizar factura');
-        }
-      });
+        });
+    } catch (err) {
+      this.cargandoService.closeDialog();
+      console.error('Error preparando actualización de factura:', err);
+      this.notificacionSnackbar.openAlgoSalioMal('Error al preparar la actualización de la factura');
+    }
   }
 
   nominarFactura(clienteId: number): void {

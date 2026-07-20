@@ -707,11 +707,12 @@
       <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
-          nombre="Factura (F12)"
+          [nombre]="finalizarConFacturaHabilitado ? 'Finalizar con Factura (F12)' : 'Factura (F12)'"
           [disableExpression]="false"
           (clickEvent)="onFactura()"
           icon="receipt"
           [iconSize]="2"
+          class="btn-factura"
         ></app-boton>
       </div>
 

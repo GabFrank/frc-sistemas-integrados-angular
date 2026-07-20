@@ -21,6 +21,7 @@ import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
 import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
+import { TipoDispositivo } from "../configuracion/inicio-sesion/tipo-dispositivo.model";
 import { NotificarInicioSesionGQL } from "../configuracion/inicio-sesion/graphql/notificarInicioSesion.gql";
 
 @UntilDestroy({ checkProperties: true })
@@ -46,6 +47,70 @@ export class LoginService {
     private configService: ConfiguracionService,
     private notificarInicioSesionGQL: NotificarInicioSesionGQL
   ) { }
+
+  private resolveTipoDispositivo(): TipoDispositivo {
+    if (this.electronService.isElectron) {
+      const platform = window.navigator.platform.toLowerCase();
+      if (platform.includes("win")) {
+        return TipoDispositivo.DESKTOP_WIN;
+      }
+      if (platform.includes("mac")) {
+        return TipoDispositivo.DESKTOP_MAC;
+      }
+      return TipoDispositivo.DESKTOP_LIN;
+    }
+    if (this.deviceDetector.isMobile()) {
+      return TipoDispositivo.WEB_MOBILE;
+    }
+    return TipoDispositivo.WEB;
+  }
+
+  private registrarSesionActiva(usuario: Usuario, servidor: boolean): void {
+    const inicioSesion = new InicioSesion();
+    inicioSesion.usuario = usuario;
+    inicioSesion.sucursal = this.mainService?.sucursalActual;
+    inicioSesion.creadoEn = new Date();
+    inicioSesion.tipoDespositivo = this.resolveTipoDispositivo();
+
+    let deviceId = localStorage.getItem("deviceId");
+    if (deviceId == null) {
+      deviceId = generateUUID();
+      localStorage.setItem("deviceId", deviceId);
+    }
+    inicioSesion.idDispositivo = deviceId;
+    inicioSesion.token = localStorage.getItem("pushToken");
+
+    const sesionExistente = usuario?.inicioSesion;
+    if (sesionExistente?.idDispositivo === deviceId && sesionExistente?.id) {
+      inicioSesion.id = sesionExistente.id;
+      inicioSesion.horaInicio = sesionExistente.horaInicio
+        ? new Date(sesionExistente.horaInicio)
+        : new Date();
+    } else {
+      inicioSesion.horaInicio = new Date();
+    }
+
+    this.usuarioService
+      .onSaveInicioSesion(inicioSesion.toInput(), servidor)
+      .subscribe((res) => {
+        this.mainService.usuarioActual.inicioSesion = res;
+      });
+  }
+
+  cerrarSesionActiva(servidor: boolean = true): void {
+    const sesionActual = this.mainService.usuarioActual?.inicioSesion;
+    if (!sesionActual?.id || !sesionActual?.sucursal) {
+      return;
+    }
+
+    const inicioSesion = new InicioSesion();
+    Object.assign(inicioSesion, sesionActual);
+    inicioSesion.horaFin = new Date();
+    inicioSesion.token = null;
+    this.usuarioService
+      .onSaveInicioSesion(inicioSesion.toInput(), servidor)
+      .subscribe();
+  }
 
   login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {
     return new Observable((obs) => {
@@ -82,43 +147,13 @@ export class LoginService {
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
                   this.usuarioService
-                    .onGetUsuario(res["usuarioId"], !config.isLocal)
+                    .onGetUsuarioParaLogin(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe((res) => {
                       if (res?.id != null) {
                         this.mainService.usuarioActual = res;
-                        let inicioSesion = new InicioSesion();
-                        inicioSesion.usuario = res;
-                        inicioSesion.sucursal =
-                          this.mainService?.sucursalActual;
-                        inicioSesion.horaInicio = new Date();
-                        inicioSesion.creadoEn = new Date();
-
-                        let deviceId = localStorage.getItem("deviceId");
-                        if (deviceId == null) {
-                          let uuid = generateUUID();
-                          localStorage.setItem("deviceId", uuid);
-                          deviceId = uuid;
-                        }
-                        inicioSesion.idDispositivo = deviceId;
-                        inicioSesion.token = localStorage.getItem("pushToken");
-
-                        if (
-                          res?.inicioSesion != null &&
-                          res?.inicioSesion?.idDispositivo == deviceId &&
-                          res?.inicioSesion?.sucursal != null
-                        ) {
-                          this.notificarInicioSesion(res.id);
-                          this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
-                        } else {
-                          this.usuarioService
-                            .onSaveInicioSesion(inicioSesion.toInput())
-                            .subscribe((res) => {
-                              this.notificarInicioSesion(res.usuario.id);
-                              this.mainService.usuarioActual.inicioSesion = res;
-                              this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
-                            });
-                        }
+                        this.registrarSesionActiva(res, !config.isLocal);
+                        this.notificarInicioSesion(res.id);
 
                         let response: LoginResponse = {
                           usuario: res,
@@ -129,14 +164,22 @@ export class LoginService {
                     });
                 }
               }, 500);
+            } else {
+              const response: LoginResponse = {
+                usuario: null,
+                error: this.buildAuthErrorResponse(
+                  res?.["message"] || res?.["mensaje"]
+                ),
+              };
+              obs.next(response);
             }
           },
           (error) => {
             let response: LoginResponse = {
               usuario: null,
-              error: error,
+              error: this.normalizeLoginError(error),
             };
-            obs.next(error);
+            obs.next(response);
           }
         );
     });
@@ -153,9 +196,6 @@ export class LoginService {
         })
       )
       .subscribe();
-  }
-
-  private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
   }
 
   autenticarEnCentral(nickname: string, password: string): Observable<any> {
@@ -179,5 +219,59 @@ export class LoginService {
         return of(null);
       })
     );
+  }
+
+  private normalizeLoginError(error: HttpErrorResponse): HttpErrorResponse {
+    if (!error) {
+      return this.buildServerErrorResponse(
+        "Error de conexión con el servidor. Verifique la configuración."
+      );
+    }
+
+    const serverMessage =
+      error?.error?.message ||
+      error?.error?.mensaje ||
+      error?.message ||
+      "";
+    const normalized = String(serverMessage).toLowerCase();
+    const isInvalidCredentials =
+      error?.status === 401 ||
+      normalized.includes("contrase") ||
+      normalized.includes("credencial") ||
+      normalized.includes("bad credential") ||
+      normalized.includes("usuario no existe") ||
+      normalized.includes("unauthorized");
+
+    if (isInvalidCredentials) {
+      return this.buildAuthErrorResponse();
+    }
+
+    if (error?.status === 0) {
+      return this.buildServerErrorResponse(
+        "Error de conexión con el servidor. Verifique la configuración."
+      );
+    }
+
+    return this.buildServerErrorResponse(
+      "No se pudo iniciar sesión por un error del servidor. Intente nuevamente."
+    );
+  }
+
+  private buildAuthErrorResponse(
+    message: string = "Usuario o contraseña incorrectos. Verifique e intente nuevamente."
+  ): HttpErrorResponse {
+    return new HttpErrorResponse({
+      status: 401,
+      statusText: "Unauthorized",
+      error: { message },
+    });
+  }
+
+  private buildServerErrorResponse(message: string): HttpErrorResponse {
+    return new HttpErrorResponse({
+      status: 500,
+      statusText: "Server Error",
+      error: { message },
+    });
   }
 }

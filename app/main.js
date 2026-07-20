@@ -14,6 +14,7 @@ const electron_1 = require("electron");
 const fs = require("fs");
 const path = require("path");
 const url = require("url");
+const os = require("os");
 const child_process_1 = require("child_process");
 const buffer_1 = require("buffer");
 const electron_pos_printer_1 = require("electron-pos-printer");
@@ -479,7 +480,649 @@ ipcMain.handle('print-receipt', (event, { printerId, order, orderItems }) => __a
         return { success: false, error: error === null || error === void 0 ? void 0 : error.message };
     }
 }));
+/**
+ * Detecta las IPs LAN (IPv4 no internas) de esta maquina. Se usa para compartir la
+ * impresora local al servidor central: el central alcanza la impresora por la IP de esta PC.
+ * Prefiere la interfaz en la subred del servidor FRC (172.25.x), luego cualquier rango privado.
+ */
+function detectarIpsLocales() {
+    const todas = [];
+    const ifaces = os.networkInterfaces();
+    Object.keys(ifaces).forEach((nombre) => {
+        (ifaces[nombre] || []).forEach((info) => {
+            if (info.family === 'IPv4' && !info.internal) {
+                todas.push({ iface: nombre, ip: info.address });
+            }
+        });
+    });
+    const preferida = todas.find((t) => t.ip.startsWith('172.25.')) ||
+        todas.find((t) => /^(10\.|192\.168\.|172\.)/.test(t.ip)) ||
+        todas[0];
+    let usuario = null;
+    try {
+        usuario = os.userInfo().username;
+    }
+    catch (_a) {
+        usuario = null;
+    }
+    return { mejor: preferida ? preferida.ip : null, todas, usuario };
+}
+/**
+ * Devuelve la IP de origen que ESTA PC usa para alcanzar `destIp` (equivalente a `ip route get`).
+ * Un socket UDP con `connect` no envía paquetes: solo fija la ruta y expone la IP local que el
+ * kernel elige. Así la URI IPP siempre usa la interfaz que realmente rutea al servidor destino
+ * (ZeroTier en cualquier subred, Tailscale 100.x, LAN, o varias NICs), en vez de adivinar por
+ * prefijo `172.25.`. Devuelve null si no hay destino o no se pudo resolver (cae al heurístico).
+ */
+function ipLocalHaciaDestino(destIp) {
+    return new Promise((resolve) => {
+        if (!destIp) {
+            resolve(null);
+            return;
+        }
+        let done = false;
+        const dgram = require('dgram');
+        const socket = dgram.createSocket('udp4');
+        const finish = (ip) => {
+            if (done)
+                return;
+            done = true;
+            try {
+                socket.close();
+            }
+            catch ( /* noop */_a) { /* noop */ }
+            resolve(ip);
+        };
+        socket.on('error', () => finish(null));
+        try {
+            // Puerto 9 (discard): connect no transmite, solo resuelve la ruta de origen.
+            socket.connect(9, destIp, () => {
+                try {
+                    const dir = socket.address();
+                    finish(dir && dir.address ? dir.address : null);
+                }
+                catch (_a) {
+                    finish(null);
+                }
+            });
+        }
+        catch (_a) {
+            finish(null);
+        }
+        setTimeout(() => finish(null), 1500);
+    });
+}
+/**
+ * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
+ * servidor central. Habilita el compartir en cupsd (cupsctl --share-printers --remote-any) y
+ * marca la cola como compartida. Requiere permisos de administracion de CUPS (grupo lpadmin).
+ * Solo Linux (CUPS); en otras plataformas devuelve la IP para uso manual.
+ */
+function compartirImpresoraLocal(queue, password, centralIp) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // IP de esta PC que el servidor destino puede rutear: se DERIVA de la ruta real hacia el
+        // centralIp que el usuario indicó (nunca se adivina por prefijo). Si no hay destino o no se
+        // pudo resolver, ipPc queda null y el frontend pedirá la IP manual antes de instalar.
+        const ipPc = yield ipLocalHaciaDestino(centralIp);
+        return new Promise((resolve) => {
+            const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
+            const uri = ipPc && colaSegura ? `ipp://${ipPc}:631/printers/${colaSegura}` : null;
+            if (process.platform !== 'linux') {
+                resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
+                return;
+            }
+            if (!colaSegura) {
+                resolve({ success: false, ip: ipPc, uri: null, error: 'Nombre de cola invalido' });
+                return;
+            }
+            // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}.
+            // sudo: -S lee el password de stdin · -k fuerza reautenticación · -p '' sin texto de prompt.
+            const run = (args, useSudo) => new Promise((res) => {
+                const proc = useSudo
+                    ? (0, child_process_1.spawn)('sudo', ['-S', '-k', '-p', '', ...args])
+                    : (0, child_process_1.spawn)(args[0], args.slice(1));
+                let stdout = '';
+                let stderr = '';
+                proc.stdout.on('data', (d) => { stdout += d.toString(); });
+                proc.stderr.on('data', (d) => { stderr += d.toString(); });
+                proc.on('error', (err) => res({ code: 1, stdout, stderr: stderr || err.message }));
+                proc.on('close', (code) => res({ code: code == null ? 1 : code, stdout, stderr }));
+                if (useSudo && password) {
+                    proc.stdin.write(password + '\n');
+                }
+                proc.stdin.end();
+            });
+            const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+            (() => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    // 1) Solo habilitamos compartir/acceso remoto si aún no está activo (evita reiniciar cupsd al pedo).
+                    const estado = yield run(['cupsctl'], false);
+                    const yaCompartido = /_share_printers=1/.test(estado.stdout) && /_remote_any=1/.test(estado.stdout);
+                    if (!yaCompartido) {
+                        const c1 = yield run(['cupsctl', '--share-printers', '--remote-any'], !!password);
+                        if (c1.code !== 0) {
+                            const msg = (c1.stderr || '').trim() || 'No se pudo habilitar el compartir en CUPS';
+                            console.error('[CUPS] cupsctl falló:', msg);
+                            resolve({ success: false, ip: ipPc, uri, error: msg });
+                            return;
+                        }
+                        yield espera(1000); // cupsd puede reiniciarse tras el cambio de config
+                    }
+                    // 2) Marcamos la cola como compartida; reintentamos si cupsd está reiniciando (Service unavailable).
+                    let ultimo = { code: 1, stdout: '', stderr: '' };
+                    for (let i = 0; i < 6; i++) {
+                        ultimo = yield run(['lpadmin', '-p', colaSegura, '-o', 'printer-is-shared=true'], !!password);
+                        if (ultimo.code === 0) {
+                            break;
+                        }
+                        if (!/no disponible|unavailable|503|refus|connect/i.test(ultimo.stderr)) {
+                            break; // error real (no es el reinicio) → no tiene sentido reintentar
+                        }
+                        yield espera(800);
+                    }
+                    if (ultimo.code !== 0) {
+                        const msg = (ultimo.stderr || '').trim() || 'lpadmin no pudo compartir la cola';
+                        console.error('[CUPS] lpadmin falló:', msg);
+                        resolve({ success: false, ip: ipPc, uri, error: msg });
+                        return;
+                    }
+                    // 3) Hardening (best-effort, no bloqueante): abrir el puerto 631 SOLO para el central.
+                    // Con VPN, restringe quién puede alcanzar tu CUPS. Si no hay firewalld o falla, seguimos.
+                    const aviso = yield restringirCupsAlCentral(run, centralIp);
+                    resolve({ success: true, ip: ipPc, uri, aviso });
+                }
+                catch (e) {
+                    resolve({ success: false, ip: ipPc, uri, error: e && e.message ? e.message : 'error compartiendo' });
+                }
+            }))();
+        });
+    });
+}
+/**
+ * Best-effort: restringe el acceso al CUPS local (puerto 631) SOLO a la IP del central via
+ * firewalld (Fedora/RHEL). Agrega una rich rule que acepta 631/tcp desde esa IP. No abre 631
+ * de forma amplia, así solo el central lo alcanza. Si no hay firewalld o falla, devuelve un aviso
+ * (no es fatal: el compartir ya funcionó).
+ */
+function restringirCupsAlCentral(run, centralIp) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const ipValida = centralIp && /^\d{1,3}(\.\d{1,3}){3}$/.test(centralIp);
+        if (!ipValida) {
+            return 'No se aplicó restricción de firewall (IP del central inválida o vacía).';
+        }
+        // ¿Hay firewalld?
+        const cual = yield run(['sh', '-c', 'command -v firewall-cmd || true'], false);
+        if (!cual.stdout.trim()) {
+            return 'CUPS compartido sin restricción de firewall (no se encontró firewalld). Restringí el puerto 631 al central a mano.';
+        }
+        const regla = `rule family="ipv4" source address="${centralIp}" port port="631" protocol="tcp" accept`;
+        const add = yield run(['firewall-cmd', '--permanent', `--add-rich-rule=${regla}`], true);
+        if (add.code !== 0) {
+            return 'No se pudo aplicar la restricción de firewall (' + ((add.stderr || '').trim() || 'error') + '). CUPS quedó compartido igual.';
+        }
+        yield run(['firewall-cmd', '--reload'], true);
+        return undefined; // aplicado OK
+    });
+}
+/**
+ * Instala la impresora en el CUPS/spooler LOCAL de esta PC (NO en el servidor). Es la vía por
+ * defecto: cada PC instala su propia impresora sin depender del backend; luego opcionalmente la
+ * comparte al filial/central por IP. Los datos de la impresora se siguen guardando en la BD (que
+ * replica a las filiales) por separado.
+ *  - Linux: `lpadmin -p <cola> -E -v <uri> -m raw` (térmica ESC/POS crudo) o `-m everywhere`
+ *    (driverless IPP). Requiere permisos de admin de CUPS: se intenta sin sudo y, si CUPS lo
+ *    rechaza, se devuelve needsPassword para reintentar con la contraseña.
+ *  - Windows: `Add-PrinterPort` (TCP/IP raw) + `Add-Printer` (driver "Generic / Text Only").
+ */
+function instalarImpresoraLocal(cola, uri, raw, password) {
+    return new Promise((resolve) => {
+        const colaSegura = (cola || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+        if (!colaSegura) {
+            resolve({ success: false, error: 'Nombre de cola inválido' });
+            return;
+        }
+        if (!uri) {
+            resolve({ success: false, error: 'URI de impresora vacía' });
+            return;
+        }
+        // Ejecuta un comando (con o sin sudo) y devuelve {code, stdout, stderr}. Igual que compartir.
+        const run = (args, useSudo) => new Promise((res) => {
+            const proc = useSudo
+                ? (0, child_process_1.spawn)('sudo', ['-S', '-k', '-p', '', ...args])
+                : (0, child_process_1.spawn)(args[0], args.slice(1));
+            let stdout = '';
+            let stderr = '';
+            proc.stdout.on('data', (d) => { stdout += d.toString(); });
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('error', (err) => res({ code: 1, stdout, stderr: stderr || err.message }));
+            proc.on('close', (code) => res({ code: code == null ? 1 : code, stdout, stderr }));
+            if (useSudo && password) {
+                proc.stdin.write(password + '\n');
+            }
+            proc.stdin.end();
+        });
+        (() => __awaiter(this, void 0, void 0, function* () {
+            try {
+                if (process.platform === 'win32') {
+                    // Windows: crea el puerto TCP/IP raw y agrega la impresora con driver de texto genérico.
+                    const m = (uri || '').match(/^(socket|ipp|ipps|lpd):\/\/([^:/]+)(?::(\d+))?/i);
+                    const host = m ? m[2] : null;
+                    const puerto = m && m[3] ? m[3] : '9100';
+                    if (!host) {
+                        resolve({ success: false, error: 'URI no soportada en Windows: ' + uri });
+                        return;
+                    }
+                    const portName = ('FRC_' + host + '_' + puerto).replace(/[^A-Za-z0-9_]/g, '');
+                    const ps = `if (-not (Get-PrinterPort -Name '${portName}' -ErrorAction SilentlyContinue)) { `
+                        + `Add-PrinterPort -Name '${portName}' -PrinterHostAddress '${host}' -PortNumber ${puerto} }; `
+                        + `Add-Printer -Name '${colaSegura}' -DriverName 'Generic / Text Only' -PortName '${portName}'`;
+                    const r = yield run(['powershell', '-NoProfile', '-NonInteractive', '-Command', ps], false);
+                    if (r.code !== 0) {
+                        resolve({ success: false, cola: colaSegura, error: (r.stderr || '').trim() || 'Add-Printer falló' });
+                        return;
+                    }
+                    resolve({ success: true, cola: colaSegura, uri });
+                    return;
+                }
+                if (process.platform !== 'linux') {
+                    resolve({ success: false, error: 'Instalación local solo disponible en Linux y Windows' });
+                    return;
+                }
+                // Linux/CUPS. raw para térmicas (ESC/POS); everywhere solo aplica a URIs IPP.
+                const modelo = raw ? 'raw' : (/^ipps?:/i.test(uri) ? 'everywhere' : 'raw');
+                // printer-error-policy=retry-current-job: ante un error del backend la cola NO se pausa
+                // (evita el "stop-printer" por defecto que deja la impresora inactiva y los jobs pendientes).
+                const args = ['lpadmin', '-p', colaSegura, '-E', '-v', uri, '-m', modelo,
+                    '-o', 'printer-error-policy=retry-current-job'];
+                const r = yield run(args, !!password);
+                if (r.code !== 0) {
+                    const stderr = (r.stderr || '').trim();
+                    const esPermisos = /forbid|denied|permission|not allowed|unauthor|password|contrase/i.test(stderr);
+                    if (esPermisos && !password) {
+                        // Sin sudo no alcanza: pedimos la contraseña de admin y reintentamos.
+                        resolve({ success: false, cola: colaSegura, needsPassword: true, error: stderr });
+                        return;
+                    }
+                    resolve({ success: false, cola: colaSegura, error: stderr || 'lpadmin no pudo instalar la cola' });
+                    return;
+                }
+                resolve({ success: true, cola: colaSegura, uri });
+            }
+            catch (e) {
+                resolve({ success: false, cola: colaSegura, error: e && e.message ? e.message : 'error instalando' });
+            }
+        }))();
+    });
+}
+/** Etiqueta de protocolo legible a partir de un puerto de impresion de red. */
+function etiquetaPuerto(puerto) {
+    if (puerto === 9100)
+        return 'raw:9100';
+    if (puerto === 631)
+        return 'ipp';
+    if (puerto === 515)
+        return 'lpd';
+    return String(puerto);
+}
+function obtenerOCrearEntrada(mapa, ip) {
+    let e = mapa.get(ip);
+    if (!e) {
+        e = { nombre: null, ip, host: null, modelo: null, puertos: new Set(), protocolos: new Set(), rp: null };
+        mapa.set(ip, e);
+    }
+    return e;
+}
+/** Descubre impresoras que se anuncian por mDNS/DNS-SD (Bonjour). */
+function descubrirImpresorasMdns(timeoutMs, locales) {
+    return new Promise((resolve) => {
+        const mapa = new Map();
+        let bonjour = null;
+        try {
+            const { Bonjour } = require('bonjour-service');
+            bonjour = new Bonjour();
+        }
+        catch (e) {
+            console.error('mDNS (bonjour-service) no disponible:', e);
+            resolve(mapa);
+            return;
+        }
+        const tipoAProtocolo = {
+            ipp: 'ipp', ipps: 'ipps', 'pdl-datastream': 'raw:9100', printer: 'lpd',
+        };
+        const browsers = Object.keys(tipoAProtocolo).map((type) => bonjour.find({ type }));
+        const primeraIpv4 = (s) => {
+            const dir = ((s && s.addresses) || []).find((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a));
+            return dir || null;
+        };
+        const limpiarNombre = (n) => (n || '').replace(/\s*@.*$/, '').trim();
+        const limpiarModelo = (m) => (m ? String(m).replace(/[()]/g, '').trim() : null);
+        browsers.forEach((br) => {
+            br.on('up', (s) => {
+                const ip = primeraIpv4(s);
+                if (!ip || locales.has(ip)) {
+                    return; // sin IPv4 utilizable o es esta misma PC (ya cubierta por la deteccion local)
+                }
+                const e = obtenerOCrearEntrada(mapa, ip);
+                if (typeof s.port === 'number' && s.port > 0) {
+                    e.puertos.add(s.port);
+                }
+                e.protocolos.add(tipoAProtocolo[s.type] || s.type);
+                const txt = (s && s.txt) || {};
+                const modelo = limpiarModelo(txt.ty || txt.product || txt.usb_MDL);
+                if (!e.modelo && modelo) {
+                    e.modelo = modelo;
+                }
+                // Resource path IPP anunciado (ej. 'printers/ticket_soporte' de una cola CUPS compartida,
+                // o 'ipp/print' de una impresora IPP real). Se usa para armar la URI correcta al instalar.
+                if (!e.rp && typeof txt.rp === 'string' && txt.rp.trim()) {
+                    e.rp = txt.rp.trim().replace(/^\/+/, '');
+                }
+                if (!e.host && s.host) {
+                    e.host = s.host;
+                }
+                const nombre = limpiarNombre(s.name);
+                if (!e.nombre && nombre) {
+                    e.nombre = nombre;
+                }
+            });
+        });
+        setTimeout(() => {
+            browsers.forEach((br) => { try {
+                br.stop();
+            }
+            catch ( /* noop */_a) { /* noop */ } });
+            try {
+                bonjour.destroy();
+            }
+            catch ( /* noop */_a) { /* noop */ }
+            resolve(mapa);
+        }, timeoutMs);
+    });
+}
+/**
+ * Escanea la(s) subred(es) /24 locales probando los puertos de impresion (raw 9100, IPP 631,
+ * LPD 515). Encuentra impresoras que NO se anuncian por mDNS/CUPS. Best-effort, acotado a /24
+ * y a los rangos privados para no saturar la red. El nombre se resuelve por PTR (reverse DNS).
+ * Solo consideramos impresora a la IP con el puerto RAW 9100 abierto: el 631 (IPP/CUPS) solo lo
+ * tiene abierto cualquier PC con CUPS, asi que filtrarlo evita falsos positivos. Las impresoras
+ * que solo exponen IPP igual se descubren por mDNS.
+ */
+function escanearImpresorasRed(connectTimeoutMs, locales) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const net = require('net');
+        const dnsp = require('dns').promises;
+        const PUERTOS_IMPRESORA = [9100, 515]; // señales fuertes de impresora (631 lo tiene cualquier PC con CUPS)
+        const MAX_SUBREDES = 3;
+        // Barrido de vida: mayormente son hosts ausentes esperando el temporizador (no estresan a las
+        // impresoras), asi que la concurrencia alta acelera sin perder fiabilidad. El reintento sobre los
+        // hosts vivos va gentil (poca concurrencia, mas timeout).
+        const CONC_VIDA = 256;
+        const CONC_RETRY = 32;
+        // Bases /24 unicas de las interfaces IPv4 privadas de esta PC.
+        const bases = [];
+        detectarIpsLocales().todas.forEach((t) => {
+            if (!/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(t.ip)) {
+                return; // solo rangos privados (evita escanear redes publicas/VPN amplias)
+            }
+            const base = t.ip.replace(/\.\d+$/, '.');
+            if (!bases.includes(base)) {
+                bases.push(base);
+            }
+        });
+        const objetivos = [];
+        bases.slice(0, MAX_SUBREDES).forEach((base) => {
+            for (let h = 1; h <= 254; h++) {
+                const ip = base + h;
+                if (!locales.has(ip)) {
+                    objetivos.push(ip); // esta misma PC excluida
+                }
+            }
+        });
+        const sondear = (ip, puerto, timeoutMs) => new Promise((resolve) => {
+            const sock = new net.Socket();
+            let resuelto = false;
+            // Temporizador explicito: net.Socket.setTimeout NO dispara 'timeout' durante la fase de
+            // connect, asi que sin esto los hosts ausentes esperarian el timeout del SO (~2 min).
+            const temporizador = setTimeout(() => terminar(false), timeoutMs);
+            const terminar = (abierto) => {
+                if (resuelto) {
+                    return;
+                }
+                resuelto = true;
+                clearTimeout(temporizador);
+                try {
+                    sock.destroy();
+                }
+                catch ( /* noop */_a) { /* noop */ }
+                resolve(abierto);
+            };
+            sock.once('connect', () => terminar(true));
+            sock.once('error', () => terminar(false));
+            sock.connect(puerto, ip);
+        });
+        const abiertosPorIp = new Map();
+        const registrar = (ip, puerto) => {
+            const s = abiertosPorIp.get(ip) || new Set();
+            s.add(puerto);
+            abiertosPorIp.set(ip, s);
+        };
+        // Pool de concurrencia sobre una lista de tareas.
+        const correr = (tareas, concurrencia, timeoutMs) => __awaiter(this, void 0, void 0, function* () {
+            let idx = 0;
+            const worker = () => __awaiter(this, void 0, void 0, function* () {
+                while (idx < tareas.length) {
+                    const t = tareas[idx++];
+                    // eslint-disable-next-line no-await-in-loop
+                    if (yield sondear(t.ip, t.puerto, timeoutMs)) {
+                        registrar(t.ip, t.puerto);
+                    }
+                }
+            });
+            yield Promise.all(Array.from({ length: Math.min(concurrencia, tareas.length || 1) }, worker));
+        });
+        // Barrido de vida: solo puertos de impresora, con 9100 sondeado dos veces para tolerar un SYN
+        // perdido en WiFi (clave para impresoras raw-only que si no se pierden intermitentemente).
+        const tareasVida = [];
+        [9100, 515, 9100].forEach((puerto) => objetivos.forEach((ip) => tareasVida.push({ ip, puerto })));
+        yield correr(tareasVida, CONC_VIDA, connectTimeoutMs);
+        // Enriquecer/reintentar SOLO en hosts que ya dieron señal: agrega IPP (631) para saber si se
+        // puede instalar por CUPS, y reintenta gentil los puertos de impresora que no abrieron.
+        const tareasDetalle = [];
+        abiertosPorIp.forEach((puertos, ip) => {
+            [631, ...PUERTOS_IMPRESORA].forEach((puerto) => { if (!puertos.has(puerto)) {
+                tareasDetalle.push({ ip, puerto });
+            } });
+        });
+        if (tareasDetalle.length) {
+            yield correr(tareasDetalle, CONC_RETRY, connectTimeoutMs + 500);
+        }
+        const mapa = new Map();
+        yield Promise.all(Array.from(abiertosPorIp.keys()).map((ip) => __awaiter(this, void 0, void 0, function* () {
+            const puertos = abiertosPorIp.get(ip) || new Set();
+            if (!PUERTOS_IMPRESORA.some((p) => puertos.has(p))) {
+                return; // solo 631 abierto: es una PC con CUPS, no una impresora
+            }
+            const e = obtenerOCrearEntrada(mapa, ip);
+            puertos.forEach((p) => { e.puertos.add(p); e.protocolos.add(etiquetaPuerto(p)); });
+            try {
+                // Reverse DNS con tope de 1s para no colgar el escaneo si el DNS no responde.
+                const hosts = yield Promise.race([
+                    dnsp.reverse(ip),
+                    new Promise((r) => setTimeout(() => r(null), 1000)),
+                ]);
+                if (hosts && hosts[0]) {
+                    e.host = hosts[0];
+                    e.nombre = hosts[0].replace(/\.local$/i, '').split('.')[0];
+                }
+            }
+            catch ( /* sin PTR: se queda sin nombre y la UI muestra la IP */_a) { /* sin PTR: se queda sin nombre y la UI muestra la IP */ }
+        })));
+        return mapa;
+    });
+}
+/**
+ * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin backend.
+ *   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+ *   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin. `lp` habla
+ *     directo con cupsd (no depende de PrintServiceLookup) y `-o raw` garantiza passthrough.
+ * Devuelve { success, error? }. No lanza: cualquier fallo vuelve como { success:false, error }.
+ */
+function imprimirLocalRaw(arg) {
+    return new Promise((resolve) => {
+        const conexion = String((arg === null || arg === void 0 ? void 0 : arg.conexion) || '').toUpperCase();
+        const payloadB64 = arg === null || arg === void 0 ? void 0 : arg.payloadBase64;
+        if (!payloadB64) {
+            resolve({ success: false, error: 'Payload de impresión vacío' });
+            return;
+        }
+        let buffer;
+        try {
+            buffer = buffer_1.Buffer.from(payloadB64, 'base64');
+        }
+        catch (_a) {
+            resolve({ success: false, error: 'Payload base64 inválido' });
+            return;
+        }
+        if (conexion === 'RED') {
+            const net = require('net');
+            const ip = arg === null || arg === void 0 ? void 0 : arg.ip;
+            const puerto = Number(arg === null || arg === void 0 ? void 0 : arg.puerto) || 9100;
+            if (!ip) {
+                resolve({ success: false, error: 'IP de la impresora de red vacía' });
+                return;
+            }
+            const socket = new net.Socket();
+            let terminado = false;
+            const finish = (r) => {
+                if (terminado)
+                    return;
+                terminado = true;
+                try {
+                    socket.destroy();
+                }
+                catch ( /* noop */_a) { /* noop */ }
+                resolve(r);
+            };
+            socket.setTimeout(8000);
+            socket.on('error', (e) => finish({ success: false, error: e && e.message ? e.message : 'error de socket' }));
+            socket.on('timeout', () => finish({ success: false, error: 'timeout conectando a ' + ip + ':' + puerto }));
+            socket.connect(puerto, ip, () => {
+                socket.write(buffer, () => {
+                    socket.end();
+                    finish({ success: true });
+                });
+            });
+            return;
+        }
+        // CUPS / USB / BLUETOOTH: cola local via `lp -d <cola> -o raw`.
+        const cola = String((arg === null || arg === void 0 ? void 0 : arg.cola) || '').trim();
+        if (!cola) {
+            resolve({ success: false, error: 'Cola CUPS vacía' });
+            return;
+        }
+        if (process.platform === 'win32') {
+            resolve({ success: false, error: 'Impresión CUPS local aún no soportada en Windows' });
+            return;
+        }
+        try {
+            const proc = (0, child_process_1.spawn)('lp', ['-d', cola, '-o', 'raw']);
+            let stderr = '';
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('error', (e) => resolve({ success: false, error: e && e.message ? e.message : 'no se pudo ejecutar lp' }));
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    resolve({ success: true });
+                }
+                else {
+                    resolve({ success: false, error: stderr.trim() || ('lp terminó con código ' + code) });
+                }
+            });
+            proc.stdin.write(buffer);
+            proc.stdin.end();
+        }
+        catch (e) {
+            resolve({ success: false, error: e && e.message ? e.message : 'error ejecutando lp' });
+        }
+    });
+}
+/** Columnas por defecto según el perfil de papel (fuente A). Replica PerfilPapelHelper del backend. */
+function columnasPorPerfil(perfil) {
+    switch (String(perfil || '').toUpperCase()) {
+        case 'MM_48':
+        case 'MM_58': return 32;
+        case 'MM_72': return 42;
+        case 'MM_80': return 48;
+        default: return 32; // A4 / CARTA / CUSTOM / desconocido
+    }
+}
+/**
+ * Genera el ESC/POS del ticket de PRUEBA en el frontend (sin backend): título centrado en negrita,
+ * separadores y datos de la impresora. Se imprime local con `print-local`.
+ */
+function construirTicketPruebaEscPos(meta) {
+    const cols = Number(meta === null || meta === void 0 ? void 0 : meta.columnas) > 0 ? Number(meta.columnas) : columnasPorPerfil(meta === null || meta === void 0 ? void 0 : meta.perfil);
+    const ESC = 0x1b;
+    const GS = 0x1d;
+    const LF = 0x0a;
+    const partes = [];
+    const ctrl = (arr) => partes.push(buffer_1.Buffer.from(arr));
+    const linea = (s) => partes.push(buffer_1.Buffer.from(s + '\n', 'latin1'));
+    const sep = '-'.repeat(cols);
+    ctrl([ESC, 0x40]); // init
+    ctrl([ESC, 0x61, 0x01]); // centrar
+    ctrl([ESC, 0x45, 0x01]); // negrita on
+    linea('PRUEBA DE IMPRESION');
+    ctrl([ESC, 0x45, 0x00]); // negrita off
+    ctrl([ESC, 0x61, 0x00]); // izquierda
+    linea(sep);
+    linea('Impresora: ' + ((meta === null || meta === void 0 ? void 0 : meta.nombre) || ''));
+    if (meta === null || meta === void 0 ? void 0 : meta.sucursal) {
+        linea('Sucursal: ' + meta.sucursal);
+    }
+    linea('Conexion: ' + ((meta === null || meta === void 0 ? void 0 : meta.conexion) || ''));
+    linea('Columnas: ' + cols);
+    linea('Perfil: ' + ((meta === null || meta === void 0 ? void 0 : meta.perfil) || ''));
+    linea(sep);
+    ctrl([LF, LF, LF]); // feed
+    ctrl([GS, 0x56, 0x00]); // corte total
+    return buffer_1.Buffer.concat(partes);
+}
 function registerPrinterIpcHandlers() {
+    // IP LAN de esta maquina (para compartir la impresora local al central por IP).
+    ipcMain.handle('get-local-ip', () => __awaiter(this, void 0, void 0, function* () {
+        return detectarIpsLocales();
+    }));
+    // Comparte la cola CUPS local en la red y devuelve la URI IPP lista para instalar en el central.
+    // arg: { queue, password } (o string queue por retrocompat). El password corre los comandos como root.
+    ipcMain.handle('share-local-printer', (_event, arg) => __awaiter(this, void 0, void 0, function* () {
+        const queue = typeof arg === 'string' ? arg : arg === null || arg === void 0 ? void 0 : arg.queue;
+        const password = typeof arg === 'string' ? undefined : arg === null || arg === void 0 ? void 0 : arg.password;
+        const centralIp = typeof arg === 'string' ? undefined : arg === null || arg === void 0 ? void 0 : arg.centralIp;
+        return compartirImpresoraLocal(queue, password, centralIp);
+    }));
+    // Instala la impresora en el CUPS/spooler LOCAL de esta PC (sin pasar por el servidor).
+    // arg: { cola, uri, raw, password }. Si CUPS pide permisos devuelve { needsPassword: true }.
+    ipcMain.handle('install-local-printer', (_event, arg) => __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const cola = (_a = arg === null || arg === void 0 ? void 0 : arg.cola) !== null && _a !== void 0 ? _a : arg === null || arg === void 0 ? void 0 : arg.queue;
+        const uri = arg === null || arg === void 0 ? void 0 : arg.uri;
+        const raw = (arg === null || arg === void 0 ? void 0 : arg.raw) !== false; // por defecto raw (térmica ESC/POS)
+        const password = arg === null || arg === void 0 ? void 0 : arg.password;
+        return instalarImpresoraLocal(cola, uri, raw, password);
+    }));
+    // Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, SIN pasar por ningún
+    // backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
+    // alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente, así que imprime acá.
+    //   - RED: socket TCP crudo a ip:puerto (raw/JetDirect, típico 9100).
+    //   - CUPS/USB/BLUETOOTH: `lp -d <cola> -o raw` (Linux/mac) con el payload por stdin.
+    // arg: { conexion, cola, ip, puerto, payloadBase64 } → { success, error? }
+    ipcMain.handle('print-local', (_event, arg) => __awaiter(this, void 0, void 0, function* () { return imprimirLocalRaw(arg); }));
+    // Imprime el ticket de PRUEBA generado 100% en el frontend (ESC/POS), sin ningún backend.
+    // arg: { conexion, cola, ip, puerto, nombre, sucursal, columnas, perfil } → { success, error? }
+    ipcMain.handle('print-test-local', (_event, arg) => __awaiter(this, void 0, void 0, function* () {
+        const payload = construirTicketPruebaEscPos(arg);
+        return imprimirLocalRaw(Object.assign(Object.assign({}, arg), { payloadBase64: payload.toString('base64') }));
+    }));
     ipcMain.handle('get-system-printers', () => __awaiter(this, void 0, void 0, function* () {
         try {
             console.log('Getting system printers');
@@ -494,6 +1137,78 @@ function registerPrinterIpcHandlers() {
         }
         catch (error) {
             console.error('Error getting system printers:', error);
+            return [];
+        }
+    }));
+    // Descubre impresoras de RED (Wi-Fi/Ethernet) por mDNS/DNS-SD (Bonjour). Detecta Epson, HP,
+    // Brother, Canon, etc. que anuncian _ipp / _ipps / _pdl-datastream (raw 9100) / _printer (LPD).
+    // La deteccion la hace el frontend (este proceso Electron), NO el backend, y es independiente de
+    // la deteccion por cable/USB (que sigue corriendo por lpinfo en el backend). No instala nada:
+    // solo devuelve la lista para que la UI autocomplete conexion RED (ip:9100) o instale una cola
+    // CUPS via el backend existente (uri socket://ip:puerto).
+    ipcMain.handle('detect-network-printers', (_event, opts) => __awaiter(this, void 0, void 0, function* () {
+        const timeoutMs = Math.min(Math.max(Number(opts && opts.timeoutMs) || 4000, 1000), 15000);
+        const connectTimeoutMs = Math.min(Math.max(Number(opts && opts.connectTimeoutMs) || 1000, 150), 4000);
+        const escanearRed = !opts || opts.escanearRed !== false; // por defecto barre la subred ademas de mDNS
+        try {
+            const locales = new Set(detectarIpsLocales().todas.map((t) => t.ip));
+            const [mdns, red] = yield Promise.all([
+                descubrirImpresorasMdns(timeoutMs, locales),
+                escanearRed ? escanearImpresorasRed(connectTimeoutMs, locales) : Promise.resolve(new Map()),
+            ]);
+            // Fusion por IP: mDNS aporta nombre/modelo; el barrido aporta puertos abiertos reales.
+            const fusion = new Map(mdns);
+            red.forEach((e, ip) => {
+                const base = fusion.get(ip);
+                if (!base) {
+                    fusion.set(ip, e);
+                    return;
+                }
+                e.puertos.forEach((p) => base.puertos.add(p));
+                e.protocolos.forEach((p) => base.protocolos.add(p));
+                if (!base.nombre && e.nombre) {
+                    base.nombre = e.nombre;
+                }
+                if (!base.host && e.host) {
+                    base.host = e.host;
+                }
+            });
+            return Array.from(fusion.values()).map((p) => {
+                // Puerto para conexion RED directa (raw/ESC-POS). 9100 si esta abierto; si no, el primero.
+                const puerto = p.puertos.has(9100) ? 9100 : (Array.from(p.puertos)[0] || 9100);
+                // URI para instalar cola CUPS via backend. Si el equipo anuncia una cola CUPS COMPARTIDA
+                // (rp=printers/<cola>), apuntamos a esa cola exacta — no al endpoint IPP generico /ipp/print,
+                // que falla con "la impresora ya no existe". Si no, raw > IPP > LPD segun lo disponible.
+                let uri;
+                const rpColaCups = p.rp && /^printers\//i.test(p.rp) ? p.rp : null;
+                if (rpColaCups) {
+                    uri = `ipp://${p.ip}:631/${rpColaCups}`;
+                }
+                else if (p.puertos.has(9100)) {
+                    uri = `socket://${p.ip}:9100`;
+                }
+                else if (p.puertos.has(631)) {
+                    uri = `ipp://${p.ip}:631/${p.rp || 'ipp/print'}`;
+                }
+                else if (p.puertos.has(515)) {
+                    uri = `lpd://${p.ip}/queue`;
+                }
+                else {
+                    uri = `socket://${p.ip}:9100`;
+                }
+                return {
+                    nombre: p.nombre || `Impresora de red ${p.ip}`,
+                    ip: p.ip,
+                    host: p.host,
+                    modelo: p.modelo,
+                    puerto,
+                    uri,
+                    protocolos: Array.from(p.protocolos),
+                };
+            });
+        }
+        catch (error) {
+            console.error('Error detecting network printers:', error);
             return [];
         }
     }));

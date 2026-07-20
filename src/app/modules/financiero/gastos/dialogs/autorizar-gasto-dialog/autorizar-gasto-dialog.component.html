@@ -15,7 +15,7 @@
     </div>
     <div class="resumen-campo">
       <span class="resumen-label">Concepto</span>
-      <span class="resumen-valor resumen-descripcion">{{ preGasto.descripcion }}</span>
+      <span class="resumen-valor resumen-descripcion">{{ limpiarDescripcion(preGasto.descripcion) }}</span>
     </div>
     <div class="resumen-campo">
       <span class="resumen-label">Sucursal Retiro</span>
@@ -115,12 +115,12 @@
     <small>Ingrese lo rendido real por moneda; el backend recalcula vuelto, estado y porcentajes.</small>
   </div>
 
-  <div class="dialogo-acciones" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
-    <button mat-stroked-button (click)="cancelar()" type="button">
+  <div class="dialogo-acciones" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center; padding: 16px;">
+    <button mat-stroked-button (click)="cancelar()" type="button" style="min-width: 120px; min-height: 40px;">
       Volver
     </button>
 
-    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="esTramite()" type="button">
+    <button mat-raised-button color="warn" (click)="rechazar()" [disabled]="esTramite()" type="button" style="min-width: 140px; min-height: 40px;">
       <mat-icon>cancel</mat-icon>
       {{ mostrarMotivoRechazo ? 'Confirmar Rechazo' : 'Rechazar' }}
     </button>
@@ -132,12 +132,13 @@
       *ngIf="!mostrarMotivoRechazo"
       [disabled]="esTramite()"
       type="button"
+      style="min-width: 140px; min-height: 40px;"
     >
       <mat-icon>check_circle</mat-icon>
       Autorizar
     </button>
 
-    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite()" type="button">
+    <button mat-raised-button class="boton-finalizar" (click)="finalizar()" [disabled]="!esTramite()" type="button" style="min-width: 140px; min-height: 40px;">
       <mat-icon>task_alt</mat-icon>
       Finalizar
     </button>

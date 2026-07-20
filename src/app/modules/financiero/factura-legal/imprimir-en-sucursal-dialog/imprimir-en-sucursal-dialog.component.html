@@ -1,0 +1,61 @@
+<div class="dialog-header">
+  <h2 mat-dialog-title>{{ titulo }}</h2>
+  <button mat-icon-button (click)="cancelar()" class="close-btn" tabindex="-1">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content class="dialog-content-modern" [class.con-vista-previa]="esPdf">
+  <p class="detalle">Factura Nro. {{ data.factura?.numeroFactura }} — revisá el documento y elegí la impresora donde va a salir.</p>
+
+  <div class="vista-previa" *ngIf="esPdf">
+    <div *ngIf="cargandoPdf" class="estado-vacio">
+      <mat-icon>hourglass_empty</mat-icon>
+      <span>Generando vista previa…</span>
+    </div>
+    <div *ngIf="!cargandoPdf && errorPdf" class="estado-vacio">
+      <mat-icon>error_outline</mat-icon>
+      <span>No se pudo generar el PDF para previsualizar.</span>
+    </div>
+    <ngx-extended-pdf-viewer
+      *ngIf="!cargandoPdf && pdfBase64"
+      [base64Src]="pdfBase64"
+      height="100%"
+      [textLayer]="true"
+      [showToolbar]="true"
+      [showPrintButton]="false"
+      [minifiedJSLibraries]="false"
+    ></ngx-extended-pdf-viewer>
+  </div>
+
+  <div class="lista-impresoras">
+    <div *ngIf="cargando" class="estado-vacio">
+      <mat-icon>hourglass_empty</mat-icon>
+      <span>Buscando impresoras…</span>
+    </div>
+
+    <div *ngIf="!cargando && impresoras.length === 0" class="estado-vacio">
+      <mat-icon>print_disabled</mat-icon>
+      <span>No hay impresoras {{ data.tipo === 'TERMICA' ? 'térmicas' : 'normales' }} registradas. Agregalas desde el módulo Impresoras.</span>
+    </div>
+
+    <div class="impresora-item" *ngFor="let imp of impresoras" [class.seleccionada]="imp.ref.id === seleccionadaId"
+      (click)="elegir(imp)">
+      <mat-icon class="impresora-icon">{{ data.tipo === 'TERMICA' ? 'receipt_long' : 'print' }}</mat-icon>
+      <div class="impresora-info">
+        <span class="impresora-nombre">{{ imp.nombre }}</span>
+        <span class="impresora-sucursal">{{ imp.sucursalNombre }}</span>
+      </div>
+      <mat-icon *ngIf="imp.ref.id === seleccionadaId" class="check-icon">check_circle</mat-icon>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions-modern">
+  <button mat-button (click)="cancelar()" class="btn-cancelar">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="confirmar()" class="btn-aceptar"
+    [disabled]="enviando || !seleccionadaId || (esPdf && (cargandoPdf || errorPdf))">
+    <mat-icon>{{ enviando ? 'hourglass_empty' : 'print' }}</mat-icon>
+    {{ enviando ? 'Enviando…' : 'Imprimir' }}
+  </button>
+</mat-dialog-actions>

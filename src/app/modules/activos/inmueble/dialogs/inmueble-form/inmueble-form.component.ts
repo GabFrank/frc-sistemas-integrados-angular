@@ -107,6 +107,11 @@ export class InmuebleFormComponent implements OnInit {
     this.cuotasDetalle = cuotas;
   }
 
+  onMontoTotalCuotasChange(montoTotal: number): void {
+    this.form.patchValue({ montoTotal }, { emitEvent: false });
+    this.cdr.markForCheck();
+  }
+
 
   private inicializarFormulario(): void {
     this.form = this.fb.group({

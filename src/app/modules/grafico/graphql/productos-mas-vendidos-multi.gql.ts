@@ -11,6 +11,7 @@ export class ProductosMasVendidosMultiGQL extends Query<any> {
       $sucIds: [ID]
       $limit: Int
       $familiaId: ID
+      $subfamiliaId: ID
       $ascendente: Boolean
       $productoIds: [ID]
     ) {
@@ -19,6 +20,7 @@ export class ProductosMasVendidosMultiGQL extends Query<any> {
         sucIds: $sucIds
         limit: $limit
         familiaId: $familiaId
+        subfamiliaId: $subfamiliaId
         ascendente: $ascendente
         productoIds: $productoIds
       ) {

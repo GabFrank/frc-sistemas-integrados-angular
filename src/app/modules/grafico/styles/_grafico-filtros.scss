@@ -48,6 +48,12 @@ $grafico-warn: #f44336;
       max-width: 240px;
     }
 
+    &--subfamilia {
+      min-width: 160px;
+      width: 200px;
+      max-width: 240px;
+    }
+
     &--anho {
       min-width: 120px;
       width: 140px;
@@ -197,6 +203,15 @@ $grafico-warn: #f44336;
     .mat-mdc-select-arrow,
     .mat-icon {
       color: $grafico-text-secondary;
+    }
+
+    .grafico-filtros__campo--familia,
+    .grafico-filtros__campo--subfamilia {
+      .mat-mdc-select-value-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   }
 }

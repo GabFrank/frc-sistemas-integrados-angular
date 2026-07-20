@@ -14,6 +14,7 @@ import { UntilDestroy } from '@ngneat/until-destroy';
 import { CamaraService } from '../../../../../shared/services/camara.service';
 import { ReconocimientoFacialHelperService } from '../../service/reconocimiento-facial-helper.service';
 import { Usuario } from '../../../../personas/usuarios/usuario.model';
+import { EmbeddingGaleria, FrameCalidadFacial, FRAMES_MINIMOS_VERIFICACION, HITS_CONSECUTIVOS_VERIFICACION, UMBRAL_SIMILITUD_VERIFICACION } from '../../models/embedding-galeria.model';
 
 export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captura-multiple';
 
@@ -27,11 +28,12 @@ export type ModoCamara = 'busqueda' | 'verificacion' | 'captura-perfil' | 'captu
 export class CamaraReconocimientoComponent implements OnDestroy {
 
     @Input() modo: ModoCamara = 'busqueda';
-    @Input() referenciaDescriptor: number[] | null = null;
+    @Input() referenciaGaleria: EmbeddingGaleria | null = null;
     @Input() usuarioSeleccionado: Usuario | null = null;
+    @Input() usuarioActualId: number | null = null;
 
     @Output() usuarioIdentificado = new EventEmitter<Usuario>();
-    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string }>();
+    @Output() identidadVerificada = new EventEmitter<{ embedding: number[], snapshotUrl: string, score: number }>();
     @Output() fotoPerfilGuardada = new EventEmitter<void>();
     @Output() cerrar = new EventEmitter<void>();
     @Output() busquedaManual = new EventEmitter<void>();
@@ -43,6 +45,9 @@ export class CamaraReconocimientoComponent implements OnDestroy {
     detecting = false;
     mensajeReconocimiento = '';
     verificacionSnapshotUrl: string | null = null;
+    porcentajeSimilitud: number | null = null;
+    progresoVerificacion = 0;
+    barraSimilitudClase = '';
 
     capturaMultiplePaso = 0;
     capturaMultipleFotos: Array<{ imageBase64: string; embedding: number[]; score: number }> = [];
@@ -53,18 +58,23 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         'Paso 3/3: Mire de FRENTE a la cámara'
     ];
 
-    livenessStep: 'BLINK' | 'DONE' = 'BLINK';
-    livenessInstruction = 'Parpadee para verificar';
-    private hasBlinked = false;
+    private framesVerificacion: FrameCalidadFacial[] = [];
+    private hitsConsecutivosVerificacion = 0;
 
     esperandoCapturaPerfil = false;
 
     private embeddingCapturado: number[] | null = null;
     private busquedaLoopActivo = false;
     private busquedaApiEnCurso = false;
+    private busquedaProcesandoFrame = false;
     private busquedaLoopTimer: ReturnType<typeof setTimeout> | null = null;
     private ultimaBusquedaApi = 0;
     private hitsConsecutivos = 0;
+
+    private deteccionLoopActivo = false;
+    private ultimoFrameProcesado = 0;
+    private procesandoFrame = false;
+    private readonly INTERVALO_DETECCION_MS = 400;
 
     private readonly INTERVALO_LOOP_MS = 400;
     private readonly INTERVALO_MIN_API_MS = 700;
@@ -78,7 +88,8 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     ngOnDestroy(): void {
         this.detenerBusquedaContinua();
-        this.camaraService.detenerCamara();
+        this.detenerDeteccionContinua();
+        this.camaraService.detenerCamara(this.videoElement?.nativeElement);
     }
 
     async iniciar(): Promise<void> {
@@ -90,7 +101,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
                 await this.iniciarCamaraParaVerificacion();
                 break;
             case 'captura-perfil':
-                await this.iniciarCapturaPerfil();
+                await this.iniciarCapturaMultiple();
                 break;
             case 'captura-multiple':
                 await this.iniciarCapturaMultiple();
@@ -100,24 +111,15 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     private async iniciarCamaraBusqueda(): Promise<void> {
         this.limpiarEstados();
-        this.mensajeReconocimiento = 'Iniciando cámara...';
+        this.mensajeReconocimiento = 'Cargando modelos de reconocimiento...';
         this.cdr.detectChanges();
 
         try {
-            const stream = await this.camaraService.iniciarCamara();
-            await this.esperarVideoElement();
-            const video = this.videoElement.nativeElement;
-            video.srcObject = stream;
-
-            await new Promise<void>((resolve) => {
-                video.onloadedmetadata = async () => {
-                    await video.play().catch(err => console.error('Error al reproducir:', err));
-                    resolve();
-                };
-            });
-
+            await this.faceHelper.inicializarMotorFacial();
+            await this.prepararVideoParaDeteccion();
             this.detecting = true;
             this.busquedaLoopActivo = true;
+            this.actualizarSimilitud(null);
             this.mensajeReconocimiento = 'Mire a la cámara para identificarse';
             this.cdr.markForCheck();
             this.bucleBusquedaContinua();
@@ -125,7 +127,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
             console.error('Error en iniciarCamaraBusqueda:', e);
             this.mensajeReconocimiento = 'Error al acceder a la cámara.';
             this.detecting = false;
-            this.camaraService.detenerCamara();
+            this.camaraService.detenerCamara(this.videoElement?.nativeElement);
             this.cdr.markForCheck();
         }
     }
@@ -152,47 +154,63 @@ export class CamaraReconocimientoComponent implements OnDestroy {
         }
 
         const ahora = Date.now();
-        if (!this.busquedaApiEnCurso && ahora - this.ultimaBusquedaApi >= this.INTERVALO_MIN_API_MS) {
+        if (!this.busquedaApiEnCurso && !this.busquedaProcesandoFrame && ahora - this.ultimaBusquedaApi >= this.INTERVALO_MIN_API_MS) {
+            this.busquedaProcesandoFrame = true;
             try {
-                const embedding = await this.faceHelper.obtenerEmbeddingFrame(video);
-                if (embedding) {
+                const evaluacion = await this.faceHelper.evaluarFrameBusqueda(video);
+                this.mensajeReconocimiento = evaluacion.mensaje;
+
+                if (!evaluacion.rostroDetectado) {
+                    this.hitsConsecutivos = 0;
+                    this.actualizarSimilitud(null);
+                } else if (!evaluacion.embedding) {
+                    this.hitsConsecutivos = 0;
+                    this.actualizarSimilitud(null);
+                } else {
                     this.busquedaApiEnCurso = true;
-                    this.mensajeReconocimiento = 'Buscando...';
+                    this.mensajeReconocimiento = 'Buscando coincidencia...';
                     this.cdr.markForCheck();
 
-                    const resultado = await this.faceHelper.buscarUsuarioPorEmbedding(embedding, []);
+                    const resultado = await this.faceHelper.buscarUsuarioPorEmbedding(evaluacion.embedding, []);
                     this.ultimaBusquedaApi = Date.now();
                     this.busquedaApiEnCurso = false;
 
-                    if (resultado?.confiable) {
-                        this.hitsConsecutivos++;
-                        const pct = (resultado.similitudBackend * 100).toFixed(0);
-                        this.mensajeReconocimiento = `Identificando... ${resultado.usuario.persona?.nombre} (${pct}%)`;
-                        this.cdr.markForCheck();
+                    if (resultado) {
+                        const pct = Math.round(resultado.similitudBackend * 100);
+                        this.actualizarSimilitud(pct, resultado.confiable);
 
-                        if (this.hitsConsecutivos >= this.HITS_PARA_CONFIRMAR) {
-                            this.detenerBusquedaContinua();
-                            this.detecting = false;
-                            this.mensajeReconocimiento = `✓ ${resultado.usuario.persona?.nombre} (${pct}%)`;
-                            this.cdr.markForCheck();
-                            video.pause();
-                            this.camaraService.detenerCamara();
-                            setTimeout(() => this.usuarioIdentificado.emit(resultado.usuario), 400);
-                            return;
+                        if (resultado.confiable) {
+                            this.hitsConsecutivos++;
+                            this.mensajeReconocimiento = `Identificando... ${resultado.usuario.persona?.nombre} (${pct}%)`;
+
+                            if (this.hitsConsecutivos >= this.HITS_PARA_CONFIRMAR) {
+                                this.detenerBusquedaContinua();
+                                this.detecting = false;
+                                this.mensajeReconocimiento = `✓ ${resultado.usuario.persona?.nombre} (${pct}%)`;
+                                this.cdr.markForCheck();
+                                video.pause();
+                                this.camaraService.detenerCamara(video);
+                                setTimeout(() => this.usuarioIdentificado.emit(resultado.usuario), 400);
+                                return;
+                            }
+                        } else {
+                            this.hitsConsecutivos = 0;
+                            this.mensajeReconocimiento = `Sin coincidencia (${pct}%). ¿Está enrolado en el sistema?`;
                         }
                     } else {
                         this.hitsConsecutivos = 0;
-                        this.mensajeReconocimiento = 'Mire a la cámara para identificarse';
+                        this.actualizarSimilitud(null);
+                        this.mensajeReconocimiento = 'Rostro detectado. No hay usuarios enrolados en el servidor.';
                     }
-                } else {
-                    this.hitsConsecutivos = 0;
-                    this.mensajeReconocimiento = 'Centra tu rostro en la cámara';
                 }
             } catch (e) {
                 console.error('Error en búsqueda continua:', e);
                 this.busquedaApiEnCurso = false;
                 this.hitsConsecutivos = 0;
+                this.actualizarSimilitud(null);
                 this.mensajeReconocimiento = 'Error en la búsqueda. Reintentando...';
+            } finally {
+                this.busquedaProcesandoFrame = false;
             }
         }
 
@@ -211,7 +229,7 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     async retomarCamara(): Promise<void> {
         this.detenerBusquedaContinua();
-        this.camaraService.detenerCamara();
+        this.camaraService.detenerCamara(this.videoElement?.nativeElement);
         await this.iniciarCamaraBusqueda();
     }
 
@@ -221,248 +239,352 @@ export class CamaraReconocimientoComponent implements OnDestroy {
 
     onCerrar(): void {
         this.limpiarEstados();
-        this.camaraService.detenerCamara();
+        this.camaraService.detenerCamara(this.videoElement?.nativeElement);
         this.cerrar.emit();
     }
 
     private async iniciarCamaraParaVerificacion(): Promise<void> {
+        this.detenerDeteccionContinua();
+        this.framesVerificacion = [];
+        this.hitsConsecutivosVerificacion = 0;
         this.mensajeReconocimiento = 'Iniciando cámara...';
-        this.livenessStep = 'BLINK';
-        this.livenessInstruction = 'Parpadee para verificar';
-        this.hasBlinked = false;
         this.cdr.detectChanges();
 
         try {
-            const stream = await this.camaraService.iniciarCamara();
-            await this.esperarVideoElement();
-
-            if (this.videoElement) {
-                const video = this.videoElement.nativeElement;
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    video.play().catch(err => console.error('Error al reproducir:', err));
-                    this.detecting = true;
-                    this.bucleDeteccion();
-                };
-            } else {
-                throw new Error('No se encontró el elemento de video');
-            }
+            await this.faceHelper.inicializarMotorFacial();
+            await this.prepararVideoParaDeteccion();
+            this.detecting = true;
+            this.mensajeReconocimiento = 'Mire de frente a la cámara';
+            this.cdr.markForCheck();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            this.iniciarBucleDeteccion();
         } catch (e) {
             console.error('Error en iniciarCamaraParaVerificacion:', e);
             this.mensajeReconocimiento = 'Error al acceder a la cámara';
+            this.detecting = false;
+            this.camaraService.detenerCamara(this.videoElement?.nativeElement);
         }
         this.cdr.markForCheck();
     }
 
+    private detenerDeteccionContinua(): void {
+        this.deteccionLoopActivo = false;
+    }
+
+    private iniciarBucleDeteccion(): void {
+        this.deteccionLoopActivo = true;
+        void this.bucleDeteccion();
+    }
+
     private async bucleDeteccion(): Promise<void> {
-        if (!this.detecting || !this.videoElement || !this.referenciaDescriptor) return;
+        if (!this.deteccionLoopActivo || !this.detecting || !this.videoElement || !this.referenciaGaleria) return;
 
         const video = this.videoElement.nativeElement;
-        if (video.paused || video.ended) {
+        if (video.paused || video.ended || video.videoWidth === 0) {
             setTimeout(() => this.bucleDeteccion(), 100);
             return;
         }
 
-        const resultado = await this.faceHelper.procesarFrame(video, this.referenciaDescriptor);
+        const ahora = Date.now();
+        if (!this.procesandoFrame && ahora - this.ultimoFrameProcesado >= this.INTERVALO_DETECCION_MS) {
+            this.ultimoFrameProcesado = ahora;
+            this.procesandoFrame = true;
 
-        if (resultado.exito && resultado.embedding) {
-            if (this.livenessStep === 'BLINK' && resultado.result) {
-                const blinkGesture = resultado.result.gesture?.find((g: any) => g.gesture.toLowerCase().includes('blink'));
-                const liveness = resultado.result.face?.[0]?.liveness;
+            try {
+                const umbralSimilitud = UMBRAL_SIMILITUD_VERIFICACION;
+                const evaluacion = await this.faceHelper.evaluarFrameVerificacion(
+                    video,
+                    this.referenciaGaleria,
+                    umbralSimilitud
+                );
+                this.mensajeReconocimiento = evaluacion.mensaje;
 
-                if (blinkGesture || (liveness !== undefined && liveness < 0.15)) {
-                    this.hasBlinked = true;
-                    this.livenessStep = 'DONE';
-                    this.livenessInstruction = 'Verificación completa';
+                if (evaluacion.similitud != null) {
+                    this.actualizarSimilitud(
+                        Math.round(evaluacion.similitud * 100),
+                        evaluacion.calidadOk,
+                        umbralSimilitud
+                    );
+                } else {
+                    this.actualizarSimilitud(null);
                 }
-            }
 
-            if (this.livenessStep === 'DONE') {
-                this.mensajeReconocimiento = '✓ Rostro verificado y parpadeo detectado';
-                this.similitudInsuficiente.emit(false);
-                this.embeddingCapturado = resultado.embedding;
-                this.detecting = false;
-                this.verificacionSnapshotUrl = this.camaraService.capturarFoto(video);
-                video.pause();
-                this.camaraService.detenerCamara();
-                this.identidadVerificada.emit({ embedding: resultado.embedding, snapshotUrl: this.verificacionSnapshotUrl });
+                if (evaluacion.calidadOk && evaluacion.embedding && evaluacion.score != null) {
+                    this.hitsConsecutivosVerificacion++;
+                    this.framesVerificacion.push({
+                        embedding: evaluacion.embedding,
+                        score: evaluacion.score,
+                        similitud: evaluacion.similitud
+                    });
+                    if (this.framesVerificacion.length > 6) {
+                        this.framesVerificacion.shift();
+                    }
+
+                    this.progresoVerificacion = Math.min(
+                        100,
+                        Math.round((this.framesVerificacion.length / FRAMES_MINIMOS_VERIFICACION) * 100)
+                    );
+                    this.similitudInsuficiente.emit(false);
+
+                    if (
+                        this.hitsConsecutivosVerificacion >= HITS_CONSECUTIVOS_VERIFICACION
+                        && this.framesVerificacion.length >= FRAMES_MINIMOS_VERIFICACION
+                    ) {
+                        const verificado = this.faceHelper.confirmarVerificacionFinal(
+                            this.framesVerificacion,
+                            this.referenciaGaleria,
+                            umbralSimilitud
+                        );
+                        if (!verificado) {
+                            this.reiniciarAcumulacionVerificacion();
+                            this.mensajeReconocimiento = 'Mantenga el rostro estable frente a la cámara';
+                        } else {
+                            const pct = Math.round(verificado.similitud * 100);
+                            this.mensajeReconocimiento = `✓ Rostro verificado (${pct}%)`;
+                            this.progresoVerificacion = 100;
+                            this.embeddingCapturado = verificado.embedding;
+                            this.detecting = false;
+                            this.detenerDeteccionContinua();
+                            this.verificacionSnapshotUrl = this.camaraService.capturarFoto(video);
+                            video.pause();
+                            this.camaraService.detenerCamara(video);
+                            this.identidadVerificada.emit({
+                                embedding: verificado.embedding,
+                                snapshotUrl: this.verificacionSnapshotUrl,
+                                score: verificado.score
+                            });
+                            this.cdr.markForCheck();
+                            return;
+                        }
+                    }
+                } else if (!evaluacion.rostroDetectado) {
+                    this.reiniciarAcumulacionVerificacion();
+                    this.similitudInsuficiente.emit(false);
+                } else if (evaluacion.similitud != null && evaluacion.similitud < umbralSimilitud) {
+                    this.reiniciarAcumulacionVerificacion();
+                    this.similitudInsuficiente.emit(true);
+                } else if (evaluacion.rostroDetectado) {
+                    this.hitsConsecutivosVerificacion = 0;
+                    this.progresoVerificacion = Math.min(
+                        100,
+                        Math.round((this.framesVerificacion.length / FRAMES_MINIMOS_VERIFICACION) * 100)
+                    );
+                } else {
+                    this.progresoVerificacion = Math.min(
+                        100,
+                        Math.round((this.framesVerificacion.length / FRAMES_MINIMOS_VERIFICACION) * 100)
+                    );
+                }
+
                 this.cdr.markForCheck();
-                return;
-            } else {
-                this.mensajeReconocimiento = this.livenessInstruction;
+            } finally {
+                this.procesandoFrame = false;
             }
-        } else {
-            this.mensajeReconocimiento = resultado.mensaje;
         }
 
-        if (resultado.mensaje.includes('Similitud insuficiente')) {
-            this.similitudInsuficiente.emit(true);
-        } else if (resultado.mensaje.includes('No se detecta rostro')) {
-            this.similitudInsuficiente.emit(false);
+        if (this.deteccionLoopActivo) {
+            setTimeout(() => this.bucleDeteccion(), 50);
         }
-
-        this.cdr.markForCheck();
-        requestAnimationFrame(() => this.bucleDeteccion());
     }
 
-    private async iniciarCapturaPerfil(): Promise<void> {
-        this.esperandoCapturaPerfil = true;
-        this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
-        this.cdr.detectChanges();
+    private reiniciarAcumulacionVerificacion(): void {
+        this.hitsConsecutivosVerificacion = 0;
+        this.framesVerificacion = [];
+        this.progresoVerificacion = 0;
+    }
 
-        try {
-            const stream = await this.camaraService.iniciarCamara();
-            await this.esperarVideoElement();
-
-            if (this.videoElement) {
-                const video = this.videoElement.nativeElement;
-                video.srcObject = stream;
-                await new Promise<void>((resolve) => {
-                    video.onloadedmetadata = async () => {
-                        await video.play().catch(err => console.error('Error playing video:', err));
-                        resolve();
-                    };
-                });
-            }
-            this.cdr.markForCheck();
-        } catch (e) {
-            console.error('Error en capturaPerfil:', e);
-            this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
-            this.esperandoCapturaPerfil = false;
-            this.cdr.markForCheck();
+    private actualizarSimilitud(
+        porcentaje: number | null,
+        exito = false,
+        umbralSimilitud = UMBRAL_SIMILITUD_VERIFICACION
+    ): void {
+        this.porcentajeSimilitud = porcentaje;
+        if (porcentaje == null) {
+            this.barraSimilitudClase = '';
+            return;
+        }
+        const umbralPct = Math.round(umbralSimilitud * 100);
+        if (exito || porcentaje >= umbralPct) {
+            this.barraSimilitudClase = 'similitud-alta';
+        } else if (porcentaje >= umbralPct - 15) {
+            this.barraSimilitudClase = 'similitud-media';
+        } else {
+            this.barraSimilitudClase = 'similitud-baja';
         }
     }
 
     async tomarFotoPerfil(): Promise<void> {
-        if (!this.videoElement || !this.usuarioSeleccionado) return;
-
-        const video = this.videoElement.nativeElement;
-        this.esperandoCapturaPerfil = false;
-        this.detecting = true;
-        this.mensajeReconocimiento = 'Capturando foto...';
-        this.cdr.markForCheck();
-
-        const exito = await this.faceHelper.capturarYGuardarFotoPerfil(this.usuarioSeleccionado.id, video);
-        this.detecting = false;
-
-        if (exito) {
-            this.camaraService.detenerCamara();
-            this.fotoPerfilGuardada.emit();
-        } else {
-            this.esperandoCapturaPerfil = true;
-            this.mensajeReconocimiento = 'Posicione su rostro y presione "Guardar Foto"';
-            this.cdr.markForCheck();
-        }
+        await this.tomarFotoPerfilMultiple();
     }
 
     private async iniciarCapturaMultiple(): Promise<void> {
         this.capturaMultiplePaso = 1;
         this.capturaMultipleFotos = [];
-        this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+        this.mensajeReconocimiento = 'Cargando modelos de reconocimiento facial...';
+        this.detecting = true;
         this.cdr.detectChanges();
 
         try {
-            const stream = await this.camaraService.iniciarCamara();
-            await this.esperarVideoElement();
-
-            if (this.videoElement) {
-                const video = this.videoElement.nativeElement;
-                video.srcObject = stream;
-                await new Promise<void>((resolve) => {
-                    video.onloadedmetadata = async () => {
-                        await video.play().catch(err => console.error('Error playing video:', err));
-                        resolve();
-                    };
-                });
-            }
-            this.cdr.markForCheck();
+            await this.faceHelper.inicializarMotorFacial();
+            this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+            await this.prepararVideoParaDeteccion();
         } catch (e) {
             console.error('Error en capturaMultiple:', e);
             this.mensajeReconocimiento = 'No se pudo acceder a la cámara.';
             this.capturaMultiplePaso = 0;
+            this.camaraService.detenerCamara(this.videoElement?.nativeElement);
+        } finally {
+            this.detecting = false;
             this.cdr.markForCheck();
         }
     }
 
     async tomarFotoPerfilMultiple(): Promise<void> {
-        if (!this.videoElement || !this.usuarioSeleccionado || this.capturaMultiplePaso === 0) return;
+        if (!this.videoElement || !this.usuarioSeleccionado || this.capturaMultiplePaso === 0 || this.detecting) {
+            return;
+        }
 
         const video = this.videoElement.nativeElement;
         this.detecting = true;
         this.mensajeReconocimiento = 'Capturando foto...';
         this.cdr.markForCheck();
 
-        const resultado = await this.faceHelper.capturarFrameConScore(video);
-        this.detecting = false;
+        try {
+            await this.esperarVideoListo();
+            const resultado = await this.faceHelper.capturarFrameConScore(video);
 
-        if (!resultado) {
-            this.mensajeReconocimiento = `No se detectó rostro. ${this.capturaMultipleMensajes[this.capturaMultiplePaso]}`;
+            if (!resultado) {
+                this.mensajeReconocimiento = `No se detectó rostro. ${this.capturaMultipleMensajes[this.capturaMultiplePaso]}`;
+                return;
+            }
+
+            this.capturaMultipleFotos.push(resultado);
+
+            if (this.capturaMultiplePaso < 3) {
+                this.capturaMultiplePaso++;
+                this.mensajeReconocimiento = this.capturaMultipleMensajes[this.capturaMultiplePaso];
+                return;
+            }
+
+            this.mensajeReconocimiento = 'Procesando galería facial...';
             this.cdr.markForCheck();
-            return;
-        }
 
-        this.capturaMultipleFotos.push(resultado);
+            const fotoFrontal = this.capturaMultipleFotos[this.capturaMultipleFotos.length - 1].imageBase64;
+            const exito = await this.faceHelper.guardarFotoPerfilConEmbeddingMaestro(
+                this.usuarioSeleccionado.id,
+                fotoFrontal,
+                this.capturaMultipleFotos
+            );
 
-        if (this.capturaMultiplePaso < 3) {
-            this.capturaMultiplePaso++;
-            this.mensajeReconocimiento = this.capturaMultipleMensajes[this.capturaMultiplePaso];
-            this.cdr.markForCheck();
-            return;
-        }
-
-        this.mensajeReconocimiento = 'Procesando embedding maestro...';
-        this.cdr.markForCheck();
-
-        const embeddingMaestro = this.faceHelper.fusionarEmbeddings(this.capturaMultipleFotos);
-        if (!embeddingMaestro) {
-            this.mensajeReconocimiento = 'Las fotos capturadas no tienen calidad suficiente. Intente de nuevo.';
-            this.capturaMultiplePaso = 1;
-            this.capturaMultipleFotos = [];
-            this.cdr.markForCheck();
-            return;
-        }
-
-        const fotoFrontal = this.capturaMultipleFotos[this.capturaMultipleFotos.length - 1].imageBase64;
-        const exito = await this.faceHelper.guardarFotoPerfilConEmbeddingMaestro(
-            this.usuarioSeleccionado.id,
-            fotoFrontal,
-            embeddingMaestro
-        );
-
-        if (exito) {
-            this.camaraService.detenerCamara();
-            this.capturaMultiplePaso = 0;
-            this.capturaMultipleFotos = [];
-            this.cdr.markForCheck();
-            this.fotoPerfilGuardada.emit();
-        } else {
-            this.capturaMultiplePaso = 1;
-            this.capturaMultipleFotos = [];
-            this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+            if (exito) {
+                this.camaraService.detenerCamara(this.videoElement?.nativeElement);
+                this.capturaMultiplePaso = 0;
+                this.capturaMultipleFotos = [];
+                this.fotoPerfilGuardada.emit();
+            } else {
+                this.capturaMultiplePaso = 1;
+                this.capturaMultipleFotos = [];
+                this.mensajeReconocimiento = this.capturaMultipleMensajes[1];
+            }
+        } catch (error) {
+            console.error('Error al capturar foto de perfil:', error);
+            this.mensajeReconocimiento = 'Error al procesar la foto. Intente de nuevo.';
+        } finally {
+            this.detecting = false;
             this.cdr.markForCheck();
         }
     }
 
     private limpiarEstados(): void {
         this.detenerBusquedaContinua();
+        this.detenerDeteccionContinua();
         this.detecting = false;
         this.mensajeReconocimiento = '';
         this.embeddingCapturado = null;
         this.esperandoCapturaPerfil = false;
         this.capturaMultipleFotos = [];
-        this.livenessStep = 'BLINK';
-        this.livenessInstruction = 'Parpadee para verificar';
-        this.hasBlinked = false;
+        this.framesVerificacion = [];
+        this.hitsConsecutivosVerificacion = 0;
+        this.porcentajeSimilitud = null;
+        this.progresoVerificacion = 0;
+        this.barraSimilitudClase = '';
+    }
+
+    private async prepararVideoParaDeteccion(reintentos = 1): Promise<void> {
+        let ultimoError: unknown = null;
+
+        for (let intento = 0; intento <= reintentos; intento++) {
+            try {
+                if (intento > 0) {
+                    this.camaraService.detenerCamara(this.videoElement?.nativeElement);
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
+                const stream = await this.camaraService.iniciarCamara();
+                await this.esperarVideoElement();
+                const video = this.videoElement.nativeElement;
+                video.srcObject = stream;
+                video.muted = true;
+                video.playsInline = true;
+                video.autoplay = true;
+
+                await this.reproducirVideo(video);
+                await this.esperarVideoListo();
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    return;
+                }
+                ultimoError = new Error('La cámara no entregó frames');
+            } catch (error) {
+                ultimoError = error;
+            }
+        }
+
+        throw ultimoError ?? new Error('No se pudo iniciar la cámara');
+    }
+
+    private async reproducirVideo(video: HTMLVideoElement): Promise<void> {
+        if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            await video.play();
+            return;
+        }
+
+        await new Promise<void>((resolve, reject) => {
+            const timeoutId = setTimeout(() => reject(new Error('Timeout al iniciar video')), 8000);
+            const onReady = async () => {
+                clearTimeout(timeoutId);
+                video.removeEventListener('loadedmetadata', onReady);
+                try {
+                    await video.play();
+                    resolve();
+                } catch (playError) {
+                    reject(playError);
+                }
+            };
+            video.addEventListener('loadedmetadata', onReady);
+        });
     }
 
     private async esperarVideoElement(): Promise<void> {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 20; i++) {
             if (this.videoElement) break;
             await new Promise(resolve => setTimeout(resolve, 100));
             this.cdr.detectChanges();
         }
         if (!this.videoElement) {
             throw new Error('No se encontró el elemento de video');
+        }
+    }
+
+    private async esperarVideoListo(): Promise<void> {
+        if (!this.videoElement) {
+            return;
+        }
+        const video = this.videoElement.nativeElement;
+        for (let i = 0; i < 30; i++) {
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 }

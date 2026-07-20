@@ -14,6 +14,7 @@ import { MainService } from '../../../../main.service';
 import { AssetCommonDialogService } from '../../../../shared/services/asset-common-dialog.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormGroup } from '@angular/forms';
+import { sanitizarCuotasDetalle } from '../../shared/models/cuota-detalle.model';
 
 @Injectable({
   providedIn: 'root'
@@ -108,7 +109,7 @@ export class MuebleDialogService {
       proveedorId: values.proveedorId ? Number(values.proveedorId) : undefined,
       monedaId: values.monedaId ? Number(values.monedaId) : undefined,
       usuarioId: this.mainService.usuarioActual?.id || mueble?.usuario?.id,
-      cuotasDetalle: values.situacionPago === 'PAGANDO' ? cuotasDetalle : undefined,
+      cuotasDetalle: values.situacionPago === 'PAGANDO' ? sanitizarCuotasDetalle(cuotasDetalle) : undefined,
     };
 
     return this.muebleService.onGuardar(input).pipe(

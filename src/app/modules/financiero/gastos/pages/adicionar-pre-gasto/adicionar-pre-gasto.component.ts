@@ -168,7 +168,7 @@ export class AdicionarPreGastoComponent implements OnInit {
 
     this.gastoService.tipoGastoOnGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.listaTipoGasto = res.filter((tg: TipoGasto) => !tg.isClasificacion && tg.activo);
+        this.listaTipoGasto = res.filter((tg: TipoGasto) => tg.activo);
 
         if (this.data && this.data.tipoGastoId) {
           const matchedTipo = this.listaTipoGasto.find(tg => tg.id === this.data.tipoGastoId);

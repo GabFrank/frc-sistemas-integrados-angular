@@ -33,11 +33,10 @@ import { TransferenciaComponent } from './../../../modules/operaciones/transfere
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
 import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
-import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListImpresorasComponent } from '../../../modules/configuracion/impresoras/list-impresoras/list-impresoras.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
@@ -53,6 +52,8 @@ import { ListMarcacionComponent } from '../../../modules/administrativo/marcacio
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
+import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -259,7 +260,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         {
           name: 'Facturas',
           icon: 'receipt',
-          action: 'list-facturas',
+          action: 'factura-dashboard',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
         {
@@ -290,6 +291,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Documento electrónico',
           icon: 'qr_code_2',
           action: 'list-lote-de',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Terminales POS',
+          icon: 'contactless',
+          action: 'terminal-pos-dashboard',
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
@@ -415,9 +422,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       visibilityRoles: [ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE],
       items: [
         {
-          name: 'Impresoras Térmicas',
+          name: 'Impresoras',
           icon: 'print',
-          action: 'thermal-printer',
+          action: 'impresoras',
           visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
         },
         {
@@ -692,6 +699,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
+      case "terminal-pos-dashboard":
+        this.openTabIfAuthorized(ROLES.ADMIN, TerminalPosDashboard, "Terminal Dashboard");
+        break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));
         break;
@@ -710,8 +720,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
         break;
-      case "list-facturas":
-        this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListFacturaLegalComponent, "Lista de facturas");
+      case "factura-dashboard":
+        this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
         break;
       case "analisis-diferencias":
         this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
@@ -755,10 +765,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-proveedor":
         this.tabService.addTab(new Tab(ListProveedorComponent, "Proveedores", null, null));
         break;
-      case "thermal-printer":
+      case "impresoras":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
           || this.mainService.usuarioActual?.roles.includes("CONFIGURACION")) {
-          this.tabService.addTab(new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null));
+          this.tabService.addTab(new Tab(ListImpresorasComponent, "Impresoras", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

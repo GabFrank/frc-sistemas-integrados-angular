@@ -134,6 +134,33 @@ export class FuncionarioWizardComponent implements OnInit {
                   duracion: 2
                 })
               } else {
+                const documento = this.documentoPersona.value?.toString().trim();
+                this.personaService.onGetPorDocumento(documento)
+                  .pipe(untilDestroyed(this))
+                  .subscribe(personaExistente => {
+                    if (personaExistente?.id != null) {
+                      if (personaExistente.isFuncionario && personaExistente.isCliente) {
+                        this.notificacionService.openWarn('La persona ya existe y ha sido registrada como cliente y funcionario');
+                      } else if (personaExistente.isFuncionario) {
+                        this.notificacionService.openWarn('La persona ya existe y ha sido registrada como funcionario');
+                      } else if (personaExistente.isCliente) {
+                        this.notificacionService.openWarn('La persona ya existe y ha sido registrada como cliente');
+                      } else {
+                        this.notificacionService.openWarn('La persona ya existe en el sistema');
+                      }
+                      return;
+                    }
+                    this.guardarFuncionario();
+                  });
+              }
+            })
+
+        }
+      })
+
+  }
+
+  private guardarFuncionario(): void {
                 let persona = new Persona;
                 persona.nombre = this.nombrePersona.value;
                 persona.apodo = this.apodoPersona.value;
@@ -200,12 +227,6 @@ export class FuncionarioWizardComponent implements OnInit {
                         })
                     }
                   })
-              }
-            })
-
-        }
-      })
-
   }
 
 }

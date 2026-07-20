@@ -45,6 +45,8 @@ export class ListSucursalComponent implements OnInit {
     "nombre",
     "localizacion",
     "ciudad",
+    "ip",
+    "puertoServidor",
     "deposito",
     "depositoPredeterminado",
     "codigoEstablecimientoFactura",

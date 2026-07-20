@@ -315,8 +315,8 @@
 }
 
 .side-drawer {
-  width: auto !important;
-  min-width: auto !important;
+  transition: width 0.3s ease;
+  min-width: unset !important;
   max-width: none !important;
   overflow: visible !important;
 }

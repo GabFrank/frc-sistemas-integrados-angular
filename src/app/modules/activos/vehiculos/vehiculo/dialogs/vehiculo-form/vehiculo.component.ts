@@ -233,6 +233,11 @@ export class VehiculoComponent implements OnInit {
         this.cuotasDetalle = cuotas;
     }
 
+    onMontoTotalCuotasChange(montoTotal: number): void {
+        this.form.patchValue({ montoTotal }, { emitEvent: false });
+        this.cdr.markForCheck();
+    }
+
     onGuardar(): void {
         const cerrar = !!this.vehiculo?.id && this.registroGuardado;
         this.vehiculoDialogService.onGuardar(this.form, this.vehiculo, this.dialogRef, this.cuotasDetalle, cerrar)

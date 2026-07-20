@@ -377,13 +377,13 @@ input {
 }
 
 /* Global warn color configuration */
-.mat-warn,
-.mat-mdc-button.mat-warn,
-.mat-mdc-raised-button.mat-warn,
-.mat-mdc-outlined-button.mat-warn,
-.mat-mdc-fab.mat-warn,
-.mat-mdc-mini-fab.mat-warn,
-.mat-mdc-icon-button.mat-warn {
+.mat-warn:not([disabled]),
+.mat-mdc-button.mat-warn:not([disabled]),
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-outlined-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]),
+.mat-mdc-icon-button.mat-warn:not([disabled]) {
   --mdc-filled-button-container-color: #f57c00 !important;
   --mdc-protected-button-container-color: #f57c00 !important;
   --mdc-outlined-button-outline-color: #f57c00 !important;
@@ -391,15 +391,6 @@ input {
   --mdc-text-button-label-text-color: #f57c00 !important;
   --mdc-fab-container-color: #f57c00 !important;
   --mdc-icon-button-icon-color: #f57c00 !important;
-  color: #f57c00 !important;
-}
-
-.mat-mdc-button.mat-warn:not([disabled]),
-.mat-mdc-raised-button.mat-warn:not([disabled]),
-.mat-mdc-outlined-button.mat-warn:not([disabled]),
-.mat-mdc-fab.mat-warn:not([disabled]),
-.mat-mdc-mini-fab.mat-warn:not([disabled]),
-.mat-mdc-icon-button.mat-warn:not([disabled]) {
   color: #f57c00 !important;
 }
 
@@ -514,5 +505,57 @@ input {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+  }
+}
+
+// Estilo de inputs outline usado en transferencias (código de barra, búsqueda)
+mat-form-field.transferencia-input-field {
+  height: 30px !important;
+  font-size: 10px;
+
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background-color: #2e2e2e !important;
+    border-radius: 4px !important;
+  }
+
+  .mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+    min-height: unset;
+  }
+
+  .mat-mdc-input-element {
+    font-size: 15px;
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+    text-transform: uppercase;
+  }
+
+  .mdc-floating-label,
+  .mat-mdc-floating-label {
+    color: #f57c00 !important;
+  }
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: #f57c00 !important;
+  }
+
+  &.mat-focused,
+  &:hover {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #f57c00 !important;
+    }
+
+    .mdc-floating-label,
+    .mat-mdc-floating-label {
+      color: #f57c00 !important;
+    }
   }
 }

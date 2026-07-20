@@ -16,8 +16,14 @@
 
       <mat-form-field fxFlex appearance="outline">
         <mat-label>Descripción</mat-label>
-        <input type="text" matInput [formControl]="descripcionControl" placeholder="Ej: COMBUSTIBLE, VIÁTICO"
-          autocomplete="off" oninput="this.value == ' ' ? this.value = '': null" />
+        <input
+          type="text"
+          matInput
+          [formControl]="descripcionControl"
+          placeholder="Ej: ENERGÍA ELÉCTRICA, AGUA POTABLE, ALQUILER"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
         <mat-icon matSuffix>description</mat-icon>
       </mat-form-field>
     </div>
@@ -25,9 +31,21 @@
     <mat-form-field appearance="outline">
       <mat-label>Módulo Padre</mat-label>
       <mat-select [formControl]="moduloPadreControl">
-        <mat-option *ngFor="let modulo of moduloPadreList" [value]="modulo">
-          {{ modulo }}
-        </mat-option>
+        <mat-optgroup label="Activos">
+          <mat-option *ngFor="let modulo of modulosActivos" [value]="modulo.valor">
+            {{ modulo.etiqueta }}
+          </mat-option>
+        </mat-optgroup>
+        <mat-optgroup label="Servicios continuos">
+          <mat-option *ngFor="let modulo of modulosServicio" [value]="modulo.valor">
+            {{ modulo.etiqueta }}
+          </mat-option>
+        </mat-optgroup>
+        <mat-optgroup label="General">
+          <mat-option *ngFor="let modulo of modulosOtros" [value]="modulo.valor">
+            {{ modulo.etiqueta }}
+          </mat-option>
+        </mat-optgroup>
       </mat-select>
       <mat-icon matSuffix>account_tree</mat-icon>
     </mat-form-field>
@@ -70,19 +88,66 @@
 
     <div class="dialogo-seccion">
       <span class="dialogo-seccion-titulo">Naturaleza del Gasto</span>
-      <mat-button-toggle-group [formControl]="naturezaControl" name="naturezaGasto" aria-label="Naturaleza del Gasto"
-        class="naturaleza-toggle-group">
+      <mat-button-toggle-group
+        [formControl]="naturezaControl"
+        name="naturezaGasto"
+        aria-label="Naturaleza del Gasto"
+        class="naturaleza-toggle-group"
+        [disabled]="naturalezaServicioForzada"
+      >
         <mat-button-toggle value="VARIABLE" class="naturaleza-toggle">
           <mat-icon>trending_up</mat-icon>
           <span>Variable / Ocasional</span>
-          <small>Agua, luz, viático</small>
+          <small>Viático, mantenimiento, repuesto</small>
         </mat-button-toggle>
         <mat-button-toggle value="CONTINUO" class="naturaleza-toggle">
           <mat-icon>autorenew</mat-icon>
           <span>Continuo / Recurrente</span>
-          <small>Alquiler, seguro, inmueble</small>
+          <small>Alquiler, cuotas, agua, luz, seguro</small>
         </mat-button-toggle>
       </mat-button-toggle-group>
+      <p *ngIf="naturalezaServicioForzada" class="dialogo-hint">
+        Los módulos de servicio (ANDE, agua, etc.) son siempre continuos con monto variable mensual.
+      </p>
+    </div>
+
+    <div
+      *ngIf="reglas.mostrarCuotas || reglas.mostrarAfectaFinanzas"
+      class="dialogo-seccion"
+      fxLayout="column"
+      fxLayoutGap="12px"
+    >
+      <span class="dialogo-seccion-titulo">Comportamiento en solicitud</span>
+
+      <div *ngIf="reglas.mostrarCuotas" class="toggle-container">
+        <mat-slide-toggle color="primary" [formControl]="esPagoCuotaControl">
+          Habilitar cuotas del activo
+        </mat-slide-toggle>
+      </div>
+
+      <div *ngIf="reglas.mostrarAfectaFinanzas" class="toggle-container">
+        <mat-slide-toggle color="primary" [formControl]="afectaFinanzasControl">
+          Afecta finanzas del activo
+        </mat-slide-toggle>
+      </div>
+
+      <p *ngIf="reglas.hintConfiguracion" class="dialogo-hint">
+        {{ reglas.hintConfiguracion }}
+      </p>
+    </div>
+
+    <!-- Requisitos del gasto continuo: define explícitamente qué se captura según el módulo padre -->
+    <div *ngIf="mostrarRequisitosContinuo" class="dialogo-seccion requisitos-seccion" fxLayout="column" fxLayoutGap="10px">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+        <mat-icon class="requisitos-icono">fact_check</mat-icon>
+        <span class="dialogo-seccion-titulo">Datos que se pedirán al registrar este gasto continuo</span>
+      </div>
+      <div class="requisitos-chips" fxLayout="row wrap" fxLayoutGap="8px grid">
+        <div class="requisito-chip" *ngFor="let campo of requisitosContinuo">
+          <mat-icon>{{ campo.icono }}</mat-icon>
+          <span>{{ campo.etiqueta }}</span>
+        </div>
+      </div>
     </div>
 
     <div *ngIf="selectedTipoGasto?.id != null" class="dialogo-seccion" fxLayout="column" fxLayoutGap="12px">
@@ -104,7 +169,13 @@
     <button mat-stroked-button (click)="onCancel()" type="button">
       Cancelar
     </button>
-    <button mat-raised-button color="accent" [disabled]="!descripcionControl.valid || !moduloPadreControl.valid" (click)="onSave()" type="button">
+    <button
+      mat-raised-button
+      color="accent"
+      [disabled]="!descripcionControl.valid || !moduloPadreControl.valid"
+      (click)="onSave()"
+      type="button"
+    >
       <mat-icon>save</mat-icon>
       Guardar
     </button>

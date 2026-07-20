@@ -10,42 +10,53 @@
     Total cuotas: <strong>{{ totalCuotasMonto | number:'1.0-2' }}</strong>
   </div>
 
-  <table mat-table [dataSource]="cuotas" class="mat-elevation-z2" *ngIf="cuotas.length">
-    <ng-container matColumnDef="numero">
-      <th mat-header-cell *matHeaderCellDef>#</th>
-      <td mat-cell *matCellDef="let c">{{ c.numeroCuota }}</td>
-    </ng-container>
-    <ng-container matColumnDef="monto">
-      <th mat-header-cell *matHeaderCellDef>Monto</th>
-      <td mat-cell *matCellDef="let c">{{ c.monto | number:'1.0-2' }}</td>
-    </ng-container>
-    <ng-container matColumnDef="estado">
-      <th mat-header-cell *matHeaderCellDef>Estado</th>
-      <td mat-cell *matCellDef="let c">{{ c.pagado ? 'Pagada' : 'Pendiente' }}</td>
-    </ng-container>
-    <ng-container matColumnDef="accion">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let c; let i = index">
-        <button mat-icon-button type="button" (click)="editarCuota(i)" [disabled]="c.pagado">
-          <mat-icon>edit</mat-icon>
-        </button>
-      </td>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="['numero', 'monto', 'estado', 'accion']"></tr>
-    <tr mat-row *matRowDef="let row; columns: ['numero', 'monto', 'estado', 'accion'];"></tr>
-  </table>
+  <div class="cuotas-table-wrapper" *ngIf="cuotas.length">
+    <table mat-table [dataSource]="cuotas" multiTemplateDataRows class="mat-elevation-z2 cuotas-table">
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>#</th>
+        <td mat-cell *matCellDef="let c">{{ c.numeroCuota }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let c">{{ c.monto | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let c">{{ c.pagado ? 'Pagada' : 'Pendiente' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="accion">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let c; let i = dataIndex">
+          <button mat-icon-button type="button" (click)="editarCuota(i)" [disabled]="c.pagado">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </td>
+      </ng-container>
 
-  <div *ngIf="cuotaEnEdicion" class="edicion-cuota" fxLayout="column" fxLayoutGap="10px">
-    <span>Editar cuota #{{ cuotaEnEdicion.numeroCuota }}</span>
-    <mat-form-field>
-      <mat-label>Monto de la cuota</mat-label>
-      <input matInput type="text" numericOnly currencyMask
-        [options]="currencyMask.currencyOptionsGuarani"
-        [(ngModel)]="cuotaEnEdicion.monto" [ngModelOptions]="{standalone: true}">
-    </mat-form-field>
-    <div fxLayout="row" fxLayoutGap="10px">
-      <button mat-button type="button" (click)="cancelarEdicionCuota()">Cancelar</button>
-      <button mat-raised-button color="primary" type="button" (click)="guardarEdicionCuota()">Aplicar</button>
-    </div>
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let c; let i = dataIndex" [attr.colspan]="displayedColumns.length">
+          <div [@detailExpand]="indiceEdicion === i ? 'expanded' : 'collapsed'">
+            <div *ngIf="indiceEdicion === i && cuotaEnEdicion" class="edicion-cuota" fxLayout="column" fxLayoutGap="10px">
+              <span>Editar cuota #{{ cuotaEnEdicion.numeroCuota }}</span>
+              <mat-form-field>
+                <mat-label>Monto de la cuota</mat-label>
+                <input matInput type="text" numericOnly currencyMask
+                  [options]="currencyMask.currencyOptionsGuarani"
+                  [(ngModel)]="cuotaEnEdicion.monto" [ngModelOptions]="{standalone: true}">
+              </mat-form-field>
+              <div fxLayout="row" fxLayoutGap="10px">
+                <button mat-button type="button" (click)="cancelarEdicionCuota()">Cancelar</button>
+                <button mat-raised-button color="primary" type="button" (click)="guardarEdicionCuota()">Aplicar</button>
+              </div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.editing-row]="indiceEdicion === i"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
+    </table>
   </div>
 </div>

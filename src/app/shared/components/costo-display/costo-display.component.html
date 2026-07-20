@@ -1,0 +1,13 @@
+<ng-container *ngIf="tieneValor; else sinValor">
+  <span
+    class="costo-display"
+    [class.costo-display--extranjera]="esExtranjera"
+    [matTooltip]="tooltip"
+    [matTooltipDisabled]="!esExtranjera"
+    matTooltipPosition="above"
+  >
+    {{ valor | number: digitos }}<ng-container *ngIf="sufijo"> {{ sufijo }}</ng-container>
+    <mat-icon *ngIf="esExtranjera" class="costo-display__icon">info_outline</mat-icon>
+  </span>
+</ng-container>
+<ng-template #sinValor>{{ placeholder }}</ng-template>

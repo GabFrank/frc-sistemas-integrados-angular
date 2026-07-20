@@ -1,0 +1,108 @@
+<div class="impresoras-container" fxLayout="column">
+
+  <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center" fxLayout.lt-sm="column"
+    fxLayoutGap="16px">
+    <div>
+      <h2 class="titulo">Impresoras</h2>
+      <span class="subtitulo">{{ total }} registrada(s)</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="search-field" fxFlex>
+      <mat-label>Buscar por nombre o sucursal</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Ej. Cocina, Central..." autocomplete="off">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="8px">
+      <button mat-stroked-button color="primary" (click)="recargar()" aria-label="Actualizar lista de impresoras">
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+      <button mat-stroked-button color="primary" (click)="agregarDesdeSucursal()" aria-label="Agregar impresoras desde una sucursal">
+        <mat-icon>store</mat-icon>
+        Agregar desde sucursal
+      </button>
+      <button mat-raised-button color="primary" (click)="agregarNuevo()" aria-label="Agregar nueva impresora">
+        <mat-icon>add</mat-icon>
+        Nueva impresora
+      </button>
+    </div>
+  </div>
+
+  <cdk-virtual-scroll-viewport itemSize="260" class="viewport-container" (scrolledIndexChange)="nextBatch($event, 2)">
+    <div *cdkVirtualFor="let fila of filas" class="fila-grid" fxLayout="row" fxLayoutGap="16px">
+      <ng-container *ngFor="let imp of fila">
+        <mat-card *ngIf="imp" class="impresora-card theme-color-{{ imp.colorIndex }}" [class.inactiva]="!imp.activo"
+          fxFlex>
+          <div class="sucursal-badge">
+            <mat-icon>store</mat-icon>
+            <span>{{ imp.sucursalNombre }}</span>
+            <mat-icon *ngIf="imp.compartidaEnCentral"
+              title="Además tiene una cola proxy IPP instalada en el central">cloud_done</mat-icon>
+          </div>
+
+          <div class="card-top" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+            <div class="tipo-badge">
+              <mat-icon>{{ imp.iconoTipo }}</mat-icon>
+            </div>
+            <div class="card-title" fxFlex>
+              <div class="nombre">{{ imp.nombre }}</div>
+              <div class="tipo-uso">{{ imp.tipoLabel }} · {{ imp.usoLabel }}</div>
+            </div>
+            <mat-icon *ngIf="imp.esPredeterminada" class="estrella" title="Predeterminada">
+              star
+            </mat-icon>
+          </div>
+
+          <div class="card-info">
+            <div class="info-linea">
+              <mat-icon class="info-icon">{{ imp.iconoConexion }}</mat-icon>
+              <span>{{ imp.conexionDetalle }}</span>
+            </div>
+            <div class="info-linea">
+              <mat-icon class="info-icon">description</mat-icon>
+              <span>{{ imp.perfil }}</span>
+            </div>
+          </div>
+
+          <div class="card-estado">
+            <span class="chip-estado" [class.chip-activa]="imp.activo" [class.chip-inactiva]="!imp.activo">
+              {{ imp.activo ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="card-acciones" fxLayout="row" fxLayoutAlign="space-between center">
+            <button mat-button color="primary" (click)="probar(imp.ref)">
+              <mat-icon>print</mat-icon>
+              Probar
+            </button>
+            <div>
+              <button mat-icon-button (click)="editarItem(imp.ref)" aria-label="Editar impresora" title="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="eliminarItem(imp.ref)" aria-label="Eliminar impresora"
+                title="Eliminar">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card>
+
+        <!-- Elemento vacío para rellenar espacios si la fila no está completa -->
+        <div *ngIf="!imp" fxFlex></div>
+      </ng-container>
+    </div>
+  </cdk-virtual-scroll-viewport>
+
+  <div *ngIf="!cargando && total === 0" class="sin-datos" fxLayout="column" fxLayoutAlign="center center">
+    <mat-icon class="icono-vacio">print_disabled</mat-icon>
+    <p>No hay impresoras que coincidan con la búsqueda.</p>
+    <button mat-raised-button color="primary" (click)="agregarNuevo()">
+      <mat-icon>add</mat-icon>
+      Agregar nueva
+    </button>
+  </div>
+
+</div>

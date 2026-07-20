@@ -36,6 +36,15 @@ tr.example-detail-row {
   background-color: #f44336 !important;
 }
 
+.producto-vencido:not(.producto-averiado) {
+  background-color: #c62828 !important;
+}
+
+.producto-averiado {
+  background-color: #f9a825 !important;
+  color: #212121 !important;
+}
+
 .raised-button:hover {
   color: #43a047;
   cursor: pointer;

@@ -35,7 +35,7 @@ import { RetiroPreGastoDialogComponent } from './dialogs/retiro-pre-gasto-dialog
     BienFinancieroCardComponent,
     HistorialSolicitudesComponent,
     PreGastoStepperComponent,
-    SolicitudGastoSimpleDialogComponent
+    SolicitudGastoSimpleDialogComponent,
   ],
   imports: [
     CommonModule,

@@ -40,6 +40,12 @@ export interface PagoData {
   isCredito?: boolean;
 }
 
+export interface TarjetaPago {
+  terminalPosId: number | null;
+  monto: number;
+  terminalDescripcion?: string;
+}
+
 export interface PagoResponseData {
   cobroDetalleList: CobroDetalle[];
   facturado?: boolean;
@@ -47,6 +53,8 @@ export interface PagoResponseData {
   itens?: VentaCreditoCuotaInput[];
   ticket?: boolean;
   cliente?: Cliente;
+  tarjetaPagos?: TarjetaPago[];
+  facturaLegalId?: number;
 }
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -68,6 +76,9 @@ import { CobroDetalle } from "../../../../operaciones/venta/cobro/cobro-detalle.
 import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { BotonComponent } from "../../../../../shared/components/boton/boton.component";
 import { MonedaService } from "../../../../financiero/moneda/moneda.service";
+import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
+import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
+import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -113,6 +124,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   facturado = false;
   selectedCliente: Cliente;
   isCredito = false;
+  finalizarConFacturaHabilitado = false;
+  facturaLegalId: number;
 
   selectedCurrency: any;
 
@@ -158,7 +171,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private notificacionSnackbar: NotificacionSnackbarService,
     private formaPagoService: FormaPagoService,
     private cargandoDialog: CargandoDialogService,
-    private ventaService: VentaService
+    private ventaService: VentaService,
+    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
+    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -174,6 +189,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setPrecios();
     this.getFormaPagos();
     this.createForm();
+    this.configuracionFacturaConVentaService.onGetConfiguracion().subscribe({
+      next: (res) => {
+        this.finalizarConFacturaHabilitado = res?.habilitado === true;
+      },
+      error: () => {
+        this.finalizarConFacturaHabilitado = false;
+      }
+    });
     setTimeout(() => {
       this.setFocusToValorInput();
       this.cargandoDialog.closeDialog();
@@ -594,13 +617,81 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     itens?: VentaCreditoCuotaInput[],
     ticket?: boolean
   ) {
-    let response: PagoResponseData = {
+    const tarjetaCobros = this.cobroDetalleList.filter(
+      cd => cd.formaPago?.descripcion === 'TARJETA' && cd.pago && !cd.vuelto && !cd.descuento
+    );
+
+    if (tarjetaCobros.length === 0) {
+      this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+      return;
+    }
+
+    this.configuracionVentaTarjetaService.onGetConfiguracion().subscribe({
+      next: (config) => {
+        if (!config?.habilitado) {
+          // Flujo de registro de venta con tarjeta deshabilitado: el cobro con
+          // TARJETA sigue funcionando como un medio de pago normal, sin escaneo
+          // de terminal ni generación de QR.
+          this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+          return;
+        }
+        this.iniciarEscaneoTarjetaCobros(tarjetaCobros, ventaCredito, itens, ticket);
+      },
+      error: () => {
+        // Ante un error de configuración, no bloqueamos el cobro: se comporta
+        // como si el flujo estuviera deshabilitado.
+        this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
+      }
+    });
+  }
+
+  private iniciarEscaneoTarjetaCobros(
+    tarjetaCobros: CobroDetalle[],
+    ventaCredito?: VentaCredito,
+    itens?: VentaCreditoCuotaInput[],
+    ticket?: boolean
+  ) {
+    const tarjetaPagos: TarjetaPago[] = [];
+
+    const abrirDialogPara = (index: number) => {
+      if (index >= tarjetaCobros.length) {
+        this.cerrarConRespuesta(ventaCredito, itens, ticket, tarjetaPagos);
+        return;
+      }
+      this.matDialog.open(ScanTerminalPosDialogComponent, {
+        width: '380px',
+        disableClose: true,
+        data: {}
+      }).afterClosed().subscribe((result: ScanTerminalPosResult) => {
+        if (!result?.terminalPos) return; // cancelado — abortar todo el flujo
+        const tp = result.terminalPos;
+        tarjetaPagos.push({
+          terminalPosId: tp.id,
+          monto: tarjetaCobros[index].valor,
+          terminalDescripcion: [tp.descripcion, tp.codigo].filter(Boolean).join(' - ')
+        });
+        abrirDialogPara(index + 1);
+      });
+    };
+
+    abrirDialogPara(0);
+  }
+
+  private cerrarConRespuesta(
+    ventaCredito?: VentaCredito,
+    itens?: VentaCreditoCuotaInput[],
+    ticket?: boolean,
+    tarjetaPagos: TarjetaPago[] = []
+  ) {
+    const response: PagoResponseData = {
       cobroDetalleList: this.cobroDetalleList,
       facturado: this.facturado,
-      ventaCredito: ventaCredito,
-      itens: itens,
-      ticket: ticket,
+      ventaCredito,
+      itens,
+      ticket,
       cliente: this.selectedCliente,
+      tarjetaPagos,
+      facturaLegalId: this.facturaLegalId,
     };
     this.dialogRef.close(response);
   }
@@ -696,6 +787,20 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onPresupuesto() { }
 
   onFactura() {
+    if (this.isDialogOpen) {
+      // Evita abrir dos veces el diálogo de factura si el cajero toca el
+      // botón repetidas veces antes de que se registre el primer click.
+      return;
+    }
+    if (
+      this.finalizarConFacturaHabilitado &&
+      this.formGroup.controls.saldo.value != 0
+    ) {
+      this.notificacionSnackbar.openWarn(
+        "Debe completar el pago antes de finalizar con factura"
+      );
+      return;
+    }
     this.isDialogOpen = true;
     let venta = new Venta();
     let descuento = 0;
@@ -714,6 +819,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           venta,
           ventaItemList: this.data.itemList,
           descuento,
+          ligarAVenta: this.finalizarConFacturaHabilitado,
         },
         width: "100%",
         height: "80vh",
@@ -723,8 +829,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (res) {
           this.facturado = res?.facturado;
           this.selectedCliente = res?.cliente;
+          this.facturaLegalId = res?.facturaLegalId;
         }
         this.isDialogOpen = false;
+        if (res?.facturado && this.finalizarConFacturaHabilitado) {
+          this.onFinalizar();
+          return;
+        }
         setTimeout(() => {
           this.setFocusToValorInput();
         }, 0);

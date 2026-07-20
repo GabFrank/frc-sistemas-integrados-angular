@@ -30,6 +30,9 @@ import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
 import { SaveFacturaLegalToFilialGQL, SaveFacturaLegalToFilialResponse } from "./graphql/saveFacturaLegalToFilial";
 import { DescargarXmlFacturaElectronicaGQL } from "./graphql/descargarXmlFacturaElectronica";
 import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFacturaElectronica";
+import { ImprimirTicketFacturaEnImpresoraGQL } from "./graphql/imprimirTicketFacturaEnImpresora";
+import { ImprimirPdfFacturaEnImpresoraGQL } from "./graphql/imprimirPdfFacturaEnImpresora";
+import { VincularFacturaLegalAVentaGQL } from "./graphql/vincularFacturaLegalAVenta";
 
 @Injectable({
   providedIn: "root",
@@ -55,8 +58,23 @@ export class FacturaLegalService {
     private cancelarFacturaLegalGQL: CancelarFacturaLegalGQL,
     private saveFacturaLegalToFilialGQL: SaveFacturaLegalToFilialGQL,
     private descargarXmlFacturaElectronicaGQL: DescargarXmlFacturaElectronicaGQL,
-    private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL
+    private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL,
+    private imprimirTicketFacturaEnImpresoraGQL: ImprimirTicketFacturaEnImpresoraGQL,
+    private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL,
+    private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL
   ) {}
+
+  onVincularFacturaAVenta(
+    facturaLegalId: number,
+    ventaId: number,
+    servidor: boolean = false
+  ): Observable<any> {
+    return this.genericService.onCustomMutation(
+      this.vincularFacturaLegalAVentaGQL,
+      { facturaLegalId, ventaId },
+      servidor
+    );
+  }
 
   onSaveFactura(
     input: FacturaLegalInput,
@@ -342,6 +360,41 @@ export class FacturaLegalService {
     return this.genericService.onCustomQuery(
       this.descargarPdfFacturaElectronicaGQL,
       { id, sucId },
+      servidor
+    );
+  }
+
+  /**
+   * "Imprimir en la sucursal": genera el mismo ticket de "Reimprimir" pero lo manda a una
+   * impresora registrada (posiblemente en otra sucursal) vía PrintRouterService, en vez de
+   * imprimir local. Aditivo, no reemplaza onReimprimirFactura.
+   */
+  onImprimirTicketFacturaEnImpresora(
+    facturaId: number,
+    sucId: number,
+    impresoraId: number,
+    servidor: boolean = true
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.imprimirTicketFacturaEnImpresoraGQL,
+      { facturaId, sucId, impresoraId },
+      servidor
+    );
+  }
+
+  /**
+   * "Imprimir en la sucursal": genera el mismo PDF de "Descargar/Abrir PDF" pero lo manda a una
+   * impresora registrada vía PrintRouterService. Aditivo, no reemplaza onDescargarPdfFacturaElectronica.
+   */
+  onImprimirPdfFacturaEnImpresora(
+    facturaId: number,
+    sucId: number,
+    impresoraId: number,
+    servidor: boolean = true
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.imprimirPdfFacturaEnImpresoraGQL,
+      { facturaId, sucId, impresoraId },
       servidor
     );
   }
