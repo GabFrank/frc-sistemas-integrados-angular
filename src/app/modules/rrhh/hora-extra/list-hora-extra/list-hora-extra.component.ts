@@ -92,7 +92,7 @@ export class ListHoraExtraComponent implements OnInit {
     this.dialogosService.confirm(
       'Anular hora extra',
       '¿Desea anular esta hora extra?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.horaExtraService.onAnular(he.id)

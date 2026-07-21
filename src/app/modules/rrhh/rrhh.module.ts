@@ -33,6 +33,7 @@ import { GenerarLiquidacionDialogComponent } from './liquidacion/generar-liquida
 import { LiquidacionDetalleDialogComponent } from './liquidacion/liquidacion-detalle-dialog/liquidacion-detalle-dialog.component';
 import { LegajoFuncionarioComponent } from './legajo/legajo-funcionario/legajo-funcionario.component';
 import { LegajoMetricaDialogComponent } from './legajo/legajo-metrica-dialog/legajo-metrica-dialog.component';
+import { DocumentoViewerDialogComponent } from './legajo/documento-viewer-dialog/documento-viewer-dialog.component';
 import { CambioCargoDialogComponent } from './legajo/cambio-cargo-dialog/cambio-cargo-dialog.component';
 import { CambioSalarioDialogComponent } from './legajo/cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from './legajo/egresar-funcionario-dialog/egresar-funcionario-dialog.component';
@@ -73,6 +74,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     LiquidacionDetalleDialogComponent,
     LegajoFuncionarioComponent,
     LegajoMetricaDialogComponent,
+    DocumentoViewerDialogComponent,
     CambioCargoDialogComponent,
     CambioSalarioDialogComponent,
     EgresarFuncionarioDialogComponent,

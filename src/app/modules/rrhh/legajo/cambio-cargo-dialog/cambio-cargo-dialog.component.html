@@ -1,12 +1,31 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
   <h2 mat-dialog-title>Cambiar cargo</h2>
 
+  <div class="actual" fxLayout="row wrap" fxLayoutGap="18px">
+    <span>Cargo actual: <b>{{ data.cargoActualNombre || '—' }}</b></span>
+    <span>Salario actual: <b>{{ (data.salarioActual | number:'1.0-2') || '—' }}</b></span>
+  </div>
+
   <mat-form-field style="width: 100%">
     <mat-label>Nuevo cargo</mat-label>
-    <mat-select [formControl]="cargoControl" required>
-      <mat-option *ngFor="let c of cargos" [value]="c.id">{{ c.nombre }}</mat-option>
+    <mat-select [formControl]="cargoControl" (selectionChange)="onCargoChange()" required>
+      <mat-option *ngFor="let c of cargos" [value]="c.id">
+        {{ c.nombre }}<span *ngIf="c.sueldoBase != null"> — {{ c.sueldoBase | number:'1.0-2' }}</span>
+      </mat-option>
     </mat-select>
+    <mat-hint *ngIf="cargoSeleccionadoSueldo != null">Sueldo base del cargo: {{ cargoSeleccionadoSueldo | number:'1.0-2' }}</mat-hint>
     <mat-error *ngIf="cargoControl.hasError('required')">Seleccione un cargo</mat-error>
+  </mat-form-field>
+
+  <mat-checkbox *ngIf="cargoSeleccionadoSueldo != null" [formControl]="actualizarSalarioControl">
+    Actualizar salario a {{ cargoSeleccionadoSueldo | number:'1.0-2' }} (sueldo base del cargo)
+  </mat-checkbox>
+
+  <mat-form-field *ngIf="cargoSeleccionadoSueldo != null && actualizarSalarioControl.value" style="width: 100%">
+    <mat-label>Moneda del salario</mat-label>
+    <mat-select [formControl]="monedaControl">
+      <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
+    </mat-select>
   </mat-form-field>
 
   <mat-form-field style="width: 100%">

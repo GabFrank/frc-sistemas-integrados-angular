@@ -86,7 +86,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     this.dialogosService.confirm(
       'Pagar liquidación final',
       '¿Pagar el finiquito de ' + (this.liq.totalLiquidado || 0) + ' desde la Caja Mayor? El funcionario quedará inactivo.',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionFinalService.onPagar(this.liq.id, this.cajaControl.value)
@@ -99,7 +99,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     this.dialogosService.confirm(
       'Anular liquidación final',
       '¿Anular este finiquito pagado? Se generará el contra-asiento en la caja.',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionFinalService.onAnular(this.liq.id)

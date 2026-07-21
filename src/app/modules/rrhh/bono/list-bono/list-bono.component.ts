@@ -71,7 +71,7 @@ export class ListBonoComponent implements OnInit {
   onAnular(bono: Bono) {
     this.dialogosService.confirm(
       'Anular bono', '¿Desea anular este bono?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.bonoService.onAnular(bono.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onBuscar(); });

@@ -80,7 +80,7 @@ export class ListValeComponent implements OnInit {
   onAnular(vale: Vale) {
     this.dialogosService.confirm(
       'Anular vale', '¿Desea anular este vale?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.valeService.onAnular(vale.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onBuscar(); });

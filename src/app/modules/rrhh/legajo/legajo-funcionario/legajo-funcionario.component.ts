@@ -15,6 +15,7 @@ import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { LegajoMetricaDialogComponent } from '../legajo-metrica-dialog/legajo-metrica-dialog.component';
+import { DocumentoViewerDialogComponent } from '../documento-viewer-dialog/documento-viewer-dialog.component';
 
 interface FuncionarioOpcion { id: number; label: string; }
 
@@ -126,13 +127,22 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   onCambiarCargo() {
     this.dialog.open(CambioCargoDialogComponent, {
-      data: { funcionarioId: this.funcionario.id, cargoActualId: this.funcionario.cargo?.id }, width: '440px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.funcionario = res; this.recargar(); } });
+      data: {
+        funcionarioId: this.funcionario.id,
+        cargoActualId: this.funcionario.cargo?.id,
+        cargoActualNombre: this.funcionario.cargo?.nombre,
+        salarioActual: this.funcionario.sueldo
+      }, width: '460px', disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.funcionario = res; this.antiguedadTexto = this.calcularAntiguedad(res?.fechaIngreso); this.recargar(); } });
   }
 
   onCambiarSalario() {
     this.dialog.open(CambioSalarioDialogComponent, {
-      data: { funcionarioId: this.funcionario.id, salarioActual: this.funcionario.sueldo }, width: '460px', disableClose: true
+      data: {
+        funcionarioId: this.funcionario.id,
+        salarioActual: this.funcionario.sueldo,
+        cargoActual: this.funcionario.cargo?.nombre
+      }, width: '520px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.funcionario = res; this.recargar(); } });
   }
 
@@ -167,14 +177,17 @@ export class LegajoFuncionarioComponent implements OnInit {
         return;
       }
       const src = base64.startsWith('data:') ? base64 : 'data:' + (doc.mimeType || 'application/octet-stream') + ';base64,' + base64;
-      const win = window.open();
-      if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
+      // window.open() está bloqueado en Electron; se muestra en un diálogo con iframe.
+      this.dialog.open(DocumentoViewerDialogComponent, {
+        data: { src, titulo: doc.tipo + (doc.nombreArchivo ? ' — ' + doc.nombreArchivo : '') },
+        width: '80vw', maxWidth: '1000px'
+      });
     });
   }
 
   onAnularDocumento(doc: FuncionarioDocumento) {
     this.dialogosService.confirm(
-      'Anular documento', '¿Anular el documento ' + (doc.tipo || '') + '?', null, null, true, 'Sí', null, 'No'
+      'Anular documento', '¿Anular el documento ' + (doc.tipo || '') + '?', null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.legajoService.onAnularDocumento(doc.id).pipe(untilDestroyed(this))

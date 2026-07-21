@@ -49,7 +49,7 @@ export class ListMotivoValeComponent implements OnInit {
   onEliminar(motivo: MotivoVale) {
     this.dialogosService.confirm(
       'Eliminar motivo', '¿Desea eliminar el motivo ' + motivo.nombre + '?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.motivoValeService.onDelete(motivo.id)

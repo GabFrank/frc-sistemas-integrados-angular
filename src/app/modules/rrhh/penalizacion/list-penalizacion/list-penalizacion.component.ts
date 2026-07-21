@@ -94,7 +94,7 @@ export class ListPenalizacionComponent implements OnInit {
     this.dialogosService.confirm(
       'Anular penalización',
       '¿Desea anular esta penalización?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.penalizacionService.onAnular(p.id)

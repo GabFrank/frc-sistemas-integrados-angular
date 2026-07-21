@@ -66,7 +66,7 @@ export class PrestamoCuotasDialogComponent implements OnInit {
     this.dialogosService.confirm(
       'Cobrar cuota',
       '¿Cobrar la cuota #' + cuota.numero + ' por ' + pendiente + '?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.prestamoService.onCobrarCuota(cuota.id, this.cajaControl.value, pendiente)

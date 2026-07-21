@@ -123,7 +123,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.dialogosService.confirm(
       'Pagar liquidación',
       '¿Pagar el neto de ' + (this.liq.totalNeto || 0) + ' desde la Caja Mayor?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onPagar(this.liq.id, this.cajaControl.value)
@@ -136,7 +136,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     this.dialogosService.confirm(
       'Anular liquidación',
       '¿Anular esta liquidación pagada? Se generará el contra-asiento y se revertirán los efectos.',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onAnular(this.liq.id)

@@ -11,7 +11,7 @@ import { ConfiguracionRrhhService } from '../../configuracion-rrhh/configuracion
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
-export interface CambioSalarioDialogData { funcionarioId: number; salarioActual?: number; monedaActualId?: number; }
+export interface CambioSalarioDialogData { funcionarioId: number; salarioActual?: number; monedaActualId?: number; cargoActual?: string; }
 
 @UntilDestroy()
 @Component({
@@ -41,9 +41,17 @@ export class CambioSalarioDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    if (this.data.monedaActualId != null) { this.monedaControl.setValue(this.data.monedaActualId); }
     this.monedaService.onGetAll().pipe(untilDestroyed(this))
-      .subscribe((res: Moneda[]) => { this.monedas = res || []; });
+      .subscribe((res: Moneda[]) => {
+        this.monedas = res || [];
+        // preseleccionar: la del funcionario, si no la local (guaraní), si no la primera
+        if (this.data.monedaActualId != null) {
+          this.monedaControl.setValue(this.data.monedaActualId);
+        } else if (this.monedaControl.value == null) {
+          const local = this.monedas.find(m => (m.denominacion || '').toUpperCase().includes('GUARANI'));
+          this.monedaControl.setValue(local ? local.id : (this.monedas[0] ? this.monedas[0].id : null));
+        }
+      });
     this.configuracionRrhhService.onSearch('SALARIO_MINIMO_LEGAL_PYG').pipe(untilDestroyed(this))
       .subscribe((res: any[]) => {
         const cfg = (res || []).find(c => c.clave === 'SALARIO_MINIMO_LEGAL_PYG');
@@ -61,7 +69,7 @@ export class CambioSalarioDialogComponent implements OnInit {
       this.dialogosService.confirm(
         'Salario por debajo del mínimo',
         'El salario ingresado (' + nuevo + ') es menor al mínimo legal (' + this.salarioMinimo + ').',
-        '¿Desea continuar de todos modos?', null, true, 'Sí, continuar', null, 'No'
+        '¿Desea continuar de todos modos?', null, true, 'Sí, continuar', 'No'
       ).pipe(untilDestroyed(this)).subscribe(r => { if (r === true) { this.guardar(); } });
       return;
     }
@@ -79,6 +87,10 @@ export class CambioSalarioDialogComponent implements OnInit {
     };
     this.legajoService.onCambiarSalario(input).pipe(untilDestroyed(this))
       .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+  }
+
+  onPonerMinimo() {
+    if (this.salarioMinimo != null) { this.salarioControl.setValue(this.salarioMinimo); }
   }
 
   onCancelar() { this.dialogRef.close(); }

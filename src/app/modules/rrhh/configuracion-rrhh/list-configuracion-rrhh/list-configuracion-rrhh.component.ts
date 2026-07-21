@@ -102,7 +102,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
     this.dialogosService.confirm(
       'Eliminar configuración',
       '¿Desea eliminar la configuración ' + configuracion.clave + '?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.configuracionRrhhService.onDelete(configuracion.id)

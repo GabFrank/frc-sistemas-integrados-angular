@@ -92,7 +92,7 @@ export class ListJornadaNovedadComponent implements OnInit {
     this.dialogosService.confirm(
       'Eliminar novedad',
       '¿Desea eliminar esta novedad?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.novedadService.onDelete(n.id)

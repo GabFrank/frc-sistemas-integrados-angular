@@ -46,7 +46,7 @@ export class ListAguinaldoComponent implements OnInit {
     this.dialogosService.confirm(
       'Calcular aguinaldos',
       '¿Calcular los aguinaldos del año ' + this.anioControl.value + ' para todos los funcionarios activos?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.aguinaldoService.onCalcular(this.anioControl.value)

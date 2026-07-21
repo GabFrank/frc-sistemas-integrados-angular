@@ -58,7 +58,7 @@ export class ListFeriadoComponent implements OnInit {
     this.dialogosService.confirm(
       'Eliminar feriado',
       '¿Desea eliminar el feriado ' + feriado.descripcion + '?',
-      null, null, true, 'Sí', null, 'No'
+      null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.feriadoService.onDelete(feriado.id)
