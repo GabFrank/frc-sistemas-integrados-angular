@@ -475,4 +475,27 @@ export class GenericListVentaComponent implements OnInit {
       fechaFin
     );
   }
+
+  onGenerarReporteDetallado() {
+    let fechaInicio = this.fechaInicioControl.value != null ?
+      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
+    let fechaFin = this.fechaFinControl.value != null ?
+      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+
+    this.ventaService.onReporteGenericVentasDetallado(
+      this.idVentaControl.value,
+      null,
+      this.sucursalControl.value,
+      this.formaPagoControl.value,
+      this.estadoControl.value,
+      this.modoControl.value,
+      this.monedaControl.value?.id,
+      this.conDescuentoControl.value,
+      this.conAumentoControl.value,
+      this.conObsControl.value,
+      this.selectedCliente?.id,
+      fechaInicio,
+      fechaFin
+    );
+  }
 }
