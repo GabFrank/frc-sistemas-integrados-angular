@@ -1406,14 +1406,15 @@
                               *matCellDef="let element; let codigoIndex = index"
                               style="width: 5%"
                             >
-                              <!-- <mat-icon
-                                style="color: white; cursor: pointer"
+                              <mat-icon
+                                style="color: white; cursor: pointer; margin-right: 6px"
+                                matTooltip="Imprimir código (CODE128)"
                                 (click)="
                                   onImprimirCodigoDeBarra(element);
                                   $event.stopPropagation()
                                 "
-                                >barcode_scanner</mat-icon
-                              > -->
+                                >barcode</mat-icon
+                              >
                               <mat-icon
                                 style="color: red; cursor: pointer"
                                 (click)="

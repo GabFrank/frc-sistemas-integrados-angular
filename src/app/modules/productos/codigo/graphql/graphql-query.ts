@@ -66,3 +66,9 @@ export const deleteCodigoQuery = gql`
     deleteCodigo(id: $id)
   }
 `;
+
+export const generarCodigoInternoQuery = gql`
+  query generarCodigoInterno {
+    data: generarCodigoInterno
+  }
+`;
