@@ -69,6 +69,16 @@ export class ListJustificativoComponent implements OnInit {
     });
   }
 
+  onEditar(n: Justificativo) {
+    this.dialog.open(EditJustificativoDialogComponent, {
+      data: { funcionarioId: n.funcionario?.id, justificativo: n },
+      width: '520px',
+      disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) this.onBuscar();
+    });
+  }
+
   onEliminar(n: Justificativo) {
     this.dialogosService.confirm(
       'Eliminar justificativo',
