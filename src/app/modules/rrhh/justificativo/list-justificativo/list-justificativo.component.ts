@@ -7,16 +7,10 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { Justificativo } from '../justificativo.model';
 import { JustificativoService } from '../justificativo.service';
 import { EditJustificativoDialogComponent } from '../edit-justificativo-dialog/edit-justificativo-dialog.component';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -33,11 +27,9 @@ export class ListJustificativoComponent implements OnInit {
   desdeControl = new FormControl(null);
   hastaControl = new FormControl(null);
 
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private justificativoService: JustificativoService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
@@ -48,19 +40,8 @@ export class ListJustificativoComponent implements OnInit {
     const hoy = new Date();
     this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     this.hastaControl.setValue(hoy);
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscar() {
     if (this.funcionarioControl.value == null) {
@@ -80,7 +61,7 @@ export class ListJustificativoComponent implements OnInit {
 
   onNueva() {
     this.dialog.open(EditJustificativoDialogComponent, {
-      data: { funcionarioOpciones: this.funcionarioOpciones, funcionarioId: this.funcionarioControl.value },
+      data: { funcionarioId: this.funcionarioControl.value },
       width: '520px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {

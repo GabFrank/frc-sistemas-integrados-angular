@@ -186,88 +186,102 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_LIQUIDAR, ROLES.ADMIN]
         },
         {
-          name: 'Funcionarios',
+          name: 'Personal',
           icon: 'badge',
-          action: 'list-funcionarios',
-          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+          isExpanded: false,
+          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Funcionarios',
+              icon: 'badge',
+              action: 'list-funcionarios',
+              visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Solicitudes de funcionarios',
+              icon: 'how_to_reg',
+              action: 'solicitudes-funcionarios',
+              visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Solicitudes de funcionarios',
-          icon: 'how_to_reg',
-          action: 'solicitudes-funcionarios',
-          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Historial de marcaciones',
+          name: 'Asistencia',
           icon: 'fingerprint',
-          action: 'historial-marcaciones',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Historial de marcaciones',
+              icon: 'fingerprint',
+              action: 'historial-marcaciones',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Justificativos',
+              icon: 'event_note',
+              action: 'list-justificativo',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Horas extra',
+              icon: 'more_time',
+              action: 'list-hora-extra',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Penalizaciones',
+              icon: 'gavel',
+              action: 'list-penalizacion',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Feriados',
-          icon: 'event',
-          action: 'list-feriado',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+          name: 'Beneficios',
+          icon: 'volunteer_activism',
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vacaciones',
+              icon: 'beach_access',
+              action: 'list-vacacion',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Aguinaldos',
+              icon: 'redeem',
+              action: 'list-aguinaldo',
+              visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Bonos',
+              icon: 'card_giftcard',
+              action: 'list-bono',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Penalizaciones',
-          icon: 'gavel',
-          action: 'list-penalizacion',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Horas extra',
-          icon: 'more_time',
-          action: 'list-hora-extra',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Justificativos',
-          icon: 'event_note',
-          action: 'list-justificativo',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Tipos de justificativo',
-          icon: 'rule',
-          action: 'list-tipo-justificativo',
-          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
-        },
-        {
-          name: 'Vales',
+          name: 'Anticipos',
           icon: 'request_quote',
-          action: 'list-vale',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Motivos de vale',
-          icon: 'label',
-          action: 'list-motivo-vale',
-          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Préstamos',
-          icon: 'payments',
-          action: 'list-prestamo',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Vacaciones',
-          icon: 'beach_access',
-          action: 'list-vacacion',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Aguinaldos',
-          icon: 'redeem',
-          action: 'list-aguinaldo',
-          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Bonos',
-          icon: 'card_giftcard',
-          action: 'list-bono',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vales',
+              icon: 'request_quote',
+              action: 'list-vale',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Préstamos',
+              icon: 'payments',
+              action: 'list-prestamo',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
           name: 'Liquidaciones',
@@ -276,10 +290,36 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.ADMIN]
         },
         {
-          name: 'Configuración RRHH',
+          name: 'Configuración',
           icon: 'settings',
-          action: 'list-configuracion-rrhh',
-          visibilityRoles: [ROLES.RRHH_CONFIG, ROLES.ADMIN]
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Feriados',
+              icon: 'event',
+              action: 'list-feriado',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Tipos de justificativo',
+              icon: 'rule',
+              action: 'list-tipo-justificativo',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            },
+            {
+              name: 'Motivos de vale',
+              icon: 'label',
+              action: 'list-motivo-vale',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Configuración RRHH',
+              icon: 'tune',
+              action: 'list-configuracion-rrhh',
+              visibilityRoles: [ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            }
+          ]
         }
       ]
     },

@@ -6,17 +6,11 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
 import { EditValeDialogComponent } from '../edit-vale-dialog/edit-vale-dialog.component';
 import { ConfirmarValeDialogComponent } from '../confirmar-vale-dialog/confirmar-vale-dialog.component';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,11 +24,9 @@ export class ListValeComponent implements OnInit {
   dataSource = new MatTableDataSource<Vale>([]);
 
   funcionarioControl = new FormControl(null);
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private valeService: ValeService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
@@ -42,19 +34,8 @@ export class ListValeComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscar() {
     if (this.funcionarioControl.value == null) {
@@ -67,7 +48,7 @@ export class ListValeComponent implements OnInit {
 
   onNuevo() {
     this.dialog.open(EditValeDialogComponent, {
-      data: { funcionarioOpciones: this.funcionarioOpciones, funcionarioId: this.funcionarioControl.value },
+      data: { funcionarioId: this.funcionarioControl.value },
       width: '560px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscar(); });
   }

@@ -5,14 +5,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { LiquidacionSueldo } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { GenerarLiquidacionDialogComponent } from '../generar-liquidacion-dialog/generar-liquidacion-dialog.component';
 import { LiquidacionDetalleDialogComponent } from '../liquidacion-detalle-dialog/liquidacion-detalle-dialog.component';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -27,11 +24,9 @@ export class ListLiquidacionComponent implements OnInit {
 
   funcionarioControl = new FormControl(null);
   periodoControl = new FormControl(null);
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private liquidacionService: LiquidacionService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private notificacion: NotificacionSnackbarService
@@ -40,19 +35,8 @@ export class ListLiquidacionComponent implements OnInit {
   ngOnInit(): void {
     const hoy = new Date();
     this.periodoControl.setValue(hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2));
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscarPorFuncionario() {
     if (this.funcionarioControl.value == null) {
@@ -71,7 +55,7 @@ export class ListLiquidacionComponent implements OnInit {
 
   onNueva() {
     this.dialog.open(GenerarLiquidacionDialogComponent, {
-      data: { funcionarioOpciones: this.funcionarioOpciones, funcionarioId: this.funcionarioControl.value, periodo: this.periodoControl.value },
+      data: { funcionarioId: this.funcionarioControl.value, periodo: this.periodoControl.value },
       width: '480px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscarPorPeriodo(); });
   }

@@ -2,13 +2,13 @@
   <h2 mat-dialog-title>Nuevo préstamo</h2>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
-    <mat-form-field style="width: 100%">
-      <mat-label>Funcionario</mat-label>
-      <mat-select [formControl]="funcionarioControl" required>
-        <mat-option *ngFor="let f of funcionarioOpciones" [value]="f.id">{{ f.label }}</mat-option>
-      </mat-select>
-      <mat-error *ngIf="funcionarioControl.hasError('required')">Seleccione un funcionario</mat-error>
-    </mat-form-field>
+    <app-select-funcionario
+      [funcionarioId]="funcionarioControl.value"
+      (idSelected)="funcionarioControl.setValue($event)">
+    </app-select-funcionario>
+    <span class="error-funcionario" *ngIf="funcionarioControl.touched && funcionarioControl.hasError('required')">
+      Seleccione un funcionario
+    </span>
 
     <mat-form-field style="width: 100%">
       <mat-label>Descripción</mat-label>

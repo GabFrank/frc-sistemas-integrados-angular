@@ -8,13 +8,8 @@ import { Penalizacion, PenalizacionTipo } from '../penalizacion.model';
 import { PenalizacionService } from '../penalizacion.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 export interface PenalizacionDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -33,7 +28,6 @@ export class EditPenalizacionDialogComponent implements OnInit {
     'DANIO_MATERIAL', 'COMISION_DESCUENTO', 'OTRO'
   ];
 
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   funcionarioControl = new FormControl(null, [Validators.required]);
   tipoControl = new FormControl('OTRO', [Validators.required]);
@@ -47,7 +41,6 @@ export class EditPenalizacionDialogComponent implements OnInit {
     private penalizacionService: PenalizacionService,
     private mainService: MainService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

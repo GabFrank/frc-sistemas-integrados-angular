@@ -8,10 +8,8 @@ import { Bono, BonoTipo, BonoFrecuencia } from '../bono.model';
 import { BonoService } from '../bono.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 export interface BonoDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -24,7 +22,6 @@ export interface BonoDialogData {
 export class EditBonoDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   tipoOptions: BonoTipo[] = ['CUMPLEANIOS', 'NAVIDAD', 'DESEMPENIO', 'PRODUCTIVIDAD', 'OTRO'];
   frecuenciaOptions: BonoFrecuencia[] = ['SEMANAL', 'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'];
@@ -43,7 +40,6 @@ export class EditBonoDialogComponent implements OnInit {
     private bonoService: BonoService,
     private mainService: MainService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

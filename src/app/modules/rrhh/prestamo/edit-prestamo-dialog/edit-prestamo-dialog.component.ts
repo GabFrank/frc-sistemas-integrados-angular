@@ -11,10 +11,8 @@ import { Prestamo } from '../prestamo.model';
 import { PrestamoService } from '../prestamo.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 export interface PrestamoDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -27,7 +25,6 @@ export interface PrestamoDialogData {
 export class EditPrestamoDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  funcionarioOpciones: FuncionarioOpcion[] = [];
   monedas: Moneda[] = [];
   cajas: CajaVirtual[] = [];
 
@@ -47,7 +44,6 @@ export class EditPrestamoDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private cajaVirtualService: CajaVirtualService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

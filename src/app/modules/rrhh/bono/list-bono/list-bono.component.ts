@@ -6,13 +6,10 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { Bono } from '../bono.model';
 import { BonoService } from '../bono.service';
 import { EditBonoDialogComponent } from '../edit-bono-dialog/edit-bono-dialog.component';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -26,11 +23,9 @@ export class ListBonoComponent implements OnInit {
   dataSource = new MatTableDataSource<Bono>([]);
 
   funcionarioControl = new FormControl(null);
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private bonoService: BonoService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
@@ -38,19 +33,8 @@ export class ListBonoComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscar() {
     if (this.funcionarioControl.value == null) {
@@ -63,7 +47,7 @@ export class ListBonoComponent implements OnInit {
 
   onNuevo() {
     this.dialog.open(EditBonoDialogComponent, {
-      data: { funcionarioOpciones: this.funcionarioOpciones, funcionarioId: this.funcionarioControl.value },
+      data: { funcionarioId: this.funcionarioControl.value },
       width: '520px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscar(); });
   }

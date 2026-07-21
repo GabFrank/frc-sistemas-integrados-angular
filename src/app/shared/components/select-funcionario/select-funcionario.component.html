@@ -1,0 +1,13 @@
+<frc-searchable-select
+  [titulo]="titulo"
+  [list]="opciones"
+  [currentData]="seleccionado"
+  [disabled]="disabled"
+  [isFilter]="false"
+  [initialValue]="false"
+  (inputChanged)="onInputChanged($event)"
+  (selectionChanged)="onSelectionChanged($event)">
+  <ng-template let-item>
+    {{ item.label }}
+  </ng-template>
+</frc-searchable-select>

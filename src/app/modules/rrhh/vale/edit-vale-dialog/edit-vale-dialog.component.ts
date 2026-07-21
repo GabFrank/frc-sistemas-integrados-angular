@@ -12,10 +12,8 @@ import { MotivoValeService } from '../../motivo-vale/motivo-vale.service';
 import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 export interface ValeDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -28,7 +26,6 @@ export interface ValeDialogData {
 export class EditValeDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  funcionarioOpciones: FuncionarioOpcion[] = [];
   motivos: MotivoVale[] = [];
   monedas: Moneda[] = [];
 
@@ -48,7 +45,6 @@ export class EditValeDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private mainService: MainService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

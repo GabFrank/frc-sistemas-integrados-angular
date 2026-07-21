@@ -8,13 +8,8 @@ import { Justificativo, TipoJustificativo } from '../justificativo.model';
 import { JustificativoService } from '../justificativo.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 export interface JustificativoDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -31,7 +26,6 @@ export class EditJustificativoDialogComponent implements OnInit {
   // los tipos vienen del catalogo (solo los cargables a mano: los generados por
   // el sistema — vacacion/feriado — los emite otro modulo)
   tipoOptions: TipoJustificativo[] = [];
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   funcionarioControl = new FormControl(null, [Validators.required]);
   fechaControl = new FormControl(new Date(), [Validators.required]);
@@ -44,7 +38,6 @@ export class EditJustificativoDialogComponent implements OnInit {
     private justificativoService: JustificativoService,
     private mainService: MainService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

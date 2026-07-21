@@ -6,10 +6,8 @@ import { MonedaService } from '../../../financiero/moneda/moneda.service';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { LiquidacionService } from '../liquidacion.service';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 export interface GenerarLiquidacionDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
   periodo: string;
 }
@@ -23,7 +21,6 @@ export interface GenerarLiquidacionDialogData {
 export class GenerarLiquidacionDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  funcionarioOpciones: FuncionarioOpcion[] = [];
   monedas: Moneda[] = [];
 
   funcionarioControl = new FormControl(null, [Validators.required]);
@@ -36,7 +33,6 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
     private liquidacionService: LiquidacionService,
     private monedaService: MonedaService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

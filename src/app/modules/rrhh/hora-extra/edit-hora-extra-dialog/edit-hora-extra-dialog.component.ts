@@ -8,13 +8,8 @@ import { HoraExtra, HoraExtraTipo } from '../hora-extra.model';
 import { HoraExtraService } from '../hora-extra.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 export interface HoraExtraDialogData {
-  funcionarioOpciones: FuncionarioOpcion[];
   funcionarioId: number;
 }
 
@@ -29,7 +24,6 @@ export class EditHoraExtraDialogComponent implements OnInit {
   formGroup: FormGroup;
 
   tipoOptions: HoraExtraTipo[] = ['DIURNA', 'NOCTURNA', 'FERIADO'];
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   funcionarioControl = new FormControl(null, [Validators.required]);
   fechaControl = new FormControl(new Date(), [Validators.required]);
@@ -45,7 +39,6 @@ export class EditHoraExtraDialogComponent implements OnInit {
     private horaExtraService: HoraExtraService,
     private mainService: MainService
   ) {
-    this.funcionarioOpciones = data?.funcionarioOpciones || [];
   }
 
   ngOnInit(): void {

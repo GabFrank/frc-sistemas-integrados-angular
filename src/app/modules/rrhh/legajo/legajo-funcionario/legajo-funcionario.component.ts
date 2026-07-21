@@ -17,7 +17,6 @@ import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquida
 import { LegajoMetricaDialogComponent } from '../legajo-metrica-dialog/legajo-metrica-dialog.component';
 import { DocumentoViewerDialogComponent } from '../documento-viewer-dialog/documento-viewer-dialog.component';
 
-interface FuncionarioOpcion { id: number; label: string; }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -32,7 +31,6 @@ export class LegajoFuncionarioComponent implements OnInit {
   @Input() data: any;
 
   funcionarioControl = new FormControl(null);
-  funcionarioOpciones: FuncionarioOpcion[] = [];
   funcionario: Funcionario = null;
 
   // Métricas del dashboard. PLACEHOLDER hasta que existan los módulos que las alimentan

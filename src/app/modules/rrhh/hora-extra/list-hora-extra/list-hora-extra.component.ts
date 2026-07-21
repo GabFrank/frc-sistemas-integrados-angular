@@ -7,16 +7,10 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { HoraExtra } from '../hora-extra.model';
 import { HoraExtraService } from '../hora-extra.service';
 import { EditHoraExtraDialogComponent } from '../edit-hora-extra-dialog/edit-hora-extra-dialog.component';
 
-interface FuncionarioOpcion {
-  id: number;
-  label: string;
-}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -33,11 +27,9 @@ export class ListHoraExtraComponent implements OnInit {
   desdeControl = new FormControl(null);
   hastaControl = new FormControl(null);
 
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private horaExtraService: HoraExtraService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
@@ -48,19 +40,8 @@ export class ListHoraExtraComponent implements OnInit {
     const hoy = new Date();
     this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     this.hastaControl.setValue(hoy);
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscar() {
     if (this.funcionarioControl.value == null) {
@@ -80,7 +61,7 @@ export class ListHoraExtraComponent implements OnInit {
 
   onNueva() {
     this.dialog.open(EditHoraExtraDialogComponent, {
-      data: { funcionarioOpciones: this.funcionarioOpciones, funcionarioId: this.funcionarioControl.value },
+      data: { funcionarioId: this.funcionarioControl.value },
       width: '560px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {

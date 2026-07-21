@@ -5,13 +5,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
-import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
-import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { Vacacion } from '../vacacion.model';
 import { VacacionService } from '../vacacion.service';
 import { GestionVacacionDialogComponent } from '../gestion-vacacion-dialog/gestion-vacacion-dialog.component';
 
-interface FuncionarioOpcion { id: number; label: string; }
 interface VacacionRow extends Vacacion { disponibles: number; }
 
 @UntilDestroy({ checkProperties: true })
@@ -26,30 +23,17 @@ export class ListVacacionComponent implements OnInit {
   dataSource = new MatTableDataSource<VacacionRow>([]);
 
   funcionarioControl = new FormControl(null);
-  funcionarioOpciones: FuncionarioOpcion[] = [];
 
   constructor(
     private vacacionService: VacacionService,
-    private funcionarioService: FuncionarioService,
     public mainService: MainService,
     private dialog: MatDialog,
     private notificacion: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
-    this.cargarFuncionarios();
   }
 
-  cargarFuncionarios() {
-    this.funcionarioService.onGetAllFuncionarios(0, 500)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Funcionario[]) => {
-        this.funcionarioOpciones = (res || []).map(f => ({
-          id: f.id,
-          label: f.persona?.nombre ? f.persona.nombre : (f.nickname ? f.nickname : '#' + f.id)
-        }));
-      });
-  }
 
   onBuscar() {
     if (this.funcionarioControl.value == null) {
