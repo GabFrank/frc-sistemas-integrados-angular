@@ -1,4 +1,29 @@
 .dialog-container {
-  min-width: 420px;
-  padding: 8px;
+  min-width: 480px;
+  padding: 16px 20px 8px;
+
+  h2 { margin: 0 0 4px; }
+
+  // Cargo / salario actual
+  .actual {
+    font-size: 13px;
+    opacity: 0.9;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    span { white-space: nowrap; }
+  }
+
+  mat-form-field { width: 100%; }
+
+  // el botón va pegado debajo del salario, sin comerse el hint del mínimo
+  .accion-minimo {
+    margin-top: -6px;
+    margin-bottom: 2px;
+  }
+
+  [mat-dialog-actions] {
+    margin-top: 8px;
+    padding: 8px 0 0;
+  }
 }
