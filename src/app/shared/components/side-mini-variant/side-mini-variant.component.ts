@@ -60,7 +60,8 @@ import { ListConfiguracionRrhhComponent } from '../../../modules/rrhh/configurac
 import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado/list-feriado.component';
 import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
 import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-hora-extra/list-hora-extra.component';
-import { ListJornadaNovedadComponent } from '../../../modules/rrhh/jornada-novedad/list-jornada-novedad/list-jornada-novedad.component';
+import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
+import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
@@ -221,10 +222,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
         },
         {
-          name: 'Novedades',
+          name: 'Justificativos',
           icon: 'event_note',
-          action: 'list-jornada-novedad',
+          action: 'list-justificativo',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Tipos de justificativo',
+          icon: 'rule',
+          action: 'list-tipo-justificativo',
+          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
         },
         {
           name: 'Vales',
@@ -865,8 +872,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-hora-extra":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListHoraExtraComponent, "Horas extra");
         break;
-      case "list-jornada-novedad":
-        this.openTabIfAuthorized(ROLES.RRHH_VER, ListJornadaNovedadComponent, "Novedades");
+      case "list-justificativo":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListJustificativoComponent, "Justificativos");
+        break;
+      case "list-tipo-justificativo":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListTipoJustificativoComponent, "Tipos de justificativo");
         break;
       case "list-vale":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListValeComponent, "Vales");

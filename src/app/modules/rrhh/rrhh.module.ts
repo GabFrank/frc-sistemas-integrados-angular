@@ -13,8 +13,10 @@ import { ListPenalizacionComponent } from './penalizacion/list-penalizacion/list
 import { EditPenalizacionDialogComponent } from './penalizacion/edit-penalizacion-dialog/edit-penalizacion-dialog.component';
 import { ListHoraExtraComponent } from './hora-extra/list-hora-extra/list-hora-extra.component';
 import { EditHoraExtraDialogComponent } from './hora-extra/edit-hora-extra-dialog/edit-hora-extra-dialog.component';
-import { ListJornadaNovedadComponent } from './jornada-novedad/list-jornada-novedad/list-jornada-novedad.component';
-import { EditJornadaNovedadDialogComponent } from './jornada-novedad/edit-jornada-novedad-dialog/edit-jornada-novedad-dialog.component';
+import { ListJustificativoComponent } from './justificativo/list-justificativo/list-justificativo.component';
+import { EditJustificativoDialogComponent } from './justificativo/edit-justificativo-dialog/edit-justificativo-dialog.component';
+import { ListTipoJustificativoComponent } from './tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
+import { EditTipoJustificativoDialogComponent } from './tipo-justificativo/edit-tipo-justificativo-dialog/edit-tipo-justificativo-dialog.component';
 import { ListMotivoValeComponent } from './motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { EditMotivoValeDialogComponent } from './motivo-vale/edit-motivo-vale-dialog/edit-motivo-vale-dialog.component';
 import { ListValeComponent } from './vale/list-vale/list-vale.component';
@@ -54,8 +56,10 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     EditPenalizacionDialogComponent,
     ListHoraExtraComponent,
     EditHoraExtraDialogComponent,
-    ListJornadaNovedadComponent,
-    EditJornadaNovedadDialogComponent,
+    ListJustificativoComponent,
+    EditJustificativoDialogComponent,
+    ListTipoJustificativoComponent,
+    EditTipoJustificativoDialogComponent,
     ListMotivoValeComponent,
     EditMotivoValeDialogComponent,
     ListValeComponent,

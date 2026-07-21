@@ -1,0 +1,80 @@
+<div class="tipo-container" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="header" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
+    <h2>Tipos de justificativo</h2>
+    <button mat-raised-button color="primary" (click)="onNuevo()">
+      <mat-icon>add</mat-icon> Nuevo
+    </button>
+  </div>
+
+  <p class="ayuda">
+    Cada tipo define su comportamiento: si evita la penalización automática, cuánto descuenta
+    del salario en la liquidación y si requiere documento respaldatorio.
+  </p>
+
+  <div class="tabla-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let row">{{ row.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="evitaPenalizacion">
+        <th mat-header-cell *matHeaderCellDef>Evita penalización</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.evitaPenalizacion ? 'si' : 'no'">
+            {{ row.evitaPenalizacion ? 'check_circle' : 'remove' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descuentaSalario">
+        <th mat-header-cell *matHeaderCellDef>Descuenta salario</th>
+        <td mat-cell *matCellDef="let row">{{ row.descuentaSalario }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="requiereDocumento">
+        <th mat-header-cell *matHeaderCellDef>Requiere doc.</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.requiereDocumento ? 'si' : 'no'">
+            {{ row.requiereDocumento ? 'check_circle' : 'remove' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="origen">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+        <td mat-cell *matCellDef="let row">{{ row.generadoPorSistema ? 'Sistema' : 'Manual' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef>Activo</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.activo ? 'si' : 'no'">{{ row.activo ? 'check_circle' : 'cancel' }}</mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="primary" (click)="onEditar(row)" matTooltip="Editar">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onEliminar(row)" matTooltip="Eliminar"
+            [disabled]="row.generadoPorSistema">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</div>

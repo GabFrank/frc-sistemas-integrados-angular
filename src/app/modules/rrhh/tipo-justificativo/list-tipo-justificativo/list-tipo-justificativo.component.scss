@@ -1,0 +1,9 @@
+.tipo-container {
+  padding: 16px;
+
+  table { width: 100%; text-align: center; }
+  th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+  .text-left { text-align: left; }
+  .si { color: #66bb6a; }
+  .no { opacity: 0.5; }
+}
