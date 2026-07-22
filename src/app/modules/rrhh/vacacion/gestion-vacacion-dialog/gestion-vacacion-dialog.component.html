@@ -18,7 +18,7 @@
         <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
         <mat-datepicker #dp2></mat-datepicker>
       </mat-form-field>
-      <button mat-raised-button color="primary" [disabled]="desdeControl.invalid || hastaControl.invalid" (click)="onProgramar()">Programar</button>
+      <button mat-raised-button color="primary" [disabled]="desdeControl.invalid || hastaControl.invalid" (click)="onSolicitar()">Solicitar</button>
     </div>
 
     <table mat-table [dataSource]="periodos" class="mat-elevation-z1 tabla">

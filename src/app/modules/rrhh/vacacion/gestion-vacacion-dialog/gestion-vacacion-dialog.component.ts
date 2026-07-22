@@ -55,13 +55,19 @@ export class GestionVacacionDialogComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe(res => { this.ventas.data = res || []; });
   }
 
-  onProgramar() {
+  /**
+   * Crea el periodo como SOLICITADA. Antes mandaba PROGRAMADA directo, lo que
+   * saltaba la aprobacion: el boton de aprobar (visible solo en SOLICITADA) quedaba
+   * inalcanzable y el periodo nunca registraba quien lo autorizo — aunque mobile si
+   * implementa la aprobacion por supervisor.
+   */
+  onSolicitar() {
     if (this.desdeControl.invalid || this.hastaControl.invalid) { return; }
     this.vacacionService.onProgramarPeriodo(
       this.vacacion.id,
       dateToString(this.desdeControl.value),
       dateToString(this.hastaControl.value),
-      'PROGRAMADA',
+      'SOLICITADA',
       null
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) { this.desdeControl.reset(); this.hastaControl.reset(); this.cargar(); }

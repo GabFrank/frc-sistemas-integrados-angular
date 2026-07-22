@@ -34,7 +34,9 @@ export class EditValeDialogComponent implements OnInit {
   montoControl = new FormControl(0, [Validators.required, Validators.min(1)]);
   monedaControl = new FormControl(null, [Validators.required]);
   fechaControl = new FormControl(new Date(), [Validators.required]);
-  esAdelantoControl = new FormControl(false);
+  // Por defecto true: lo normal es que un vale sea adelanto de sueldo y se
+  // descuente en la liquidacion. Los que no lo son son la excepcion.
+  esAdelantoControl = new FormControl(true);
   observacionControl = new FormControl(null);
 
   constructor(
