@@ -481,6 +481,42 @@ export const reporteGenericVentasQuery = gql`
   }
 `;
 
+export const reporteGenericVentasDetalladoQuery = gql`
+  query (
+    $idVenta: ID
+    $idCaja: ID
+    $sucId: ID
+    $formaPago: ID
+    $estado: VentaEstado
+    $isDelivery: Boolean
+    $monedaId: Int
+    $conDescuento: Boolean
+    $conAumento: Boolean
+    $conObservacion: Boolean
+    $clienteId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $usuarioId: ID
+  ) {
+    data: reporteGenericVentasDetallado(
+      idVenta: $idVenta
+      idCaja: $idCaja
+      sucId: $sucId
+      formaPago: $formaPago
+      estado: $estado
+      isDelivery: $isDelivery
+      monedaId: $monedaId
+      conDescuento: $conDescuento
+      conAumento: $conAumento
+      conObservacion: $conObservacion
+      clienteId: $clienteId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      usuarioId: $usuarioId
+    )
+  }
+`;
+
 export const lucroPorFuncionarioQuery = gql`
   query lucroPorFuncionario(
     $fechaInicio: String

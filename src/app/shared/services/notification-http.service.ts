@@ -93,6 +93,26 @@ export class NotificationHttpService {
         return this.http.post(url, {}, { params });
     }
 
+    sendDiferenciaMaletinNotification(
+        cajaId: number,
+        sucursalId: number,
+        diferenciaTotalGs: number,
+        diferenciaGs?: number,
+        diferenciaRs?: number,
+        diferenciaDs?: number,
+        maletinDescripcion?: string,
+        sucursalNombre?: string
+    ): Observable<any> {
+        const url = `${this.baseUrl}/notification/diferencia-maletin/${cajaId}/${sucursalId}/${diferenciaTotalGs}`;
+        let params: any = {};
+        if (diferenciaGs != null) params.diferenciaGs = diferenciaGs;
+        if (diferenciaRs != null) params.diferenciaRs = diferenciaRs;
+        if (diferenciaDs != null) params.diferenciaDs = diferenciaDs;
+        if (maletinDescripcion) params.maletinDescripcion = maletinDescripcion;
+        if (sucursalNombre) params.sucursalNombre = sucursalNombre;
+        return this.http.post(url, {}, { params });
+    }
+
     sendVentaStockCriticoNotification(payload: VentaStockCriticoPayload): Observable<any> {
         const url = `${this.baseUrl}/notification/venta-stock-critico`;
         return this.http.post(url, payload);
