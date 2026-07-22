@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 
-const FIELDS = `id funcionario { id persona { id nombre } } anio montoCalculado mesesTrabajados estado fechaPago`;
+const FIELDS = `id funcionario { id persona { id nombre } } anio montoCalculado mesesTrabajados montoProyectado mesesProyectados estado fechaPago`;
 
 export const aguinaldosPorAnioQuery = gql`
   query ($anio: Int!) { data: aguinaldosPorAnio(anio: $anio) { ${FIELDS} } }

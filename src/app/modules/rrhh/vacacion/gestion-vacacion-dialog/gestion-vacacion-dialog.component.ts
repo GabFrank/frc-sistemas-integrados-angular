@@ -25,7 +25,7 @@ export class GestionVacacionDialogComponent implements OnInit {
   disponibles = 0;
 
   periodosColumns = ['fechaDesde', 'fechaHasta', 'diasUsados', 'estado', 'acciones'];
-  ventasColumns = ['dias', 'monto', 'fecha', 'estado'];
+  ventasColumns = ['dias', 'monto', 'fecha', 'estado', 'acciones'];
   periodos = new MatTableDataSource<VacacionPeriodo>([]);
   ventas = new MatTableDataSource<VacacionVenta>([]);
 
@@ -50,9 +50,34 @@ export class GestionVacacionDialogComponent implements OnInit {
 
   cargar() {
     this.vacacionService.onGetPeriodos(this.vacacion.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.periodos.data = res || []; });
+      .pipe(untilDestroyed(this)).subscribe(res => {
+        this.periodos.data = res || [];
+        this.recalcularDisponibles();
+      });
     this.vacacionService.onGetVentas(this.vacacion.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.ventas.data = res || []; });
+      .pipe(untilDestroyed(this)).subscribe(res => {
+        this.ventas.data = res || [];
+        this.recalcularDisponibles();
+      });
+  }
+
+  /**
+   * Recalcula el saldo tras cada accion. Antes se computaba una sola vez al abrir el
+   * dialogo, asi que al marcar un periodo como gozado los dias disponibles no se
+   * actualizaban (habia que cerrar y volver a abrir) y la validacion de la venta
+   * seguia usando el valor viejo.
+   *
+   * Los dias vendidos tambien restan: no se puede gozar lo que ya se cobro.
+   */
+  private recalcularDisponibles() {
+    const generados = this.vacacion.diasGenerados || 0;
+    const gozados = (this.periodos.data || [])
+      .filter(p => p.estado === 'GOZADA')
+      .reduce((acc, p) => acc + (p.diasUsados || 0), 0);
+    const vendidos = (this.ventas.data || [])
+      .filter(v => v.estado !== 'ANULADO')
+      .reduce((acc, v) => acc + (v.dias || 0), 0);
+    this.disponibles = generados - gozados - vendidos;
   }
 
   /**
@@ -92,6 +117,16 @@ export class GestionVacacionDialogComponent implements OnInit {
       return;
     }
     this.vacacionService.onVenderDias(this.vacacion.id, dias, null)
+      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+  }
+
+  onAprobarVenta(v: any) {
+    this.vacacionService.onAprobarVenta(v.id, this.mainService.usuarioActual?.id)
+      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+  }
+
+  onAnularVenta(v: any) {
+    this.vacacionService.onAnularVenta(v.id)
       .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
   }
 

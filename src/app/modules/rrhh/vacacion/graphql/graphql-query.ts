@@ -48,3 +48,15 @@ export const venderDiasMutation = gql`
     data: venderDiasVacacion(vacacionId: $vacacionId, dias: $dias, observacion: $observacion) { ${VENTA_FIELDS} }
   }
 `;
+
+export const aprobarVentaVacacionMutation = gql`
+  mutation aprobarVentaVacacion($ventaId: ID!, $autorizadoPorId: ID) {
+    data: aprobarVentaVacacion(ventaId: $ventaId, autorizadoPorId: $autorizadoPorId) { ${VENTA_FIELDS} }
+  }
+`;
+
+export const anularVentaVacacionMutation = gql`
+  mutation anularVentaVacacion($ventaId: ID!) {
+    data: anularVentaVacacion(ventaId: $ventaId) { ${VENTA_FIELDS} }
+  }
+`;

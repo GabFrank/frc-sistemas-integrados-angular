@@ -20,7 +20,7 @@ export class ListAguinaldoComponent implements OnInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  displayedColumns = ['funcionario', 'anio', 'mesesTrabajados', 'montoCalculado', 'estado', 'acciones'];
+  displayedColumns = ['funcionario', 'anio', 'mesesTrabajados', 'montoCalculado', 'montoProyectado', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<Aguinaldo>([]);
 
   funcionarioControl = new FormControl(null);

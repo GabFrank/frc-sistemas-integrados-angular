@@ -10,6 +10,7 @@ import { ProgramarPeriodoGQL } from './graphql/ProgramarPeriodo';
 import { AprobarPeriodoGQL } from './graphql/AprobarPeriodo';
 import { MarcarGozadaGQL } from './graphql/MarcarGozada';
 import { VenderDiasGQL } from './graphql/VenderDias';
+import { AprobarVentaVacacionGQL, AnularVentaVacacionGQL } from './graphql/VentaVacacionAcciones';
 
 @Injectable({ providedIn: 'root' })
 export class VacacionService {
@@ -24,7 +25,9 @@ export class VacacionService {
     private programarPeriodoGQL: ProgramarPeriodoGQL,
     private aprobarPeriodoGQL: AprobarPeriodoGQL,
     private marcarGozadaGQL: MarcarGozadaGQL,
-    private venderDiasGQL: VenderDiasGQL
+    private venderDiasGQL: VenderDiasGQL,
+    private aprobarVentaVacacionGQL: AprobarVentaVacacionGQL,
+    private anularVentaVacacionGQL: AnularVentaVacacionGQL
   ) { }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
@@ -38,6 +41,14 @@ export class VacacionService {
 
   onGetPeriodos(vacacionId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.vacacionPeriodosGQL, { vacacionId }, servidor);
+  }
+
+  onAprobarVenta(ventaId: number, autorizadoPorId: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.aprobarVentaVacacionGQL, { ventaId, autorizadoPorId }, servidor);
+  }
+
+  onAnularVenta(ventaId: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.anularVentaVacacionGQL, { ventaId }, servidor);
   }
 
   onGetVentas(vacacionId: number, servidor = true): Observable<any> {

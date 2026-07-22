@@ -9,3 +9,14 @@
 
 table { width: 100%; text-align: center; }
 th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+
+// El proyectado es informativo (prevision de caja), no lo que se debe hoy:
+// se muestra atenuado para que no compita con el devengado.
+.proyectado {
+  opacity: 0.75;
+}
+
+.meses {
+  font-size: 11px;
+  opacity: 0.7;
+}

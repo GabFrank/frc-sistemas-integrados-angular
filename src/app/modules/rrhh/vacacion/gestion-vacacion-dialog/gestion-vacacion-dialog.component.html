@@ -57,7 +57,7 @@
         <mat-label>Días a vender</mat-label>
         <input matInput type="number" [formControl]="diasVentaControl" />
       </mat-form-field>
-      <button mat-raised-button color="primary" (click)="onVenderDias()">Vender</button>
+      <button mat-raised-button color="primary" (click)="onVenderDias()">Solicitar venta</button>
     </div>
 
     <table mat-table [dataSource]="ventas" class="mat-elevation-z1 tabla">
@@ -76,6 +76,15 @@
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
         <td mat-cell *matCellDef="let row">{{ row.estado }}</td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA'"
+            (click)="onAprobarVenta(row)" matTooltip="Aprobar venta"><mat-icon>check</mat-icon></button>
+          <button mat-icon-button color="warn" *ngIf="row.estado !== 'PAGADO' && row.estado !== 'ANULADO'"
+            (click)="onAnularVenta(row)" matTooltip="Anular"><mat-icon>block</mat-icon></button>
+        </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="ventasColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: ventasColumns"></tr>
