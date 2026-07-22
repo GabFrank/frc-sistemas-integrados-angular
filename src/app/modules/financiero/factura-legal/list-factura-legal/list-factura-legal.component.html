@@ -418,15 +418,13 @@
             </button>
             <button
               mat-menu-item
-              (click)="onDescargarPdf(factura)"
-              [disabled]="!esElectronica(factura)">
+              (click)="onDescargarPdf(factura)">
               <mat-icon>picture_as_pdf</mat-icon>
               <span>Descargar PDF</span>
             </button>
             <button
               mat-menu-item
-              (click)="onAbrirPdf(factura)"
-              [disabled]="!esElectronica(factura)">
+              (click)="onAbrirPdf(factura)">
               <mat-icon>open_in_browser</mat-icon>
               <span>Abrir PDF</span>
             </button>
@@ -436,8 +434,7 @@
             </button>
             <button
               mat-menu-item
-              (click)="onImprimirPdfEnSucursal(factura)"
-              [disabled]="!esElectronica(factura)">
+              (click)="onImprimirPdfEnSucursal(factura)">
               <mat-icon>store</mat-icon>
               <span>Imprimir PDF en sucursal</span>
             </button>
