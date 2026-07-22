@@ -27,6 +27,21 @@ export const feriadosPorRangoQuery = gql`
   }
 `;
 
+export const feriadosPageQuery = gql`
+  query ($page: Int, $size: Int, $desde: String, $hasta: String, $descripcion: String, $activo: Boolean) {
+    data: feriadosPage(page: $page, size: $size, desde: $desde, hasta: $hasta, descripcion: $descripcion, activo: $activo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${FERIADO_FIELDS} }
+    }
+  }
+`;
+
 export const saveFeriadoMutation = gql`
   mutation saveFeriado($entity: FeriadoInput!) {
     data: saveFeriado(feriado: $entity) {

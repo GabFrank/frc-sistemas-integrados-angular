@@ -22,6 +22,21 @@ export const penalizacionesPorFuncionarioYRangoQuery = gql`
   }
 `;
 
+export const penalizacionesPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $desde: String, $hasta: String, $tipo: PenalizacionTipo) {
+    data: penalizacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, desde: $desde, hasta: $hasta, tipo: $tipo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${PENALIZACION_FIELDS} }
+    }
+  }
+`;
+
 export const savePenalizacionMutation = gql`
   mutation savePenalizacion($entity: PenalizacionInput!) {
     data: savePenalizacion(penalizacion: $entity) {

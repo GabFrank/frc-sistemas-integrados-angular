@@ -43,6 +43,7 @@ export class Justificativo {
   jornadaId: number;
   sucursalId: number;
   observacion: string;
+  documento: any;
   registradoPor: Usuario;
 
   toInput(): any {
@@ -54,6 +55,7 @@ export class Justificativo {
       jornadaId: this.jornadaId,
       sucursalId: this.sucursalId,
       observacion: this.observacion,
+      documentoId: this.documento?.id,
       registradoPorId: this.registradoPor?.id
     };
   }

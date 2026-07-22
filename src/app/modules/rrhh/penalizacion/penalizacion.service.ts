@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { PenalizacionesPorFuncionarioYRangoGQL } from './graphql/PenalizacionesPorFuncionarioYRango';
+import { PenalizacionesPageGQL } from './graphql/PenalizacionesPage';
 import { SavePenalizacionGQL } from './graphql/SavePenalizacion';
 import { AnularPenalizacionGQL } from './graphql/AnularPenalizacion';
 import { GenerarPenalizacionesAutoGQL } from './graphql/GenerarPenalizacionesAuto';
@@ -13,6 +14,7 @@ export class PenalizacionService {
   constructor(
     private genericService: GenericCrudService,
     private penalizacionesPorFuncionarioYRangoGQL: PenalizacionesPorFuncionarioYRangoGQL,
+    private penalizacionesPageGQL: PenalizacionesPageGQL,
     private savePenalizacionGQL: SavePenalizacionGQL,
     private anularPenalizacionGQL: AnularPenalizacionGQL,
     private generarPenalizacionesAutoGQL: GenerarPenalizacionesAutoGQL
@@ -24,6 +26,13 @@ export class PenalizacionService {
       { funcionarioId, desde, hasta },
       servidor
     );
+  }
+
+  /** Padron del SaaS: lista paginada y filtrada en el backend. */
+  onGetPage(page: number, size: number, funcionarioId?: number, desde?: string, hasta?: string,
+            tipo?: string, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.penalizacionesPageGQL,
+      { page, size, funcionarioId, desde, hasta, tipo }, servidor);
   }
 
   onSave(input: any, servidor = true): Observable<Penalizacion> {

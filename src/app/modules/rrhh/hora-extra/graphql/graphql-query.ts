@@ -24,6 +24,21 @@ export const horasExtraPorFuncionarioYRangoQuery = gql`
   }
 `;
 
+export const horasExtraPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $desde: String, $hasta: String, $tipo: HoraExtraTipo) {
+    data: horasExtraPage(page: $page, size: $size, funcionarioId: $funcionarioId, desde: $desde, hasta: $hasta, tipo: $tipo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${HORA_EXTRA_FIELDS} }
+    }
+  }
+`;
+
 export const saveHoraExtraMutation = gql`
   mutation saveHoraExtra($entity: HoraExtraInput!) {
     data: saveHoraExtra(horaExtra: $entity) {

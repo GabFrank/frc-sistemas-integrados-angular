@@ -7,6 +7,20 @@ const VENTA_FIELDS = `id dias monto fecha estado observacion`;
 export const vacacionesPorFuncionarioQuery = gql`
   query ($funcionarioId: ID!) { data: vacacionesPorFuncionario(funcionarioId: $funcionarioId) { ${VAC_FIELDS} } }
 `;
+export const vacacionesPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $anio: Int) {
+    data: vacacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, anio: $anio) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${VAC_FIELDS} }
+    }
+  }
+`;
 export const vacacionPeriodosQuery = gql`
   query ($vacacionId: ID!) { data: vacacionPeriodos(vacacionId: $vacacionId) { ${PER_FIELDS} } }
 `;

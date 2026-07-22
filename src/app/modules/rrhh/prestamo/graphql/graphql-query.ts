@@ -21,6 +21,21 @@ export const prestamosPorFuncionarioQuery = gql`
   }
 `;
 
+export const prestamosPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $estado: PrestamoEstado) {
+    data: prestamosPage(page: $page, size: $size, funcionarioId: $funcionarioId, estado: $estado) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${PRESTAMO_FIELDS} }
+    }
+  }
+`;
+
 export const prestamoCuotasQuery = gql`
   query ($prestamoId: ID!) {
     data: prestamoCuotas(prestamoId: $prestamoId) { ${CUOTA_FIELDS} }

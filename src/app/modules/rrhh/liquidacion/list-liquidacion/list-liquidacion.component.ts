@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { LiquidacionSueldo } from '../liquidacion.model';
@@ -19,11 +21,20 @@ import { LiquidacionDetalleDialogComponent } from '../liquidacion-detalle-dialog
 })
 export class ListLiquidacionComponent implements OnInit {
 
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
   displayedColumns = ['periodo', 'funcionario', 'totalHaberes', 'totalDescuentos', 'totalNeto', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<LiquidacionSueldo>([]);
 
   funcionarioControl = new FormControl(null);
   periodoControl = new FormControl(null);
+  estadoControl = new FormControl(null);
+
+  estadoOpciones = ['BORRADOR', 'APROBADA', 'PAGADA', 'ANULADA'];
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<LiquidacionSueldo>;
 
   constructor(
     private liquidacionService: LiquidacionService,
@@ -33,46 +44,77 @@ export class ListLiquidacionComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.periodoControl.setValue(this.periodoActual());
+    this.onFiltrar();
+  }
+
+  private periodoActual(): string {
     const hoy = new Date();
-    this.periodoControl.setValue(hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2));
+    return hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2);
   }
 
-
-  onBuscarPorFuncionario() {
-    if (this.funcionarioControl.value == null) {
-      this.notificacion.notification$.next({ texto: 'Seleccione un funcionario', color: NotificacionColor.warn, duracion: 3 });
-      return;
-    }
-    this.liquidacionService.onGetPorFuncionario(this.funcionarioControl.value)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.dataSource.data = res || []; });
+  onFiltrar() {
+    this.liquidacionService.onGetPage(
+      this.pageIndex,
+      this.pageSize,
+      this.funcionarioControl.value,
+      this.periodoControl.value,
+      this.estadoControl.value
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
+    });
   }
 
-  onBuscarPorPeriodo() {
-    if (!this.periodoControl.value) { return; }
-    this.liquidacionService.onGetPorPeriodo(this.periodoControl.value)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.dataSource.data = res || []; });
+  onResetFiltro() {
+    this.funcionarioControl.setValue(null);
+    this.periodoControl.setValue(this.periodoActual());
+    this.estadoControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onNueva() {
     this.dialog.open(GenerarLiquidacionDialogComponent, {
       data: { funcionarioId: this.funcionarioControl.value, periodo: this.periodoControl.value },
       width: '480px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscarPorPeriodo(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }
 
   onGenerarMes() {
-    if (!this.periodoControl.value) { return; }
+    if (!this.periodoControl.value) {
+      this.notificacion.notification$.next({ texto: 'Indique el período (YYYY-MM)', color: NotificacionColor.warn, duracion: 3 });
+      return;
+    }
     this.liquidacionService.onGenerarMes(this.periodoControl.value, null)
       .pipe(untilDestroyed(this)).subscribe((cant: number) => {
         this.notificacion.notification$.next({ texto: 'Borradores generados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
-        this.onBuscarPorPeriodo();
+        this.onFiltrar();
       });
   }
 
   onDetalle(liq: LiquidacionSueldo) {
     this.dialog.open(LiquidacionDetalleDialogComponent, { data: { liquidacion: liq }, width: '820px', disableClose: false })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
-        if (this.funcionarioControl.value) { this.onBuscarPorFuncionario(); } else { this.onBuscarPorPeriodo(); }
-      });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(() => { this.onFiltrar(); });
+  }
+
+  onImprimirRecibo(liq: LiquidacionSueldo) {
+    this.liquidacionService.onImprimirRecibo(liq.id).pipe(untilDestroyed(this)).subscribe((base64: string) => {
+      if (!base64) {
+        this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
+        return;
+      }
+      const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
+      const win = window.open();
+      if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
+    });
   }
 }

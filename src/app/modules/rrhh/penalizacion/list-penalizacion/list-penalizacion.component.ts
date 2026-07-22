@@ -1,13 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { Penalizacion } from '../penalizacion.model';
+import { Penalizacion, PenalizacionTipo } from '../penalizacion.model';
 import { PenalizacionService } from '../penalizacion.service';
 import { EditPenalizacionDialogComponent } from '../edit-penalizacion-dialog/edit-penalizacion-dialog.component';
 
@@ -20,14 +22,25 @@ import { EditPenalizacionDialogComponent } from '../edit-penalizacion-dialog/edi
 })
 export class ListPenalizacionComponent implements OnInit {
 
-  displayedColumns = ['fecha', 'tipo', 'descripcion', 'monto', 'auto', 'estado', 'acciones'];
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  displayedColumns = ['fecha', 'funcionario', 'tipo', 'descripcion', 'monto', 'auto', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<Penalizacion>([]);
 
   funcionarioControl = new FormControl(null);
+  tipoControl = new FormControl(null);
   desdeControl = new FormControl(null);
   hastaControl = new FormControl(null);
   fechaGenerarControl = new FormControl(null);
 
+  tipoOpciones: PenalizacionTipo[] = [
+    'TARDANZA', 'AUSENCIA', 'QUEJA_CLIENTE', 'AMBIENTE_LABORAL',
+    'DANIO_MATERIAL', 'COMISION_DESCUENTO', 'OTRO'
+  ];
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<Penalizacion>;
 
   constructor(
     private penalizacionService: PenalizacionService,
@@ -42,23 +55,38 @@ export class ListPenalizacionComponent implements OnInit {
     this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     this.hastaControl.setValue(hoy);
     this.fechaGenerarControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1));
+    this.onFiltrar();
   }
 
-
-  onBuscar() {
-    if (this.funcionarioControl.value == null) {
-      this.notificacion.notification$.next({
-        texto: 'Seleccione un funcionario', color: NotificacionColor.warn, duracion: 3
-      });
-      return;
-    }
-    this.penalizacionService.onGetPorFuncionarioYRango(
+  onFiltrar() {
+    this.penalizacionService.onGetPage(
+      this.pageIndex,
+      this.pageSize,
       this.funcionarioControl.value,
-      dateToString(this.desdeControl.value),
-      dateToString(this.hastaControl.value)
+      dateToString(this.desdeControl.value, 'yyyy-MM-dd'),
+      dateToString(this.hastaControl.value, 'yyyy-MM-dd'),
+      this.tipoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      this.dataSource.data = res || [];
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
     });
+  }
+
+  onResetFiltro() {
+    this.funcionarioControl.setValue(null);
+    this.tipoControl.setValue(null);
+    this.desdeControl.setValue(null);
+    this.hastaControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onNueva() {
@@ -67,7 +95,7 @@ export class ListPenalizacionComponent implements OnInit {
       width: '520px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.onBuscar();
+      if (res != null) this.onFiltrar();
     });
   }
 
@@ -80,13 +108,13 @@ export class ListPenalizacionComponent implements OnInit {
       if (res === true) {
         this.penalizacionService.onAnular(p.id)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.onBuscar(); });
+          .subscribe(ok => { if (ok) this.onFiltrar(); });
       }
     });
   }
 
   onGenerarAuto() {
-    this.penalizacionService.onGenerarAuto(dateToString(this.fechaGenerarControl.value))
+    this.penalizacionService.onGenerarAuto(dateToString(this.fechaGenerarControl.value, 'yyyy-MM-dd'))
       .pipe(untilDestroyed(this))
       .subscribe((cant: number) => {
         this.notificacion.notification$.next({
@@ -94,7 +122,7 @@ export class ListPenalizacionComponent implements OnInit {
           color: NotificacionColor.success,
           duracion: 3
         });
-        this.onBuscar();
+        this.onFiltrar();
       });
   }
 }

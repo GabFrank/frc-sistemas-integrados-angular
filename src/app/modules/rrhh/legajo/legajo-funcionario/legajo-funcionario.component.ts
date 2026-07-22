@@ -7,6 +7,7 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../../noti
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
+import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { LegajoService } from '../legajo.service';
 import { FuncionarioCargoHistorico, FuncionarioSalarioHistorico, FuncionarioDocumento } from '../legajo.model';
 import { CambioCargoDialogComponent } from '../cambio-cargo-dialog/cambio-cargo-dialog.component';
@@ -80,7 +81,7 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   private calcularAntiguedad(fechaIngreso: any): string {
     if (!fechaIngreso) { return '—'; }
-    const ini = new Date(fechaIngreso);
+    const ini = stringToLocalDate(fechaIngreso);
     if (isNaN(ini.getTime())) { return '—'; }
     const hoy = new Date();
     let meses = (hoy.getFullYear() - ini.getFullYear()) * 12 + (hoy.getMonth() - ini.getMonth());

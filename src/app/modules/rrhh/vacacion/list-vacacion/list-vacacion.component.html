@@ -1,29 +1,30 @@
-<div class="vacacion-container" fxLayout="column" fxLayoutGap="12px">
+<app-generic-list titulo="Vacaciones" style="height: 100%" [isAdicionar]="false"
+  [isCustom]="true" customName="Devengar año actual" (customFunction)="onDevengar()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
-  <div class="header" fxLayout="row" fxLayoutAlign="space-between center">
-    <h2>Vacaciones</h2>
-  </div>
-
-  <div class="filtros" fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
-    <div fxFlex="380px">
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="320px">
       <app-select-funcionario
         [funcionarioId]="funcionarioControl.value"
         (idSelected)="funcionarioControl.setValue($event)">
       </app-select-funcionario>
     </div>
-    <button mat-raised-button color="primary" (click)="onBuscar()">
-      <mat-icon>search</mat-icon> Buscar
-    </button>
-    <button mat-stroked-button color="accent" (click)="onDevengar()" matTooltip="Genera la vacación del año de servicio actual según antigüedad">
-      <mat-icon>event_available</mat-icon> Devengar año actual
-    </button>
+
+    <mat-form-field fxFlex="180px">
+      <mat-label>Año de servicio</mat-label>
+      <input matInput type="number" [formControl]="anioControl" />
+    </mat-form-field>
   </div>
 
-  <div class="tabla-container">
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
       <ng-container matColumnDef="anioServicio">
         <th mat-header-cell *matHeaderCellDef>Año servicio</th>
         <td mat-cell *matCellDef="let row">{{ row.anioServicio }}</td>
+      </ng-container>
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
       </ng-container>
       <ng-container matColumnDef="diasGenerados">
         <th mat-header-cell *matHeaderCellDef>Generados</th>
@@ -44,13 +45,22 @@
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef>Acciones</th>
         <td mat-cell *matCellDef="let row">
-          <button mat-stroked-button color="primary" (click)="onGestionar(row)">
-            <mat-icon>date_range</mat-icon> Gestionar
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
           </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onGestionar(row)">
+              <mat-icon>date_range</mat-icon><span>Gestionar</span>
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
   </div>
-</div>
+</app-generic-list>

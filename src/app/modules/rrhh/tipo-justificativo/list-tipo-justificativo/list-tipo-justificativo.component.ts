@@ -1,7 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { TipoJustificativo } from '../../justificativo/justificativo.model';
@@ -16,8 +19,18 @@ import { EditTipoJustificativoDialogComponent } from '../edit-tipo-justificativo
 })
 export class ListTipoJustificativoComponent implements OnInit {
 
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
   displayedColumns = ['nombre', 'descripcion', 'evitaPenalizacion', 'descuentaSalario', 'requiereDocumento', 'origen', 'activo', 'acciones'];
   dataSource = new MatTableDataSource<TipoJustificativo>([]);
+
+  nombreControl = new FormControl(null);
+  /** tri-state: null=Todos, true=Activos, false=Inactivos */
+  activoControl = new FormControl(null);
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<TipoJustificativo>;
 
   constructor(
     private service: JustificativoService,
@@ -27,12 +40,34 @@ export class ListTipoJustificativoComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.cargar();
+    this.onFiltrar();
   }
 
-  cargar() {
-    this.service.onGetTipos().pipe(untilDestroyed(this))
-      .subscribe((res: TipoJustificativo[]) => { this.dataSource.data = res || []; });
+  onFiltrar() {
+    this.service.onGetTiposPage(
+      this.pageIndex,
+      this.pageSize,
+      this.nombreControl.value ? this.nombreControl.value.trim() : null,
+      this.activoControl.value
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
+    });
+  }
+
+  onResetFiltro() {
+    this.nombreControl.setValue(null);
+    this.activoControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onNuevo() {
@@ -46,7 +81,7 @@ export class ListTipoJustificativoComponent implements OnInit {
   private abrir(tipo: TipoJustificativo) {
     this.dialog.open(EditTipoJustificativoDialogComponent, {
       data: { tipo }, width: '560px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }
 
   onEliminar(t: TipoJustificativo) {
@@ -63,7 +98,7 @@ export class ListTipoJustificativoComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
         this.service.onDeleteTipo(t.id).pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.cargar(); });
+          .subscribe(ok => { if (ok) this.onFiltrar(); });
       }
     });
   }

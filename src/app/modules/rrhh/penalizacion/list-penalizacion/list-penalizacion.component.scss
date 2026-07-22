@@ -1,10 +1,4 @@
-.penalizacion-container {
-  padding: 16px;
-
-  .tabla-container {
-    overflow-x: auto;
-  }
-
+:host {
   table {
     width: 100%;
     text-align: center;

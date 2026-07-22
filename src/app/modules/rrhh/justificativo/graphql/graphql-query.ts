@@ -19,6 +19,7 @@ const JUSTIFICATIVO_FIELDS = `
   jornadaId
   sucursalId
   observacion
+  documento { id nombreArchivo tipo }
   registradoPor { id nickname }
 `;
 
@@ -26,6 +27,21 @@ export const justificativosPorFuncionarioYRangoQuery = gql`
   query ($funcionarioId: ID!, $desde: String, $hasta: String) {
     data: justificativosPorFuncionarioYRango(funcionarioId: $funcionarioId, desde: $desde, hasta: $hasta) {
       ${JUSTIFICATIVO_FIELDS}
+    }
+  }
+`;
+
+export const justificativosPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $desde: String, $hasta: String, $tipoId: ID) {
+    data: justificativosPage(page: $page, size: $size, funcionarioId: $funcionarioId, desde: $desde, hasta: $hasta, tipoId: $tipoId) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${JUSTIFICATIVO_FIELDS} }
     }
   }
 `;
@@ -58,6 +74,21 @@ export const tiposJustificativoActivosQuery = gql`
   {
     data: tiposJustificativoActivos {
       ${TIPO_FIELDS}
+    }
+  }
+`;
+
+export const tiposJustificativoPageQuery = gql`
+  query ($page: Int, $size: Int, $nombre: String, $activo: Boolean) {
+    data: tiposJustificativoPage(page: $page, size: $size, nombre: $nombre, activo: $activo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${TIPO_FIELDS} }
     }
   }
 `;

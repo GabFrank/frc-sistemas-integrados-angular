@@ -5,6 +5,20 @@ const FIELDS = `id funcionario { id persona { id nombre } } anio montoCalculado 
 export const aguinaldosPorAnioQuery = gql`
   query ($anio: Int!) { data: aguinaldosPorAnio(anio: $anio) { ${FIELDS} } }
 `;
+export const aguinaldosPageQuery = gql`
+  query ($page: Int, $size: Int, $anio: Int, $funcionarioId: ID) {
+    data: aguinaldosPage(page: $page, size: $size, anio: $anio, funcionarioId: $funcionarioId) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${FIELDS} }
+    }
+  }
+`;
 export const calcularAguinaldosAnioMutation = gql`
   mutation calcularAguinaldosAnio($anio: Int!) { data: calcularAguinaldosAnio(anio: $anio) }
 `;

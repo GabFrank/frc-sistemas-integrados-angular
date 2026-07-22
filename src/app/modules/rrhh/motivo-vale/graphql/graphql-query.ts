@@ -12,6 +12,21 @@ export const motivosValeActivosQuery = gql`
   { data: motivosValeActivos { ${FIELDS} } }
 `;
 
+export const motivosValePageQuery = gql`
+  query ($page: Int, $size: Int, $descripcion: String, $activo: Boolean) {
+    data: motivosValePage(page: $page, size: $size, descripcion: $descripcion, activo: $activo) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${FIELDS} }
+    }
+  }
+`;
+
 export const saveMotivoValeMutation = gql`
   mutation saveMotivoVale($entity: MotivoValeInput!) {
     data: saveMotivoVale(motivoVale: $entity) { ${FIELDS} }

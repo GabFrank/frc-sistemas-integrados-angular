@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { VacacionesPorFuncionarioGQL } from './graphql/VacacionesPorFuncionario';
+import { VacacionesPageGQL } from './graphql/VacacionesPage';
 import { VacacionPeriodosGQL } from './graphql/VacacionPeriodos';
 import { VacacionVentasGQL } from './graphql/VacacionVentas';
 import { DevengarVacacionGQL } from './graphql/DevengarVacacion';
@@ -16,6 +17,7 @@ export class VacacionService {
   constructor(
     private genericService: GenericCrudService,
     private vacacionesPorFuncionarioGQL: VacacionesPorFuncionarioGQL,
+    private vacacionesPageGQL: VacacionesPageGQL,
     private vacacionPeriodosGQL: VacacionPeriodosGQL,
     private vacacionVentasGQL: VacacionVentasGQL,
     private devengarVacacionGQL: DevengarVacacionGQL,
@@ -27,6 +29,11 @@ export class VacacionService {
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.vacacionesPorFuncionarioGQL, { funcionarioId }, servidor);
+  }
+
+  /** Padron del SaaS: lista paginada y filtrada en el backend. */
+  onGetPage(page: number, size: number, funcionarioId?: number, anio?: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.vacacionesPageGQL, { page, size, funcionarioId, anio }, servidor);
   }
 
   onGetPeriodos(vacacionId: number, servidor = true): Observable<any> {

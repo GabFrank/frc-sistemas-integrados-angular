@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
-import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
@@ -20,10 +23,21 @@ import { ConfirmarValeDialogComponent } from '../confirmar-vale-dialog/confirmar
 })
 export class ListValeComponent implements OnInit {
 
-  displayedColumns = ['fecha', 'motivo', 'monto', 'moneda', 'esAdelanto', 'estado', 'acciones'];
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  displayedColumns = ['fecha', 'funcionario', 'motivo', 'monto', 'moneda', 'esAdelanto', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<Vale>([]);
 
   funcionarioControl = new FormControl(null);
+  estadoControl = new FormControl(null);
+  desdeControl = new FormControl(null);
+  hastaControl = new FormControl(null);
+
+  estadoOpciones = ['SOLICITADO', 'CONFIRMADO', 'ANULADO', 'DESCONTADO'];
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<Vale>;
 
   constructor(
     private valeService: ValeService,
@@ -34,28 +48,50 @@ export class ListValeComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.onFiltrar();
   }
 
+  onFiltrar() {
+    this.valeService.onGetPage(
+      this.pageIndex,
+      this.pageSize,
+      this.funcionarioControl.value,
+      this.estadoControl.value,
+      dateToString(this.desdeControl.value, 'yyyy-MM-dd'),
+      dateToString(this.hastaControl.value, 'yyyy-MM-dd')
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
+    });
+  }
 
-  onBuscar() {
-    if (this.funcionarioControl.value == null) {
-      this.notificacion.notification$.next({ texto: 'Seleccione un funcionario', color: NotificacionColor.warn, duracion: 3 });
-      return;
-    }
-    this.valeService.onGetPorFuncionario(this.funcionarioControl.value)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.dataSource.data = res || []; });
+  onResetFiltro() {
+    this.funcionarioControl.setValue(null);
+    this.estadoControl.setValue(null);
+    this.desdeControl.setValue(null);
+    this.hastaControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onNuevo() {
     this.dialog.open(EditValeDialogComponent, {
       data: { funcionarioId: this.funcionarioControl.value },
       width: '560px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscar(); });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }
 
   onConfirmar(vale: Vale) {
     this.dialog.open(ConfirmarValeDialogComponent, { data: { vale }, width: '480px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscar(); });
+      .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }
 
   onAnular(vale: Vale) {
@@ -64,7 +100,7 @@ export class ListValeComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
-        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onBuscar(); });
+        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onFiltrar(); });
       }
     });
   }

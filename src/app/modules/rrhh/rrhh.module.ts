@@ -7,6 +7,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { ListConfiguracionRrhhComponent } from './configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
 import { EditConfiguracionRrhhDialogComponent } from './configuracion-rrhh/edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
 import { ConfigInfoDialogComponent } from './configuracion-rrhh/config-info-dialog/config-info-dialog.component';
+import { AjusteSalarioMinimoDialogComponent } from './configuracion-rrhh/ajuste-salario-minimo-dialog/ajuste-salario-minimo-dialog.component';
 import { ListFeriadoComponent } from './feriado/list-feriado/list-feriado.component';
 import { EditFeriadoDialogComponent } from './feriado/edit-feriado-dialog/edit-feriado-dialog.component';
 import { ListPenalizacionComponent } from './penalizacion/list-penalizacion/list-penalizacion.component';
@@ -50,6 +51,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     ListConfiguracionRrhhComponent,
     EditConfiguracionRrhhDialogComponent,
     ConfigInfoDialogComponent,
+    AjusteSalarioMinimoDialogComponent,
     ListFeriadoComponent,
     EditFeriadoDialogComponent,
     ListPenalizacionComponent,

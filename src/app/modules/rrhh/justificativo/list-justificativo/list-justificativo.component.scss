@@ -1,22 +1,22 @@
-.justificativo-container {
+// Sin wrapper: la raiz del template es <app-generic-list>. Anidar bajo
+// .xxx-container dejaba todo este bloque muerto (chips sin color, tabla sin alinear).
+
+:host {
+  display: block;
   padding: 16px;
+}
 
-  .tabla-container {
-    overflow-x: auto;
-  }
+table {
+  width: 100%;
+  text-align: center;
+}
 
-  table {
-    width: 100%;
-    text-align: center;
-  }
+th.mat-header-cell,
+td.mat-cell {
+  text-align: center;
+  padding: 4px 8px;
+}
 
-  th.mat-header-cell,
-  td.mat-cell {
-    text-align: center;
-    padding: 4px 8px;
-  }
-
-  .text-left {
-    text-align: left;
-  }
+.text-left {
+  text-align: left;
 }

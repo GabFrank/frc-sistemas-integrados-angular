@@ -1,15 +1,18 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatTable, MatTableDataSource } from '@angular/material/table';
+import { MatTableDataSource } from '@angular/material/table';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { ConfiguracionRrhh } from '../configuracion-rrhh.model';
+import { ConfiguracionRrhh, ConfiguracionRrhhTipo } from '../configuracion-rrhh.model';
 import { ConfiguracionRrhhService } from '../configuracion-rrhh.service';
 import { EditConfiguracionRrhhDialogComponent } from '../edit-configuracion-rrhh-dialog/edit-configuracion-rrhh-dialog.component';
 import { ConfigInfoDialogComponent } from '../config-info-dialog/config-info-dialog.component';
+import { AjusteSalarioMinimoDialogComponent } from '../ajuste-salario-minimo-dialog/ajuste-salario-minimo-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -19,21 +22,21 @@ import { ConfigInfoDialogComponent } from '../config-info-dialog/config-info-dia
 })
 export class ListConfiguracionRrhhComponent implements OnInit {
 
-  @ViewChild(MatTable) table: MatTable<any>;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   readonly ROLES = ROLES;
 
-  displayedColumns = [
-    'clave',
-    'valor',
-    'tipo',
-    'descripcion',
-    'activo',
-    'acciones'
-  ];
-
-  buscarControl = new FormControl(null);
+  displayedColumns = ['clave', 'valor', 'tipo', 'descripcion', 'activo', 'acciones'];
   dataSource = new MatTableDataSource<ConfiguracionRrhh>([]);
+
+  textoControl = new FormControl(null);
+  tipoControl = new FormControl(null);
+
+  tipoOpciones: ConfiguracionRrhhTipo[] = ['NUMBER', 'STRING', 'BOOLEAN', 'DATE'];
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<ConfiguracionRrhh>;
 
   constructor(
     private configuracionRrhhService: ConfiguracionRrhhService,
@@ -43,29 +46,34 @@ export class ListConfiguracionRrhhComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onBuscar();
+    this.onFiltrar();
   }
 
-  onBuscar() {
-    const texto = this.buscarControl.value ? this.buscarControl.value.toUpperCase() : null;
-    if (texto) {
-      this.configuracionRrhhService.onSearch(texto)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.dataSource.data = res || [];
-        });
-    } else {
-      this.configuracionRrhhService.onGetAll()
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.dataSource.data = res || [];
-        });
-    }
+  onFiltrar() {
+    this.configuracionRrhhService.onGetPage(
+      this.pageIndex,
+      this.pageSize,
+      this.textoControl.value,
+      this.tipoControl.value
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
+    });
   }
 
-  onLimpiar() {
-    this.buscarControl.setValue(null);
-    this.onBuscar();
+  onResetFiltro() {
+    this.textoControl.setValue(null);
+    this.tipoControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onNuevo() {
@@ -74,7 +82,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.onBuscar();
+        this.onFiltrar();
       }
     });
   }
@@ -87,14 +95,40 @@ export class ListConfiguracionRrhhComponent implements OnInit {
   }
 
   onEditar(configuracion: ConfiguracionRrhh) {
+    const valorAnterior = configuracion?.valor;
     this.dialog.open(EditConfiguracionRrhhDialogComponent, {
       data: { configuracion },
       width: '520px',
       disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.onBuscar();
+        this.onFiltrar();
+        this.revisarImpacto(res, valorAnterior);
       }
+    });
+  }
+
+  /**
+   * TODO-8: algunos parametros estan materializados en registros y no se corrigen
+   * solos al cambiarlos. El unico caso hoy es el salario minimo legal: si subio,
+   * se ofrece (no se impone) ajustar a los funcionarios que quedaron por debajo.
+   *
+   * Los parametros que se leen al calcular (IPS, recargos de HE, dias de vacaciones)
+   * NO entran aca: cambiarlos ya afecta todo calculo futuro y reescribir el historico
+   * seria incorrecto.
+   */
+  private revisarImpacto(guardado: ConfiguracionRrhh, valorAnterior: string) {
+    if (guardado?.clave !== 'SALARIO_MINIMO_LEGAL_PYG') return;
+    const nuevo = Number(guardado?.valor);
+    const anterior = Number(valorAnterior);
+    if (isNaN(nuevo)) return;
+    // Solo importa cuando SUBE: si baja, nadie queda por debajo por este cambio.
+    if (!isNaN(anterior) && nuevo <= anterior) return;
+
+    this.dialog.open(AjusteSalarioMinimoDialogComponent, {
+      data: { minimo: nuevo },
+      width: '760px',
+      disableClose: true
     });
   }
 
@@ -109,7 +143,7 @@ export class ListConfiguracionRrhhComponent implements OnInit {
           .pipe(untilDestroyed(this))
           .subscribe(ok => {
             if (ok) {
-              this.onBuscar();
+              this.onFiltrar();
             }
           });
       }

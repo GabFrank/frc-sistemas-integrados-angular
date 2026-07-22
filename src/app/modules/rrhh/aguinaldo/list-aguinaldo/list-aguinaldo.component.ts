@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -16,10 +18,17 @@ import { AguinaldoService } from '../aguinaldo.service';
 })
 export class ListAguinaldoComponent implements OnInit {
 
-  displayedColumns = ['funcionario', 'mesesTrabajados', 'montoCalculado', 'estado', 'acciones'];
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  displayedColumns = ['funcionario', 'anio', 'mesesTrabajados', 'montoCalculado', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<Aguinaldo>([]);
 
+  funcionarioControl = new FormControl(null);
   anioControl = new FormControl(null);
+
+  pageIndex = 0;
+  pageSize = 25;
+  selectedPageInfo: PageInfo<Aguinaldo>;
 
   constructor(
     private aguinaldoService: AguinaldoService,
@@ -30,12 +39,34 @@ export class ListAguinaldoComponent implements OnInit {
 
   ngOnInit(): void {
     this.anioControl.setValue(new Date().getFullYear());
+    this.onFiltrar();
   }
 
-  onBuscar() {
-    if (this.anioControl.value == null) { return; }
-    this.aguinaldoService.onGetPorAnio(this.anioControl.value)
-      .pipe(untilDestroyed(this)).subscribe(res => { this.dataSource.data = res || []; });
+  onFiltrar() {
+    this.aguinaldoService.onGetPage(
+      this.pageIndex,
+      this.pageSize,
+      this.anioControl.value,
+      this.funcionarioControl.value
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent || [];
+      }
+    });
+  }
+
+  onResetFiltro() {
+    this.funcionarioControl.setValue(null);
+    this.anioControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
   onCalcular() {
@@ -52,7 +83,7 @@ export class ListAguinaldoComponent implements OnInit {
         this.aguinaldoService.onCalcular(this.anioControl.value)
           .pipe(untilDestroyed(this)).subscribe((cant: number) => {
             this.notificacion.notification$.next({ texto: 'Aguinaldos calculados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
-            this.onBuscar();
+            this.onFiltrar();
           });
       }
     });
@@ -60,6 +91,6 @@ export class ListAguinaldoComponent implements OnInit {
 
   onAprobar(a: Aguinaldo) {
     this.aguinaldoService.onAprobar(a.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onBuscar(); });
+      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }
 }

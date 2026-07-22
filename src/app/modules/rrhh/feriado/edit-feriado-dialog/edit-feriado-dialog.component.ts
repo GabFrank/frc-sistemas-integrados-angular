@@ -2,7 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { Feriado } from '../feriado.model';
 import { FeriadoService } from '../feriado.service';
@@ -55,7 +55,7 @@ export class EditFeriadoDialogComponent implements OnInit {
   }
 
   cargarDatos() {
-    this.fechaControl.setValue(this.selectedFeriado.fecha ? new Date(this.selectedFeriado.fecha) : null);
+    this.fechaControl.setValue(this.selectedFeriado.fecha ? stringToLocalDate(this.selectedFeriado.fecha) : null);
     this.descripcionControl.setValue(this.selectedFeriado.descripcion);
     this.esNacionalControl.setValue(this.selectedFeriado.esNacional ?? true);
     this.recargoPorcentajeControl.setValue(this.selectedFeriado.recargoPorcentaje ?? 100);

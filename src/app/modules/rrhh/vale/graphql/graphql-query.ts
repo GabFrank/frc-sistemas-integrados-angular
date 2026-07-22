@@ -26,6 +26,21 @@ export const valesPorEstadoQuery = gql`
   }
 `;
 
+export const valesPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $estado: ValeEstado, $desde: String, $hasta: String) {
+    data: valesPage(page: $page, size: $size, funcionarioId: $funcionarioId, estado: $estado, desde: $desde, hasta: $hasta) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${VALE_FIELDS} }
+    }
+  }
+`;
+
 export const saveValeMutation = gql`
   mutation saveVale($entity: ValeRrhhInput!) {
     data: saveVale(vale: $entity) { ${VALE_FIELDS} }

@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { JustificativosPorFuncionarioYRangoGQL } from './graphql/JustificativosPorFuncionarioYRango';
+import { JustificativosPageGQL } from './graphql/JustificativosPage';
 import { SaveJustificativoGQL } from './graphql/SaveJustificativo';
 import { DeleteJustificativoGQL } from './graphql/DeleteJustificativo';
 import { TiposJustificativoGQL } from './graphql/TiposJustificativo';
 import { TiposJustificativoActivosGQL } from './graphql/TiposJustificativoActivos';
+import { TiposJustificativoPageGQL } from './graphql/TiposJustificativoPage';
 import { SaveTipoJustificativoGQL } from './graphql/SaveTipoJustificativo';
 import { DeleteTipoJustificativoGQL } from './graphql/DeleteTipoJustificativo';
 import { Justificativo, TipoJustificativo } from './justificativo.model';
@@ -16,10 +18,12 @@ export class JustificativoService {
   constructor(
     private genericService: GenericCrudService,
     private justificativosPorFuncionarioYRangoGQL: JustificativosPorFuncionarioYRangoGQL,
+    private justificativosPageGQL: JustificativosPageGQL,
     private saveJustificativoGQL: SaveJustificativoGQL,
     private deleteJustificativoGQL: DeleteJustificativoGQL,
     private tiposJustificativoGQL: TiposJustificativoGQL,
     private tiposJustificativoActivosGQL: TiposJustificativoActivosGQL,
+    private tiposJustificativoPageGQL: TiposJustificativoPageGQL,
     private saveTipoJustificativoGQL: SaveTipoJustificativoGQL,
     private deleteTipoJustificativoGQL: DeleteTipoJustificativoGQL
   ) { }
@@ -30,6 +34,13 @@ export class JustificativoService {
       { funcionarioId, desde, hasta },
       servidor
     );
+  }
+
+  /** Padron del SaaS: lista paginada y filtrada en el backend. */
+  onGetPage(page: number, size: number, funcionarioId?: number, desde?: string, hasta?: string,
+            tipoId?: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.justificativosPageGQL,
+      { page, size, funcionarioId, desde, hasta, tipoId }, servidor);
   }
 
   onSave(input: any, servidor = true): Observable<Justificativo> {
@@ -48,6 +59,12 @@ export class JustificativoService {
 
   onGetTiposActivos(servidor = true): Observable<any> {
     return this.genericService.onGetAll(this.tiposJustificativoActivosGQL, null, null, servidor);
+  }
+
+  /** Padron del SaaS: catalogo de tipos paginado y filtrado en el backend. */
+  onGetTiposPage(page: number, size: number, nombre?: string, activo?: boolean, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.tiposJustificativoPageGQL,
+      { page, size, nombre, activo }, servidor);
   }
 
   onSaveTipo(input: any, servidor = true): Observable<TipoJustificativo> {

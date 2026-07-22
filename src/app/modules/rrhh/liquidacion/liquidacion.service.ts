@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { LiquidacionesPorFuncionarioGQL } from './graphql/LiquidacionesPorFuncionario';
 import { LiquidacionesPorPeriodoGQL } from './graphql/LiquidacionesPorPeriodo';
+import { LiquidacionesPageGQL } from './graphql/LiquidacionesPage';
 import { LiquidacionItemsGQL } from './graphql/LiquidacionItems';
 import { GenerarBorradorGQL } from './graphql/GenerarBorrador';
 import { GenerarMesGQL } from './graphql/GenerarMes';
@@ -21,6 +22,7 @@ export class LiquidacionService {
     private genericService: GenericCrudService,
     private liquidacionesPorFuncionarioGQL: LiquidacionesPorFuncionarioGQL,
     private liquidacionesPorPeriodoGQL: LiquidacionesPorPeriodoGQL,
+    private liquidacionesPageGQL: LiquidacionesPageGQL,
     private liquidacionItemsGQL: LiquidacionItemsGQL,
     private generarBorradorGQL: GenerarBorradorGQL,
     private generarMesGQL: GenerarMesGQL,
@@ -43,6 +45,13 @@ export class LiquidacionService {
 
   onGetItems(liquidacionId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.liquidacionItemsGQL, { liquidacionId }, servidor);
+  }
+
+  /** Padron del SaaS: lista paginada y filtrada en el backend. */
+  onGetPage(page: number, size: number, funcionarioId?: number, periodo?: string,
+            estado?: string, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.liquidacionesPageGQL,
+      { page, size, funcionarioId, periodo, estado }, servidor);
   }
 
   onGenerarBorrador(funcionarioId: number, periodo: string, monedaId: number, servidor = true): Observable<any> {

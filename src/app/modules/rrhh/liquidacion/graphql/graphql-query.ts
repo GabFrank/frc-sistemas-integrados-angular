@@ -16,6 +16,20 @@ export const liquidacionesPorPeriodoQuery = gql`
 export const liquidacionItemsQuery = gql`
   query ($liquidacionId: ID!) { data: liquidacionItems(liquidacionId: $liquidacionId) { ${ITEM_FIELDS} } }
 `;
+export const liquidacionesPageQuery = gql`
+  query ($page: Int, $size: Int, $funcionarioId: ID, $periodo: String, $estado: LiquidacionSueldoEstado) {
+    data: liquidacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, periodo: $periodo, estado: $estado) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent { ${LIQ_FIELDS} }
+    }
+  }
+`;
 export const generarBorradorMutation = gql`
   mutation generarLiquidacionBorrador($funcionarioId: ID!, $periodo: String!, $monedaId: ID) {
     data: generarLiquidacionBorrador(funcionarioId: $funcionarioId, periodo: $periodo, monedaId: $monedaId) { ${LIQ_FIELDS} }
