@@ -133,6 +133,7 @@ export class FacturaLegalService {
     isElectronico?: boolean,
     activo?: boolean,
     sinNombre?: boolean,
+    ventaId?: number,
     servidor: boolean = true
   ) {
     return this.genericService.onCustomQuery(
@@ -149,7 +150,8 @@ export class FacturaLegalService {
         iva10,
         isElectronico,
         activo,
-        sinNombre
+        sinNombre,
+        ventaId
       },
       servidor
     );
