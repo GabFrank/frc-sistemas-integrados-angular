@@ -653,11 +653,6 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onDescargarPdf(factura: FacturaLegal) {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
-
     this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
@@ -683,7 +678,8 @@ export class ListFacturaLegalComponent implements OnInit {
           document.body.appendChild(a);
           a.setAttribute('style', 'display: none');
           a.href = url;
-          a.download = `KuDE-${factura.id}-${factura.cdc}.pdf`;
+          const sufijoArchivo = this.esElectronica(factura) ? factura.cdc : factura.numeroFactura;
+          a.download = `Factura-${factura.id}-${sufijoArchivo}.pdf`;
           a.click();
           window.URL.revokeObjectURL(url);
           a.remove();
@@ -697,11 +693,6 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onAbrirPdf(factura: FacturaLegal) {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
-
     this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
@@ -713,7 +704,9 @@ export class ListFacturaLegalComponent implements OnInit {
           }
 
           // Agregar el PDF al servicio de reportes
-          const nombreReporte = `KuDE ${factura.numeroFactura} - ${factura.cdc}`;
+          const nombreReporte = this.esElectronica(factura)
+            ? `KuDE ${factura.numeroFactura} - ${factura.cdc}`
+            : `Factura ${factura.numeroFactura}`;
           this.reporteService.onAdd(nombreReporte, base64String);
 
           // Abrir el componente de reportes en un nuevo tab
@@ -737,10 +730,6 @@ export class ListFacturaLegalComponent implements OnInit {
 
   /** "Imprimir en la sucursal" (PDF A4): aditivo, no reemplaza onDescargarPdf/onAbrirPdf. */
   onImprimirPdfEnSucursal(factura: FacturaLegal): void {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
     this.matDialog.open(ImprimirEnSucursalDialogComponent, {
       data: { tipo: 'NORMAL', factura },
       width: '900px',
