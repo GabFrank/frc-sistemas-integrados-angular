@@ -12,6 +12,7 @@ import { ListFeriadoComponent } from './feriado/list-feriado/list-feriado.compon
 import { EditFeriadoDialogComponent } from './feriado/edit-feriado-dialog/edit-feriado-dialog.component';
 import { ListPenalizacionComponent } from './penalizacion/list-penalizacion/list-penalizacion.component';
 import { EditPenalizacionDialogComponent } from './penalizacion/edit-penalizacion-dialog/edit-penalizacion-dialog.component';
+import { GenerarPenalizacionesDialogComponent } from './penalizacion/generar-penalizaciones-dialog/generar-penalizaciones-dialog.component';
 import { ListHoraExtraComponent } from './hora-extra/list-hora-extra/list-hora-extra.component';
 import { EditHoraExtraDialogComponent } from './hora-extra/edit-hora-extra-dialog/edit-hora-extra-dialog.component';
 import { ListJustificativoComponent } from './justificativo/list-justificativo/list-justificativo.component';
@@ -56,6 +57,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     EditFeriadoDialogComponent,
     ListPenalizacionComponent,
     EditPenalizacionDialogComponent,
+    GenerarPenalizacionesDialogComponent,
     ListHoraExtraComponent,
     EditHoraExtraDialogComponent,
     ListJustificativoComponent,

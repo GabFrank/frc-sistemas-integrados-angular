@@ -19,8 +19,9 @@
   <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
       <ng-container matColumnDef="clave">
-        <th mat-header-cell *matHeaderCellDef>Clave</th>
-        <td mat-cell *matCellDef="let row">{{ row.clave }}</td>
+        <th mat-header-cell *matHeaderCellDef>Parámetro</th>
+        <td mat-cell *matCellDef="let row">
+          <span [matTooltip]="row.clave">{{ row.claveLabel }}</span></td>
       </ng-container>
 
       <ng-container matColumnDef="valor">

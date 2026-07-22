@@ -12,6 +12,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { Penalizacion, PenalizacionTipo } from '../penalizacion.model';
 import { PenalizacionService } from '../penalizacion.service';
 import { EditPenalizacionDialogComponent } from '../edit-penalizacion-dialog/edit-penalizacion-dialog.component';
+import { GenerarPenalizacionesDialogComponent } from '../generar-penalizaciones-dialog/generar-penalizaciones-dialog.component';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -31,7 +32,6 @@ export class ListPenalizacionComponent implements OnInit {
   tipoControl = new FormControl(null);
   desdeControl = new FormControl(null);
   hastaControl = new FormControl(null);
-  fechaGenerarControl = new FormControl(null);
 
   tipoOpciones: PenalizacionTipo[] = [
     'TARDANZA', 'AUSENCIA', 'QUEJA_CLIENTE', 'AMBIENTE_LABORAL',
@@ -54,7 +54,6 @@ export class ListPenalizacionComponent implements OnInit {
     const hoy = new Date();
     this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     this.hastaControl.setValue(hoy);
-    this.fechaGenerarControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1));
     this.onFiltrar();
   }
 
@@ -114,15 +113,23 @@ export class ListPenalizacionComponent implements OnInit {
   }
 
   onGenerarAuto() {
-    this.penalizacionService.onGenerarAuto(dateToString(this.fechaGenerarControl.value, 'yyyy-MM-dd'))
-      .pipe(untilDestroyed(this))
-      .subscribe((cant: number) => {
-        this.notificacion.notification$.next({
-          texto: 'Penalizaciones automáticas generadas: ' + (cant ?? 0),
-          color: NotificacionColor.success,
-          duracion: 3
-        });
-        this.onFiltrar();
+    // La fecha es parametro de la accion, no un filtro: se pide en el dialogo.
+    this.dialog.open(GenerarPenalizacionesDialogComponent, { width: '460px', disableClose: true })
+      .afterClosed().pipe(untilDestroyed(this)).subscribe((fecha: Date) => {
+        if (fecha == null) return;
+        this.penalizacionService.onGenerarAuto(dateToString(fecha, 'yyyy-MM-dd'))
+          .pipe(untilDestroyed(this))
+          .subscribe((cant: number) => {
+            const generadas = cant ?? 0;
+            this.notificacion.notification$.next({
+              texto: generadas > 0
+                ? 'Penalizaciones automáticas generadas: ' + generadas
+                : 'No se generó ninguna penalización para esa fecha',
+              color: generadas > 0 ? NotificacionColor.success : NotificacionColor.warn,
+              duracion: 4
+            });
+            this.onFiltrar();
+          });
       });
   }
 }

@@ -58,9 +58,23 @@ export class ListConfiguracionRrhhComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent || [];
+        // La clave es un identificador tecnico (SALARIO_MINIMO_LEGAL_PYG). Se muestra
+        // legible; la original queda en el tooltip porque es la que se usa en el codigo
+        // y en soporte. Se precalcula aca: llamar una funcion desde el HTML se re-evalua
+        // en cada ciclo de deteccion de cambios.
+        this.dataSource.data = (res.getContent || []).map(c => ({
+          ...c,
+          claveLabel: this.humanizarClave(c.clave)
+        }));
       }
     });
+  }
+
+  /** SALARIO_MINIMO_LEGAL_PYG -> "Salario minimo legal pyg" */
+  private humanizarClave(clave: string): string {
+    if (!clave) return '';
+    const texto = clave.replace(/_/g, ' ').toLowerCase();
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
   }
 
   onResetFiltro() {
