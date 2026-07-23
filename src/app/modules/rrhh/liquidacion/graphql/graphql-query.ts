@@ -61,3 +61,9 @@ export const anularLiquidacionMutation = gql`
 export const imprimirReciboLiquidacionQuery = gql`
   query ($id: ID!) { data: imprimirReciboLiquidacion(id: $id) }
 `;
+
+export const generarLoteMutation = gql`
+  mutation generarLiquidacionesLote($funcionarioIds: [Int], $periodo: String!, $monedaId: ID) {
+    data: generarLiquidacionesLote(funcionarioIds: $funcionarioIds, periodo: $periodo, monedaId: $monedaId)
+  }
+`;

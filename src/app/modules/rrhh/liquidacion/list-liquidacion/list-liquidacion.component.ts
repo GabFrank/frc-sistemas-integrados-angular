@@ -82,23 +82,11 @@ export class ListLiquidacionComponent implements OnInit {
     this.onFiltrar();
   }
 
-  onNueva() {
+  onGenerar() {
     this.dialog.open(GenerarLiquidacionDialogComponent, {
-      data: { funcionarioId: this.funcionarioControl.value, periodo: this.periodoControl.value },
-      width: '480px', disableClose: true
+      data: { periodo: this.periodoControl.value },
+      width: '560px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
-  }
-
-  onGenerarMes() {
-    if (!this.periodoControl.value) {
-      this.notificacion.notification$.next({ texto: 'Indique el período (YYYY-MM)', color: NotificacionColor.warn, duracion: 3 });
-      return;
-    }
-    this.liquidacionService.onGenerarMes(this.periodoControl.value, null)
-      .pipe(untilDestroyed(this)).subscribe((cant: number) => {
-        this.notificacion.notification$.next({ texto: 'Borradores generados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
-        this.onFiltrar();
-      });
   }
 
   onDetalle(liq: LiquidacionSueldo) {

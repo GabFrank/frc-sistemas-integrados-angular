@@ -1,5 +1,5 @@
-<app-generic-list titulo="Liquidaciones" style="height: 100%" [isAdicionar]="true" (adicionar)="onNueva()"
-  [isCustom]="true" customName="Generar mes" (customFunction)="onGenerarMes()"
+<app-generic-list titulo="Liquidaciones" style="height: 100%" [isCustom]="true" customName="Generar"
+  (customFunction)="onGenerar()"
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
   <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">

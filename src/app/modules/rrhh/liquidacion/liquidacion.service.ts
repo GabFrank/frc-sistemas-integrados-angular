@@ -7,6 +7,7 @@ import { LiquidacionesPageGQL } from './graphql/LiquidacionesPage';
 import { LiquidacionItemsGQL } from './graphql/LiquidacionItems';
 import { GenerarBorradorGQL } from './graphql/GenerarBorrador';
 import { GenerarMesGQL } from './graphql/GenerarMes';
+import { GenerarLoteGQL } from './graphql/GenerarLote';
 import { AgregarItemGQL } from './graphql/AgregarItem';
 import { EliminarItemGQL } from './graphql/EliminarItem';
 import { AprobarLiquidacionGQL } from './graphql/AprobarLiquidacion';
@@ -26,6 +27,7 @@ export class LiquidacionService {
     private liquidacionItemsGQL: LiquidacionItemsGQL,
     private generarBorradorGQL: GenerarBorradorGQL,
     private generarMesGQL: GenerarMesGQL,
+    private generarLoteGQL: GenerarLoteGQL,
     private agregarItemGQL: AgregarItemGQL,
     private eliminarItemGQL: EliminarItemGQL,
     private aprobarLiquidacionGQL: AprobarLiquidacionGQL,
@@ -60,6 +62,11 @@ export class LiquidacionService {
 
   onGenerarMes(periodo: string, monedaId: number, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.generarMesGQL, { periodo, monedaId }, servidor);
+  }
+
+  /** Genera borradores para una lista de funcionarios (null = todos los activos). */
+  onGenerarLote(funcionarioIds: number[], periodo: string, monedaId: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor);
   }
 
   onAgregarItem(liquidacionId: number, descripcion: string, monto: number, tipo: string, servidor = true): Observable<any> {
