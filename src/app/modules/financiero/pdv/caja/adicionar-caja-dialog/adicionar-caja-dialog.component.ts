@@ -28,6 +28,7 @@ import { Conteo } from "../../../conteo/conteo.model";
 import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component";
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
+import { ConfirmDialogComponent } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import { PdvCaja, PdvCajaInput } from "../caja.model";
 import { CajaService } from "../caja.service";
 
@@ -617,9 +618,33 @@ export class AdicionarCajaDialogComponent implements OnInit {
             .subscribe({
               next: (pendientes) => {
                 if (pendientes > 0) {
-                  this.notificacionBar.openWarn(
-                    `Posee ${pendientes} venta(s) con tarjeta sin registrar en la app móvil`
-                  );
+                  this.matDialog.open(ConfirmDialogComponent, {
+                    width: "480px",
+                    data: {
+                      title: "Ventas con tarjeta sin registrar",
+                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar en la app móvil. ` +
+                        `Si cierra la caja, quedarán marcadas como NO COMPLETADAS y ya no podrán registrarse. ¿Desea cerrar igualmente?`,
+                      confirmText: "Cerrar igualmente",
+                      cancelText: "Volver",
+                    },
+                  }).afterClosed().pipe(take(1)).subscribe((confirmado) => {
+                    if (confirmado === true) {
+                      this.ventaTarjetaService.onMarcarNoCompletadas(this.selectedCaja.id, this.selectedCaja.sucursalId)
+                        .pipe(take(1))
+                        .subscribe({
+                          next: () => {
+                            this.stepper.selectedIndex = 1;
+                            this.stepper.selectedIndex = 2;
+                            this.focusToCierreSub.next(null);
+                          },
+                          error: () => {
+                            this.notificacionBar.openWarn(
+                              "No se pudo actualizar las ventas con tarjeta pendientes. Intente nuevamente."
+                            );
+                          },
+                        });
+                    }
+                  });
                 } else {
                   this.stepper.selectedIndex = 1;
                   this.stepper.selectedIndex = 2;

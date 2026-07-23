@@ -95,3 +95,9 @@ export const saveConfiguracionVentaTarjeta = gql`
     }
   }
 `;
+
+export const marcarVentasTarjetaNoCompletadasMutation = gql`
+  mutation marcarVentasTarjetaNoCompletadas($cajaId: ID!, $sucId: ID!) {
+    data: marcarVentasTarjetaNoCompletadas(cajaId: $cajaId, sucId: $sucId)
+  }
+`;
