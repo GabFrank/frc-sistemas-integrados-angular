@@ -22,10 +22,11 @@
         <div fxFlex="10%">
           <mat-form-field appearance="outline" style="width: 100%;">
             <mat-label>N° de venta</mat-label>
-            <input 
+            <input
               matInput
               placeholder="N° de venta"
-              type="number"
+              type="text"
+              inputmode="numeric"
               [formControl]="idVentaControl"
               (keyup.enter)="onFiltrarConReset()"
             >

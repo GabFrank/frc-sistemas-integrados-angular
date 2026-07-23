@@ -105,7 +105,7 @@
         fxLayoutGap="10px"
         style="width: 100%"
       >
-        <div fxFlex="33%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -117,7 +117,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="33%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -129,13 +129,25 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="34%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>CDC</mat-label>
             <input
               type="text"
               matInput
               [formControl]="cdcControl"
+              (keyup.enter)="onFilter()"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Número de venta</mat-label>
+            <input
+              type="text"
+              inputmode="numeric"
+              matInput
+              [formControl]="ventaIdControl"
               (keyup.enter)="onFilter()"
             />
           </mat-form-field>
