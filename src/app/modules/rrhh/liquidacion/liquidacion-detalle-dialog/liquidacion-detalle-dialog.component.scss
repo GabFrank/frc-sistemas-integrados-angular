@@ -1,16 +1,22 @@
 .dialog-container {
-  min-width: 780px;
+  min-width: 940px;
   padding: 8px;
 
-  .tabla-container { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+  .totales-cards { margin: 4px 0 2px; }
+
+  .agregar-panel {
+    padding: 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .tabla-container { overflow-x: auto; max-height: 360px; overflow-y: auto; }
   table { width: 100%; text-align: center; }
   th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
   .text-left { text-align: left; }
 
   .haber { color: #66bb6a; font-weight: 600; }
   .descuento { color: #ef5350; font-weight: 600; }
-
-  .totales { font-size: 14px; padding: 6px 8px; .neto { font-size: 16px; } }
 
   .chip { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .chip-BORRADOR { background: rgba(158, 158, 158, 0.25); color: #bdbdbd; }

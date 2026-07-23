@@ -30,6 +30,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null);
 
+  mostrarAgregar = false;
   descripcionControl = new FormControl(null);
   montoControl = new FormControl(0);
   tipoControl = new FormControl('DESCUENTO');
@@ -83,7 +84,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       this.tipoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.descripcionControl.reset(); this.montoControl.setValue(0);
+        this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
         this.cambiado = true;
         this.recargarCabecera();
       }
@@ -155,6 +156,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       const win = window.open();
       if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
     });
+  }
+
+  onToggleAgregar() {
+    this.mostrarAgregar = !this.mostrarAgregar;
+    if (!this.mostrarAgregar) { this.descripcionControl.reset(); this.montoControl.setValue(0); }
   }
 
   onCerrar() {

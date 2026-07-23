@@ -90,7 +90,7 @@ export class ListLiquidacionComponent implements OnInit {
   }
 
   onDetalle(liq: LiquidacionSueldo) {
-    this.dialog.open(LiquidacionDetalleDialogComponent, { data: { liquidacion: liq }, width: '820px', disableClose: false })
+    this.dialog.open(LiquidacionDetalleDialogComponent, { data: { liquidacion: liq }, width: '980px', maxWidth: '95vw', disableClose: false })
       .afterClosed().pipe(untilDestroyed(this)).subscribe(() => { this.onFiltrar(); });
   }
 
