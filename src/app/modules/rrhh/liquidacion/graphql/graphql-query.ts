@@ -7,6 +7,9 @@ const LIQ_FIELDS = `
   moneda { id denominacion } estado observacion
 `;
 
+export const liquidacionByIdQuery = gql`
+  query ($id: ID!) { data: liquidacionSueldo(id: $id) { ${LIQ_FIELDS} } }
+`;
 export const liquidacionesPorFuncionarioQuery = gql`
   query ($funcionarioId: ID!) { data: liquidacionesPorFuncionario(funcionarioId: $funcionarioId) { ${LIQ_FIELDS} } }
 `;

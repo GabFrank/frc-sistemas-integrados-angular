@@ -11,6 +11,10 @@ import { LiquidacionSueldo } from '../liquidacion.model';
 import { LiquidacionService } from '../liquidacion.service';
 import { GenerarLiquidacionDialogComponent } from '../generar-liquidacion-dialog/generar-liquidacion-dialog.component';
 import { LiquidacionDetalleDialogComponent } from '../liquidacion-detalle-dialog/liquidacion-detalle-dialog.component';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabData, TabService } from '../../../../layouts/tab/tab.service';
+import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -40,6 +44,8 @@ export class ListLiquidacionComponent implements OnInit {
     private liquidacionService: LiquidacionService,
     public mainService: MainService,
     private dialog: MatDialog,
+    private tabService: TabService,
+    private reporteService: ReporteService,
     private notificacion: NotificacionSnackbarService
   ) { }
 
@@ -90,19 +96,25 @@ export class ListLiquidacionComponent implements OnInit {
   }
 
   onDetalle(liq: LiquidacionSueldo) {
-    this.dialog.open(LiquidacionDetalleDialogComponent, { data: { liquidacion: liq }, width: '980px', maxWidth: '95vw', disableClose: false })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe(() => { this.onFiltrar(); });
+    // En tab (no dialogo) para poder comparar varias liquidaciones abiertas a la vez.
+    this.tabService.addTab(new Tab(
+      LiquidacionDetalleDialogComponent,
+      'Liquidación ' + liq.id,
+      new TabData(liq.id),
+      ListLiquidacionComponent
+    ));
   }
 
-  onImprimirRecibo(liq: LiquidacionSueldo) {
+  onVerRecibo(liq: LiquidacionSueldo) {
     this.liquidacionService.onImprimirRecibo(liq.id).pipe(untilDestroyed(this)).subscribe((base64: string) => {
       if (!base64) {
         this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
         return;
       }
-      const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
-      const win = window.open();
-      if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
+      // Todos los PDF se ven en el visor integrado (tab "Reportes").
+      this.reporteService.onAdd(
+        'Recibo ' + liq.periodo + ' - ' + (liq.funcionario?.persona?.nombre || liq.id), base64);
+      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
     });
   }
 }

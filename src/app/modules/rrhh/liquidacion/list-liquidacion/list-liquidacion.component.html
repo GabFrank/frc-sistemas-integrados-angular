@@ -62,9 +62,9 @@
             <button mat-menu-item (click)="onDetalle(row)">
               <mat-icon>receipt</mat-icon><span>Detalle</span>
             </button>
-            <button mat-menu-item (click)="onImprimirRecibo(row)"
+            <button mat-menu-item (click)="onVerRecibo(row)"
               [disabled]="row.estado !== 'APROBADA' && row.estado !== 'PAGADA'">
-              <mat-icon>print</mat-icon><span>Imprimir recibo</span>
+              <mat-icon>visibility</mat-icon><span>Ver Recibo</span>
             </button>
           </mat-menu>
         </td>

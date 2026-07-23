@@ -1,21 +1,23 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService } from '../../../../layouts/tab/tab.service';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
-import { DocumentoViewerDialogComponent } from '../../legajo/documento-viewer-dialog/documento-viewer-dialog.component';
 import { LiquidacionService } from '../liquidacion.service';
 
-export interface LiquidacionDetalleDialogData {
-  liquidacion: LiquidacionSueldo;
-}
-
+/**
+ * Detalle de liquidación. Se abre en una TAB (no en diálogo) para poder comparar
+ * varias liquidaciones abiertas a la vez. Recibe el id vía TabData y carga el resto.
+ */
 @UntilDestroy()
 @Component({
   selector: 'app-liquidacion-detalle-dialog',
@@ -23,6 +25,9 @@ export interface LiquidacionDetalleDialogData {
   styleUrls: ['./liquidacion-detalle-dialog.component.scss']
 })
 export class LiquidacionDetalleDialogComponent implements OnInit {
+
+  /** Tab completo inyectado por TabContentComponent. */
+  @Input() data: Tab;
 
   liq: LiquidacionSueldo;
   itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
@@ -37,37 +42,46 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
 
-  cambiado = false;
-
   constructor(
-    @Inject(MAT_DIALOG_DATA) private data: LiquidacionDetalleDialogData,
-    private dialogRef: MatDialogRef<LiquidacionDetalleDialogComponent>,
-    private dialog: MatDialog,
+    private tabService: TabService,
     private liquidacionService: LiquidacionService,
     private cajaVirtualService: CajaVirtualService,
     private dialogosService: DialogosService,
+    private reporteService: ReporteService,
     public mainService: MainService,
     private notificacion: NotificacionSnackbarService
-  ) {
-    this.liq = data.liquidacion;
-  }
+  ) { }
 
   ngOnInit(): void {
-    this.cargarItems();
+    const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
+    if (id != null) {
+      this.recargar(id);
+    }
     this.cajaVirtualService.onGetActivas()
       .pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR'); });
   }
 
-  cargarItems() {
-    this.liquidacionService.onGetItems(this.liq.id)
+  /** Trae cabecera + items desde el backend por id. */
+  private recargar(id?: number) {
+    const liqId = id ?? this.liq?.id;
+    if (liqId == null) { return; }
+    this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
+      if (res != null) { this.liq = res; }
+    });
+    this.cargarItems(liqId);
+  }
+
+  private cargarItems(id?: number) {
+    const liqId = id ?? this.liq?.id;
+    if (liqId == null) { return; }
+    this.liquidacionService.onGetItems(liqId)
       .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
   }
 
   private aplicar(res: any) {
     if (res != null) {
       this.liq = res;
-      this.cambiado = true;
       this.cargarItems();
     }
   }
@@ -87,25 +101,14 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
-        this.cambiado = true;
-        this.recargarCabecera();
+        this.recargar();
       }
     });
   }
 
   onEliminarItem(it: LiquidacionItem) {
     this.liquidacionService.onEliminarItem(it.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.cambiado = true; this.recargarCabecera(); } });
-  }
-
-  private recargarCabecera() {
-    // recargar items y totales desde la cabecera por funcionario+periodo
-    this.liquidacionService.onGetPorFuncionario(this.liq.funcionario?.id)
-      .pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo[]) => {
-        const actual = (res || []).find(l => l.id === this.liq.id);
-        if (actual) this.liq = actual;
-        this.cargarItems();
-      });
+      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
   }
 
   onAprobar() {
@@ -154,12 +157,10 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
         return;
       }
-      // window.open() esta bloqueado en Electron; se muestra en un dialogo con iframe.
-      const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
-      this.dialog.open(DocumentoViewerDialogComponent, {
-        data: { src, titulo: 'Recibo — ' + this.liq.periodo + ' — ' + (this.liq.funcionario?.persona?.nombre || '') },
-        width: '80vw', maxWidth: '1000px'
-      });
+      // Todos los PDF se ven en el visor integrado (tab "Reportes"), no en window.open.
+      this.reporteService.onAdd(
+        'Recibo ' + this.liq.periodo + ' - ' + (this.liq.funcionario?.persona?.nombre || this.liq.id), base64);
+      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
     });
   }
 
@@ -169,6 +170,10 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   }
 
   onCerrar() {
-    this.dialogRef.close(this.cambiado);
+    // Cierra esta tab. El titulo se arma igual que al abrirla desde la lista.
+    if (this.liq != null) {
+      const idx = this.tabService.getIndexByName('Liquidación ' + this.liq.id);
+      if (idx != null && idx > -1) { this.tabService.removeTab(idx); }
+    }
   }
 }

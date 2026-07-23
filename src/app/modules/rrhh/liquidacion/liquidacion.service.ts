@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { LiquidacionByIdGQL } from './graphql/LiquidacionById';
 import { LiquidacionesPorFuncionarioGQL } from './graphql/LiquidacionesPorFuncionario';
 import { LiquidacionesPorPeriodoGQL } from './graphql/LiquidacionesPorPeriodo';
 import { LiquidacionesPageGQL } from './graphql/LiquidacionesPage';
@@ -21,6 +22,7 @@ export class LiquidacionService {
 
   constructor(
     private genericService: GenericCrudService,
+    private liquidacionByIdGQL: LiquidacionByIdGQL,
     private liquidacionesPorFuncionarioGQL: LiquidacionesPorFuncionarioGQL,
     private liquidacionesPorPeriodoGQL: LiquidacionesPorPeriodoGQL,
     private liquidacionesPageGQL: LiquidacionesPageGQL,
@@ -36,6 +38,10 @@ export class LiquidacionService {
     private anularLiquidacionGQL: AnularLiquidacionGQL,
     private imprimirReciboGQL: ImprimirReciboLiquidacionGQL
   ) { }
+
+  onGetById(id: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.liquidacionByIdGQL, { id }, servidor);
+  }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.liquidacionesPorFuncionarioGQL, { funcionarioId }, servidor);

@@ -1,6 +1,6 @@
-<div class="dialog-container" fxLayout="column" fxLayoutGap="14px">
+<div class="detalle-container" fxLayout="column" fxLayoutGap="14px" *ngIf="liq">
   <div fxLayout="row" fxLayoutAlign="space-between center">
-    <h2 mat-dialog-title>Liquidación {{ liq.periodo }} — {{ liq.funcionario?.persona?.nombre }}</h2>
+    <h2 class="titulo">Liquidación {{ liq.periodo }} — {{ liq.funcionario?.persona?.nombre }}</h2>
     <span class="chip" [ngClass]="'chip-' + liq.estado">{{ liq.estado }}</span>
   </div>
 
@@ -83,7 +83,7 @@
     </mat-form-field>
   </div>
 
-  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
+  <div class="acciones-footer" fxLayout="row" fxLayoutAlign="space-between center">
     <button mat-stroked-button (click)="onCerrar()">Cerrar</button>
     <div fxLayout="row" fxLayoutGap="10px">
       <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR'" (click)="onRegenerar()">
@@ -92,7 +92,7 @@
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA'" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
-        <mat-icon>print</mat-icon> Recibo
+        <mat-icon>visibility</mat-icon> Ver Recibo
       </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA'" (click)="onPagar()">Pagar</button>
       <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA'" (click)="onAnular()">Anular</button>
