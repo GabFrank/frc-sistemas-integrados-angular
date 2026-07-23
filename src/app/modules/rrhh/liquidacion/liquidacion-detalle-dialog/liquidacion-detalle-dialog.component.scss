@@ -1,8 +1,11 @@
 .dialog-container {
   min-width: 940px;
+  // Altura fija: el dialogo no cambia de tamano al abrir/cerrar el panel de agregar;
+  // la tabla absorbe la diferencia scrolleando internamente.
+  height: 72vh;
   padding: 8px;
 
-  .totales-cards { margin: 4px 0 2px; }
+  .totales-cards { margin: 2px 0; }
 
   .agregar-panel {
     padding: 10px;
@@ -10,7 +13,8 @@
     background: rgba(255, 255, 255, 0.04);
   }
 
-  .tabla-container { overflow-x: auto; max-height: 360px; overflow-y: auto; }
+  // Ocupa el espacio sobrante y scrollea; el resto de secciones va fijo arriba/abajo.
+  .tabla-container { flex: 1 1 auto; overflow: auto; min-height: 0; }
   table { width: 100%; text-align: center; }
   th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
   .text-left { text-align: left; }

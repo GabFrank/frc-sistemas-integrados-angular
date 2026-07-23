@@ -4,16 +4,6 @@
     <span class="chip" [ngClass]="'chip-' + liq.estado">{{ liq.estado }}</span>
   </div>
 
-  <!-- Totales en cards, como en los demás dashboards -->
-  <div class="totales-cards" fxLayout="row" fxLayoutGap="12px">
-    <dash-stat-chip fxFlex icon="add_circle" color="success"
-      [value]="liq.totalHaberes | number:'1.0-2'" label="Haberes"></dash-stat-chip>
-    <dash-stat-chip fxFlex icon="remove_circle" color="danger"
-      [value]="liq.totalDescuentos | number:'1.0-2'" label="Descuentos"></dash-stat-chip>
-    <dash-stat-chip fxFlex icon="payments" color="primary"
-      [value]="liq.totalNeto | number:'1.0-2'" label="Neto a pagar"></dash-stat-chip>
-  </div>
-
   <!-- Alta de item manual: sobre la tabla, oculta hasta que se presiona Agregar Item -->
   <div class="agregar-panel" *ngIf="mostrarAgregar && liq.estado === 'BORRADOR'"
     fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
@@ -72,6 +62,16 @@
       <tr mat-header-row *matHeaderRowDef="itemsColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: itemsColumns"></tr>
     </table>
+  </div>
+
+  <!-- Totales en cards, como en los demás dashboards -->
+  <div class="totales-cards" fxLayout="row" fxLayoutGap="12px">
+    <dash-stat-chip fxFlex icon="add_circle" color="success"
+      [value]="liq.totalHaberes | number:'1.0-2'" label="Haberes"></dash-stat-chip>
+    <dash-stat-chip fxFlex icon="remove_circle" color="danger"
+      [value]="liq.totalDescuentos | number:'1.0-2'" label="Descuentos"></dash-stat-chip>
+    <dash-stat-chip fxFlex icon="payments" color="primary"
+      [value]="liq.totalNeto | number:'1.0-2'" label="Neto a pagar"></dash-stat-chip>
   </div>
 
   <div class="pago" *ngIf="liq.estado === 'APROBADA'" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
