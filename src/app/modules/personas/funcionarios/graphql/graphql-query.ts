@@ -150,7 +150,6 @@ export const funcionarioQuery = gql`
       fasePrueba
       activo
       nickname
-      imagenPrincipal
       codigoInterno
       ipsActivo
       numeroIps
