@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from '../../../../main.service';
@@ -9,6 +9,7 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
 import { LiquidacionSueldo, LiquidacionItem } from '../liquidacion.model';
+import { DocumentoViewerDialogComponent } from '../../legajo/documento-viewer-dialog/documento-viewer-dialog.component';
 import { LiquidacionService } from '../liquidacion.service';
 
 export interface LiquidacionDetalleDialogData {
@@ -41,6 +42,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: LiquidacionDetalleDialogData,
     private dialogRef: MatDialogRef<LiquidacionDetalleDialogComponent>,
+    private dialog: MatDialog,
     private liquidacionService: LiquidacionService,
     private cajaVirtualService: CajaVirtualService,
     private dialogosService: DialogosService,
@@ -152,9 +154,12 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
         this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
         return;
       }
+      // window.open() esta bloqueado en Electron; se muestra en un dialogo con iframe.
       const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
-      const win = window.open();
-      if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
+      this.dialog.open(DocumentoViewerDialogComponent, {
+        data: { src, titulo: 'Recibo — ' + this.liq.periodo + ' — ' + (this.liq.funcionario?.persona?.nombre || '') },
+        width: '80vw', maxWidth: '1000px'
+      });
     });
   }
 
