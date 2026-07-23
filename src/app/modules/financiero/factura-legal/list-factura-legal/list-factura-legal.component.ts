@@ -63,6 +63,7 @@ export class ListFacturaLegalComponent implements OnInit {
   nombreControl = new FormControl(null);
   rucControl = new FormControl(null);
   cdcControl = new FormControl(null);
+  ventaIdControl = new FormControl(null);
   tipoControl = new FormControl('TODOS');
   estadoControl = new FormControl('TODOS');
   fechaInicioControl = new FormControl(null, Validators.required);
@@ -164,6 +165,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.tipoControl.disable();
         this.estadoControl.disable();
         this.sinNombreControl.disable();
+        this.ventaIdControl.disable();
       } else {
         this.sucursalControl.enable();
         this.nombreControl.enable();
@@ -175,6 +177,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.tipoControl.enable();
         this.estadoControl.enable();
         this.sinNombreControl.enable();
+        this.ventaIdControl.enable();
       }
     });
 
@@ -270,7 +273,8 @@ export class ListFacturaLegalComponent implements OnInit {
           false,
           isElectronico,
           activo,
-          this.sinNombreControl.value
+          this.sinNombreControl.value,
+          this.toVentaId(this.ventaIdControl.value)
         )
         .subscribe((res) => {
           this.selectedPageInfo = res;
@@ -300,6 +304,15 @@ export class ListFacturaLegalComponent implements OnInit {
       let ruc = removeSecondDigito(f.ruc);
       f.ruc = ruc;
     });
+  }
+
+  // Acepta el nro. de venta con o sin separadores de miles (ej: 756.526 -> 756526)
+  toVentaId(value: any): number {
+    if (value == null || value === '') {
+      return null;
+    }
+    let soloDigitos = String(value).replace(/\D/g, '');
+    return soloDigitos.length > 0 ? parseInt(soloDigitos, 10) : null;
   }
 
   toSucursalesId(sucursales: Sucursal[]) {
@@ -407,6 +420,7 @@ export class ListFacturaLegalComponent implements OnInit {
     this.nombreControl.setValue(null);
     this.rucControl.setValue(null);
     this.sinNombreControl.setValue(null);
+    this.ventaIdControl.setValue(null);
     this.selectedResumenFacturas = null;
     this.dataSource.data = [];
   }
