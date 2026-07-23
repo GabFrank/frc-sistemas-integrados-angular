@@ -45,7 +45,7 @@ export class ListVentaTarjetaComponent implements OnInit {
   sucursales: Sucursal[] = [];
   terminalesDescripciones: string[] = [];
   terminales: { descripcion: string; codigo: string }[] = [];
-  estados = ['PENDIENTE', 'COMPLETADO', 'CANCELADO'];
+  estados = ['PENDIENTE', 'COMPLETADO', 'CANCELADO', 'NO_COMPLETADO'];
 
   get terminalesCodigos(): string[] {
     const desc = this.terminalDescripcionControl.value;

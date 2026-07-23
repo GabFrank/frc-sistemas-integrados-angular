@@ -6,6 +6,7 @@ import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasT
 import { CancelarVentaTarjetaPorVentaIdGQL } from './graphql/cancelarVentaTarjetaPorVentaId';
 import { FiltrarVentasTarjetaGQL } from './graphql/filtrarVentasTarjeta';
 import { ImprimirReporteVentaTarjetaGQL } from './graphql/imprimirReporteVentaTarjeta';
+import { MarcarVentasTarjetaNoCompletadasGQL } from './graphql/marcarVentasTarjetaNoCompletadas';
 import { PageInfo } from '../../../app.component';
 import { VentaTarjeta } from './venta-tarjeta.model';
 import { MainService } from '../../../main.service';
@@ -35,20 +36,21 @@ export class VentaTarjetaService {
     private cancelarVentaTarjetaGQL: CancelarVentaTarjetaPorVentaIdGQL,
     private filtrarVentasTarjetaGQL: FiltrarVentasTarjetaGQL,
     private imprimirReporteVentaTarjetaGQL: ImprimirReporteVentaTarjetaGQL,
+    private marcarVentasTarjetaNoCompletadasGQL: MarcarVentasTarjetaNoCompletadasGQL,
     private mainService: MainService,
     private reporteService: ReporteService,
     private tabService: TabService
   ) {}
 
   onSavePendiente(input: VentaTarjetaInput): Observable<VentaTarjetaResult> {
-    return this.genericService.onCustomMutation(this.saveVentaTarjetaGQL, { entity: input }, true);
+    return this.genericService.onCustomMutation(this.saveVentaTarjetaGQL, { entity: input }, false);
   }
 
   onCountSinRegistrar(cajaId: number, sucId: number): Observable<number> {
     return this.genericService.onCustomQuery(
       this.countVentasTarjetaGQL,
       { cajaId, sucId },
-      true,
+      false,
       null,
       true
     );
@@ -58,8 +60,16 @@ export class VentaTarjetaService {
     return this.genericService.onCustomMutation(
       this.cancelarVentaTarjetaGQL,
       { ventaId, sucId },
-      true,
+      false,
       true
+    );
+  }
+
+  onMarcarNoCompletadas(cajaId: number, sucId: number): Observable<number> {
+    return this.genericService.onCustomMutation(
+      this.marcarVentasTarjetaNoCompletadasGQL,
+      { cajaId, sucId },
+      false
     );
   }
 

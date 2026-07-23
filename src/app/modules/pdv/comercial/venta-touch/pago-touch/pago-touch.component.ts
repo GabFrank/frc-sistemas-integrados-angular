@@ -626,7 +626,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    this.configuracionVentaTarjetaService.onGetConfiguracion().subscribe({
+    // Config replicada del central: se consulta al filial para funcionar sin internet
+    this.configuracionVentaTarjetaService.onGetConfiguracion(false).subscribe({
       next: (config) => {
         if (!config?.habilitado) {
           // Flujo de registro de venta con tarjeta deshabilitado: el cobro con
