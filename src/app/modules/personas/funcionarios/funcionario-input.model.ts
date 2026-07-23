@@ -14,4 +14,12 @@ export class FuncionarioInput {
   usuarioId: number = null;
   horarioId: number;
   activo: boolean;
+  // Campos agregados para InformacionGeneralComponent (legajo, tab "Información general").
+  codigoInterno: string;
+  ipsActivo: boolean;
+  numeroIps: string;
+  fechaIngresoIps: string;
+  cuentaBancaria: string;
+  contactoEmergenciaNombre: string;
+  contactoEmergenciaTelefono: string;
 }

@@ -22,7 +22,6 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { FuncionarioInput } from '../funcionario-input.model';
@@ -121,24 +120,15 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   rowSelectedEvent(e) {
   }
 
-  onAddFuncionario(funcionario?: Funcionario, index?) {
-    this.matDialog.open(AdicionarFuncionarioDialogComponent, {
-      data: {
-        funcionario
-      },
-      width: '70%',
-      height: '70%',
-      autoFocus: true,
-      restoreFocus: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        if (funcionario == null) {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res);
-        } else {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
-        }
-      }
-    })
+  onAddFuncionario() {
+    // El alta ahora vive en el legajo (tab "Información general"). Se abre un legajo
+    // en modo nuevo (sin id); al guardar carga el funcionario recién creado.
+    this.tabService.addTab(new Tab(
+      LegajoFuncionarioComponent,
+      'Nuevo funcionario',
+      new TabData(null, {}),
+      null
+    ));
   }
 
   onFiltrar() {

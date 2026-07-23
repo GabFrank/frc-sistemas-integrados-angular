@@ -150,9 +150,18 @@ export const funcionarioQuery = gql`
       fasePrueba
       activo
       nickname
+      imagenPrincipal
+      codigoInterno
+      ipsActivo
+      numeroIps
+      fechaIngresoIps
+      cuentaBancaria
+      contactoEmergenciaNombre
+      contactoEmergenciaTelefono
       persona {
         id
         nombre
+        apodo
         telefono
         ciudad {
           id
@@ -160,6 +169,14 @@ export const funcionarioQuery = gql`
         }
         documento
         nacimiento
+        sexo
+        direccion
+        email
+        socialMedia
+        imagenes
+        isFuncionario
+        isCliente
+        isProveedor
       }
       usuario {
         id
@@ -252,6 +269,13 @@ export const saveFuncionario = gql`
       fasePrueba
       activo
       nickname
+      codigoInterno
+      ipsActivo
+      numeroIps
+      fechaIngresoIps
+      cuentaBancaria
+      contactoEmergenciaNombre
+      contactoEmergenciaTelefono
       persona {
         id
         nombre

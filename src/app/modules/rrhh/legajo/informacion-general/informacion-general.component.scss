@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  padding: 4px 8px 24px;
+}
+
+.informacion-general-container {
+  width: 100%;
+}
+
+.cabecera {
+  h2 { margin: 0; }
+}
+
+.seccion-card {
+  padding: 14px 16px 6px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.campo-ancho {
+  width: 100%;
+}
+
+.btn-buscar {
+  margin-top: 8px;
+  height: 56px;
+}
+
+.foto-row {
+  padding: 4px 0 8px;
+}
+
+.foto-perfil {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.foto-hint {
+  font-size: 12px;
+  opacity: 0.7;
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+.select-funcionario-wrap {
+  padding-top: 4px;
+}
+
+.toggles-row {
+  margin: 6px 0 10px;
+  flex-wrap: wrap;
+}
+
+.ips-fields {
+  margin-top: 10px;
+}
+
+.acciones-row {
+  margin-top: 4px;
+  padding: 4px 4px 12px;
+}

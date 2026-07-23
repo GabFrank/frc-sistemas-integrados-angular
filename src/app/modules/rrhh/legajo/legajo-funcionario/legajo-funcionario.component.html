@@ -46,11 +46,20 @@
       <dash-quick-action icon="receipt_long" title="Liquidación final" color="#ffa726" (action)="onLiquidacionFinal()"></dash-quick-action>
     </div>
 
-    <!-- Históricos por tabs -->
-    <div class="dash-main single-col">
-      <div class="dash-card">
-        <mat-tab-group class="legajo-tabs" animationDuration="0ms">
+  </ng-container>
 
+  <!-- Tabs: siempre visibles. "Información general" (alta/edición) va primero y no
+       depende de que exista el funcionario; el resto sí. -->
+  <div class="dash-main single-col">
+    <div class="dash-card">
+      <mat-tab-group class="legajo-tabs" animationDuration="0ms">
+
+        <mat-tab label="Información general">
+          <app-informacion-general [funcionarioId]="funcionario?.id"
+            (guardado)="onGuardado($event)"></app-informacion-general>
+        </mat-tab>
+
+        <ng-container *ngIf="funcionario != null">
           <mat-tab label="Cargos">
             <div class="tabla-container">
               <table mat-table [dataSource]="cargoHistoricos" class="mat-elevation-z1">
@@ -158,10 +167,9 @@
               <span>Aquí se verán las marcaciones, tardanzas y ausencias del funcionario.</span>
             </div>
           </mat-tab>
+        </ng-container>
 
-        </mat-tab-group>
-      </div>
+      </mat-tab-group>
     </div>
-
-  </ng-container>
+  </div>
 </div>

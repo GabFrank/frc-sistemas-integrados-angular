@@ -79,6 +79,17 @@ export class LegajoFuncionarioComponent implements OnInit {
     this.recargar();
   }
 
+  /**
+   * Se dispara cuando la pestaña "Información general" guarda el funcionario
+   * (alta o edición). En alta, es la primera vez que hay un id: carga todo el
+   * legajo. En edición, refresca la cabecera.
+   */
+  onGuardado(funcionarioId: number) {
+    if (funcionarioId == null) { return; }
+    this.funcionarioControl.setValue(funcionarioId);
+    this.onSeleccionar();
+  }
+
   private calcularAntiguedad(fechaIngreso: any): string {
     if (!fechaIngreso) { return '—'; }
     const ini = stringToLocalDate(fechaIngreso);
