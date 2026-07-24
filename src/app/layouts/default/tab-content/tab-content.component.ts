@@ -5,7 +5,11 @@ import { SkeletonComponent } from '../../../skeleton.component';
 
 @Component({
   selector: 'app-tab-content',
-  template: '<ng-template style="height: 100%; flex: 1; display: flex; flex-direction: column;" content-container></ng-template>'
+  template: '<ng-template style="height: 100%; flex: 1; display: flex; flex-direction: column;" content-container></ng-template>',
+  // El contenedor del tab acota su alto al del área de contenido (que ya es de alto fijo).
+  // Sin esto, la pantalla del tab crece con su contenido y el overflow-y de la pantalla nunca
+  // se activa: el contenido que sobra se recorta en vez de poder scrollear.
+  styles: [':host { display: block; height: 100%; }']
 })
 
 export class TabContentComponent implements OnInit {

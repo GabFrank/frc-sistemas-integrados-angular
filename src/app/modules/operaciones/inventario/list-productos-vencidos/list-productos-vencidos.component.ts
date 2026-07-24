@@ -203,6 +203,12 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all',
       context: {
+        // Forzar la consulta al servidor CENTRAL (clientName "servidor").
+        // Sin esto, en modo local (isLocal=true) el split de Apollo la ruteaba
+        // al filial, que no tiene el schema de productosVencidos y devolvía
+        // "Query failed to validate". El central sí lo expone; así se comporta
+        // igual que en modo solo-cloud.
+        clientName: 'servidor',
         fetchOptions: { signal },
       },
     }).pipe(

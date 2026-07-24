@@ -1,0 +1,159 @@
+<div class="evolucion-costo-container grafico-pantalla">
+  <div class="grafico-filtros">
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--producto"
+    >
+      <mat-label>Producto</mat-label>
+      <input
+        matInput
+        readonly
+        [value]="etiquetaProducto"
+        placeholder="Seleccione un producto"
+        (click)="abrirBusquedaProducto()"
+      >
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        (click)="abrirBusquedaProducto(); $event.stopPropagation()"
+        matTooltip="Buscar producto"
+        aria-label="Buscar producto"
+      >
+        <mat-icon>search</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        *ngIf="productoSeleccionado"
+        (click)="limpiarProducto(); $event.stopPropagation()"
+        matTooltip="Quitar producto"
+        aria-label="Quitar producto"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--rango"
+    >
+      <mat-label>Período</mat-label>
+      <mat-date-range-input
+        [formGroup]="fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+        >
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+        >
+      </mat-date-range-input>
+      <mat-datepicker-toggle
+        matSuffix
+        [for]="pickerRango"
+      ></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
+
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        [disabled]="!productoSeleccionado"
+        (click)="filtrar()"
+      >
+        <mat-icon>filter_alt</mat-icon>
+        Filtrar
+      </button>
+      <button
+        mat-icon-button
+        type="button"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="loading-overlay"
+    *ngIf="cargando"
+  >
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <ng-container *ngIf="datos$ | async as datos; else sinProducto">
+    <div
+      class="stats-row"
+      *ngIf="datos.hayDatos"
+    >
+      <div class="stat-card">
+        <span class="stat-label">Costo inicial</span>
+        <span class="stat-value">{{ datos.costoInicial }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Costo final</span>
+        <span class="stat-value">{{ datos.costoFinal }}</span>
+      </div>
+      <div
+        class="stat-card"
+        [class.stat-card--sube]="datos.variacionPositiva"
+        [class.stat-card--baja]="!datos.variacionPositiva"
+      >
+        <span class="stat-label">Variación</span>
+        <span class="stat-value">{{ datos.variacion }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Costo promedio</span>
+        <span class="stat-value">{{ datos.costoPromedio }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Período más caro</span>
+        <span class="stat-value">{{ datos.periodoPico }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Compras</span>
+        <span class="stat-value">{{ datos.totalCompras }}</span>
+      </div>
+    </div>
+
+    <div
+      class="chart-panel"
+      *ngIf="datos.hayDatos"
+    >
+      <div
+        echarts
+        [options]="datos.chartOptions"
+        class="chart"
+      ></div>
+    </div>
+
+    <div
+      class="no-data-message"
+      *ngIf="!datos.hayDatos && !cargando"
+    >
+      <mat-icon>request_quote</mat-icon>
+      <span>No hay compras registradas de este producto en el período seleccionado</span>
+    </div>
+  </ng-container>
+
+  <ng-template #sinProducto>
+    <div
+      class="no-data-message"
+      *ngIf="!cargando"
+    >
+      <mat-icon>inventory_2</mat-icon>
+      <span>Seleccione un producto para ver la evolución de su costo de compra</span>
+    </div>
+  </ng-template>
+</div>

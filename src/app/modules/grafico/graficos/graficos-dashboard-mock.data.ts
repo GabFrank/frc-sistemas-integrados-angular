@@ -20,6 +20,15 @@ export const MOCK_VENTAS_POR_SUCURSAL: VentaSucursalItem[] = [
   { sucId: 6, nombre: "Fiesta", total: 78_000_000 },
 ];
 
+export const MOCK_DELIVERY_POR_SUCURSAL: VentaSucursalItem[] = [
+  { sucId: 4, nombre: "Renacer", total: 12_400_000 },
+  { sucId: 1, nombre: "Canindeyu 1", total: 9_800_000 },
+  { sucId: 6, nombre: "Fiesta", total: 8_600_000 },
+  { sucId: 2, nombre: "Curuguaty 2", total: 6_300_000 },
+  { sucId: 3, nombre: "Paloma 2", total: 5_100_000 },
+  { sucId: 5, nombre: "KM2", total: 3_700_000 },
+];
+
 export const MOCK_VENTAS_POR_CIUDAD: VentaCiudadItem[] = [
   { ciudadId: 1, nombre: "Katuete", total: 157_000_000 },
   { ciudadId: 2, nombre: "Curuguaty", total: 72_000_000 },

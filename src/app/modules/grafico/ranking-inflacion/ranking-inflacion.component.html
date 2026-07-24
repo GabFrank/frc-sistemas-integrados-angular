@@ -1,0 +1,149 @@
+<div class="ranking-inflacion-container grafico-pantalla">
+  <div class="grafico-filtros">
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--rango"
+    >
+      <mat-label>Período</mat-label>
+      <mat-date-range-input
+        [formGroup]="fechaRangoGroup"
+        [rangePicker]="pickerRango"
+      >
+        <input
+          matStartDate
+          formControlName="inicio"
+          placeholder="Desde"
+        >
+        <input
+          matEndDate
+          formControlName="fin"
+          placeholder="Hasta"
+        >
+      </mat-date-range-input>
+      <mat-datepicker-toggle
+        matSuffix
+        [for]="pickerRango"
+      ></mat-datepicker-toggle>
+      <mat-date-range-picker #pickerRango></mat-date-range-picker>
+    </mat-form-field>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--familia"
+    >
+      <mat-label>Familia</mat-label>
+      <mat-select [formControl]="familiaControl">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option
+          *ngFor="let f of familias$ | async"
+          [value]="f.id"
+        >
+          {{ f.nombre | titlecase }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-button-toggle-group
+      [formControl]="ordenControl"
+      class="orden-toggle"
+    >
+      <mat-button-toggle
+        *ngFor="let o of ordenes"
+        [value]="o.valor"
+      >
+        {{ o.label }}
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field
+      appearance="outline"
+      class="grafico-filtros__campo grafico-filtros__campo--limit"
+    >
+      <mat-label>Top</mat-label>
+      <mat-select [formControl]="limitControl">
+        <mat-option
+          *ngFor="let l of limits"
+          [value]="l"
+        >
+          {{ l }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="grafico-filtros__acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="filtrar()"
+      >
+        <mat-icon>filter_alt</mat-icon>
+        Filtrar
+      </button>
+      <button
+        mat-icon-button
+        type="button"
+        (click)="limpiarFiltros()"
+        matTooltip="Limpiar filtros"
+        aria-label="Limpiar filtros"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="loading-overlay"
+    *ngIf="cargando"
+  >
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <ng-container *ngIf="datos$ | async as datos">
+    <div
+      class="charts-layout"
+      *ngIf="datos.hayDatos"
+    >
+      <div class="chart-panel">
+        <div
+          echarts
+          [options]="datos.chartOptions"
+          class="chart"
+        ></div>
+      </div>
+
+      <div class="detalle-panel">
+        <h3 class="detalle-title">{{ datos.titulo }}</h3>
+        <div class="detalle-list">
+          <div
+            *ngFor="let fila of datos.filas; trackBy: trackByProductoId"
+            class="detalle-item"
+          >
+            <span class="rank-badge">#{{ fila.rank }}</span>
+            <div class="item-info">
+              <span class="item-name">{{ fila.descripcion }}</span>
+              <span class="item-costos">
+                {{ fila.costoInicial }} → {{ fila.costoFinal }}
+              </span>
+            </div>
+            <span
+              class="variacion-badge"
+              [class.variacion-badge--sube]="fila.variacionPositiva"
+              [class.variacion-badge--baja]="!fila.variacionPositiva"
+            >
+              {{ fila.variacion }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="no-data-message"
+      *ngIf="!datos.hayDatos && !cargando"
+    >
+      <mat-icon>trending_up</mat-icon>
+      <span>No hay productos con al menos dos meses de compras en el período seleccionado</span>
+    </div>
+  </ng-container>
+</div>
