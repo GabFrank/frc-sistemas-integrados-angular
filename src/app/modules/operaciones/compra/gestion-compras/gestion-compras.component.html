@@ -709,6 +709,7 @@
                             <tr
                               mat-row
                               *matRowDef="let row; columns: ['id', 'descripcion', 'precioPrincipal', 'stock', 'acciones']"
+                              tabindex="-1"
                               (click)="onProductoProveedorClick(row)"
                               [class.selected-row]="row.isSelectedComputed"
                               [class.producto-ya-en-pedido]="row.yaEnPedidoComputed"
