@@ -29,22 +29,6 @@
 
     <mat-form-field
       appearance="outline"
-      class="grafico-filtros__campo grafico-filtros__campo--sucursal"
-    >
-      <mat-label>Sucursal</mat-label>
-      <mat-select [formControl]="sucursalControl">
-        <mat-option [value]="null">Todas</mat-option>
-        <mat-option
-          *ngFor="let s of sucursales$ | async"
-          [value]="s.id"
-        >
-          {{ s.nombre }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field
-      appearance="outline"
       class="grafico-filtros__campo grafico-filtros__campo--familia"
     >
       <mat-label>Familia</mat-label>

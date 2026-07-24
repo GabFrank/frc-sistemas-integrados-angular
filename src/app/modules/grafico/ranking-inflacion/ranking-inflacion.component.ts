@@ -3,7 +3,6 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { EChartsOption } from 'echarts';
 import { BehaviorSubject, Observable, catchError, of } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { Familia } from '../../productos/familia/familia.model';
 import { GraficoService } from '../grafico.service';
 import { dateToString } from '../../../commons/core/utils/dateUtils';
@@ -37,15 +36,12 @@ export class RankingInflacionComponent implements OnInit {
   private datosSubject = new BehaviorSubject<RankingInflacionVista | null>(null);
   datos$: Observable<RankingInflacionVista | null> = this.datosSubject.asObservable();
 
-  private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
-  sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
-
   private familiasSubject = new BehaviorSubject<Familia[]>([]);
   familias$: Observable<Familia[]> = this.familiasSubject.asObservable();
 
   cargando = false;
 
-  sucursalControl = new FormControl<number | null>(null);
+  // El costo se registra de forma global (no por sucursal), por eso no hay filtro de sucursal.
   familiaControl = new FormControl<number | null>(null);
   limitControl = new FormControl<number>(20);
   ordenControl = new FormControl<OrdenInflacion>('suba');
@@ -81,14 +77,6 @@ export class RankingInflacionComponent implements OnInit {
   }
 
   private cargarMetadata(): void {
-    this.graficoService.obtenerSucursales().pipe(
-      untilDestroyed(this),
-      catchError(() => of([]))
-    ).subscribe(sucs => {
-      const validas = (sucs || []).filter(s => s.activo && s.id > 0 && s.id !== 999);
-      this.sucursalesSubject.next(validas);
-    });
-
     this.graficoService.obtenerFamilias().pipe(
       untilDestroyed(this),
       catchError(() => of([]))
@@ -127,12 +115,11 @@ export class RankingInflacionComponent implements OnInit {
     this.cargando = true;
     this.cdr.markForCheck();
 
-    const sucId = this.sucursalControl.value || undefined;
     const famId = this.familiaControl.value || undefined;
     const limit = this.limitControl.value || 20;
     const orden = this.ordenControl.value || 'suba';
 
-    this.graficoService.obtenerRankingInflacionCosto(rango.inicio, rango.fin, limit, orden, sucId, famId).pipe(
+    this.graficoService.obtenerRankingInflacionCosto(rango.inicio, rango.fin, limit, orden, undefined, famId).pipe(
       catchError(() => of([] as RankingInflacionItem[])),
       untilDestroyed(this)
     ).subscribe(items => {
@@ -239,7 +226,6 @@ export class RankingInflacionComponent implements OnInit {
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue(null);
     this.familiaControl.setValue(null);
     this.limitControl.setValue(20);
     this.ordenControl.setValue('suba');

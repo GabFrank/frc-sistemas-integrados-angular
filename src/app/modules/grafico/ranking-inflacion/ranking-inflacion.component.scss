@@ -29,6 +29,9 @@ $border: #555;
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 16px;
+  // Ocupa todo el alto restante debajo de la barra de filtros.
+  flex: 1;
+  min-height: 0;
 }
 
 .chart-panel {
@@ -36,11 +39,15 @@ $border: #555;
   border: 1px solid $border;
   border-radius: 12px;
   padding: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .chart {
   width: 100%;
-  height: 560px;
+  flex: 1;
+  min-height: 320px;
 }
 
 .detalle-panel {
@@ -50,6 +57,7 @@ $border: #555;
   padding: 16px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .detalle-title {
@@ -63,7 +71,8 @@ $border: #555;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 520px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 5px;
 
