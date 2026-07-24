@@ -1273,6 +1273,13 @@
 
         .productos-proveedor-table {
           ::ng-deep .mat-mdc-row {
+            // La fila recibe foco de teclado (tabindex="-1") tras seleccionarla;
+            // el resaltado de .selected-row ya indica la selección, por lo que
+            // se evita el outline por defecto del navegador.
+            &:focus {
+              outline: none;
+            }
+
             &.selected-row {
               background-color: rgba(255, 167, 38, 0.2) !important;
 
