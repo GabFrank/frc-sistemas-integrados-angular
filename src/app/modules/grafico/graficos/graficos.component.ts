@@ -11,6 +11,8 @@ import { GastoCategoriaComponent } from "../gasto-categoria/gasto-categoria.comp
 import { IngresoGastoComponent } from "../ingreso-gasto/ingreso-gasto.component";
 import { VentaSucursalComponent } from "../venta-sucursal/venta-sucursal.component";
 import { VentaCiudadComponent } from "../venta-ciudad/venta-ciudad.component";
+import { EvolucionCostoComponent } from "../evolucion-costo/evolucion-costo.component";
+import { RankingInflacionComponent } from "../ranking-inflacion/ranking-inflacion.component";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import { construirVistaDashboardMock } from "./graficos-dashboard-opciones.util";
 
@@ -23,7 +25,9 @@ type TipoGraficoDashboard =
   | "hora"
   | "ingreso-gasto"
   | "venta-sucursal"
-  | "venta-ciudad";
+  | "venta-ciudad"
+  | "evolucion-costo"
+  | "ranking-inflacion";
 
 @Component({
   selector: "app-graficos",
@@ -91,6 +95,16 @@ export class GraficosComponent {
       case "venta-ciudad":
         this.tabService.addTab(
           new Tab(VentaCiudadComponent, "Ventas por Ciudad", null, null)
+        );
+        break;
+      case "evolucion-costo":
+        this.tabService.addTab(
+          new Tab(EvolucionCostoComponent, "Evolución de Costos", null, null)
+        );
+        break;
+      case "ranking-inflacion":
+        this.tabService.addTab(
+          new Tab(RankingInflacionComponent, "Inflación de Costos", null, null)
         );
         break;
     }

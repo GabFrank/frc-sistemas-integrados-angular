@@ -11,6 +11,8 @@ export interface GraficosDashboardVista {
   ventasFuncionario: EChartsOption | null;
   productosMasVendidos: EChartsOption | null;
   analisisProducto: EChartsOption | null;
+  evolucionCosto: EChartsOption | null;
+  rankingInflacion: EChartsOption | null;
 }
 
 export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
@@ -24,4 +26,6 @@ export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
   ventasFuncionario: null,
   productosMasVendidos: null,
   analisisProducto: null,
+  evolucionCosto: null,
+  rankingInflacion: null,
 };

@@ -427,6 +427,109 @@ export function opcionesProductosMock(
   };
 }
 
+export function opcionesEvolucionCostoMock(): EChartsOption {
+  const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago"];
+  const promedio = [8500, 8500, 8900, 9200, 9200, 9800, 10100, 10500];
+  const minimo = [8300, 8300, 8600, 8900, 9000, 9400, 9700, 10100];
+  const maximo = [8800, 8800, 9300, 9600, 9500, 10200, 10600, 11000];
+
+  return {
+    title: tituloGraficoCentrado(
+      "Evolución de Costos",
+      `${SUBTITULO_VISTA_PREVIA} · +23.5%`
+    ),
+    tooltip: { trigger: "axis" },
+    grid: gridGraficoOscuro("12%"),
+    xAxis: ejeCategoriaOscuro(meses),
+    yAxis: ejeValorOscuro(),
+    series: [
+      {
+        name: "Costo promedio",
+        type: "line",
+        data: promedio,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: { color: GRAFICO_COLORES.primary, width: 3 },
+        itemStyle: { color: GRAFICO_COLORES.primary },
+        areaStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(104,159,56,0.35)" },
+              { offset: 1, color: "rgba(104,159,56,0.02)" },
+            ],
+          },
+        },
+      },
+      {
+        name: "Costo mínimo",
+        type: "line",
+        data: minimo,
+        smooth: true,
+        symbol: "none",
+        lineStyle: { color: GRAFICO_COLORES.accent, width: 1, type: "dashed" },
+      },
+      {
+        name: "Costo máximo",
+        type: "line",
+        data: maximo,
+        smooth: true,
+        symbol: "none",
+        lineStyle: { color: GRAFICO_COLORES.warn, width: 1, type: "dashed" },
+      },
+    ],
+  };
+}
+
+export function opcionesRankingInflacionMock(): EChartsOption {
+  const productos = [
+    "Aceite 900ml",
+    "Harina 1kg",
+    "Azúcar 1kg",
+    "Arroz 1kg",
+    "Fideo 500g",
+    "Leche 1L",
+  ];
+  const variaciones = [8, 12, 18, 24, 31, 42];
+
+  return {
+    title: tituloGraficoCentrado(
+      "Inflación de Costos",
+      `${SUBTITULO_VISTA_PREVIA} · Mayor suba`
+    ),
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: "30%", right: "10%", bottom: "5%", top: "18%", containLabel: true },
+    xAxis: {
+      type: "value",
+      axisLabel: {
+        color: GRAFICO_COLORES.textSecondary,
+        formatter: (v: number) => `${v}%`,
+      },
+      splitLine: { lineStyle: { color: GRAFICO_COLORES.splitLine } },
+    },
+    yAxis: {
+      type: "category",
+      data: productos,
+      axisLabel: { color: GRAFICO_COLORES.textSecondary, fontSize: 10 },
+    },
+    series: [
+      {
+        name: "Variación",
+        type: "bar",
+        data: variaciones.map((v) => ({
+          value: v,
+          itemStyle: { color: GRAFICO_COLORES.warn, borderRadius: [0, 4, 4, 0] },
+        })),
+      },
+    ],
+  };
+}
+
 export function construirVistaDashboardMock(): GraficosDashboardVista {
   return {
     cargando: false,
@@ -451,5 +554,7 @@ export function construirVistaDashboardMock(): GraficosDashboardVista {
       GRAFICO_COLORES.warn,
       "Menor rotación del mes"
     ),
+    evolucionCosto: opcionesEvolucionCostoMock(),
+    rankingInflacion: opcionesRankingInflacionMock(),
   };
 }

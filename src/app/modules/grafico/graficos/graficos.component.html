@@ -108,6 +108,30 @@
           class="chart"
         ></div>
       </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('evolucion-costo')"
+      >
+        <div
+          *ngIf="vista.evolucionCosto as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('ranking-inflacion')"
+      >
+        <div
+          *ngIf="vista.rankingInflacion as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
     </div>
   </ng-container>
 </div>

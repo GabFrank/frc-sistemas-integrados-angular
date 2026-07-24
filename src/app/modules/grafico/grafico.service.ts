@@ -26,6 +26,10 @@ import { VentasProductoPorDiaGQL } from './graphql/ventas-producto-por-dia.gql';
 import { VentasProductoPorMesGQL } from './graphql/ventas-producto-por-mes.gql';
 import { ComprasProductoPorDiaGQL } from './graphql/compras-producto-por-dia.gql';
 import { ComprasProductoPorMesGQL } from './graphql/compras-producto-por-mes.gql';
+import { EvolucionCostoProductoGQL } from './graphql/evolucion-costo-producto.gql';
+import { EvolucionCostoResponse } from './evolucion-costo/interfaces/evolucion-costo-response.model';
+import { RankingInflacionCostoGQL } from './graphql/ranking-inflacion-costo.gql';
+import { RankingInflacionItem } from './ranking-inflacion/interfaces/ranking-inflacion-item.model';
 import { ProductoVentaPorPeriodo } from './producto-vendido/interfaces/producto-venta-periodo.model';
 import { ProductoCompraPorPeriodo } from './producto-vendido/interfaces/producto-compra-periodo.model';
 import { FormaPagoEstadistica } from './forma-pago/interfaces/forma-pago-estadistica.model';
@@ -59,6 +63,8 @@ export class GraficoService {
   private ventasProductoPorMesGQL = inject(VentasProductoPorMesGQL);
   private comprasProductoPorDiaGQL = inject(ComprasProductoPorDiaGQL);
   private comprasProductoPorMesGQL = inject(ComprasProductoPorMesGQL);
+  private evolucionCostoProductoGQL = inject(EvolucionCostoProductoGQL);
+  private rankingInflacionCostoGQL = inject(RankingInflacionCostoGQL);
 
   obtenerSucursales(): Observable<Sucursal[]> {
     return this.sucursalService.onGetAllSucursales(true);
@@ -155,6 +161,50 @@ export class GraficoService {
         inicio, fin,
         productoId: String(productoId),
         sucursalId: sucId ? String(sucId) : null
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerEvolucionCostoProducto(
+    inicio: string,
+    fin: string,
+    productoId: number,
+    agrupacion: 'dia' | 'mes',
+    sucId?: number
+  ): Observable<EvolucionCostoResponse> {
+    return this.genericService.onCustomQuery(
+      this.evolucionCostoProductoGQL,
+      {
+        inicio, fin,
+        productoId: String(productoId),
+        sucursalId: sucId ? String(sucId) : null,
+        agrupacion
+      },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerRankingInflacionCosto(
+    inicio: string,
+    fin: string,
+    limit: number,
+    orden: 'suba' | 'baja',
+    sucId?: number,
+    familiaId?: number
+  ): Observable<RankingInflacionItem[]> {
+    return this.genericService.onCustomQuery(
+      this.rankingInflacionCostoGQL,
+      {
+        inicio, fin,
+        sucursalId: sucId ? String(sucId) : null,
+        familiaId: familiaId ? String(familiaId) : null,
+        limit,
+        orden
       },
       true,
       null,
