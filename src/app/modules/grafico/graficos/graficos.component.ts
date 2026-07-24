@@ -10,6 +10,7 @@ import { VentasDiasComponent } from "../ventas-dias/ventas-dias.component";
 import { GastoCategoriaComponent } from "../gasto-categoria/gasto-categoria.component";
 import { IngresoGastoComponent } from "../ingreso-gasto/ingreso-gasto.component";
 import { VentaSucursalComponent } from "../venta-sucursal/venta-sucursal.component";
+import { DeliverySucursalComponent } from "../delivery-sucursal/delivery-sucursal.component";
 import { VentaCiudadComponent } from "../venta-ciudad/venta-ciudad.component";
 import { EvolucionCostoComponent } from "../evolucion-costo/evolucion-costo.component";
 import { RankingInflacionComponent } from "../ranking-inflacion/ranking-inflacion.component";
@@ -25,6 +26,7 @@ type TipoGraficoDashboard =
   | "hora"
   | "ingreso-gasto"
   | "venta-sucursal"
+  | "delivery-sucursal"
   | "venta-ciudad"
   | "evolucion-costo"
   | "ranking-inflacion";
@@ -90,6 +92,11 @@ export class GraficosComponent {
       case "venta-sucursal":
         this.tabService.addTab(
           new Tab(VentaSucursalComponent, "Ventas por Sucursal", null, null)
+        );
+        break;
+      case "delivery-sucursal":
+        this.tabService.addTab(
+          new Tab(DeliverySucursalComponent, "Ventas con Delivery", null, null)
         );
         break;
       case "venta-ciudad":

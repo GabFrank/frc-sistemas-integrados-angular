@@ -3,6 +3,7 @@ import { EChartsOption } from "echarts";
 export interface GraficosDashboardVista {
   cargando: boolean;
   ventasPorSucursal: EChartsOption | null;
+  deliveryPorSucursal: EChartsOption | null;
   ventasPorCiudad: EChartsOption | null;
   formasPago: EChartsOption | null;
   gastosCategoria: EChartsOption | null;
@@ -18,6 +19,7 @@ export interface GraficosDashboardVista {
 export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
   cargando: false,
   ventasPorSucursal: null,
+  deliveryPorSucursal: null,
   ventasPorCiudad: null,
   formasPago: null,
   gastosCategoria: null,
