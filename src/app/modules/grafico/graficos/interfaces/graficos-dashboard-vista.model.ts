@@ -3,6 +3,7 @@ import { EChartsOption } from "echarts";
 export interface GraficosDashboardVista {
   cargando: boolean;
   ventasPorSucursal: EChartsOption | null;
+  deliveryPorSucursal: EChartsOption | null;
   ventasPorCiudad: EChartsOption | null;
   formasPago: EChartsOption | null;
   gastosCategoria: EChartsOption | null;
@@ -11,11 +12,14 @@ export interface GraficosDashboardVista {
   ventasFuncionario: EChartsOption | null;
   productosMasVendidos: EChartsOption | null;
   analisisProducto: EChartsOption | null;
+  evolucionCosto: EChartsOption | null;
+  rankingInflacion: EChartsOption | null;
 }
 
 export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
   cargando: false,
   ventasPorSucursal: null,
+  deliveryPorSucursal: null,
   ventasPorCiudad: null,
   formasPago: null,
   gastosCategoria: null,
@@ -24,4 +28,6 @@ export const GRAFICOS_DASHBOARD_VISTA_INICIAL: GraficosDashboardVista = {
   ventasFuncionario: null,
   productosMasVendidos: null,
   analisisProducto: null,
+  evolucionCosto: null,
+  rankingInflacion: null,
 };
