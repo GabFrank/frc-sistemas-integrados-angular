@@ -156,7 +156,7 @@ export class RankingInflacionComponent implements OnInit {
   private construirChart(items: RankingInflacionItem[], titulo: string): EChartsOption {
     // Barras horizontales: el ítem con mayor variación arriba (ECharts dibuja de abajo hacia arriba).
     const invertidos = [...items].reverse();
-    const nombres = invertidos.map(i => this.truncar(i.descripcion, 28));
+    const nombres = invertidos.map(i => this.truncar(i.descripcion, 45));
     const valores = invertidos.map(i => Number(i.variacionPorcentual.toFixed(1)));
 
     return {
@@ -180,7 +180,7 @@ export class RankingInflacionComponent implements OnInit {
             Compras: ${item.totalCompras}`;
         }
       },
-      grid: { left: '30%', right: '10%', bottom: '5%', top: '16%', containLabel: true },
+      grid: { left: 8, right: '10%', bottom: '5%', top: '16%', containLabel: true },
       xAxis: {
         type: 'value',
         axisLabel: {
@@ -192,7 +192,8 @@ export class RankingInflacionComponent implements OnInit {
       yAxis: {
         type: 'category',
         data: nombres,
-        axisLabel: { color: this.colores.textSecondary, fontSize: 10 }
+        // margin: pequeño respiro entre el nombre y la barra (el ancho lo reserva containLabel).
+        axisLabel: { color: this.colores.textSecondary, fontSize: 10, margin: 14 }
       },
       series: [
         {
