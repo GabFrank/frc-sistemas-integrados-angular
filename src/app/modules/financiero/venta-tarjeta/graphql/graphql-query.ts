@@ -96,6 +96,15 @@ export const saveConfiguracionVentaTarjeta = gql`
   }
 `;
 
+export const ventaTarjetaPorIdQuery = gql`
+  query ventaTarjetaPorId($id: ID!, $sucId: ID!) {
+    data: ventaTarjetaPorId(id: $id, sucId: $sucId) {
+      id
+      estado
+    }
+  }
+`;
+
 export const marcarVentasTarjetaNoCompletadasMutation = gql`
   mutation marcarVentasTarjetaNoCompletadas($cajaId: ID!, $sucId: ID!) {
     data: marcarVentasTarjetaNoCompletadas(cajaId: $cajaId, sucId: $sucId)
