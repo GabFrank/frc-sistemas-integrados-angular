@@ -103,7 +103,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, map, startWith, switchMap } from "rxjs/operators";
+import { catchError, map, startWith, switchMap, takeUntil } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -1252,7 +1252,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                     const pago = tarjetaPagos[index];
                     const montoFmt = pago.monto.toLocaleString('es-PY');
                     const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
-                    this.matDialog.open(QrCodeComponent, {
+                    const qrDialogRef = this.matDialog.open(QrCodeComponent, {
                       data: {
                         codigo: qrPayload,
                         nombre: resultados.length > 1
@@ -1262,7 +1262,22 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                         segundos: 120
                       },
                       disableClose: false
-                    }).afterClosed().subscribe(() => mostrarQr(index + 1));
+                    });
+                    const qrClosed$ = qrDialogRef.afterClosed();
+                    if (vt?.id) {
+                      interval(3000)
+                        .pipe(
+                          switchMap(() => this.ventaTarjetaService.onGetEstadoPorId(vt.id, sucursalIdQr)),
+                          takeUntil(qrClosed$),
+                          untilDestroyed(this)
+                        )
+                        .subscribe(estadoVt => {
+                          if (estadoVt && estadoVt.estado !== 'PENDIENTE') {
+                            qrDialogRef.close();
+                          }
+                        });
+                    }
+                    qrClosed$.subscribe(() => mostrarQr(index + 1));
                   };
                   mostrarQr(0);
                 },
