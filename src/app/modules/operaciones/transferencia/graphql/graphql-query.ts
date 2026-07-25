@@ -1000,12 +1000,16 @@ export const hojaRutaQuery = gql`
         id
         modelo {
           descripcion
+          marca {
+            descripcion
+          }
         }
         chapa
       }
       chofer {
         id
         nombre
+        documento
       }
       fechaSalida
       fechaLlegada
@@ -1016,6 +1020,7 @@ export const hojaRutaQuery = gql`
       acompanantes {
         id
         nombre
+        documento
       }
     }
   }

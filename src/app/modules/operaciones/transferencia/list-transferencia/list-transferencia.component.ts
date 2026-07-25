@@ -316,7 +316,8 @@ export class ListTransferenciaComponent implements OnInit {
   onAsignarRuta() {
     if (this.selection.selected.length > 0) {
       this.matDialog.open(RutaHojaComponent, {
-        width: '30%',
+        width: '560px',
+        maxWidth: '95vw',
         disableClose: true,
         panelClass: 'custom-dialog-container'
       }).afterClosed().subscribe(async (res) => {
