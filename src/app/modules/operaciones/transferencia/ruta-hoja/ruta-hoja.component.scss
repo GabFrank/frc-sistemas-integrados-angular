@@ -1,15 +1,226 @@
-.dark-outline-input {
-    width: 100%;
+/* Tonos del sistema (ver src/styles.scss):
+   #f57c00 -> acento / títulos / headers de tabla
+   #43a047 -> success (guardar)
+   #f44336 -> danger
+   #3c3c3c / #464646 -> superficies de header y filas */
+$acento: #f57c00;
+$acento-claro: #ffa726;
+$success: #43a047;
+$success-claro: #66bb6a;
+$danger: #f44336;
 
+$superficie-header: #3c3c3c;
+$superficie-body: #3a3a3a;
+$superficie-card: #464646;
+$superficie-footer: #333333;
+
+$borde: rgba(255, 255, 255, 0.12);
+$texto: #ffffff;
+$texto-sec: #bbbbbb;
+$texto-terciario: rgba(255, 255, 255, 0.45);
+
+:host {
+    display: block;
+}
+
+.hoja-ruta-dialog {
+    display: flex;
+    flex-direction: column;
+    color: $texto;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* ---------- HEADER ---------- */
+.dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background-color: $superficie-header;
+    border-bottom: 2px solid $acento;
+
+    .header-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background-color: rgba(245, 124, 0, 0.18);
+        flex-shrink: 0;
+
+        mat-icon {
+            color: $acento;
+        }
+    }
+
+    .header-text {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+
+        h2 {
+            margin: 0;
+            font-size: 19px;
+            font-weight: 500;
+            color: $acento;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            color: $texto-sec;
+        }
+    }
+
+    .header-close {
+        color: $texto-sec;
+        flex-shrink: 0;
+
+        &:hover {
+            color: $texto;
+        }
+    }
+}
+
+/* ---------- BODY ---------- */
+.dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px !important;
+    max-height: 65vh;
+    background-color: $superficie-body;
+}
+
+.cargando-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 0;
+    color: $texto-sec;
+}
+
+/* ---------- SELECTOR CARDS (vehículo / chofer) ---------- */
+.selector-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background-color: $superficie-card;
+    border: 1px solid $borde;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+
+    &:hover {
+        border-color: $acento;
+        background-color: #4f4f4f;
+
+        .selector-action {
+            color: $acento;
+        }
+    }
+
+    &.vacio {
+        background-color: #404040;
+        border-color: $borde;
+    }
+
+    .selector-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .selector-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: $acento;
+
+        .requerido {
+            color: $danger;
+        }
+    }
+
+    .selector-value {
+        font-size: 16px;
+        font-weight: 500;
+        color: $texto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .selector-placeholder {
+        font-size: 15px;
+        color: $texto-terciario;
+        font-style: italic;
+    }
+
+    .selector-sub {
+        font-size: 13px;
+        color: $texto-sec;
+    }
+
+    .selector-action {
+        color: rgba(255, 255, 255, 0.4);
+        flex-shrink: 0;
+        transition: color 0.2s ease;
+    }
+}
+
+.selector-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 600;
+    font-size: 15px;
+
+    &.vehiculo mat-icon {
+        color: $acento-claro;
+    }
+
+    &.iniciales {
+        background-color: rgba(245, 124, 0, 0.2);
+        color: $acento-claro;
+    }
+
+    &.chico {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: $texto-sec;
+    }
+}
+
+/* ---------- FECHA ---------- */
+.fecha-field {
+    width: 60%;
+}
+
+.dark-outline-input {
     ::ng-deep {
         .mat-mdc-text-field-wrapper {
-            background-color: #2e2e2e !important;
-            border-radius: 4px !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            border-radius: 8px !important;
         }
 
         .mat-mdc-input-element {
             color: white !important;
             caret-color: white !important;
+            cursor: pointer;
         }
 
         .mdc-floating-label,
@@ -20,7 +231,7 @@
         .mdc-notched-outline__leading,
         .mdc-notched-outline__notch,
         .mdc-notched-outline__trailing {
-            border-color: rgba(255, 255, 255, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
         }
 
         .mat-mdc-form-field.mat-focused {
@@ -28,24 +239,186 @@
             .mdc-notched-outline__leading,
             .mdc-notched-outline__notch,
             .mdc-notched-outline__trailing {
-                border-color: #4caf50 !important;
+                border-color: $acento !important;
             }
 
             .mdc-floating-label {
-                color: #4caf50 !important;
+                color: $acento !important;
             }
         }
 
-        .mat-icon {
-            color: white !important;
-        }
-
-        .mat-mdc-icon-button {
-            color: white !important;
-        }
-
+        .mat-icon,
+        .mat-mdc-icon-button,
         .mat-datepicker-toggle {
             color: white !important;
+        }
+    }
+}
+
+/* ---------- ACOMPAÑANTES ---------- */
+.acompanhantes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid $borde;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        color: $acento;
+
+        mat-icon {
+            color: $acento;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .contador {
+            min-width: 22px;
+            padding: 1px 7px;
+            border-radius: 11px;
+            background-color: rgba(245, 124, 0, 0.25);
+            color: $acento-claro;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+    }
+
+    .btn-agregar {
+        color: $success-claro !important;
+        border-color: rgba(67, 160, 71, 0.6) !important;
+        line-height: 32px;
+
+        mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            margin-right: 4px;
+        }
+
+        &:hover {
+            background-color: rgba(67, 160, 71, 0.15) !important;
+        }
+    }
+}
+
+.lista-vacia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: $texto-sec;
+
+    mat-icon {
+        color: rgba(255, 255, 255, 0.25);
+    }
+
+    span {
+        font-size: 14px;
+    }
+
+    small {
+        font-size: 12px;
+        color: $texto-terciario;
+    }
+}
+
+.acompanhante-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background-color: $superficie-card;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .acompanhante-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .acompanhante-nombre {
+        font-size: 14px;
+        color: $texto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .acompanhante-doc {
+        font-size: 12px;
+        color: $texto-sec;
+    }
+
+    .btn-quitar {
+        color: rgba(255, 255, 255, 0.45);
+        flex-shrink: 0;
+
+        &:hover {
+            color: $danger;
+        }
+    }
+}
+
+/* ---------- FOOTER ---------- */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 20px !important;
+    margin: 0 !important;
+    border-top: 1px solid $borde;
+    background-color: $superficie-footer;
+
+    .btn-cancelar {
+        color: $texto-sec !important;
+    }
+
+    .btn-guardar {
+        min-width: 130px;
+
+        &:not([disabled]) {
+            background-color: $success !important;
+            color: white !important;
+        }
+
+        mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            margin-right: 6px;
+        }
+
+        .btn-spinner {
+            display: inline-block;
+            margin-right: 8px;
+
+            ::ng-deep circle {
+                stroke: rgba(255, 255, 255, 0.85);
+            }
         }
     }
 }
