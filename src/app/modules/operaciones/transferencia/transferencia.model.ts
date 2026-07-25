@@ -242,16 +242,4 @@ export class HojaRutaInput {
   acompanantesIds: number[];
 }
 
-export class Acompanhante {
-  id: {
-    hojaRutaId: number;
-    personaId: number;
-  };
-  hojaRuta: HojaRuta;
-  persona: Persona;
-}
-
-export class AcompanhanteInput {
-  hojaRutaId: number;
-  personaId: number;
-} 
+ 
