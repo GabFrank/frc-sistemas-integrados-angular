@@ -12,8 +12,8 @@
             </mat-form-field>
 
             <mat-form-field fxFlex="40">
-                <mat-label>Buscar chofer</mat-label>
-                <input matInput [formControl]="searchControl" placeholder="Nombre, documento o teléfono...">
+                <mat-label>Buscar</mat-label>
+                <input matInput [formControl]="searchControl" placeholder="Chofer, chapa o modelo...">
                 <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
         </div>
@@ -121,7 +121,8 @@
             <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
 
             <tr class="mat-row" *matNoDataRow>
-                <td class="mat-cell no-data" colspan="4" style="text-align: center; padding: 20px;">
+                <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length"
+                    style="text-align: center; padding: 20px;">
                     <mat-icon>local_shipping</mat-icon>
                     <span>No se encontraron entregas</span>
                 </td>

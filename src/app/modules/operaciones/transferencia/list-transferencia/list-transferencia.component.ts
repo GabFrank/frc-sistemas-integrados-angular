@@ -323,6 +323,7 @@ export class ListTransferenciaComponent implements OnInit {
         if (res) {
           this.cargandoService.openDialog();
           let count = 0;
+          const fallidas: number[] = [];
           try {
             for (let transferencia of this.selection.selected) {
               const input = new TransferenciaInput();
@@ -332,22 +333,38 @@ export class ListTransferenciaComponent implements OnInit {
               input.estado = transferencia.estado;
               input.tipo = transferencia.tipo;
               input.etapa = transferencia.etapa;
+              // saveTransferencia persiste con merge: todo campo ausente se guarda como
+              // null, por eso se reenvian los datos que ya tiene la transferencia.
+              input.observacion = transferencia.observacion;
+              input.isOrigen = transferencia.isOrigen;
+              input.isDestino = transferencia.isDestino;
               input.hojaRutaId = res.id;
 
-              await new Promise<void>((resolve, reject) => {
+              await new Promise<void>((resolve) => {
                 this.transferenciaService.onSaveTransferencia(input).subscribe({
                   next: (result) => {
-                    count++;
+                    if (result != null) {
+                      count++;
+                    } else {
+                      fallidas.push(transferencia.id);
+                    }
                     resolve();
                   },
                   error: (err) => {
                     console.error('Error al guardar transferencia:', err);
+                    fallidas.push(transferencia.id);
                     resolve();
                   }
                 });
               });
             }
-            this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+            if (fallidas.length > 0) {
+              this.notificacionService.openWarn(
+                'Ruta asignada a ' + count + ' transferencias. No se pudo asignar a: ' + fallidas.join(', ')
+              );
+            } else {
+              this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+            }
           } catch (error) {
             console.error('Error en asignación de ruta:', error);
             this.notificacionService.openWarn('Ocurrió un error durante la asignación');

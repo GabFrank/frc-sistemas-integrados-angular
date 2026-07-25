@@ -6,7 +6,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { HojaRuta, Transferencia } from '../transferencia.model';
-import { finalize } from 'rxjs/operators';
+import { EMPTY, Observable } from 'rxjs';
+import { expand, finalize, reduce } from 'rxjs/operators';
 import { UbicacionService } from '../../../../shared/services/ubicacion.service';
 import { TransferenciaService } from '../transferencia.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -26,6 +27,8 @@ import { QrCodeComponent } from '../../../../shared/qr-code/qr-code.component';
   ],
 })
 export class EntregadoresComponent implements OnInit, AfterViewInit {
+
+  private static readonly TRANSFERENCIAS_PAGE_SIZE = 50;
 
   displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'qr'];
   dataSource = new MatTableDataSource<HojaRuta>([]);
@@ -93,6 +96,10 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (hojasRuta) => {
+          // El cache queda invalidado: las transferencias de una hoja pueden haber
+          // cambiado desde la ultima consulta.
+          this.transferenciasCache = {};
+          this.expandedElement = null;
           this.dataSource.data = hojasRuta || [];
           this.paginator?.firstPage();
           this.isLoading = false;
@@ -123,9 +130,30 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Trae todas las transferencias de la hoja de ruta recorriendo las paginas del backend.
+   * Antes se pedia una sola pagina, por lo que el detalle y el manifiesto quedaban
+   * truncados sin ningun aviso.
+   */
+  private getTodasLasTransferencias(hojaRutaId: number): Observable<Transferencia[]> {
+    const size = EntregadoresComponent.TRANSFERENCIAS_PAGE_SIZE;
+    let pagina = 0;
+    return this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRutaId, pagina, size)
+      .pipe(
+        expand(res => {
+          if (res != null && res.length === size) {
+            pagina++;
+            return this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRutaId, pagina, size);
+          }
+          return EMPTY;
+        }),
+        reduce((acc: Transferencia[], res: Transferencia[]) => acc.concat(res || []), [])
+      );
+  }
+
   loadTransferencias(hojaRutaId: number): void {
     this.loadingTransferencias[hojaRutaId] = true;
-    this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRutaId, 0, 20)
+    this.getTodasLasTransferencias(hojaRutaId)
       .pipe(
         untilDestroyed(this),
         finalize(() => {
@@ -148,7 +176,7 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
       this.generarYMostrarQr(hojaRuta, this.transferenciasCache[hojaRuta.id]);
     } else {
       this.loadingTransferencias[hojaRuta.id] = true;
-      this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRuta.id, 0, 50)
+      this.getTodasLasTransferencias(hojaRuta.id)
         .pipe(
           untilDestroyed(this),
           finalize(() => this.loadingTransferencias[hojaRuta.id] = false)
@@ -173,7 +201,16 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
       ? hojaRuta.acompanantes.map((a: any) => a.nombre).join(', ')
       : 'Ninguno';
 
-    const origenStr = transferencias.length > 0 && transferencias[0].sucursalOrigen ? transferencias[0].sucursalOrigen.nombre : 'Desconocida';
+    // Una hoja de ruta puede agrupar transferencias de distintos origenes: antes se
+    // informaba solo el de la primera, que podia no ser el unico.
+    const origenes: string[] = [];
+    transferencias.forEach(t => {
+      const nombre = t.sucursalOrigen?.nombre;
+      if (nombre && origenes.indexOf(nombre) === -1) {
+        origenes.push(nombre);
+      }
+    });
+    const origenStr = origenes.length > 0 ? origenes.join(', ') : 'Desconocida';
 
     const sucursalesMap = new Map<string, {destino: string, km: number}>();
     let maxKm = -1;
@@ -210,8 +247,14 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
     sucursalesMap.forEach(info => {
       sucursalesInfo += `- ${info.destino}: ${info.km} km\n`;
     });
+    if (sucursalesInfo === '') {
+      sucursalesInfo = '- Sin transferencias asignadas\n';
+    }
 
-    let customStr = `Chofer: ${chofer}\nAcompañantes: ${acompList}\nCarga: ${idsTransf}\nSaliendo desde: ${origenStr}\nA sucursales:\n${sucursalesInfo}Sucursal mas lejana: ${sucursalMayorKm} (${maxKm} km)`;
+    const cargaStr = idsTransf !== '' ? idsTransf : 'Sin transferencias asignadas';
+    const mayorKmStr = maxKm >= 0 ? `\nSucursal mas lejana: ${sucursalMayorKm} (${maxKm} km)` : '';
+
+    let customStr = `Chofer: ${chofer}\nAcompañantes: ${acompList}\nCarga: ${cargaStr}\nSaliendo desde: ${origenStr}\nA sucursales:\n${sucursalesInfo}`.trimEnd() + mayorKmStr;
 
     this.dialog.open(QrCodeComponent, {
       data: {
