@@ -237,7 +237,7 @@ export class TransferenciaService {
   onGetTransferenciasWithFilters(
     sucursalOrigenId?: number,
     sucursalDestinoId?: number,
-    estado?: TransferenciaEstado,
+    estados?: TransferenciaEstado[],
     tipo?: TipoTransferencia,
     etapa?: EtapaTransferencia,
     isOrigen?: boolean,
@@ -250,7 +250,7 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
       sucursalOrigenId,
       sucursalDestinoId,
-      estado,
+      estados,
       tipo,
       etapa,
       isOrigen,

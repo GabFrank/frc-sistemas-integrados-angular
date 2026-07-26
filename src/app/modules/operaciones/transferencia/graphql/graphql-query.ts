@@ -319,7 +319,7 @@ export const transferenciaWithFiltersQuery = gql`
   query (
     $sucursalOrigenId: Int
     $sucursalDestinoId: Int
-    $estado: TransferenciaEstado
+    $estados: [TransferenciaEstado]
     $tipo: TipoTransferencia
     $etapa: EtapaTransferencia
     $isOrigen: Boolean
@@ -332,7 +332,7 @@ export const transferenciaWithFiltersQuery = gql`
     data: transferenciasWithFilters(
       sucursalOrigenId: $sucursalOrigenId
       sucursalDestinoId: $sucursalDestinoId
-      estado: $estado
+      estados: $estados
       tipo: $tipo
       etapa: $etapa
       isOrigen: $isOrigen

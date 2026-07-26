@@ -66,7 +66,7 @@ export class ListTransferenciaComponent implements OnInit {
   idControl = new FormControl();
   sucOrigenControl = new FormControl();
   sucDestinoControl = new FormControl();
-  estadoControl = new FormControl();
+  estadoControl = new FormControl<TransferenciaEstado[]>([]);
   etapaControl = new FormControl();
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
@@ -75,6 +75,7 @@ export class ListTransferenciaComponent implements OnInit {
   sucursalIdlist: Number[];
   estadoList = Object.values(TransferenciaEstado);
   etapaList = Object.values(EtapaTransferencia);
+  estadoTriggerLabel = "";
   today = new Date();
 
   displayedColumns = [
@@ -191,12 +192,22 @@ export class ListTransferenciaComponent implements OnInit {
     this.idControl.setValue(null);
     this.sucOrigenControl.setValue(null);
     this.sucDestinoControl.setValue(null);
-    this.estadoControl.setValue(null);
+    this.estadoControl.setValue([]);
+    this.onEstadoSelectionChange();
     this.etapaControl.setValue(null);
     let unaSemanaAtras = new Date();
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
+  }
+
+  // Se recalcula solo al cambiar la seleccion (no en cada change detection cycle,
+  // por eso no se llama desde el HTML).
+  onEstadoSelectionChange() {
+    const estados = this.estadoControl.value ?? [];
+    this.estadoTriggerLabel = estados
+      .map((e) => e.replace(/_/g, " "))
+      .join(", ");
   }
 
   onRowClick(transferencia: Transferencia, index) {
