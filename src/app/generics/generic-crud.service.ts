@@ -1,6 +1,7 @@
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
-import { Observable, timeout } from "rxjs";
+import { Observable, OperatorFunction, timeout } from "rxjs";
+import { map } from "rxjs/operators";
 import { MainService } from "../main.service";
 import {
   NotificacionColor,
@@ -25,6 +26,13 @@ export interface QueryError {
   };
 }
 
+// Resultado sintético usado cuando el link de Apollo emite una respuesta vacía
+// (servidor que responde con cuerpo vacío, operación cortada, etc.).
+const RESPUESTA_VACIA = {
+  data: null,
+  errors: [{ message: "Respuesta vacía del servidor" }],
+};
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -43,6 +51,24 @@ export class GenericCrudService {
     private apollo: Apollo
   ) {
     setTimeout(() => (this.mainService = injector.get(MainService)));
+  }
+
+  /**
+   * Apollo puede emitir `null`/`undefined` cuando el servidor responde con
+   * cuerpo vacío o la operación se corta antes de tiempo. Todos los handlers de
+   * abajo asumen un objeto con `errors`/`data`, así que se normaliza acá: el
+   * flujo entra por la rama de error ya existente (cierra el diálogo, avisa)
+   * en vez de romper con "Cannot read properties of null (reading 'errors')".
+   */
+  private sinRespuestaVacia(): OperatorFunction<any, any> {
+    return map((res: any) => {
+      if (res != null) return res;
+      // Si esto aparece SIN el warning "[GraphQL] Respuesta vacía del servidor"
+      // de graphql-connection.service, la operación terminó sin emitir ningún
+      // resultado (link terminal ausente), no por un cuerpo HTTP vacío.
+      console.warn("[GraphQL] Resultado nulo en GenericCrudService");
+      return RESPUESTA_VACIA;
+    });
   }
 
   onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
@@ -64,7 +90,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.cargandoService.closeDialog(requestId);
@@ -74,7 +100,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -116,7 +142,8 @@ export class GenericCrudService {
       })
         .pipe(
           untilDestroyed(this),
-          timeout(300000) // Adjust as per your needs
+          timeout(300000), // Adjust as per your needs
+          this.sinRespuestaVacia()
         )
         .subscribe({
           next: (res) => {
@@ -129,7 +156,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -180,7 +207,7 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             if (silentLoad !== true) {
@@ -193,7 +220,7 @@ export class GenericCrudService {
             } else {
               if (silentLoad !== true) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                  texto: "Ups! Algo salió mal: " + res.errors[0].message,
                   color: NotificacionColor.danger,
                   duracion: 3,
                 });
@@ -238,7 +265,7 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             if (cargando == true) {
@@ -250,7 +277,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -297,7 +324,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe(
           (res) => {
             silentLoad != true
@@ -358,7 +385,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.cargandoService.closeDialog(requestId);
@@ -433,7 +460,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.isLoading = false;
@@ -495,7 +522,7 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.isLoading = false;
@@ -556,7 +583,7 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this))
+          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
           .subscribe({
             next: (res) => {
               this.cargandoService.closeDialog(requestId);
@@ -609,6 +636,7 @@ export class GenericCrudService {
                     },
                   }
                 )
+                .pipe(this.sinRespuestaVacia())
                 .subscribe({
                   next: (res) => {
                     this.cargandoService.closeDialog(requestId);
@@ -676,7 +704,7 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this))
+          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
           .subscribe({
             next: (res) => {
               this.cargandoService.closeDialog(requestId);
@@ -729,6 +757,7 @@ export class GenericCrudService {
                     },
                   }
                 )
+                .pipe(this.sinRespuestaVacia())
                 .subscribe({
                   next: (res) => {
                     this.cargandoService.closeDialog(requestId);
@@ -813,7 +842,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.cargandoService.closeDialog(requestId);
@@ -866,7 +895,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.cargandoService.closeDialog(requestId);
