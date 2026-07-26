@@ -65,7 +65,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
-import { debounceTime, distinctUntilChanged, filter } from "rxjs/operators";
+import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -186,7 +186,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        filter(() => this.filtroCodigoControl.value !== true),
         untilDestroyed(this)
       )
       .subscribe(() => this.onFiltrar(false, true));
