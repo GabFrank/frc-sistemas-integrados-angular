@@ -1161,42 +1161,6 @@ export const deleteHojaRuta = gql`
   }
 `;
 
-export const acompanhantesPorHojaRutaQuery = gql`
-  query ($hojaRutaId: Int!) {
-    data: acompanhantesPorHojaRuta(hojaRutaId: $hojaRutaId) {
-        id {
-            hojaRutaId
-            personaId
-        }
-        persona {
-            id
-            nombre
-        }
-    }
-  }
-`;
-
-export const saveAcompanhante = gql`
-  mutation saveAcompanhante($entity: AcompanhanteInput!) {
-    data: saveAcompanhante(input: $entity) {
-        id {
-            hojaRutaId
-            personaId
-        }
-        persona {
-            id
-            nombre
-        }
-    }
-  }
-`;
-
-export const deleteAcompanhante = gql`
-  mutation deleteAcompanhante($hojaRutaId: Int!, $personaId: Int!) {
-    data: deleteAcompanhante(hojaRutaId: $hojaRutaId, personaId: $personaId)
-  }
-`;
-
 export const hojasRutaConEntregasQuery = gql`
   query ($page: Int, $size: Int) {
     data: hojasRutaConEntregas(page: $page, size: $size) {
@@ -1272,6 +1236,48 @@ export const hojaRutaPorFechaQuery = gql`
       acompanantes {
         id
         nombre
+      }
+    }
+  }
+`;
+
+export const hojaRutaPorFechaPageQuery = gql`
+  query ($inicio: String, $fin: String, $texto: String, $page: Int, $size: Int) {
+    data: hojaRutaPorFechaPage(
+      inicio: $inicio
+      fin: $fin
+      texto: $texto
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        vehiculo {
+          id
+          modelo {
+            descripcion
+          }
+          chapa
+        }
+        chofer {
+          id
+          nombre
+        }
+        fechaSalida
+        fechaLlegada
+        estado
+        creadoEn
+        acompanantes {
+          id
+          nombre
+        }
       }
     }
   }

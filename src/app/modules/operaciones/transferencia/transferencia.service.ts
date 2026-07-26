@@ -12,7 +12,7 @@ import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, Acompanhante, AcompanhanteInput, HojaRutaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaItemAlerta, TransferenciaItemView, TransferenciaInput, TipoTransferencia, HojaRuta, HojaRutaInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
@@ -34,13 +34,11 @@ import { GetHojaRutaPorChoferGQL } from './graphql/getHojaRutaPorChofer';
 import { GetHojaRutaActivaPorVehiculoGQL } from './graphql/getHojaRutaActivaPorVehiculo';
 import { SaveHojaRutaGQL } from './graphql/saveHojaRuta';
 import { DeleteHojaRutaGQL } from './graphql/deleteHojaRuta';
-import { GetAcompanhantesPorHojaRutaGQL } from './graphql/getAcompanhantesPorHojaRuta';
-import { SaveAcompanhanteGQL } from './graphql/saveAcompanhante';
-import { DeleteAcompanhanteGQL } from './graphql/deleteAcompanhante';
 import { GetHojasRutaConEntregasGQL } from './graphql/getHojasRutaConEntregas';
 import { GetTransferenciasPorHojaRutaGQL } from './graphql/getTransferenciasPorHojaRuta';
 import { Persona } from '../../personas/persona/persona.model';
 import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
+import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
 
 @UntilDestroy({ checkProperties: true })
@@ -77,12 +75,10 @@ export class TransferenciaService {
     private getHojaRutaActivaPorVehiculo: GetHojaRutaActivaPorVehiculoGQL,
     private saveHojaRutaService: SaveHojaRutaGQL,
     private deleteHojaRuta: DeleteHojaRutaGQL,
-    private getAcompanhantesPorHojaRuta: GetAcompanhantesPorHojaRutaGQL,
-    private saveAcompanhante: SaveAcompanhanteGQL,
-    private deleteAcompanhante: DeleteAcompanhanteGQL,
     private getHojasRutaConEntregas: GetHojasRutaConEntregasGQL,
     private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
     private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL,
+    private getHojaRutaPorFechaPage: GetHojaRutaPorFechaPageGQL,
     private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL
   ) { }
 
@@ -106,6 +102,25 @@ export class TransferenciaService {
 
   onGetHojaRutaPorFecha(inicio, fin, servidor = true): Observable<HojaRuta[]> {
     return this.genericCrudService.onGetByFecha(this.getHojaRutaPorFecha, inicio, fin, servidor);
+  }
+
+  /**
+   * Busca hojas de ruta por rango de salida y texto libre (chofer, chapa o modelo)
+   * con paginación resuelta en el backend.
+   */
+  buscarHojasRutaPorFecha(
+    inicio: string,
+    fin: string,
+    texto: string,
+    page: number,
+    size: number,
+    servidor = true
+  ): Observable<PageInfo<HojaRuta>> {
+    return this.genericCrudService.onCustomQuery(
+      this.getHojaRutaPorFechaPage,
+      { inicio, fin, texto, page, size },
+      servidor
+    );
   }
 
 
@@ -282,17 +297,8 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteHojaRuta, id, '¿Eliminar hoja de ruta?', null, true, servidor);
   }
 
-  onGetAcompanhantesPorHojaRuta(hojaRutaId: number, servidor = true): Observable<Acompanhante[]> {
-    return this.genericCrudService.onCustomQuery(this.getAcompanhantesPorHojaRuta, { hojaRutaId }, servidor);
-  }
 
-  onSaveAcompanhante(input: AcompanhanteInput, servidor = true): Observable<Acompanhante> {
-    return this.genericCrudService.onSave(this.saveAcompanhante, input, null, null, servidor);
-  }
 
-  onDeleteAcompanhante(hojaRutaId: number, personaId: number, servidor = true): Observable<boolean> {
-    return this.genericCrudService.onCustomMutation(this.deleteAcompanhante, { hojaRutaId, personaId }, servidor);
-  }
 
   onGetHojasRutaConEntregas(page?: number, size?: number, servidor = true): Observable<HojaRuta[]> {
     return this.genericCrudService.onCustomQuery(this.getHojasRutaConEntregas, { page, size }, servidor);
