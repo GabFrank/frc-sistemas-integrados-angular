@@ -212,6 +212,7 @@ export class GraphqlConnectionService {
       http = ApolloLink.from([
         basic,
         auth,
+        this.createEmptyResultGuardLink(),
         httpLink.create({
           uri: url,
           useGETForQueries: false // Force all requests to use POST
@@ -227,6 +228,7 @@ export class GraphqlConnectionService {
       this.createCentralTimeoutLink(),
       basic,
       auth,
+      this.createEmptyResultGuardLink(),
       httpLink.create({
         uri: url2,
         useGETForQueries: false // Force all requests to use POST
@@ -289,6 +291,53 @@ export class GraphqlConnectionService {
         )
       );
     }
+  }
+
+  /**
+   * Normaliza respuestas vacías del transporte HTTP.
+   *
+   * `apollo-angular` emite `response.body` tal cual: si el servidor contesta
+   * 200 con cuerpo vacío (o el proxy corta la respuesta), lo que baja por la
+   * cadena de links es `null`. El link `onError` de Apollo lee `result.errors`
+   * sin protección y lanza "Cannot read properties of null (reading 'errors')";
+   * al romperse ese `next`, la operación jamás entrega valor: el spinner queda
+   * abierto y la promesa de `ApolloClient.query` resuelve `undefined`, que es
+   * el segundo error que se ve en GenericCrudService.
+   *
+   * Este link va pegado al link terminal HTTP (por debajo de `errorLink`) para
+   * que la respuesta vacía se convierta en un resultado GraphQL válido con
+   * `errors`, formato que el resto de la app ya sabe manejar.
+   */
+  private createEmptyResultGuardLink(): ApolloLink {
+    return new ApolloLink((operation, forward) => {
+      return new Observable((observer) => {
+        const subscription = forward(operation).subscribe({
+          next: (result) => {
+            if (result) {
+              observer.next(result);
+            } else {
+              // `apollo-angular` guarda la respuesta HTTP cruda en el contexto:
+              // sirve para saber qué operación y qué servidor devolvió vacío.
+              const { response } = operation.getContext();
+              console.warn("[GraphQL] Respuesta vacía del servidor", {
+                operacion: operation.operationName,
+                url: response?.url,
+                status: response?.status,
+                body: response?.body,
+              });
+              observer.next({
+                data: null,
+                errors: [{ message: "Respuesta vacía del servidor" }] as any,
+              });
+            }
+          },
+          error: (error) => observer.error(error),
+          complete: () => observer.complete(),
+        });
+
+        return () => subscription.unsubscribe();
+      });
+    });
   }
 
   /**
