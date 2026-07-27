@@ -367,6 +367,7 @@
       type="button"
       (click)="onSalir()"
       class="exit-button"
+      #salirButton
       [disabled]="deletingNota || savingNota"
     >
       {{ textoBotonSalir }}
