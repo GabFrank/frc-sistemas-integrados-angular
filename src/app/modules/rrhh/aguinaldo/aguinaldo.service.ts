@@ -5,6 +5,7 @@ import { AguinaldosPorAnioGQL } from './graphql/AguinaldosPorAnio';
 import { AguinaldosPageGQL } from './graphql/AguinaldosPage';
 import { CalcularAguinaldosAnioGQL } from './graphql/CalcularAguinaldosAnio';
 import { AprobarAguinaldoGQL } from './graphql/AprobarAguinaldo';
+import { PagarAguinaldoGQL } from './graphql/PagarAguinaldo';
 
 @Injectable({ providedIn: 'root' })
 export class AguinaldoService {
@@ -13,7 +14,8 @@ export class AguinaldoService {
     private aguinaldosPorAnioGQL: AguinaldosPorAnioGQL,
     private aguinaldosPageGQL: AguinaldosPageGQL,
     private calcularAguinaldosAnioGQL: CalcularAguinaldosAnioGQL,
-    private aprobarAguinaldoGQL: AprobarAguinaldoGQL
+    private aprobarAguinaldoGQL: AprobarAguinaldoGQL,
+    private pagarAguinaldoGQL: PagarAguinaldoGQL
   ) { }
 
   onGetPorAnio(anio: number, servidor = true): Observable<any> {
@@ -31,5 +33,9 @@ export class AguinaldoService {
 
   onAprobar(id: number, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.aprobarAguinaldoGQL, { id }, servidor);
+  }
+
+  onPagar(id: number, cajaVirtualId: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.pagarAguinaldoGQL, { id, cajaVirtualId }, servidor);
   }
 }

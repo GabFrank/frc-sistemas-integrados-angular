@@ -15,6 +15,7 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { ReporteService } from '../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -46,7 +47,8 @@ export class ListLiquidacionComponent implements OnInit {
     private dialog: MatDialog,
     private tabService: TabService,
     private reporteService: ReporteService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private impresionService: ImpresionService
   ) { }
 
   ngOnInit(): void {
@@ -106,15 +108,8 @@ export class ListLiquidacionComponent implements OnInit {
   }
 
   onVerRecibo(liq: LiquidacionSueldo) {
-    this.liquidacionService.onImprimirRecibo(liq.id).pipe(untilDestroyed(this)).subscribe((base64: string) => {
-      if (!base64) {
-        this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
-        return;
-      }
-      // Todos los PDF se ven en el visor integrado (tab "Reportes").
-      this.reporteService.onAdd(
-        'Recibo ' + liq.periodo + ' - ' + (liq.funcionario?.persona?.nombre || liq.id), base64);
-      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, null));
-    });
+    this.impresionService.imprimir(
+      'Recibo ' + liq.periodo + ' - ' + (liq.funcionario?.persona?.nombre || liq.id),
+      (anchoMm) => this.liquidacionService.onImprimirRecibo(liq.id, anchoMm));
   }
 }

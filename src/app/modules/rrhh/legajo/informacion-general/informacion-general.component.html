@@ -4,79 +4,80 @@
     <h2 class="titulo-color">{{ tituloFormulario }}</h2>
   </div>
 
-  <!-- Foto de perfil -->
-  <mat-card class="seccion-card">
-    <dash-section-header icon="account_circle" title="Foto de perfil"></dash-section-header>
-    <div class="foto-row" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="16px">
-      <img [src]="fotoPerfilSrc" alt="Foto de perfil" class="foto-perfil" />
-      <div fxLayout="column" fxLayoutGap="6px">
-        <button mat-stroked-button color="primary" type="button" [disabled]="!puedeSubirFoto" (click)="onCambiarFoto()">
-          <mat-icon>photo_camera</mat-icon> Cambiar foto
+  <!-- Persona (80%) + Foto de perfil (20%) lado a lado -->
+  <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="14px" fxLayoutAlign="start stretch">
+
+    <!-- Persona -->
+    <mat-card class="seccion-card" fxFlex="80">
+      <dash-section-header icon="badge" title="Persona"></dash-section-header>
+
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <mat-form-field fxFlex="30">
+          <mat-label class="required-field">Documento</mat-label>
+          <input matInput [formControl]="documentoControl" (keyup.enter)="onBuscarPersona()" />
+          <mat-error *ngIf="documentoControl.invalid && documentoControl.touched">Este campo es obligatorio.</mat-error>
+        </mat-form-field>
+        <button mat-stroked-button color="primary" type="button" class="btn-buscar" (click)="onBuscarPersona()">
+          <mat-icon>search</mat-icon> Buscar
+        </button>
+      </div>
+
+      <div fxLayout="row wrap" fxLayoutGap="10px">
+        <mat-form-field fxFlex="40">
+          <mat-label class="required-field">Nombre</mat-label>
+          <input matInput [formControl]="nombreControl" />
+          <mat-error *ngIf="nombreControl.invalid && nombreControl.touched">Este campo es obligatorio.</mat-error>
+        </mat-form-field>
+        <mat-form-field fxFlex="20">
+          <mat-label>Fecha de nacimiento</mat-label>
+          <input matInput [matDatepicker]="pickerNac" [formControl]="nacimientoControl" [max]="hoy" />
+          <mat-datepicker-toggle matSuffix [for]="pickerNac"></mat-datepicker-toggle>
+          <mat-datepicker #pickerNac></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field fxFlex="15">
+          <mat-label>Sexo</mat-label>
+          <mat-select [formControl]="sexoControl">
+            <mat-option *ngFor="let s of sexoOptions" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field fxFlex="20">
+          <mat-label>Ciudad</mat-label>
+          <mat-select [formControl]="ciudadControl">
+            <mat-option *ngFor="let c of ciudadList" [value]="c.id">{{ c.descripcion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div fxLayout="row wrap" fxLayoutGap="10px">
+        <mat-form-field fxFlex="33">
+          <mat-label>Dirección</mat-label>
+          <input matInput [formControl]="direccionControl" />
+        </mat-form-field>
+        <mat-form-field fxFlex="33">
+          <mat-label>Teléfono</mat-label>
+          <input matInput [formControl]="telefonoControl" />
+        </mat-form-field>
+        <mat-form-field fxFlex="33">
+          <mat-label>Email</mat-label>
+          <input matInput [formControl]="emailControl" />
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <!-- Foto de perfil -->
+    <mat-card class="seccion-card foto-card" fxFlex="20">
+      <dash-section-header icon="account_circle" title="Foto de perfil"></dash-section-header>
+      <div class="foto-col" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="10px">
+        <img [src]="fotoPerfilSrc" alt="Foto de perfil" class="foto-perfil" />
+        <input #fotoInput type="file" accept="image/*" hidden (change)="onFotoSeleccionada($event)" />
+        <button mat-stroked-button color="primary" type="button" class="btn-foto"
+          [disabled]="!puedeSubirFoto || subiendoFoto" (click)="fotoInput.click()">
+          <mat-icon>photo_camera</mat-icon> {{ subiendoFoto ? 'Subiendo…' : 'Cambiar foto' }}
         </button>
         <span *ngIf="!puedeSubirFoto" class="foto-hint">Guarde el funcionario para poder subir una foto.</span>
-        <span *ngIf="puedeSubirFoto" class="foto-hint">
-          Se sube como documento (subí con tipo OTRO y escribí FOTO_PERFIL en Observación) para que se reconozca acá automáticamente.
-        </span>
       </div>
-    </div>
-  </mat-card>
-
-  <!-- Persona -->
-  <mat-card class="seccion-card">
-    <dash-section-header icon="badge" title="Persona"></dash-section-header>
-
-    <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
-      <mat-form-field fxFlex="30">
-        <mat-label class="required-field">Documento</mat-label>
-        <input matInput [formControl]="documentoControl" (keyup.enter)="onBuscarPersona()" />
-        <mat-error *ngIf="documentoControl.invalid && documentoControl.touched">Este campo es obligatorio.</mat-error>
-      </mat-form-field>
-      <button mat-stroked-button color="primary" type="button" class="btn-buscar" (click)="onBuscarPersona()">
-        <mat-icon>search</mat-icon> Buscar
-      </button>
-    </div>
-
-    <div fxLayout="row wrap" fxLayoutGap="10px">
-      <mat-form-field fxFlex="40">
-        <mat-label class="required-field">Nombre</mat-label>
-        <input matInput [formControl]="nombreControl" />
-        <mat-error *ngIf="nombreControl.invalid && nombreControl.touched">Este campo es obligatorio.</mat-error>
-      </mat-form-field>
-      <mat-form-field fxFlex="20">
-        <mat-label>Fecha de nacimiento</mat-label>
-        <input matInput [matDatepicker]="pickerNac" [formControl]="nacimientoControl" [max]="hoy" />
-        <mat-datepicker-toggle matSuffix [for]="pickerNac"></mat-datepicker-toggle>
-        <mat-datepicker #pickerNac></mat-datepicker>
-      </mat-form-field>
-      <mat-form-field fxFlex="15">
-        <mat-label>Sexo</mat-label>
-        <mat-select [formControl]="sexoControl">
-          <mat-option *ngFor="let s of sexoOptions" [value]="s.value">{{ s.label }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field fxFlex="20">
-        <mat-label>Ciudad</mat-label>
-        <mat-select [formControl]="ciudadControl">
-          <mat-option *ngFor="let c of ciudadList" [value]="c.id">{{ c.descripcion }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-
-    <div fxLayout="row wrap" fxLayoutGap="10px">
-      <mat-form-field fxFlex="33">
-        <mat-label>Dirección</mat-label>
-        <input matInput [formControl]="direccionControl" />
-      </mat-form-field>
-      <mat-form-field fxFlex="33">
-        <mat-label>Teléfono</mat-label>
-        <input matInput [formControl]="telefonoControl" />
-      </mat-form-field>
-      <mat-form-field fxFlex="33">
-        <mat-label>Email</mat-label>
-        <input matInput [formControl]="emailControl" />
-      </mat-form-field>
-    </div>
-  </mat-card>
+    </mat-card>
+  </div>
 
   <!-- Datos laborales -->
   <mat-card class="seccion-card">

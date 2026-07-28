@@ -10,6 +10,7 @@ import { GenerarBorradorGQL } from './graphql/GenerarBorrador';
 import { GenerarMesGQL } from './graphql/GenerarMes';
 import { GenerarLoteGQL } from './graphql/GenerarLote';
 import { AgregarItemGQL } from './graphql/AgregarItem';
+import { EditarItemGQL } from './graphql/EditarItem';
 import { EliminarItemGQL } from './graphql/EliminarItem';
 import { AprobarLiquidacionGQL } from './graphql/AprobarLiquidacion';
 import { VolverBorradorGQL } from './graphql/VolverBorrador';
@@ -31,6 +32,7 @@ export class LiquidacionService {
     private generarMesGQL: GenerarMesGQL,
     private generarLoteGQL: GenerarLoteGQL,
     private agregarItemGQL: AgregarItemGQL,
+    private editarItemGQL: EditarItemGQL,
     private eliminarItemGQL: EliminarItemGQL,
     private aprobarLiquidacionGQL: AprobarLiquidacionGQL,
     private volverBorradorGQL: VolverBorradorGQL,
@@ -79,6 +81,10 @@ export class LiquidacionService {
     return this.genericService.onSaveCustom<any>(this.agregarItemGQL, { liquidacionId, descripcion, monto, tipo }, servidor);
   }
 
+  onEditarItem(itemId: number, descripcion: string, monto: number, tipo: string, usuarioId: number, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.editarItemGQL, { itemId, descripcion, monto, tipo, usuarioId }, servidor);
+  }
+
   onEliminarItem(itemId: number, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.eliminarItemGQL, { itemId }, servidor);
   }
@@ -99,7 +105,7 @@ export class LiquidacionService {
     return this.genericService.onSaveCustom<any>(this.anularLiquidacionGQL, { id }, servidor);
   }
 
-  onImprimirRecibo(id: number, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id }, servidor);
+  onImprimirRecibo(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id, anchoMm }, servidor);
   }
 }

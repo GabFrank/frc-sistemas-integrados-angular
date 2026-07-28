@@ -6,22 +6,22 @@
 
   <!-- Alta de item manual: sobre la tabla, oculta hasta que se presiona Agregar Item -->
   <div class="agregar-panel" *ngIf="mostrarAgregar && liq.estado === 'BORRADOR'"
-    fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
-    <mat-form-field fxFlex="240px">
+    fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex>
       <mat-label>Concepto</mat-label>
       <input matInput [formControl]="descripcionControl" />
     </mat-form-field>
-    <mat-form-field fxFlex="130px">
+    <mat-form-field fxFlex="160px">
       <mat-label>Monto</mat-label>
       <input matInput type="number" [formControl]="montoControl" />
     </mat-form-field>
-    <mat-form-field fxFlex="140px">
+    <mat-form-field fxFlex="160px">
       <mat-label>Tipo</mat-label>
       <mat-select [formControl]="tipoControl">
         <mat-option *ngFor="let t of tipoOptions" [value]="t">{{ t }}</mat-option>
       </mat-select>
     </mat-form-field>
-    <button mat-raised-button color="primary" (click)="onAgregarItem()">Guardar item</button>
+    <button mat-raised-button color="primary" (click)="onGuardarItem()">{{ editandoItemId ? 'Guardar cambios' : 'Guardar item' }}</button>
     <button mat-button (click)="onToggleAgregar()">Cancelar</button>
   </div>
 
@@ -45,15 +45,24 @@
       </ng-container>
       <ng-container matColumnDef="monto">
         <th mat-header-cell *matHeaderCellDef>Monto</th>
-        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
       </ng-container>
       <ng-container matColumnDef="origen">
         <th mat-header-cell *matHeaderCellDef>Origen</th>
-        <td mat-cell *matCellDef="let row">{{ row.manual ? 'MANUAL' : 'AUTO' }}</td>
+        <td mat-cell *matCellDef="let row">
+          {{ row.manual ? 'MANUAL' : 'AUTO' }}
+          <mat-icon *ngIf="row.editado" class="editado-icon"
+            [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:'1.0-0') : '')">
+            edit
+          </mat-icon>
+        </td>
       </ng-container>
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let row">
+          <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onEditarItemInit(row)" matTooltip="Editar">
+            <mat-icon>edit</mat-icon>
+          </button>
           <button mat-icon-button color="warn" *ngIf="row.manual && liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
             <mat-icon>delete</mat-icon>
           </button>
@@ -67,11 +76,11 @@
   <!-- Totales en cards, como en los demás dashboards -->
   <div class="totales-cards" fxLayout="row" fxLayoutGap="12px">
     <dash-stat-chip fxFlex icon="add_circle" color="success"
-      [value]="liq.totalHaberes | number:'1.0-2'" label="Haberes"></dash-stat-chip>
+      [value]="liq.totalHaberes | number:'1.0-0'" label="Haberes"></dash-stat-chip>
     <dash-stat-chip fxFlex icon="remove_circle" color="danger"
-      [value]="liq.totalDescuentos | number:'1.0-2'" label="Descuentos"></dash-stat-chip>
+      [value]="liq.totalDescuentos | number:'1.0-0'" label="Descuentos"></dash-stat-chip>
     <dash-stat-chip fxFlex icon="payments" color="primary"
-      [value]="liq.totalNeto | number:'1.0-2'" label="Neto a pagar"></dash-stat-chip>
+      [value]="liq.totalNeto | number:'1.0-0'" label="Neto a pagar"></dash-stat-chip>
   </div>
 
   <div class="pago" *ngIf="liq.estado === 'APROBADA'" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">

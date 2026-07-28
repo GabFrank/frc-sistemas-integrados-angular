@@ -56,7 +56,7 @@ import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacio
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
 import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
-import { ListConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/list-configuracion-rrhh/list-configuracion-rrhh.component';
+import { PanelConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/panel-configuracion-rrhh/panel-configuracion-rrhh.component';
 import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado/list-feriado.component';
 import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
 import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-hora-extra/list-hora-extra.component';
@@ -71,7 +71,6 @@ import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bon
 import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
 import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
-import { ReportesRrhhComponent } from '../../../modules/rrhh/reportes/reportes-rrhh.component';
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 
@@ -178,12 +177,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'dashboard',
           action: 'dashboard-rrhh',
           visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Reportes RRHH',
-          icon: 'summarize',
-          action: 'reportes-rrhh',
-          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_LIQUIDAR, ROLES.ADMIN]
         },
         {
           name: 'Personal',
@@ -901,7 +894,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
         break;
       case "list-configuracion-rrhh":
-        this.openTabIfAuthorized(ROLES.RRHH_CONFIG, ListConfiguracionRrhhComponent, "Configuración RRHH");
+        this.openTabIfAuthorized(ROLES.RRHH_CONFIG, PanelConfiguracionRrhhComponent, "Configuración RRHH");
         break;
       case "list-feriado":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListFeriadoComponent, "Feriados");
@@ -957,9 +950,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "dashboard-rrhh":
         this.openTabIfAuthorized(ROLES.RRHH_VER, DashboardRrhhComponent, "Dashboard RRHH");
-        break;
-      case "reportes-rrhh":
-        this.openTabIfAuthorized(ROLES.RRHH_VER, ReportesRrhhComponent, "Reportes RRHH");
         break;
       case "historial-marcaciones":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListMarcacionComponent, "Historial de marcaciones");

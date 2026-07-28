@@ -7,8 +7,10 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
-import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { Vale } from '../vale.model';
 import { ValeService } from '../vale.service';
 import { EditValeDialogComponent } from '../edit-vale-dialog/edit-vale-dialog.component';
@@ -44,8 +46,15 @@ export class ListValeComponent implements OnInit {
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private reportesRrhhService: ReportesRrhhService,
+    private impresionService: ImpresionService
   ) { }
+
+  onVerRecibo(row: Vale) {
+    this.impresionService.imprimir('Recibo vale ' + row.id,
+      (anchoMm) => this.reportesRrhhService.onReciboVale(row.id, anchoMm));
+  }
 
   ngOnInit(): void {
     this.onFiltrar();

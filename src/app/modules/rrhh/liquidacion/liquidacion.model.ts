@@ -12,6 +12,10 @@ export class LiquidacionItem {
   tipo: LiquidacionItemTipo;
   referenciaTipo: string;
   manual: boolean;
+  editado?: boolean;
+  editadoPor?: any;
+  editadoEn?: any;
+  montoOriginal?: number;
 }
 
 export class LiquidacionSueldo {

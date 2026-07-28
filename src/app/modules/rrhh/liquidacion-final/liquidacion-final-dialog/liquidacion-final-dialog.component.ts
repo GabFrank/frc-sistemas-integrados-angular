@@ -1,18 +1,29 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService } from '../../../../layouts/tab/tab.service';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ReporteService } from '../../../reportes/reporte.service';
+import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
-import { LiquidacionFinal, MotivoEgreso } from '../liquidacion-final.model';
+import { LiquidacionFinal, LiquidacionFinalItem, MotivoEgreso } from '../liquidacion-final.model';
 import { LiquidacionFinalService } from '../liquidacion-final.service';
+import { LiquidacionFinalGenerarDialogComponent } from '../liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
-export interface LiquidacionFinalDialogData { funcionarioId: number; nombre?: string; monedaId?: number; }
-
+/**
+ * Liquidación final / finiquito. Se abre en una TAB (no diálogo) para tener espacio
+ * para la tabla de ítems editables — "todo es negociable": cada ítem (auto o manual)
+ * se puede editar/agregar/eliminar en BORRADOR, y el total sigue a la suma de ítems.
+ * Recibe funcionarioId/nombre vía TabData.
+ */
 @UntilDestroy()
 @Component({
   selector: 'app-liquidacion-final-dialog',
@@ -21,53 +32,136 @@ export interface LiquidacionFinalDialogData { funcionarioId: number; nombre?: st
 })
 export class LiquidacionFinalDialogComponent implements OnInit {
 
-  liq: LiquidacionFinal = null;
-  cambiado = false;
+  /** Tab inyectado por TabContentComponent. tabData.data = { funcionarioId, nombre, monedaId }. */
+  @Input() data: Tab;
 
-  motivos: MotivoEgreso[] = ['RENUNCIA', 'DESPIDO_JUSTIFICADO', 'DESPIDO_INJUSTIFICADO', 'MUTUO_ACUERDO', 'JUBILACION', 'FALLECIMIENTO', 'OTRO'];
-  motivoControl = new FormControl('DESPIDO_INJUSTIFICADO');
-  fechaControl = new FormControl(new Date());
+  funcionarioId: number;
+  nombre: string;
+  monedaId: number;
+  tituloTab: string;
+
+  liq: LiquidacionFinal = null;
+
+  itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
+  items = new MatTableDataSource<LiquidacionFinalItem>([]);
 
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null);
 
+  // Panel dual alta/edición de ítem
+  mostrarAgregar = false;
+  editandoItemId: number = null;
+  descripcionControl = new FormControl(null);
+  montoControl = new FormControl(0);
+  tipoControl = new FormControl('HABER');
+  tipoOptions = ['HABER', 'DESCUENTO'];
+
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: LiquidacionFinalDialogData,
-    private dialogRef: MatDialogRef<LiquidacionFinalDialogComponent>,
+    private tabService: TabService,
     private liquidacionFinalService: LiquidacionFinalService,
     private cajaVirtualService: CajaVirtualService,
     private dialogosService: DialogosService,
+    private reporteService: ReporteService,
     public mainService: MainService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private dialog: MatDialog,
+    private impresionService: ImpresionService
   ) { }
 
   ngOnInit(): void {
+    const d = this.data?.tabData?.data || {};
+    this.funcionarioId = d.funcionarioId ?? this.data?.tabData?.id;
+    this.nombre = d.nombre;
+    this.monedaId = d.monedaId;
+    this.tituloTab = 'Finiquito — ' + (this.nombre || this.funcionarioId);
+
     this.cargarExistente();
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => { this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR'); });
   }
 
-  cargarExistente() {
-    this.liquidacionFinalService.onGetPorFuncionario(this.data.funcionarioId).pipe(untilDestroyed(this))
+  private cargarExistente() {
+    this.liquidacionFinalService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this))
       .subscribe((res: LiquidacionFinal[]) => {
         const vigente = (res || []).find(l => l.estado !== 'ANULADA');
-        if (vigente) { this.liq = vigente; }
+        if (vigente) { this.liq = vigente; this.items.data = vigente.items || []; }
+      });
+  }
+
+  private recargarItems() {
+    if (this.liq?.id == null) { return; }
+    this.liquidacionFinalService.onGetItems(this.liq.id)
+      .pipe(untilDestroyed(this)).subscribe(res => { this.items.data = res || []; });
+  }
+
+  /** Recarga cabecera (para el total recalculado) + items. */
+  private recargar() {
+    this.liquidacionFinalService.onGetPorFuncionario(this.funcionarioId).pipe(untilDestroyed(this))
+      .subscribe((res: LiquidacionFinal[]) => {
+        const vigente = (res || []).find(l => l.estado !== 'ANULADA');
+        if (vigente) { this.liq = vigente; this.items.data = vigente.items || []; }
       });
   }
 
   private aplicar(res: any) {
-    if (res != null) { this.liq = res; this.cambiado = true; }
+    if (res != null) { this.liq = res; this.items.data = res.items || []; }
   }
 
-  onGenerar() {
-    this.liquidacionFinalService.onGenerar(
-      this.data.funcionarioId,
-      this.motivoControl.value,
-      dateToString(this.fechaControl.value),
-      this.data.monedaId
-    ).pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+  /** Regenerar reabre el diálogo de parámetros (prefilled) por si hay que cambiar
+   *  motivo / preaviso / overrides antes de recalcular. */
+  onRegenerar() {
+    this.dialog.open(LiquidacionFinalGenerarDialogComponent, {
+      data: {
+        funcionarioId: this.funcionarioId,
+        nombre: this.nombre,
+        monedaId: this.monedaId,
+        motivo: this.liq?.motivoEgreso,
+        fecha: this.liq?.fechaEgreso,
+        preavisoOtorgado: this.liq?.preavisoOtorgado,
+        salarioBase: this.liq?.salarioPromedio,
+        diasVacaciones: this.liq?.diasVacacionesNoGozadas
+      },
+      width: '640px', maxWidth: '95vw'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.aplicar(res); } });
   }
 
+  // --- Ítems editables ---
+  onToggleAgregar() {
+    this.mostrarAgregar = !this.mostrarAgregar;
+    this.editandoItemId = null;
+    this.descripcionControl.reset(); this.montoControl.setValue(0); this.tipoControl.setValue('HABER');
+  }
+
+  onEditarItemInit(it: LiquidacionFinalItem) {
+    this.editandoItemId = it.id;
+    this.descripcionControl.setValue(it.descripcion);
+    this.montoControl.setValue(it.monto);
+    this.tipoControl.setValue(it.tipo || 'HABER');
+    this.mostrarAgregar = true;
+  }
+
+  onGuardarItem() {
+    if (this.montoControl.value == null || this.montoControl.value < 0) { return; }
+    const obs = this.editandoItemId != null
+      ? this.liquidacionFinalService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
+          this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
+      : this.liquidacionFinalService.onAgregarItem(this.liq.id, this.descripcionControl.value,
+          this.montoControl.value, this.tipoControl.value);
+    obs.pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.editandoItemId = null;
+        this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
+        this.recargar();
+      }
+    });
+  }
+
+  onEliminarItem(it: LiquidacionFinalItem) {
+    this.liquidacionFinalService.onEliminarItem(it.id)
+      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+  }
+
+  // --- Estados ---
   onAprobar() {
     this.liquidacionFinalService.onAprobar(this.liq.id, this.mainService.usuarioActual?.id)
       .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
@@ -109,17 +203,12 @@ export class LiquidacionFinalDialogComponent implements OnInit {
   }
 
   onImprimirRecibo() {
-    this.liquidacionFinalService.onImprimirRecibo(this.liq.id)
-      .pipe(untilDestroyed(this)).subscribe((base64: string) => {
-        if (!base64) {
-          this.notificacion.notification$.next({ texto: 'No se pudo generar el recibo', color: NotificacionColor.warn, duracion: 3 });
-          return;
-        }
-        const src = base64.startsWith('data:') ? base64 : 'data:application/pdf;base64,' + base64;
-        const win = window.open();
-        if (win) { win.document.write('<iframe src="' + src + '" frameborder="0" style="width:100%;height:100%"></iframe>'); }
-      });
+    this.impresionService.imprimir('Finiquito — ' + (this.nombre || this.liq.id),
+      (anchoMm) => this.liquidacionFinalService.onImprimirRecibo(this.liq.id, anchoMm));
   }
 
-  onCerrar() { this.dialogRef.close(this.cambiado); }
+  onCerrar() {
+    const idx = this.tabService.getIndexByName(this.tituloTab);
+    if (idx != null && idx > -1) { this.tabService.removeTab(idx); }
+  }
 }

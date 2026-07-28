@@ -1,6 +1,5 @@
 import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin } from 'rxjs';
 
@@ -19,21 +18,15 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 
 import { LegajoService } from '../legajo.service';
 import { FuncionarioDocumento } from '../legajo.model';
-import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 
 /**
- * Foto de perfil — decisión de implementación (ver reporte de la tarea):
- * No hay un FuncionarioDocumentoTipo dedicado a "foto de perfil", así que se reutiliza el
- * tipo 'OTRO' con observacion = 'FOTO_PERFIL' como marca. SubirDocumentoDialogComponent no
- * fue modificado (fuera del alcance pedido), por lo que al subir la foto el operador debe
- * elegir manualmente tipo 'OTRO' (ya viene seleccionado por defecto en ese diálogo) y escribir
- * "FOTO_PERFIL" en el campo Observación para que esta pantalla la reconozca automáticamente
- * la próxima vez. Se deja un hint visible en el template para guiar ese paso manual.
+ * Foto de perfil — se guarda como FuncionarioDocumento con tipo dedicado 'FOTO_PERFIL'.
+ * El botón "Cambiar foto" dispara directamente el selector de archivos del SO (input file
+ * oculto); al elegir imagen se sube en un solo paso, sin diálogo ni selección manual de tipo.
  * Fallback de visualización, en orden: documento FOTO_PERFIL más reciente -> funcionario.imagenPrincipal
  * -> avatar genérico.
  */
-const FOTO_PERFIL_TIPO = 'OTRO';
-const FOTO_PERFIL_OBSERVACION = 'FOTO_PERFIL';
+const FOTO_PERFIL_TIPO = 'FOTO_PERFIL';
 const AVATAR_DEFAULT = 'assets/avatar-3x4.png';
 
 @UntilDestroy()
@@ -46,6 +39,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
 
   @Input() funcionarioId: number;
   @Output() guardado = new EventEmitter<number>();
+  // Notifica al legajo padre la foto vigente (data URL) para pintar el avatar de la cabecera.
+  @Output() fotoCambiada = new EventEmitter<string>();
 
   // ---- Persona ----
   documentoControl = new FormControl(null, Validators.required);
@@ -92,6 +87,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   esEdicion = false;
   tituloFormulario = 'Nuevo funcionario';
   puedeSubirFoto = false;
+  subiendoFoto = false;
   ipsActivo = false;
   fotoPerfilSrc = AVATAR_DEFAULT;
   hoy = new Date();
@@ -107,7 +103,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     private ciudadService: CiudadService,
     private sucursalService: SucursalService,
     private legajoService: LegajoService,
-    private dialog: MatDialog,
     private notificacion: NotificacionSnackbarService
   ) { }
 
@@ -270,9 +265,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
 
   private cargarFoto(): void {
     this.legajoService.onGetDocumentos(this.funcionarioId).pipe(untilDestroyed(this)).subscribe((docs: FuncionarioDocumento[]) => {
-      const candidatos = (docs || []).filter(d =>
-        !d.anulado && d.tipo === FOTO_PERFIL_TIPO && (d.observacion || '').toUpperCase().trim() === FOTO_PERFIL_OBSERVACION
-      );
+      const candidatos = (docs || []).filter(d => !d.anulado && d.tipo === FOTO_PERFIL_TIPO);
       if (candidatos.length === 0) { return; }
       candidatos.sort((a, b) => {
         const fa = new Date((a.fechaSubida || a.creadoEn) as any).getTime();
@@ -285,31 +278,51 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
           this.fotoPerfilSrc = contenido.startsWith('data:')
             ? contenido
             : 'data:' + (ultimo.mimeType || 'image/png') + ';base64,' + contenido;
+          this.fotoCambiada.emit(this.fotoPerfilSrc);
         }
       });
     });
   }
 
-  onCambiarFoto(): void {
+  /** El input file oculto abre el selector del SO; al elegir imagen se sube en un solo paso. */
+  onFotoSeleccionada(event: any): void {
+    const file: File = event?.target?.files?.[0];
+    if (file == null) { return; }
+    // Se limpia el input para que elegir el mismo archivo dos veces vuelva a disparar change.
+    if (event?.target) { event.target.value = ''; }
+
     if (this.funcionarioId == null) {
       this.notificacion.openWarn('Guarde el funcionario antes de subir la foto.');
       return;
     }
-    this.dialog.open(SubirDocumentoDialogComponent, {
-      data: { funcionarioId: this.funcionarioId },
-      width: '480px'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe((doc: FuncionarioDocumento) => {
-      if (doc == null) { return; }
-      if (doc.mimeType && doc.mimeType.startsWith('image/')) {
-        this.legajoService.onGetDocumentoContenido(doc.id).pipe(untilDestroyed(this)).subscribe((contenido: string) => {
-          if (contenido) {
-            this.fotoPerfilSrc = contenido.startsWith('data:')
-              ? contenido
-              : 'data:' + doc.mimeType + ';base64,' + contenido;
-          }
-        });
-      }
-    });
+    if (!file.type || !file.type.startsWith('image/')) {
+      this.notificacion.openWarn('Seleccione un archivo de imagen.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const contenidoBase64 = reader.result as string;
+      // Preview inmediato mientras persiste.
+      this.fotoPerfilSrc = contenidoBase64;
+      this.fotoCambiada.emit(this.fotoPerfilSrc);
+      this.subiendoFoto = true;
+      this.legajoService.onSaveDocumento({
+        funcionarioId: this.funcionarioId,
+        tipo: FOTO_PERFIL_TIPO,
+        nombreArchivo: file.name,
+        contenidoBase64,
+        mimeType: file.type,
+        tamanoBytes: file.size,
+        vencimiento: null,
+        observacion: null
+      }).pipe(untilDestroyed(this)).subscribe((doc: FuncionarioDocumento) => {
+        this.subiendoFoto = false;
+        if (doc == null) { return; }
+        this.cargarFoto();
+      });
+    };
+    reader.readAsDataURL(file);
   }
 
   private up(valor: any): string {

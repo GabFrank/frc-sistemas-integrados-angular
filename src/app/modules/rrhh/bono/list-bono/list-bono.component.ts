@@ -9,6 +9,8 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { Bono, BonoTipo } from '../bono.model';
 import { BonoService } from '../bono.service';
 import { EditBonoDialogComponent } from '../edit-bono-dialog/edit-bono-dialog.component';
@@ -43,8 +45,15 @@ export class ListBonoComponent implements OnInit {
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private reportesRrhhService: ReportesRrhhService,
+    private impresionService: ImpresionService
   ) { }
+
+  onVerRecibo(row: Bono) {
+    this.impresionService.imprimir('Recibo bono ' + row.id,
+      (anchoMm) => this.reportesRrhhService.onReciboBono(row.id, anchoMm));
+  }
 
   ngOnInit(): void {
     this.onFiltrar();

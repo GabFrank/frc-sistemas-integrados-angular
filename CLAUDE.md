@@ -46,6 +46,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - **No usar la clase `container`** — entra en conflicto con Bootstrap y rompe el layout.
 - Snackbars: `notificacion-snackbar.service.ts`. Diálogos: `dialogos.service.ts`. No instanciar a mano.
 - **Strings siempre en MAYÚSCULAS** al guardar, salvo pedido contrario.
+- **Impresión de comprobantes/recibos:** usar el componente oficial `ImpresionService` + `ImprimirDialogComponent` (`shared/components/imprimir/`), que ofrece **PDF (A4) o Ticket (58/80mm)**. Es el **padrón** para toda impresión de un comprobante firmable, salvo que el usuario pida otra cosa o un formato no sea viable (ej. reportes agregados = solo PDF). Detalle: [docs/IMPRESION.md](docs/IMPRESION.md).
 
 ### Estructura de módulos
 - **No crear módulos Angular nuevos** para componentes nuevos salvo pedido explícito — usar el módulo más cercano en el path.

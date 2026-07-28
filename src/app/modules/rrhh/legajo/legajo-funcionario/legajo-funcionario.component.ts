@@ -15,6 +15,10 @@ import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-sa
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
+import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
+import { LiquidacionFinalService } from '../../liquidacion-final/liquidacion-final.service';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { LegajoMetricaDialogComponent } from '../legajo-metrica-dialog/legajo-metrica-dialog.component';
 import { DocumentoViewerDialogComponent } from '../documento-viewer-dialog/documento-viewer-dialog.component';
 
@@ -33,6 +37,8 @@ export class LegajoFuncionarioComponent implements OnInit {
 
   funcionarioControl = new FormControl(null);
   funcionario: Funcionario = null;
+  // Avatar de la cabecera: lo emite el tab "Información general" (documento FOTO_PERFIL).
+  fotoPerfilSrc: string = null;
 
   // Métricas del dashboard. PLACEHOLDER hasta que existan los módulos que las alimentan
   // (TODO-5 valoración, TODO-6 asistencia, TODO-7 metas/comisiones — ver plan de testeo RRHH).
@@ -56,7 +62,9 @@ export class LegajoFuncionarioComponent implements OnInit {
     private funcionarioService: FuncionarioService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private tabService: TabService,
+    private liquidacionFinalService: LiquidacionFinalService
   ) { }
 
   ngOnInit(): void {
@@ -168,10 +176,28 @@ export class LegajoFuncionarioComponent implements OnInit {
   }
 
   onLiquidacionFinal() {
-    this.dialog.open(LiquidacionFinalDialogComponent, {
-      data: { funcionarioId: this.funcionario.id, nombre: this.funcionario.persona?.nombre, monedaId: null },
-      width: '720px', disableClose: false
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onSeleccionar(); });
+    const nombre = this.funcionario.persona?.nombre || ('#' + this.funcionario.id);
+    // Si ya hay un finiquito vigente, abre el tab directo; si no, primero el diálogo
+    // de parámetros (motivo/fecha) y recién al generar se abre el tab con el detalle.
+    this.liquidacionFinalService.onGetPorFuncionario(this.funcionario.id).pipe(untilDestroyed(this))
+      .subscribe((res: any[]) => {
+        const vigente = (res || []).find(l => l.estado !== 'ANULADA');
+        if (vigente) { this.abrirTabFiniquito(nombre); return; }
+        this.dialog.open(LiquidacionFinalGenerarDialogComponent, {
+          data: { funcionarioId: this.funcionario.id, nombre, monedaId: null }, width: '640px', maxWidth: '95vw'
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(generado => {
+          if (generado != null) { this.abrirTabFiniquito(nombre); }
+        });
+      });
+  }
+
+  private abrirTabFiniquito(nombre: string) {
+    this.tabService.addTab(new Tab(
+      LiquidacionFinalDialogComponent,
+      'Finiquito — ' + nombre,
+      new TabData(this.funcionario.id, { funcionarioId: this.funcionario.id, nombre, monedaId: null }),
+      null
+    ));
   }
 
   onSubirDocumento() {

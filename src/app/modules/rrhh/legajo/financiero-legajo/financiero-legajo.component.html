@@ -1,0 +1,173 @@
+<div class="financiero-container" fxLayout="column" fxLayoutGap="14px">
+
+  <!-- Resumen: KPIs -->
+  <div class="dash-stats-row">
+    <dash-stat-chip icon="shopping_cart" color="info"
+      [value]="creditoSaldo | number:'1.0-0'"
+      label="Crédito convenio (saldo)"></dash-stat-chip>
+    <dash-stat-chip icon="receipt_long" color="warning"
+      [value]="valesPendiente | number:'1.0-0'"
+      label="Vales pendientes de descontar"></dash-stat-chip>
+    <dash-stat-chip icon="account_balance" color="info"
+      [value]="prestamosSaldo | number:'1.0-0'"
+      label="Saldo de préstamos"></dash-stat-chip>
+    <dash-stat-chip icon="gavel" color="error"
+      [value]="penalizacionesTotal | number:'1.0-0'"
+      label="Penalizaciones y descuentos"></dash-stat-chip>
+  </div>
+
+  <!-- Exposición total -->
+  <mat-card class="exposicion-card" fxLayout="row" fxLayoutAlign="space-between center">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <mat-icon class="exp-icon">summarize</mat-icon>
+      <div fxLayout="column">
+        <span class="exp-label">Exposición total</span>
+        <span class="exp-sub">Crédito + vales + saldo de préstamos pendientes</span>
+      </div>
+    </div>
+    <span class="exp-valor">{{ exposicionTotal | number:'1.0-0' }}</span>
+  </mat-card>
+
+  <!-- Crédito por compras en convenio -->
+  <mat-card class="seccion-card">
+    <dash-section-header icon="shopping_cart" title="Crédito por compras en convenio"></dash-section-header>
+    <div class="sub-info">Límite habilitado: <b>{{ creditoLimite | number:'1.0-0' }}</b></div>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="creditos" class="mat-elevation-z1">
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let row">{{ row.creadoEn | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="venta">
+          <th mat-header-cell *matHeaderCellDef>Venta</th>
+          <td mat-cell *matCellDef="let row">#{{ row.venta?.id }}</td>
+        </ng-container>
+        <ng-container matColumnDef="valorTotal">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let row">{{ row.valorTotal | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="saldoTotal">
+          <th mat-header-cell *matHeaderCellDef>Saldo</th>
+          <td mat-cell *matCellDef="let row">{{ row.saldoTotal | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cuotas">
+          <th mat-header-cell *matHeaderCellDef>Cuotas</th>
+          <td mat-cell *matCellDef="let row">{{ row.cantidadCuotas }}</td>
+        </ng-container>
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row"><span class="badge" [ngClass]="'vc-' + row.estado">{{ row.estado }}</span></td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="creditoColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: creditoColumns"></tr>
+      </table>
+      <div class="vacio" *ngIf="creditos.data.length === 0">Sin compras a crédito registradas.</div>
+    </div>
+  </mat-card>
+
+  <!-- Vales y adelantos -->
+  <mat-card class="seccion-card">
+    <dash-section-header icon="receipt_long" title="Vales y adelantos"></dash-section-header>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="vales" class="mat-elevation-z1">
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="motivo">
+          <th mat-header-cell *matHeaderCellDef>Motivo</th>
+          <td mat-cell *matCellDef="let row">{{ row.motivo?.nombre }}<span *ngIf="row.esAdelanto"> · Adelanto</span></td>
+        </ng-container>
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef>Monto</th>
+          <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row"><span class="badge" [ngClass]="'vale-' + row.estado">{{ row.estado }}</span></td>
+        </ng-container>
+        <ng-container matColumnDef="observacion">
+          <th mat-header-cell *matHeaderCellDef>Observación</th>
+          <td mat-cell *matCellDef="let row">{{ row.observacion }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="valeColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: valeColumns"></tr>
+      </table>
+      <div class="vacio" *ngIf="vales.data.length === 0">Sin vales ni adelantos.</div>
+    </div>
+  </mat-card>
+
+  <!-- Préstamos -->
+  <mat-card class="seccion-card">
+    <dash-section-header icon="account_balance" title="Préstamos"></dash-section-header>
+    <div class="sub-info"><b>{{ prestamosActivos }}</b> préstamo(s) activo(s)</div>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="prestamos" class="mat-elevation-z1">
+        <ng-container matColumnDef="fechaInicio">
+          <th mat-header-cell *matHeaderCellDef>Inicio</th>
+          <td mat-cell *matCellDef="let row">{{ row.fechaInicio | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+          <td mat-cell *matCellDef="let row">{{ row.descripcion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="montoTotal">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let row">{{ row.montoTotal | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="montoPagado">
+          <th mat-header-cell *matHeaderCellDef>Pagado</th>
+          <td mat-cell *matCellDef="let row">{{ row.montoPagado | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="saldo">
+          <th mat-header-cell *matHeaderCellDef>Saldo</th>
+          <td mat-cell *matCellDef="let row">{{ row._saldo | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cuotas">
+          <th mat-header-cell *matHeaderCellDef>Cuotas</th>
+          <td mat-cell *matCellDef="let row">{{ row.cantidadCuotas }}</td>
+        </ng-container>
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row"><span class="badge" [ngClass]="'prestamo-' + row.estado">{{ row.estado }}</span></td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="prestamoColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: prestamoColumns"></tr>
+      </table>
+      <div class="vacio" *ngIf="prestamos.data.length === 0">Sin préstamos registrados.</div>
+    </div>
+  </mat-card>
+
+  <!-- Penalizaciones y descuentos -->
+  <mat-card class="seccion-card">
+    <dash-section-header icon="gavel" title="Penalizaciones y descuentos"></dash-section-header>
+    <div class="tabla-container">
+      <table mat-table [dataSource]="penalizaciones" class="mat-elevation-z1">
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+          <td mat-cell *matCellDef="let row">{{ row.descripcion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef>Monto</th>
+          <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="origen">
+          <th mat-header-cell *matHeaderCellDef>Origen</th>
+          <td mat-cell *matCellDef="let row">{{ row.autoGenerada ? 'Automática' : (row.registradoPor?.nickname || 'Manual') }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="penalizacionColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: penalizacionColumns"></tr>
+      </table>
+      <div class="vacio" *ngIf="penalizaciones.data.length === 0">Sin penalizaciones ni descuentos.</div>
+    </div>
+  </mat-card>
+
+</div>

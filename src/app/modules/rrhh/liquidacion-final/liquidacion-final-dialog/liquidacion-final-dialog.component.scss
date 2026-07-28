@@ -1,13 +1,48 @@
-.dialog-container {
-  min-width: 640px;
-  padding: 8px;
+:host {
+  display: block;
+  height: 100%;
+}
+
+.finiquito-container {
+  height: 100%;
+  padding: 12px 14px 24px;
+
+  .titulo { margin: 0; font-size: 18px; }
+
+  .generar-card {
+    padding: 8px 0;
+    .generar-footer { margin-top: 14px; max-width: 360px; }
+  }
 
   .desglose { font-size: 14px; }
+  .desglose-nota { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+
+  .agregar-panel {
+    padding: 8px 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+  }
+
   .tabla-container { overflow-x: auto; }
   table { width: 100%; text-align: center; }
   th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
   .text-left { text-align: left; }
-  .total .neto { font-size: 16px; }
+
+  .haber { color: #66bb6a; font-weight: 600; }
+  .descuento { color: #ef5350; font-weight: 600; }
+
+  .editado-icon {
+    font-size: 15px;
+    height: 15px;
+    width: 15px;
+    vertical-align: middle;
+    opacity: 0.75;
+    margin-left: 4px;
+  }
+
+  .total .neto { font-size: 18px; }
+
+  .acciones-footer { margin-top: 6px; }
 
   .chip { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .chip-BORRADOR { background: rgba(158, 158, 158, 0.25); color: #bdbdbd; }

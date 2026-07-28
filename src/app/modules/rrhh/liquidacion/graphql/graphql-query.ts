@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 
-const ITEM_FIELDS = `id codigo descripcion monto tipo referenciaTipo manual`;
+const ITEM_FIELDS = `id codigo descripcion monto tipo referenciaTipo manual editado editadoPor { id nickname } editadoEn montoOriginal`;
 const LIQ_FIELDS = `
   id funcionario { id persona { id nombre } } periodo fechaInicio fechaFin
   salarioBase totalHaberes totalDescuentos totalNeto
@@ -46,6 +46,11 @@ export const agregarItemMutation = gql`
     data: agregarItemLiquidacion(liquidacionId: $liquidacionId, descripcion: $descripcion, monto: $monto, tipo: $tipo) { ${ITEM_FIELDS} }
   }
 `;
+export const editarItemMutation = gql`
+  mutation editarItemLiquidacion($itemId: ID!, $descripcion: String, $monto: Float, $tipo: LiquidacionItemTipo, $usuarioId: ID) {
+    data: editarItemLiquidacion(itemId: $itemId, descripcion: $descripcion, monto: $monto, tipo: $tipo, usuarioId: $usuarioId) { ${ITEM_FIELDS} }
+  }
+`;
 export const eliminarItemMutation = gql`
   mutation eliminarItemLiquidacion($itemId: ID!) { data: eliminarItemLiquidacion(itemId: $itemId) }
 `;
@@ -62,7 +67,7 @@ export const anularLiquidacionMutation = gql`
   mutation anularLiquidacion($id: ID!) { data: anularLiquidacion(id: $id) { ${LIQ_FIELDS} } }
 `;
 export const imprimirReciboLiquidacionQuery = gql`
-  query ($id: ID!) { data: imprimirReciboLiquidacion(id: $id) }
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboLiquidacion(id: $id, anchoMm: $anchoMm) }
 `;
 
 export const generarLoteMutation = gql`

@@ -1,65 +1,97 @@
-<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+<div class="finiquito-container" fxLayout="column" fxLayoutGap="14px">
+
   <div fxLayout="row" fxLayoutAlign="space-between center">
-    <h2 mat-dialog-title>Liquidación final — {{ data.nombre }}</h2>
+    <h2 class="titulo">Liquidación final — {{ nombre }}</h2>
     <span class="chip" *ngIf="liq != null" [ngClass]="'chip-' + liq.estado">{{ liq.estado }}</span>
   </div>
 
-  <!-- Generar (sin borrador vigente) -->
-  <div class="generar" *ngIf="liq == null" fxLayout="row wrap" fxLayoutGap="10px" fxLayoutAlign="start center">
-    <mat-form-field fxFlex="220px">
-      <mat-label>Motivo de egreso</mat-label>
-      <mat-select [formControl]="motivoControl">
-        <mat-option *ngFor="let m of motivos" [value]="m">{{ m }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field fxFlex="180px">
-      <mat-label>Fecha de egreso</mat-label>
-      <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-    </mat-form-field>
-    <button mat-raised-button color="primary" (click)="onGenerar()">Generar borrador</button>
-  </div>
-
-  <!-- Desglose -->
+  <!-- Desglose + ítems editables -->
   <ng-container *ngIf="liq != null">
     <div class="desglose" fxLayout="column" fxLayoutGap="6px">
       <div fxLayout="row wrap" fxLayoutGap="20px">
         <span>Motivo: <b>{{ liq.motivoEgreso }}</b></span>
         <span>Egreso: <b>{{ liq.fechaEgreso }}</b></span>
         <span>Antigüedad: <b>{{ liq.antiguedadAnios }} años ({{ liq.antiguedadDias }} días)</b></span>
+        <span>Salario promedio: <b>{{ liq.salarioPromedio | number:'1.0-0' }}</b></span>
       </div>
-      <div fxLayout="row wrap" fxLayoutGap="20px">
-        <span>Salario promedio: <b>{{ liq.salarioPromedio | number:'1.0-2' }}</b></span>
-        <span>Indemnización: <b>{{ liq.indemnizacionAplica ? (liq.indemnizacionMonto | number:'1.0-2') : 'No aplica' }}</b></span>
-      </div>
-      <div fxLayout="row wrap" fxLayoutGap="20px">
-        <span>Vacaciones no gozadas: <b>{{ liq.diasVacacionesNoGozadas }} días → {{ liq.montoVacacionesNoGozadas | number:'1.0-2' }}</b></span>
-        <span>Aguinaldo proporcional: <b>{{ liq.aguinaldoProporcional | number:'1.0-2' }}</b></span>
-      </div>
+      <div class="desglose-nota">Desglose legal sugerido — editable abajo (todo es negociable).</div>
+    </div>
+
+    <!-- Alta/edición de ítem -->
+    <div class="agregar-panel" *ngIf="mostrarAgregar && liq.estado === 'BORRADOR'"
+      fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <mat-form-field fxFlex>
+        <mat-label>Concepto</mat-label>
+        <input matInput [formControl]="descripcionControl" />
+      </mat-form-field>
+      <mat-form-field fxFlex="160px">
+        <mat-label>Monto</mat-label>
+        <input matInput type="number" [formControl]="montoControl" />
+      </mat-form-field>
+      <mat-form-field fxFlex="160px">
+        <mat-label>Tipo</mat-label>
+        <mat-select [formControl]="tipoControl">
+          <mat-option *ngFor="let t of tipoOptions" [value]="t">{{ t }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="onGuardarItem()">{{ editandoItemId ? 'Guardar cambios' : 'Guardar item' }}</button>
+      <button mat-button (click)="onToggleAgregar()">Cancelar</button>
+    </div>
+
+    <div *ngIf="!mostrarAgregar && liq.estado === 'BORRADOR'" fxLayout="row" fxLayoutAlign="end center">
+      <button mat-stroked-button color="primary" (click)="onToggleAgregar()">
+        <mat-icon>add</mat-icon> Agregar Item
+      </button>
     </div>
 
     <div class="tabla-container">
-      <table mat-table [dataSource]="liq.items || []" class="mat-elevation-z1">
-        <ng-container matColumnDef="concepto">
+      <table mat-table [dataSource]="items" class="mat-elevation-z1">
+        <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef>Concepto</th>
-          <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion || row.concepto }}</td>
+          <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+          <td mat-cell *matCellDef="let row">
+            <span [ngClass]="row.tipo === 'DESCUENTO' ? 'descuento' : 'haber'">{{ row.tipo || 'HABER' }}</span>
+          </td>
         </ng-container>
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef>Monto</th>
-          <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+          <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-0' }}</td>
         </ng-container>
-        <tr mat-header-row *matHeaderRowDef="['concepto', 'monto']"></tr>
-        <tr mat-row *matRowDef="let row; columns: ['concepto', 'monto']"></tr>
+        <ng-container matColumnDef="origen">
+          <th mat-header-cell *matHeaderCellDef>Origen</th>
+          <td mat-cell *matCellDef="let row">
+            {{ row.manual ? 'MANUAL' : 'AUTO' }}
+            <mat-icon *ngIf="row.editado" class="editado-icon"
+              [matTooltip]="'Editado' + (row.editadoPor?.nickname ? ' por ' + row.editadoPor.nickname : '') + (row.montoOriginal != null ? ' · original ' + (row.montoOriginal | number:'1.0-0') : '')">
+              edit
+            </mat-icon>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row">
+            <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onEditarItemInit(row)" matTooltip="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="itemsColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: itemsColumns"></tr>
       </table>
     </div>
 
     <div class="total" fxLayout="row" fxLayoutAlign="end center">
-      <span class="neto">Total a liquidar: <b>{{ liq.totalLiquidado | number:'1.0-2' }}</b></span>
+      <span class="neto">Total a liquidar: <b>{{ liq.totalLiquidado | number:'1.0-0' }}</b></span>
     </div>
 
     <div class="pago" *ngIf="liq.estado === 'APROBADA'" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
-      <mat-form-field fxFlex="260px">
+      <mat-form-field fxFlex="280px">
         <mat-label>Caja Mayor (pago)</mat-label>
         <mat-select [formControl]="cajaControl">
           <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
@@ -68,19 +100,19 @@
     </div>
   </ng-container>
 
-  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
-    <div fxLayout="row" fxLayoutGap="10px" *ngIf="liq != null">
-      <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR'" (click)="onGenerar()">
+  <!-- Footer de acciones (cuando hay borrador vigente) -->
+  <div class="acciones-footer" *ngIf="liq != null" fxLayout="row" fxLayoutAlign="end center">
+    <div fxLayout="row" fxLayoutGap="10px">
+      <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR'" (click)="onRegenerar()">
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onAprobar()">Aprobar</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA'" (click)="onVolverBorrador()">Volver a borrador</button>
+      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
+        <mat-icon>visibility</mat-icon> Ver Recibo
+      </button>
       <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA'" (click)="onPagar()">Pagar</button>
       <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA'" (click)="onAnular()">Anular</button>
-      <button mat-stroked-button color="primary" *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
-        <mat-icon>print</mat-icon> Imprimir recibo
-      </button>
     </div>
-    <button mat-raised-button (click)="onCerrar()">Cerrar</button>
   </div>
 </div>

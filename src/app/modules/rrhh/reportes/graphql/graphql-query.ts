@@ -16,3 +16,20 @@ export const reportePrestamosActivosQuery = gql`
 export const reporteAguinaldoAnualQuery = gql`
   query ($anio: Int!) { data: reporteAguinaldoAnual(anio: $anio) }
 `;
+
+// Recibos firmables por registro (base64). anchoMm: null = PDF A4; 58/80 = ticket.
+export const imprimirReciboValeQuery = gql`
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboVale(id: $id, anchoMm: $anchoMm) }
+`;
+export const imprimirReciboPenalizacionQuery = gql`
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboPenalizacion(id: $id, anchoMm: $anchoMm) }
+`;
+export const imprimirReciboAguinaldoQuery = gql`
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboAguinaldo(id: $id, anchoMm: $anchoMm) }
+`;
+export const imprimirReciboPrestamoQuery = gql`
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboPrestamo(id: $id, anchoMm: $anchoMm) }
+`;
+export const imprimirReciboBonoQuery = gql`
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboBono(id: $id, anchoMm: $anchoMm) }
+`;

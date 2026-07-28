@@ -71,6 +71,7 @@ import { DashStatChipComponent } from './components/dashboard/dash-stat-chip/das
 import { DashQuickActionComponent } from './components/dashboard/dash-quick-action/dash-quick-action.component';
 import { DashRankingListComponent } from './components/dashboard/dash-ranking-list/dash-ranking-list.component';
 import { DashChartCardComponent } from './components/dashboard/dash-chart-card/dash-chart-card.component';
+import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -83,6 +84,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GenericListComponent,
     DialogosComponent,
     CargandoDialogComponent,
+    ImprimirDialogComponent,
     ConfirmDialogComponent,
     TecladoNumericoComponent,
     Imagebase64Component,

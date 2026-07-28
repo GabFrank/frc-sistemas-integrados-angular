@@ -79,6 +79,9 @@
             <button mat-menu-item (click)="onAnular(row)" [disabled]="row.anulada">
               <mat-icon>block</mat-icon><span>Anular</span>
             </button>
+            <button mat-menu-item (click)="onVerRecibo(row)">
+              <mat-icon>print</mat-icon><span>Imprimir recibo</span>
+            </button>
           </mat-menu>
         </td>
       </ng-container>

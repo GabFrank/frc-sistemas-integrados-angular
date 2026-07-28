@@ -30,6 +30,7 @@ import { PrestamoCuotasDialogComponent } from './prestamo/prestamo-cuotas-dialog
 import { ListVacacionComponent } from './vacacion/list-vacacion/list-vacacion.component';
 import { GestionVacacionDialogComponent } from './vacacion/gestion-vacacion-dialog/gestion-vacacion-dialog.component';
 import { ListAguinaldoComponent } from './aguinaldo/list-aguinaldo/list-aguinaldo.component';
+import { PagarAguinaldoDialogComponent } from './aguinaldo/pagar-aguinaldo-dialog/pagar-aguinaldo-dialog.component';
 import { ListBonoComponent } from './bono/list-bono/list-bono.component';
 import { EditBonoDialogComponent } from './bono/edit-bono-dialog/edit-bono-dialog.component';
 import { ListLiquidacionComponent } from './liquidacion/list-liquidacion/list-liquidacion.component';
@@ -37,6 +38,7 @@ import { GenerarLiquidacionDialogComponent } from './liquidacion/generar-liquida
 import { LiquidacionDetalleDialogComponent } from './liquidacion/liquidacion-detalle-dialog/liquidacion-detalle-dialog.component';
 import { LegajoFuncionarioComponent } from './legajo/legajo-funcionario/legajo-funcionario.component';
 import { InformacionGeneralComponent } from './legajo/informacion-general/informacion-general.component';
+import { FinancieroLegajoComponent } from './legajo/financiero-legajo/financiero-legajo.component';
 import { LegajoMetricaDialogComponent } from './legajo/legajo-metrica-dialog/legajo-metrica-dialog.component';
 import { DocumentoViewerDialogComponent } from './legajo/documento-viewer-dialog/documento-viewer-dialog.component';
 import { CambioCargoDialogComponent } from './legajo/cambio-cargo-dialog/cambio-cargo-dialog.component';
@@ -44,8 +46,9 @@ import { CambioSalarioDialogComponent } from './legajo/cambio-salario-dialog/cam
 import { EgresarFuncionarioDialogComponent } from './legajo/egresar-funcionario-dialog/egresar-funcionario-dialog.component';
 import { SubirDocumentoDialogComponent } from './legajo/subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from './liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
+import { LiquidacionFinalGenerarDialogComponent } from './liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
+import { PanelConfiguracionRrhhComponent } from './configuracion-rrhh/panel-configuracion-rrhh/panel-configuracion-rrhh.component';
 import { DashboardRrhhComponent } from './dashboard/dashboard-rrhh.component';
-import { ReportesRrhhComponent } from './reportes/reportes-rrhh.component';
 import { ManualRrhhComponent } from './manual/manual-rrhh.component';
 
 @NgModule({
@@ -76,6 +79,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     ListVacacionComponent,
     GestionVacacionDialogComponent,
     ListAguinaldoComponent,
+    PagarAguinaldoDialogComponent,
     ListBonoComponent,
     EditBonoDialogComponent,
     ListLiquidacionComponent,
@@ -83,6 +87,7 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     LiquidacionDetalleDialogComponent,
     LegajoFuncionarioComponent,
     InformacionGeneralComponent,
+    FinancieroLegajoComponent,
     LegajoMetricaDialogComponent,
     DocumentoViewerDialogComponent,
     CambioCargoDialogComponent,
@@ -90,8 +95,9 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     EgresarFuncionarioDialogComponent,
     SubirDocumentoDialogComponent,
     LiquidacionFinalDialogComponent,
+    LiquidacionFinalGenerarDialogComponent,
+    PanelConfiguracionRrhhComponent,
     DashboardRrhhComponent,
-    ReportesRrhhComponent,
     ManualRrhhComponent
   ],
   imports: [

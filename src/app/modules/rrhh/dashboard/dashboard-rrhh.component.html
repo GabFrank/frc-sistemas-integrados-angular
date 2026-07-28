@@ -1,25 +1,163 @@
-<div class="dashboard-container" fxLayout="column" fxLayoutGap="16px">
-
-  <div class="header" fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
-    <h2>Dashboard RRHH</h2>
-    <span fxFlex></span>
-    <mat-form-field fxFlex="160px">
-      <mat-label>Período</mat-label>
-      <input matInput [formControl]="periodoControl" placeholder="YYYY-MM" />
-    </mat-form-field>
-    <button mat-raised-button color="primary" (click)="cargar()">
-      <mat-icon>refresh</mat-icon> Actualizar
-    </button>
+<div class="dash-container">
+  <!-- Header + filtro de período -->
+  <div class="dash-header">
+    <div class="dash-header-title">
+      <h1 class="dash-title">RRHH</h1>
+      <span class="dash-subtitle">Panel de control de recursos humanos</span>
+    </div>
+    <div class="dash-header-actions">
+      <button
+        mat-icon-button
+        [disabled]="cargando"
+        matTooltip="Actualizar"
+        (click)="cargar()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <div class="dash-filtros">
+        <mat-form-field appearance="outline">
+          <mat-label>Período</mat-label>
+          <input matInput type="month" [(ngModel)]="periodo" />
+        </mat-form-field>
+      </div>
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="cargando"
+        (click)="cargar()"
+      >
+        <mat-icon>filter_alt</mat-icon> Aplicar
+      </button>
+    </div>
   </div>
 
-  <div class="cards" fxLayout="row wrap" fxLayoutGap="16px grid">
-    <div class="card" *ngFor="let c of cards" [ngClass]="c.color" fxFlex="0 1 calc(33% - 16px)">
-      <div class="card-top" fxLayout="row" fxLayoutAlign="space-between center">
-        <span class="titulo">{{ c.titulo }}</span>
-        <mat-icon>{{ c.icon }}</mat-icon>
+  <!-- KPIs -->
+  <div class="dash-stats-row">
+    <dash-stat-chip
+      *ngFor="let kpi of kpis"
+      [icon]="kpi.icon"
+      [color]="kpi.color"
+      [label]="kpi.label"
+      [value]="kpi.value"
+      [loading]="cargando"
+    ></dash-stat-chip>
+  </div>
+
+  <!-- Accesos rápidos + menú de reportes -->
+  <div class="dash-quick-actions">
+    <dash-quick-action
+      *ngFor="let a of accesos"
+      [icon]="a.icon"
+      [title]="a.title"
+      [color]="a.color"
+      (action)="a.action()"
+    ></dash-quick-action>
+
+    <dash-quick-action
+      icon="assessment"
+      title="Reportes"
+      color="#9c27b0"
+      [disabled]="generandoReporte"
+      [matMenuTriggerFor]="reportesMenu"
+    ></dash-quick-action>
+    <mat-menu #reportesMenu="matMenu">
+      <button
+        mat-menu-item
+        *ngFor="let r of reportes"
+        (click)="onReporte(r.accion)"
+      >
+        <mat-icon>{{ r.icon }}</mat-icon>
+        <span>{{ r.titulo }}</span>
+      </button>
+    </mat-menu>
+  </div>
+
+  <!-- Contenido: chart + legajos incompletos (izq) · rankings + cumpleaños (der) -->
+  <div class="dash-main">
+    <div class="dash-col">
+      <dash-chart-card
+        icon="stacked_bar_chart"
+        title="Nómina por mes (últimos 12)"
+        [opciones]="serieOpciones"
+        [cargando]="cargando"
+        [hayDatos]="serieHayDatos"
+        alturaMinima="300px"
+      ></dash-chart-card>
+
+      <!-- Legajos incompletos: peores primero, click abre el legajo para completar -->
+      <div class="dash-card">
+        <div class="dash-section-header">
+          <mat-icon>assignment_late</mat-icon>
+          <span class="dash-section-title">Legajos por completar</span>
+          <span class="dash-section-spacer"></span>
+          <span class="dash-incompletos-rango">{{ incompletosRangoTexto }}</span>
+          <button
+            mat-icon-button
+            [disabled]="!incompletosHayPrev || cargandoIncompletos"
+            (click)="onIncompletosPrev()"
+          >
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [disabled]="!incompletosHayNext || cargandoIncompletos"
+            (click)="onIncompletosNext()"
+          >
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="!incompletos.length" class="dash-empty">
+          <mat-icon>check_circle</mat-icon>
+          <span>Todos los legajos están completos</span>
+        </div>
+
+        <div class="dash-ranking-list" *ngIf="incompletos.length">
+          <div
+            *ngFor="let it of incompletos"
+            class="dash-ranking-item dash-incompleto-item"
+            matTooltip="Abrir legajo para completar"
+            (click)="onAbrirLegajo(it)"
+          >
+            <div class="dash-ranking-rank" [class.rank-critico]="it.critico">
+              {{ it.score }}
+            </div>
+            <div class="dash-ranking-info">
+              <div class="dash-ranking-name-row">
+                <span class="dash-ranking-name">{{ it.nombre }}</span>
+                <span class="dash-ranking-secondary">{{ it.score }}/10</span>
+              </div>
+              <div class="dash-ranking-bar-container">
+                <div class="dash-ranking-bar" [style.width.%]="it.porcentaje"></div>
+              </div>
+              <span class="dash-ranking-total">{{ it.detalle }}</span>
+            </div>
+            <mat-icon class="dash-incompleto-ir">chevron_right</mat-icon>
+          </div>
+        </div>
       </div>
-      <div class="valor">{{ c.valor | number:'1.0-2' }}</div>
-      <div class="sub" *ngIf="c.sub">{{ c.sub }}: <b>{{ c.subValor | number:'1.0-2' }}</b></div>
+    </div>
+
+    <div class="dash-col">
+      <dash-ranking-list
+        icon="account_balance_wallet"
+        title="Top exposición financiera"
+        [items]="topExposicion"
+      ></dash-ranking-list>
+
+      <dash-ranking-list
+        icon="more_time"
+        title="Top horas extra del mes"
+        [items]="topHorasExtra"
+      ></dash-ranking-list>
+
+      <dash-ranking-list
+        icon="cake"
+        title="Cumpleaños del mes"
+        [items]="cumpleanos"
+        emptyText="Sin cumpleaños este mes"
+        maxAlto="240px"
+      ></dash-ranking-list>
     </div>
   </div>
 </div>

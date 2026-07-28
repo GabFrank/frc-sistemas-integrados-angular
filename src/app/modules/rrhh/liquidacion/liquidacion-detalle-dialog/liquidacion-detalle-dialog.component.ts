@@ -37,6 +37,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   cajaControl = new FormControl(null);
 
   mostrarAgregar = false;
+  editandoItemId: number = null;   // null = alta; id = edición
   descripcionControl = new FormControl(null);
   montoControl = new FormControl(0);
   tipoControl = new FormControl('DESCUENTO');
@@ -91,15 +92,26 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
       .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
   }
 
-  onAgregarItem() {
-    if (this.montoControl.value == null || this.montoControl.value <= 0) { return; }
-    this.liquidacionService.onAgregarItem(
-      this.liq.id,
-      this.descripcionControl.value,
-      this.montoControl.value,
-      this.tipoControl.value
-    ).pipe(untilDestroyed(this)).subscribe(res => {
+  /** Abre el panel en modo edición con los valores del item (todo es negociable). */
+  onEditarItemInit(it: LiquidacionItem) {
+    this.editandoItemId = it.id;
+    this.descripcionControl.setValue(it.descripcion);
+    this.montoControl.setValue(it.monto);
+    this.tipoControl.setValue(it.tipo);
+    this.mostrarAgregar = true;
+  }
+
+  /** Guarda el panel: edición si hay editandoItemId, alta si no. */
+  onGuardarItem() {
+    if (this.montoControl.value == null || this.montoControl.value < 0) { return; }
+    const obs = this.editandoItemId != null
+      ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
+          this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
+      : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
+          this.montoControl.value, this.tipoControl.value);
+    obs.pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
+        this.editandoItemId = null;
         this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
         this.recargar();
       }
@@ -166,7 +178,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
 
   onToggleAgregar() {
     this.mostrarAgregar = !this.mostrarAgregar;
-    if (!this.mostrarAgregar) { this.descripcionControl.reset(); this.montoControl.setValue(0); }
+    if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
+    else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); this.tipoControl.setValue('DESCUENTO'); }
   }
 
   onCerrar() {

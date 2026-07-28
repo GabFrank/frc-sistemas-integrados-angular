@@ -6,8 +6,8 @@
     <div class="dash-card funcionario-head" fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="20px"
       fxLayoutAlign="start center">
       <div class="avatar">
-        <img *ngIf="funcionario.imagenPrincipal" [src]="funcionario.imagenPrincipal" alt="foto de perfil" />
-        <mat-icon *ngIf="!funcionario.imagenPrincipal">account_circle</mat-icon>
+        <img *ngIf="fotoPerfilSrc" [src]="fotoPerfilSrc" alt="foto de perfil" />
+        <mat-icon *ngIf="!fotoPerfilSrc">account_circle</mat-icon>
       </div>
       <div class="identidad" fxLayout="column" fxLayoutGap="6px" fxFlex>
         <h1 class="dash-title">{{ funcionario.persona?.nombre }}</h1>
@@ -56,10 +56,18 @@
 
         <mat-tab label="Información general">
           <app-informacion-general [funcionarioId]="funcionario?.id"
-            (guardado)="onGuardado($event)"></app-informacion-general>
+            (guardado)="onGuardado($event)"
+            (fotoCambiada)="fotoPerfilSrc = $event"></app-informacion-general>
         </mat-tab>
 
         <ng-container *ngIf="funcionario != null">
+          <mat-tab label="Financiero">
+            <ng-template matTabContent>
+              <app-financiero-legajo [funcionarioId]="funcionario.id"
+                [personaId]="funcionario.persona?.id"></app-financiero-legajo>
+            </ng-template>
+          </mat-tab>
+
           <mat-tab label="Cargos">
             <div class="tabla-container">
               <table mat-table [dataSource]="cargoHistoricos" class="mat-elevation-z1">
@@ -116,6 +124,22 @@
             </div>
           </mat-tab>
 
+          <mat-tab label="Asistencia">
+            <div class="proximamente">
+              <mat-icon>construction</mat-icon>
+              <p>Métricas de asistencia en desarrollo.</p>
+              <span>Aquí se verán las marcaciones, tardanzas y ausencias del funcionario.</span>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Puntuaciones">
+            <div class="proximamente">
+              <mat-icon>construction</mat-icon>
+              <p>Módulo de valoración de funcionarios en desarrollo.</p>
+              <span>Aquí se verá el histórico de evaluaciones 360° del funcionario.</span>
+            </div>
+          </mat-tab>
+
           <mat-tab label="Documentos">
             <div class="tab-acciones">
               <button mat-stroked-button color="primary" (click)="onSubirDocumento()"><mat-icon>upload_file</mat-icon> Subir documento</button>
@@ -149,22 +173,6 @@
                 <tr mat-row *matRowDef="let row; columns: documentoColumns"></tr>
               </table>
               <div class="vacio" *ngIf="documentos.data.length === 0">Sin documentos cargados.</div>
-            </div>
-          </mat-tab>
-
-          <mat-tab label="Puntuaciones">
-            <div class="proximamente">
-              <mat-icon>construction</mat-icon>
-              <p>Módulo de valoración de funcionarios en desarrollo.</p>
-              <span>Aquí se verá el histórico de evaluaciones 360° del funcionario.</span>
-            </div>
-          </mat-tab>
-
-          <mat-tab label="Asistencia">
-            <div class="proximamente">
-              <mat-icon>construction</mat-icon>
-              <p>Métricas de asistencia en desarrollo.</p>
-              <span>Aquí se verán las marcaciones, tardanzas y ausencias del funcionario.</span>
             </div>
           </mat-tab>
         </ng-container>

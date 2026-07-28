@@ -66,5 +66,26 @@ los `data-test`/textos reales (el esqueleto usa selectores tentativos).
   contexto Spring + DB; correr contra el dev real.
 - Efectos cruzados del **pago** (VALE→DESCONTADO, cuota→PAGADA, etc.) — validar
   end-to-end en dev.
-- Recibo PDF (Jasper) y rama jornalero (valor_jornal × días): aún no
-  implementados (ver PLAN-MODULO-RRHH.md).
+- **Pago end-to-end del finiquito con descuentos automáticos** (saldado de
+  vales/cuotas al pagar) — pendiente de correr contra el dev real (ver T15 en
+  `PLAN-TESTEO-MANUAL-RRHH.md`, central).
+- **Dashboard RRHH reconstruido al padrón `desktop/docs/DASHBOARDS.md`** (4 KPIs,
+  chart de nómina 12 meses, rankings de cumpleaños/exposición financiera/horas
+  extra, filtro de período mensual) y **reportes RRHH reubicados** del tab
+  dedicado (eliminado) a un mat-menu del dashboard, con el visor de PDF
+  integrado en vez de `window.open()` (bloqueado en Electron) — backend arrancó
+  limpio con el schema nuevo, pero falta el test manual del usuario (ver T16/T17
+  en `PLAN-TESTEO-MANUAL-RRHH.md`, central).
+
+## 4. Tests de reportes Jasper (compile + fill + export)
+
+Los `.jrxml` no se validan en el build (compilan en runtime, ver
+`central/CLAUDE.md` § Reportes). Patrón adoptado: compilar la plantilla +
+`fillReport` con datos dummy + exportar a PDF, en un test JUnit sin levantar
+Spring completo.
+
+- `ReciboFiniquitoJrxmlTest` — valida `recibo-finiquito.jrxml` (compila + fill +
+  export), el recibo rediseñado de la liquidación final (Fase 6).
+
+La **verificación visual manual** del PDF final en un ambiente dev real sigue
+pendiente (el test no evalúa el layout, solo que el pipeline no rompe).

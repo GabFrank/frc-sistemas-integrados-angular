@@ -1,11 +1,12 @@
 import gql from "graphql-tag";
 
-const ITEM = `id concepto descripcion monto`;
+const ITEM = `id concepto descripcion monto tipo manual editado editadoPor { id nickname } editadoEn montoOriginal`;
 const LF = `
   id funcionario { id persona { id nombre } } fechaEgreso motivoEgreso
   antiguedadDias antiguedadMeses antiguedadAnios salarioPromedio
   indemnizacionAplica indemnizacionMonto diasVacacionesNoGozadas montoVacacionesNoGozadas
-  aguinaldoProporcional totalLiquidado moneda { id denominacion } estado observacion
+  aguinaldoProporcional preavisoOtorgado preavisoDias preavisoMonto preavisoEsDescuento
+  totalLiquidado moneda { id denominacion } estado observacion
   items { ${ITEM} }
 `;
 
@@ -16,8 +17,17 @@ export const liquidacionFinalItemsQuery = gql`
   query ($liquidacionFinalId: ID!) { data: liquidacionFinalItems(liquidacionFinalId: $liquidacionFinalId) { ${ITEM} } }
 `;
 export const generarLiquidacionFinalMutation = gql`
-  mutation generarLiquidacionFinal($funcionarioId: ID!, $motivoEgreso: MotivoEgreso!, $fechaEgreso: String, $monedaId: ID) {
-    data: generarLiquidacionFinal(funcionarioId: $funcionarioId, motivoEgreso: $motivoEgreso, fechaEgreso: $fechaEgreso, monedaId: $monedaId) { ${LF} }
+  mutation generarLiquidacionFinal($input: LiquidacionFinalGenerarInput!) {
+    data: generarLiquidacionFinal(input: $input) { ${LF} }
+  }
+`;
+export const previewLiquidacionFinalQuery = gql`
+  query ($funcionarioId: ID!, $fechaEgreso: String) {
+    data: previewLiquidacionFinal(funcionarioId: $funcionarioId, fechaEgreso: $fechaEgreso) {
+      fechaIngreso antiguedadAnios antiguedadDias salarioPromedio sueldoBase
+      diasTrabajadosMes salarioDelMes aguinaldoProporcional
+      diasVacacionesNoGozadas preavisoDias ipsBase ipsActivo
+    }
   }
 `;
 export const aprobarLiquidacionFinalMutation = gql`
@@ -33,6 +43,20 @@ export const anularLiquidacionFinalMutation = gql`
   mutation anularLiquidacionFinal($id: ID!) { data: anularLiquidacionFinal(id: $id) { ${LF} } }
 `;
 
+export const agregarItemLiquidacionFinalMutation = gql`
+  mutation agregarItemLiquidacionFinal($liquidacionFinalId: ID!, $descripcion: String, $monto: Float, $tipo: LiquidacionItemTipo) {
+    data: agregarItemLiquidacionFinal(liquidacionFinalId: $liquidacionFinalId, descripcion: $descripcion, monto: $monto, tipo: $tipo) { ${ITEM} }
+  }
+`;
+export const editarItemLiquidacionFinalMutation = gql`
+  mutation editarItemLiquidacionFinal($itemId: ID!, $descripcion: String, $monto: Float, $tipo: LiquidacionItemTipo, $usuarioId: ID) {
+    data: editarItemLiquidacionFinal(itemId: $itemId, descripcion: $descripcion, monto: $monto, tipo: $tipo, usuarioId: $usuarioId) { ${ITEM} }
+  }
+`;
+export const eliminarItemLiquidacionFinalMutation = gql`
+  mutation eliminarItemLiquidacionFinal($itemId: ID!) { data: eliminarItemLiquidacionFinal(itemId: $itemId) }
+`;
+
 export const imprimirReciboFinalQuery = gql`
-  query ($id: ID!) { data: imprimirReciboFinal(id: $id) }
+  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboFinal(id: $id, anchoMm: $anchoMm) }
 `;

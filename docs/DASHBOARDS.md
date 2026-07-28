@@ -155,6 +155,13 @@ mayor a un umbral configurable) y `devolucionesSeriePorDia` /
 `devolucionesPorEstadoResumen` (disponibles, no usadas hoy en la UI). Todo en
 `graphql/operaciones/devolucion-dashboard.graphqls`, aditivo, sin migración.
 
+Segundo ejemplo real: el **dashboard RRHH** (`nominaSeriePorMes`,
+`rrhhTopExposicion`, `rrhhTopHorasExtra`, `rrhhCumpleanosDelMes` en
+`graphql/rrhh/dashboard-rrhh.graphqls`), que además ilustra una variante
+legítima del filtro de fecha: en vez de `Desde/Hasta`, usa un único selector de
+**período mensual** (`input type=month`), porque RRHH trabaja por período de
+nómina, no por rango arbitrario.
+
 En el cliente:
 - Un archivo `graphql-query.ts` con los `gql` + un archivo con las clases
   `Query` (`dashboard/graphql/`).

@@ -54,6 +54,30 @@ export const CONFIGURACION_RRHH_HELP: { [clave: string]: ConfigHelp } = {
     ejemplo: 'Con 15, salario diario 100.000 y 3 años: 15 × 3 × 100.000 = 4.500.000.',
     impacto: 'Se usa en el cálculo del finiquito (liquidación final).'
   },
+  PREAVISO_DIAS_HASTA_1A: {
+    titulo: 'Preaviso — hasta 1 año',
+    descripcion: 'Días de preaviso que corresponden con menos de 1 año de antigüedad.',
+    ejemplo: 'Ley PY: 30 días.',
+    impacto: 'En el finiquito: si no se otorgó, despido injustificado paga estos días; renuncia descuenta la mitad.'
+  },
+  PREAVISO_DIAS_1_5A: {
+    titulo: 'Preaviso — de 1 a 5 años',
+    descripcion: 'Días de preaviso que corresponden con antigüedad de 1 a 5 años.',
+    ejemplo: 'Ley PY: 45 días.',
+    impacto: 'En el finiquito: si no se otorgó, despido injustificado paga estos días; renuncia descuenta la mitad.'
+  },
+  PREAVISO_DIAS_5_10A: {
+    titulo: 'Preaviso — de 5 a 10 años',
+    descripcion: 'Días de preaviso que corresponden con antigüedad de 5 a 10 años.',
+    ejemplo: 'Ley PY: 60 días.',
+    impacto: 'En el finiquito: si no se otorgó, despido injustificado paga estos días; renuncia descuenta la mitad.'
+  },
+  PREAVISO_DIAS_MAS_10A: {
+    titulo: 'Preaviso — más de 10 años',
+    descripcion: 'Días de preaviso que corresponden con más de 10 años de antigüedad.',
+    ejemplo: 'Ley PY: 90 días.',
+    impacto: 'En el finiquito: si no se otorgó, despido injustificado paga estos días; renuncia descuenta la mitad.'
+  },
   INDEMNIZACION_ANTIGUEDAD_MIN_DIAS: {
     titulo: 'Indemnización — antigüedad mínima (días)',
     descripcion: 'Antigüedad mínima, en días, para que corresponda indemnización por despido injustificado.',

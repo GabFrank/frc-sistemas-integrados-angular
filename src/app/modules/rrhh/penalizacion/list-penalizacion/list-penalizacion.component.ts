@@ -9,6 +9,8 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { Penalizacion, PenalizacionTipo } from '../penalizacion.model';
 import { PenalizacionService } from '../penalizacion.service';
 import { EditPenalizacionDialogComponent } from '../edit-penalizacion-dialog/edit-penalizacion-dialog.component';
@@ -47,8 +49,15 @@ export class ListPenalizacionComponent implements OnInit {
     public mainService: MainService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private reportesRrhhService: ReportesRrhhService,
+    private impresionService: ImpresionService
   ) { }
+
+  onVerRecibo(row: Penalizacion) {
+    this.impresionService.imprimir('Recibo penalización ' + row.id,
+      (anchoMm) => this.reportesRrhhService.onReciboPenalizacion(row.id, anchoMm));
+  }
 
   ngOnInit(): void {
     const hoy = new Date();

@@ -25,3 +25,8 @@ export const calcularAguinaldosAnioMutation = gql`
 export const aprobarAguinaldoMutation = gql`
   mutation aprobarAguinaldo($id: ID!) { data: aprobarAguinaldo(id: $id) { ${FIELDS} } }
 `;
+export const pagarAguinaldoMutation = gql`
+  mutation pagarAguinaldo($id: ID!, $cajaVirtualId: ID!) {
+    data: pagarAguinaldo(id: $id, cajaVirtualId: $cajaVirtualId) { ${FIELDS} }
+  }
+`;

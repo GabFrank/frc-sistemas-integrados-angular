@@ -1,25 +1,40 @@
-.dashboard-container {
-  padding: 16px;
+// El look del dashboard vive en las clases globales .dash-* (src/styles/_dashboard.scss).
+// Solo ajustes locales acá.
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
 
-  .cards {
-    .card {
-      border-radius: 10px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border-left: 4px solid #90a4ae;
-      min-height: 96px;
+// Rango "x-y de N" en el header de legajos por completar.
+.dash-incompletos-rango {
+  font-size: 90%;
+  color: #9e9e9e;
+  margin-right: 4px;
+}
 
-      .card-top {
-        .titulo { font-size: 13px; opacity: 0.8; }
-        mat-icon { opacity: 0.6; }
-      }
-      .valor { font-size: 28px; font-weight: 600; margin-top: 6px; }
-      .sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+// Filas de legajos incompletos: clickeables (abren el legajo).
+.dash-incompleto-item {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
 
-      &.azul { border-left-color: #42a5f5; }
-      &.verde { border-left-color: #66bb6a; }
-      &.ambar { border-left-color: #ffca28; }
-      &.rojo { border-left-color: #ef5350; }
-    }
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  // Score muy bajo (<=3): badge en rojo para resaltar los peores.
+  .dash-ranking-rank.rank-critico {
+    background: #f44336;
+    color: #fff;
+  }
+
+  .dash-incompleto-ir {
+    align-self: center;
+    color: #9e9e9e;
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
   }
 }

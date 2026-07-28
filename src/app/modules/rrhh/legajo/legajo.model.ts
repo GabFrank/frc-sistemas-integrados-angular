@@ -5,7 +5,7 @@ import { Usuario } from '../../personas/usuarios/usuario.model';
 
 export type FuncionarioDocumentoTipo =
   | 'CEDULA' | 'CONTRATO' | 'CERTIFICADO' | 'CV'
-  | 'ANTECEDENTES' | 'CARNET_SALUD' | 'TITULO_ACADEMICO' | 'OTRO';
+  | 'ANTECEDENTES' | 'CARNET_SALUD' | 'TITULO_ACADEMICO' | 'FOTO_PERFIL' | 'OTRO';
 
 export interface FuncionarioCargoHistorico {
   id: number;

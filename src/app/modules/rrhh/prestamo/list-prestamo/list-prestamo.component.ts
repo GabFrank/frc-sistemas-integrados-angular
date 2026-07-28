@@ -6,6 +6,9 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
+import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { Prestamo } from '../prestamo.model';
 import { PrestamoService } from '../prestamo.service';
 import { EditPrestamoDialogComponent } from '../edit-prestamo-dialog/edit-prestamo-dialog.component';
@@ -37,8 +40,16 @@ export class ListPrestamoComponent implements OnInit {
   constructor(
     private prestamoService: PrestamoService,
     public mainService: MainService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private notificacion: NotificacionSnackbarService,
+    private reportesRrhhService: ReportesRrhhService,
+    private impresionService: ImpresionService
   ) { }
+
+  onVerRecibo(row: Prestamo) {
+    this.impresionService.imprimir('Recibo préstamo ' + row.id,
+      (anchoMm) => this.reportesRrhhService.onReciboPrestamo(row.id, anchoMm));
+  }
 
   ngOnInit(): void {
     this.onFiltrar();

@@ -2,13 +2,17 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ReportesRrhhService } from '../../reportes/reportes-rrhh.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { Aguinaldo } from '../aguinaldo.model';
 import { AguinaldoService } from '../aguinaldo.service';
+import { PagarAguinaldoDialogComponent } from '../pagar-aguinaldo-dialog/pagar-aguinaldo-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -34,7 +38,10 @@ export class ListAguinaldoComponent implements OnInit {
     private aguinaldoService: AguinaldoService,
     public mainService: MainService,
     private dialogosService: DialogosService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private dialog: MatDialog,
+    private reportesRrhhService: ReportesRrhhService,
+    private impresionService: ImpresionService
   ) { }
 
   ngOnInit(): void {
@@ -92,5 +99,24 @@ export class ListAguinaldoComponent implements OnInit {
   onAprobar(a: Aguinaldo) {
     this.aguinaldoService.onAprobar(a.id)
       .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+  }
+
+  /** Pago separado del aguinaldo: elige Caja Mayor y paga; luego ofrece el recibo. */
+  onPagar(a: Aguinaldo) {
+    this.dialog.open(PagarAguinaldoDialogComponent, {
+      width: '420px',
+      data: { aguinaldoId: a.id, nombre: a.funcionario?.persona?.nombre, monto: a.montoCalculado },
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.notificacion.notification$.next({ texto: 'Aguinaldo pagado', color: NotificacionColor.success, duracion: 3 });
+        this.onFiltrar();
+        this.onVerRecibo(a);
+      }
+    });
+  }
+
+  onVerRecibo(a: Aguinaldo) {
+    this.impresionService.imprimir('Recibo aguinaldo ' + a.id,
+      (anchoMm) => this.reportesRrhhService.onReciboAguinaldo(a.id, anchoMm));
   }
 }

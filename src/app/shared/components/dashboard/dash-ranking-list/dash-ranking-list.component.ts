@@ -25,7 +25,12 @@ export interface DashRankingItem {
         <span>{{ emptyText }}</span>
       </div>
 
-      <div class="dash-ranking-list" *ngIf="items?.length">
+      <div
+        class="dash-ranking-list"
+        *ngIf="items?.length"
+        [style.max-height]="maxAlto"
+        [style.overflow-y]="maxAlto ? 'auto' : null"
+      >
         <div
           *ngFor="let item of items; let i = index"
           class="dash-ranking-item"
@@ -73,4 +78,6 @@ export class DashRankingListComponent {
   @Input() title = "";
   @Input() items: DashRankingItem[] = [];
   @Input() emptyText = "Sin datos en el período";
+  /** Si se setea (ej. "260px"), la lista se limita en alto y hace scroll. */
+  @Input() maxAlto?: string;
 }

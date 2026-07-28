@@ -7,13 +7,21 @@ export type MotivoEgreso =
 
 export type LiquidacionFinalEstado = 'BORRADOR' | 'APROBADA' | 'PAGADA' | 'ANULADA';
 
-export type LiquidacionFinalConcepto = 'INDEMNIZACION' | 'VACACIONES_NO_GOZADAS' | 'AGUINALDO_PROPORCIONAL';
+export type LiquidacionFinalConcepto = 'INDEMNIZACION' | 'PREAVISO' | 'VACACIONES_NO_GOZADAS' | 'AGUINALDO_PROPORCIONAL' | 'MANUAL';
+
+export type LiquidacionItemTipo = 'HABER' | 'DESCUENTO';
 
 export interface LiquidacionFinalItem {
   id: number;
   concepto?: LiquidacionFinalConcepto;
   descripcion?: string;
   monto?: number;
+  tipo?: LiquidacionItemTipo;
+  manual?: boolean;
+  editado?: boolean;
+  editadoPor?: any;
+  editadoEn?: any;
+  montoOriginal?: number;
 }
 
 export interface LiquidacionFinal {
@@ -30,6 +38,10 @@ export interface LiquidacionFinal {
   diasVacacionesNoGozadas?: number;
   montoVacacionesNoGozadas?: number;
   aguinaldoProporcional?: number;
+  preavisoOtorgado?: boolean;
+  preavisoDias?: number;
+  preavisoMonto?: number;
+  preavisoEsDescuento?: boolean;
   totalLiquidado?: number;
   moneda?: Moneda;
   estado?: LiquidacionFinalEstado;
