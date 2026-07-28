@@ -44,6 +44,7 @@ export class ListTerminalPosComponent implements OnInit, GenericList<TerminalPos
       'descripcion',
       'codigo',
       'moneda',
+      'proveedorServicio',
       'creadoEn',
       'creadoPor',
       'activo',
