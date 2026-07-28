@@ -27,6 +27,7 @@ import { IncorporarEmbeddingMarcacionGQL } from "./graphql/incorporarEmbeddingMa
 import { IncorporarEmbeddingMarcacionResult } from '../../administrativo/marcacion/models/incorporar-embedding-result.model';
 import { UsuariosSearchPaginatedGQL } from "./graphql/usuarioSearchPaginated";
 import { PageInfo } from "../../../app.component";
+import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -96,8 +97,19 @@ export class UsuarioService {
     return this.genericService.onGetByTexto(this.verificarUsuario, texto, servidor)
   }
 
-  onSaveInicioSesion(entity: InicioSesionInput, servidor: boolean = true): Observable<InicioSesion> {
-    return this.genericService.onSave(this.saveInicioSesion, entity, null, null, servidor);
+  /**
+   * Guarda el inicio de sesion. Cuando no se indica `servidor` el destino se
+   * resuelve desde la configuracion: en una filial (`isLocal`) se escribe local
+   * y la replica logica lo sube al central.
+   *
+   * Es importante que apertura y cierre de sesion vayan al mismo destino: la
+   * fila usa PK compuesta (id, sucursal_id) y el id lo asigna la filial, asi
+   * que si el cierre escribe directo en el central se adelanta al INSERT que
+   * viaja por replica y la suscripcion se cae por duplicate key.
+   */
+  onSaveInicioSesion(entity: InicioSesionInput, servidor?: boolean): Observable<InicioSesion> {
+    const destino = servidor ?? !this.injector.get(ConfiguracionService).getConfig()?.isLocal;
+    return this.genericService.onSave(this.saveInicioSesion, entity, null, null, destino);
   }
 
   onGetUsuarioImages(id: number, type: string, servidor: boolean = true, errorConf?: any): Observable<string[]> {

@@ -97,7 +97,12 @@ export class LoginService {
       });
   }
 
-  cerrarSesionActiva(servidor: boolean = true): void {
+  /**
+   * Cierra la sesion activa. Sin `servidor` explicito el destino lo resuelve
+   * `onSaveInicioSesion` desde la configuracion, para que el cierre vaya al
+   * mismo lado que la apertura (ver `registrarSesionActiva`).
+   */
+  cerrarSesionActiva(servidor?: boolean): void {
     const sesionActual = this.mainService.usuarioActual?.inicioSesion;
     if (!sesionActual?.id || !sesionActual?.sucursal) {
       return;
