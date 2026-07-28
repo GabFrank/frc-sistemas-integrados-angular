@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
+import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
@@ -23,6 +25,7 @@ export class LoteService {
     private genericService: GenericCrudService,
     private lotesPorProductoGQL: LotesPorProductoGQL,
     private stockPorLoteGQL: StockPorLoteGQL,
+    private buscarStockPorLoteGQL: BuscarStockPorLoteGQL,
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
   ) {}
 
@@ -41,6 +44,42 @@ export class LoteService {
       this.stockPorLoteGQL,
       { productoId, sucursalId },
       servidor
+    );
+  }
+
+  /**
+   * Consulta general "¿dónde tengo qué?". Todos los filtros son opcionales:
+   * los valores nulos se ignoran en el backend.
+   */
+  onBuscarStockPorLote(
+    filtros: {
+      productoId?: number;
+      sucursalId?: number;
+      estado?: EstadoLote;
+      numeroLote?: string;
+      texto?: string;
+      vencimientoHasta?: string;
+    },
+    page = 0,
+    size = 20,
+    servidor = true,
+    silentLoad = false
+  ): Observable<PageInfo<StockLote>> {
+    return this.genericService.onCustomQuery(
+      this.buscarStockPorLoteGQL,
+      {
+        productoId: filtros.productoId ?? null,
+        sucursalId: filtros.sucursalId ?? null,
+        estado: filtros.estado ?? null,
+        numeroLote: filtros.numeroLote || null,
+        texto: filtros.texto || null,
+        vencimientoHasta: filtros.vencimientoHasta || null,
+        page,
+        size
+      },
+      servidor,
+      null,
+      silentLoad
     );
   }
 

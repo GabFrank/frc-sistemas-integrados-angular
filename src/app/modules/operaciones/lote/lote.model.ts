@@ -42,7 +42,10 @@ export class Lote {
 export class StockLote {
   loteId: number;
   productoId: number;
+  /** Solo lo completa buscarStockPorLote; stockPorLote lo deja null. */
+  productoDescripcion?: string;
   sucursalId: number;
+  sucursalNombre?: string;
   numeroLote: string;
   fechaVencimiento?: Date;
   fechaRetiro?: Date;

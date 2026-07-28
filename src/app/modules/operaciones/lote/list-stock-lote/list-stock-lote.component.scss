@@ -1,0 +1,75 @@
+// App siempre en modo oscuro: no usar fondos claros.
+.stock-lote-container {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.filters-row {
+  margin-bottom: 8px;
+}
+
+.leyenda {
+  font-size: 0.78rem;
+  opacity: 0.65;
+  padding-bottom: 18px;
+}
+
+.mensaje-estado {
+  text-align: center;
+  padding: 40px 16px;
+  opacity: 0.8;
+}
+
+.tabla-container {
+  flex: 1;
+  overflow: auto;
+}
+
+.tabla-stock-lote {
+  width: 100%;
+
+  // Texto centrado en tablas por default (convención del proyecto).
+  th,
+  td {
+    text-align: center;
+  }
+}
+
+.celda-cantidad {
+  font-weight: 500;
+}
+
+.chip-estado {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.estado-liberado {
+  background-color: rgba(76, 175, 80, 0.22);
+  color: #81c784;
+}
+
+.estado-cuarentena {
+  background-color: rgba(255, 167, 38, 0.22);
+  color: #ffb74d;
+}
+
+.estado-bloqueado {
+  background-color: rgba(244, 67, 54, 0.22);
+  color: #e57373;
+}
+
+// Resaltado por proximidad de la fecha de retiro. Se calcula en el componente, no en el template.
+.fila-vencida td {
+  background-color: rgba(244, 67, 54, 0.12);
+}
+
+.fila-por-vencer td {
+  background-color: rgba(255, 167, 38, 0.1);
+}

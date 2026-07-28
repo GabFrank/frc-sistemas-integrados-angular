@@ -42,6 +42,54 @@ export const stockPorLoteQuery = gql`
 `;
 
 /**
+ * Consulta general "¿dónde tengo qué?". Todos los filtros son opcionales.
+ * El orden es FEFO: lo que hay que sacar primero aparece primero.
+ */
+export const buscarStockPorLoteQuery = gql`
+  query buscarStockPorLote(
+    $productoId: ID
+    $sucursalId: ID
+    $estado: EstadoLote
+    $numeroLote: String
+    $texto: String
+    $vencimientoHasta: String
+    $page: Int
+    $size: Int
+  ) {
+    data: buscarStockPorLote(
+      productoId: $productoId
+      sucursalId: $sucursalId
+      estado: $estado
+      numeroLote: $numeroLote
+      texto: $texto
+      vencimientoHasta: $vencimientoHasta
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        loteId
+        productoId
+        productoDescripcion
+        sucursalId
+        sucursalNombre
+        numeroLote
+        fechaVencimiento
+        fechaRetiro
+        estado
+        cantidadDisponible
+      }
+    }
+  }
+`;
+
+/**
  * Mecanismo de recall: pasar un lote a BLOQUEADO lo saca de FEFO y del mostrador en todas las
  * sucursales, sin tocar el stock físico.
  */
