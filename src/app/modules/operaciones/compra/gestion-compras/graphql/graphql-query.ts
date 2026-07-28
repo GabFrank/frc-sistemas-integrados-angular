@@ -1521,6 +1521,8 @@ export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
           id
           descripcion
           codigoPrincipal
+          lote
+          vencimiento
         }
         presentacionEnNota {
           id

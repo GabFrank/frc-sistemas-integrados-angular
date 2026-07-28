@@ -885,6 +885,21 @@
                   />
                 </mat-form-field>
               </div>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto requiere control de lote. Al recibir mercadería será obligatorio informar el número de lote."
+                >
+                  Requiere lote?
+                </div>
+                <div fxFlex="10">
+                  <mat-slide-toggle formControlName="lote">{{
+                    datosGeneralesControl.controls.lote.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+              </div>
               <div fxFlex="10" fxLayout="row" *ngIf="selectedFamilia?.id != 2">
                 <div
                   fxFlex="30"

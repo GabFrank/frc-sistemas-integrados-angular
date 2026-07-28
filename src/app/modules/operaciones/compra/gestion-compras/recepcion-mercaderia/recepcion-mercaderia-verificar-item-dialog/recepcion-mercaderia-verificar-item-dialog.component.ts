@@ -67,6 +67,11 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   cantidadDiferenciaComputed = 0;
   formValidComputed = false;
   hayDiscrepanciasComputed = false;
+  // Control de lote: se resuelven una sola vez al abrir el diálogo (ver ngOnInit).
+  // Evita llamar funciones desde el template en cada change detection.
+  requiereLoteComputed = false;
+  requiereVencimientoComputed = false;
+  mostrarInformacionAdicionalComputed = false;
   presentacionSeleccionadaComputed: Presentacion | null = null;
   cantidadPorUnidadComputed = 0;
   loadingPresentaciones = false;
@@ -94,7 +99,19 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.resolverRequisitosDeLote();
     this.loadAllDataAndInitialize();
+  }
+
+  /**
+   * Determina si el producto exige lote y/o vencimiento. Se calcula una sola vez porque
+   * el producto no cambia mientras el diálogo está abierto.
+   */
+  private resolverRequisitosDeLote(): void {
+    this.requiereLoteComputed = this.item?.producto?.lote === true;
+    this.requiereVencimientoComputed = this.item?.producto?.vencimiento === true;
+    this.mostrarInformacionAdicionalComputed =
+      this.requiereLoteComputed || this.requiereVencimientoComputed;
   }
 
   ngOnDestroy(): void {
@@ -225,8 +242,14 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
         [Validators.required, Validators.min(0), Validators.max(dist.cantidadEsperada)]
       ];
       
+      // Solo el número de lote es obligatorio (y solo si el producto lo exige).
+      // El vencimiento se muestra para los productos que lo manejan, pero queda opcional.
+      const validadoresLote = this.requiereLoteComputed
+        ? [Validators.required, Validators.maxLength(50)]
+        : [Validators.maxLength(50)];
+
       formControls[`${prefix}_vencimiento`] = [dist.vencimiento];
-      formControls[`${prefix}_lote`] = ['', [Validators.maxLength(50)]];
+      formControls[`${prefix}_lote`] = ['', validadoresLote];
       formControls[`${prefix}_observaciones`] = ['', [Validators.maxLength(500)]];
       formControls[`${prefix}_motivoModificacion`] = [null];
       formControls[`${prefix}_motivoOtro`] = ['', [Validators.maxLength(200)]];
@@ -357,12 +380,15 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     
     this.distribucionesFormData.forEach((dist, index) => {
       const prefix = `dist_${index}`;
-      this.navigationFields.push(
-        `${prefix}_cantidadRecibida`,
-        `${prefix}_vencimiento`,
-        `${prefix}_lote`,
-        `${prefix}_observaciones`
-      );
+      this.navigationFields.push(`${prefix}_cantidadRecibida`);
+      // Solo navegar por los campos que efectivamente se renderizan
+      if (this.requiereVencimientoComputed) {
+        this.navigationFields.push(`${prefix}_vencimiento`);
+      }
+      if (this.requiereLoteComputed) {
+        this.navigationFields.push(`${prefix}_lote`);
+      }
+      this.navigationFields.push(`${prefix}_observaciones`);
       
       // Agregar campos de motivo si hay discrepancia
       if (dist.tieneDiscrepancia) {
@@ -426,7 +452,7 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           sucursalId: dist.sucursalId,
           cantidadRecibida: cantidadEnUnidadesBase, // Convertir a unidades base para el backend
           vencimiento: dist.vencimiento,
-          lote: dist.lote,
+          lote: dist.lote ? dist.lote.trim().toUpperCase() : '',
           observaciones: dist.observaciones,
           motivoModificacion: dist.motivoModificacion,
           motivoOtro: dist.motivoOtro,

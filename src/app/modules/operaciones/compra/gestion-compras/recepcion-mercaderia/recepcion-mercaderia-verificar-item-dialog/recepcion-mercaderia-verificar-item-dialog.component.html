@@ -133,11 +133,14 @@
                   <div class="seccion-expandida">
                     <h5 class="section-title">Información Adicional</h5>
                     
-                    <div class="form-row">
-                      <mat-form-field appearance="outline" class="vencimiento-field">
+                    <div class="form-row" *ngIf="mostrarInformacionAdicionalComputed">
+                      <mat-form-field
+                        appearance="outline"
+                        class="vencimiento-field"
+                        *ngIf="requiereVencimientoComputed">
                         <mat-label>Fecha de Vencimiento</mat-label>
-                        <input 
-                          matInput 
+                        <input
+                          matInput
                           [matDatepicker]="vencimientoPicker"
                           [formControlName]="'dist_' + i + '_vencimiento'"
                           (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_vencimiento')"
@@ -146,14 +149,20 @@
                         <mat-datepicker #vencimientoPicker></mat-datepicker>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" class="lote-field">
+                      <mat-form-field
+                        appearance="outline"
+                        class="lote-field"
+                        *ngIf="requiereLoteComputed">
                         <mat-label>Número de Lote</mat-label>
-                        <input 
-                          matInput 
+                        <input
+                          matInput
                           [formControlName]="'dist_' + i + '_lote'"
                           maxlength="50"
                           (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_lote')"
                           placeholder="Ej: LOTE2024001">
+                        <mat-error *ngIf="getLoteControl(i)?.hasError('required')">
+                          El número de lote es obligatorio para este producto
+                        </mat-error>
                         <mat-error *ngIf="getLoteControl(i)?.hasError('maxlength')">
                           Máximo 50 caracteres
                         </mat-error>
