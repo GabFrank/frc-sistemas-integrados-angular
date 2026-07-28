@@ -16,6 +16,7 @@ export const sucursalesQuery = gql
       deposito
       ip
       puerto
+      puertoServidor
       direccion
       nroDelivery
       depositoPredeterminado
@@ -51,6 +52,7 @@ export const sucursalesSearch = gql
         }
         ip
         puerto
+        puertoServidor
         direccion
         nroDelivery
         depositoPredeterminado
@@ -79,6 +81,7 @@ export const sucursalesSearchConFiltros = gql
       deposito
       ip
       puerto
+      puertoServidor
       direccion
       nroDelivery
       isConfigured
@@ -102,6 +105,7 @@ export const sucursalQuery = gql
       }
       ip
       puerto
+      puertoServidor
       direccion
       nroDelivery
       depositoPredeterminado
@@ -122,6 +126,7 @@ export const sucursalActualQuery = gql
       }
       ip
       puerto
+      puertoServidor
       direccion
       nroDelivery
       depositoPredeterminado
@@ -143,6 +148,7 @@ export const saveSucursal = gql
         }
         ip
         puerto
+        puertoServidor
         direccion
         nroDelivery
         depositoPredeterminado
@@ -183,6 +189,7 @@ export const sucursalesByNombreQuery = gql`
         }
         ip
         puerto
+        puertoServidor
         direccion
         nroDelivery
         depositoPredeterminado

@@ -27,17 +27,18 @@
         <div fxFlex="50">
             <div class="titulo-center">Costo actual</div>
           <div class="info-text">
-            <span *ngIf="!isLoadingCosto"
-          >
-           {{ costoActual | number:'1.0-0' }} Gs.
-          </span>
+            <app-costo-display *ngIf="!isLoadingCosto" [valor]="costoActual"></app-costo-display>
             <mat-spinner *ngIf="isLoadingCosto" diameter="20"></mat-spinner>
           </div>
         </div>
         <div fxFlex="50">
           <div class="titulo-center">Última compra</div>
           <div class="info-text">
-            {{ ultimoPrecioCompra | number:'1.0-0' }} Gs.
+            <app-costo-display
+              [valor]="ultimoPrecioCompra"
+              [moneda]="costoMoneda"
+              [cotizacion]="costoCotizacion"
+            ></app-costo-display>
           </div>
         </div>
       </div>
@@ -87,7 +88,7 @@
               trending_down
             </mat-icon>
               {{ diferenciaCosto >= 0 ? '+' : '' }}
-              {{ diferenciaCosto | number:'1.0-0' }} Gs.
+              <app-costo-display [valor]="diferenciaCosto"></app-costo-display>
           </div>
         </div>
         <div fxFlex="33">
@@ -115,7 +116,7 @@
         <div fxFlex="33">
             <div class="titulo-center">Nuevo costo</div>
             <div class="info-text">
-            {{ costoControl.value | number:'1.0-0' }} Gs.
+            <app-costo-display [valor]="costoControl.value"></app-costo-display>
           </div>
         </div>
       </div>

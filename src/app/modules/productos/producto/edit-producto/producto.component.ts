@@ -79,6 +79,8 @@ import { ProductoInput } from "../producto-input.model";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
 import { TipoConservacion } from "./producto-enums";
+import { ThermalPrinterService } from "../../../configuracion/thermal-printer/thermal-printer.service";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 export class ProductoDialogData {
   producto: Producto;
@@ -251,7 +253,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
     private cargandoDialog: CargandoDialogService,
     private familiasSearchGQL: FamiliasSearchGQL,
     private subfamiliasSearchGQL: SubfamiliasSearchGQL,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private thermalPrinterService: ThermalPrinterService,
+    private configuracionService: ConfiguracionService
   ) {
     if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
@@ -1122,6 +1126,16 @@ export class ProductoComponent implements OnInit, OnDestroy {
     let data = new AdicionarCodigoData();
     data.codigo = index === null ? null : this.selectedCodigo;
     data.presentacion = presentacion;
+    // Asegurar nombre del producto en la etiqueta térmica del diálogo de código
+    if (data.presentacion && !data.presentacion.producto && this.selectedProducto) {
+      data.presentacion.producto = this.selectedProducto;
+    } else if (
+      data.presentacion?.producto &&
+      !data.presentacion.producto.descripcion &&
+      this.selectedProducto?.descripcion
+    ) {
+      data.presentacion.producto.descripcion = this.selectedProducto.descripcion;
+    }
     data.index = index;
     data.presentacionIndex = presentacionIndex;
     this.matDialog
@@ -1226,11 +1240,56 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onImprimirCodigoDeBarra(codigo) {
-    console.log(codigo);
+    const valor = (codigo?.codigo || "").toString().trim();
+    if (!valor) {
+      this.notificacionService.notification$.next({
+        texto: "El código no tiene valor para imprimir",
+        color: NotificacionColor.warn,
+        duracion: 3,
+      });
+      return;
+    }
+    const impresoraConfig = (
+      this.configuracionService.getConfig()?.printers?.ticket || ""
+    ).trim();
 
-    this.productoService
-      .onImprimirCodigo(codigo)
-      .subscribe((res) => console.log(res));
+    this.thermalPrinterService
+      .getPrinters()
+      .pipe(untilDestroyed(this))
+      .subscribe((printers) => {
+        const list = printers || [];
+        const match = impresoraConfig
+          ? list.find(
+              (p) =>
+                (p.name || "").toLowerCase() === impresoraConfig.toLowerCase()
+            )
+          : null;
+        const printerName =
+          match?.name ||
+          impresoraConfig ||
+          list[0]?.name ||
+          "";
+
+        if (!printerName) {
+          this.notificacionService.notification$.next({
+            texto: "No se encontraron impresoras térmicas",
+            color: NotificacionColor.danger,
+            duracion: 3,
+          });
+          return;
+        }
+        this.thermalPrinterService
+          .printBarcodeLabel(
+            printerName,
+            valor,
+            "CODE128",
+            true,
+            true,
+            this.selectedProducto.descripcion
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe();
+      });
   }
 
   onFilterFamilia() {

@@ -25,6 +25,7 @@ import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.serv
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ClientesSearchConFiltrosGQL } from "../../../personas/clientes/graphql/clienteWithFilters";
 import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
 import { SearchListDialogComponent, SearchListtDialogData, TableData } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
@@ -115,7 +116,8 @@ export class GenericListVentaComponent implements OnInit {
     private formaPagoService: FormaPagoService,
     private clienteSearch: ClientesSearchConFiltrosGQL,
     private ventaObservacionService: VentaObservacionService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private ventaTarjetaService: VentaTarjetaService
   ) { }
 
   ngOnInit(): void {
@@ -170,6 +172,15 @@ export class GenericListVentaComponent implements OnInit {
   }
 
 
+  // Acepta el nro. de venta con o sin separadores de miles (ej: 734.498 -> 734498)
+  toVentaId(value: any): number {
+    if (value == null || value === '') {
+      return null;
+    }
+    let soloDigitos = String(value).replace(/\D/g, '');
+    return soloDigitos.length > 0 ? parseInt(soloDigitos, 10) : null;
+  }
+
   onFiltrarConReset() {
     this.pageIndex = 0;
     this.paginator.firstPage();
@@ -185,7 +196,7 @@ export class GenericListVentaComponent implements OnInit {
 
     this.ventaService
       .onVentasFilter(
-        this.idVentaControl.value,
+        this.toVentaId(this.idVentaControl.value),
         null, // cajaId
         this.pageIndex,
         this.pageSize,
@@ -418,6 +429,7 @@ export class GenericListVentaComponent implements OnInit {
       .confirm("Atención!!", "Realmente desea cancelar esta venta?")
       .subscribe((res) => {
         if (res) {
+          const estabaCancelada = venta.estado == VentaEstado.CANCELADA;
           this.ventaService
             .onCancelarVenta(venta.id, venta.sucursalId)
             .subscribe((res1) => {
@@ -425,10 +437,14 @@ export class GenericListVentaComponent implements OnInit {
                 this.notificacionService.openSucess(
                   "Venta cancelada con éxito"
                 );
-                if (venta.estado == VentaEstado.CANCELADA) {
+                if (estabaCancelada) {
                   venta.estado = VentaEstado.CONCLUIDA;
                 } else {
                   venta.estado = VentaEstado.CANCELADA;
+                  this.ventaTarjetaService.onCancelarPorVentaId(venta.id, venta.sucursalId).subscribe({
+                    next: (ok) => { if (!ok) console.warn('[VentaTarjeta] cancelar retornó false — sin registro asociado a ventaId', venta.id); },
+                    error: (err) => console.error('[VentaTarjeta] error al cancelar registro de tarjeta:', err)
+                  });
                 }
                 this.ventaDataSource.data = updateDataSource(
                   this.ventaDataSource.data,
@@ -453,7 +469,30 @@ export class GenericListVentaComponent implements OnInit {
       this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
 
     this.ventaService.onReporteGenericVentas(
-      this.idVentaControl.value,
+      this.toVentaId(this.idVentaControl.value),
+      null,
+      this.sucursalControl.value,
+      this.formaPagoControl.value,
+      this.estadoControl.value,
+      this.modoControl.value,
+      this.monedaControl.value?.id,
+      this.conDescuentoControl.value,
+      this.conAumentoControl.value,
+      this.conObsControl.value,
+      this.selectedCliente?.id,
+      fechaInicio,
+      fechaFin
+    );
+  }
+
+  onGenerarReporteDetallado() {
+    let fechaInicio = this.fechaInicioControl.value != null ?
+      this.fechaInicioControl.value?.toISOString().slice(0, 10) : null;
+    let fechaFin = this.fechaFinControl.value != null ?
+      this.fechaFinControl.value?.toISOString().slice(0, 10) : null;
+
+    this.ventaService.onReporteGenericVentasDetallado(
+      this.toVentaId(this.idVentaControl.value),
       null,
       this.sucursalControl.value,
       this.formaPagoControl.value,

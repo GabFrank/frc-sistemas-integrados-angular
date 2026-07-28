@@ -1,5 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
@@ -16,6 +17,8 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../pdv/caja/caja.model';
 import { ListRetiroComponent } from '../../retiro/list-retiro/list-retiro.component';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -50,13 +53,21 @@ export class ListMaletinComponent implements OnInit {
   isLastPage = false;
   isSearching = false;
 
+  sucursalList: Sucursal[] = [];
+  maletinList: Maletin[] = [];
+
+  sucursalControl = new FormControl(null);
+  codigoControl = new FormControl(null);
+  // tri-estado: null = todos, true = abiertos, false = cerrados
+  abiertoControl = new FormControl(null);
 
 
   constructor(
     private maletinService: MaletinService,
     public windowInfoService: WindowInfoService,
     private matDialog: MatDialog,
-    private tabService: TabService
+    private tabService: TabService,
+    private sucursalService: SucursalService
   ) {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.8;
@@ -64,6 +75,11 @@ export class ListMaletinComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.sucursalService.onGetAllSucursales(true)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) this.sucursalList = res.filter(s => s.id != 0);
+      })
     this.onFiltrar()
   }
 
@@ -94,14 +110,43 @@ export class ListMaletinComponent implements OnInit {
 
   }
   onFiltrar() {
-    this.maletinService.onGetAll().subscribe(res => {
-      if (res != null) {
-        this.dataSource.data = res;
-      }
-    })
+    this.maletinService.onGetAll()
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.maletinList = res;
+          this.aplicarFiltros();
+        }
+      })
   }
-  resetFiltro() {
 
+  aplicarFiltros() {
+    const sucursalId = this.sucursalControl.value?.id;
+    const codigo = (this.codigoControl.value || '').toString().trim().toLowerCase();
+    const abierto = this.abiertoControl.value;
+
+    this.dataSource.data = (this.maletinList || []).filter(maletin =>
+      (sucursalId == null || maletin?.sucursal?.id == sucursalId) &&
+      (codigo == '' || (maletin?.descripcion || '').toLowerCase().includes(codigo)) &&
+      (abierto == null || (maletin?.abierto == true) == abierto)
+    );
+  }
+
+  onCambiarAbierto() {
+    this.abiertoControl.setValue(
+      this.abiertoControl.value === null
+        ? true
+        : this.abiertoControl.value === true
+          ? false
+          : null
+    );
+  }
+
+  resetFiltro() {
+    this.sucursalControl.setValue(null);
+    this.codigoControl.setValue(null);
+    this.abiertoControl.setValue(null);
+    this.aplicarFiltros();
   }
 
   onIrACaja(cajaSalida: PdvCaja){

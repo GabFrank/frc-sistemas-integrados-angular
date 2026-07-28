@@ -72,6 +72,7 @@ import { DashQuickActionComponent } from './components/dashboard/dash-quick-acti
 import { DashRankingListComponent } from './components/dashboard/dash-ranking-list/dash-ranking-list.component';
 import { DashChartCardComponent } from './components/dashboard/dash-chart-card/dash-chart-card.component';
 import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.component';
+import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -127,7 +128,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DashStatChipComponent,
     DashQuickActionComponent,
     DashRankingListComponent,
-    DashChartCardComponent
+    DashChartCardComponent,
+    CostoDisplayComponent
   ],
   imports: [
     CommonModule,
@@ -189,7 +191,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DashStatChipComponent,
     DashQuickActionComponent,
     DashRankingListComponent,
-    DashChartCardComponent
+    DashChartCardComponent,
+    CostoDisplayComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

@@ -1,0 +1,189 @@
+.impresoras-container {
+  padding: 20px;
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.header-row {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtitulo {
+  opacity: 0.6;
+  font-size: 13px;
+}
+
+.search-field {
+  max-width: 400px;
+  width: 100%;
+}
+
+.viewport-container {
+  flex: 1 1 auto;
+  width: 100%;
+  border-radius: 8px;
+  
+  /* We use custom scrollbar for better look */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+  }
+}
+
+.fila-grid {
+  padding: 8px;
+}
+
+.impresora-card {
+  min-width: 320px;
+  padding: 14px;
+  border-radius: 12px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  &.inactiva {
+    opacity: 0.55;
+  }
+  
+  /* Color themes based on Sucursal Index */
+  &.theme-color-0 { border-top: 4px solid #2196F3; .sucursal-badge { color: #2196F3; background: rgba(33, 150, 243, 0.1); } }
+  &.theme-color-1 { border-top: 4px solid #4CAF50; .sucursal-badge { color: #4CAF50; background: rgba(76, 175, 80, 0.1); } }
+  &.theme-color-2 { border-top: 4px solid #FF9800; .sucursal-badge { color: #FF9800; background: rgba(255, 152, 0, 0.1); } }
+  &.theme-color-3 { border-top: 4px solid #9C27B0; .sucursal-badge { color: #9C27B0; background: rgba(156, 39, 176, 0.1); } }
+  &.theme-color-4 { border-top: 4px solid #F44336; .sucursal-badge { color: #F44336; background: rgba(244, 67, 54, 0.1); } }
+  &.theme-color-5 { border-top: 4px solid #009688; .sucursal-badge { color: #009688; background: rgba(0, 150, 136, 0.1); } }
+}
+
+.sucursal-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  width: fit-content;
+  
+  mat-icon {
+    font-size: 14px;
+    height: 14px;
+    width: 14px;
+  }
+}
+
+.card-top {
+  margin-bottom: 12px;
+}
+
+.tipo-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(63, 81, 181, 0.18);
+
+  mat-icon {
+    color: #7986cb;
+  }
+}
+
+.card-title {
+  min-width: 0;
+
+  .nombre {
+    font-weight: 600;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tipo-uso {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+}
+
+.estrella {
+  color: #ffca28;
+}
+
+.card-info {
+  margin-bottom: 10px;
+
+  .info-linea {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 3px 0;
+    opacity: 0.85;
+
+    .info-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+      opacity: 0.7;
+    }
+  }
+}
+
+.card-estado {
+  margin-bottom: 10px;
+}
+
+.chip-estado {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.chip-activa {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.chip-inactiva {
+  background: rgba(158, 158, 158, 0.2);
+  color: #bdbdbd;
+}
+
+.card-acciones {
+  margin-top: 8px;
+}
+
+.sin-datos {
+  margin-top: 24px;
+  gap: 12px;
+  opacity: 0.8;
+
+  .icono-vacio {
+    font-size: 56px;
+    height: 56px;
+    width: 56px;
+    opacity: 0.4;
+  }
+}

@@ -15,6 +15,18 @@
 
       <div
         class="chart-card clickable"
+        (click)="onChartClick('delivery-sucursal')"
+      >
+        <div
+          *ngIf="vista.deliveryPorSucursal as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
         (click)="onChartClick('venta-ciudad')"
       >
         <div
@@ -103,6 +115,30 @@
       >
         <div
           *ngIf="vista.analisisProducto as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('evolucion-costo')"
+      >
+        <div
+          *ngIf="vista.evolucionCosto as opciones"
+          echarts
+          [options]="opciones"
+          class="chart"
+        ></div>
+      </div>
+
+      <div
+        class="chart-card clickable"
+        (click)="onChartClick('ranking-inflacion')"
+      >
+        <div
+          *ngIf="vista.rankingInflacion as opciones"
           echarts
           [options]="opciones"
           class="chart"

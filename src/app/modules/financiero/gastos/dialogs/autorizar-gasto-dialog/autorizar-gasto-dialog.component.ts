@@ -217,16 +217,22 @@ export class AutorizarGastoDialogComponent implements OnInit {
     });
   }
 
+  limpiarDescripcion(descripcion: string | undefined | null): string {
+    if (!descripcion) return '';
+    return descripcion.replace(/\s*\|\s*\[URGENCIA:.*?\]/i, '').trim();
+  }
+
   private buildResumenMontosPorMoneda(): ResumenMontoPorMoneda[] {
+    const isPendingOrAuthorized = this.preGasto?.estado === 'PENDIENTE' || this.preGasto?.estado === 'AUTORIZADO';
     const finanzas = this.preGasto?.finanzas ?? [];
     if (finanzas.length === 0) {
       return [{
         etiquetaMoneda: this.preGasto?.moneda?.denominacion ?? 'Moneda',
         simboloMoneda: this.preGasto?.moneda?.simbolo ?? '',
         solicitado: Number(this.preGasto?.montoSolicitado ?? 0),
-        retirado: Number(this.preGasto?.montoRetirado ?? 0),
-        rendido: Number(this.preGasto?.montoGastado ?? 0),
-        vuelto: Number(this.preGasto?.saldoDevolver ?? 0),
+        retirado: isPendingOrAuthorized ? 0 : Number(this.preGasto?.montoRetirado ?? 0),
+        rendido: isPendingOrAuthorized ? 0 : Number(this.preGasto?.montoGastado ?? 0),
+        vuelto: isPendingOrAuthorized ? 0 : Number(this.preGasto?.saldoDevolver ?? 0),
       }];
     }
 
@@ -234,9 +240,9 @@ export class AutorizarGastoDialogComponent implements OnInit {
       const simbolo = fin?.moneda?.simbolo ?? '';
       const etiqueta = fin?.moneda?.denominacion ?? 'Moneda';
       const solicitado = Number(fin?.monto ?? 0);
-      const retirado = this.valorRetiradoPorMoneda(simbolo, etiqueta);
-      const vuelto = this.valorVueltoPorMoneda(simbolo, etiqueta);
-      const rendido = Math.max(retirado - vuelto, 0);
+      const retirado = isPendingOrAuthorized ? 0 : this.valorRetiradoPorMoneda(simbolo, etiqueta);
+      const vuelto = isPendingOrAuthorized ? 0 : this.valorVueltoPorMoneda(simbolo, etiqueta);
+      const rendido = isPendingOrAuthorized ? 0 : Math.max(retirado - vuelto, 0);
       return {
         etiquetaMoneda: etiqueta,
         simboloMoneda: simbolo,
@@ -271,13 +277,10 @@ export class AutorizarGastoDialogComponent implements OnInit {
     const normalizedDen = (denominacion ?? '').trim().toUpperCase();
     const gasto = this.preGasto?.gasto;
     if (!gasto) {
-      const finanzas = this.preGasto?.finanzas ?? [];
-      const fin = finanzas.find((item) => {
-        const itemSimbolo = (item?.moneda?.simbolo ?? '').trim().toUpperCase();
-        const itemDen = (item?.moneda?.denominacion ?? '').trim().toUpperCase();
-        return itemSimbolo === normalized || itemDen === normalizedDen;
-      });
-      return Number(fin?.monto ?? this.preGasto?.montoRetirado ?? 0);
+      if (this.preGasto?.estado === 'PENDIENTE' || this.preGasto?.estado === 'AUTORIZADO') {
+        return 0;
+      }
+      return Number(this.preGasto?.montoRetirado ?? 0);
     }
     if (normalized.includes('GS') || normalizedDen.includes('GUARANI')) {
       return Number(gasto.retiroGs ?? 0);

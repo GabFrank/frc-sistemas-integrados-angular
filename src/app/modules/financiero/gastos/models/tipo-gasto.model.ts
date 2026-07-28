@@ -3,8 +3,6 @@ import { Usuario } from "../../../personas/usuarios/usuario.model"
 
 export class TipoGasto {
     id: number
-    isClasificacion: boolean
-    clasificacionGasto: TipoGasto
     descripcion: string
     tipoNaturaleza: string
     moduloPadre?: string
@@ -13,7 +11,6 @@ export class TipoGasto {
     activo: boolean
     activoEnSucursales?: boolean
     creadoEn: Date
-    subtipoList: TipoGasto[] = []
     usuario: Usuario
     afectaFinanzasActivo?: boolean;
     esPagoCuotaActivo?: boolean;
@@ -21,8 +18,6 @@ export class TipoGasto {
 
 export class TipoGastoInput {
     id: number
-    isClasificacion: boolean
-    clasificacionGastoId: number
     descripcion: string
     tipoNaturaleza: string
     moduloPadre?: string

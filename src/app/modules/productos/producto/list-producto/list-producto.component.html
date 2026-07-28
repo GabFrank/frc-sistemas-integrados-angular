@@ -265,16 +265,20 @@
           Costo medio
         </th>
         <td mat-cell *matCellDef="let producto" style="text-align: center">
-          {{ puedeVerCostos ? (producto?.costo?.costoMedio | number : "1.0-0") : "-" }}
+          <app-costo-display [valor]="puedeVerCostos ? producto?.costo?.costoMedio : null"></app-costo-display>
         </td>
       </ng-container>
- 
+
       <ng-container matColumnDef="costoUltCompra">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Ult. costo
         </th>
         <td mat-cell *matCellDef="let producto" style="text-align: center">
-          {{ puedeVerCostos ? (ultimoPrecioCompraEnGs(producto?.costo) | number : "1.0-0") : "-" }}
+          <app-costo-display
+            [valor]="puedeVerCostos ? producto?.costo?.ultimoPrecioCompra : null"
+            [moneda]="producto?.costo?.moneda"
+            [cotizacion]="producto?.costo?.cotizacion"
+          ></app-costo-display>
         </td>
       </ng-container>
 

@@ -105,7 +105,7 @@
         fxLayoutGap="10px"
         style="width: 100%"
       >
-        <div fxFlex="33%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -117,7 +117,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="33%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -129,13 +129,25 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="34%">
+        <div fxFlex="25%">
           <mat-form-field style="width: 100%">
             <mat-label>CDC</mat-label>
             <input
               type="text"
               matInput
               [formControl]="cdcControl"
+              (keyup.enter)="onFilter()"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Número de venta</mat-label>
+            <input
+              type="text"
+              inputmode="numeric"
+              matInput
+              [formControl]="ventaIdControl"
               (keyup.enter)="onFilter()"
             />
           </mat-form-field>
@@ -418,17 +430,25 @@
             </button>
             <button
               mat-menu-item
-              (click)="onDescargarPdf(factura)"
-              [disabled]="!esElectronica(factura)">
+              (click)="onDescargarPdf(factura)">
               <mat-icon>picture_as_pdf</mat-icon>
               <span>Descargar PDF</span>
             </button>
             <button
               mat-menu-item
-              (click)="onAbrirPdf(factura)"
-              [disabled]="!esElectronica(factura)">
+              (click)="onAbrirPdf(factura)">
               <mat-icon>open_in_browser</mat-icon>
               <span>Abrir PDF</span>
+            </button>
+            <button mat-menu-item (click)="onImprimirTicketEnSucursal(factura)">
+              <mat-icon>receipt_long</mat-icon>
+              <span>Imprimir ticket en sucursal</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onImprimirPdfEnSucursal(factura)">
+              <mat-icon>store</mat-icon>
+              <span>Imprimir PDF en sucursal</span>
             </button>
           </mat-menu>
         </td>

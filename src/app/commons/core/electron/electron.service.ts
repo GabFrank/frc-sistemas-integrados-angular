@@ -26,6 +26,67 @@ export interface PrintResult {
   error?: string;
 }
 
+export interface NetworkInfo {
+  mejor: string | null;
+  todas: { iface: string; ip: string }[];
+  usuario: string | null;
+}
+
+export interface ShareResult {
+  success: boolean;
+  ip: string | null;
+  uri: string | null;
+  error?: string;
+  aviso?: string;
+}
+
+/** Datos para imprimir un payload ESC/POS en una impresora local a esta PC, sin backend. */
+export interface PrintLocalArgs {
+  conexion: string; // 'CUPS' | 'USB' | 'RED' | 'BLUETOOTH'
+  cola?: string;    // cola CUPS (CUPS/USB/BLUETOOTH)
+  ip?: string;      // impresora de red (RED)
+  puerto?: number;  // impresora de red (RED), típico 9100
+  payloadBase64: string;
+}
+
+/** Datos para imprimir el ticket de PRUEBA local (Electron genera el ESC/POS, sin backend). */
+export interface PrintTestLocalArgs {
+  conexion: string;
+  cola?: string;
+  ip?: string;
+  puerto?: number;
+  nombre?: string;
+  sucursal?: string;
+  columnas?: number;
+  perfil?: string;
+}
+
+/** Resultado de imprimir localmente (print-local / print-test-local). */
+export interface PrintLocalResult {
+  success: boolean;
+  error?: string;
+}
+
+/** Resultado de instalar la impresora en el CUPS/spooler local de esta PC (sin pasar por el servidor). */
+export interface InstallResult {
+  success: boolean;
+  cola?: string;
+  uri?: string;
+  needsPassword?: boolean; // Linux: CUPS necesita permisos de admin → la UI reintenta con contraseña
+  error?: string;
+}
+
+/** Impresora de red descubierta por mDNS/DNS-SD (Bonjour) desde el proceso Electron. */
+export interface NetworkPrinter {
+  nombre: string;
+  ip: string;
+  host: string | null;
+  modelo: string | null;
+  puerto: number;
+  uri: string;
+  protocolos: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -166,6 +227,59 @@ export class ElectronService {
   }
   getPrinters(): Observable<PrinterInfo[]> {
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
+  }
+
+  /**
+   * Descubre impresoras de red (Wi-Fi/Ethernet) por mDNS/DNS-SD (Bonjour). La detección la hace
+   * este proceso Electron (frontend), independiente de la detección por cable/USB del backend.
+   * Detecta Epson, HP, Brother, Canon, etc. que anuncian _ipp / _pdl-datastream (9100) / _printer.
+   */
+  detectNetworkPrinters(timeoutMs?: number): Observable<NetworkPrinter[]> {
+    return from(ipcRenderer.invoke('detect-network-printers', { timeoutMs })) as Observable<NetworkPrinter[]>;
+  }
+
+  /**
+   * Detecta las IPs LAN de esta máquina (para compartir la impresora local al servidor
+   * central: el central alcanza la impresora por la IP de esta PC).
+   */
+  getLocalIp(): Observable<NetworkInfo> {
+    return from(ipcRenderer.invoke('get-local-ip')) as Observable<NetworkInfo>;
+  }
+
+  /**
+   * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
+   * servidor central. Requiere permisos de administración de CUPS. Solo Linux.
+   */
+  shareLocalPrinter(queue: string, password?: string, centralIp?: string): Observable<ShareResult> {
+    return from(ipcRenderer.invoke('share-local-printer', { queue, password, centralIp })) as Observable<ShareResult>;
+  }
+
+  /**
+   * Instala la impresora en el CUPS/spooler LOCAL de esta PC (sin pasar por el servidor). Linux:
+   * lpadmin (raw térmica / everywhere). Windows: Add-Printer. Si CUPS necesita permisos de admin
+   * devuelve { needsPassword: true } para reintentar con la contraseña.
+   */
+  installLocalPrinter(cola: string, uri: string, raw = true, password?: string): Observable<InstallResult> {
+    return from(ipcRenderer.invoke('install-local-printer', { cola, uri, raw, password })) as Observable<InstallResult>;
+  }
+
+  /**
+   * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin pasar por ningún
+   * backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
+   * alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente. RED → socket TCP a
+   * ip:puerto; CUPS/USB/BLUETOOTH → `lp -d <cola> -o raw` (Linux/mac).
+   */
+  printLocal(args: PrintLocalArgs): Observable<PrintLocalResult> {
+    return from(ipcRenderer.invoke('print-local', args)) as Observable<PrintLocalResult>;
+  }
+
+  /**
+   * Imprime el ticket de PRUEBA generado 100% en el frontend (Electron arma el ESC/POS) y lo manda
+   * a la impresora local a esta PC, sin ninguna llamada a servidores. RED → socket TCP; CUPS/USB →
+   * `lp -d <cola> -o raw`.
+   */
+  printTestLocal(args: PrintTestLocalArgs): Observable<PrintLocalResult> {
+    return from(ipcRenderer.invoke('print-test-local', args)) as Observable<PrintLocalResult>;
   }
 
   /**

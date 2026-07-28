@@ -342,11 +342,12 @@
       <app-boton
         #imprimirBtb
         (focusEvent)="guardarSub.asObservable()"
-        nombre="Imprimir"
+        [nombre]="data?.ligarAVenta ? 'Finalizar venta' : 'Imprimir'"
         color="accent"
         [disableExpression]="
           rucControl.invalid ||
-          clienteDescripcionControl.invalid
+          clienteDescripcionControl.invalid ||
+          guardando
         "
         (clickEvent)="onGuardar()"
         class="btn-accion"

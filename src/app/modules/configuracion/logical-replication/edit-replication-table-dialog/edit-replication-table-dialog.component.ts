@@ -44,7 +44,7 @@ export class EditReplicationTableDialogComponent implements OnInit {
     // Initialize form
     this.tableForm = this.fb.group({
       id: [this.data.table?.id || null],
-      tableName: [this.data.table?.tableName || '', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_]+$/)]],
+      tableName: [this.data.table?.tableName || '', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)?$/)]],
       description: [this.data.table?.description || ''],
       direction: [this.data.table?.direction || ReplicationDirection.MAIN_TO_ALL, Validators.required],
       enabled: [this.data.table?.enabled !== undefined ? this.data.table.enabled : true],
@@ -89,10 +89,7 @@ export class EditReplicationTableDialogComponent implements OnInit {
     
     // Convert form value to ReplicationTable
     const replicationTable: ReplicationTable = this.tableForm.value;
-    
-    // Convert tableName to UPPERCASE as per requirements
-    replicationTable.tableName = replicationTable.tableName.toUpperCase();
-    
+
     this.replicationTableService.saveReplicationTable(replicationTable)
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -141,7 +138,7 @@ export class EditReplicationTableDialogComponent implements OnInit {
     }
     
     if (control.hasError('pattern')) {
-      return 'Solo se permiten letras, números y guiones bajos';
+      return 'Solo se permiten letras, números, guiones bajos y un punto (esquema.tabla)';
     }
     
     return '';

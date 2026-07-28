@@ -1,37 +1,25 @@
-import { Injectable } from '@angular/core';
-import { CuotaDetalle } from '../models/cuota-detalle.model';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { CalcularCuotasDetalleGQL, CalcularCuotasDetalleVariables } from '../../ente/graphql/calcularCuotasDetalle';
+import { CuotaDetalle, CuotasDetalleCalculado, sanitizarCuotasDetalle } from '../models/cuota-detalle.model';
 
 @Injectable({ providedIn: 'root' })
 export class CuotasDetalleService {
-  generarCuotas(
-    cantidadCuotas: number,
-    cantidadCuotasPagadas: number,
-    montoTotal: number,
-    montoYaPagado: number,
-    existentes: CuotaDetalle[] = []
-  ): CuotaDetalle[] {
-    const total = Math.max(0, cantidadCuotas || 0);
-    if (total === 0) {
-      return [];
-    }
+  private genericService = inject(GenericCrudService);
+  private calcularGQL = inject(CalcularCuotasDetalleGQL);
 
-    const pagadas = Math.max(0, Math.min(cantidadCuotasPagadas || 0, total));
-    const pendiente = Math.max(0, (montoTotal || 0) - (montoYaPagado || 0));
-    const cuotasPendientes = Math.max(0, total - pagadas);
-    const montoDefault = cuotasPendientes > 0 ? pendiente / cuotasPendientes : 0;
-    const mapaExistentes = new Map(existentes.map(c => [c.numeroCuota, c]));
-
-    const resultado: CuotaDetalle[] = [];
-    for (let i = 1; i <= total; i++) {
-      const previa = mapaExistentes.get(i);
-      const pagado = i <= pagadas;
-      resultado.push({
-        numeroCuota: i,
-        monto: previa?.monto ?? (pagado ? 0 : montoDefault),
-        pagado,
-      });
-    }
-    return resultado;
+  calcularCuotas(params: CalcularCuotasDetalleVariables): Observable<CuotasDetalleCalculado> {
+    return this.genericService.onCustomQuery(this.calcularGQL, {
+      ...params,
+      cuotasDetalle: sanitizarCuotasDetalle(params.cuotasDetalle),
+    }).pipe(
+      map(result => ({
+        cuotas: sanitizarCuotasDetalle(result?.cuotas) ?? [],
+        montoTotal: result?.montoTotal ?? params.montoTotal ?? 0,
+      }))
+    );
   }
 
   totalCuotas(cuotas: CuotaDetalle[]): number {

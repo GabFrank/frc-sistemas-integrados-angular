@@ -12,6 +12,7 @@ import { Codigo } from "./codigo.model";
 import { CodigoPorCodigoGQL } from "./graphql/codigoPorCodigo";
 import { CodigosPorPresentacionIdGQL } from "./graphql/codigoPorPresentacionId";
 import { DeleteCodigoGQL } from "./graphql/deleteCodigo";
+import { GenerarCodigoInternoGQL } from "./graphql/generarCodigoInterno";
 import { SaveCodigoGQL } from "./graphql/saveCodigo";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -31,6 +32,7 @@ export class CodigoService {
     private deleteCodigo: DeleteCodigoGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getCodigoPorCodigo: CodigoPorCodigoGQL,
+    private generarCodigoInternoGQL: GenerarCodigoInternoGQL,
     private dialogoService: DialogosService,
     private genericService: GenericCrudService
   ) {}
@@ -51,5 +53,10 @@ export class CodigoService {
 
   onGetCodigoPorCodigo(texto: string, servidor = true) {
     return this.genericService.onGetByTexto(this.getCodigoPorCodigo, texto, servidor);
+  }
+
+  /** Próximo EAN-13 interno (2199…); no persiste hasta saveCodigo. */
+  onGenerarCodigoInterno(servidor = true): Observable<string> {
+    return this.genericService.onCustomQuery(this.generarCodigoInternoGQL, {}, servidor);
   }
 }

@@ -65,8 +65,7 @@ import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.s
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
-import { distinctUntilChanged, filter } from "rxjs/operators";
-import { ultimoPrecioCompraEnGs } from "../../../operaciones/costo-por-producto/costo-por-producto.util";
+import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -86,7 +85,6 @@ import { ultimoPrecioCompraEnGs } from "../../../operaciones/costo-por-producto/
 })
 export class ListProductoComponent implements OnInit, AfterViewInit {
   readonly ROLES = ROLES;
-  readonly ultimoPrecioCompraEnGs = ultimoPrecioCompraEnGs;
   titulo = 'Lista de productos';
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("filtroProductoInput") filtroProductoInput: ElementRef;
@@ -112,6 +110,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   selectedRowIndex;
   menuState: string = "out";
   isSearching = false;
+  // secuencia para descartar respuestas viejas que llegan despues de una busqueda
+  // mas nueva y pisarian la grilla con resultados de un texto ya reemplazado
+  private busquedaSeq = 0;
   imagenPrincipal = null;
   displayedColumns: string[] = [
     "id",
@@ -183,8 +184,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
     this.filtroProductoControl.valueChanges
       .pipe(
+        debounceTime(250),
         distinctUntilChanged(),
-        filter(() => this.filtroCodigoControl.value !== true),
         untilDestroyed(this)
       )
       .subscribe(() => this.onFiltrar(false, true));
@@ -205,6 +206,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.isSearching = true;
     this.expandedProducto = null;
     this.selectedProducto = new Producto();
+    const seq = ++this.busquedaSeq;
 
     this.service
       .onSearchWithFilters(
@@ -229,6 +231,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         silentLoad
       )
       .subscribe((res) => {
+        // llego tarde: ya hay una busqueda mas nueva en curso o resuelta
+        if (seq !== this.busquedaSeq) return;
+
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         this.isSearching = false;

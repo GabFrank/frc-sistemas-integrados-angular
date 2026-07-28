@@ -14,6 +14,7 @@ export const facturaLegalesQuery = gql`
     $isElectronico: Boolean
     $activo: Boolean
     $sinNombre: Boolean
+    $ventaId: ID
   ) {
     data: facturaLegales(
       page: $page
@@ -28,6 +29,7 @@ export const facturaLegalesQuery = gql`
       isElectronico: $isElectronico
       activo: $activo
       sinNombre: $sinNombre
+      ventaId: $ventaId
     ) {
       getTotalPages
       getTotalElements
@@ -62,6 +64,9 @@ export const facturaLegalesQuery = gql`
             documento
           }
         }
+        venta {
+          id
+        }
         documentoElectronico {
           id
           cdc
@@ -83,6 +88,7 @@ export const facturaLegalesFullInfoQuery = gql`
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $ventaId: ID
   ) {
     data: facturaLegales(
       page: $page
@@ -94,6 +100,7 @@ export const facturaLegalesFullInfoQuery = gql`
       ruc: $ruc
       iva5: $iva5
       iva10: $iva10
+      ventaId: $ventaId
     ) {
       getTotalPages
       getTotalElements
@@ -277,7 +284,19 @@ export const saveFacturaLegal = gql`
         rangoDesde
         rangoHasta
         numeroActual
+        facturaLegalId
       }
+  }
+`;
+
+export const vincularFacturaLegalAVenta = gql`
+  mutation vincularFacturaLegalAVenta($facturaLegalId: ID!, $ventaId: ID!) {
+    data: vincularFacturaLegalAVenta(facturaLegalId: $facturaLegalId, ventaId: $ventaId) {
+      id
+      venta {
+        id
+      }
+    }
   }
 `;
 
@@ -397,6 +416,56 @@ export const descargarXmlFacturaElectronicaQuery = gql`
 export const descargarPdfFacturaElectronicaQuery = gql`
   query descargarPdfFacturaElectronica($id: ID!, $sucId: ID!) {
     data: descargarPdfFacturaElectronica(id: $id, sucId: $sucId)
+  }
+`;
+
+export const imprimirTicketFacturaEnImpresoraMutation = gql`
+  mutation ($facturaId: ID!, $sucId: ID!, $impresoraId: ID!) {
+    data: imprimirTicketFacturaEnImpresora(
+      facturaId: $facturaId
+      sucId: $sucId
+      impresoraId: $impresoraId
+    )
+  }
+`;
+
+export const imprimirPdfFacturaEnImpresoraMutation = gql`
+  mutation ($facturaId: ID!, $sucId: ID!, $impresoraId: ID!) {
+    data: imprimirPdfFacturaEnImpresora(
+      facturaId: $facturaId
+      sucId: $sucId
+      impresoraId: $impresoraId
+    )
+  }
+`;
+
+export const configuracionFacturaConVentaQuery = gql`
+  {
+    data: configuracionFacturaConVenta {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
+  }
+`;
+
+export const saveConfiguracionFacturaConVenta = gql`
+  mutation saveConfiguracionFacturaConVenta($entity: ConfiguracionFacturaConVentaInput!) {
+    data: saveConfiguracionFacturaConVenta(input: $entity) {
+      id
+      habilitado
+      usuario {
+        id
+        nickname
+      }
+      creadoEn
+      modificadoEn
+    }
   }
 `;
 

@@ -25,6 +25,7 @@ import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/li
 import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
 import { EditFacturaLegalDialogComponent } from './factura-legal/edit-factura-legal-dialog/edit-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
+import { ImprimirEnSucursalDialogComponent } from './factura-legal/imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
 import { FinancieroConfiguracionDialogComponent } from './financiero-configuracion-dialog/financiero-configuracion-dialog.component';
@@ -49,6 +50,12 @@ import { ListTerminalPosComponent } from "./terminal-pos/list-terminal-pos/list-
 import { AddTerminalPosDialogComponent } from "./terminal-pos/add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
+import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
+import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
+import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
+import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
+import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
+import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
 
 @NgModule({
   declarations: [
@@ -73,6 +80,7 @@ import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos
     AddFacturaLegalDialogComponent,
     EditFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
+    ImprimirEnSucursalDialogComponent,
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,
     FinancieroConfiguracionDialogComponent,
@@ -93,7 +101,12 @@ import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos
     ListTerminalPosComponent,
     AddTerminalPosDialogComponent,
     PrintTerminalPosDialogComponent,
-    ScanTerminalPosDialogComponent
+    ScanTerminalPosDialogComponent,
+    TerminalPosDashboard,
+    ListVentaTarjetaComponent,
+    ConfiguracionVentaTarjetaDialogComponent,
+    ConfiguracionFacturaConVentaDialogComponent,
+    FacturaLegalDashboard
 
   ],
   providers: [
@@ -107,7 +120,8 @@ import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos
     MaterialModule,
     SharedModule,
     FinancieroRoutingModule,
-    BootstrapModule
+    BootstrapModule,
+    NgxExtendedPdfViewerModule
   ],
 })
 export class FinancieroModule { }

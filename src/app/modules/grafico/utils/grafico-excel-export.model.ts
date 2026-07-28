@@ -8,7 +8,8 @@ export type GraficoExcelTipo =
   | "GASTO_CATEGORIA"
   | "PRODUCTOS_VENDIDOS"
   | "INGRESO_GASTO"
-  | "VENTAS_HORA";
+  | "VENTAS_HORA"
+  | "DELIVERY_SUCURSAL";
 
 export interface GraficoExcelExportInput {
   periodos?: PeriodoGraficoInput[];

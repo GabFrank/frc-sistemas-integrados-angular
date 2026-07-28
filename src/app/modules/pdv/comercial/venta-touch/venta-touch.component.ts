@@ -46,6 +46,7 @@ import { Presentacion } from "../../../productos/presentacion/presentacion.model
 import {
   PagoResponseData,
   PagoTouchComponent,
+  TarjetaPago,
 } from "./pago-touch/pago-touch.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
@@ -95,13 +96,14 @@ import { Delivery } from "../../../operaciones/delivery/delivery.model";
 import { DeliveryEstado } from "../../../operaciones/delivery/enums";
 import { VentaEstado } from "../../../operaciones/venta/enums/venta-estado.enums";
 import { VentaService } from "../../../operaciones/venta/venta.service";
+import { FacturaLegalService } from "../../../financiero/factura-legal/factura-legal.service";
 import { DeliveryService } from "./delivery-dialog/delivery.service";
 import {
   ListDeliveryComponent,
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, map, startWith, switchMap } from "rxjs/operators";
+import { catchError, map, startWith, switchMap, takeUntil } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -112,6 +114,9 @@ import {
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
+import { QrCodeComponent, QrData } from "../../../../shared/qr-code/qr-code.component";
+import { TipoEntidad } from "../../../../generics/tipo-entidad.enum";
+import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -159,6 +164,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cantidadControl = new FormControl();
   modoConsulta = false;
   isDialogOpen = false;
+  private _pendingTarjetaPagos: TarjetaPago[] = [];
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
@@ -185,7 +191,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private notificationHttpService: NotificationHttpService,
     private gastoService: GastoService,
     private movimientoStockService: MovimientoStockService,
-    private puntoDeVentaService: PuntoDeVentaService
+    private puntoDeVentaService: PuntoDeVentaService,
+    private ventaTarjetaService: VentaTarjetaService,
+    private facturaLegalService: FacturaLegalService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -974,13 +982,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               //   this.calcularTotales();
               // });
             } else {
+              this._pendingTarjetaPagos = response?.tarjetaPagos ?? [];
               this.onSaveVenta(
                 venta,
                 cobro,
                 response.ticket == true,
                 !response?.facturado,
                 ventaCredito?.toInput(),
-                ventaCreditoCuotaInputList
+                ventaCreditoCuotaInputList,
+                response?.facturaLegalId
               ).subscribe((ventaRes) => { });
             }
             this.dialogReference = undefined;
@@ -1009,55 +1019,81 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onTicketClick(ticket?: boolean) {
     if (this.modoConsulta) return;
+    // Evita reentradas mientras se procesa un cobro rápido en curso.
+    if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
-    //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
-    let venta = new Venta();
-    venta.formaPago = this.formaPagoService.formaPagoList.find(
-      (f) => f.descripcion == "EFECTIVO"
-    );
-    let descuento = 0;
-    venta.totalGs = this.totalGs;
-    venta.totalRs = this.totalGs / this.cambioRs;
-    venta.totalDs = this.totalGs / this.cambioDs;
-    venta.ventaItemList = this.selectedItemList;
-    venta.caja = this.cajaService?.selectedCaja;
-    let cobro = new Cobro();
-    cobro.totalGs = this.totalGs;
-    let cobroDetalle = new CobroDetalle();
-    cobroDetalle.moneda = this.monedas.find((m) => m.denominacion == "GUARANI");
-    cobroDetalle.cambio = cobroDetalle.moneda.cambio;
-    cobroDetalle.formaPago = this.formaPagoList.find(
-      (f) => f.descripcion == "EFECTIVO"
-    );
-    cobroDetalle.descuento = false;
-    cobroDetalle.aumento = false;
-    cobroDetalle.vuelto = false;
-    cobroDetalle.pago = true;
-    cobroDetalle.valor = this.totalGs;
-    cobro.cobroDetalleList = [cobroDetalle];
-    this.selectedItemList.forEach((vi) => {
-      descuento += vi.valorDescuento;
-    });
-    if (descuento > 0) {
-      let cobroDetalleDesc = new CobroDetalle();
-      cobroDetalleDesc.moneda = this.monedas.find(
+    // try/finally: pase lo que pase (ej. monedas no cargadas), el flag se
+    // resetea siempre y los botones NUNCA quedan bloqueados.
+    try {
+      // Guarda: la moneda base (GUARANI) debe estar cargada para armar el
+      // cobro. Si las monedas no se cargaron (query al filial falló), avisar
+      // y salir; el finally destraba los botones para reintentar.
+      const monedaGuarani = this.monedas?.find(
         (m) => m.denominacion == "GUARANI"
       );
-      cobroDetalleDesc.cambio = cobroDetalleDesc.moneda.cambio;
-      cobroDetalleDesc.formaPago = this.formaPagoList.find(
+      if (monedaGuarani == null) {
+        this.notificacionSnackbar.notification$.next({
+          texto:
+            "No se pudieron cargar las monedas. Reintente en unos segundos.",
+          color: NotificacionColor.warn,
+          duracion: 3,
+        });
+        return;
+      }
+      // Cambio de la moneda base: siempre 1 (guaraní). Fallback defensivo.
+      const cambioGuarani =
+        monedaGuarani.cambio != null ? monedaGuarani.cambio : 1;
+
+      //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
+      let venta = new Venta();
+      venta.formaPago = this.formaPagoService.formaPagoList.find(
         (f) => f.descripcion == "EFECTIVO"
       );
-      cobroDetalleDesc.descuento = true;
-      cobroDetalleDesc.aumento = false;
-      cobroDetalleDesc.vuelto = false;
-      cobroDetalleDesc.pago = false;
-      cobroDetalleDesc.valor = descuento;
-      cobro.cobroDetalleList.push(cobroDetalleDesc);
+      let descuento = 0;
+      venta.totalGs = this.totalGs;
+      // Conversión a moneda extranjera solo si hay cotización válida; si no,
+      // dejar null (desconocido) en vez de un 1:1 engañoso. No frena la venta.
+      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
+      venta.ventaItemList = this.selectedItemList;
+      venta.caja = this.cajaService?.selectedCaja;
+      let cobro = new Cobro();
+      cobro.totalGs = this.totalGs;
+      let cobroDetalle = new CobroDetalle();
+      cobroDetalle.moneda = monedaGuarani;
+      cobroDetalle.cambio = cambioGuarani;
+      cobroDetalle.formaPago = this.formaPagoList.find(
+        (f) => f.descripcion == "EFECTIVO"
+      );
+      cobroDetalle.descuento = false;
+      cobroDetalle.aumento = false;
+      cobroDetalle.vuelto = false;
+      cobroDetalle.pago = true;
+      cobroDetalle.valor = this.totalGs;
+      cobro.cobroDetalleList = [cobroDetalle];
+      this.selectedItemList.forEach((vi) => {
+        descuento += vi.valorDescuento;
+      });
+      if (descuento > 0) {
+        let cobroDetalleDesc = new CobroDetalle();
+        cobroDetalleDesc.moneda = monedaGuarani;
+        cobroDetalleDesc.cambio = cambioGuarani;
+        cobroDetalleDesc.formaPago = this.formaPagoList.find(
+          (f) => f.descripcion == "EFECTIVO"
+        );
+        cobroDetalleDesc.descuento = true;
+        cobroDetalleDesc.aumento = false;
+        cobroDetalleDesc.vuelto = false;
+        cobroDetalleDesc.pago = false;
+        cobroDetalleDesc.valor = descuento;
+        cobro.cobroDetalleList.push(cobroDetalleDesc);
+      }
+      // cobroDetalle.
+      this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
+    } finally {
+      this.disableCobroRapido = false;
+      this.buscadorFocusSub.next();
     }
-    // cobroDetalle.
-    this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
-    this.disableCobroRapido = false;
-    this.buscadorFocusSub.next();
   }
 
   onSaveVenta(
@@ -1066,7 +1102,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     ticket,
     facturar?,
     ventaCreditoInput?,
-    ventaCreditoCuotaInputList?
+    ventaCreditoCuotaInputList?,
+    facturaLegalId?: number
   ): Observable<Venta> {
     if (facturar == null) {
       facturar = ticket == true;
@@ -1092,6 +1129,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               texto: "Venta guardada con éxito",
               duracion: 2,
             });
+            if (facturaLegalId != null) {
+              // La factura se generó manualmente antes de que la venta existiera
+              // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+              this.facturaLegalService
+                .onVincularFacturaAVenta(facturaLegalId, res.id, false)
+                .pipe(untilDestroyed(this))
+                .subscribe({
+                  error: (err) =>
+                    console.error("Error al vincular factura a la venta:", err),
+                });
+            }
             if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
               const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
               const personaId = venta.cliente?.persona?.id;
@@ -1167,6 +1215,74 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                         ),
                     });
                 });
+            }
+
+            const tarjetaPagos = this._pendingTarjetaPagos;
+            this._pendingTarjetaPagos = [];
+
+            if (tarjetaPagos.length > 0 && res.id) {
+              const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+              const cajaIdQr = this.cajaService.selectedCaja?.id;
+              const usuarioId = this.mainService.usuarioActual?.id;
+
+              forkJoin(tarjetaPagos.map(pago =>
+                this.ventaTarjetaService.onSavePendiente({
+                  sucursalId: sucursalIdQr,
+                  ventaId: res.id,
+                  cajaId: cajaIdQr,
+                  monto: pago.monto,
+                  estado: 'PENDIENTE',
+                  terminalPosId: pago.terminalPosId || undefined,
+                  usuarioId
+                })
+              )).subscribe({
+                next: (resultados) => {
+                  const mostrarQr = (index: number) => {
+                    if (index >= resultados.length) return;
+                    const vt = resultados[index];
+                    const qrPayload: QrData = {
+                      sucursalId: sucursalIdQr,
+                      tipoEntidad: TipoEntidad.VENTA_TARJETA,
+                      idOrigen: res.id,
+                      idCentral: res.id,
+                      componentToOpen: 'RegistroVentaTarjetaComponent',
+                      data: cajaIdQr + '|' + tarjetaPagos[index].monto + '|' + vt?.id,
+                      timestamp: Date.now()
+                    };
+                    const pago = tarjetaPagos[index];
+                    const montoFmt = pago.monto.toLocaleString('es-PY');
+                    const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
+                    const qrDialogRef = this.matDialog.open(QrCodeComponent, {
+                      data: {
+                        codigo: qrPayload,
+                        nombre: resultados.length > 1
+                          ? `Venta con Tarjeta (${index + 1}/${resultados.length})`
+                          : 'Venta con Tarjeta',
+                        subtitulo,
+                        segundos: 120
+                      },
+                      disableClose: false
+                    });
+                    const qrClosed$ = qrDialogRef.afterClosed();
+                    if (vt?.id) {
+                      interval(3000)
+                        .pipe(
+                          switchMap(() => this.ventaTarjetaService.onGetEstadoPorId(vt.id, sucursalIdQr)),
+                          takeUntil(qrClosed$),
+                          untilDestroyed(this)
+                        )
+                        .subscribe(estadoVt => {
+                          if (estadoVt && estadoVt.estado !== 'PENDIENTE') {
+                            qrDialogRef.close();
+                          }
+                        });
+                    }
+                    qrClosed$.subscribe(() => mostrarQr(index + 1));
+                  };
+                  mostrarQr(0);
+                },
+                error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
+              });
             }
 
             this.resetForm();

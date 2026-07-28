@@ -3,8 +3,8 @@ import { FormControl, FormGroup } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { BehaviorSubject, forkJoin } from "rxjs";
-import { debounceTime, distinctUntilChanged, switchMap, tap } from "rxjs/operators";
+import { BehaviorSubject, forkJoin, of } from "rxjs";
+import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, tap } from "rxjs/operators";
 
 import {
   SearchListDialogComponent,
@@ -33,6 +33,7 @@ import { TabData } from "../../../../layouts/tab/tab.service";
 import { Transferencia, TransferenciaEstado, TipoTransferencia, EtapaTransferencia, TransferenciaItem } from "../../transferencia/transferencia.model";
 import { TransferenciaService } from "../../transferencia/transferencia.service";
 import { SeleccionarSucursalDialogComponent } from "../../transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 
 export interface ProductosVencidosFilters {
@@ -111,7 +112,8 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     private cdRef: ChangeDetectorRef,
     private mainService: MainService,
     private notificacion: NotificacionSnackbarService,
-    private transferenciaService: TransferenciaService
+    private transferenciaService: TransferenciaService,
+    private cargandoService: CargandoDialogService
   ) {
     this.fechaFormGroup = new FormGroup({
       inicio: new FormControl(),
@@ -193,9 +195,22 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   private loadProductosVencidos(filters: ProductosVencidosFilters) {
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Buscando..."
+    );
     return this.productosVencidosGQL.fetch(filters, {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all',
+      context: {
+        // Forzar la consulta al servidor CENTRAL (clientName "servidor").
+        // Sin esto, en modo local (isLocal=true) el split de Apollo la ruteaba
+        // al filial, que no tiene el schema de productosVencidos y devolvía
+        // "Query failed to validate". El central sí lo expone; así se comporta
+        // igual que en modo solo-cloud.
+        clientName: 'servidor',
+        fetchOptions: { signal },
+      },
     }).pipe(
       tap(result => {
         if (result.errors?.length) {
@@ -208,7 +223,17 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
           return;
         }
         this.handleProductosVencidosResponse(result);
-      })
+      }),
+      catchError(error => {
+        // Ej: servidor offline. Mostrar aviso en vez de matar la suscripción de filtros.
+        console.error('Error en productosVencidos:', error);
+        this.notificacion.openAlgoSalioMal('Error al buscar productos vencidos');
+        this.setEmptyData();
+        this.cdRef.detectChanges();
+        return of(null);
+      }),
+      // Cierra el spinner en éxito, error o cancelación (switchMap al cambiar filtros).
+      finalize(() => this.cargandoService.closeDialog(requestId))
     );
   }
 

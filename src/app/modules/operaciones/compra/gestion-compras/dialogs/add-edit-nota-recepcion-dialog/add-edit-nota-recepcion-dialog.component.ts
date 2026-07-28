@@ -57,6 +57,7 @@ export interface AddEditNotaRecepcionDialogResult {
 export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
   @ViewChild('cancelButton', { static: false }) cancelButton!: MatButton;
+  @ViewChild('salirButton', { static: false }) salirButton!: MatButton;
   @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   
   // ViewChild para los campos del formulario
@@ -1427,7 +1428,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
               this.loadItemsAfterCreation();
 
-              this.focusCancelButton();
+              this.focusSalirButton();
               
               this.notificacionService.openSucess('Nota de recepción creada exitosamente');
             },
@@ -1542,11 +1543,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
   }
 
-  private focusCancelButton(): void {
-    // Dar foco al botón Cancelar después de crear
+  private focusSalirButton(): void {
+    // Dar foco al botón Salir después de crear
     setTimeout(() => {
-      if (this.cancelButton) {
-        this.cancelButton._elementRef.nativeElement.focus();
+      if (this.salirButton) {
+        this.salirButton._elementRef.nativeElement.focus();
       }
     }, 100);
   }

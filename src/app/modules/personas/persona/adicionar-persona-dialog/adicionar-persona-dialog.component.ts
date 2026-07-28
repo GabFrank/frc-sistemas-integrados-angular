@@ -64,7 +64,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
       this.apodoControl.setValue(this.selectedPersona?.apodo)
       this.nacimientoControl.setValue(this.selectedPersona?.nacimiento != null ? new Date(this.selectedPersona?.nacimiento) : null);
       this.documentoControl.setValue(this.selectedPersona?.documento)
-      this.emailControl.setValue(this.selectedPersona?.email)
+      this.emailControl.setValue(this.selectedPersona?.email?.toLowerCase() ?? null)
       this.direccionControl.setValue(this.selectedPersona?.direccion)
       this.telefonoControl.setValue(this.selectedPersona?.telefono)
       this.socialMediaControl.setValue(this.selectedPersona?.socialMedia)
@@ -97,6 +97,15 @@ export class AdicionarPersonaDialogComponent implements OnInit {
           this.nacimientoControl.setValue(null)
         }
       })
+    }
+  }
+
+  onEmailInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const lower = input.value?.toLowerCase() ?? '';
+    if (input.value !== lower) {
+      input.value = lower;
+      this.emailControl.setValue(lower, { emitEvent: false });
     }
   }
 
@@ -134,7 +143,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     persona.apodo = this.apodoControl.value;
     persona.direccion = this.direccionControl.value;
     persona.documento = this.documentoControl.value;
-    persona.email = this.emailControl.value;
+    persona.email = this.emailControl.value?.toLowerCase()?.trim() ?? null;
     persona.nacimiento = this.nacimientoControl.value;
     persona.telefono = this.telefonoControl.value;
     persona.ciudad = this.selectedCiudad;

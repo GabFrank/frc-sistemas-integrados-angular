@@ -79,6 +79,8 @@ export class Transferencia {
     input.usuarioTransporteId = this.usuarioTransporte?.id;
     input.usuarioRecepcionId = this.usuarioRecepcion?.id;
     input.etapa = this.etapa;
+    input.isOrigen = this.isOrigen;
+    input.isDestino = this.isDestino;
     input.hojaRutaId = this.hojaRuta?.id;
     return input;
   }
@@ -92,6 +94,8 @@ export class TransferenciaInput {
   tipo: TipoTransferencia
   etapa: EtapaTransferencia
   observacion: string;
+  isOrigen: boolean;
+  isDestino: boolean;
   usuarioTransporteId: number;
   usuarioPreTransferenciaId: number;
   usuarioPreparacionId: number;
@@ -238,16 +242,4 @@ export class HojaRutaInput {
   acompanantesIds: number[];
 }
 
-export class Acompanhante {
-  id: {
-    hojaRutaId: number;
-    personaId: number;
-  };
-  hojaRuta: HojaRuta;
-  persona: Persona;
-}
-
-export class AcompanhanteInput {
-  hojaRutaId: number;
-  personaId: number;
-} 
+ 

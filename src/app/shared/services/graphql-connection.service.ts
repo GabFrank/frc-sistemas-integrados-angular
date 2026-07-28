@@ -34,6 +34,12 @@ export class GraphqlConnectionService {
   private isDev = !environment.production;
   private isLocal = true;
 
+  // Tiempo máximo que se espera a una operación HTTP contra el servidor CENTRAL
+  // cuando este NO está confirmado como online. Evita que la app quede
+  // "Cargando..." de forma indefinida si el central está offline (sin internet,
+  // caído, etc.). Solo aplica al central; el servidor local no se ve afectado.
+  private readonly centralOfflineTimeoutMs = 3000;
+
   constructor(
     private configService: ConfiguracionService,
     private notificationService: NotificacionSnackbarService
@@ -206,6 +212,7 @@ export class GraphqlConnectionService {
       http = ApolloLink.from([
         basic,
         auth,
+        this.createEmptyResultGuardLink(),
         httpLink.create({
           uri: url,
           useGETForQueries: false // Force all requests to use POST
@@ -214,9 +221,14 @@ export class GraphqlConnectionService {
     }
 
     // Create an HTTP link for central server (always required)
+    // El centralTimeoutLink va primero: corta la operación en pocos segundos si
+    // el central está offline, en vez de dejar la request colgada. Solo se aplica
+    // a este link (central), nunca al local ni a las subscriptions.
     const http2 = ApolloLink.from([
+      this.createCentralTimeoutLink(),
       basic,
       auth,
+      this.createEmptyResultGuardLink(),
       httpLink.create({
         uri: url2,
         useGETForQueries: false // Force all requests to use POST
@@ -282,6 +294,53 @@ export class GraphqlConnectionService {
   }
 
   /**
+   * Normaliza respuestas vacías del transporte HTTP.
+   *
+   * `apollo-angular` emite `response.body` tal cual: si el servidor contesta
+   * 200 con cuerpo vacío (o el proxy corta la respuesta), lo que baja por la
+   * cadena de links es `null`. El link `onError` de Apollo lee `result.errors`
+   * sin protección y lanza "Cannot read properties of null (reading 'errors')";
+   * al romperse ese `next`, la operación jamás entrega valor: el spinner queda
+   * abierto y la promesa de `ApolloClient.query` resuelve `undefined`, que es
+   * el segundo error que se ve en GenericCrudService.
+   *
+   * Este link va pegado al link terminal HTTP (por debajo de `errorLink`) para
+   * que la respuesta vacía se convierta en un resultado GraphQL válido con
+   * `errors`, formato que el resto de la app ya sabe manejar.
+   */
+  private createEmptyResultGuardLink(): ApolloLink {
+    return new ApolloLink((operation, forward) => {
+      return new Observable((observer) => {
+        const subscription = forward(operation).subscribe({
+          next: (result) => {
+            if (result) {
+              observer.next(result);
+            } else {
+              // `apollo-angular` guarda la respuesta HTTP cruda en el contexto:
+              // sirve para saber qué operación y qué servidor devolvió vacío.
+              const { response } = operation.getContext();
+              console.warn("[GraphQL] Respuesta vacía del servidor", {
+                operacion: operation.operationName,
+                url: response?.url,
+                status: response?.status,
+                body: response?.body,
+              });
+              observer.next({
+                data: null,
+                errors: [{ message: "Respuesta vacía del servidor" }] as any,
+              });
+            }
+          },
+          error: (error) => observer.error(error),
+          complete: () => observer.complete(),
+        });
+
+        return () => subscription.unsubscribe();
+      });
+    });
+  }
+
+  /**
    * Create an abortable link for better request management
    */
   private createAbortableLink(): ApolloLink {
@@ -314,6 +373,66 @@ export class GraphqlConnectionService {
 
         return () => {
           controller.abort();
+          subscription.unsubscribe();
+        };
+      });
+    });
+  }
+
+  /**
+   * Link de timeout SOLO para operaciones HTTP contra el servidor central.
+   *
+   * Cuando el central no está confirmado como online (WebSocket central no
+   * conectado), limita cada operación a `centralOfflineTimeoutMs`. Al vencer,
+   * emite un resultado con `errors` (mismo patrón que createAbortableLink) en
+   * lugar de lanzar un error: así los métodos de GenericCrudService cierran el
+   * spinner "Cargando..." de inmediato (todos llaman a closeDialog en su handler
+   * `next`) y muestran el aviso, en vez de quedar colgados hasta 60s / 5min.
+   *
+   * Si el central SÍ está online (cloudConnectionStatusSub === true) no se impone
+   * ningún límite: se preserva el comportamiento normal para operaciones válidas.
+   */
+  private createCentralTimeoutLink(): ApolloLink {
+    return new ApolloLink((operation, forward) => {
+      // Central confirmado online: no imponer timeout artificial.
+      if (cloudConnectionStatusSub.value === true) {
+        return forward(operation);
+      }
+
+      return new Observable((observer) => {
+        let finished = false;
+
+        const timer = setTimeout(() => {
+          if (finished) return;
+          finished = true;
+          // Emitir un error de red: GenericCrudService lo maneja cerrando el
+          // diálogo de carga (mismo camino que un ERR_CONNECTION_REFUSED).
+          const err: any = new Error("El servidor central no responde (offline).");
+          err.networkError = true;
+          observer.error(err);
+        }, this.centralOfflineTimeoutMs);
+
+        const subscription = forward(operation).subscribe({
+          next: (result) => {
+            if (finished) return;
+            observer.next(result);
+          },
+          error: (error) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            observer.error(error);
+          },
+          complete: () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            observer.complete();
+          },
+        });
+
+        return () => {
+          clearTimeout(timer);
           subscription.unsubscribe();
         };
       });
