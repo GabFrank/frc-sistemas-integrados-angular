@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { stockPorLoteEnPresentacionQuery } from './graphql-query';
+import { PageInfo } from '../../../../app.component';
 import { StockLotePresentacion } from '../lote.model';
 
 export interface StockPorLoteEnPresentacionResponse {
-  data: StockLotePresentacion[];
+  data: PageInfo<StockLotePresentacion>;
 }
 
 @Injectable({

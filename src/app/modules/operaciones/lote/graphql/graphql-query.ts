@@ -50,22 +50,37 @@ export const stockPorLoteEnPresentacionQuery = gql`
     $productoId: ID!
     $sucursalId: ID!
     $presentacionId: ID
+    $numeroLote: String
+    $page: Int
+    $size: Int
   ) {
     data: stockPorLoteEnPresentacion(
       productoId: $productoId
       sucursalId: $sucursalId
       presentacionId: $presentacionId
+      numeroLote: $numeroLote
+      page: $page
+      size: $size
     ) {
-      loteId
-      numeroLote
-      fechaVencimiento
-      fechaRetiro
-      estado
-      cantidadDisponible
-      cantidadDisponiblePresentacion
-      unidadesSobrantes
-      unidadesPorPresentacion
-      presentacionDescripcion
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        loteId
+        numeroLote
+        fechaVencimiento
+        fechaRetiro
+        estado
+        cantidadDisponible
+        cantidadDisponiblePresentacion
+        unidadesSobrantes
+        unidadesPorPresentacion
+        presentacionDescripcion
+      }
     }
   }
 `;

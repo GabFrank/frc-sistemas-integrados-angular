@@ -8,9 +8,11 @@ import {
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
+import { PageInfo } from '../../../../app.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLotePresentacion } from '../../lote/lote.model';
@@ -27,7 +29,7 @@ export interface SeleccionarLotesDialogData {
   sucursalOrigenNombre: string;
   /**
    * Cantidad del ítem EN PRESENTACIONES, la misma unidad que muestra la fila de alta. Es lo que
-   * hay que repartir entre los lotes.
+   * hay que cubrir con el lote elegido.
    */
   cantidad: number;
   etapa: EtapaAsignacionLote;
@@ -38,7 +40,7 @@ export interface SeleccionarLotesDialogData {
   /**
    * Invierte la relación: en vez de repartir una cantidad ya fijada, el total que se asigna acá
    * ES la cantidad a transferir. Se usa al cargar un ítem nuevo, donde la cantidad todavía no
-   * existe y sale justamente de decidir cuánto se saca de cada lote.
+   * existe y sale justamente de decidir cuánto se saca del lote.
    */
   cantidadDefinidaPorLotes?: boolean;
 }
@@ -48,8 +50,18 @@ export interface SeleccionarLotesDialogResult {
   /** Reparto elegido, EN PRESENTACIONES. El backend lo convierte a unidades al guardar. */
   lotes: { loteId: number; cantidad: number }[];
   etapa: EtapaAsignacionLote;
-  /** Suma de lo asignado, en presentaciones. Es lo que va al campo "Cant. por present.". */
+  /** Cantidad elegida, en presentaciones. Es lo que va al campo "Cant. por present.". */
   total: number;
+}
+
+/**
+ * Lote elegido. Vive fuera de las filas a propósito: la lista se pagina contra el backend y las
+ * filas se reconstruyen en cada página, así que la selección tiene que sobrevivir a eso.
+ */
+interface LoteSeleccionado {
+  loteId: number;
+  numeroLote: string;
+  cantidad: number;
 }
 
 /**
@@ -62,11 +74,11 @@ interface LoteRow {
   fechaRetiroLabel: string;
   estadoLabel: string;
   estadoClase: string;
-  /** Saldo en la presentación del ítem, tal como lo devolvió el backend. */
+  /** Saldo en presentaciones completas, tal como lo devolvió el backend. */
   disponible: number;
-  /** El mismo saldo ya formateado para mostrar, sin separador de miles. */
+  /** El mismo saldo ya formateado, sin separador de miles. */
   disponibleLabel: string;
-  /** Equivalente en unidades, solo informativo. Vacío si la presentación vale 1. */
+  /** Detalle en unidades y sobrantes. Vacío si la presentación vale 1. */
   disponibleUnidadesLabel: string;
   /** Los lotes que no están LIBERADO no se pueden elegir: es el bloqueo por recall. */
   seleccionable: boolean;
@@ -76,16 +88,17 @@ interface LoteRow {
 }
 
 /**
- * Elección manual de los lotes de los que sale un ítem de transferencia.
+ * Elección manual del lote del que sale un ítem de transferencia.
  *
  * Por defecto el backend reparte por FEFO. Este diálogo deja sobreescribir esa decisión cuando
- * la realidad del depósito no coincide con el orden teórico. Lo que no se cubra acá lo completa
- * el backend por FEFO igual que siempre.
+ * la realidad del depósito no coincide con el orden teórico.
  *
- * Unidad de medida: se trabaja SIEMPRE en presentaciones, igual que el campo "Cant. por present."
- * de la fila de alta. El stock por lote se lleva en unidades, pero la conversión la hace el
- * backend en las dos puntas (al devolver el saldo y al guardar la asignación), justamente para
- * que no existan dos implementaciones de la misma regla.
+ * Solo se puede sacar de UN lote por ítem: en cuanto una fila tiene cantidad, las demás se
+ * deshabilitan.
+ *
+ * Unidad de medida: se trabaja siempre en presentaciones, igual que el campo "Cant. por present."
+ * de la fila de alta. La conversión a unidades y el saldo en presentaciones completas los
+ * resuelve el backend, para que no existan dos implementaciones de la misma regla.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -100,21 +113,26 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     'numeroLote', 'fechaVencimiento', 'fechaRetiro', 'estado', 'disponible', 'cantidad'
   ];
 
-  /** Todas las filas, en el orden FEFO que devuelve el backend. */
+  /** Filas de la página actual. */
   filas: LoteRow[] = [];
-  /** Subconjunto que muestra la tabla. Se recalcula al filtrar, nunca en el template. */
-  filasVisibles: LoteRow[] = [];
   busquedaControl = new FormControl('');
   cargando = true;
+  /**
+   * Solo la primera carga. Buscar y paginar recargan la lista, pero no deben esconder el
+   * buscador ni el paginador: hacerlo sacaría el foco en cada tecla y en cada cambio de página.
+   */
+  cargandoInicial = true;
   sinLotes = false;
-  /** True cuando la búsqueda no deja ninguna fila a la vista, para distinguirlo de "sin lotes". */
+  /** True cuando la búsqueda no trajo nada, para distinguirlo de "el producto no tiene lotes". */
   sinCoincidencias = false;
 
-  /**
-   * Lote elegido. Solo se puede sacar de uno por ítem, así que mientras haya uno con cantidad
-   * los demás quedan bloqueados.
-   */
-  loteSeleccionadoId: number = null;
+  // Paginación server-side, con el mismo contrato que el resto de los listados del sistema.
+  pageIndex = 0;
+  pageSize = 10;
+  totalElementos = 0;
+
+  /** Lote elegido, independiente de la página que se esté viendo. */
+  seleccion: LoteSeleccionado = null;
   numeroLoteSeleccionado = '';
   hayLoteElegido = false;
 
@@ -165,64 +183,90 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       ? 'Total elegido'
       : 'Cantidad a transferir';
 
+    this.tomarAsignacionPrevia();
+
+    // La búsqueda va al backend: con paginación server-side, filtrar en la pantalla solo
+    // alcanzaría a la página visible.
     this.busquedaControl.valueChanges
-      .pipe(debounceTime(200), distinctUntilChanged(), untilDestroyed(this))
+      .pipe(debounceTime(300), distinctUntilChanged(), untilDestroyed(this))
       .subscribe(() => {
-        this.aplicarFiltro();
-        this.cdr.markForCheck();
+        this.pageIndex = 0;
+        this.cargarLotes(true);
       });
 
     this.cargarLotes();
   }
 
-  /**
-   * Filtra por número de lote conservando el orden FEFO original. Filtrar no toca las cantidades
-   * ya cargadas: los controles viven en las filas, no en la lista visible.
-   */
-  private aplicarFiltro(): void {
-    const texto = (this.busquedaControl.value || '').trim().toUpperCase();
-    this.filasVisibles = texto
-      ? this.filas.filter((fila) => fila.numeroLote.toUpperCase().includes(texto))
-      : this.filas;
-    this.sinCoincidencias = !this.sinLotes && this.filasVisibles.length === 0;
+  /** Precarga el lote que ya tenía asignado el ítem, para poder corregirlo en vez de recargarlo. */
+  private tomarAsignacionPrevia(): void {
+    const previa = (this.data?.asignacionActual || [])[0];
+    if (previa == null) {
+      return;
+    }
+    this.seleccion = {
+      loteId: previa.loteId,
+      numeroLote: previa.numeroLote,
+      cantidad: previa.cantidadPresentacion
+    };
   }
 
-  private cargarLotes(): void {
+  private cargarLotes(silentLoad = false): void {
+    this.cargando = true;
     this.loteService
       .onGetStockPorLoteEnPresentacion(
         this.data.productoId,
         this.data.sucursalOrigenId,
-        this.data.presentacionId
+        this.data.presentacionId,
+        this.busquedaControl.value,
+        this.pageIndex,
+        this.pageSize,
+        true,
+        silentLoad
       )
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (res: StockLotePresentacion[]) => {
-          const lotes = res || [];
+        next: (res: PageInfo<StockLotePresentacion>) => {
+          const lotes = res?.getContent || [];
+          this.totalElementos = res?.getTotalElements || 0;
           this.tomarDatosDePresentacion(lotes);
           this.filas = lotes.map((lote) => this.crearFila(lote));
-          this.sinLotes = this.filas.length === 0;
+          this.evaluarEstadoVacio();
           this.cargando = false;
-          this.escucharCambios();
-          this.sincronizarLoteElegido();
-          this.aplicarFiltro();
+          this.cargandoInicial = false;
+          this.aplicarBloqueoPorSeleccion();
           this.recalcularTotales();
           this.cdr.markForCheck();
         },
         error: () => {
           this.cargando = false;
+          this.cargandoInicial = false;
           this.notificacionService.openAlgoSalioMal('Error al consultar los lotes disponibles');
           this.cdr.markForCheck();
         }
       });
   }
 
-  /** El nombre y el factor de la presentación vienen resueltos con el saldo. */
+  /**
+   * Distingue "el producto no tiene lotes" de "la búsqueda no encontró nada": el primero es
+   * informativo, el segundo se resuelve borrando el filtro.
+   */
+  private evaluarEstadoVacio(): void {
+    const vacio = this.totalElementos === 0;
+    const buscando = (this.busquedaControl.value || '').trim().length > 0;
+    this.sinLotes = vacio && !buscando;
+    this.sinCoincidencias = vacio && buscando;
+  }
+
+  /** El nombre y el factor de la presentación vienen resueltos junto con el saldo. */
   private tomarDatosDePresentacion(lotes: StockLotePresentacion[]): void {
     const primero = lotes[0];
-    const unidades = primero?.unidadesPorPresentacion || 1;
+    if (primero == null) {
+      return;
+    }
+    const unidades = primero.unidadesPorPresentacion || 1;
     this.esPresentacionMultiple = unidades > 1;
     this.pasoCantidad = this.esPresentacionMultiple ? '1' : 'any';
-    const nombre = primero?.presentacionDescripcion;
+    const nombre = primero.presentacionDescripcion;
     this.presentacionNombre = nombre || 'presentación';
     this.presentacionLabel = this.esPresentacionMultiple
       ? `${nombre || 'Presentación'} · ${unidades} unidades c/u`
@@ -231,8 +275,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
 
   private crearFila(lote: StockLotePresentacion): LoteRow {
     const seleccionable = lote.estado === EstadoLote.LIBERADO;
+    const esElegido = this.seleccion != null && this.seleccion.loteId === lote.loteId;
     const control = new FormControl({
-      value: this.cantidadPreviaDe(lote.loteId),
+      value: esElegido ? this.seleccion.cantidad : null,
       disabled: !seleccionable
     });
     return {
@@ -267,47 +312,45 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     return `${total} · sobran ${this.formatearCantidad(lote.unidadesSobrantes)}`;
   }
 
-  /** Cantidad que ya tenía asignada este lote, para precargar el diálogo al reeditar. */
-  private cantidadPreviaDe(loteId: number): number {
-    const previa = (this.data?.asignacionActual || []).find((a) => a.loteId === loteId);
-    return previa ? previa.cantidadPresentacion : null;
-  }
+  /**
+   * Se dispara al tipear una cantidad. Aplica la regla de un solo lote por ítem: la fila con
+   * cantidad pasa a ser la elegida y las demás se bloquean; al vaciarla, se liberan todas.
+   */
+  onCantidadCambiada(fila: LoteRow): void {
+    const valor = Number(fila.control.value);
+    const tieneCantidad = !isNaN(valor) && valor > 0;
 
-  private escucharCambios(): void {
-    this.filas.forEach((fila) => {
-      fila.control.valueChanges
-        .pipe(debounceTime(150), untilDestroyed(this))
-        .subscribe(() => {
-          this.sincronizarLoteElegido();
-          this.recalcularTotales();
-          this.cdr.markForCheck();
-        });
-    });
+    if (tieneCantidad) {
+      this.seleccion = {
+        loteId: fila.loteId,
+        numeroLote: fila.numeroLote,
+        cantidad: valor
+      };
+    } else if (this.seleccion != null && this.seleccion.loteId === fila.loteId) {
+      this.seleccion = null;
+    }
+
+    this.aplicarBloqueoPorSeleccion();
+    this.recalcularTotales();
+    this.cdr.markForCheck();
   }
 
   /**
-   * Aplica la regla de un solo lote por ítem: en cuanto una fila tiene cantidad, las demás se
-   * bloquean; al vaciarla, se liberan todas.
+   * Bloquea las filas que no son la elegida.
    *
-   * El bloqueo se hace deshabilitando el control y no con una clase, para que la regla valga
-   * también para quien navega con teclado y no solo para el que ve la pantalla.
+   * Se deshabilita el control y no se aplica solo una clase, para que la regla valga también
+   * navegando con teclado y no solo para quien ve la pantalla.
    */
-  private sincronizarLoteElegido(): void {
-    const elegida = this.filas.find((fila) => {
-      const valor = Number(fila.control.value);
-      return !isNaN(valor) && valor > 0;
-    });
-
-    this.loteSeleccionadoId = elegida ? elegida.loteId : null;
-    this.numeroLoteSeleccionado = elegida ? elegida.numeroLote : '';
-    this.hayLoteElegido = elegida != null;
+  private aplicarBloqueoPorSeleccion(): void {
+    this.numeroLoteSeleccionado = this.seleccion ? this.seleccion.numeroLote : '';
+    this.hayLoteElegido = this.seleccion != null;
 
     this.filas.forEach((fila) => {
-      // Los lotes que no están LIBERADO siguen bloqueados siempre: es el recall, manda sobre esto.
+      // Los lotes que no están LIBERADO siguen bloqueados siempre: el recall manda sobre esto.
       if (!fila.seleccionable) {
         return;
       }
-      const debeBloquearse = elegida != null && fila.loteId !== elegida.loteId;
+      const debeBloquearse = this.seleccion != null && fila.loteId !== this.seleccion.loteId;
       fila.bloqueada = debeBloquearse;
       if (debeBloquearse && fila.control.enabled) {
         fila.control.disable({ emitEvent: false });
@@ -318,21 +361,11 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   }
 
   /**
-   * Suma lo asignado y arma el mensaje de estado. Es la única fuente de los totales que muestra
-   * el template, para no recalcular nada en cada ciclo de detección de cambios.
-   *
-   * La suma vive acá y no en el backend porque es feedback en vivo de lo que el operador está
-   * tipeando, no una regla de negocio: la conversión y la validación contra el saldo real las
-   * resuelve el servidor.
+   * Arma los totales y el mensaje de estado. Con un solo lote por ítem, el total ES la cantidad
+   * elegida: no hay nada que sumar entre filas.
    */
   private recalcularTotales(): void {
-    let total = 0;
-    this.filas.forEach((fila) => {
-      const valor = Number(fila.control.value);
-      if (!isNaN(valor) && valor > 0) {
-        total += valor;
-      }
-    });
+    const total = this.seleccion ? this.seleccion.cantidad : 0;
     this.totalAsignado = total;
     this.totalAsignadoLabel = this.formatearCantidad(total);
 
@@ -347,7 +380,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       this.mensajeFaltante =
         total > 0
           ? 'Esta es la cantidad que se va a transferir del producto.'
-          : 'Indicá cuánto sacar de cada lote. La suma es lo que se transfiere.';
+          : 'Indicá cuánto sacar del lote. Esa cantidad es la que se transfiere.';
       return;
     }
 
@@ -358,41 +391,27 @@ export class SeleccionarLotesDialogComponent implements OnInit {
 
     if (this.excedeRequerido) {
       this.mensajeFaltante =
-        'Asignaste más de lo que se transfiere. Ajustá las cantidades antes de confirmar.';
+        'Asignaste más de lo que se transfiere. Ajustá la cantidad antes de confirmar.';
     } else if (this.hayFaltante) {
       this.mensajeFaltante =
         'El resto lo completa el sistema por FEFO, empezando por lo que vence antes.';
     } else {
-      this.mensajeFaltante = 'La cantidad está cubierta con los lotes elegidos.';
+      this.mensajeFaltante = 'La cantidad está cubierta con el lote elegido.';
     }
   }
 
-  /**
-   * Elige el primer lote por FEFO con saldo, que es el que el sistema usaría por su cuenta.
-   * Como solo se puede sacar de un lote, no reparte: toma lo que ese lote alcance a cubrir.
-   */
-  onSugerirFefo(): void {
-    this.limpiarCantidades();
-    const primero = this.filas.find((fila) => fila.seleccionable && fila.disponible > 0);
-    if (primero != null) {
-      const aTomar = Math.min(primero.disponible, this.cantidadRequerida);
-      primero.control.setValue(aTomar > 0 ? aTomar : null, { emitEvent: false });
-    }
-    this.sincronizarLoteElegido();
-    this.recalcularTotales();
-    this.cdr.markForCheck();
+  handlePageEvent(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.cargarLotes(true);
   }
 
   onLimpiar(): void {
-    this.limpiarCantidades();
-    this.sincronizarLoteElegido();
+    this.seleccion = null;
+    this.filas.forEach((fila) => fila.control.setValue(null, { emitEvent: false }));
+    this.aplicarBloqueoPorSeleccion();
     this.recalcularTotales();
     this.cdr.markForCheck();
-  }
-
-  /** Vacía las cantidades sin recalcular: quien llama decide cuándo sincronizar. */
-  private limpiarCantidades(): void {
-    this.filas.forEach((fila) => fila.control.setValue(null, { emitEvent: false }));
   }
 
   onConfirmar(): void {
@@ -402,21 +421,21 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       );
       return;
     }
-    // En este modo el total ES la cantidad del ítem: confirmar con cero dejaría un ítem sin nada.
+    // En este modo la cantidad elegida ES la del ítem: confirmar con cero lo dejaría sin nada.
     if (this.cantidadDefinidaPorLotes && this.totalAsignado <= 0) {
-      this.notificacionService.openWarn(
-        'Indicá cuánto sacar de al menos un lote'
-      );
+      this.notificacionService.openWarn('Indicá cuánto sacar del lote');
       return;
     }
     if (this.hayPresentacionFraccionada()) {
       return;
     }
-    if (this.haySobreasignacionPorLote()) {
+    if (this.haySobreasignacion()) {
       return;
     }
     this.dialogRef.close({
-      lotes: this.asignacionElegida(),
+      lotes: this.seleccion
+        ? [{ loteId: this.seleccion.loteId, cantidad: this.seleccion.cantidad }]
+        : [],
       etapa: this.data.etapa,
       total: this.totalAsignado
     } as SeleccionarLotesDialogResult);
@@ -428,49 +447,37 @@ export class SeleccionarLotesDialogComponent implements OnInit {
    * sí puede llevar decimales.
    */
   private hayPresentacionFraccionada(): boolean {
-    if (!this.esPresentacionMultiple) {
+    if (!this.esPresentacionMultiple || this.seleccion == null) {
       return false;
     }
-    const fraccionada = this.filas.find((fila) => {
-      const valor = Number(fila.control.value);
-      return !isNaN(valor) && valor > 0 && !Number.isInteger(valor);
-    });
-    if (fraccionada) {
-      this.notificacionService.openWarn(
-        `Solo se pueden transferir ${this.presentacionNombre} completas`
-      );
-      return true;
+    if (Number.isInteger(this.seleccion.cantidad)) {
+      return false;
     }
-    return false;
+    this.notificacionService.openWarn(
+      `Solo se pueden transferir ${this.presentacionNombre} completas`
+    );
+    return true;
   }
 
   /**
-   * Aviso temprano de que un lote no da para tanto. El límite real lo aplica igual el backend al
+   * Aviso temprano de que el lote no da para tanto. El límite real lo aplica igual el backend al
    * resolver el desglose: esto solo evita que el operador confirme algo que no se va a cumplir.
+   *
+   * Solo se puede validar contra una fila visible; si el lote elegido quedó en otra página, la
+   * verificación queda del lado del servidor.
    */
-  private haySobreasignacionPorLote(): boolean {
-    const excedida = this.filas.find((fila) => {
-      const valor = Number(fila.control.value);
-      return !isNaN(valor) && valor > 0 && valor - fila.disponible > EPSILON;
-    });
-    if (excedida) {
-      this.notificacionService.openWarn(
-        `El lote ${excedida.numeroLote} solo tiene ${excedida.disponibleLabel} disponible`
-      );
-      return true;
+  private haySobreasignacion(): boolean {
+    if (this.seleccion == null) {
+      return false;
     }
-    return false;
-  }
-
-  private asignacionElegida(): { loteId: number; cantidad: number }[] {
-    const elegidos: { loteId: number; cantidad: number }[] = [];
-    this.filas.forEach((fila) => {
-      const valor = Number(fila.control.value);
-      if (!isNaN(valor) && valor > 0) {
-        elegidos.push({ loteId: fila.loteId, cantidad: valor });
-      }
-    });
-    return elegidos;
+    const fila = this.filas.find((f) => f.loteId === this.seleccion.loteId);
+    if (fila == null || this.seleccion.cantidad - fila.disponible <= EPSILON) {
+      return false;
+    }
+    this.notificacionService.openWarn(
+      `El lote ${fila.numeroLote} solo tiene ${fila.disponibleLabel} disponible`
+    );
+    return true;
   }
 
   onCancelar(): void {

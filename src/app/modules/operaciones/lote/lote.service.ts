@@ -50,19 +50,34 @@ export class LoteService {
   }
 
   /**
-   * Saldo por lote ya expresado en una presentación. La conversión unidades/presentación la
-   * resuelve el backend, que es donde vive esa regla.
+   * Saldo por lote ya expresado en una presentación, paginado desde el backend.
+   *
+   * La conversión unidades/presentación y el filtro por número de lote los resuelve el servidor:
+   * con paginación server-side, filtrar en la pantalla solo alcanzaría a la página visible.
    */
   onGetStockPorLoteEnPresentacion(
     productoId: number,
     sucursalId: number,
     presentacionId: number,
-    servidor = true
-  ): Observable<StockLotePresentacion[]> {
+    numeroLote?: string,
+    page = 0,
+    size = 10,
+    servidor = true,
+    silentLoad = false
+  ): Observable<PageInfo<StockLotePresentacion>> {
     return this.genericService.onCustomQuery(
       this.stockPorLoteEnPresentacionGQL,
-      { productoId, sucursalId, presentacionId: presentacionId ?? null },
-      servidor
+      {
+        productoId,
+        sucursalId,
+        presentacionId: presentacionId ?? null,
+        numeroLote: numeroLote || null,
+        page,
+        size
+      },
+      servidor,
+      null,
+      silentLoad
     );
   }
 
