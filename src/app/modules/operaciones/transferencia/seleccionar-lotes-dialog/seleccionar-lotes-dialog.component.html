@@ -17,7 +17,7 @@
     </div>
     <div class="dato">
       <span class="etiqueta">{{ tituloCantidad }}</span>
-      <span class="valor">{{ cantidadRequerida | number : "1.0-3" }}</span>
+      <span class="valor">{{ cantidadRequeridaLabel }}</span>
     </div>
   </div>
 
@@ -99,7 +99,7 @@
           Disponible
         </th>
         <td mat-cell *matCellDef="let fila" style="text-align: center">
-          {{ fila.disponiblePresentaciones | number : "1.0-3" }}
+          {{ fila.disponibleLabel }}
           <div class="equivalencia" *ngIf="esPresentacionMultiple">
             {{ fila.disponibleUnidadesLabel }}
           </div>
@@ -147,16 +147,16 @@
   >
     <div class="resumen-numeros" *ngIf="!cantidadDefinidaPorLotes">
       Asignado
-      <strong>{{ totalAsignado | number : "1.0-3" }}</strong>
+      <strong>{{ totalAsignadoLabel }}</strong>
       de
-      <strong>{{ cantidadRequerida | number : "1.0-3" }}</strong>
+      <strong>{{ cantidadRequeridaLabel }}</strong>
       <span *ngIf="hayFaltante">
-        &nbsp;&mdash;&nbsp;faltan {{ faltante | number : "1.0-3" }}
+        &nbsp;&mdash;&nbsp;faltan {{ faltanteLabel }}
       </span>
     </div>
     <div class="resumen-numeros" *ngIf="cantidadDefinidaPorLotes">
       Total a transferir
-      <strong>{{ totalAsignado | number : "1.0-3" }}</strong>
+      <strong>{{ totalAsignadoLabel }}</strong>
     </div>
     <div class="resumen-mensaje">
       {{ mensajeFaltante }}

@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   Inject,
+  LOCALE_ID,
   OnInit
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
@@ -63,6 +64,8 @@ interface LoteRow {
   estadoClase: string;
   /** Saldo en la presentación del ítem, tal como lo devolvió el backend. */
   disponible: number;
+  /** El mismo saldo ya formateado para mostrar, sin separador de miles. */
+  disponibleLabel: string;
   /** Equivalente en unidades, solo informativo. Vacío si la presentación vale 1. */
   disponibleUnidadesLabel: string;
   /** Los lotes que no están LIBERADO no se pueden elegir: es el bloqueo por recall. */
@@ -106,6 +109,10 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   hayFaltante = false;
   excedeRequerido = false;
   mensajeFaltante = '';
+  // Etiquetas ya formateadas, para que el template no aplique pipes ni formatee nada.
+  cantidadRequeridaLabel = '0';
+  totalAsignadoLabel = '0';
+  faltanteLabel = '0';
 
   productoDescripcion = '';
   sucursalOrigenNombre = '';
@@ -121,12 +128,14 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<SeleccionarLotesDialogComponent>,
     private loteService: LoteService,
     private notificacionService: NotificacionSnackbarService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    @Inject(LOCALE_ID) private locale: string
   ) {}
 
   ngOnInit(): void {
     this.cantidadDefinidaPorLotes = this.data?.cantidadDefinidaPorLotes === true;
     this.cantidadRequerida = this.data?.cantidad || 0;
+    this.cantidadRequeridaLabel = this.formatearCantidad(this.cantidadRequerida);
     this.productoDescripcion = this.data?.productoDescripcion || '';
     this.sucursalOrigenNombre = this.data?.sucursalOrigenNombre || '';
     this.tituloCantidad = this.cantidadDefinidaPorLotes
@@ -187,8 +196,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       estadoLabel: ESTADO_LOTE_LABELS[lote.estado] || lote.estado || '-',
       estadoClase: this.claseSegunEstado(lote.estado),
       disponible: lote.cantidadDisponiblePresentacion,
+      disponibleLabel: this.formatearCantidad(lote.cantidadDisponiblePresentacion),
       disponibleUnidadesLabel: this.esPresentacionMultiple
-        ? `${lote.cantidadDisponible} unid.`
+        ? `${this.formatearCantidad(lote.cantidadDisponible)} unid.`
         : '',
       seleccionable,
       control
@@ -229,11 +239,14 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       }
     });
     this.totalAsignado = total;
+    this.totalAsignadoLabel = this.formatearCantidad(total);
 
     // Cuando el total define la cantidad no hay nada que cubrir: no puede faltar ni sobrar.
     if (this.cantidadDefinidaPorLotes) {
       this.cantidadRequerida = total;
+      this.cantidadRequeridaLabel = this.totalAsignadoLabel;
       this.faltante = 0;
+      this.faltanteLabel = '0';
       this.hayFaltante = false;
       this.excedeRequerido = false;
       this.mensajeFaltante =
@@ -244,6 +257,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     }
 
     this.faltante = this.cantidadRequerida - total;
+    this.faltanteLabel = this.formatearCantidad(this.faltante);
     this.hayFaltante = this.faltante > EPSILON;
     this.excedeRequerido = this.faltante < -EPSILON;
 
@@ -319,7 +333,7 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     });
     if (excedida) {
       this.notificacionService.openWarn(
-        `El lote ${excedida.numeroLote} solo tiene ${excedida.disponible} disponible`
+        `El lote ${excedida.numeroLote} solo tiene ${excedida.disponibleLabel} disponible`
       );
       return true;
     }
@@ -339,6 +353,18 @@ export class SeleccionarLotesDialogComponent implements OnInit {
 
   onCancelar(): void {
     this.dialogRef.close(null);
+  }
+
+  /**
+   * Cantidades sin separador de miles: un saldo de 3000 se lee mejor como "3000" que como
+   * "3.000", que en es-PY se confunde con un decimal. Se respeta el separador decimal del
+   * locale, porque una presentación de varias unidades da cantidades fraccionarias.
+   */
+  private formatearCantidad(valor: number): string {
+    return (valor || 0).toLocaleString(this.locale, {
+      useGrouping: false,
+      maximumFractionDigits: 3
+    });
   }
 
   private fechaCorta(fecha: Date): string {
