@@ -25,6 +25,7 @@ import { CreateItemDialogComponent } from './transferencia/create-item-dialog/cr
 import { EditTransferenciaComponent } from './transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from './transferencia/list-transferencia/list-transferencia.component';
 import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
+import { SeleccionarLotesDialogComponent } from './transferencia/seleccionar-lotes-dialog/seleccionar-lotes-dialog.component';
 import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { TransferenciaComponent } from './transferencia/transferencia.component';
 import { ListVentaComponent } from './venta/list-venta/list-venta.component';
@@ -97,6 +98,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     SeleccionarSucursalDialogComponent,
     CreateItemDialogComponent,
     ModificarItemDialogComponent,
+    SeleccionarLotesDialogComponent,
     TransferenciaTimelineDialogComponent,
     PrecioDeliveryComponent,
     DeliveryDashboardComponent,

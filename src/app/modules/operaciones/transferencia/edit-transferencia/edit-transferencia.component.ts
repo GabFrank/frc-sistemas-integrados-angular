@@ -43,6 +43,7 @@ import {
   updateDataSourceWithId,
 } from "../../../../commons/core/utils/numbersUtils";
 import {
+  EtapaAsignacionLote,
   EtapaTransferencia,
   TipoTransferencia,
   Transferencia,
@@ -51,6 +52,11 @@ import {
   TransferenciaItemAlerta,
   TransferenciaItemView,
 } from "../transferencia.model";
+import {
+  SeleccionarLotesDialogComponent,
+  SeleccionarLotesDialogData,
+  SeleccionarLotesDialogResult,
+} from "../seleccionar-lotes-dialog/seleccionar-lotes-dialog.component";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { SelectionModel } from "@angular/cdk/collections";
 import { ModificarItemDialogComponent } from "../modificar-item-dialog/modificar-item-dialog.component";
@@ -460,6 +466,9 @@ export class EditTransferenciaComponent implements OnInit {
         alertaVencido,
         alertaAveriado: alerta?.alertaAveriado ?? false,
         textoVencido: alertaVencido ? "Si" : "No",
+        // Solo los productos con control de lote pueden elegir de que lote salen.
+        esProductoConLote:
+          item.presentacionPreTransferencia?.producto?.lote === true,
       }) as TransferenciaItemView;
     });
   }
@@ -784,6 +793,117 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onEditClick(row) { }
+
+  /**
+   * Abre la elección manual de los lotes de los que sale un ítem.
+   *
+   * Solo tiene sentido en creación y en preparación: una vez que la mercadería salió del
+   * depósito, el desglose ya quedó fijado contra el movimiento de stock.
+   */
+  onElegirLotes(item: TransferenciaItemView): void {
+    const etapaAsignacion = this.etapaAsignacionActual();
+    if (etapaAsignacion == null) {
+      return;
+    }
+    const producto = item?.presentacionPreTransferencia?.producto;
+    const sucursalOrigenId = this.selectedTransferencia?.sucursalOrigen?.id;
+    if (producto?.id == null || sucursalOrigenId == null) {
+      return;
+    }
+
+    const data: SeleccionarLotesDialogData = {
+      productoId: producto.id,
+      productoDescripcion: `${producto.id} - ${producto.descripcion}`,
+      sucursalOrigenId,
+      sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
+      cantidad: this.cantidadEnUnidades(item, etapaAsignacion),
+      etapa: etapaAsignacion,
+      asignacionActual: item.lotesAsignados,
+    };
+
+    this.matDialog
+      .open(SeleccionarLotesDialogComponent, { data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: SeleccionarLotesDialogResult) => {
+        if (res != null) {
+          this.guardarAsignacionDeLotes(item, res);
+        }
+      });
+  }
+
+  /**
+   * Etapa de asignación que corresponde a la etapa actual de la transferencia.
+   * Null significa que en este momento no se pueden elegir lotes.
+   */
+  private etapaAsignacionActual(): EtapaAsignacionLote {
+    switch (this.selectedTransferencia?.etapa) {
+      case EtapaTransferencia.PRE_TRANSFERENCIA_CREACION:
+      case EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN:
+        return EtapaAsignacionLote.PRE_TRANSFERENCIA;
+      case EtapaTransferencia.PREPARACION_MERCADERIA:
+        return EtapaAsignacionLote.PREPARACION;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Cantidad del ítem expresada en unidades, que es la unidad en la que se lleva el stock por
+   * lote. La grilla muestra cantidad por presentación, así que hay que multiplicar.
+   */
+  private cantidadEnUnidades(
+    item: TransferenciaItem,
+    etapa: EtapaAsignacionLote
+  ): number {
+    if (etapa === EtapaAsignacionLote.PREPARACION) {
+      const cantidad =
+        item?.cantidadPreparacion ?? item?.cantidadPreTransferencia ?? 0;
+      const presentacion =
+        item?.presentacionPreparacion ?? item?.presentacionPreTransferencia;
+      return cantidad * (presentacion?.cantidad ?? 1);
+    }
+    return (
+      (item?.cantidadPreTransferencia ?? 0) *
+      (item?.presentacionPreTransferencia?.cantidad ?? 1)
+    );
+  }
+
+  /**
+   * Persiste el reparto elegido. Se manda `lotesAsignados` explícitamente: cuando ese campo no
+   * viaja, el backend deja la asignación como estaba, que es lo que hace el resto de la pantalla.
+   */
+  private guardarAsignacionDeLotes(
+    item: TransferenciaItem,
+    seleccion: SeleccionarLotesDialogResult
+  ): void {
+    const auxItem = new TransferenciaItem();
+    Object.assign(auxItem, item);
+    auxItem.usuario = this.mainService.usuarioActual;
+    auxItem.transferencia = this.selectedTransferencia;
+
+    const input = auxItem.toInput();
+    input.lotesAsignados = seleccion.lotes;
+    input.etapaAsignacionLote = seleccion.etapa;
+
+    this.cargandoService.openDialog();
+    this.transferenciaService
+      .onSaveTransferenciaItem(input)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.cargandoService.closeDialog();
+        if (res != null) {
+          this.dataSource.data = updateDataSourceWithId(
+            this.dataSource.data,
+            res,
+            res?.id
+          );
+          // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
+          this.actualizarAlertasPaginaActual();
+          this.notificacionService.openSucess("Lotes asignados");
+        }
+      });
+  }
 
   onConfirm(item: TransferenciaItem) {
     let newItem = new TransferenciaItem();

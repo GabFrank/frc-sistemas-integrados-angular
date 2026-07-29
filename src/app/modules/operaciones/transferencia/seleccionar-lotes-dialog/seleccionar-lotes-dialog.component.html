@@ -1,0 +1,187 @@
+<h2 mat-dialog-title>Elegir lotes a transferir</h2>
+
+<mat-dialog-content class="contenido">
+
+  <div class="encabezado">
+    <div class="dato">
+      <span class="etiqueta">Producto</span>
+      <span class="valor">{{ productoDescripcion }}</span>
+    </div>
+    <div class="dato">
+      <span class="etiqueta">Sale de</span>
+      <span class="valor">{{ sucursalOrigenNombre }}</span>
+    </div>
+    <div class="dato">
+      <span class="etiqueta">Cantidad a transferir</span>
+      <span class="valor">{{ cantidadRequerida | number : "1.0-3" }}</span>
+    </div>
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Cargando lotes disponibles...
+  </div>
+
+  <div
+    *ngIf="!cargando && sinLotes"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Este producto no tiene stock por lote en la sucursal de origen. Al guardar, el desglose
+    queda a cargo del sistema.
+  </div>
+
+  <div
+    class="tabla-container"
+    *ngIf="!cargando && !sinLotes"
+  >
+    <table
+      mat-table
+      [dataSource]="filas"
+      class="mat-elevation-z8 tabla-lotes"
+      style="width: 100%"
+    >
+
+      <ng-container matColumnDef="numeroLote">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Nº de Lote
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.numeroLote }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaVencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.fechaVencimientoLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaRetiro">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center"
+          matTooltip="Fecha por la que se prioriza la salida (FEFO)"
+        >
+          Retiro
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.fechaRetiroLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          <span class="chip-estado" [class]="fila.estadoClase">
+            {{ fila.estadoLabel }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="disponible">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Disponible
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.disponible | number : "1.0-3" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          A transferir
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          <mat-form-field
+            appearance="outline"
+            class="campo-cantidad"
+            floatLabel="always"
+          >
+            <input
+              matInput
+              type="number"
+              min="0"
+              [formControl]="fila.control"
+              [attr.aria-label]="'Cantidad a transferir del lote ' + fila.numeroLote"
+            />
+          </mat-form-field>
+        </td>
+      </ng-container>
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="displayedColumns; sticky: true"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [class.fila-no-seleccionable]="!row.seleccionable"
+      ></tr>
+    </table>
+  </div>
+
+  <div
+    class="resumen"
+    [class.resumen-error]="excedeRequerido"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="resumen-numeros">
+      Asignado
+      <strong>{{ totalAsignado | number : "1.0-3" }}</strong>
+      de
+      <strong>{{ cantidadRequerida | number : "1.0-3" }}</strong>
+      <span *ngIf="hayFaltante">
+        &nbsp;&mdash;&nbsp;faltan {{ faltante | number : "1.0-3" }}
+      </span>
+    </div>
+    <div class="resumen-mensaje">
+      {{ mensajeFaltante }}
+    </div>
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions class="acciones">
+  <button
+    mat-stroked-button
+    (click)="onSugerirFefo()"
+    [disabled]="cargando || sinLotes"
+  >
+    Sugerir por FEFO
+  </button>
+  <button
+    mat-stroked-button
+    (click)="onLimpiar()"
+    [disabled]="cargando || sinLotes"
+  >
+    Limpiar
+  </button>
+  <span class="espaciador"></span>
+  <button
+    mat-button
+    (click)="onCancelar()"
+  >
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="accent"
+    (click)="onConfirmar()"
+    [disabled]="cargando || excedeRequerido"
+  >
+    Confirmar
+  </button>
+</mat-dialog-actions>

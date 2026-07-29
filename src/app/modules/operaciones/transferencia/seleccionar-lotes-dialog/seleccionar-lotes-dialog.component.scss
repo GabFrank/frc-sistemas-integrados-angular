@@ -1,0 +1,116 @@
+// App siempre en modo oscuro: no usar fondos claros.
+.contenido {
+  min-width: 720px;
+  max-height: 70vh;
+}
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-bottom: 12px;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+}
+
+.etiqueta {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.valor {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.mensaje-estado {
+  text-align: center;
+  padding: 32px 16px;
+  opacity: 0.8;
+}
+
+.tabla-container {
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.tabla-lotes {
+  width: 100%;
+}
+
+.campo-cantidad {
+  width: 110px;
+
+  // El input de cantidad va en cada fila: sin esto el mat-form-field agranda demasiado la fila.
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+// Los lotes que no estan LIBERADO no se pueden elegir. Se muestran igual para que quede claro
+// que el stock existe pero esta retenido, en vez de hacerlos desaparecer.
+.fila-no-seleccionable td {
+  opacity: 0.55;
+}
+
+.chip-estado {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.estado-liberado {
+  background-color: rgba(76, 175, 80, 0.22);
+  color: #81c784;
+}
+
+.estado-cuarentena {
+  background-color: rgba(255, 167, 38, 0.22);
+  color: #ffb74d;
+}
+
+.estado-bloqueado {
+  background-color: rgba(244, 67, 54, 0.22);
+  color: #e57373;
+}
+
+.resumen {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+// Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.
+.resumen-error {
+  background-color: rgba(244, 67, 54, 0.16);
+  color: #ff8a80;
+}
+
+.resumen-numeros {
+  font-size: 0.95rem;
+}
+
+.resumen-mensaje {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px 16px;
+}
+
+.espaciador {
+  flex: 1;
+}

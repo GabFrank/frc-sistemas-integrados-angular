@@ -1,40 +1,20 @@
 // App siempre en modo oscuro: no usar fondos claros.
-.stock-lote-container {
-  padding: 16px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.filters-row {
-  margin-bottom: 8px;
-}
-
+// El layout de filtros, alto y scroll los aporta app-generic-list, igual que en el resto de los
+// listados del sistema.
 .leyenda {
   font-size: 0.78rem;
   opacity: 0.65;
-  padding-bottom: 18px;
 }
 
 .mensaje-estado {
+  width: 100%;
   text-align: center;
   padding: 40px 16px;
   opacity: 0.8;
 }
 
-.tabla-container {
-  flex: 1;
-  overflow: auto;
-}
-
 .tabla-stock-lote {
   width: 100%;
-
-  // Texto centrado en tablas por default (convención del proyecto).
-  th,
-  td {
-    text-align: center;
-  }
 }
 
 .celda-cantidad {

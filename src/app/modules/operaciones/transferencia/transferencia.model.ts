@@ -4,6 +4,7 @@ import { Presentacion } from "../../productos/presentacion/presentacion.model";
 import { dateToString } from '../../../commons/core/utils/dateUtils';
 import { Persona } from '../../personas/persona/persona.model';
 import { Vehiculo } from "../../activos/vehiculos/vehiculo/models/vehiculo.model";
+import { EstadoLote } from "../lote/lote.model";
 
 export enum TransferenciaEstado {
   ABIERTA = 'ABIERTA', //la transferencia esta siendo creada
@@ -135,6 +136,11 @@ export class TransferenciaItem {
   poseeVencimiento: boolean
   usuario: Usuario;
   creadoEn: Date;
+  /**
+   * Lotes elegidos a mano para este ítem. Vacío significa que el desglose lo resuelve el backend
+   * por FEFO, que es el comportamiento de siempre.
+   */
+  lotesAsignados?: TransferenciaItemLote[];
 
   toInput(): TransferenciaItemInput {
     let input = new TransferenciaItemInput;
@@ -171,6 +177,33 @@ export class TransferenciaItem {
   }
 }
 
+/**
+ * Etapa en la que se eligieron los lotes de un ítem. PREPARACION pisa a PRE_TRANSFERENCIA al
+ * momento de resolver el desglose; ambas quedan guardadas para poder auditar qué se había pedido.
+ */
+export enum EtapaAsignacionLote {
+  PRE_TRANSFERENCIA = 'PRE_TRANSFERENCIA',
+  PREPARACION = 'PREPARACION'
+}
+
+/** Una porción de la cantidad de un ítem, asignada a un lote concreto. */
+export class TransferenciaItemLote {
+  id: number;
+  loteId: number;
+  numeroLote: string;
+  cantidad: number;
+  etapa: EtapaAsignacionLote;
+  fechaVencimiento?: Date;
+  fechaRetiro?: Date;
+  estadoLote?: EstadoLote;
+}
+
+/** Lo que se manda al backend para fijar el reparto por lote de un ítem. */
+export class TransferenciaItemLoteInput {
+  loteId: number;
+  cantidad: number;
+}
+
 export class TransferenciaItemAlerta {
   transferenciaItemId: number;
   alertaVencido: boolean;
@@ -182,6 +215,11 @@ export type TransferenciaItemView = TransferenciaItem & {
   alertaVencido: boolean;
   alertaAveriado: boolean;
   textoVencido: string;
+  /**
+   * Precalculado al armar la grilla: el template no puede evaluar
+   * `presentacionPreTransferencia?.producto?.lote` en cada ciclo de detección de cambios.
+   */
+  esProductoConLote: boolean;
 };
 
 export class TransferenciaItemInput {
@@ -215,6 +253,15 @@ export class TransferenciaItemInput {
   poseeVencimiento: boolean
   usuarioId: number = null;
   creadoEn: Date;
+  /**
+   * Semántica deliberada, para no romper a los llamadores que no saben de lotes:
+   *   undefined/null -> no toca la asignación existente (es lo que hace `toInput()` por defecto)
+   *   []             -> borra la asignación de esa etapa y el ítem vuelve a resolverse por FEFO
+   *   lista          -> reemplaza la asignación de esa etapa
+   */
+  lotesAsignados?: TransferenciaItemLoteInput[];
+  /** Etapa a la que corresponde `lotesAsignados`. Se ignora si la lista no viene. */
+  etapaAsignacionLote?: EtapaAsignacionLote;
 }
 
 export class HojaRuta {

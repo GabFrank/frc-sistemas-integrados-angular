@@ -22,12 +22,18 @@ interface StockLoteRow {
   productoDescripcion: string;
   sucursalNombre: string;
   numeroLote: string;
-  fechaVencimiento: Date;
-  fechaRetiro: Date;
+  fechaVencimientoLabel: string;
+  fechaRetiroLabel: string;
   estadoLabel: string;
   estadoClase: string;
   cantidadDisponible: number;
   filaClase: string;
+}
+
+/** Opción del combo de estado, con su etiqueta ya resuelta. */
+interface OpcionEstado {
+  valor: EstadoLote;
+  label: string;
 }
 
 /**
@@ -45,6 +51,8 @@ interface StockLoteRow {
 })
 export class ListStockLoteComponent implements OnInit {
 
+  titulo = 'Stock por lotes';
+
   displayedColumns = [
     'producto', 'sucursal', 'numeroLote', 'fechaVencimiento', 'fechaRetiro', 'estado', 'cantidad'
   ];
@@ -53,13 +61,19 @@ export class ListStockLoteComponent implements OnInit {
   filtros: FormGroup;
 
   sucursales: Sucursal[] = [];
-  readonly estados = [EstadoLote.LIBERADO, EstadoLote.CUARENTENA, EstadoLote.BLOQUEADO];
-  readonly estadoLabels = ESTADO_LOTE_LABELS;
+
+  /** Etiquetas resueltas una sola vez: el template no debe indexar mapas en cada ciclo. */
+  readonly opcionesEstado: OpcionEstado[] = [
+    { valor: EstadoLote.LIBERADO, label: ESTADO_LOTE_LABELS[EstadoLote.LIBERADO] },
+    { valor: EstadoLote.CUARENTENA, label: ESTADO_LOTE_LABELS[EstadoLote.CUARENTENA] },
+    { valor: EstadoLote.BLOQUEADO, label: ESTADO_LOTE_LABELS[EstadoLote.BLOQUEADO] }
+  ];
 
   pageIndex = 0;
-  pageSize = 20;
+  pageSize = 15;
   totalElements = 0;
   sinResultados = false;
+  isSearching = false;
 
   constructor(
     private loteService: LoteService,
@@ -82,7 +96,7 @@ export class ListStockLoteComponent implements OnInit {
     // El filtro de texto se dispara solo, con debounce para no consultar en cada tecla.
     this.filtros.get('texto').valueChanges
       .pipe(debounceTime(400), distinctUntilChanged(), untilDestroyed(this))
-      .subscribe(() => this.onBuscar(true));
+      .subscribe(() => this.onFiltrar(true));
 
     this.onBuscar();
   }
@@ -98,12 +112,15 @@ export class ListStockLoteComponent implements OnInit {
       });
   }
 
-  onBuscar(reiniciarPagina = false, silentLoad = false): void {
-    if (reiniciarPagina) {
-      this.pageIndex = 0;
-    }
+  /** Vuelve a la primera página y busca. Es lo que dispara el botón "Buscar" del listado. */
+  onFiltrar(silentLoad = false): void {
+    this.pageIndex = 0;
+    this.onBuscar(silentLoad);
+  }
 
+  onBuscar(silentLoad = false): void {
     const valores = this.filtros.value;
+    this.isSearching = true;
     this.loteService
       .onBuscarStockPorLote(
         {
@@ -127,40 +144,51 @@ export class ListStockLoteComponent implements OnInit {
           this.totalElements = res?.getTotalElements || 0;
           this.dataSource.data = contenido.map((item) => this.mapearFila(item));
           this.sinResultados = contenido.length === 0;
+          this.isSearching = false;
           this.cdr.markForCheck();
         },
         error: () => {
+          this.isSearching = false;
           this.notificacionService.openAlgoSalioMal('Error al consultar el stock por lotes');
           this.cdr.markForCheck();
         }
       });
   }
 
-  onPage(event: PageEvent): void {
+  handlePageEvent(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
-    this.onBuscar(false, true);
+    this.onBuscar(true);
   }
 
-  onLimpiarFiltros(): void {
+  resetFiltro(): void {
     this.filtros.reset();
-    this.onBuscar(true);
+    this.onFiltrar();
   }
 
   private mapearFila(item: StockLote): StockLoteRow {
     const estado = item.estado;
     return {
       loteId: item.loteId,
-      productoDescripcion: item.productoDescripcion || `#${item.productoId}`,
-      sucursalNombre: item.sucursalNombre || `#${item.sucursalId}`,
-      numeroLote: item.numeroLote,
-      fechaVencimiento: item.fechaVencimiento,
-      fechaRetiro: item.fechaRetiro,
+      productoDescripcion: item.productoDescripcion || this.referenciaSinNombre(item.productoId),
+      sucursalNombre: item.sucursalNombre || this.referenciaSinNombre(item.sucursalId),
+      numeroLote: item.numeroLote || '-',
+      fechaVencimientoLabel: this.fechaCorta(item.fechaVencimiento),
+      fechaRetiroLabel: this.fechaCorta(item.fechaRetiro),
       estadoLabel: ESTADO_LOTE_LABELS[estado] || estado || '-',
       estadoClase: this.claseSegunEstado(estado),
       cantidadDisponible: item.cantidadDisponible,
       filaClase: this.claseSegunVencimiento(item)
     };
+  }
+
+  /** Fallback cuando el backend no resolvió el nombre: mostrar el id sirve para reportar. */
+  private referenciaSinNombre(id: number): string {
+    return id != null ? `#${id}` : '-';
+  }
+
+  private fechaCorta(fecha: Date): string {
+    return fecha ? dateToString(fecha, 'dd/MM/yyyy') : '-';
   }
 
   private claseSegunEstado(estado: EstadoLote): string {
