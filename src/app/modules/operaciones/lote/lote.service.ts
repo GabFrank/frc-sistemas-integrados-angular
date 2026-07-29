@@ -7,9 +7,10 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
+import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
-import { EstadoLote, Lote, StockLote, StockLotePresentacion } from './lote.model';
+import { EstadoLote, Lote, StockLote, StockLotePresentacion, StockLoteSucursal } from './lote.model';
 
 /**
  * Maestro de lotes: consulta y administración del estado.
@@ -28,6 +29,7 @@ export class LoteService {
     private stockPorLoteGQL: StockPorLoteGQL,
     private stockPorLoteEnPresentacionGQL: StockPorLoteEnPresentacionGQL,
     private buscarStockPorLoteGQL: BuscarStockPorLoteGQL,
+    private stockLotePorSucursalGQL: StockLotePorSucursalGQL,
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
   ) {}
 
@@ -111,6 +113,27 @@ export class LoteService {
         page,
         size
       },
+      servidor,
+      null,
+      silentLoad
+    );
+  }
+
+  /**
+   * Desglose por sucursal del saldo de un lote. Incluye las sucursales sin stock, con cantidad 0.
+   *
+   * Se pide aparte y no junto con el listado porque solo hace falta cuando el operador expande
+   * una fila: traerlo para las 20 filas de la página sería trabajo tirado en la mayoría de los
+   * casos.
+   */
+  onStockLotePorSucursal(
+    loteId: number,
+    servidor = true,
+    silentLoad = true
+  ): Observable<StockLoteSucursal[]> {
+    return this.genericService.onCustomQuery(
+      this.stockLotePorSucursalGQL,
+      { loteId },
       servidor,
       null,
       silentLoad

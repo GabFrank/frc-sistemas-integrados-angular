@@ -121,14 +121,26 @@ export const buscarStockPorLoteQuery = gql`
         loteId
         productoId
         productoDescripcion
-        sucursalId
-        sucursalNombre
         numeroLote
         fechaVencimiento
         fechaRetiro
         estado
         cantidadDisponible
       }
+    }
+  }
+`;
+
+/**
+ * Desglose por sucursal del saldo de un lote. Trae todas las sucursales, con 0 en las que no
+ * tienen ese lote.
+ */
+export const stockLotePorSucursalQuery = gql`
+  query ($loteId: ID!) {
+    data: stockLotePorSucursal(loteId: $loteId) {
+      sucursalId
+      sucursalNombre
+      cantidadDisponible
     }
   }
 `;

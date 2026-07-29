@@ -58,17 +58,31 @@ export class StockLotePresentacion {
   presentacionDescripcion?: string;
 }
 
-/** Saldo disponible de un lote en una sucursal (agregado del ledger + datos del maestro). */
+/** Saldo disponible de un lote (agregado del ledger + datos del maestro). */
 export class StockLote {
   loteId: number;
   productoId: number;
   /** Solo lo completa buscarStockPorLote; stockPorLote lo deja null. */
   productoDescripcion?: string;
-  sucursalId: number;
+  /**
+   * Solo los completa stockPorLote, que consulta una sucursal puntual. buscarStockPorLote agrupa
+   * por lote y los deja null: el desglose se pide con stockLotePorSucursal.
+   */
+  sucursalId?: number;
   sucursalNombre?: string;
   numeroLote: string;
   fechaVencimiento?: Date;
   fechaRetiro?: Date;
   estado: EstadoLote;
+  cantidadDisponible: number;
+}
+
+/**
+ * Saldo de un lote en una sucursal puntual. Es el desglose de una fila de StockLote e incluye las
+ * sucursales sin stock, con cantidad 0.
+ */
+export class StockLoteSucursal {
+  sucursalId: number;
+  sucursalNombre?: string;
   cantidadDisponible: number;
 }

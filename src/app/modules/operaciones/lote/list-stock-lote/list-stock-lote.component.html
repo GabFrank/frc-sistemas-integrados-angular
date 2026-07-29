@@ -92,45 +92,41 @@
     fxLayout="column"
     fxLayoutAlign="space-between start"
   >
+    <!--
+      multiTemplateDataRows es obligatorio con dos matRowDef: sin él MatTable considera que hay
+      dos filas por defecto sin predicado `when` y falla en ngAfterContentChecked.
+    -->
     <table
       mat-table
       [dataSource]="dataSource"
+      multiTemplateDataRows
       class="mat-elevation-z8 tabla-stock-lote"
       style="width: 100%"
     >
 
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 25%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 30%">
           Producto
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 25%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 30%">
           {{ fila.productoDescripcion }}
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="sucursal">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
-          Sucursal
-        </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 20%">
-          {{ fila.sucursalNombre }}
-        </td>
-      </ng-container>
-
       <ng-container matColumnDef="numeroLote">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Nº de Lote
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 15%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 20%">
           {{ fila.numeroLote }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="fechaVencimiento">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
           Vencimiento
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 10%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
           {{ fila.fechaVencimientoLabel }}
         </td>
       </ng-container>
@@ -139,21 +135,21 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 10%"
+          style="text-align: center; width: 12%"
           matTooltip="Fecha por la que se prioriza la salida (FEFO)"
         >
           Retiro
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 10%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
           {{ fila.fechaRetiroLabel }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
           Estado
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 10%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 13%">
           <span class="chip-estado" [class]="fila.estadoClase">
             {{ fila.estadoLabel }}
           </span>
@@ -161,16 +157,72 @@
       </ng-container>
 
       <ng-container matColumnDef="cantidad">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
           Disponible
         </th>
         <td
           mat-cell
           *matCellDef="let fila"
           class="celda-cantidad"
-          style="text-align: center; width: 10%"
+          style="text-align: center; width: 13%"
         >
           {{ fila.cantidadDisponible | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let fila"
+          [attr.colspan]="displayedColumns.length"
+          class="celda-detalle"
+        >
+          <div
+            class="detalle-sucursales"
+            [@detailExpand]="fila.estadoDetalle"
+          >
+            <div class="detalle-caja">
+              <div class="detalle-titulo">
+                {{ tituloDetalle }}
+              </div>
+
+              <mat-spinner
+                *ngIf="!fila.sucursales"
+                diameter="30"
+                class="detalle-spinner"
+              ></mat-spinner>
+
+              <table
+                *ngIf="fila.sucursales"
+                class="tabla-detalle"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col" class="detalle-columna-nombre">Sucursal</th>
+                    <th scope="col" class="detalle-columna-stock">Stock Disponible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let suc of fila.sucursales">
+                    <td class="detalle-columna-nombre">
+                      {{ suc.nombre }}
+                    </td>
+                    <td
+                      class="detalle-columna-stock"
+                      [class.detalle-sin-stock]="suc.sinStock"
+                    >
+                      {{ suc.cantidadDisponible | number: "1.0-2" }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="!fila.sucursales.length">
+                    <td colspan="2" class="detalle-vacio">
+                      No hay sucursales para mostrar
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </td>
       </ng-container>
 
@@ -178,7 +230,20 @@
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns"
+        class="fila-lote"
+        tabindex="0"
         [class]="row.filaClase"
+        [class.fila-expandida]="row === filaExpandida"
+        [attr.aria-expanded]="row === filaExpandida"
+        [attr.aria-label]="'Ver stock por sucursal del lote ' + row.numeroLote"
+        (click)="onFilaClick(row)"
+        (keydown.enter)="onFilaClick(row)"
+        (keydown.space)="onFilaClick(row)"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="fila-detalle"
       ></tr>
     </table>
 
