@@ -90,7 +90,7 @@
       <span class="neto">Total a liquidar: <b>{{ liq.totalLiquidado | number:'1.0-0' }}</b></span>
     </div>
 
-    <div class="pago" *ngIf="liq.estado === 'APROBADA'" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <div class="pago" *ngIf="liq.estado === 'APROBADA' && puedePagar" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
       <mat-form-field fxFlex="280px">
         <mat-label>Caja Mayor (pago)</mat-label>
         <mat-select [formControl]="cajaControl">
@@ -103,16 +103,16 @@
   <!-- Footer de acciones (cuando hay borrador vigente) -->
   <div class="acciones-footer" *ngIf="liq != null" fxLayout="row" fxLayoutAlign="end center">
     <div fxLayout="row" fxLayoutGap="10px">
-      <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR'" (click)="onRegenerar()">
+      <button mat-stroked-button color="accent" *ngIf="liq.estado === 'BORRADOR' && puedeLiquidar" (click)="onRegenerar()">
         <mat-icon>refresh</mat-icon> Regenerar
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onAprobar()">Aprobar</button>
-      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA'" (click)="onVolverBorrador()">Volver a borrador</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'BORRADOR' && puedeAprobar" (click)="onAprobar()">Aprobar</button>
+      <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' && (puedeLiquidar || puedeAprobar)" (click)="onVolverBorrador()">Volver a borrador</button>
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA'" (click)="onPagar()">Pagar</button>
-      <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA'" (click)="onAnular()">Anular</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA' && puedePagar" (click)="onPagar()">Pagar</button>
+      <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA' && puedePagar" (click)="onAnular()">Anular</button>
     </div>
   </div>
 </div>

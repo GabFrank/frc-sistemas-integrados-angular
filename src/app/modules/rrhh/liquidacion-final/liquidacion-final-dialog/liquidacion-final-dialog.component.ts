@@ -42,6 +42,11 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
   liq: LiquidacionFinal = null;
 
+  // Gating por rol (UX; el backend valida). ADMIN por rol o nickname.
+  puedeLiquidar = false;
+  puedeAprobar = false;
+  puedePagar = false;
+
   itemsColumns = ['descripcion', 'tipo', 'monto', 'origen', 'acciones'];
   items = new MatTableDataSource<LiquidacionFinalItem>([]);
 
@@ -74,6 +79,12 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     this.nombre = d.nombre;
     this.monedaId = d.monedaId;
     this.tituloTab = 'Finiquito — ' + (this.nombre || this.funcionarioId);
+
+    const roles = this.mainService.usuarioActual?.roles || [];
+    const esAdmin = this.mainService.usuarioActual?.nickname === 'ADMIN' || roles.includes('ADMIN');
+    this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
+    this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
+    this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
 
     this.cargarExistente();
     this.cajaVirtualService.onGetActivas().pipe(untilDestroyed(this))

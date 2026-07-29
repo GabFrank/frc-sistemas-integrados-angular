@@ -43,6 +43,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
 
+  // Gating por rol (UX; el backend valida de todas formas). ADMIN por rol o nickname.
+  puedeLiquidar = false;
+  puedeAprobar = false;
+  puedePagar = false;
+
   constructor(
     private tabService: TabService,
     private liquidacionService: LiquidacionService,
@@ -54,6 +59,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    const roles = this.mainService.usuarioActual?.roles || [];
+    const esAdmin = this.mainService.usuarioActual?.nickname === 'ADMIN' || roles.includes('ADMIN');
+    this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
+    this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
+    this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
     const id = this.data?.tabData?.id ?? this.data?.tabData?.data?.id;
     if (id != null) {
       this.recargar(id);
