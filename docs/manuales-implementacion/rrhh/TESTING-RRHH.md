@@ -69,13 +69,28 @@ los `data-test`/textos reales (el esqueleto usa selectores tentativos).
 - **Pago end-to-end del finiquito con descuentos automáticos** (saldado de
   vales/cuotas al pagar) — pendiente de correr contra el dev real (ver T15 en
   `PLAN-TESTEO-MANUAL-RRHH.md`, central).
-- **Dashboard RRHH reconstruido al padrón `desktop/docs/DASHBOARDS.md`** (4 KPIs,
+- **Dashboard RRHH** reconstruido al padrón `desktop/docs/DASHBOARDS.md` (4 KPIs,
   chart de nómina 12 meses, rankings de cumpleaños/exposición financiera/horas
-  extra, filtro de período mensual) y **reportes RRHH reubicados** del tab
-  dedicado (eliminado) a un mat-menu del dashboard, con el visor de PDF
-  integrado en vez de `window.open()` (bloqueado en Electron) — backend arrancó
-  limpio con el schema nuevo, pero falta el test manual del usuario (ver T16/T17
-  en `PLAN-TESTEO-MANUAL-RRHH.md`, central).
+  extra, filtro de período mensual) + **reportes RRHH reubicados** a un mat-menu
+  del dashboard (visor PDF integrado, no `window.open()`) — **construcción
+  completa**; falta solo el **test manual** del usuario (T16/T17 en
+  `PLAN-TESTEO-MANUAL-RRHH.md`, central).
+- **Card "Legajos por completar"** (`rrhhFuncionariosIncompletos`): score 1-10
+  server-side, filtra inactivos/egresados, paginada, click→legajo. Sin test
+  (manual ni automatizado) — validar: el ranking prioriza los peores, el score
+  refleja los campos faltantes, la paginación funciona, y el click abre el legajo
+  correcto.
+- **Aguinaldo — pago separado** (`PagarAguinaldoDialogComponent`): elegir Caja
+  Mayor → pagar (EGRESO) → aguinaldo pasa a PAGADO → se ofrece el recibo. Sin
+  test. Validar además la **regla de no-doble-pago**: un aguinaldo pagado por
+  separado **no debe volver a sumarse** en la liquidación mensual de diciembre.
+- **Impresión de recibos — Ticket ESC/POS** (`ImpresionService` + `printLocal`):
+  los 7 recibos (vale, penalización, aguinaldo, préstamo, bono, finiquito,
+  liquidación mensual) deben imprimir en **PDF (A4)** y en **Ticket (58/80mm)**.
+  Validar en la térmica local: conceptos largos se **envuelven sin truncar**,
+  acentos limpios, monto alineado. Requiere impresora `uso=TICKET`/`TERMICA`
+  configurada. Nota: en **Windows** solo funciona `conexion=RED` (ver
+  `desktop/docs/IMPRESION.md`).
 
 ## 4. Tests de reportes Jasper (compile + fill + export)
 

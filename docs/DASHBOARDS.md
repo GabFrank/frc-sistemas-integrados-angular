@@ -81,7 +81,7 @@ crear componentes nuevos si una primitiva ya cubre el caso.**
 |---|---|---|
 | `dash-stat-chip` | KPI (número + label + icono) | `icon`, `value`, `label`, `color`, `loading` |
 | `dash-quick-action` | Acceso directo moderno | `icon`, `title`, `color`, `disabled`; `(action)` |
-| `dash-ranking-list` | Top N con barra + medalla | `icon`, `title`, `items: DashRankingItem[]`, `emptyText` |
+| `dash-ranking-list` | Top N con barra + medalla | `icon`, `title`, `items: DashRankingItem[]`, `emptyText`, `maxAlto` (ej. `"240px"` → scroll interno si la lista es larga) |
 | `dash-section-header` | Header de card | `icon`, `title`, `badge`, `badgeClass` |
 | `dash-chart-card` | Card de gráfico (envuelve `frc-grafico-shell`/echarts) | `icon`, `title`, `opciones`, `cargando`, `hayDatos` |
 
@@ -155,12 +155,23 @@ mayor a un umbral configurable) y `devolucionesSeriePorDia` /
 `devolucionesPorEstadoResumen` (disponibles, no usadas hoy en la UI). Todo en
 `graphql/operaciones/devolucion-dashboard.graphqls`, aditivo, sin migración.
 
-Segundo ejemplo real: el **dashboard RRHH** (`nominaSeriePorMes`,
-`rrhhTopExposicion`, `rrhhTopHorasExtra`, `rrhhCumpleanosDelMes` en
+Segundo ejemplo real: el **dashboard RRHH** (`dashboardRrhhKpis` para los 4 KPIs
+headline, `nominaSeriePorMes`, `rrhhTopExposicion`, `rrhhTopHorasExtra`,
+`rrhhCumpleanosDelMes` y `rrhhFuncionariosIncompletos` en
 `graphql/rrhh/dashboard-rrhh.graphqls`), que además ilustra una variante
 legítima del filtro de fecha: en vez de `Desde/Hasta`, usa un único selector de
 **período mensual** (`input type=month`), porque RRHH trabaja por período de
 nómina, no por rango arbitrario.
+
+**Card accionable con paginación server-side ("Legajos por completar").** RRHH
+también muestra un patrón más allá del ranking top-N: `rrhhFuncionariosIncompletos(page, size)`
+devuelve una **página** de funcionarios activos con un **score 1-10** de completitud
+del legajo (calculado en el backend evaluando N campos clave), peores primero.
+En el cliente es una card con paginación propia (`page/size/total`, botones
+prev/next), barra por `score*10`, marca "crítico" si `score<=3`, y **click en la
+fila navega al legajo** (`new TabData(id, {id})`) para completarlo. Útil cuando la
+card no es solo lectura sino un **punto de acción** que abre otra pantalla; la
+paginación va en el backend, no en el cliente.
 
 En el cliente:
 - Un archivo `graphql-query.ts` con los `gql` + un archivo con las clases
