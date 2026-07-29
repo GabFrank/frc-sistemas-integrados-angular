@@ -52,10 +52,38 @@
   }
 }
 
+.fila-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.campo-busqueda {
+  width: 260px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+.aviso-un-lote {
+  flex: 1;
+  min-width: 240px;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
 // Los lotes que no estan LIBERADO no se pueden elegir. Se muestran igual para que quede claro
 // que el stock existe pero esta retenido, en vez de hacerlos desaparecer.
 .fila-no-seleccionable td {
   opacity: 0.55;
+}
+
+// Bloqueada porque ya se eligio otro lote. Se atenua menos que un lote retenido, para que se
+// lea como "ahora no" y no como "nunca".
+.fila-bloqueada td {
+  opacity: 0.7;
 }
 
 .chip-estado {

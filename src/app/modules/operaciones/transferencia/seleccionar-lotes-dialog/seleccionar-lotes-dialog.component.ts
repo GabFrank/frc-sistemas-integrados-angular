@@ -9,7 +9,7 @@ import {
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -70,6 +70,8 @@ interface LoteRow {
   disponibleUnidadesLabel: string;
   /** Los lotes que no están LIBERADO no se pueden elegir: es el bloqueo por recall. */
   seleccionable: boolean;
+  /** True cuando ya se eligió otro lote: solo se puede sacar de uno por ítem. */
+  bloqueada: boolean;
   control: FormControl;
 }
 
@@ -98,9 +100,23 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     'numeroLote', 'fechaVencimiento', 'fechaRetiro', 'estado', 'disponible', 'cantidad'
   ];
 
+  /** Todas las filas, en el orden FEFO que devuelve el backend. */
   filas: LoteRow[] = [];
+  /** Subconjunto que muestra la tabla. Se recalcula al filtrar, nunca en el template. */
+  filasVisibles: LoteRow[] = [];
+  busquedaControl = new FormControl('');
   cargando = true;
   sinLotes = false;
+  /** True cuando la búsqueda no deja ninguna fila a la vista, para distinguirlo de "sin lotes". */
+  sinCoincidencias = false;
+
+  /**
+   * Lote elegido. Solo se puede sacar de uno por ítem, así que mientras haya uno con cantidad
+   * los demás quedan bloqueados.
+   */
+  loteSeleccionadoId: number = null;
+  numeroLoteSeleccionado = '';
+  hayLoteElegido = false;
 
   // Totales precalculados. La guía prohíbe getters y cálculos en el template.
   cantidadRequerida = 0;
@@ -117,8 +133,15 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   productoDescripcion = '';
   sucursalOrigenNombre = '';
   presentacionLabel = '';
+  /** Solo el nombre, sin la equivalencia, para armar mensajes legibles. */
+  presentacionNombre = 'presentación';
   /** True si una presentación vale más de una unidad: ahí importa mostrar la equivalencia. */
   esPresentacionMultiple = false;
+  /**
+   * Paso del input. Con presentaciones de varias unidades solo se admiten enteros, porque una
+   * caja no se parte; con presentación unidad se deja libre para los productos de balanza.
+   */
+  pasoCantidad = 'any';
   /** True cuando el total elegido define la cantidad, en vez de tener que cubrir una ya fijada. */
   cantidadDefinidaPorLotes = false;
   tituloCantidad = 'Cantidad a transferir';
@@ -141,7 +164,27 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     this.tituloCantidad = this.cantidadDefinidaPorLotes
       ? 'Total elegido'
       : 'Cantidad a transferir';
+
+    this.busquedaControl.valueChanges
+      .pipe(debounceTime(200), distinctUntilChanged(), untilDestroyed(this))
+      .subscribe(() => {
+        this.aplicarFiltro();
+        this.cdr.markForCheck();
+      });
+
     this.cargarLotes();
+  }
+
+  /**
+   * Filtra por número de lote conservando el orden FEFO original. Filtrar no toca las cantidades
+   * ya cargadas: los controles viven en las filas, no en la lista visible.
+   */
+  private aplicarFiltro(): void {
+    const texto = (this.busquedaControl.value || '').trim().toUpperCase();
+    this.filasVisibles = texto
+      ? this.filas.filter((fila) => fila.numeroLote.toUpperCase().includes(texto))
+      : this.filas;
+    this.sinCoincidencias = !this.sinLotes && this.filasVisibles.length === 0;
   }
 
   private cargarLotes(): void {
@@ -160,6 +203,8 @@ export class SeleccionarLotesDialogComponent implements OnInit {
           this.sinLotes = this.filas.length === 0;
           this.cargando = false;
           this.escucharCambios();
+          this.sincronizarLoteElegido();
+          this.aplicarFiltro();
           this.recalcularTotales();
           this.cdr.markForCheck();
         },
@@ -176,7 +221,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     const primero = lotes[0];
     const unidades = primero?.unidadesPorPresentacion || 1;
     this.esPresentacionMultiple = unidades > 1;
+    this.pasoCantidad = this.esPresentacionMultiple ? '1' : 'any';
     const nombre = primero?.presentacionDescripcion;
+    this.presentacionNombre = nombre || 'presentación';
     this.presentacionLabel = this.esPresentacionMultiple
       ? `${nombre || 'Presentación'} · ${unidades} unidades c/u`
       : nombre || 'Unidad';
@@ -197,12 +244,27 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       estadoClase: this.claseSegunEstado(lote.estado),
       disponible: lote.cantidadDisponiblePresentacion,
       disponibleLabel: this.formatearCantidad(lote.cantidadDisponiblePresentacion),
-      disponibleUnidadesLabel: this.esPresentacionMultiple
-        ? `${this.formatearCantidad(lote.cantidadDisponible)} unid.`
-        : '',
+      disponibleUnidadesLabel: this.armarDetalleUnidades(lote),
       seleccionable,
+      bloqueada: false,
       control
     };
+  }
+
+  /**
+   * Detalle en unidades debajo del saldo: cuántas unidades hay en total y cuántas quedan fuera
+   * de las presentaciones completas. Que el operador vea que las sueltas existen pero no salen
+   * con esta presentación evita que crea que se le perdió stock.
+   */
+  private armarDetalleUnidades(lote: StockLotePresentacion): string {
+    if (!this.esPresentacionMultiple) {
+      return '';
+    }
+    const total = `${this.formatearCantidad(lote.cantidadDisponible)} unid.`;
+    if (!lote.unidadesSobrantes) {
+      return total;
+    }
+    return `${total} · sobran ${this.formatearCantidad(lote.unidadesSobrantes)}`;
   }
 
   /** Cantidad que ya tenía asignada este lote, para precargar el diálogo al reeditar. */
@@ -216,9 +278,42 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       fila.control.valueChanges
         .pipe(debounceTime(150), untilDestroyed(this))
         .subscribe(() => {
+          this.sincronizarLoteElegido();
           this.recalcularTotales();
           this.cdr.markForCheck();
         });
+    });
+  }
+
+  /**
+   * Aplica la regla de un solo lote por ítem: en cuanto una fila tiene cantidad, las demás se
+   * bloquean; al vaciarla, se liberan todas.
+   *
+   * El bloqueo se hace deshabilitando el control y no con una clase, para que la regla valga
+   * también para quien navega con teclado y no solo para el que ve la pantalla.
+   */
+  private sincronizarLoteElegido(): void {
+    const elegida = this.filas.find((fila) => {
+      const valor = Number(fila.control.value);
+      return !isNaN(valor) && valor > 0;
+    });
+
+    this.loteSeleccionadoId = elegida ? elegida.loteId : null;
+    this.numeroLoteSeleccionado = elegida ? elegida.numeroLote : '';
+    this.hayLoteElegido = elegida != null;
+
+    this.filas.forEach((fila) => {
+      // Los lotes que no están LIBERADO siguen bloqueados siempre: es el recall, manda sobre esto.
+      if (!fila.seleccionable) {
+        return;
+      }
+      const debeBloquearse = elegida != null && fila.loteId !== elegida.loteId;
+      fila.bloqueada = debeBloquearse;
+      if (debeBloquearse && fila.control.enabled) {
+        fila.control.disable({ emitEvent: false });
+      } else if (!debeBloquearse && fila.control.disabled) {
+        fila.control.enable({ emitEvent: false });
+      }
     });
   }
 
@@ -273,29 +368,31 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   }
 
   /**
-   * Reparte la cantidad requerida por FEFO, que es el orden en el que ya vienen los lotes.
-   * Sirve como punto de partida cuando el operador solo quiere corregir un lote.
+   * Elige el primer lote por FEFO con saldo, que es el que el sistema usaría por su cuenta.
+   * Como solo se puede sacar de un lote, no reparte: toma lo que ese lote alcance a cubrir.
    */
   onSugerirFefo(): void {
-    let pendiente = this.cantidadRequerida;
-    this.filas.forEach((fila) => {
-      if (!fila.seleccionable) {
-        return;
-      }
-      const aTomar = pendiente > EPSILON ? Math.min(fila.disponible, pendiente) : null;
-      fila.control.setValue(aTomar, { emitEvent: false });
-      if (aTomar) {
-        pendiente -= aTomar;
-      }
-    });
+    this.limpiarCantidades();
+    const primero = this.filas.find((fila) => fila.seleccionable && fila.disponible > 0);
+    if (primero != null) {
+      const aTomar = Math.min(primero.disponible, this.cantidadRequerida);
+      primero.control.setValue(aTomar > 0 ? aTomar : null, { emitEvent: false });
+    }
+    this.sincronizarLoteElegido();
     this.recalcularTotales();
     this.cdr.markForCheck();
   }
 
   onLimpiar(): void {
-    this.filas.forEach((fila) => fila.control.setValue(null, { emitEvent: false }));
+    this.limpiarCantidades();
+    this.sincronizarLoteElegido();
     this.recalcularTotales();
     this.cdr.markForCheck();
+  }
+
+  /** Vacía las cantidades sin recalcular: quien llama decide cuándo sincronizar. */
+  private limpiarCantidades(): void {
+    this.filas.forEach((fila) => fila.control.setValue(null, { emitEvent: false }));
   }
 
   onConfirmar(): void {
@@ -312,6 +409,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       );
       return;
     }
+    if (this.hayPresentacionFraccionada()) {
+      return;
+    }
     if (this.haySobreasignacionPorLote()) {
       return;
     }
@@ -320,6 +420,28 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       etapa: this.data.etapa,
       total: this.totalAsignado
     } as SeleccionarLotesDialogResult);
+  }
+
+  /**
+   * Una presentación es indivisible: no se puede mandar media caja. Solo aplica cuando la
+   * presentación vale más de una unidad, porque con presentación UNIDAD un producto de balanza
+   * sí puede llevar decimales.
+   */
+  private hayPresentacionFraccionada(): boolean {
+    if (!this.esPresentacionMultiple) {
+      return false;
+    }
+    const fraccionada = this.filas.find((fila) => {
+      const valor = Number(fila.control.value);
+      return !isNaN(valor) && valor > 0 && !Number.isInteger(valor);
+    });
+    if (fraccionada) {
+      this.notificacionService.openWarn(
+        `Solo se pueden transferir ${this.presentacionNombre} completas`
+      );
+      return true;
+    }
+    return false;
   }
 
   /**

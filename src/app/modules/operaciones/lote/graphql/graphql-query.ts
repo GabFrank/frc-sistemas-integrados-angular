@@ -63,6 +63,7 @@ export const stockPorLoteEnPresentacionQuery = gql`
       estado
       cantidadDisponible
       cantidadDisponiblePresentacion
+      unidadesSobrantes
       unidadesPorPresentacion
       presentacionDescripcion
     }

@@ -50,8 +50,10 @@ export class StockLotePresentacion {
   estado: EstadoLote;
   /** Saldo en unidades, como vive en el ledger. */
   cantidadDisponible: number;
-  /** El mismo saldo en la presentación pedida. */
+  /** Presentaciones completas que entran en el saldo. Una caja es indivisible. */
   cantidadDisponiblePresentacion: number;
+  /** Unidades que quedan fuera de esas presentaciones completas. */
+  unidadesSobrantes: number;
   unidadesPorPresentacion: number;
   presentacionDescripcion?: string;
 }

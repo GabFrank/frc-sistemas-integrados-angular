@@ -22,12 +22,50 @@
   </div>
 
   <div
+    class="fila-busqueda"
+    *ngIf="!cargando && !sinLotes"
+  >
+    <mat-form-field
+      appearance="outline"
+      class="campo-busqueda"
+    >
+      <mat-label>Buscar por Nº de lote</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="busquedaControl"
+        autocomplete="off"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <span
+      class="aviso-un-lote"
+      *ngIf="hayLoteElegido"
+      role="status"
+      aria-live="polite"
+    >
+      Estás sacando del lote {{ numeroLoteSeleccionado }}. Solo se puede transferir de un lote
+      por vez: para cambiarlo, borrá la cantidad.
+    </span>
+  </div>
+
+  <div
     *ngIf="cargando"
     class="mensaje-estado"
     role="status"
     aria-live="polite"
   >
     Cargando lotes disponibles...
+  </div>
+
+  <div
+    *ngIf="sinCoincidencias"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Ningún lote coincide con la búsqueda.
   </div>
 
   <div
@@ -42,11 +80,11 @@
 
   <div
     class="tabla-container"
-    *ngIf="!cargando && !sinLotes"
+    *ngIf="!cargando && !sinLotes && !sinCoincidencias"
   >
     <table
       mat-table
-      [dataSource]="filas"
+      [dataSource]="filasVisibles"
       class="mat-elevation-z8 tabla-lotes"
       style="width: 100%"
     >
@@ -120,6 +158,8 @@
               matInput
               type="number"
               min="0"
+              [attr.step]="pasoCantidad"
+              [attr.max]="fila.disponible"
               [formControl]="fila.control"
               [attr.aria-label]="'Cantidad a transferir del lote ' + fila.numeroLote"
             />
@@ -135,6 +175,7 @@
         mat-row
         *matRowDef="let row; columns: displayedColumns"
         [class.fila-no-seleccionable]="!row.seleccionable"
+        [class.fila-bloqueada]="row.bloqueada"
       ></tr>
     </table>
   </div>
