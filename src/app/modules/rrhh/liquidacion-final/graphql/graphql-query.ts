@@ -58,5 +58,5 @@ export const eliminarItemLiquidacionFinalMutation = gql`
 `;
 
 export const imprimirReciboFinalQuery = gql`
-  query ($id: ID!, $anchoMm: Int) { data: imprimirReciboFinal(id: $id, anchoMm: $anchoMm) }
+  query ($id: ID!, $anchoMm: Int, $escpos: Boolean) { data: imprimirReciboFinal(id: $id, anchoMm: $anchoMm, escpos: $escpos) }
 `;

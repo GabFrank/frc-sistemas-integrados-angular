@@ -110,6 +110,6 @@ export class ListLiquidacionComponent implements OnInit {
   onVerRecibo(liq: LiquidacionSueldo) {
     this.impresionService.imprimir(
       'Recibo ' + liq.periodo + ' - ' + (liq.funcionario?.persona?.nombre || liq.id),
-      (anchoMm) => this.liquidacionService.onImprimirRecibo(liq.id, anchoMm));
+      (anchoMm, escpos) => this.liquidacionService.onImprimirRecibo(liq.id, anchoMm, escpos));
   }
 }

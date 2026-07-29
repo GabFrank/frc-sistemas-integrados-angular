@@ -31,24 +31,24 @@ export class ReportesRrhhService {
     private reciboBonoGQL: ImprimirReciboBonoGQL
   ) { }
 
-  onReciboVale(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.reciboValeGQL, { id, anchoMm }, servidor);
+  onReciboVale(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.reciboValeGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  onReciboPenalizacion(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.reciboPenalizacionGQL, { id, anchoMm }, servidor);
+  onReciboPenalizacion(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.reciboPenalizacionGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  onReciboAguinaldo(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.reciboAguinaldoGQL, { id, anchoMm }, servidor);
+  onReciboAguinaldo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.reciboAguinaldoGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  onReciboPrestamo(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.reciboPrestamoGQL, { id, anchoMm }, servidor);
+  onReciboPrestamo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.reciboPrestamoGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  onReciboBono(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.reciboBonoGQL, { id, anchoMm }, servidor);
+  onReciboBono(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.reciboBonoGQL, { id, anchoMm, escpos }, servidor);
   }
 
   onNominaMes(periodo: string, servidor = true): Observable<any> {

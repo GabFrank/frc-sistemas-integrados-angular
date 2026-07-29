@@ -53,7 +53,7 @@ export class ListValeComponent implements OnInit {
 
   onVerRecibo(row: Vale) {
     this.impresionService.imprimir('Recibo vale ' + row.id,
-      (anchoMm) => this.reportesRrhhService.onReciboVale(row.id, anchoMm));
+      (anchoMm, escpos) => this.reportesRrhhService.onReciboVale(row.id, anchoMm, escpos));
   }
 
   ngOnInit(): void {

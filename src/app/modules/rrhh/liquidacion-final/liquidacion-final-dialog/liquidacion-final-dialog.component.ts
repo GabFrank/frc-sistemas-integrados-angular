@@ -204,7 +204,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
 
   onImprimirRecibo() {
     this.impresionService.imprimir('Finiquito — ' + (this.nombre || this.liq.id),
-      (anchoMm) => this.liquidacionFinalService.onImprimirRecibo(this.liq.id, anchoMm));
+      (anchoMm, escpos) => this.liquidacionFinalService.onImprimirRecibo(this.liq.id, anchoMm, escpos));
   }
 
   onCerrar() {

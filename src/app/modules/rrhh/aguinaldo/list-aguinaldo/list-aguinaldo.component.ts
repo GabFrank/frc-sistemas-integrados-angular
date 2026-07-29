@@ -117,6 +117,6 @@ export class ListAguinaldoComponent implements OnInit {
 
   onVerRecibo(a: Aguinaldo) {
     this.impresionService.imprimir('Recibo aguinaldo ' + a.id,
-      (anchoMm) => this.reportesRrhhService.onReciboAguinaldo(a.id, anchoMm));
+      (anchoMm, escpos) => this.reportesRrhhService.onReciboAguinaldo(a.id, anchoMm, escpos));
   }
 }

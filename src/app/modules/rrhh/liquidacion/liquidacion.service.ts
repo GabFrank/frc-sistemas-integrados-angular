@@ -105,7 +105,7 @@ export class LiquidacionService {
     return this.genericService.onSaveCustom<any>(this.anularLiquidacionGQL, { id }, servidor);
   }
 
-  onImprimirRecibo(id: number, anchoMm: number | null = null, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id, anchoMm }, servidor);
+  onImprimirRecibo(id: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.imprimirReciboGQL, { id, anchoMm, escpos }, servidor);
   }
 }

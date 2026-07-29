@@ -52,7 +52,7 @@ export class ListBonoComponent implements OnInit {
 
   onVerRecibo(row: Bono) {
     this.impresionService.imprimir('Recibo bono ' + row.id,
-      (anchoMm) => this.reportesRrhhService.onReciboBono(row.id, anchoMm));
+      (anchoMm, escpos) => this.reportesRrhhService.onReciboBono(row.id, anchoMm, escpos));
   }
 
   ngOnInit(): void {

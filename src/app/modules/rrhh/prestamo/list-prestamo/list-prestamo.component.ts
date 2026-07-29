@@ -48,7 +48,7 @@ export class ListPrestamoComponent implements OnInit {
 
   onVerRecibo(row: Prestamo) {
     this.impresionService.imprimir('Recibo préstamo ' + row.id,
-      (anchoMm) => this.reportesRrhhService.onReciboPrestamo(row.id, anchoMm));
+      (anchoMm, escpos) => this.reportesRrhhService.onReciboPrestamo(row.id, anchoMm, escpos));
   }
 
   ngOnInit(): void {

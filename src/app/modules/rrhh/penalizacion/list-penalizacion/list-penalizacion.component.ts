@@ -56,7 +56,7 @@ export class ListPenalizacionComponent implements OnInit {
 
   onVerRecibo(row: Penalizacion) {
     this.impresionService.imprimir('Recibo penalización ' + row.id,
-      (anchoMm) => this.reportesRrhhService.onReciboPenalizacion(row.id, anchoMm));
+      (anchoMm, escpos) => this.reportesRrhhService.onReciboPenalizacion(row.id, anchoMm, escpos));
   }
 
   ngOnInit(): void {
