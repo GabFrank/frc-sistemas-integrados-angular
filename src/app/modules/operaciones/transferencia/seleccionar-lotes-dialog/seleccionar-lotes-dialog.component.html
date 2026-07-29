@@ -12,6 +12,10 @@
       <span class="valor">{{ sucursalOrigenNombre }}</span>
     </div>
     <div class="dato">
+      <span class="etiqueta">Presentación</span>
+      <span class="valor">{{ presentacionLabel }}</span>
+    </div>
+    <div class="dato">
       <span class="etiqueta">{{ tituloCantidad }}</span>
       <span class="valor">{{ cantidadRequerida | number : "1.0-3" }}</span>
     </div>
@@ -95,7 +99,10 @@
           Disponible
         </th>
         <td mat-cell *matCellDef="let fila" style="text-align: center">
-          {{ fila.disponible | number : "1.0-3" }}
+          {{ fila.disponiblePresentaciones | number : "1.0-3" }}
+          <div class="equivalencia" *ngIf="esPresentacionMultiple">
+            {{ fila.disponibleUnidadesLabel }}
+          </div>
         </td>
       </ng-container>
 

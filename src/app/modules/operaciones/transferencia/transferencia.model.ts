@@ -191,7 +191,10 @@ export class TransferenciaItemLote {
   id: number;
   loteId: number;
   numeroLote: string;
+  /** En unidades, como vive en el ledger. */
   cantidad: number;
+  /** La misma cantidad en la presentación del ítem, ya convertida por el backend. */
+  cantidadPresentacion: number;
   etapa: EtapaAsignacionLote;
   fechaVencimiento?: Date;
   fechaRetiro?: Date;

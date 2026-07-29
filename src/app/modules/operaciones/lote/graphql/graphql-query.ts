@@ -42,6 +42,34 @@ export const stockPorLoteQuery = gql`
 `;
 
 /**
+ * Mismo saldo que stockPorLote pero expresado en la presentación con la que carga el operador.
+ * La conversión la hace el backend: acá solo se muestra lo que devuelve.
+ */
+export const stockPorLoteEnPresentacionQuery = gql`
+  query stockPorLoteEnPresentacion(
+    $productoId: ID!
+    $sucursalId: ID!
+    $presentacionId: ID
+  ) {
+    data: stockPorLoteEnPresentacion(
+      productoId: $productoId
+      sucursalId: $sucursalId
+      presentacionId: $presentacionId
+    ) {
+      loteId
+      numeroLote
+      fechaVencimiento
+      fechaRetiro
+      estado
+      cantidadDisponible
+      cantidadDisponiblePresentacion
+      unidadesPorPresentacion
+      presentacionDescripcion
+    }
+  }
+`;
+
+/**
  * Consulta general "¿dónde tengo qué?". Todos los filtros son opcionales.
  * El orden es FEFO: lo que hay que sacar primero aparece primero.
  */

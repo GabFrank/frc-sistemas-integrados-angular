@@ -203,6 +203,12 @@ export class EditTransferenciaComponent implements OnInit {
    * backend en cualquier guardado que no pase por la elección de lotes.
    */
   lotesPendientes: TransferenciaItemLoteInput[] = null;
+  /**
+   * Presentación con la que se hizo la elección pendiente. Si el operador cambia de presentación
+   * después de elegir lotes, el reparto queda expresado en una medida que ya no es la del ítem,
+   * así que hay que volver a pedirlo.
+   */
+  private presentacionDeLotesPendientes: number = null;
   monedaControl = new FormControl(null);
   precioUnidadControl = new FormControl(null, Validators.required);
   precioPresentacionControl = new FormControl(null, Validators.required);
@@ -666,9 +672,16 @@ export class EditTransferenciaComponent implements OnInit {
   private abrirSeleccionDeLotesSiCorresponde(): boolean {
     if (!this.isPreTransferenciaCreacion) return false;
     if (this.selectedProducto?.lote !== true) return false;
-    if (this.presentacionControl.value == null) return false;
-    // Ya eligió lotes para este ítem: no volver a abrir en cada cambio de presentación.
-    if (this.lotesPendientes != null) return false;
+    const presentacion = this.presentacionControl.value;
+    if (presentacion == null) return false;
+    // Ya eligió lotes PARA ESTA presentación: no reabrir. Si la presentación cambió sí hay que
+    // reabrir, porque el reparto quedó expresado en una medida que ya no es la del ítem.
+    if (
+      this.lotesPendientes != null &&
+      this.presentacionDeLotesPendientes === presentacion.id
+    ) {
+      return false;
+    }
 
     this.onElegirLotesDeItemNuevo();
     return true;
@@ -688,6 +701,7 @@ export class EditTransferenciaComponent implements OnInit {
       sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
       cantidad: 0,
       etapa: EtapaAsignacionLote.PRE_TRANSFERENCIA,
+      presentacionId: this.presentacionControl.value?.id,
       cantidadDefinidaPorLotes: true,
     };
 
@@ -701,29 +715,25 @@ export class EditTransferenciaComponent implements OnInit {
         if (res == null) {
           // Canceló: se sigue como un producto cualquiera y el backend reparte por FEFO.
           this.lotesPendientes = null;
+          this.presentacionDeLotesPendientes = null;
           setTimeout(() => {
             this.cantPresentacionInput.nativeElement.select();
           }, 100);
           return;
         }
         this.lotesPendientes = res.lotes;
+        this.presentacionDeLotesPendientes = this.presentacionControl.value?.id;
         this.aplicarCantidadDeLotes(res.total);
       });
   }
 
   /**
-   * Lleva el total elegido en lotes a los campos de cantidad. Los lotes se cuentan en unidades,
-   * así que hay que convertir a cantidad por presentación; `cantidadUnidadControl` se actualiza
+   * Lleva el total elegido al campo de cantidad. El diálogo ya trabaja en presentaciones, que es
+   * la misma unidad del campo, así que se escribe tal cual; `cantidadUnidadControl` se actualiza
    * solo por la suscripción de `cantidadPresentacionControl`.
    */
-  private aplicarCantidadDeLotes(totalUnidades: number): void {
-    const unidadesPorPresentacion =
-      this.presentacionControl.value?.cantidad || 1;
-    // Redondeo a 6 decimales: dividir unidades por una presentación de varias unidades puede
-    // dejar cola binaria (89/12) y ensuciar la cantidad que se guarda.
-    const cantidadPresentacion =
-      Math.round((totalUnidades / unidadesPorPresentacion) * 1e6) / 1e6;
-    this.cantidadPresentacionControl.setValue(cantidadPresentacion);
+  private aplicarCantidadDeLotes(totalPresentaciones: number): void {
+    this.cantidadPresentacionControl.setValue(totalPresentaciones);
     setTimeout(() => {
       this.vencimientoInput.nativeElement.select();
     }, 100);
@@ -789,6 +799,7 @@ export class EditTransferenciaComponent implements OnInit {
       input.lotesAsignados = this.lotesPendientes;
       input.etapaAsignacionLote = EtapaAsignacionLote.PRE_TRANSFERENCIA;
       this.lotesPendientes = null;
+      this.presentacionDeLotesPendientes = null;
     }
 
     this.cargandoService.openDialog();
@@ -920,13 +931,22 @@ export class EditTransferenciaComponent implements OnInit {
       return;
     }
 
+    const esPreparacion = etapaAsignacion === EtapaAsignacionLote.PREPARACION;
+    const presentacion = esPreparacion
+      ? item?.presentacionPreparacion ?? item?.presentacionPreTransferencia
+      : item?.presentacionPreTransferencia;
+
     const data: SeleccionarLotesDialogData = {
       productoId: producto.id,
       productoDescripcion: `${producto.id} - ${producto.descripcion}`,
       sucursalOrigenId,
       sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
-      cantidad: this.cantidadEnUnidades(item, etapaAsignacion),
+      // La cantidad del ítem ya está en presentaciones, que es la unidad del diálogo.
+      cantidad: esPreparacion
+        ? item?.cantidadPreparacion ?? item?.cantidadPreTransferencia
+        : item?.cantidadPreTransferencia,
       etapa: etapaAsignacion,
+      presentacionId: presentacion?.id,
       asignacionActual: item.lotesAsignados,
     };
 
@@ -958,27 +978,6 @@ export class EditTransferenciaComponent implements OnInit {
       default:
         return null;
     }
-  }
-
-  /**
-   * Cantidad del ítem expresada en unidades, que es la unidad en la que se lleva el stock por
-   * lote. La grilla muestra cantidad por presentación, así que hay que multiplicar.
-   */
-  private cantidadEnUnidades(
-    item: TransferenciaItem,
-    etapa: EtapaAsignacionLote
-  ): number {
-    if (etapa === EtapaAsignacionLote.PREPARACION) {
-      const cantidad =
-        item?.cantidadPreparacion ?? item?.cantidadPreTransferencia ?? 0;
-      const presentacion =
-        item?.presentacionPreparacion ?? item?.presentacionPreTransferencia;
-      return cantidad * (presentacion?.cantidad ?? 1);
-    }
-    return (
-      (item?.cantidadPreTransferencia ?? 0) *
-      (item?.presentacionPreTransferencia?.cantidad ?? 1)
-    );
   }
 
   /**
@@ -1491,6 +1490,7 @@ export class EditTransferenciaComponent implements OnInit {
 
   onClear() {
     this.lotesPendientes = null;
+    this.presentacionDeLotesPendientes = null;
     this.selectedProducto = null;
     this.presentacionControl.setValue(null);
     this.isPesable = false;

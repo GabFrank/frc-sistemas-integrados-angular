@@ -8,7 +8,8 @@ import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
-import { EstadoLote, Lote, StockLote } from './lote.model';
+import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
+import { EstadoLote, Lote, StockLote, StockLotePresentacion } from './lote.model';
 
 /**
  * Maestro de lotes: consulta y administración del estado.
@@ -25,6 +26,7 @@ export class LoteService {
     private genericService: GenericCrudService,
     private lotesPorProductoGQL: LotesPorProductoGQL,
     private stockPorLoteGQL: StockPorLoteGQL,
+    private stockPorLoteEnPresentacionGQL: StockPorLoteEnPresentacionGQL,
     private buscarStockPorLoteGQL: BuscarStockPorLoteGQL,
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
   ) {}
@@ -43,6 +45,23 @@ export class LoteService {
     return this.genericService.onCustomQuery(
       this.stockPorLoteGQL,
       { productoId, sucursalId },
+      servidor
+    );
+  }
+
+  /**
+   * Saldo por lote ya expresado en una presentación. La conversión unidades/presentación la
+   * resuelve el backend, que es donde vive esa regla.
+   */
+  onGetStockPorLoteEnPresentacion(
+    productoId: number,
+    sucursalId: number,
+    presentacionId: number,
+    servidor = true
+  ): Observable<StockLotePresentacion[]> {
+    return this.genericService.onCustomQuery(
+      this.stockPorLoteEnPresentacionGQL,
+      { productoId, sucursalId, presentacionId: presentacionId ?? null },
       servidor
     );
   }

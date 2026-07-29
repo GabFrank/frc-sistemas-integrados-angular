@@ -516,6 +516,7 @@ export const saveTransferenciaItem = gql`
         loteId
         numeroLote
         cantidad
+        cantidadPresentacion
         etapa
         fechaVencimiento
         fechaRetiro
@@ -770,6 +771,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
           loteId
           numeroLote
           cantidad
+          cantidadPresentacion
           etapa
           fechaVencimiento
           fechaRetiro
@@ -894,6 +896,7 @@ export const transferenciaItemQuery = gql`
         loteId
         numeroLote
         cantidad
+        cantidadPresentacion
         etapa
         fechaVencimiento
         fechaRetiro
@@ -1027,6 +1030,7 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
           loteId
           numeroLote
           cantidad
+          cantidadPresentacion
           etapa
           fechaVencimiento
           fechaRetiro

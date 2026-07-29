@@ -38,6 +38,24 @@ export class Lote {
   actualizadoEn?: Date;
 }
 
+/**
+ * Saldo de un lote expresado en la presentación con la que carga el operador.
+ * Las conversiones vienen resueltas del backend: acá no se calcula nada.
+ */
+export class StockLotePresentacion {
+  loteId: number;
+  numeroLote: string;
+  fechaVencimiento?: Date;
+  fechaRetiro?: Date;
+  estado: EstadoLote;
+  /** Saldo en unidades, como vive en el ledger. */
+  cantidadDisponible: number;
+  /** El mismo saldo en la presentación pedida. */
+  cantidadDisponiblePresentacion: number;
+  unidadesPorPresentacion: number;
+  presentacionDescripcion?: string;
+}
+
 /** Saldo disponible de un lote en una sucursal (agregado del ledger + datos del maestro). */
 export class StockLote {
   loteId: number;
