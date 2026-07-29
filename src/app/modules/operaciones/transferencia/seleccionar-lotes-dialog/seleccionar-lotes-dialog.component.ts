@@ -26,12 +26,20 @@ export interface SeleccionarLotesDialogData {
   etapa: EtapaAsignacionLote;
   /** Asignación ya guardada, para poder editarla en vez de arrancar de cero. */
   asignacionActual?: TransferenciaItemLote[];
+  /**
+   * Invierte la relación: en vez de repartir una cantidad ya fijada, el total que se asigna acá
+   * ES la cantidad a transferir. Se usa al cargar un ítem nuevo, donde la cantidad todavía no
+   * existe y sale justamente de decidir cuánto se saca de cada lote.
+   */
+  cantidadDefinidaPorLotes?: boolean;
 }
 
 /** Lo que devuelve el diálogo al cerrarse con "Confirmar". */
 export interface SeleccionarLotesDialogResult {
   lotes: { loteId: number; cantidad: number }[];
   etapa: EtapaAsignacionLote;
+  /** Suma de lo asignado, en unidades. Es la cantidad del ítem cuando la define el reparto. */
+  total: number;
 }
 
 /**
@@ -84,6 +92,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
 
   productoDescripcion = '';
   sucursalOrigenNombre = '';
+  /** True cuando el total elegido define la cantidad, en vez de tener que cubrir una ya fijada. */
+  cantidadDefinidaPorLotes = false;
+  tituloCantidad = 'Cantidad a transferir';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SeleccionarLotesDialogData,
@@ -94,9 +105,13 @@ export class SeleccionarLotesDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.cantidadDefinidaPorLotes = this.data?.cantidadDefinidaPorLotes === true;
     this.cantidadRequerida = this.data?.cantidad || 0;
     this.productoDescripcion = this.data?.productoDescripcion || '';
     this.sucursalOrigenNombre = this.data?.sucursalOrigenNombre || '';
+    this.tituloCantidad = this.cantidadDefinidaPorLotes
+      ? 'Total elegido'
+      : 'Cantidad a transferir';
     this.cargarLotes();
   }
 
@@ -171,6 +186,20 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       }
     });
     this.totalAsignado = total;
+
+    // Cuando el total define la cantidad no hay nada que cubrir: no puede faltar ni sobrar.
+    if (this.cantidadDefinidaPorLotes) {
+      this.cantidadRequerida = total;
+      this.faltante = 0;
+      this.hayFaltante = false;
+      this.excedeRequerido = false;
+      this.mensajeFaltante =
+        total > 0
+          ? 'Esta es la cantidad que se va a transferir del producto.'
+          : 'Indicá cuánto sacar de cada lote. La suma es lo que se transfiere.';
+      return;
+    }
+
     this.faltante = this.cantidadRequerida - total;
     this.hayFaltante = this.faltante > 0;
     this.excedeRequerido = this.faltante < 0;
@@ -219,12 +248,20 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       );
       return;
     }
+    // En este modo el total ES la cantidad del ítem: confirmar con cero dejaría un ítem sin nada.
+    if (this.cantidadDefinidaPorLotes && this.totalAsignado <= 0) {
+      this.notificacionService.openWarn(
+        'Indicá cuánto sacar de al menos un lote'
+      );
+      return;
+    }
     if (this.haySobreasignacionPorLote()) {
       return;
     }
     this.dialogRef.close({
       lotes: this.asignacionElegida(),
-      etapa: this.data.etapa
+      etapa: this.data.etapa,
+      total: this.totalAsignado
     } as SeleccionarLotesDialogResult);
   }
 

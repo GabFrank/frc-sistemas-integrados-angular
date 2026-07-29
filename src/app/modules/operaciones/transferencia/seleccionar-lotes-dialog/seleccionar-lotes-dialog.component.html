@@ -12,7 +12,7 @@
       <span class="valor">{{ sucursalOrigenNombre }}</span>
     </div>
     <div class="dato">
-      <span class="etiqueta">Cantidad a transferir</span>
+      <span class="etiqueta">{{ tituloCantidad }}</span>
       <span class="valor">{{ cantidadRequerida | number : "1.0-3" }}</span>
     </div>
   </div>
@@ -138,7 +138,7 @@
     role="status"
     aria-live="polite"
   >
-    <div class="resumen-numeros">
+    <div class="resumen-numeros" *ngIf="!cantidadDefinidaPorLotes">
       Asignado
       <strong>{{ totalAsignado | number : "1.0-3" }}</strong>
       de
@@ -146,6 +146,10 @@
       <span *ngIf="hayFaltante">
         &nbsp;&mdash;&nbsp;faltan {{ faltante | number : "1.0-3" }}
       </span>
+    </div>
+    <div class="resumen-numeros" *ngIf="cantidadDefinidaPorLotes">
+      Total a transferir
+      <strong>{{ totalAsignado | number : "1.0-3" }}</strong>
     </div>
     <div class="resumen-mensaje">
       {{ mensajeFaltante }}
@@ -155,8 +159,10 @@
 </mat-dialog-content>
 
 <mat-dialog-actions class="acciones">
+  <!-- Sin una cantidad objetivo no hay nada que repartir por FEFO. -->
   <button
     mat-stroked-button
+    *ngIf="!cantidadDefinidaPorLotes"
     (click)="onSugerirFefo()"
     [disabled]="cargando || sinLotes"
   >

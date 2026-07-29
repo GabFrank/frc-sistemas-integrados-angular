@@ -87,6 +87,7 @@ export const productoSearchPdv = gql`
       garantia
       vencimiento
       diasVencimiento
+      lote
       observacion
       codigoPrincipal
       precioPrincipal
@@ -296,6 +297,7 @@ export const productoPorCodigoQuery = gql`
       garantia
       vencimiento
       diasVencimiento
+      lote
       observacion
       cambiable
       imagenPrincipal

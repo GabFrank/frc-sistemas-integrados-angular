@@ -50,6 +50,7 @@ import {
   TransferenciaEstado,
   TransferenciaItem,
   TransferenciaItemAlerta,
+  TransferenciaItemLoteInput,
   TransferenciaItemView,
 } from "../transferencia.model";
 import {
@@ -196,6 +197,12 @@ export class EditTransferenciaComponent implements OnInit {
     Validators.pattern("\\d+([.]\\d+)?"),
   ]);
   vencimientoControl = new FormControl(null);
+  /**
+   * Lotes elegidos para el ítem que se está cargando, todavía sin guardar. Se manda junto con la
+   * mutación que crea el ítem. Null significa "no tocar la asignación", que es lo que ve el
+   * backend en cualquier guardado que no pase por la elección de lotes.
+   */
+  lotesPendientes: TransferenciaItemLoteInput[] = null;
   monedaControl = new FormControl(null);
   precioUnidadControl = new FormControl(null, Validators.required);
   precioPresentacionControl = new FormControl(null, Validators.required);
@@ -621,13 +628,105 @@ export class EditTransferenciaComponent implements OnInit {
             .subscribe((dialogRes) => {
               if (dialogRes) {
                 this.onEditItem(foundItem);
+                return;
               }
+              // Sigue cargando una segunda linea del mismo producto: si es de lote, hay que
+              // elegir de cual sale igual que en el alta normal.
+              if (this.abrirSeleccionDeLotesSiCorresponde()) return;
+              setTimeout(() => {
+                this.cantPresentacionInput.nativeElement.select();
+              }, 100);
             });
+          return;
         }
+
+        // Productos con control de lote: se elige de que lote sale antes de seguir, porque el
+        // reparto entre lotes es justamente lo que define cuanto se transfiere.
+        if (this.abrirSeleccionDeLotesSiCorresponde()) return;
+
         setTimeout(() => {
           this.cantPresentacionInput.nativeElement.select();
         }, 100);
       });
+  }
+
+  /**
+   * Abre la elección de lotes al cargar un ítem nuevo, si corresponde.
+   *
+   * Acá la relación se invierte respecto del menú de la grilla: el ítem todavía no existe y no
+   * tiene cantidad, así que el total que se reparte entre lotes ES la cantidad a transferir.
+   * La selección queda pendiente hasta que se guarda el ítem, porque recién ahí hay un id al
+   * cual asociarla.
+   *
+   * Se llama desde varios puntos de entrada (búsqueda, código de barra, combo de presentación),
+   * por eso concentra todas las guardas acá en vez de repetirlas en cada llamador.
+   *
+   * @returns true si abrió el diálogo, para que el llamador no siga moviendo el foco.
+   */
+  private abrirSeleccionDeLotesSiCorresponde(): boolean {
+    if (!this.isPreTransferenciaCreacion) return false;
+    if (this.selectedProducto?.lote !== true) return false;
+    if (this.presentacionControl.value == null) return false;
+    // Ya eligió lotes para este ítem: no volver a abrir en cada cambio de presentación.
+    if (this.lotesPendientes != null) return false;
+
+    this.onElegirLotesDeItemNuevo();
+    return true;
+  }
+
+  private onElegirLotesDeItemNuevo(): void {
+    const producto = this.selectedProducto;
+    const sucursalOrigenId = this.selectedTransferencia?.sucursalOrigen?.id;
+    if (producto?.id == null || sucursalOrigenId == null) {
+      return;
+    }
+
+    const data: SeleccionarLotesDialogData = {
+      productoId: producto.id,
+      productoDescripcion: `${producto.id} - ${producto.descripcion}`,
+      sucursalOrigenId,
+      sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
+      cantidad: 0,
+      etapa: EtapaAsignacionLote.PRE_TRANSFERENCIA,
+      cantidadDefinidaPorLotes: true,
+    };
+
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(SeleccionarLotesDialogComponent, { data, disableClose: true })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: SeleccionarLotesDialogResult) => {
+        this.isDialogOpen = false;
+        if (res == null) {
+          // Canceló: se sigue como un producto cualquiera y el backend reparte por FEFO.
+          this.lotesPendientes = null;
+          setTimeout(() => {
+            this.cantPresentacionInput.nativeElement.select();
+          }, 100);
+          return;
+        }
+        this.lotesPendientes = res.lotes;
+        this.aplicarCantidadDeLotes(res.total);
+      });
+  }
+
+  /**
+   * Lleva el total elegido en lotes a los campos de cantidad. Los lotes se cuentan en unidades,
+   * así que hay que convertir a cantidad por presentación; `cantidadUnidadControl` se actualiza
+   * solo por la suscripción de `cantidadPresentacionControl`.
+   */
+  private aplicarCantidadDeLotes(totalUnidades: number): void {
+    const unidadesPorPresentacion =
+      this.presentacionControl.value?.cantidad || 1;
+    // Redondeo a 6 decimales: dividir unidades por una presentación de varias unidades puede
+    // dejar cola binaria (89/12) y ensuciar la cantidad que se guarda.
+    const cantidadPresentacion =
+      Math.round((totalUnidades / unidadesPorPresentacion) * 1e6) / 1e6;
+    this.cantidadPresentacionControl.setValue(cantidadPresentacion);
+    setTimeout(() => {
+      this.vencimientoInput.nativeElement.select();
+    }, 100);
   }
 
   createItem(presentacion: Presentacion, item?, cantidad?) {
@@ -682,9 +781,19 @@ export class EditTransferenciaComponent implements OnInit {
     let isNew = item?.id == null;
     Object.assign(auxItem, item);
     auxItem.transferencia = this.selectedTransferencia;
+
+    const input = auxItem.toInput();
+    // Los lotes elegidos al cargar el ítem viajan en la misma mutación que lo crea. Se consume
+    // el buffer acá, de forma sincrónica, porque el llamador hace onClear() apenas vuelve.
+    if (this.lotesPendientes != null) {
+      input.lotesAsignados = this.lotesPendientes;
+      input.etapaAsignacionLote = EtapaAsignacionLote.PRE_TRANSFERENCIA;
+      this.lotesPendientes = null;
+    }
+
     this.cargandoService.openDialog();
     this.transferenciaService
-      .onSaveTransferenciaItem(auxItem.toInput(), precioCosto)
+      .onSaveTransferenciaItem(input, precioCosto)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.cargandoService.closeDialog();
@@ -821,11 +930,14 @@ export class EditTransferenciaComponent implements OnInit {
       asignacionActual: item.lotesAsignados,
     };
 
+    // Sin esto, tipear cantidades dentro del diálogo dispara los atajos de teclado de la pantalla.
+    this.isDialogOpen = true;
     this.matDialog
       .open(SeleccionarLotesDialogComponent, { data })
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res: SeleccionarLotesDialogResult) => {
+        this.isDialogOpen = false;
         if (res != null) {
           this.guardarAsignacionDeLotes(item, res);
         }
@@ -1199,6 +1311,9 @@ export class EditTransferenciaComponent implements OnInit {
                         this.presentacionControl.value?.cantidad
                       );
                     }
+                    if (this.abrirSeleccionDeLotesSiCorresponde()) {
+                      return;
+                    }
                     if (this.selectedProducto.balanza) {
                       this.vencimientoInput.nativeElement.select();
                     } else {
@@ -1230,6 +1345,9 @@ export class EditTransferenciaComponent implements OnInit {
                   this.presentacionControl.value?.cantidad
                 );
               }
+              if (this.abrirSeleccionDeLotesSiCorresponde()) {
+                return;
+              }
               if (this.selectedProducto.balanza) {
                 this.vencimientoInput.nativeElement.select();
               } else {
@@ -1253,6 +1371,13 @@ export class EditTransferenciaComponent implements OnInit {
     }
   }
   onPresentacionSelect() {
+    // Producto con lote: elegir de que lote sale reemplaza al paso de cargar la cantidad,
+    // porque la cantidad sale del reparto entre lotes.
+    if (this.abrirSeleccionDeLotesSiCorresponde()) {
+      this.matSelect?.close();
+      return;
+    }
+
     const tienePrecioUnidad = this.precioUnidadControl.value != null && this.precioUnidadControl.value > 0;
     const tienePrecioPresentacion = this.precioPresentacionControl.value != null && this.precioPresentacionControl.value > 0;
 
@@ -1365,6 +1490,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onClear() {
+    this.lotesPendientes = null;
     this.selectedProducto = null;
     this.presentacionControl.setValue(null);
     this.isPesable = false;
