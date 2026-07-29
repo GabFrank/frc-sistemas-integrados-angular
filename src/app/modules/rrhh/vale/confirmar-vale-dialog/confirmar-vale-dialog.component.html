@@ -17,6 +17,6 @@
 
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
     <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" [disabled]="cajaControl.invalid" (click)="onConfirmar()">Confirmar</button>
+    <button mat-raised-button color="primary" *ngIf="puedeAprobar" [disabled]="cajaControl.invalid" (click)="onConfirmar()">Confirmar</button>
   </div>
 </div>

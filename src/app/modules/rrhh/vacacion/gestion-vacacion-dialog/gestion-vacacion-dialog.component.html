@@ -41,7 +41,7 @@
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef>Acciones</th>
         <td mat-cell *matCellDef="let row">
-          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA'" (click)="onAprobar(row)" matTooltip="Aprobar"><mat-icon>check</mat-icon></button>
+          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA' && puedeAprobar" (click)="onAprobar(row)" matTooltip="Aprobar"><mat-icon>check</mat-icon></button>
           <button mat-icon-button color="accent" *ngIf="row.estado === 'PROGRAMADA'" (click)="onMarcarGozada(row)" matTooltip="Marcar gozada"><mat-icon>beach_access</mat-icon></button>
         </td>
       </ng-container>
@@ -80,7 +80,7 @@
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef>Acciones</th>
         <td mat-cell *matCellDef="let row">
-          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA'"
+          <button mat-icon-button color="primary" *ngIf="row.estado === 'SOLICITADA' && puedeAprobar"
             (click)="onAprobarVenta(row)" matTooltip="Aprobar venta"><mat-icon>check</mat-icon></button>
           <button mat-icon-button color="warn" *ngIf="row.estado !== 'PAGADO' && row.estado !== 'ANULADO'"
             (click)="onAnularVenta(row)" matTooltip="Anular"><mat-icon>block</mat-icon></button>

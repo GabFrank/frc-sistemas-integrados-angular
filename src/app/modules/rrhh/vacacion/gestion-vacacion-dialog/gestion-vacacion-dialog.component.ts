@@ -44,7 +44,10 @@ export class GestionVacacionDialogComponent implements OnInit {
     this.disponibles = (this.vacacion.diasGenerados || 0) - (this.vacacion.diasGozados || 0);
   }
 
+  puedeAprobar = false;
+
   ngOnInit(): void {
+    this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
     this.cargar();
   }
 

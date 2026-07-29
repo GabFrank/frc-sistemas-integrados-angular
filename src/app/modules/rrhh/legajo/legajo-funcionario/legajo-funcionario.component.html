@@ -39,11 +39,11 @@
 
     <!-- Accesos rápidos -->
     <div class="dash-quick-actions">
-      <dash-quick-action icon="badge" title="Cambiar cargo" color="#42a5f5" (action)="onCambiarCargo()"></dash-quick-action>
-      <dash-quick-action icon="payments" title="Cambiar salario" color="#66bb6a" (action)="onCambiarSalario()"></dash-quick-action>
+      <dash-quick-action *ngIf="puedeGestionar" icon="badge" title="Cambiar cargo" color="#42a5f5" (action)="onCambiarCargo()"></dash-quick-action>
+      <dash-quick-action *ngIf="puedeCambiarSalario" icon="payments" title="Cambiar salario" color="#66bb6a" (action)="onCambiarSalario()"></dash-quick-action>
       <dash-quick-action icon="upload_file" title="Subir documento" color="#7e57c2" (action)="onSubirDocumento()"></dash-quick-action>
-      <dash-quick-action *ngIf="funcionario.activo" icon="logout" title="Egresar" color="#ef5350" (action)="onEgresar()"></dash-quick-action>
-      <dash-quick-action icon="receipt_long" title="Liquidación final" color="#ffa726" (action)="onLiquidacionFinal()"></dash-quick-action>
+      <dash-quick-action *ngIf="funcionario.activo && puedeEgresar" icon="logout" title="Egresar" color="#ef5350" (action)="onEgresar()"></dash-quick-action>
+      <dash-quick-action *ngIf="puedeLiquidar" icon="receipt_long" title="Liquidación final" color="#ffa726" (action)="onLiquidacionFinal()"></dash-quick-action>
     </div>
 
   </ng-container>

@@ -26,6 +26,20 @@ import { LoginService } from "./modules/login/login.service";
 export class MainService implements OnDestroy {
   sucursalActual: Sucursal;
   usuarioActual: Usuario;
+
+  /**
+   * True si el usuario tiene alguno de los roles indicados. Bypass de superusuario:
+   * rol "ADMIN" o nickname "ADMIN" (espeja el backend RrhhSecurityService). Usar para
+   * calcular flags en ngOnInit — NO llamar desde el HTML (regla del repo).
+   */
+  tieneAlgunRol(roles: string[]): boolean {
+    const u = this.usuarioActual;
+    if (!u) return false;
+    if (u.nickname === "ADMIN") return true;
+    const mis = u.roles || [];
+    if (mis.includes("ADMIN")) return true;
+    return (roles || []).some((r) => mis.includes(r));
+  }
   fechaHoraInicioSesion: Date;
   primaryColor: "#C62828";
   green: "#27AE60";

@@ -44,7 +44,14 @@ export class ListAguinaldoComponent implements OnInit {
     private impresionService: ImpresionService
   ) { }
 
+  puedeLiquidar = false;
+  puedeAprobar = false;
+  puedePagar = false;
+
   ngOnInit(): void {
+    this.puedeLiquidar = this.mainService.tieneAlgunRol(['RRHH LIQUIDAR']);
+    this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
+    this.puedePagar = this.mainService.tieneAlgunRol(['RRHH PAGAR']);
     this.anioControl.setValue(new Date().getFullYear());
     this.onFiltrar();
   }

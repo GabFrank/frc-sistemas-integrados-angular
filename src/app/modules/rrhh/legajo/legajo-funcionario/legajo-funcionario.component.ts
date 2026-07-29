@@ -1,6 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MainService } from '../../../../main.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -57,6 +58,12 @@ export class LegajoFuncionarioComponent implements OnInit {
   salarioHistoricos = new MatTableDataSource<FuncionarioSalarioHistorico>([]);
   documentos = new MatTableDataSource<FuncionarioDocumento>([]);
 
+  // Gating por rol (UX; el backend valida). ADMIN por rol o nickname.
+  puedeGestionar = false;
+  puedeCambiarSalario = false;
+  puedeEgresar = false;
+  puedeLiquidar = false;
+
   constructor(
     private legajoService: LegajoService,
     private funcionarioService: FuncionarioService,
@@ -64,10 +71,15 @@ export class LegajoFuncionarioComponent implements OnInit {
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
     private tabService: TabService,
-    private liquidacionFinalService: LiquidacionFinalService
+    private liquidacionFinalService: LiquidacionFinalService,
+    public mainService: MainService
   ) { }
 
   ngOnInit(): void {
+    this.puedeGestionar = this.mainService.tieneAlgunRol(['RRHH GESTIONAR']);
+    this.puedeCambiarSalario = this.mainService.tieneAlgunRol(['RRHH GESTIONAR', 'RRHH CONFIG']);
+    this.puedeEgresar = this.mainService.tieneAlgunRol(['RRHH GESTIONAR', 'RRHH APROBAR']);
+    this.puedeLiquidar = this.mainService.tieneAlgunRol(['RRHH LIQUIDAR']);
     // El legajo se abre siempre apuntando a un funcionario (desde la lista de
     // funcionarios → acción de fila). Ya no hay selector interno.
     const preId = this.data?.tabData?.data?.id;

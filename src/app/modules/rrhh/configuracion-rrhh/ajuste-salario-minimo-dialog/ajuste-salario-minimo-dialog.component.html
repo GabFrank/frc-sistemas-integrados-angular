@@ -54,7 +54,7 @@
     <button mat-stroked-button (click)="onCancelar()">
       {{ dataSource.data.length > 0 ? 'Ahora no' : 'Cerrar' }}
     </button>
-    <button mat-raised-button color="primary" *ngIf="dataSource.data.length > 0"
+    <button mat-raised-button color="primary" *ngIf="dataSource.data.length > 0 && puedeConfig"
       [disabled]="seleccion.selected.length === 0" (click)="onConfirmar()">
       Ajustar seleccionados ({{ seleccion.selected.length }})
     </button>

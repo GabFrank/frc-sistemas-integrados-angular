@@ -43,7 +43,10 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
     private notificacion: NotificacionSnackbarService
   ) { }
 
+  puedeConfig = false;
+
   ngOnInit(): void {
+    this.puedeConfig = this.mainService.tieneAlgunRol(['RRHH CONFIG']);
     this.configuracionService.onGetFuncionariosBajoMinimo(this.data.minimo)
       .pipe(untilDestroyed(this))
       .subscribe(res => {

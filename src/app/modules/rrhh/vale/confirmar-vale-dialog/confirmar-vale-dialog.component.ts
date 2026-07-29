@@ -23,6 +23,7 @@ export class ConfirmarValeDialogComponent implements OnInit {
   vale: Vale;
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null, [Validators.required]);
+  puedeAprobar = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: ConfirmarValeDialogData,
@@ -35,6 +36,7 @@ export class ConfirmarValeDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
     this.cajaVirtualService.onGetActivas()
       .pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => {
