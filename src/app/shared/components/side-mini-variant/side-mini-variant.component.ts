@@ -504,6 +504,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'contactless',
           action: 'terminal-pos-dashboard',
           visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Cuentas Bancarias',
+          icon: 'account_balance',
+          action: 'list-cuentas-bancarias',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Bancos',
+          icon: 'business',
+          action: 'list-bancos',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
         }
       ]
     },
@@ -521,27 +533,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         }
       ]
-    },
-    {
-      name: 'Bancario',
-      icon: 'account_balance_wallet',
-      isExpanded: false,
-      items: [
-        {
-          name: 'Cuentas Bancarias',
-          icon: 'account_balance',
-          action: 'list-cuentas-bancarias',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Bancos',
-          icon: 'business',
-          action: 'list-bancos',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
-        }
-      ],
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
     },
     {
       name: 'Vehículos',

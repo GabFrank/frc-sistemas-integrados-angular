@@ -48,6 +48,23 @@ export const cajaVirtualesQuery = gql`
   }
 `;
 
+export const cajaVirtualesFilterQuery = gql`
+  query ($nombre: String, $tipo: CajaVirtualTipo, $sucursalId: Int, $activo: Boolean, $page: Int, $size: Int) {
+    data: cajaVirtualesFilter(nombre: $nombre, tipo: $tipo, sucursalId: $sucursalId, activo: $activo, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        ${cajaVirtualFields}
+      }
+    }
+  }
+`;
+
 export const cajaVirtualesPorTipoQuery = gql`
   query ($tipo: CajaVirtualTipo!) {
     data: cajaVirtualesPorTipo(tipo: $tipo) {
@@ -75,6 +92,65 @@ export const saveCajaVirtualMutation = gql`
 export const deleteCajaVirtualMutation = gql`
   mutation deleteCajaVirtual($id: ID!) {
     data: deleteCajaVirtual(id: $id)
+  }
+`;
+
+export const cajaVirtualSaldosQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cajaVirtualSaldos(cajaVirtualId: $cajaVirtualId) {
+      saldo
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+    }
+  }
+`;
+
+export const cajaVirtualResumenBancarioQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cajaVirtualResumenBancario(cajaVirtualId: $cajaVirtualId) {
+      saldo
+      saldoReservado
+      saldoFuturo
+      cuentaBancaria {
+        id
+        numero
+        banco { id nombre }
+        moneda { id denominacion simbolo }
+      }
+    }
+  }
+`;
+
+export const cajaVirtualConfiguracionQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cajaVirtualConfiguracion(cajaVirtualId: $cajaVirtualId) {
+      id
+      mostrarCuentasPorPagar
+      mostrarCuentasPorCobrar
+      operacionesFinancierasHabilitado
+      cuentasBancariasOrden
+      cuentasBancariasVisibles {
+        id
+        numero
+        banco { id nombre }
+        moneda { id simbolo }
+      }
+    }
+  }
+`;
+
+export const saveCajaVirtualConfiguracionMutation = gql`
+  mutation saveCajaVirtualConfiguracion($input: CajaVirtualConfiguracionInput!) {
+    data: saveCajaVirtualConfiguracion(input: $input) {
+      id
+      mostrarCuentasPorPagar
+      mostrarCuentasPorCobrar
+      operacionesFinancierasHabilitado
+      cuentasBancariasOrden
+    }
   }
 `;
 
@@ -148,9 +224,34 @@ export const movimientosCajaVirtualPorFechaQuery = gql`
   }
 `;
 
+export const movimientosCajaVirtualFilterQuery = gql`
+  query ($cajaVirtualId: ID!, $desde: String, $fin: String, $tipo: CajaVirtualTipoMovimiento, $soloActivos: Boolean, $page: Int, $size: Int) {
+    data: movimientosCajaVirtualFilter(cajaVirtualId: $cajaVirtualId, desde: $desde, fin: $fin, tipo: $tipo, soloActivos: $soloActivos, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        ${movimientoFields}
+      }
+    }
+  }
+`;
+
 export const saveMovimientoCajaVirtualMutation = gql`
   mutation saveMovimientoCajaVirtual($input: MovimientoCajaVirtualInput!) {
     data: saveMovimientoCajaVirtual(input: $input) {
+      ${movimientoFields}
+    }
+  }
+`;
+
+export const anularMovimientoCajaVirtualMutation = gql`
+  mutation anularMovimientoCajaVirtual($id: ID!, $motivo: String) {
+    data: anularMovimientoCajaVirtual(id: $id, motivo: $motivo) {
       ${movimientoFields}
     }
   }

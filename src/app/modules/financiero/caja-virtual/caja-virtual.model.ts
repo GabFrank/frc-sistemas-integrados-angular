@@ -2,6 +2,7 @@ import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Funcionario } from "../../personas/funcionarios/funcionario.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Moneda } from "../moneda/moneda.model";
+import { CuentaBancaria } from "../cuenta-bancaria/cuenta-bancaria.model";
 
 export enum CajaVirtualTipo {
   CAJA_MAYOR = 'CAJA_MAYOR',
@@ -110,4 +111,37 @@ export class MovimientoCajaVirtualInput {
   cajaOrigenId?: number;
   cajaDestinoId?: number;
   activo?: boolean;
+}
+
+/** Saldo de efectivo por moneda (sidebar del dashboard). */
+export interface CajaVirtualSaldoItem {
+  moneda: Moneda;
+  saldo: number;
+}
+
+/** Resumen de una cuenta bancaria visible en el sidebar. */
+export interface CuentaBancariaResumen {
+  cuentaBancaria: CuentaBancaria;
+  saldo: number;
+  saldoReservado: number;
+  saldoFuturo: number;
+}
+
+/** Configuración de visibilidad del dashboard de una caja. */
+export interface CajaVirtualConfiguracion {
+  id?: number;
+  mostrarCuentasPorPagar?: boolean;
+  mostrarCuentasPorCobrar?: boolean;
+  operacionesFinancierasHabilitado?: boolean;
+  cuentasBancariasOrden?: string;
+  cuentasBancariasVisibles?: CuentaBancaria[];
+}
+
+export interface CajaVirtualConfiguracionInput {
+  cajaVirtualId: number;
+  mostrarCuentasPorPagar?: boolean;
+  mostrarCuentasPorCobrar?: boolean;
+  operacionesFinancierasHabilitado?: boolean;
+  cuentasBancariasVisiblesIds?: number[];
+  cuentasBancariasOrden?: string;
 }

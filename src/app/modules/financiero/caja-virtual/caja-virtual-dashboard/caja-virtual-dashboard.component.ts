@@ -3,19 +3,29 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
-import { Tab, } from '../../../../layouts/tab/tab.model';
-import { TabService, TabData } from '../../../../layouts/tab/tab.service';
-import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual } from '../caja-virtual.model';
+import { FormControl } from '@angular/forms';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
+         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
-import { Moneda } from '../../moneda/moneda.model';
-import { MonedaService } from '../../moneda/moneda.service';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
+import { ConfigurarCajaVirtualDialogComponent } from '../configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
+import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+
+// Fila de la tabla de movimientos con campos de display precalculados.
+interface MovimientoRow extends MovimientoCajaVirtual {
+  _color?: string;
+  _anulable?: boolean;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -29,22 +39,36 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   cajaVirtual: CajaVirtual;
 
-  // Selector de moneda activa en el balance card
-  monedaList: Moneda[] = [];
-  monedaSeleccionada: Moneda;
+  // Sidebar
+  saldos: CajaVirtualSaldoItem[] = [];
+  resumenBancario: CuentaBancariaResumen[] = [];
+  config: CajaVirtualConfiguracion;
 
-  // Historial
-  dataSource = new MatTableDataSource<MovimientoCajaVirtual>([]);
+  // Movimientos (tabla)
+  dataSource = new MatTableDataSource<MovimientoRow>([]);
   isLoading = false;
-  hideBalance = true;
   pageIndex = 0;
-  pageSize = 10;
+  pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual>;
-  expandedId: number | null = null;
+  displayedColumns = ['creadoEn', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
 
-  displayedColumns = ['creadoEn', 'tipoMovimiento', 'moneda', 'cantidad', 'descripcion'];
+  // Filtros de movimientos
+  desdeControl = new FormControl();
+  hastaControl = new FormControl();
+  tipoControl = new FormControl();
+  verAnulaciones = false;
+  showFiltros = false;
 
   puedeGestionar = false;
+
+  tipoMovimientoList = [
+    { label: 'Ingreso', value: CajaVirtualTipoMovimiento.INGRESO },
+    { label: 'Egreso', value: CajaVirtualTipoMovimiento.EGRESO },
+    { label: 'Transf. Entrada', value: CajaVirtualTipoMovimiento.TRANSFERENCIA_ENTRADA },
+    { label: 'Transf. Salida', value: CajaVirtualTipoMovimiento.TRANSFERENCIA_SALIDA },
+    { label: 'Pago Proveedor', value: CajaVirtualTipoMovimiento.PAGO_PROVEEDOR },
+    { label: 'Ajuste', value: CajaVirtualTipoMovimiento.AJUSTE },
+  ];
 
   tipoMovimientoLabels: Record<string, string> = {
     INGRESO: 'Ingreso',
@@ -53,15 +77,6 @@ export class CajaVirtualDashboardComponent implements OnInit {
     TRANSFERENCIA_SALIDA: 'Transf. Salida',
     PAGO_PROVEEDOR: 'Pago Proveedor',
     AJUSTE: 'Ajuste',
-  };
-
-  tipoIconos: Record<string, string> = {
-    INGRESO: 'add_circle',
-    EGRESO: 'remove_circle',
-    TRANSFERENCIA_ENTRADA: 'call_received',
-    TRANSFERENCIA_SALIDA: 'call_made',
-    PAGO_PROVEEDOR: 'receipt',
-    AJUSTE: 'tune',
   };
 
   tipoColores: Record<string, string> = {
@@ -75,149 +90,166 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   constructor(
     private cajaVirtualService: CajaVirtualService,
-    private monedaService: MonedaService,
     private dialog: MatDialog,
-    private tabService: TabService,
+    private dialogosService: DialogosService,
+    private notificacion: NotificacionSnackbarService,
     public mainService: MainService
   ) {}
 
   ngOnInit(): void {
     this.cajaVirtual = this.data?.tabData?.data as CajaVirtual;
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
-    this.cargarMonedas();
+    this.recargar();
+  }
+
+  recargar() {
+    this.cargarSaldos();
+    this.cargarConfigYBancos();
     this.cargarMovimientos();
   }
 
-  cargarMonedas() {
-    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.monedaList = res;
-        // Seleccionar Guaraní por defecto
-        this.monedaSeleccionada = res.find(m => 
-          m.denominacion?.toUpperCase().includes('GUARANI')) ?? res[0];
-      }
-    });
+  cargarSaldos() {
+    if (!this.cajaVirtual?.id) return;
+    this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id)
+      .pipe(untilDestroyed(this)).subscribe(res => {
+        if (res) this.saldos = res;
+      });
   }
 
-  toggleExpanded(id: number) {
-    this.expandedId = this.expandedId === id ? null : id;
+  cargarConfigYBancos() {
+    if (!this.cajaVirtual?.id) return;
+    this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
+      .pipe(untilDestroyed(this)).subscribe(cfg => {
+        this.config = cfg;
+        this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
+          .pipe(untilDestroyed(this)).subscribe(res => {
+            this.resumenBancario = res || [];
+          });
+      });
   }
 
   cargarMovimientos() {
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;
-    this.cajaVirtualService.onGetMovimientos(this.cajaVirtual.id, this.pageIndex, this.pageSize)
+    this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
+      desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
+      fin: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
+      tipo: this.tipoControl.value || null,
+      soloActivos: !this.verAnulaciones,
+    }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.isLoading = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
-          
-          if (this.pageIndex === 0 && res.getContent?.length > 0) {
-            const latestMov = res.getContent[0];
-            const mon = latestMov.moneda?.denominacion?.toUpperCase() || '';
-            if (mon.includes('GUARANI') && latestMov.saldoPosterior != null) {
-               this.cajaVirtual.saldoGs = latestMov.saldoPosterior;
-            } else if (mon.includes('REAL') && latestMov.saldoPosterior != null) {
-               this.cajaVirtual.saldoRs = latestMov.saldoPosterior;
-            } else if (mon.includes('DOLAR') && latestMov.saldoPosterior != null) {
-               this.cajaVirtual.saldoDs = latestMov.saldoPosterior;
-            }
-          }
+          this.dataSource.data = (res.getContent || []).map(m => this.toRow(m));
         }
       });
   }
 
-  // Saldo según moneda seleccionada
-  getSaldoActual(): number {
-    if (!this.cajaVirtual || !this.monedaSeleccionada) return 0;
-    const d = this.monedaSeleccionada.denominacion?.toUpperCase();
-    if (d?.includes('GUARANI')) return this.cajaVirtual.saldoGs ?? 0;
-    if (d?.includes('REAL')) return this.cajaVirtual.saldoRs ?? 0;
-    if (d?.includes('DOLAR')) return this.cajaVirtual.saldoDs ?? 0;
-    return 0;
+  private toRow(m: MovimientoCajaVirtual): MovimientoRow {
+    const row = m as MovimientoRow;
+    row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
+    row._anulable = this.puedeGestionar
+      && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
+      && m.activo !== false;
+    return row;
   }
 
-  getPrecision(): string {
-    const d = this.monedaSeleccionada?.denominacion?.toUpperCase();
-    return d?.includes('GUARANI') ? '1.0-0' : '1.2-2';
+  toggleFiltros() {
+    this.showFiltros = !this.showFiltros;
   }
+
+  aplicarFiltros() {
+    this.pageIndex = 0;
+    this.cargarMovimientos();
+  }
+
+  limpiarFiltros() {
+    this.desdeControl.setValue(null);
+    this.hastaControl.setValue(null);
+    this.tipoControl.setValue(null);
+    this.pageIndex = 0;
+    this.cargarMovimientos();
+  }
+
+  onToggleVerAnulaciones() {
+    this.verAnulaciones = !this.verAnulaciones;
+    this.pageIndex = 0;
+    this.cargarMovimientos();
+  }
+
+  // ---- Acciones ----
 
   onIngreso() {
-    const dialogData: MovimientoDialogData = { 
-      cajaVirtual: this.cajaVirtual, 
-      tipoMovimiento: CajaVirtualTipoMovimiento.INGRESO 
-    };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { 
-      width: '500px', 
-      data: dialogData 
-    }).afterClosed().subscribe(res => { 
-      if (res) this.recargar(); 
-    });
+    const dialogData: MovimientoDialogData = { cajaVirtual: this.cajaVirtual, tipoMovimiento: CajaVirtualTipoMovimiento.INGRESO };
+    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data: dialogData })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onEgreso() {
-    const dialogData: MovimientoDialogData = { 
-      cajaVirtual: this.cajaVirtual, 
-      tipoMovimiento: CajaVirtualTipoMovimiento.EGRESO 
-    };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { 
-      width: '500px', 
-      data: dialogData 
-    }).afterClosed().subscribe(res => { 
-      if (res) this.recargar(); 
-    });
+    const dialogData: MovimientoDialogData = { cajaVirtual: this.cajaVirtual, tipoMovimiento: CajaVirtualTipoMovimiento.EGRESO };
+    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data: dialogData })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onTransferencia() {
-    this.dialog.open(TransferenciaCajaVirtualDialogComponent, {
-      width: '500px',
-      data: this.cajaVirtual
-    }).afterClosed().subscribe(res => {
-      if (res) this.recargar();
-    });
+    this.dialog.open(TransferenciaCajaVirtualDialogComponent, { width: '500px', data: this.cajaVirtual })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onIngresoVario() {
-    const dialogData: EntradaVariaDialogData = {
-      cajaVirtual: this.cajaVirtual,
-      esIngreso: true
-    };
-    this.dialog.open(AddEntradaVariaDialogComponent, {
-      width: '500px',
-      data: dialogData
-    }).afterClosed().subscribe(res => {
-      if (res) this.recargar();
-    });
+    const dialogData: EntradaVariaDialogData = { cajaVirtual: this.cajaVirtual, esIngreso: true };
+    this.dialog.open(AddEntradaVariaDialogComponent, { width: '500px', data: dialogData })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onEgresoVario() {
-    const dialogData: EntradaVariaDialogData = {
-      cajaVirtual: this.cajaVirtual,
-      esIngreso: false
-    };
-    this.dialog.open(AddEntradaVariaDialogComponent, {
-      width: '500px',
-      data: dialogData
-    }).afterClosed().subscribe(res => {
-      if (res) this.recargar();
-    });
+    const dialogData: EntradaVariaDialogData = { cajaVirtual: this.cajaVirtual, esIngreso: false };
+    this.dialog.open(AddEntradaVariaDialogComponent, { width: '500px', data: dialogData })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
+  }
+
+  onOperacionFinanciera() {
+    this.dialog.open(AddOperacionFinancieraDialogComponent, { width: '600px', maxHeight: '90vh', data: null })
+      .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onVerEntradasVarias() {
     this.dialog.open(ListEntradasVariasDialogComponent, {
-      width: '95vw',
-      maxWidth: '1200px',
-      height: '85vh',
-      data: this.cajaVirtual
+      width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
     });
   }
 
-  recargar() {
-    // Recargar la caja actualizada
-    this.cajaVirtualService.onGetAll(0, 1).pipe(untilDestroyed(this)).subscribe(); // para refresh
-    this.cargarMovimientos();
+  onConfigurar() {
+    this.dialog.open(ConfigurarCajaVirtualDialogComponent, { width: '520px', maxHeight: '90vh', data: { cajaVirtual: this.cajaVirtual } })
+      .afterClosed().subscribe(res => { if (res) this.cargarConfigYBancos(); });
+  }
+
+  /** Anula un movimiento manual con contra-movimiento. El backend bloquea los de otro módulo y los AJUSTE. */
+  onAnular(mov: MovimientoCajaVirtual) {
+    if (!mov?.id) return;
+    this.dialogosService.confirm(
+      'Anular movimiento',
+      '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).',
+      mov.descripcion || null, null, true, 'Sí, anular', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res === true) {
+        this.cajaVirtualService.onAnularMovimiento(mov.id)
+          .pipe(untilDestroyed(this)).subscribe({
+            next: r => {
+              if (r != null) {
+                this.notificacion.notification$.next({ texto: 'Movimiento anulado', color: NotificacionColor.success, duracion: 3 });
+                this.recargar();
+              }
+            },
+            error: err => {
+              const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular el movimiento';
+              this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+            }
+          });
+      }
+    });
   }
 
   handlePageEvent(e: PageEvent) {

@@ -1,23 +1,23 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
-import { CajaVirtual, CajaVirtualTipo, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
+import { CajaVirtual, CajaVirtualTipo } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { AddCajaVirtualDialogComponent } from '../add-caja-virtual-dialog/add-caja-virtual-dialog.component';
-import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
-import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { HistorialMovimientosCajaVirtualComponent } from '../historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { CajaVirtualDashboardComponent } from '../caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,7 +30,6 @@ export class ListCajaVirtualComponent implements OnInit {
   @Input() data: Tab;
 
   dataSource = new MatTableDataSource<CajaVirtual>([]);
-  selectedCajaVirtual: CajaVirtual;
   isSearching = false;
   pageIndex = 0;
   pageSize = 10;
@@ -46,6 +45,8 @@ export class ListCajaVirtualComponent implements OnInit {
     [CajaVirtualTipo.CAJA_CHICA]: 'Caja Chica'
   };
 
+  sucursalList: Sucursal[] = [];
+
   displayedColumns = [
     'id',
     'nombre',
@@ -56,18 +57,20 @@ export class ListCajaVirtualComponent implements OnInit {
     'saldoRs',
     'saldoDs',
     'activo',
-    'operaciones',
     'acciones'
   ];
 
-  formGroup: FormGroup;
+  // Filtros
   nombreControl = new FormControl();
   tipoControl = new FormControl();
+  sucursalControl = new FormControl();
+  activoControl = new FormControl();
 
   puedeGestionar = false;
 
   constructor(
     private cajaVirtualService: CajaVirtualService,
+    private sucursalService: SucursalService,
     private dialog: MatDialog,
     private notificacion: NotificacionSnackbarService,
     private dialogosService: DialogosService,
@@ -76,17 +79,21 @@ export class ListCajaVirtualComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.formGroup = new FormGroup({
-      nombreControl: this.nombreControl,
-      tipoControl: this.tipoControl,
-    });
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) this.sucursalList = res;
+    });
     this.onFiltrar();
   }
 
   onFiltrar() {
     this.isSearching = true;
-    this.cajaVirtualService.onGetAll(this.pageIndex, this.pageSize)
+    this.cajaVirtualService.onGetFilter({
+      nombre: this.nombreControl.value || null,
+      tipo: this.tipoControl.value || null,
+      sucursalId: this.sucursalControl.value || null,
+      activo: (this.activoControl.value === null || this.activoControl.value === undefined) ? null : this.activoControl.value,
+    }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<CajaVirtual>) => {
         this.isSearching = false;
@@ -95,6 +102,15 @@ export class ListCajaVirtualComponent implements OnInit {
           this.dataSource.data = res.getContent;
         }
       });
+  }
+
+  onResetFiltro() {
+    this.nombreControl.setValue(null);
+    this.tipoControl.setValue(null);
+    this.sucursalControl.setValue(null);
+    this.activoControl.setValue(null);
+    this.pageIndex = 0;
+    this.onFiltrar();
   }
 
   onAdd() {
@@ -119,9 +135,9 @@ export class ListCajaVirtualComponent implements OnInit {
     this.dialogosService.confirm(
       'Eliminar Caja Virtual',
       `¿Está seguro que desea eliminar la caja "${item.nombre}"?`,
-      null, null
+      null, null, true, 'Sí, eliminar', 'No'
     ).subscribe(confirmed => {
-      if (confirmed) {
+      if (confirmed === true) {
         this.cajaVirtualService.onDelete(item.id)
           .pipe(untilDestroyed(this))
           .subscribe(res => {
@@ -138,9 +154,9 @@ export class ListCajaVirtualComponent implements OnInit {
 
   onVerDashboard(item: CajaVirtual) {
     this.tabService.addTab(
-      new Tab(CajaVirtualDashboardComponent, 
-        `Caja: ${item.nombre}`, 
-        new TabData(item.id, item), 
+      new Tab(CajaVirtualDashboardComponent,
+        `Caja: ${item.nombre}`,
+        new TabData(item.id, item),
         ListCajaVirtualComponent
       )
     );
@@ -148,17 +164,11 @@ export class ListCajaVirtualComponent implements OnInit {
 
   onHistorial(item: CajaVirtual) {
     this.dialog.open(HistorialMovimientosCajaVirtualComponent, {
-      width: '95vw', 
-      maxWidth: '1400px', 
-      height: '85vh', 
+      width: '95vw',
+      maxWidth: '1400px',
+      height: '85vh',
       data: item
     });
-  }
-
-  onResetFiltro() {
-    this.nombreControl.setValue(null);
-    this.tipoControl.setValue(null);
-    this.onFiltrar();
   }
 
   handlePageEvent(e: PageEvent) {

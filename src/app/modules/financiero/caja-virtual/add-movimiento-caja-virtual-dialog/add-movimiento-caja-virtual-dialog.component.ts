@@ -127,7 +127,8 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
         },
         error: err => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al guardar uno o más movimientos');
+          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al guardar uno o más movimientos';
+          this.notificacion.openWarn(msg, 6);
         }
       });
   }

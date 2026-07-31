@@ -60,6 +60,7 @@ import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-d
 import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
+import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
 import { TesoreriaDashboardComponent } from './tesoreria-dashboard/tesoreria-dashboard.component';
@@ -125,6 +126,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     AddMovimientoCajaVirtualDialogComponent,
     TransferenciaCajaVirtualDialogComponent,
     CajaVirtualDashboardComponent,
+    ConfigurarCajaVirtualDialogComponent,
     ListCajaVirtualComponent,
     HistorialMovimientosCajaVirtualComponent,
     TesoreriaDashboardComponent,
