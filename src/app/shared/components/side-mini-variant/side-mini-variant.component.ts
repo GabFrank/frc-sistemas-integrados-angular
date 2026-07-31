@@ -74,6 +74,7 @@ import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.co
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
+import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 
 
 interface BaseNavigationItem {
@@ -408,8 +409,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'account_balance',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION],
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
       items: [
+        {
+          name: 'Tesorería',
+          icon: 'currency_exchange',
+          action: 'list-caja-virtual',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        },
         {
           name: 'Análisis de diferencias',
           icon: 'equalizer',
@@ -860,6 +867,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
+        break;
+      case "list-caja-virtual":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-transferencias":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, TransferenciaComponent, "Transferencia");

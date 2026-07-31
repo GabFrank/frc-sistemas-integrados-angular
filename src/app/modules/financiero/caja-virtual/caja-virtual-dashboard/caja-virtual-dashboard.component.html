@@ -1,0 +1,198 @@
+<div class="cv-dashboard">
+  <div style="display: flex;">
+    <mat-form-field style="width: 100%;" appearance="outline">
+      <mat-label>Buscar</mat-label>
+      <input matInput placeholder="Buscar por id o código QR">
+    </mat-form-field>
+    <button mat-icon-button class="custom-btn">
+      <mat-icon>search</mat-icon>
+    </button>
+    <button mat-icon-button class="custom-btn">
+      <mat-icon>qr_code</mat-icon>
+    </button>
+  </div>
+  <!-- ═══════════════════ CARD: MI BALANCE ═══════════════════ -->
+  <div class="balance-card">
+    <div class="balance-card-title" style="display: flex; align-items: center; gap: 8px;">
+      <button mat-icon-button matTooltip="Mi balance" class="custom-btn">
+        <mat-icon>wallet</mat-icon>
+      </button>
+      <p style="margin: 0;">MI BALANCE</p>
+    </div>
+
+    <!-- 3 currency cards -->
+    <div class="currency-row">
+
+      <div class="currency-card gs">
+        <span class="cc-symbol">Gs.</span>
+        <span class="cc-label">GUARANÍES</span>
+        <span class="cc-amount" *ngIf="hideBalance">
+          {{ cajaVirtual?.saldoGs | number:'1.0-0' }}
+        </span>
+        <span class="cc-amount" *ngIf="!hideBalance">***</span>
+      </div>
+
+      <div class="currency-card rs">
+        <span class="cc-symbol">R$</span>
+        <span class="cc-label">REALES</span>
+        <span class="cc-amount" *ngIf="hideBalance">
+          {{ cajaVirtual?.saldoRs | number:'1.2-2' }}
+        </span>
+        <span class="cc-amount" *ngIf="!hideBalance">***</span>
+      </div>
+
+      <div class="currency-card ds">
+        <span class="cc-symbol">US$</span>
+        <span class="cc-label">DÓLARES</span>
+        <span class="cc-amount" *ngIf="hideBalance">
+          {{ cajaVirtual?.saldoDs | number:'1.2-2' }}
+        </span>
+        <span class="cc-amount" *ngIf="!hideBalance">***</span>
+      </div>
+
+      <button mat-icon-button class="custom-btn" (click)="hideBalance = !hideBalance">
+        <mat-icon style="opacity: 30%;">
+          {{hideBalance ? 'visibility' : 'visibility_off'}}
+        </mat-icon>
+      </button>
+      
+    </div>
+
+    <!-- Botones de operación -->
+    <div class="balance-actions">
+      <button *ngIf="puedeGestionar" class="bal-btn btn-ingreso" (click)="onIngreso()">
+        <mat-icon>add</mat-icon>
+        Añadir
+      </button>
+      <button *ngIf="puedeGestionar" class="bal-btn btn-transferir" (click)="onTransferencia()">
+        <mat-icon>swap_horiz</mat-icon>
+        Transferir
+      </button>
+      <button *ngIf="puedeGestionar" class="bal-btn btn-egreso" (click)="onEgreso()">
+        <mat-icon>remove</mat-icon>
+        Retirar
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ BOTTOM GRID ═══════════════════ -->
+  <div class="bottom-grid">
+
+    <!-- Panel izquierdo: pendiente -->
+    <div class="bottom-panel panel-left">
+      <span class="panel-label">OTRO LISTADO PENDIENTE DE MOMENTO</span>
+      <div class="panel-empty"></div>
+    </div>
+
+    <!-- Panel derecho: historial -->
+    <div class="bottom-panel panel-right">
+      <div class="panel-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+        <button mat-icon-button matTooltip="Historial de transacciones" class="custom-btn">
+        <mat-icon style="color: #f57c00;">history</mat-icon>
+      </button>
+        <span class="panel-label">HISTORIAL DE TRANSACCIONES</span>
+        </div>
+        <button 
+          mat-icon-button 
+          (click)="cargarMovimientos()" 
+          matTooltip="Actualizar" 
+          class="btn-refresh"
+        >
+        <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+
+      <!-- Lista movimientos -->
+      <div class="movement-list">
+        <div *ngIf="dataSource.data.length === 0 && !isLoading" class="empty-state">
+          <mat-icon>inbox</mat-icon>
+          <span>Sin movimientos registrados</span>
+        </div>
+
+        <div 
+          class="movement-item-container" 
+          *ngFor="let mov of dataSource.data" 
+          style="margin-bottom: 8px;"
+          [class.expanded]="expandedId === mov.id"
+        >
+          <div 
+            class="movement-item" 
+            (click)="toggleExpanded(mov.id)" 
+            style="cursor: pointer;"
+          >
+            <div 
+              class="mov-icon-wrap" 
+              [style.background]="(tipoColores[mov.tipoMovimiento] || '#aaa') + '25'"
+            >
+              <mat-icon [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'">
+                {{ tipoIconos[mov.tipoMovimiento] || 'swap_horiz' }}
+              </mat-icon>
+            </div>
+            <div class="mov-info">
+              <span class="mov-tipo">
+                {{ tipoMovimientoLabels[mov.tipoMovimiento] || mov.tipoMovimiento }}
+              </span>
+              <span class="mov-desc">
+                {{ mov.descripcion || '-' }}
+              </span>
+            </div>
+            <div class="mov-right">
+              <span 
+                class="mov-amount" 
+                [style.color]="tipoColores[mov.tipoMovimiento] || '#aaa'"
+              >
+                {{ 
+                  (mov.tipoMovimiento === 'EGRESO' || 
+                  mov.tipoMovimiento === 'TRANSFERENCIA_SALIDA' || 
+                  mov.tipoMovimiento === 'PAGO_PROVEEDOR') ? '-' : '+' 
+                }}
+                {{ mov.cantidad | number:'1.0-2' }} 
+                {{ mov.moneda?.simbolo }}
+              </span>
+              <span class="mov-date">{{ mov.creadoEn | date:'dd/MM/yy HH:mm' }}</span>
+            </div>
+          </div>
+          
+          <div class="mov-expanded-detail" *ngIf="expandedId === mov.id">
+             <div style="display: flex; justify-content: space-between;">
+               <span style="color: #aaa;">Operador</span>
+               <strong style="font-weight: 500;">
+                {{ mov.usuario?.persona?.nombre || '-' }}
+               </strong>
+             </div>
+             <div style="display: flex; justify-content: space-between;">
+               <span style="color: #aaa;">Saldo Anterior</span>
+               <strong style="color: #f57c00; font-size: 1.1em;">
+                  {{ 
+                    mov.saldoAnterior != null ? 
+                    (mov.saldoAnterior | number:'1.0-2') : '---' 
+                  }} 
+                  {{ mov.moneda?.simbolo }}
+               </strong>
+             </div>
+             <div class="mov-detail-item">
+               <span style="color: #aaa;">Saldo Tras Operación</span>
+               <strong style="color: #4caf50; font-size: 1.1em;">
+                  {{ 
+                    mov.saldoPosterior != null ? 
+                    (mov.saldoPosterior | number:'1.0-2') : '---' 
+                  }} 
+                  {{ mov.moneda?.simbolo }}
+               </strong>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-paginator
+        [length]="selectedPageInfo?.getTotalElements"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50]"
+        (page)="handlePageEvent($event)"
+        showFirstLastButtons
+        class="compact-paginator">
+      </mat-paginator>
+    </div>
+  </div>
+</div>

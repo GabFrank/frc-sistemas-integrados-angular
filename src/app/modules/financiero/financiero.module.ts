@@ -56,6 +56,12 @@ import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/config
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
 import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
+import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-dialog/add-caja-virtual-dialog.component';
+import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
+import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
+import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
+import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
 
 @NgModule({
   declarations: [
@@ -106,7 +112,13 @@ import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/f
     ListVentaTarjetaComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
-    FacturaLegalDashboard
+    FacturaLegalDashboard,
+    AddCajaVirtualDialogComponent,
+    AddMovimientoCajaVirtualDialogComponent,
+    TransferenciaCajaVirtualDialogComponent,
+    CajaVirtualDashboardComponent,
+    ListCajaVirtualComponent,
+    HistorialMovimientosCajaVirtualComponent
 
   ],
   providers: [

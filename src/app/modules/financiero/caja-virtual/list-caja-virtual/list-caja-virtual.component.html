@@ -1,0 +1,282 @@
+<div fxLayout="column" style="height: 100%; padding: 16px;">
+
+  <!-- Título -->
+  <div class="titulo-center" style="font-weight: 500; margin-bottom: 16px;">
+    Cajas Virtuales
+  </div>
+
+  <!-- Filtros -->
+  <mat-card style="margin-bottom: 16px; padding: 12px;" [formGroup]="formGroup">
+    <div fxLayout="row" fxLayoutGap="12px" fxLayoutAlign="start center">
+      <mat-form-field appearance="outline" fxFlex>
+        <mat-label>Tipo</mat-label>
+        <mat-select [formControl]="tipoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of tipoList" [value]="t.value">
+            {{ t.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" (click)="onFiltrar()">
+        <mat-icon style="transform: scale(1.5);">search</mat-icon> 
+        Filtrar
+      </button>
+      <button mat-stroked-button (click)="onResetFiltro()">
+        <mat-icon style="transform: scale(1.5);">clear</mat-icon> 
+        Limpiar
+      </button>
+      <button *ngIf="puedeGestionar" mat-raised-button color="accent" (click)="onAdd()">
+        <mat-icon style="transform: scale(1.5);">add</mat-icon>
+        Nueva Caja
+      </button>
+    </div>
+  </mat-card>
+
+  <!-- Tabla -->
+  <div style="overflow: auto; flex: 1;">
+    <table mat-table [dataSource]="dataSource" style="width: 100%;">
+
+      <ng-container matColumnDef="id">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          ID
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          {{ row.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Nombre
+        </th>
+        <td 
+          mat-cell 
+        *matCellDef="let row" 
+        style="text-align: center;"
+        >
+          {{ row.nombre }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Tipo
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          <mat-chip 
+            [color]="row.tipo === 'CAJA_MAYOR' ? 
+            'primary' : 'accent'" selected
+          >
+            {{ tipoLabels[row.tipo] }}
+          </mat-chip>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Sucursal
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          {{ row.sucursal?.nombre || '-' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsable">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Responsable
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          {{ row.usuario?.persona?.nombre || '-' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="saldoGs">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Saldo Gs.
+        </th>
+        <td 
+          mat-cell 
+        *matCellDef="let row" 
+        style="text-align: center;"
+        >
+          {{ row.saldoGs | number:'1.0-0' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="saldoRs">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Saldo R$
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          {{ row.saldoRs | number:'1.2-2' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="saldoDs">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Saldo U$D
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          {{ row.saldoDs | number:'1.2-2' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Estado
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          <mat-icon [style.color]="row.activo ? '#4caf50' : '#f44336'">
+            {{ row.activo ? 'check_circle' : 'cancel' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="operaciones">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Operaciones
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          <button 
+            mat-icon-button 
+            style="color: #a78bfa;" 
+            (click)="onVerDashboard(row)" 
+            matTooltip="Ver dashboard de la caja"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
+          <button 
+            mat-icon-button 
+            style="color: #ff9800;" 
+            (click)="onHistorial(row)" 
+            matTooltip="Historial de movimientos"
+          >
+            <mat-icon>history</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th 
+          mat-header-cell 
+          *matHeaderCellDef 
+          style="text-align: center;"
+        >
+          Acciones
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let row" 
+          style="text-align: center;"
+        >
+          <button
+            *ngIf="puedeGestionar"
+            mat-icon-button
+            color="primary"
+            (click)="onEdit(row)"
+            matTooltip="Editar"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            *ngIf="puedeGestionar"
+            mat-icon-button
+            color="warn"
+            (click)="onDelete(row)"
+            matTooltip="Eliminar"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          [class.selected]="selectedCajaVirtual === row"
+          (click)="selectedCajaVirtual = row"></tr>
+    </table>
+  </div>
+
+  <!-- Paginador -->
+  <mat-paginator
+    [length]="selectedPageInfo?.getTotalElements"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[5, 10, 20]"
+    (page)="handlePageEvent($event)"
+    showFirstLastButtons>
+  </mat-paginator>
+
+</div>
