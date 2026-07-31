@@ -62,6 +62,14 @@ import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transfer
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
+import { TesoreriaDashboardComponent } from './tesoreria-dashboard/tesoreria-dashboard.component';
+import { AddEntradaVariaDialogComponent } from './entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
+import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
+import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { ListOperacionFinancieraComponent } from './operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
+import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
+import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
+import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-bancaria-dialog/add-cuenta-bancaria-dialog.component';
 
 @NgModule({
   declarations: [
@@ -118,7 +126,15 @@ import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/histori
     TransferenciaCajaVirtualDialogComponent,
     CajaVirtualDashboardComponent,
     ListCajaVirtualComponent,
-    HistorialMovimientosCajaVirtualComponent
+    HistorialMovimientosCajaVirtualComponent,
+    TesoreriaDashboardComponent,
+    AddEntradaVariaDialogComponent,
+    ListEntradasVariasDialogComponent,
+    AddOperacionFinancieraDialogComponent,
+    ListOperacionFinancieraComponent,
+    ListMovimientosBancariosDialogComponent,
+    AddBancoDialogComponent,
+    AddCuentaBancariaDialogComponent
 
   ],
   providers: [

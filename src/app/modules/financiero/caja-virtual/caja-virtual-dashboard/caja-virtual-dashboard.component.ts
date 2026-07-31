@@ -14,6 +14,8 @@ import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '.
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
+import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -169,11 +171,46 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   onTransferencia() {
-    this.dialog.open(TransferenciaCajaVirtualDialogComponent, { 
-      width: '500px', 
-      data: this.cajaVirtual 
-    }).afterClosed().subscribe(res => { 
-      if (res) this.recargar(); 
+    this.dialog.open(TransferenciaCajaVirtualDialogComponent, {
+      width: '500px',
+      data: this.cajaVirtual
+    }).afterClosed().subscribe(res => {
+      if (res) this.recargar();
+    });
+  }
+
+  onIngresoVario() {
+    const dialogData: EntradaVariaDialogData = {
+      cajaVirtual: this.cajaVirtual,
+      esIngreso: true
+    };
+    this.dialog.open(AddEntradaVariaDialogComponent, {
+      width: '500px',
+      data: dialogData
+    }).afterClosed().subscribe(res => {
+      if (res) this.recargar();
+    });
+  }
+
+  onEgresoVario() {
+    const dialogData: EntradaVariaDialogData = {
+      cajaVirtual: this.cajaVirtual,
+      esIngreso: false
+    };
+    this.dialog.open(AddEntradaVariaDialogComponent, {
+      width: '500px',
+      data: dialogData
+    }).afterClosed().subscribe(res => {
+      if (res) this.recargar();
+    });
+  }
+
+  onVerEntradasVarias() {
+    this.dialog.open(ListEntradasVariasDialogComponent, {
+      width: '95vw',
+      maxWidth: '1200px',
+      height: '85vh',
+      data: this.cajaVirtual
     });
   }
 

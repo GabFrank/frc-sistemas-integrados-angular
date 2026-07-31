@@ -73,6 +73,22 @@
         Retirar
       </button>
     </div>
+
+    <!-- Entradas / Salidas varias -->
+    <div class="balance-actions" style="margin-top: 8px;">
+      <button *ngIf="puedeGestionar" class="bal-btn btn-ingreso" (click)="onIngresoVario()">
+        <mat-icon>add_circle_outline</mat-icon>
+        Ingreso Vario
+      </button>
+      <button *ngIf="puedeGestionar" class="bal-btn btn-egreso" (click)="onEgresoVario()">
+        <mat-icon>remove_circle_outline</mat-icon>
+        Egreso Vario
+      </button>
+      <button class="bal-btn btn-transferir" (click)="onVerEntradasVarias()">
+        <mat-icon>list_alt</mat-icon>
+        Ver Entradas Varias
+      </button>
+    </div>
   </div>
 
   <!-- ═══════════════════ BOTTOM GRID ═══════════════════ -->

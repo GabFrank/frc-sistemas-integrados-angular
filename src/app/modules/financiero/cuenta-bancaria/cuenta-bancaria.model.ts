@@ -26,6 +26,9 @@ export class CuentaBancaria {
   }
 }
 
+// OJO: estos valores viajan como enum GraphQL (TipoCuenta en cuenta-bancaria.graphqls) —
+// tienen que ser el string literal, no el índice numérico por defecto de TS.
 export enum TipoCuenta {
-  CUENTA_CORRIENTE, CAJA_DE_AHORRO
+  CUENTA_CORRIENTE = 'CUENTA_CORRIENTE',
+  CAJA_DE_AHORRO = 'CAJA_DE_AHORRO'
 }

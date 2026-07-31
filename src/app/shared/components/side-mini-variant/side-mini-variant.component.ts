@@ -75,6 +75,10 @@ import { DevolucionComponent } from '../../../modules/operaciones/devolucion/dev
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { TesoreriaDashboardComponent } from '../../../modules/financiero/tesoreria-dashboard/tesoreria-dashboard.component';
+import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
+import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
+import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
 
 
 interface BaseNavigationItem {
@@ -418,6 +422,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
         },
         {
+          name: 'Dashboard de Tesorería',
+          icon: 'dashboard',
+          action: 'tesoreria-dashboard',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Operaciones Financieras',
+          icon: 'sync_alt',
+          action: 'list-operacion-financiera',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        },
+        {
           name: 'Análisis de diferencias',
           icon: 'equalizer',
           action: 'analisis-diferencias',
@@ -510,9 +526,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       name: 'Bancario',
       icon: 'account_balance_wallet',
       isExpanded: false,
-      items: [],
+      items: [
+        {
+          name: 'Cuentas Bancarias',
+          icon: 'account_balance',
+          action: 'list-cuentas-bancarias',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Bancos',
+          icon: 'business',
+          action: 'list-bancos',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+        }
+      ],
       requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN]
+      visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
     },
     {
       name: 'Vehículos',
@@ -871,6 +900,34 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-caja-virtual":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "tesoreria-dashboard":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(TesoreriaDashboardComponent, "Dashboard Tesorería", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-operacion-financiera":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListOperacionFinancieraComponent, "Operaciones Financieras", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-cuentas-bancarias":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(CuentaBancariaComponent, "Cuentas Bancarias", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-bancos":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(BancoComponent, "Bancos", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
