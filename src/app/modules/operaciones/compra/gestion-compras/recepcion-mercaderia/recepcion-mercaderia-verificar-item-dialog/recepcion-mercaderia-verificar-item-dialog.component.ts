@@ -514,10 +514,6 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     return this.verificarForm.get(`dist_${index}_vencimiento`);
   }
 
-  getFechaRetiroControl(index: number) {
-    return this.verificarForm.get(`dist_${index}_fechaRetiro`);
-  }
-
   getLoteControl(index: number) {
     return this.verificarForm.get(`dist_${index}_lote`);
   }
