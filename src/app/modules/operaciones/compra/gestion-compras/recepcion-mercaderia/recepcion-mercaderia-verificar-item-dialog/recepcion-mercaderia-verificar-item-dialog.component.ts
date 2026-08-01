@@ -23,6 +23,8 @@ interface DistribucionFormData {
   cantidadEsperada: number;
   cantidadRecibida: number;
   vencimiento: Date | null;
+  /** Opcional. Vacía deja que el backend derive el retiro de los días de vencimiento. */
+  fechaRetiro: Date | null;
   lote: string;
   observaciones: string;
   motivoModificacion: MotivoModificacion | null;
@@ -72,6 +74,11 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   requiereLoteComputed = false;
   requiereVencimientoComputed = false;
   mostrarInformacionAdicionalComputed = false;
+  /**
+   * La fecha de retiro vive en el maestro `operaciones.lote`. Sin número de lote no se crea esa
+   * fila, así que el campo no tendría dónde guardarse: se muestra solo con control de lote.
+   */
+  mostrarFechaRetiroComputed = false;
   presentacionSeleccionadaComputed: Presentacion | null = null;
   cantidadPorUnidadComputed = 0;
   loadingPresentaciones = false;
@@ -110,8 +117,27 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   private resolverRequisitosDeLote(): void {
     this.requiereLoteComputed = this.item?.producto?.lote === true;
     this.requiereVencimientoComputed = this.item?.producto?.vencimiento === true;
+    this.mostrarFechaRetiroComputed = this.requiereLoteComputed;
     this.mostrarInformacionAdicionalComputed =
       this.requiereLoteComputed || this.requiereVencimientoComputed;
+  }
+
+  /**
+   * El scalar Date del backend serializa como "yyyy-MM-dd HH:mm" (con espacio, no 'T'). El
+   * NativeDateAdapter de Material valida contra un regex ISO-8601 estricto, así que ese string
+   * cae como fecha inválida y el datepicker se renderiza vacío. Por eso el vencimiento que venía
+   * del pedido nunca aparecía precargado.
+   */
+  private normalizarFecha(valor: Date | string | null | undefined): Date | null {
+    if (!valor) {
+      return null;
+    }
+    if (valor instanceof Date) {
+      return isNaN(valor.getTime()) ? null : valor;
+    }
+    const parseable = valor.includes(' ') ? valor.replace(' ', 'T') : valor;
+    const fecha = new Date(parseable);
+    return isNaN(fecha.getTime()) ? null : fecha;
   }
 
   ngOnDestroy(): void {
@@ -199,7 +225,8 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
         sucursalNombre: sucursal.nombre,
         cantidadEsperada: 0, // Se calculará basado en la presentación
         cantidadRecibida: 0, // Se calculará basado en la presentación
-        vencimiento: this.item.vencimientoEnNota,
+        vencimiento: this.normalizarFecha(this.item.vencimientoEnNota),
+        fechaRetiro: null,
         lote: '',
         observaciones: '',
         motivoModificacion: null,
@@ -217,7 +244,8 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           sucursalNombre: dist.sucursalEntrega.nombre,
           cantidadEsperada: cantidadEnPresentacion,
           cantidadRecibida: cantidadEnPresentacion, // Pre-cargar con cantidad esperada
-          vencimiento: this.item.vencimientoEnNota,
+          vencimiento: this.normalizarFecha(this.item.vencimientoEnNota),
+          fechaRetiro: null,
           lote: '',
           observaciones: '',
           motivoModificacion: null,
@@ -249,6 +277,9 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
         : [Validators.maxLength(50)];
 
       formControls[`${prefix}_vencimiento`] = [dist.vencimiento];
+      // Sin validadores: la carga es opcional y una fecha de retiro posterior al vencimiento es
+      // válida (es el momento en que la mercadería se da de baja).
+      formControls[`${prefix}_fechaRetiro`] = [dist.fechaRetiro];
       formControls[`${prefix}_lote`] = ['', validadoresLote];
       formControls[`${prefix}_observaciones`] = ['', [Validators.maxLength(500)]];
       formControls[`${prefix}_motivoModificacion`] = [null];
@@ -316,6 +347,7 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
       dist.cantidadRecibida = cantidadRecibida;
       dist.tieneDiscrepancia = cantidadRecibida !== dist.cantidadEsperada;
       dist.vencimiento = this.verificarForm.get(`dist_${index}_vencimiento`)?.value;
+      dist.fechaRetiro = this.verificarForm.get(`dist_${index}_fechaRetiro`)?.value || null;
       dist.lote = this.verificarForm.get(`dist_${index}_lote`)?.value || '';
       dist.observaciones = this.verificarForm.get(`dist_${index}_observaciones`)?.value || '';
       dist.motivoModificacion = this.verificarForm.get(`dist_${index}_motivoModificacion`)?.value;
@@ -385,6 +417,9 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
       if (this.requiereVencimientoComputed) {
         this.navigationFields.push(`${prefix}_vencimiento`);
       }
+      if (this.mostrarFechaRetiroComputed) {
+        this.navigationFields.push(`${prefix}_fechaRetiro`);
+      }
       if (this.requiereLoteComputed) {
         this.navigationFields.push(`${prefix}_lote`);
       }
@@ -452,6 +487,7 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           sucursalId: dist.sucursalId,
           cantidadRecibida: cantidadEnUnidadesBase, // Convertir a unidades base para el backend
           vencimiento: dist.vencimiento,
+          fechaRetiro: dist.fechaRetiro,
           lote: dist.lote ? dist.lote.trim().toUpperCase() : '',
           observaciones: dist.observaciones,
           motivoModificacion: dist.motivoModificacion,
@@ -476,6 +512,10 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
 
   getVencimientoControl(index: number) {
     return this.verificarForm.get(`dist_${index}_vencimiento`);
+  }
+
+  getFechaRetiroControl(index: number) {
+    return this.verificarForm.get(`dist_${index}_fechaRetiro`);
   }
 
   getLoteControl(index: number) {

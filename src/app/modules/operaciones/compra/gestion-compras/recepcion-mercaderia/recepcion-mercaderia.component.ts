@@ -1747,7 +1747,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               // Trazabilidad por lote: el diálogo captura estos datos por sucursal y el backend
               // los usa para generar el desglose de stock por lote al finalizar la recepción.
               lote: distDialogo.lote ? distDialogo.lote.trim().toUpperCase() : null,
-              vencimientoRecibido: dateToString(distDialogo.vencimiento)
+              vencimientoRecibido: dateToString(distDialogo.vencimiento),
+              // Opcional: si va null el backend sigue derivando el retiro de los días de
+              // vencimiento del producto, que es el comportamiento histórico.
+              fechaRetiro: dateToString(distDialogo.fechaRetiro)
             };
 
             // Si se encontró la distribución, incluir su ID para vinculación directa

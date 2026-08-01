@@ -151,6 +151,22 @@
 
                       <mat-form-field
                         appearance="outline"
+                        class="vencimiento-field"
+                        *ngIf="mostrarFechaRetiroComputed">
+                        <mat-label>Fecha de Retiro</mat-label>
+                        <input
+                          matInput
+                          [matDatepicker]="fechaRetiroPicker"
+                          [formControlName]="'dist_' + i + '_fechaRetiro'"
+                          (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_fechaRetiro')"
+                          placeholder="DD/MM/YYYY">
+                        <mat-datepicker-toggle matSuffix [for]="fechaRetiroPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #fechaRetiroPicker></mat-datepicker>
+                        <mat-hint>Opcional. Vacío = se calcula por días de vencimiento.</mat-hint>
+                      </mat-form-field>
+
+                      <mat-form-field
+                        appearance="outline"
                         class="lote-field"
                         *ngIf="requiereLoteComputed">
                         <mat-label>Número de Lote</mat-label>
