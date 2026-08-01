@@ -1787,6 +1787,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               // Actualizar UI del item
               this.actualizarUIItemVerificadoDetallado(item, result);
 
+              // La primera verificación mueve el proceso a RECEPCION_MERCADERIA / EN_PROCESO en
+              // el backend. Sin releer esas dos propiedades el botón "Finalizar Recepción Física"
+              // sigue deshabilitado hasta salir y volver a entrar a la pantalla.
+              this.recargarPedidoYEtapa();
+
               // Notificar éxito
               this.notificacionService.openSucess('Verificación detallada completada exitosamente');
 
@@ -2433,6 +2438,34 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
       'Cerrar',
       undefined
     ).subscribe();
+  }
+
+  /**
+   * Recarga el pedido y la etapa del proceso. Hay que hacer las dos cosas: `loadEtapaActual`
+   * resuelve `etapaActualComputed` contra el backend, pero `etapaEstadoComputed` sale de
+   * `this.pedido.procesoEtapas`, así que con el pedido viejo en memoria la etapa queda a medias.
+   *
+   * Toda ruta que verifique ítems tiene que llamarlo: la primera verificación mueve el proceso a
+   * RECEPCION_MERCADERIA / EN_PROCESO, y de esas dos propiedades depende que se habilite el botón
+   * "Finalizar Recepción Física".
+   */
+  private recargarPedidoYEtapa(): void {
+    if (!this.pedidoId) {
+      this.loadEtapaActual();
+      return;
+    }
+    this.pedidoService.onGetPedidoById(this.pedidoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pedido) => {
+          this.pedido = pedido;
+          this.loadEtapaActual();
+        },
+        error: (error) => {
+          console.error('Error al recargar pedido:', error);
+          this.loadEtapaActual();
+        }
+      });
   }
 
   /**
