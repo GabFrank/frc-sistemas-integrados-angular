@@ -1,0 +1,82 @@
+// Modo oscuro siempre: la app no usa fondos claros.
+:host {
+  display: block;
+  min-width: 620px;
+}
+
+.resumen {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .resumen-etiqueta {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .resumen-valor {
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+}
+
+.modo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ayuda {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 8px;
+}
+
+.spinner {
+  margin: 24px auto;
+}
+
+.aviso {
+  background-color: rgba(255, 193, 7, 0.15);
+  border-left: 3px solid #ffc107;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.tabla-scroll {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.tabla-lotes {
+  width: 100%;
+  background-color: rgb(60, 60, 60);
+
+  th,
+  td {
+    text-align: center;
+  }
+}
+
+.input-cantidad {
+  width: 70px;
+  text-align: center;
+  background-color: rgb(45, 45, 45);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+// Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.
+.fila-vencida {
+  background-color: rgba(244, 67, 54, 0.22);
+}
+
+.fila-por-vencer {
+  background-color: rgba(255, 193, 7, 0.18);
+}
+
+.faltante {
+  margin-top: 10px;
+  color: #ffca28;
+}

@@ -1,0 +1,141 @@
+<h2 mat-dialog-title>
+  Lote — {{ productoDescripcion }}
+</h2>
+
+<mat-dialog-content>
+  <div class="resumen">
+    <span class="resumen-etiqueta">Cantidad a vender:</span>
+    <span class="resumen-valor">{{ cantidadRequerida }}</span>
+  </div>
+
+  <div
+    class="modo"
+    role="radiogroup"
+    aria-label="Modo de asignación de lote"
+  >
+    <button
+      mat-raised-button
+      type="button"
+      role="radio"
+      [attr.aria-checked]="modoFefo"
+      [color]="modoFefo ? 'primary' : null"
+      (click)="activarFefo()"
+    >
+      FEFO automático
+    </button>
+    <button
+      mat-raised-button
+      type="button"
+      role="radio"
+      [attr.aria-checked]="!modoFefo"
+      [color]="!modoFefo ? 'primary' : null"
+      [disabled]="sinLotes"
+      (click)="activarManual()"
+    >
+      Elegir lote
+    </button>
+  </div>
+
+  <p class="ayuda" *ngIf="modoFefo">
+    Se saca primero lo que vence antes. No hace falta elegir nada.
+  </p>
+
+  <mat-spinner
+    *ngIf="cargando"
+    diameter="36"
+    class="spinner"
+  ></mat-spinner>
+
+  <div class="aviso" *ngIf="!cargando && sinLotes">
+    {{ mensajeSinLotes }}
+  </div>
+
+  <div class="tabla-scroll" *ngIf="!cargando && !sinLotes && !modoFefo">
+    <table
+      mat-table
+      [dataSource]="filas"
+      class="tabla-lotes"
+    >
+      <ng-container matColumnDef="seleccion">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let fila">
+          <mat-checkbox
+            [checked]="fila.seleccionado"
+            [attr.aria-label]="'Usar lote ' + fila.numeroLote"
+            (change)="alternarLote(fila)"
+          ></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numeroLote">
+        <th mat-header-cell *matHeaderCellDef>Nº de Lote</th>
+        <td mat-cell *matCellDef="let fila">{{ fila.numeroLote }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+        <td mat-cell *matCellDef="let fila">{{ fila.vencimientoLabel }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="retiro">
+        <th mat-header-cell *matHeaderCellDef>Retiro</th>
+        <td mat-cell *matCellDef="let fila">{{ fila.retiroLabel }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="disponible">
+        <th mat-header-cell *matHeaderCellDef>Disponible</th>
+        <td mat-cell *matCellDef="let fila">{{ fila.disponibleLabel }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef>A vender</th>
+        <td mat-cell *matCellDef="let fila">
+          <input
+            matInput
+            type="number"
+            min="0"
+            [max]="fila.disponible"
+            [value]="fila.cantidad"
+            [attr.aria-label]="'Cantidad a vender del lote ' + fila.numeroLote"
+            class="input-cantidad"
+            (input)="cambiarCantidad(fila, $any($event.target).value)"
+          />
+        </td>
+      </ng-container>
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="displayedColumns"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [class]="row.clase"
+      ></tr>
+    </table>
+  </div>
+
+  <div class="faltante" *ngIf="hayFaltante">
+    {{ faltanteLabel }}
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="cancelar()"
+  >
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    type="button"
+    cdkFocusInitial
+    [disabled]="!puedeConfirmar"
+    (click)="confirmar()"
+  >
+    Confirmar
+  </button>
+</mat-dialog-actions>

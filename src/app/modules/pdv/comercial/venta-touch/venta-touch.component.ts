@@ -53,6 +53,10 @@ import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 import { SeleccionarCajaDialogComponent } from "./seleccionar-caja-dialog/seleccionar-caja-dialog.component";
 import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
 import {
+  SeleccionarLoteVentaDialogComponent,
+  SeleccionarLoteVentaDialogResult,
+} from "./seleccionar-lote-venta-dialog/seleccionar-lote-venta-dialog.component";
+import {
   SelectProductosDialogComponent,
   SelectProductosResponseData,
 } from "./select-productos-dialog/select-productos-dialog.component";
@@ -554,7 +558,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           item.producto = respuesta.producto;
           item.cantidad = respuesta.data.cantidad;
           item.precioCosto = respuesta?.producto?.costo?.ultimoPrecioCompra;
-          this.addItem(item);
+          this.agregarConLote(item);
         }
         this.dialogReference = undefined;
         this.clearBuscadorSub.next();
@@ -570,6 +574,47 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.totalGs += Math.round(+item.cantidad * +item?.precio);
       this.descuentoGs += item.valorDescuento;
     });
+  }
+
+  /**
+   * Puerta de entrada al carrito para los productos elegidos por el cajero.
+   *
+   * Para el catálogo sin control de lote llama directo a addItem: cero cambio en el camino de
+   * siempre. Para los que sí lo tienen, abre el selector antes de agregar, que es el momento en el
+   * que el cajero todavía tiene el producto en la cabeza. Cancelar no agrega el ítem.
+   */
+  agregarConLote(item: VentaItem): void {
+    if (item?.producto?.lote !== true) {
+      this.addItem(item);
+      return;
+    }
+
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(SeleccionarLoteVentaDialogComponent, {
+        data: {
+          productoId: item.producto.id,
+          productoDescripcion: item.producto.descripcion,
+          presentacionId: item.presentacion?.id,
+          sucursalId: this.mainService.sucursalActual?.id,
+          cantidad: item.cantidad,
+        },
+        disableClose: true,
+        width: "700px",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: SeleccionarLoteVentaDialogResult) => {
+        this.isDialogOpen = false;
+        if (res == null) {
+          // Cancelar es no vender el ítem, no venderlo sin lote.
+          this.buscadorFocusSub.next();
+          return;
+        }
+        item.lotes = res.lotes;
+        this.addItem(item);
+        this.buscadorFocusSub.next();
+      });
   }
 
   addItem(item: VentaItem, index?) {
@@ -618,6 +663,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (presentacionCaja != null) {
       Object.assign(item2, item);
       item2.presentacion = presentacionCaja;
+      // El POS parte la cantidad en una presentación mayor. Lo que el cajero eligió estaba
+      // expresado en la presentación original, así que no vale para esta parte: se descarta y
+      // esa porción se resuelve por FEFO.
+      item2.lotes = null;
       if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item2.precioVenta = item2.presentacion?.precios?.find(
           (precio) => precio?.principal == true && precio.activo == true
@@ -865,7 +914,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         color: NotificacionColor.warn,
       });
     } else {
-      this.addItem(item);
+      this.agregarConLote(item);
     }
     this.buscadorFocusSub.next();
     this.cantidadControl.setValue(1);

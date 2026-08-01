@@ -25,6 +25,7 @@ import { TarjetaDialogComponent } from "./comercial/venta-touch/tarjeta-dialog/t
 import { UltimasCajasDialogComponent } from './comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { UtilitariosDialogComponent } from "./comercial/venta-touch/utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchComponent } from "./comercial/venta-touch/venta-touch.component";
+import { SeleccionarLoteVentaDialogComponent } from "./comercial/venta-touch/seleccionar-lote-venta-dialog/seleccionar-lote-venta-dialog.component";
 import { VueltoDialogComponent } from "./comercial/venta-touch/vuelto-dialog/vuelto-dialog.component";
 import { BuscadorComponent } from './layout/buscador/buscador.component';
 import { FavoritosComponent } from './layout/favoritos/favoritos.component';
@@ -42,6 +43,7 @@ import { DynamicFontSizeDirective } from "../../shared/directives/dynamic-font-s
   declarations: [
     RestaurantComponent,
     VentaTouchComponent,
+    SeleccionarLoteVentaDialogComponent,
     ProductoCategoriaDialogComponent,
     EditItemDialogComponent,
     PagoTouchComponent,
