@@ -9,3 +9,8 @@ tr.example-detail-row {
 input {
     text-transform: uppercase;
 }
+
+// Mismo rojo que usa la lista de ventas para una venta cancelada.
+.cancelada {
+    background-color: #f44336;
+}
