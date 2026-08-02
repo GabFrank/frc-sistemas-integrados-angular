@@ -558,10 +558,35 @@
     <app-boton
       #btn
       color="accent"
-      [nombre]="nombreBoton"
-      [disableExpression]="selectedConteo != null"
+      [nombre]="enEdicion ? 'Guardar edición' : nombreBoton"
+      [disableExpression]="selectedConteo != null && !enEdicion"
       (clickEvent)="onButtonClick()"
       style="height: 100%"
     ></app-boton>
+    <button
+      mat-stroked-button
+      color="accent"
+      *ngIf="puedeEditar && selectedConteo != null && !enEdicion"
+      (click)="activarEdicion()"
+      style="margin-left: 10px"
+    >
+      Editar montos <mat-icon>edit</mat-icon>
+    </button>
+    <button
+      mat-stroked-button
+      *ngIf="enEdicion"
+      (click)="cancelarEdicion()"
+      style="margin-left: 10px"
+    >
+      Cancelar
+    </button>
+  </div>
+  <div
+    *ngIf="selectedConteo?.conteoAnteriorId"
+    style="width: 100%; text-align: center; font-size: 0.8em; opacity: 0.7"
+  >
+    Montos editados por
+    {{ selectedConteo?.usuario?.persona?.nombre | uppercase }}
+    el {{ selectedConteo?.creadoEn | date : "dd/MM/yyyy HH:mm" }}
   </div>
 </div>

@@ -442,6 +442,13 @@
             <button mat-menu-item (click)="onAdd(caja, i)">Ir a Caja</button>
             <button mat-menu-item (click)="irVentas(caja)">Ir a Ventas</button>
             <button mat-menu-item (click)="irObservacion(caja)">Adicionar observación</button>
+            <button
+              mat-menu-item
+              *ngIf="esAdmin && !caja?.verificado"
+              (click)="onEditarConteos(caja)"
+            >
+              Editar montos de caja
+            </button>
           </mat-menu>
         </td>
       </ng-container>

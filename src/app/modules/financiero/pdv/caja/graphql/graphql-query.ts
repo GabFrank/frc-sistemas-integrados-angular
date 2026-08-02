@@ -227,10 +227,18 @@ export const cajaQuery = gql`
           nombre
         }
       }
+      verificado
       conteoApertura {
         id
         observacion
         creadoEn
+        conteoAnteriorId
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
         conteoMonedaList {
           id
           monedaBilletes {
@@ -248,6 +256,13 @@ export const cajaQuery = gql`
         id
         observacion
         creadoEn
+        conteoAnteriorId
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
         conteoMonedaList {
           id
           monedaBilletes {
