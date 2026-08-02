@@ -13,7 +13,7 @@ import {
   OnDestroy,
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
-import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { Observable, Subscription } from "rxjs";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
@@ -41,6 +41,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
 import { MainService } from '../../../../main.service';
+import { HistorialConteoDialogComponent } from '../historial-conteo-dialog/historial-conteo-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -113,7 +114,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     private conteoService: ConteoService,
     private dialogService: DialogosService,
     private cajaService: CajaService,
-    private mainService: MainService
+    private mainService: MainService,
+    private matDialog: MatDialog
   ) { }
 
   ngOnInit(): void {
@@ -162,6 +164,23 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         this.guardarConteo(this.createMonedaBilletes(), this.apertura)
       }
     }, 1000);
+  }
+
+  /** Abre la comparacion entre la version vigente del conteo y la que reemplazo. */
+  verHistorial() {
+    const conteoAnterior = this.selectedConteo?.conteoAnterior;
+    if (conteoAnterior == null) return;
+    this.matDialog.open(HistorialConteoDialogComponent, {
+      data: {
+        conteoActual: this.selectedConteo,
+        conteoAnterior,
+        apertura: this.apertura,
+      },
+      width: "520px",
+      maxWidth: "95vw",
+      autoFocus: false,
+      restoreFocus: true,
+    });
   }
 
   activarEdicion() {
@@ -443,9 +462,11 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 this.gsFormGroup.disable();
                 this.rsFormGroup.disable();
                 this.dsFormGroup.disable();
-                // El conteo nuevo todavia no llego por replicacion al central: se refleja en memoria.
+                // El conteo nuevo todavia no llego por replicacion al central: se refleja en memoria,
+                // incluyendo el enlace a la version reemplazada para poder abrir el historial.
                 conteo.conteoAnteriorId = conteoAnteriorId;
                 conteo.creadoEn = new Date();
+                conteo.conteoAnterior = this.selectedConteo;
                 this.selectedConteo = conteo;
                 if (apertura) {
                   this.cajaService.selectedCaja.conteoApertura = conteo;

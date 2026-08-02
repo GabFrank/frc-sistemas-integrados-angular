@@ -44,3 +44,24 @@
     transform: translateY(-10px) !important;
   }
 }
+
+// La botonera crece segun cuantas acciones esten visibles (guardar / editar / cancelar /
+// historial). Sin alto fijo, porque con mas de un boton se recortaban contra el borde.
+.acciones-conteo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 8px 4px;
+  box-sizing: border-box;
+
+  button mat-icon {
+    margin-right: 4px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+  }
+}

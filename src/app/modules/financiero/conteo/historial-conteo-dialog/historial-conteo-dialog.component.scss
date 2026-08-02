@@ -1,0 +1,158 @@
+// Dialogo de solo lectura: la unica jerarquia visual que importa es "que cambio".
+// Las filas sin cambio quedan atenuadas para que las corregidas salten a la vista.
+
+.historial {
+  width: 100%;
+  min-width: 0;
+  padding: 16px 20px;
+  box-sizing: border-box;
+
+  &__encabezado {
+    margin-bottom: 12px;
+
+    h3 {
+      margin: 0;
+    }
+  }
+
+  &__subtitulo {
+    font-size: 0.85em;
+    opacity: 0.7;
+  }
+
+  &__cuerpo {
+    max-height: 55vh;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+
+  &__sin-cambios {
+    padding: 8px 0;
+    font-size: 0.85em;
+    opacity: 0.7;
+  }
+
+  &__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  &__autor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    opacity: 0.8;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.comparacion {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    font-size: 0.75em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  tbody tr {
+    opacity: 0.45;
+  }
+
+  &__fila--cambiada {
+    opacity: 1;
+
+    .comparacion__delta {
+      color: #ffd54f;
+    }
+  }
+
+  &__denominacion {
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  &__moneda {
+    font-size: 0.7em;
+    opacity: 0.6;
+    margin-left: 4px;
+  }
+
+  &__numero {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__delta {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    width: 60px;
+  }
+}
+
+.totales {
+  margin-top: 14px;
+
+  &__fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+  }
+
+  &__etiqueta {
+    min-width: 70px;
+    font-size: 0.8em;
+    opacity: 0.7;
+  }
+
+  &__valor {
+    font-variant-numeric: tabular-nums;
+
+    &--anterior {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+  }
+
+  &__flecha {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.5;
+  }
+
+  &__delta {
+    font-variant-numeric: tabular-nums;
+    color: #81c784;
+
+    &--baja {
+      color: #ef9a9a;
+    }
+  }
+}
