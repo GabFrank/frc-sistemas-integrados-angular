@@ -1,71 +1,91 @@
-<div class="fin-container">
+<div class="dash-container">
 
-  <div class="fin-header">
-    <h1>Financiero</h1>
-    <button mat-icon-button (click)="recargar()" matTooltip="Refrescar"><mat-icon>refresh</mat-icon></button>
+  <!-- Header -->
+  <div class="dash-header">
+    <div class="dash-header-title">
+      <h1 class="dash-title">Financiero</h1>
+      <span class="dash-subtitle">Panel de control financiero</span>
+    </div>
+    <div class="dash-header-actions">
+      <button mat-icon-button [disabled]="cargando" matTooltip="Actualizar" (click)="cargar()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
   </div>
 
-  <!-- KPIs: saldo consolidado por moneda -->
-  <div class="kpi-row">
-    <div class="kpi-card" *ngFor="let s of saldoList">
-      <div class="kpi-label">{{ s.moneda }}</div>
-      <div class="kpi-value">{{ s.total | number:'1.0-2' }}</div>
-      <div class="kpi-sub">Efectivo {{ s.efectivo | number:'1.0-2' }} · Banco {{ s.banco | number:'1.0-2' }}</div>
-    </div>
-    <div class="kpi-card kpi-alert" *ngIf="aging?.vencido">
-      <div class="kpi-label">CPP Vencido</div>
-      <div class="kpi-value" style="color:#f44336;">{{ aging.vencido | number:'1.0-2' }}</div>
-      <div class="kpi-sub">Por vencer {{ aging.porVencer | number:'1.0-2' }}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Cajas activas</div>
-      <div class="kpi-value">{{ cajasActivas.length }}</div>
-      <div class="kpi-sub">Vencimientos 30d: {{ vencimientoList.length }}</div>
-    </div>
+  <!-- KPIs -->
+  <div class="dash-stats-row">
+    <dash-stat-chip
+      *ngFor="let kpi of kpis"
+      [icon]="kpi.icon"
+      [color]="kpi.color"
+      [label]="kpi.label"
+      [value]="kpi.value"
+      [loading]="cargando"
+    ></dash-stat-chip>
   </div>
 
   <!-- Accesos rápidos -->
-  <div class="accesos-row">
-    <button class="acceso-btn" *ngFor="let a of accesos" [style.border-left-color]="a.color" (click)="onAcceso(a.accion)">
-      <mat-icon [style.color]="a.color">{{ a.icono }}</mat-icon>
-      <span>{{ a.titulo }}</span>
-    </button>
+  <div class="dash-quick-actions">
+    <dash-quick-action
+      *ngFor="let a of accesos"
+      [icon]="a.icon"
+      [title]="a.title"
+      [color]="a.color"
+      (action)="onAcceso(a.accion)"
+    ></dash-quick-action>
   </div>
 
-  <div class="fin-grid">
-    <!-- Cajas activas -->
-    <div class="fin-panel">
-      <div class="panel-title">Cajas</div>
-      <div class="caja-cards">
-        <mat-card class="caja-card" *ngFor="let c of cajasActivas" (click)="abrirCaja(c)">
-          <mat-icon>account_balance_wallet</mat-icon>
-          <div class="caja-info">
-            <div class="caja-nombre">{{ c.nombre }}</div>
-            <div class="caja-saldo">Gs. {{ c.saldoGs | number:'1.0-0' }}</div>
-          </div>
-          <mat-icon class="open-icon">open_in_new</mat-icon>
-        </mat-card>
-        <div *ngIf="cajasActivas.length === 0" class="empty">No hay cajas activas</div>
-      </div>
+  <!-- Contenido -->
+  <div class="dash-main">
+    <!-- Gráfico (izquierda) -->
+    <div class="dash-col">
+      <dash-chart-card
+        icon="bar_chart"
+        title="Saldo por moneda (efectivo vs banco)"
+        [opciones]="serieOpciones"
+        [cargando]="cargando"
+        [hayDatos]="serieHayDatos"
+        alturaMinima="320px"
+      ></dash-chart-card>
     </div>
 
-    <!-- Próximos vencimientos -->
-    <div class="fin-panel">
-      <div class="panel-title">Próximos vencimientos (30 días)</div>
-      <div class="venc-list">
-        <div class="venc-item" *ngFor="let v of vencimientoList">
-          <div class="venc-desc">
-            <span class="venc-tipo">{{ v.tipo }}</span> {{ v.descripcion }}
-          </div>
-          <div class="venc-right">
-            <div class="venc-monto">{{ v.monto | number:'1.0-2' }}</div>
-            <div class="venc-dias" [style.color]="v.vencido ? '#f44336' : '#ff9800'">
-              {{ v.vencido ? 'Vencido' : (v.diasRestantes + ' días') }}
+    <!-- Cajas (compacto) + Próximos vencimientos (derecha) -->
+    <div class="dash-col">
+      <div class="dash-card">
+        <div class="dash-section-header">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span class="dash-section-title">Cajas</span>
+        </div>
+        <div *ngIf="!cajaCards.length" class="dash-empty">
+          <mat-icon>info</mat-icon>
+          <span>No hay cajas activas</span>
+        </div>
+        <div class="dash-ranking-list" *ngIf="cajaCards.length">
+          <div
+            *ngFor="let c of cajaCards"
+            class="dash-ranking-item"
+            matTooltip="Abrir caja"
+            (click)="abrirCaja(c.caja)"
+          >
+            <div class="dash-ranking-info">
+              <div class="dash-ranking-name-row">
+                <span class="dash-ranking-name">{{ c.caja.nombre }}</span>
+                <span class="dash-ranking-secondary">{{ c.saldoLabel }}</span>
+              </div>
             </div>
+            <mat-icon style="opacity: 0.5;">open_in_new</mat-icon>
           </div>
         </div>
-        <div *ngIf="vencimientoList.length === 0" class="empty">Sin vencimientos próximos</div>
       </div>
+
+      <dash-ranking-list
+        icon="event"
+        title="Próximos vencimientos (30 días)"
+        [items]="vencimientoItems"
+        emptyText="Sin vencimientos próximos"
+        maxAlto="300px"
+      ></dash-ranking-list>
     </div>
   </div>
 </div>

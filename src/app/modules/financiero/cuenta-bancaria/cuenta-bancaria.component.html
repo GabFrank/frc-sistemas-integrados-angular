@@ -1,83 +1,115 @@
-<div style="padding: 16px;">
+<app-generic-list
+  titulo="Cuentas Bancarias"
+  style="height: 100%"
+  [isAdicionar]="puedeGestionar"
+  (adicionar)="onAdd()"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="onResetFiltro()">
 
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-    <h2 class="titulo-color" style="margin: 0;">CUENTAS BANCARIAS</h2>
-    <button *ngIf="puedeGestionar" mat-raised-button color="primary" (click)="onAdd()">
-      <mat-icon>add</mat-icon>
-      Nueva Cuenta
-    </button>
+  <!-- Filtros -->
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <mat-form-field appearance="outline" fxFlex="240px">
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="buscarControl" (keyup.enter)="onFiltrar()" placeholder="Nombre, N°, banco, alias" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" fxFlex="180px">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipoCuentaControl">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option *ngFor="let t of tipoCuentaList" [value]="t.value">{{ t.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" fxFlex="160px">
+      <mat-label>Operable</mat-label>
+      <mat-select [formControl]="operableControl">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option [value]="true">Operables</mat-option>
+        <mat-option [value]="false">No operables</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" fxFlex="150px">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="activoControl">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activas</mat-option>
+        <mat-option [value]="false">Inactivas</mat-option>
+      </mat-select>
+    </mat-form-field>
   </div>
 
-  <div class="table-wrap">
-    <table mat-table [dataSource]="dataSource" class="mat-elevation-z1">
+  <!-- Tabla -->
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" style="width: 100%;">
 
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>ID</th>
-        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">ID</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.id }}</td>
       </ng-container>
 
       <ng-container matColumnDef="nombre">
-        <th mat-header-cell *matHeaderCellDef>Nombre</th>
-        <td mat-cell *matCellDef="let row">{{ row.nombre || '-' }}</td>
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Nombre</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.nombre || '-' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="numero">
-        <th mat-header-cell *matHeaderCellDef>N° Cuenta</th>
-        <td mat-cell *matCellDef="let row">{{ row.numero }}</td>
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">N° Cuenta</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.numero }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="banco">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Banco</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.banco?.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="titular">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Titular</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.titular || row.persona?.nombre || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="moneda">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Moneda</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.moneda?.simbolo || row.moneda?.denominacion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoCuenta">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Tipo</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">{{ tipoCuentaLabels[row.tipoCuenta] || row.tipoCuenta }}</td>
       </ng-container>
 
       <ng-container matColumnDef="operable">
-        <th mat-header-cell *matHeaderCellDef>Operable</th>
-        <td mat-cell *matCellDef="let row">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Operable</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">
           <mat-icon [style.color]="row.disponibleOperacionesFinancieras !== false ? '#4caf50' : '#9e9e9e'">
             {{ row.disponibleOperacionesFinancieras !== false ? 'check_circle' : 'block' }}
           </mat-icon>
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="banco">
-        <th mat-header-cell *matHeaderCellDef>Banco</th>
-        <td mat-cell *matCellDef="let row">{{ row.banco?.nombre }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="titular">
-        <th mat-header-cell *matHeaderCellDef>Titular</th>
-        <td mat-cell *matCellDef="let row">{{ row.persona?.nombre }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="moneda">
-        <th mat-header-cell *matHeaderCellDef>Moneda</th>
-        <td mat-cell *matCellDef="let row">{{ row.moneda?.simbolo || row.moneda?.denominacion }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="tipoCuenta">
-        <th mat-header-cell *matHeaderCellDef>Tipo</th>
-        <td mat-cell *matCellDef="let row">{{ tipoCuentaLabels[row.tipoCuenta] || row.tipoCuenta }}</td>
-      </ng-container>
-
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef>Acciones</th>
-        <td mat-cell *matCellDef="let row">
-          <button mat-icon-button matTooltip="Ver movimientos" (click)="onVerMovimientos(row)">
-            <mat-icon>receipt_long</mat-icon>
+        <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
+        <td mat-cell *matCellDef="let row" style="text-align: center;">
+          <button mat-icon-button [matMenuTriggerFor]="menu">
+            <mat-icon>more_vert</mat-icon>
           </button>
-          <button *ngIf="puedeGestionar" mat-icon-button matTooltip="Editar" (click)="onEdit(row)">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button *ngIf="puedeGestionar" mat-icon-button matTooltip="Eliminar" (click)="onDelete(row)">
-            <mat-icon color="warn">delete</mat-icon>
-          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onVerMovimientos(row)">
+              <mat-icon>receipt_long</mat-icon><span>Ver movimientos</span>
+            </button>
+            <button mat-menu-item (click)="onEdit(row)" [disabled]="!puedeGestionar">
+              <mat-icon>edit</mat-icon><span>Editar</span>
+            </button>
+            <button mat-menu-item (click)="onDelete(row)" [disabled]="!puedeGestionar">
+              <mat-icon>delete</mat-icon><span>Eliminar</span>
+            </button>
+          </mat-menu>
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
-
-    <div *ngIf="dataSource.data.length === 0 && !isSearching" class="empty-state">
-      <mat-icon>inbox</mat-icon>
-      <span>Sin cuentas bancarias registradas</span>
-    </div>
   </div>
-
-</div>
+</app-generic-list>

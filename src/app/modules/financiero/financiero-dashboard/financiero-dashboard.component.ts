@@ -14,13 +14,13 @@ import { CuentaBancariaComponent } from '../cuenta-bancaria/cuenta-bancaria.comp
 import { BancoComponent } from '../banco/banco.component';
 import { MonedaComponent } from '../moneda/moneda.component';
 import { MainService } from '../../../main.service';
+import { DashRankingItem } from '../../../shared/components/dashboard/dash-ranking-list/dash-ranking-list.component';
+import { EChartsOption } from 'echarts';
+import { GRAFICO_COLORES, formatoEjeCompacto } from '../../../shared/utils/grafico-echarts.theme';
 
-interface AccesoRapido {
-  titulo: string;
-  icono: string;
-  color: string;
-  accion: string;
-}
+interface KpiItem { icon: string; color: string; label: string; value: string; }
+interface AccesoItem { icon: string; title: string; color: string; accion: string; }
+interface CajaCard { caja: CajaVirtual; saldoLabel: string; }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,20 +30,25 @@ interface AccesoRapido {
 })
 export class FinancieroDashboardComponent implements OnInit {
 
-  saldoList: SaldoTesoreria[] = [];
-  vencimientoList: VencimientoTesoreria[] = [];
-  aging: AgingTesoreria = new AgingTesoreria();
-  cajasActivas: CajaVirtual[] = [];
+  cargando = false;
 
-  isLoading = false;
+  kpis: KpiItem[] = [];
+  vencimientoItems: DashRankingItem[] = [];
+  cajaCards: CajaCard[] = [];
 
-  accesos: AccesoRapido[] = [
-    { titulo: 'Operaciones Financieras', icono: 'sync_alt', color: '#6a1b9a', accion: 'operaciones' },
-    { titulo: 'Cuentas Bancarias', icono: 'account_balance', color: '#1565c0', accion: 'cuentas' },
-    { titulo: 'Bancos', icono: 'business', color: '#00838f', accion: 'bancos' },
-    { titulo: 'Monedas', icono: 'paid', color: '#2e7d32', accion: 'monedas' },
-    { titulo: 'Todas las Cajas', icono: 'account_balance_wallet', color: '#e65100', accion: 'cajas' },
+  // Gráfico: saldo por moneda (efectivo vs banco)
+  serieOpciones: EChartsOption | null = null;
+  serieHayDatos = false;
+
+  accesos: AccesoItem[] = [
+    { icon: 'sync_alt', title: 'Operaciones Financieras', color: '#6a1b9a', accion: 'operaciones' },
+    { icon: 'account_balance', title: 'Cuentas Bancarias', color: '#1565c0', accion: 'cuentas' },
+    { icon: 'business', title: 'Bancos', color: '#00838f', accion: 'bancos' },
+    { icon: 'paid', title: 'Monedas', color: '#2e7d32', accion: 'monedas' },
+    { icon: 'account_balance_wallet', title: 'Todas las Cajas', color: '#e65100', accion: 'cajas' },
   ];
+
+  private fmt = new Intl.NumberFormat('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   constructor(
     private tesoreriaReporteService: TesoreriaReporteService,
@@ -53,23 +58,84 @@ export class FinancieroDashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.recargar();
+    this.cargar();
   }
 
-  recargar() {
-    this.isLoading = true;
+  cargar() {
+    this.cargando = true;
     forkJoin({
       saldo: this.tesoreriaReporteService.onGetSaldoConsolidado(),
       vencimientos: this.tesoreriaReporteService.onGetProximosVencimientos(30),
       aging: this.tesoreriaReporteService.onGetAgingCpp(),
       cajas: this.cajaVirtualService.onGetActivas(),
     }).pipe(untilDestroyed(this)).subscribe(res => {
-      this.isLoading = false;
-      this.saldoList = res.saldo || [];
-      this.vencimientoList = (res.vencimientos || []).map(v => ({ ...v, vencido: v.diasRestantes < 0 }));
-      this.aging = res.aging || new AgingTesoreria();
-      this.cajasActivas = res.cajas || [];
+      this.cargando = false;
+      const saldos = res.saldo || [];
+      this.armarKpis(saldos, res.aging || new AgingTesoreria(), (res.cajas || []).length);
+      this.vencimientoItems = (res.vencimientos || []).map(v => this.toRankingItem(v));
+      this.cajaCards = (res.cajas || []).map(c => ({ caja: c, saldoLabel: 'Gs. ' + this.fmt.format(c.saldoGs || 0) }));
+      this.armarGrafico(saldos);
     });
+  }
+
+  /** Gráfico de barras: efectivo vs banco por moneda (usa saldoConsolidado). */
+  private armarGrafico(saldos: SaldoTesoreria[]) {
+    this.serieHayDatos = saldos.some(s => (s.efectivo || 0) !== 0 || (s.banco || 0) !== 0);
+    if (!this.serieHayDatos) { this.serieOpciones = null; return; }
+    const monedas = saldos.map(s => s.moneda);
+    this.serieOpciones = {
+      backgroundColor: 'transparent',
+      grid: { top: 30, right: 20, bottom: 30, left: 55 },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Efectivo', 'Banco'], textStyle: { color: GRAFICO_COLORES.textSecondary, fontSize: 13 }, top: 0 },
+      xAxis: {
+        type: 'category',
+        data: monedas,
+        axisLabel: { color: GRAFICO_COLORES.textSecondary, fontSize: 13 },
+        axisLine: { lineStyle: { color: GRAFICO_COLORES.axisLine } },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: GRAFICO_COLORES.textSecondary, fontSize: 13, formatter: (v: number) => formatoEjeCompacto(v) },
+        splitLine: { lineStyle: { color: GRAFICO_COLORES.splitLine } },
+      },
+      series: [
+        { name: 'Efectivo', type: 'bar', data: saldos.map(s => s.efectivo || 0),
+          itemStyle: { color: GRAFICO_COLORES.primary, borderRadius: [3, 3, 0, 0] }, barMaxWidth: 32 },
+        { name: 'Banco', type: 'bar', data: saldos.map(s => s.banco || 0),
+          itemStyle: { color: GRAFICO_COLORES.accent, borderRadius: [3, 3, 0, 0] }, barMaxWidth: 32 },
+      ],
+    };
+  }
+
+  private armarKpis(saldos: SaldoTesoreria[], aging: AgingTesoreria, cajasActivas: number) {
+    const kpis: KpiItem[] = saldos.map(s => ({
+      icon: 'account_balance_wallet',
+      color: (s.total || 0) < 0 ? 'error' : 'primary',
+      label: s.moneda,
+      value: this.fmt.format(s.total || 0),
+    }));
+    kpis.push({
+      icon: 'warning',
+      color: (aging.vencido || 0) > 0 ? 'error' : 'success',
+      label: 'CPP Vencido',
+      value: this.fmt.format(aging.vencido || 0),
+    });
+    kpis.push({
+      icon: 'savings',
+      color: 'info',
+      label: 'Cajas Activas',
+      value: String(cajasActivas),
+    });
+    this.kpis = kpis;
+  }
+
+  private toRankingItem(v: VencimientoTesoreria): DashRankingItem {
+    return {
+      nombre: `${v.tipo} · ${v.descripcion}`,
+      valorPrincipal: this.fmt.format(v.monto || 0),
+      valorSecundario: v.diasRestantes < 0 ? 'Vencido' : `${v.diasRestantes} días`,
+    };
   }
 
   onAcceso(accion: string) {
