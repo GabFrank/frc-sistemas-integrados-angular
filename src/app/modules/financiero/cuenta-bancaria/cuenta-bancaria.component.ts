@@ -25,7 +25,7 @@ export class CuentaBancariaComponent implements OnInit {
   // Nota: el backend (cuenta-bancaria.graphqls) todavía no expone saldo/saldoReservado
   // en el tipo CuentaBancaria — ver reporte final. No se agregan esas columnas acá para
   // no pedir campos inexistentes en el schema.
-  displayedColumns = ['id', 'numero', 'banco', 'titular', 'moneda', 'tipoCuenta', 'acciones'];
+  displayedColumns = ['id', 'nombre', 'numero', 'banco', 'titular', 'moneda', 'tipoCuenta', 'operable', 'acciones'];
 
   puedeGestionar = false;
 

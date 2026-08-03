@@ -3,12 +3,14 @@ import gql from 'graphql-tag';
 const cuentaBancariaFields = `
   id
   numero
+  nombre
   tipoCuenta
   saldo
   saldoReservado
   titular
   alias
   activo
+  disponibleOperacionesFinancieras
   permiteSaldoNegativo
   persona {
     id
@@ -31,6 +33,14 @@ const cuentaBancariaFields = `
 export const cuentasBancariasQuery = gql`
   query ($page: Int, $size: Int) {
     data: cuentasBancarias(page: $page, size: $size) {
+      ${cuentaBancariaFields}
+    }
+  }
+`;
+
+export const cuentasBancariasOperablesQuery = gql`
+  query {
+    data: cuentasBancariasOperables {
       ${cuentaBancariaFields}
     }
   }

@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { CuentaBancaria } from './cuenta-bancaria.model';
 import { CuentasBancariasGQL } from './graphql/cuentasBancarias';
+import { CuentasBancariasOperablesGQL } from './graphql/cuentasBancariasOperables';
 import { SaveCuentaBancariaGQL } from './graphql/saveCuentaBancaria';
 import { DeleteCuentaBancariaGQL } from './graphql/deleteCuentaBancaria';
 
@@ -14,12 +15,18 @@ export class CuentaBancariaService {
   constructor(
     private genericService: GenericCrudService,
     private cuentasBancariasGQL: CuentasBancariasGQL,
+    private cuentasBancariasOperablesGQL: CuentasBancariasOperablesGQL,
     private saveCuentaBancariaGQL: SaveCuentaBancariaGQL,
     private deleteCuentaBancariaGQL: DeleteCuentaBancariaGQL,
   ) { }
 
   onGetAll(page = 0, size = 100): Observable<CuentaBancaria[]> {
     return this.genericService.onCustomQuery(this.cuentasBancariasGQL, { page, size });
+  }
+
+  /** Solo cuentas propias operables en tesorería (activas + disponibles para operaciones). */
+  onGetAllOperables(): Observable<CuentaBancaria[]> {
+    return this.genericService.onCustomQuery(this.cuentasBancariasOperablesGQL, {});
   }
 
   onSave(cuentaBancaria: CuentaBancaria): Observable<CuentaBancaria> {

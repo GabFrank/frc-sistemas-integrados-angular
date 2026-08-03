@@ -12,6 +12,8 @@ import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { ConfigurarCajaVirtualDialogComponent } from '../configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
+import { RegistrarIngresoDialogComponent } from '../registrar-ingreso-dialog/registrar-ingreso-dialog.component';
+import { RegistrarEgresoDialogComponent } from '../registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
@@ -50,7 +52,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   pageIndex = 0;
   pageSize = 15;
   selectedPageInfo: PageInfo<MovimientoCajaVirtual>;
-  displayedColumns = ['creadoEn', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
+  displayedColumns = ['creadoEn', 'responsable', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
 
   // Filtros de movimientos
   desdeControl = new FormControl();
@@ -182,14 +184,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
   // ---- Acciones ----
 
   onIngreso() {
-    const dialogData: MovimientoDialogData = { cajaVirtual: this.cajaVirtual, tipoMovimiento: CajaVirtualTipoMovimiento.INGRESO };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data: dialogData })
+    this.dialog.open(RegistrarIngresoDialogComponent, { width: '440px', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onEgreso() {
-    const dialogData: MovimientoDialogData = { cajaVirtual: this.cajaVirtual, tipoMovimiento: CajaVirtualTipoMovimiento.EGRESO };
-    this.dialog.open(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data: dialogData })
+    this.dialog.open(RegistrarEgresoDialogComponent, { width: '440px', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 

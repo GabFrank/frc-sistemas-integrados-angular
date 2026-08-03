@@ -16,9 +16,23 @@
         <td mat-cell *matCellDef="let row">{{ row.id }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let row">{{ row.nombre || '-' }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="numero">
         <th mat-header-cell *matHeaderCellDef>N° Cuenta</th>
         <td mat-cell *matCellDef="let row">{{ row.numero }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="operable">
+        <th mat-header-cell *matHeaderCellDef>Operable</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [style.color]="row.disponibleOperacionesFinancieras !== false ? '#4caf50' : '#9e9e9e'">
+            {{ row.disponibleOperacionesFinancieras !== false ? 'check_circle' : 'block' }}
+          </mat-icon>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="banco">

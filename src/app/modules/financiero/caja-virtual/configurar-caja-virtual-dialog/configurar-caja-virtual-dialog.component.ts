@@ -44,7 +44,7 @@ export class ConfigurarCajaVirtualDialogComponent implements OnInit {
   ngOnInit(): void {
     this.loading = true;
     forkJoin({
-      cuentas: this.cuentaBancariaService.onGetAll(0, 200),
+      cuentas: this.cuentaBancariaService.onGetAllOperables(),
       config: this.cajaVirtualService.onGetConfiguracion(this.cajaVirtual.id)
     }).pipe(untilDestroyed(this)).subscribe(({ cuentas, config }) => {
       this.loading = false;

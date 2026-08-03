@@ -1,0 +1,35 @@
+:host { display: block; min-width: 380px; }
+
+.tipo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.tipo-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-left: 4px solid #607d8b;
+  transition: background-color 0.15s ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.06); }
+}
+
+.tipo-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon { color: #fff; }
+}
+
+.tipo-title { font-weight: 500; }
+.tipo-desc { font-size: 12px; opacity: 0.65; }

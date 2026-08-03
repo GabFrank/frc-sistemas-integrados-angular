@@ -10,6 +10,12 @@ export enum TipoOperacionFinanciera {
   TRANSFERENCIA_BANCARIA = 'TRANSFERENCIA_BANCARIA'
 }
 
+export enum DiferenciaDestinoTipo {
+  IGNORAR = 'IGNORAR',
+  GASTO = 'GASTO',
+  VALE = 'VALE'
+}
+
 export class OperacionFinancieraCategoria {
   id: number;
   nombre: string;
@@ -33,6 +39,9 @@ export class OperacionFinanciera {
   montoDestino: number;
   cotizacion: number;
   numeroComprobante: string;
+  diferencia: number;
+  diferenciaDestinoTipo: DiferenciaDestinoTipo;
+  diferenciaObservacion: string;
   anulado: boolean;
   creadoEn: Date;
   // Calculados en el componente de listado (no son campos del backend) — evita llamar
@@ -55,6 +64,9 @@ export class OperacionFinanciera {
     input.montoDestino = this.montoDestino;
     input.cotizacion = this.cotizacion;
     input.numeroComprobante = this.numeroComprobante?.toUpperCase();
+    input.diferencia = this.diferencia;
+    input.diferenciaDestinoTipo = this.diferenciaDestinoTipo;
+    input.diferenciaObservacion = this.diferenciaObservacion?.toUpperCase();
     return input;
   }
 }
@@ -73,6 +85,9 @@ export class OperacionFinancieraInput {
   montoDestino?: number;
   cotizacion?: number;
   numeroComprobante?: string;
+  diferencia?: number;
+  diferenciaDestinoTipo?: DiferenciaDestinoTipo;
+  diferenciaObservacion?: string;
 }
 
 export class MovimientoBancario {

@@ -2,7 +2,7 @@ import { Component, Inject, OnInit, Optional } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera } from '../operacion-financiera.model';
+import { OperacionFinanciera, OperacionFinancieraCategoria, TipoOperacionFinanciera, DiferenciaDestinoTipo } from '../operacion-financiera.model';
 import { OperacionFinancieraService } from '../operacion-financiera.service';
 import { CajaVirtual } from '../../caja-virtual/caja-virtual.model';
 import { CajaVirtualService } from '../../caja-virtual/caja-virtual.service';
@@ -21,7 +21,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   formGroup: FormGroup;
-  tipoOperacionControl = new FormControl(null, Validators.required);
+  tipoOperacionControl = new FormControl(TipoOperacionFinanciera.CAMBIO_DIVISA, Validators.required);
   categoriaControl = new FormControl(null);
   descripcionControl = new FormControl('');
   numeroComprobanteControl = new FormControl('');
@@ -38,12 +38,23 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
 
   cotizacionControl = new FormControl(null);
 
+  // Diferencia (sobra/falta al cerrar la operación)
+  diferenciaControl = new FormControl(null);
+  diferenciaDestinoTipoControl = new FormControl(DiferenciaDestinoTipo.IGNORAR);
+  diferenciaObservacionControl = new FormControl('');
+
   tipoOperacionList = [
-    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA },
-    { label: 'Depósito Bancario', value: TipoOperacionFinanciera.DEPOSITO_BANCARIO },
-    { label: 'Retiro Bancario', value: TipoOperacionFinanciera.RETIRO_BANCARIO },
-    { label: 'Transferencia entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS },
-    { label: 'Transferencia Bancaria', value: TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA },
+    { label: 'Cambio de Divisa', value: TipoOperacionFinanciera.CAMBIO_DIVISA, icono: 'currency_exchange' },
+    { label: 'Depósito Bancario', value: TipoOperacionFinanciera.DEPOSITO_BANCARIO, icono: 'account_balance' },
+    { label: 'Retiro Bancario', value: TipoOperacionFinanciera.RETIRO_BANCARIO, icono: 'savings' },
+    { label: 'Transferencia entre Cajas', value: TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS, icono: 'swap_horiz' },
+    { label: 'Transferencia Bancaria', value: TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA, icono: 'sync_alt' },
+  ];
+
+  diferenciaDestinoList = [
+    { label: 'Ignorar', value: DiferenciaDestinoTipo.IGNORAR },
+    { label: 'Gasto', value: DiferenciaDestinoTipo.GASTO },
+    { label: 'Vale', value: DiferenciaDestinoTipo.VALE },
   ];
 
   categoriaList: OperacionFinancieraCategoria[] = [];
@@ -57,7 +68,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   mostrarCajaDestino = false;
   mostrarCuentaDestino = false;
   mostrarCotizacion = false;
+  mostrarDiferencia = true;
 
+  selectedTabIndex = 0;
   isSaving = false;
 
   constructor(
@@ -85,6 +98,9 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       monedaDestinoControl: this.monedaDestinoControl,
       montoDestinoControl: this.montoDestinoControl,
       cotizacionControl: this.cotizacionControl,
+      diferenciaControl: this.diferenciaControl,
+      diferenciaDestinoTipoControl: this.diferenciaDestinoTipoControl,
+      diferenciaObservacionControl: this.diferenciaObservacionControl,
     });
 
     this.operacionFinancieraService.onGetCategorias().pipe(untilDestroyed(this)).subscribe(res => {
@@ -95,13 +111,25 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       if (res != null) this.cajaVirtualList = res;
     });
 
-    this.cuentaBancariaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
+    // Solo cuentas propias operables en tesorería (no cuentas de terceros).
+    this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.cuentaBancariaList = res;
     });
 
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
     });
+
+    this.onTipoOperacionChange();
+  }
+
+  onTabChange(index: number) {
+    this.selectedTabIndex = index;
+    const opt = this.tipoOperacionList[index];
+    if (opt) {
+      this.tipoOperacionControl.setValue(opt.value);
+      this.onTipoOperacionChange();
+    }
   }
 
   onTipoOperacionChange() {
@@ -130,53 +158,71 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     ].includes(tipo);
 
     this.mostrarCotizacion = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+    // La diferencia se imputa a una caja mayor; TRANSFERENCIA_BANCARIA no toca caja.
+    this.mostrarDiferencia = tipo !== TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA;
 
-    // Limpiar selecciones que ya no correspondan al tipo elegido
     if (!this.mostrarCajaOrigen) this.cajaMayorOrigenControl.setValue(null);
     if (!this.mostrarCuentaOrigen) this.cuentaBancariaOrigenControl.setValue(null);
     if (!this.mostrarCajaDestino) this.cajaMayorDestinoControl.setValue(null);
     if (!this.mostrarCuentaDestino) this.cuentaBancariaDestinoControl.setValue(null);
     if (!this.mostrarCotizacion) this.cotizacionControl.setValue(null);
+    if (!this.mostrarDiferencia) {
+      this.diferenciaControl.setValue(null);
+      this.diferenciaDestinoTipoControl.setValue(DiferenciaDestinoTipo.IGNORAR);
+    }
   }
 
-  // La caja mayor maneja Gs/R$/US$ en simultáneo (no tiene una única moneda propia),
-  // por eso al elegir una caja mayor el usuario igual debe elegir la moneda a mano.
-  // Al elegir una cuenta bancaria sí autocompletamos porque esa cuenta es de una sola moneda.
+  // La caja mayor maneja Gs/R$/US$ en simultáneo; al elegir caja el usuario elige la moneda.
+  // Al elegir cuenta bancaria autocompletamos la moneda (la cuenta es de una sola moneda).
   onCuentaOrigenChange() {
     const cuenta: CuentaBancaria = this.cuentaBancariaOrigenControl.value;
-    if (cuenta?.moneda) this.monedaOrigenControl.setValue(cuenta.moneda);
+    if (cuenta?.moneda) {
+      this.monedaOrigenControl.setValue(cuenta.moneda);
+      // Depósito/retiro: ambos lados comparten la moneda de la cuenta.
+      this.monedaDestinoControl.setValue(cuenta.moneda);
+    }
+    this.recalcularMontoDestino();
   }
 
   onCuentaDestinoChange() {
     const cuenta: CuentaBancaria = this.cuentaBancariaDestinoControl.value;
-    if (cuenta?.moneda) this.monedaDestinoControl.setValue(cuenta.moneda);
+    if (cuenta?.moneda) {
+      this.monedaDestinoControl.setValue(cuenta.moneda);
+      this.monedaOrigenControl.setValue(cuenta.moneda);
+    }
+    this.recalcularMontoDestino();
+  }
+
+  /** Recalcula montoDestino según cotización (moneda principal por 1 unidad de divisa). */
+  recalcularMontoDestino() {
+    const monto = this.montoOrigenControl.value;
+    const cot = this.cotizacionControl.value;
+    const tipo = this.tipoOperacionControl.value;
+
+    if (tipo !== TipoOperacionFinanciera.CAMBIO_DIVISA) {
+      // Sin cambio de moneda: destino = origen.
+      if (monto != null) this.montoDestinoControl.setValue(monto);
+      return;
+    }
+    const monOrigen: Moneda = this.monedaOrigenControl.value;
+    if (monto == null || !cot || cot <= 0 || !monOrigen) return;
+    // cotización = cuánto de la moneda PRINCIPAL vale 1 unidad de la divisa extranjera.
+    // Si origen es la principal (Gs -> USD): dividir. Si destino es principal (USD -> Gs): multiplicar.
+    const origenEsPrincipal = !!(monOrigen as any).principal;
+    const destino = origenEsPrincipal ? monto / cot : monto * cot;
+    this.montoDestinoControl.setValue(Math.round(destino * 100) / 100);
   }
 
   onSave() {
     if (this.formGroup.invalid) return;
-
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
 
-    if (this.mostrarCajaOrigen && !this.cajaMayorOrigenControl.value) {
-      this.notificacion.openAlgoSalioMal('Seleccione la caja mayor de origen');
-      return;
-    }
-    if (this.mostrarCuentaOrigen && !this.cuentaBancariaOrigenControl.value) {
-      this.notificacion.openAlgoSalioMal('Seleccione la cuenta bancaria de origen');
-      return;
-    }
-    if (this.mostrarCajaDestino && !this.cajaMayorDestinoControl.value) {
-      this.notificacion.openAlgoSalioMal('Seleccione la caja mayor de destino');
-      return;
-    }
-    if (this.mostrarCuentaDestino && !this.cuentaBancariaDestinoControl.value) {
-      this.notificacion.openAlgoSalioMal('Seleccione la cuenta bancaria de destino');
-      return;
-    }
-    if (!this.montoOrigenControl.value || !this.montoDestinoControl.value) {
-      this.notificacion.openAlgoSalioMal('Debe ingresar el monto de origen y de destino');
-      return;
-    }
+    if (this.mostrarCajaOrigen && !this.cajaMayorOrigenControl.value) return this.err('Seleccione la caja mayor de origen');
+    if (this.mostrarCuentaOrigen && !this.cuentaBancariaOrigenControl.value) return this.err('Seleccione la cuenta bancaria de origen');
+    if (this.mostrarCajaDestino && !this.cajaMayorDestinoControl.value) return this.err('Seleccione la caja mayor de destino');
+    if (this.mostrarCuentaDestino && !this.cuentaBancariaDestinoControl.value) return this.err('Seleccione la cuenta bancaria de destino');
+    if (!this.montoOrigenControl.value || !this.montoDestinoControl.value) return this.err('Debe ingresar el monto de origen y de destino');
+    if (this.mostrarCotizacion && !this.cotizacionControl.value) return this.err('Ingrese la cotización');
 
     const operacion = new OperacionFinanciera();
     operacion.tipoOperacion = tipo;
@@ -192,6 +238,11 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     operacion.monedaDestino = this.monedaDestinoControl.value;
     operacion.montoDestino = this.montoDestinoControl.value;
     operacion.cotizacion = this.cotizacionControl.value;
+    if (this.mostrarDiferencia && this.diferenciaControl.value) {
+      operacion.diferencia = this.diferenciaControl.value;
+      operacion.diferenciaDestinoTipo = this.diferenciaDestinoTipoControl.value;
+      operacion.diferenciaObservacion = this.diferenciaObservacionControl.value;
+    }
 
     this.isSaving = true;
     this.operacionFinancieraService.onRegistrar(operacion)
@@ -206,9 +257,14 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
         },
         error: err => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar la operación financiera');
+          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al registrar la operación financiera';
+          this.notificacion.openWarn(msg, 6);
         }
       });
+  }
+
+  private err(msg: string) {
+    this.notificacion.openAlgoSalioMal(msg);
   }
 
   onCancel() {

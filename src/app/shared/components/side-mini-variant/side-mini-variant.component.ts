@@ -75,7 +75,7 @@ import { DevolucionComponent } from '../../../modules/operaciones/devolucion/dev
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
-import { TesoreriaDashboardComponent } from '../../../modules/financiero/tesoreria-dashboard/tesoreria-dashboard.component';
+import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
 import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
 import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
@@ -416,106 +416,126 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
       items: [
         {
-          name: 'Tesorería',
-          icon: 'currency_exchange',
-          action: 'list-caja-virtual',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Dashboard de Tesorería',
+          name: 'Dashboard',
           icon: 'dashboard',
-          action: 'tesoreria-dashboard',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+          action: 'finanzas-dashboard',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
         },
         {
-          name: 'Operaciones Financieras',
-          icon: 'sync_alt',
-          action: 'list-operacion-financiera',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+          name: 'Caja y Operativa',
+          icon: 'point_of_sale',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Gastos',
+              icon: 'money_off',
+              action: 'gastos-dashboard',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Retiros',
+              icon: 'savings',
+              action: 'list-retiros',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Análisis de diferencias',
-          icon: 'equalizer',
-          action: 'analisis-diferencias',
-          visibilityRoles: [ROLES.ADMIN]
+          name: 'Cuentas y Bancos',
+          icon: 'account_balance',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Cuentas Bancarias',
+              icon: 'account_balance',
+              action: 'list-cuentas-bancarias',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Bancos',
+              icon: 'business',
+              action: 'list-bancos',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Cotización',
-          icon: 'monetization_on',
-          action: 'list-cotizacion',
-          visibilityRoles: [ROLES.CAMBIAR_COTIZACION]
+          name: 'Configuración',
+          icon: 'settings',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.CAMBIAR_COTIZACION, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Cotización',
+              icon: 'monetization_on',
+              action: 'list-cotizacion',
+              visibilityRoles: [ROLES.CAMBIAR_COTIZACION, ROLES.ADMIN]
+            },
+            {
+              name: 'Monedas',
+              icon: 'paid',
+              action: 'list-moneda',
+              visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Timbrado',
+              icon: 'text_snippet',
+              action: 'list-timbrado',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Documento electrónico',
+              icon: 'qr_code_2',
+              action: 'list-lote-de',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Pagos',
-          icon: 'payment',
-          action: 'list-pagos',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Gastos',
-          icon: 'money_off',
-          action: 'gastos-dashboard',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Retiros',
-          icon: 'savings',
-          action: 'list-retiros',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Facturas',
-          icon: 'receipt',
-          action: 'factura-dashboard',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Timbrado',
-          icon: 'text_snippet',
-          action: 'list-timbrado',
-          visibilityRoles: [ROLES.ADMIN]
+          name: 'Reportes y Análisis',
+          icon: 'analytics',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Análisis de diferencias',
+              icon: 'equalizer',
+              action: 'analisis-diferencias',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Lucro por funcionario',
+              icon: 'groups',
+              action: 'lucro-por-funcionario',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Lucro por producto',
+              icon: 'trending_up',
+              action: 'lucro-por-producto',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Terminales POS',
+              icon: 'contactless',
+              action: 'terminal-pos-dashboard',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Facturas',
+              icon: 'receipt',
+              action: 'factura-dashboard',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            }
+          ]
         },
         {
           name: 'Maletines',
           icon: 'work',
           action: 'list-maletin',
           visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Lucro por funcionario',
-          icon: 'groups',
-          action: 'lucro-por-funcionario',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Lucro por producto',
-          icon: 'trending_up',
-          action: 'lucro-por-producto',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Documento electrónico',
-          icon: 'qr_code_2',
-          action: 'list-lote-de',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Terminales POS',
-          icon: 'contactless',
-          action: 'terminal-pos-dashboard',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Cuentas Bancarias',
-          icon: 'account_balance',
-          action: 'list-cuentas-bancarias',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
-        },
-        {
-          name: 'Bancos',
-          icon: 'business',
-          action: 'list-bancos',
-          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
         }
       ]
     },
@@ -877,7 +897,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "finanzas-dashboard":
-        this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(FinancieroDashboardComponent, "Financiero", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-moneda":
+        if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(MonedaComponent, "Monedas", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-gastos":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListGastosComponent, "Gastos");
@@ -891,13 +922,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-caja-virtual":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
-        } else {
-          this.notificacionService.openWarn('No tenés acceso a esta opción.');
-        }
-        break;
-      case "tesoreria-dashboard":
-        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
-          this.tabService.addTab(new Tab(TesoreriaDashboardComponent, "Dashboard Tesorería", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

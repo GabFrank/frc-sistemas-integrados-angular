@@ -16,17 +16,8 @@
       <button mat-raised-button color="warn" (click)="onEgreso()">
         <mat-icon>remove_circle</mat-icon> Egreso
       </button>
-      <button mat-stroked-button (click)="onIngresoVario()">
-        <mat-icon>trending_up</mat-icon> Ingreso Vario
-      </button>
-      <button mat-stroked-button (click)="onEgresoVario()">
-        <mat-icon>trending_down</mat-icon> Egreso Vario
-      </button>
-      <button mat-stroked-button (click)="onTransferencia()">
-        <mat-icon>swap_horiz</mat-icon> Transferir
-      </button>
       <button mat-stroked-button (click)="onOperacionFinanciera()">
-        <mat-icon>account_balance</mat-icon> Operación
+        <mat-icon>account_balance</mat-icon> Operaciones Financieras
       </button>
       <button mat-stroked-button (click)="onConfigurar()" matTooltip="Configurar cards visibles">
         <mat-icon>tune</mat-icon> Configurar
@@ -135,6 +126,11 @@
             <ng-container matColumnDef="creadoEn">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Fecha</th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="responsable">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Responsable</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.usuario?.persona?.nombre || '-' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="tipoMovimiento">

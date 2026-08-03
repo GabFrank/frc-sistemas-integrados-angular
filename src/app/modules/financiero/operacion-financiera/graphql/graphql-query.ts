@@ -51,6 +51,9 @@ const operacionFinancieraFields = `
   montoDestino
   cotizacion
   numeroComprobante
+  diferencia
+  diferenciaDestinoTipo
+  diferenciaObservacion
   anulado
   creadoEn
 `;

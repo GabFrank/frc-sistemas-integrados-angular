@@ -1,201 +1,122 @@
-/* TODO(mdc-migration): The following rule targets internal classes of card that may no longer apply for the MDC version. */
-// do not add hover on mat-card
-
-.dashboard-container {
-  padding: 16px;
-  width: 100%;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  
-  .spacer {
-    flex: 1 1 auto;
-  }
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 75% 25%;
-  gap: 16px;
-  
-  @media (max-width: 1200px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card {
-  margin-bottom: 16px;
-  border-radius: 8px;
-  padding: 8px;
+.fin-container {
+  padding: 20px;
   height: 100%;
+  overflow: auto;
+}
+
+.fin-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  h1 { font-weight: 300; margin: 0; font-size: 1.6rem; }
 }
 
-.cuotas-card {
-  width: 100%;
-}
-
-.table-container {
-  overflow-x: auto;
-  overflow-y: auto;
-  margin-top: 16px;
-  max-height: 300px;
-  
-  table {
-    width: 100%;
-    table-layout: fixed;
-  }
-  
-  .mat-header-row {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: inherit;
-    text-align: center !important;
-  }
-}
-
-// Column width definitions
-.column-proveedor {
-  width: 25%;
-  min-width: 150px;
-}
-
-.column-sucursal {
-  width: 22%;
-  min-width: 130px;
-}
-
-.column-estado {
-  width: 13%;
-  min-width: 100px;
-}
-
-.column-fecha {
-  width: 12%;
-  min-width: 100px;
-}
-
-.column-total {
-  width: 14%;
-  min-width: 110px;
-}
-
-.column-menu {
-  width: 10%;
-  min-width: 80px;
-}
-
-table {
-  width: 100%;
-}
-
-.text-center {
-  text-align: center !important;
-}
-
-.filters {
+.kpi-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 16px;
-  
-  mat-form-field {
-    flex: 1;
-    min-width: 200px;
-    max-width: 300px;
-  }
-  
-  .filter-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: center;
-    margin-top: 8px;
-    width: 100%;
-    justify-content: space-between;
-    
-    .fecha-filter-toggle {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      align-items: flex-start;
-      justify-content: center;
-      min-width: 200px;
-      margin-right: auto;
-      
-      .toggle-label {
-        font-weight: 500;
-        color: #1976d2;
-        font-size: 12px;
-      }
-    }
-    
-    button {
-      height: 45px;
-    }
-  }
 }
 
-.shortcut-grid {
+.kpi-card {
+  flex: 1;
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+
+  .kpi-label { font-size: 12px; text-transform: uppercase; opacity: 0.55; letter-spacing: 0.04em; }
+  .kpi-value { font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .kpi-sub { font-size: 12px; opacity: 0.6; }
+}
+
+.accesos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.acceso-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-left: 4px solid #607d8b;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+
+  &:hover { background: rgba(255, 255, 255, 0.1); }
+}
+
+.fin-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
 }
 
-.shortcut-button {
+@media (max-width: 900px) {
+  .fin-grid { grid-template-columns: 1fr; }
+}
+
+.fin-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.panel-title {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  margin-bottom: 10px;
+}
+
+.caja-cards { display: flex; flex-direction: column; gap: 8px; }
+
+.caja-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 100px;
-  font-size: 14px;
-  
-  mat-icon {
-    font-size: 32px;
-    height: 32px;
-    width: 32px;
-  }
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+
+  .caja-info { flex: 1; }
+  .caja-nombre { font-weight: 500; }
+  .caja-saldo { font-size: 13px; opacity: 0.7; }
+  .open-icon { opacity: 0.4; }
+
+  &:hover { background: rgba(255, 255, 255, 0.06); }
 }
 
-.pendiente-badge {
-  background-color: #ff9800; //change color to our warning color #ff9800
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  display: inline-block;
-  min-width: 80px;
+.venc-list { display: flex; flex-direction: column; }
+
+.venc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.pago-parcial-badge {
-  background-color: #2196f3; //change color for a blue sky color
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  display: inline-block;
-  min-width: 80px;
+.venc-tipo {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-right: 6px;
 }
 
-.paginator-footer {
-  padding: 0 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  margin-top: auto;
-}
+.venc-monto { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.venc-dias { text-align: right; font-size: 12px; }
+
+.empty { opacity: 0.5; padding: 12px; text-align: center; }

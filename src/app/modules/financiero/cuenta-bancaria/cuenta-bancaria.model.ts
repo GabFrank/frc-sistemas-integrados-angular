@@ -7,17 +7,32 @@ import { CuentaBancariaInput } from "./cuenta-bancaria-input.model";
 export class CuentaBancaria {
   id: number;
   numero: string;
+  nombre: string;
   persona: Persona;
   banco: Banco;
   moneda: Moneda;
   tipoCuenta: TipoCuenta;
+  titular: string;
+  alias: string;
+  activo: boolean;
+  disponibleOperacionesFinancieras: boolean;
+  permiteSaldoNegativo: boolean;
+  saldo: number;
+  saldoReservado: number;
   creadoEn: Date;
   usuario: Usuario;
 
-  toInput(): CuentaBancariaInput{
-    let input = new CuentaBancariaInput()
+  toInput(): CuentaBancariaInput {
+    let input = new CuentaBancariaInput();
     input.id = this.id;
     input.numero = this.numero;
+    input.nombre = this.nombre;
+    input.tipoCuenta = this.tipoCuenta;
+    input.titular = this.titular;
+    input.alias = this.alias;
+    input.activo = this.activo;
+    input.disponibleOperacionesFinancieras = this.disponibleOperacionesFinancieras;
+    input.permiteSaldoNegativo = this.permiteSaldoNegativo;
     input.personaId = this.persona?.id;
     input.bancoId = this.banco?.id;
     input.monedaId = this.moneda?.id;

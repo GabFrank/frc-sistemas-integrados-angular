@@ -7,6 +7,7 @@ import { FinancieroDashboardComponent } from "./financiero-dashboard/financiero-
 import { FormaPagoComponent } from "./forma-pago/forma-pago.component";
 import { MaletinComponent } from "./maletin/maletin.component";
 import { MonedaComponent } from "./moneda/moneda.component";
+import { AddMonedaDialogComponent } from "./moneda/add-moneda-dialog/add-moneda-dialog.component";
 import { ListCajaComponent } from "./pdv/caja/list-caja/list-caja.component";
 import { FlexLayoutModule } from "ngx-flexible-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
@@ -61,9 +62,10 @@ import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movi
 import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
+import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
+import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
-import { TesoreriaDashboardComponent } from './tesoreria-dashboard/tesoreria-dashboard.component';
 import { AddEntradaVariaDialogComponent } from './entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
@@ -81,6 +83,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     FormaPagoComponent,
     MaletinComponent,
     MonedaComponent,
+    AddMonedaDialogComponent,
     ListCajaComponent,
     ListMaletinComponent,
     AdicionarMaletinDialogComponent,
@@ -127,9 +130,10 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     TransferenciaCajaVirtualDialogComponent,
     CajaVirtualDashboardComponent,
     ConfigurarCajaVirtualDialogComponent,
+    RegistrarIngresoDialogComponent,
+    RegistrarEgresoDialogComponent,
     ListCajaVirtualComponent,
     HistorialMovimientosCajaVirtualComponent,
-    TesoreriaDashboardComponent,
     AddEntradaVariaDialogComponent,
     ListEntradasVariasDialogComponent,
     AddOperacionFinancieraDialogComponent,
