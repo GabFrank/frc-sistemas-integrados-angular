@@ -41,79 +41,158 @@
   </p>
 
   <mat-spinner
-    *ngIf="cargando"
+    *ngIf="cargandoInicial"
     diameter="36"
     class="spinner"
   ></mat-spinner>
 
-  <div class="aviso" *ngIf="!cargando && sinLotes">
+  <div
+    class="aviso"
+    *ngIf="!cargandoInicial && sinLotes"
+    role="status"
+    aria-live="polite"
+  >
     {{ mensajeSinLotes }}
   </div>
 
-  <div class="tabla-scroll" *ngIf="!cargando && !sinLotes && !modoFefo">
-    <table
-      mat-table
-      [dataSource]="filas"
-      class="tabla-lotes"
+  <ng-container *ngIf="!modoFefo && !cargandoInicial && !sinLotes">
+
+    <mat-form-field
+      appearance="outline"
+      class="campo-busqueda"
     >
-      <ng-container matColumnDef="seleccion">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let fila">
-          <mat-checkbox
-            [checked]="fila.seleccionado"
-            [attr.aria-label]="'Usar lote ' + fila.numeroLote"
-            (change)="alternarLote(fila)"
-          ></mat-checkbox>
-        </td>
-      </ng-container>
+      <mat-label>Buscar por Nº de lote</mat-label>
+      <input
+        matInput
+        #inputBusqueda
+        type="text"
+        autocomplete="off"
+        [formControl]="busquedaControl"
+        (keydown.enter)="onEnterBusqueda()"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+      <mat-hint>
+        Escribí el número y presioná Enter: si queda un solo lote, se elige solo.
+      </mat-hint>
+    </mat-form-field>
 
-      <ng-container matColumnDef="numeroLote">
-        <th mat-header-cell *matHeaderCellDef>Nº de Lote</th>
-        <td mat-cell *matCellDef="let fila">{{ fila.numeroLote }}</td>
-      </ng-container>
+    <div
+      class="mensaje-estado"
+      *ngIf="sinCoincidencias"
+      role="status"
+      aria-live="polite"
+    >
+      Ningún lote coincide con la búsqueda.
+    </div>
 
-      <ng-container matColumnDef="vencimiento">
-        <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
-        <td mat-cell *matCellDef="let fila">{{ fila.vencimientoLabel }}</td>
-      </ng-container>
+    <div
+      class="mensaje-error"
+      *ngIf="mensajeError"
+      role="status"
+      aria-live="polite"
+    >
+      {{ mensajeError }}
+    </div>
 
-      <ng-container matColumnDef="retiro">
-        <th mat-header-cell *matHeaderCellDef>Retiro</th>
-        <td mat-cell *matCellDef="let fila">{{ fila.retiroLabel }}</td>
-      </ng-container>
+    <div class="tabla-scroll" *ngIf="!sinCoincidencias && !mensajeError">
+      <table
+        mat-table
+        [dataSource]="filas"
+        class="tabla-lotes"
+      >
+        <ng-container matColumnDef="seleccion">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let fila">
+            <mat-checkbox
+              [checked]="fila.seleccionado"
+              [attr.aria-label]="'Usar lote ' + fila.numeroLote"
+              (change)="alternarLote(fila)"
+            ></mat-checkbox>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="disponible">
-        <th mat-header-cell *matHeaderCellDef>Disponible</th>
-        <td mat-cell *matCellDef="let fila">{{ fila.disponibleLabel }}</td>
-      </ng-container>
+        <ng-container matColumnDef="numeroLote">
+          <th mat-header-cell *matHeaderCellDef>Nº de Lote</th>
+          <td mat-cell *matCellDef="let fila">{{ fila.numeroLote }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="cantidad">
-        <th mat-header-cell *matHeaderCellDef>A vender</th>
-        <td mat-cell *matCellDef="let fila">
-          <input
-            matInput
-            type="number"
-            min="0"
-            [max]="fila.disponible"
-            [value]="fila.cantidad"
-            [attr.aria-label]="'Cantidad a vender del lote ' + fila.numeroLote"
-            class="input-cantidad"
-            (input)="cambiarCantidad(fila, $any($event.target).value)"
-          />
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+          <td mat-cell *matCellDef="let fila">{{ fila.vencimientoLabel }}</td>
+        </ng-container>
 
-      <tr
-        mat-header-row
-        *matHeaderRowDef="displayedColumns"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns"
-        [class]="row.clase"
-      ></tr>
-    </table>
-  </div>
+        <ng-container matColumnDef="retiro">
+          <th mat-header-cell *matHeaderCellDef>Retiro</th>
+          <td mat-cell *matCellDef="let fila">{{ fila.retiroLabel }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="disponible">
+          <th mat-header-cell *matHeaderCellDef>Disponible</th>
+          <td mat-cell *matCellDef="let fila">{{ fila.disponibleLabel }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef>A vender</th>
+          <td mat-cell *matCellDef="let fila">
+            <input
+              matInput
+              type="number"
+              min="0"
+              [max]="fila.disponible"
+              [value]="fila.cantidad"
+              [attr.aria-label]="'Cantidad a vender del lote ' + fila.numeroLote"
+              class="input-cantidad"
+              (input)="cambiarCantidad(fila, $any($event.target).value)"
+            />
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class]="row.clase"
+        ></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      *ngIf="!sinCoincidencias && !mensajeError"
+      itemsPerPageLabel="Lotes por página"
+      [pageSizeOptions]="[5, 10, 25]"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [length]="totalElementos"
+      (page)="handlePageEvent($event)"
+      showFirstLastButtons
+    ></mat-paginator>
+
+    <div
+      class="elegidos"
+      *ngIf="hayLotesElegidos"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="elegidos-titulo">
+        Elegido {{ totalSeleccionadoLabel }} de {{ cantidadRequerida }}:
+      </span>
+      <button
+        mat-stroked-button
+        type="button"
+        class="chip-lote"
+        *ngFor="let elegido of lotesElegidos"
+        [attr.aria-label]="'Quitar el lote ' + elegido.numeroLote"
+        (click)="quitarLote(elegido)"
+      >
+        {{ elegido.numeroLote }} · {{ elegido.cantidadLabel }}
+        <mat-icon class="chip-icono">close</mat-icon>
+      </button>
+    </div>
+
+  </ng-container>
 
   <div class="faltante" *ngIf="hayFaltante">
     {{ faltanteLabel }}
@@ -133,6 +212,7 @@
     color="primary"
     type="button"
     cdkFocusInitial
+    #botonConfirmar
     [disabled]="!puedeConfirmar"
     (click)="confirmar()"
   >

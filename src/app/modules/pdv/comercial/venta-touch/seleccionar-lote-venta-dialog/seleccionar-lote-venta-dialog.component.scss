@@ -42,9 +42,52 @@
   margin-bottom: 8px;
 }
 
+.campo-busqueda {
+  width: 100%;
+}
+
+.mensaje-estado {
+  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 0;
+}
+
+// Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.
+.mensaje-error {
+  background-color: rgba(244, 67, 54, 0.18);
+  border-left: 3px solid #ef5350;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
 .tabla-scroll {
   max-height: 320px;
   overflow: auto;
+}
+
+// Lo elegido sobrevive a la búsqueda y a la paginación, así que tiene que verse aunque su fila
+// no esté en la página actual.
+.elegidos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+
+  .elegidos-titulo {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .chip-lote {
+    line-height: 30px;
+    padding: 0 10px;
+  }
+
+  .chip-icono {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+  }
 }
 
 .tabla-lotes {
