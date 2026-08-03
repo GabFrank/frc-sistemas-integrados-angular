@@ -18,6 +18,11 @@
     font-size: 1.3rem;
     font-weight: 600;
   }
+
+  // La unidad al lado del número: toda la pantalla razona en unidades del lote.
+  .resumen-unidad {
+    color: rgba(255, 255, 255, 0.7);
+  }
 }
 
 .modo {
@@ -108,14 +113,14 @@
   }
 }
 
-.input-cantidad {
-  width: 70px;
-  text-align: center;
-  background-color: rgb(45, 45, 45);
-  color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  padding: 4px;
+// La reparte el sistema al marcar el lote: se muestra, no se edita.
+.cantidad-asignada {
+  font-weight: 600;
+}
+
+.cantidad-vacia {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
 }
 
 // Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.

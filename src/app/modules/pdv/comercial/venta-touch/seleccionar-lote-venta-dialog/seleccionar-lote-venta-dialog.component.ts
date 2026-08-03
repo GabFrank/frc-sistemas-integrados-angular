@@ -28,11 +28,16 @@ export interface SeleccionarLoteVentaDialogData {
   productoDescripcion: string;
   presentacionId: number;
   sucursalId: number;
-  /** Cantidad a cubrir, EN PRESENTACIONES: la misma unidad que ve el cajero. */
+  /** Cantidad del ítem, EN PRESENTACIONES: es el número que el cajero cargó en la venta. */
   cantidad: number;
+  /**
+   * Unidades que trae cada presentación. Es el único factor que hace falta para expresar el ítem
+   * en unidades, que es como se muestra y se elige el lote acá.
+   */
+  unidadesPorPresentacion: number;
 }
 
-/** Lo que devuelve el diálogo. Lista vacía = FEFO automático. */
+/** Lo que devuelve el diálogo. Lista vacía = FEFO automático. Las cantidades van EN UNIDADES. */
 export interface SeleccionarLoteVentaDialogResult {
   lotes: VentaItemLoteInput[];
 }
@@ -61,11 +66,15 @@ interface LoteRow {
   numeroLote: string;
   vencimientoLabel: string;
   retiroLabel: string;
-  /** Presentaciones completas disponibles. Es el techo de lo que se puede pedir de este lote. */
+  /** Unidades disponibles. Es el techo de lo que se puede pedir de este lote. */
   disponible: number;
   disponibleLabel: string;
-  /** Cantidad que el cajero decidió sacar de este lote, en presentaciones. */
+  /**
+   * Unidades que se sacan de este lote. No la tipea el cajero: se reparte sola al marcar el lote,
+   * porque el backend trata la elección como preferencia y recorta contra el saldo real igual.
+   */
   cantidad: number;
+  cantidadLabel: string;
   seleccionado: boolean;
   /** Precalculado para resaltar lo que hay que sacar antes, sin lógica en el template. */
   clase: string;
@@ -138,6 +147,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
 
   /** Todo precalculado para el template. */
   productoDescripcion = '';
+  /** Cantidad a cubrir, EN UNIDADES: es la unidad del ledger de lotes y de la tabla de abajo. */
   cantidadRequerida = 0;
   totalSeleccionado = 0;
   totalSeleccionadoLabel = '0';
@@ -154,7 +164,22 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.productoDescripcion = data?.productoDescripcion || '';
-    this.cantidadRequerida = data?.cantidad || 0;
+    this.calcularCantidadRequerida();
+  }
+
+  /**
+   * Toda la pantalla habla en unidades: es la unidad del lote, la del ledger y la de FEFO. Lo que
+   * el cajero necesita decidir acá es de qué lote salen esas unidades, así que el encabezado
+   * muestra un solo número y no obliga a convertir nada mentalmente.
+   *
+   * La conversión presentación → unidad es la misma que ya aplica el resto del sistema para
+   * cualquier producto: cantidad por el tamaño de la presentación.
+   */
+  private calcularCantidadRequerida(): void {
+    const porPresentacion = this.data?.unidadesPorPresentacion > 0
+      ? this.data.unidadesPorPresentacion
+      : 1;
+    this.cantidadRequerida = (this.data?.cantidad || 0) * porPresentacion;
   }
 
   ngOnInit(): void {
@@ -259,9 +284,15 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       : '';
   }
 
-  /** La fila se hidrata desde la selección: lo elegido reaparece al volver a su página. */
+  /**
+   * La fila se hidrata desde la selección: lo elegido reaparece al volver a su página.
+   *
+   * El saldo se toma en unidades, tal como lo manda el backend, y no en presentaciones completas.
+   * Además de ser la unidad que ve el cajero, evita el caso confuso de un lote con 4 unidades y
+   * presentación de 6, que como "presentaciones completas" mostraba 0 disponible.
+   */
   private mapearFila(lote: StockLotePresentacion): LoteRow {
-    const disponible = lote.cantidadDisponiblePresentacion || 0;
+    const disponible = lote.cantidadDisponible || 0;
     const elegido = this.seleccion.get(lote.loteId);
     return {
       loteId: lote.loteId,
@@ -271,6 +302,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       disponible,
       disponibleLabel: `${disponible}`,
       cantidad: elegido ? elegido.cantidad : 0,
+      cantidadLabel: elegido ? `${elegido.cantidad}` : '—',
       seleccionado: elegido != null,
       clase: this.claseSegunFecha(lote)
     };
@@ -294,10 +326,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   activarFefo(): void {
     this.modoFefo = true;
     this.seleccion.clear();
-    this.filas.forEach((fila) => {
-      fila.seleccionado = false;
-      fila.cantidad = 0;
-    });
+    this.filas.forEach((fila) => this.desmarcar(fila));
     this.recalcular();
   }
 
@@ -308,33 +337,36 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   }
 
   /**
-   * Al marcar un lote se propone lo que falta cubrir, acotado a lo disponible. Es lo que el cajero
-   * quiere el 90% de las veces y le ahorra tipear.
+   * Marcar un lote le asigna lo que falta cubrir, acotado a su saldo. La cantidad no se tipea: el
+   * cajero elige DE QUÉ lote sale, y el reparto lo resuelve el sistema.
+   *
+   * Es lo que el backend hace de todos modos —la elección es una preferencia que FEFO recorta al
+   * saldo real y completa con otros lotes—, así que un campo editable prometía un control que no
+   * existía. Si un lote no alcanza, se marca otro y se lleva el resto.
    */
   alternarLote(fila: LoteRow): void {
     if (fila.seleccionado) {
-      fila.seleccionado = false;
-      fila.cantidad = 0;
-      this.seleccion.delete(fila.loteId);
+      this.desmarcar(fila);
     } else {
       const pendiente = this.cantidadRequerida - this.totalSeleccionado;
+      const asignada = Math.max(0, Math.min(fila.disponible, pendiente));
+      // Con lo pedido ya cubierto no queda nada para este lote: marcarlo no diría nada.
+      if (asignada <= EPSILON) {
+        return;
+      }
       fila.seleccionado = true;
-      fila.cantidad = Math.max(0, Math.min(fila.disponible, pendiente));
+      fila.cantidad = asignada;
+      fila.cantidadLabel = `${asignada}`;
       this.registrarSeleccion(fila);
     }
     this.recalcular();
   }
 
-  cambiarCantidad(fila: LoteRow, valor: string): void {
-    const cantidad = Number(valor);
-    fila.cantidad = isNaN(cantidad) || cantidad < 0 ? 0 : Math.min(cantidad, fila.disponible);
-    fila.seleccionado = fila.cantidad > 0;
-    if (fila.seleccionado) {
-      this.registrarSeleccion(fila);
-    } else {
-      this.seleccion.delete(fila.loteId);
-    }
-    this.recalcular();
+  private desmarcar(fila: LoteRow): void {
+    fila.seleccionado = false;
+    fila.cantidad = 0;
+    fila.cantidadLabel = '—';
+    this.seleccion.delete(fila.loteId);
   }
 
   /** Quita un lote desde el resumen, sin tener que volver a la página donde está su fila. */
@@ -342,8 +374,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     this.seleccion.delete(elegido.loteId);
     const fila = this.filas.find((f) => f.loteId === elegido.loteId);
     if (fila != null) {
-      fila.seleccionado = false;
-      fila.cantidad = 0;
+      this.desmarcar(fila);
     }
     this.recalcular();
   }

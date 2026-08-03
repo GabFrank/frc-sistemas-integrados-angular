@@ -20,7 +20,7 @@ export class VentaItem {
     valorDescuento: number = 0;
     activo: boolean
     /**
-     * Lotes elegidos a mano por el cajero, en presentaciones. Vacío o sin definir significa FEFO
+     * Lotes elegidos a mano por el cajero, en unidades. Vacío o sin definir significa FEFO
      * automático, que es el camino de casi todas las ventas. Solo se completa para productos con
      * control de lote y solo si el cajero abre el selector.
      */
@@ -48,7 +48,10 @@ export class VentaItem {
     }
 }
 
-/** Lote elegido a mano para un ítem. La cantidad va en presentaciones; el backend convierte. */
+/**
+ * Lote elegido a mano para un ítem. La cantidad va EN UNIDADES, la misma unidad que muestra el
+ * selector del POS y en la que el backend lleva el ledger de lotes: no hay conversión en el medio.
+ */
 export class VentaItemLoteInput {
     loteId: number;
     cantidad: number;

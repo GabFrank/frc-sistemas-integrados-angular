@@ -598,6 +598,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           presentacionId: item.presentacion?.id,
           sucursalId: this.mainService.sucursalActual?.id,
           cantidad: item.cantidad,
+          // El selector trabaja en unidades: necesita el factor para expresar el ítem en esa unidad.
+          unidadesPorPresentacion: item.presentacion?.cantidad,
         },
         disableClose: true,
         width: "700px",

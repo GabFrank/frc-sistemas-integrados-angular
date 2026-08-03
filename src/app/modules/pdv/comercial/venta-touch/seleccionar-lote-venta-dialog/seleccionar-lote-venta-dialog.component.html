@@ -6,6 +6,7 @@
   <div class="resumen">
     <span class="resumen-etiqueta">Cantidad a vender:</span>
     <span class="resumen-valor">{{ cantidadRequerida }}</span>
+    <span class="resumen-unidad">unid.</span>
   </div>
 
   <div
@@ -147,25 +148,21 @@
         </ng-container>
 
         <ng-container matColumnDef="disponible">
-          <th mat-header-cell *matHeaderCellDef style="width: 16%">Disponible</th>
+          <th mat-header-cell *matHeaderCellDef style="width: 16%">Disponible (unid.)</th>
           <td mat-cell *matCellDef="let fila" style="width: 16%">
             {{ fila.disponibleLabel }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef style="width: 18%">A vender</th>
+          <th mat-header-cell *matHeaderCellDef style="width: 18%">A vender (unid.)</th>
           <td mat-cell *matCellDef="let fila" style="width: 18%">
-            <input
-              matInput
-              type="number"
-              min="0"
-              [max]="fila.disponible"
-              [value]="fila.cantidad"
-              [attr.aria-label]="'Cantidad a vender del lote ' + fila.numeroLote"
-              class="input-cantidad"
-              (input)="cambiarCantidad(fila, $any($event.target).value)"
-            />
+            <span
+              class="cantidad-asignada"
+              [class.cantidad-vacia]="!fila.seleccionado"
+            >
+              {{ fila.cantidadLabel }}
+            </span>
           </td>
         </ng-container>
 
