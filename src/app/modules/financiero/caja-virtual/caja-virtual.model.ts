@@ -75,6 +75,7 @@ export class MovimientoCajaVirtual {
   saldoPosterior: number;
   moneda: Moneda;
   referenciaId: number;
+  origenTipo: string;
   descripcion: string;
   usuario: Usuario;
   cajaOrigen: CajaVirtual;

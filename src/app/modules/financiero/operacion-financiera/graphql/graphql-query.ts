@@ -92,11 +92,24 @@ export const registrarOperacionFinancieraMutation = gql`
   }
 `;
 
+export const anularOperacionFinancieraMutation = gql`
+  mutation anularOperacionFinanciera($id: ID!, $motivo: String) {
+    data: anularOperacionFinanciera(id: $id, motivo: $motivo) {
+      id
+      anulado
+    }
+  }
+`;
+
 const movimientoBancarioFields = `
   id
   cuentaBancaria {
     id
     numero
+    moneda {
+      id
+      simbolo
+    }
   }
   tipoMovimiento
   monto

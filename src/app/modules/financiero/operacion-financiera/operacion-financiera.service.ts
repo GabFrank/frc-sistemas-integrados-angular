@@ -5,6 +5,7 @@ import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario }
 import { OperacionesFinancierasGQL } from './graphql/operacionesFinancieras';
 import { OperacionFinancieraCategoriasGQL } from './graphql/operacionFinancieraCategorias';
 import { RegistrarOperacionFinancieraGQL } from './graphql/registrarOperacionFinanciera';
+import { AnularOperacionFinancieraGQL } from './graphql/anularOperacionFinanciera';
 import { MovimientosBancariosGQL } from './graphql/movimientosBancarios';
 
 // OJO: operacionesFinancieras/movimientosBancarios devuelven un page "simplificado"
@@ -25,6 +26,7 @@ export class OperacionFinancieraService {
     private operacionesGQL: OperacionesFinancierasGQL,
     private categoriasGQL: OperacionFinancieraCategoriasGQL,
     private registrarGQL: RegistrarOperacionFinancieraGQL,
+    private anularGQL: AnularOperacionFinancieraGQL,
     private movimientosBancariosGQL: MovimientosBancariosGQL,
   ) { }
 
@@ -43,6 +45,11 @@ export class OperacionFinancieraService {
       Object.assign(aux, operacion);
     }
     return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() });
+  }
+
+  /** Anula la operación financiera entera: revierte todas sus patas (caja y/o banco) en el backend. */
+  onAnular(operacionId: number, motivo?: string): Observable<OperacionFinanciera> {
+    return this.genericService.onSaveCustom(this.anularGQL, { id: operacionId, motivo: motivo || null });
   }
 
   onGetMovimientosBancarios(cuentaBancariaId: number, page = 0, size = 10): Observable<SimplePage<MovimientoBancario>> {

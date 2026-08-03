@@ -19,6 +19,8 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
+import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -27,6 +29,11 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 interface MovimientoRow extends MovimientoCajaVirtual {
   _color?: string;
   _anulable?: boolean;
+  // Agrupación visual de las patas de una misma operación financiera (mismo referenciaId).
+  _opGrupo?: number | null;   // referenciaId de la op, o null si no es op financiera
+  _opColor?: string;          // color del acento lateral del grupo
+  _grupoInicio?: boolean;     // primera fila del grupo consecutivo
+  _grupoFin?: boolean;        // última fila del grupo consecutivo
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -51,8 +58,27 @@ export class CajaVirtualDashboardComponent implements OnInit {
   isLoading = false;
   pageIndex = 0;
   pageSize = 15;
-  selectedPageInfo: PageInfo<MovimientoCajaVirtual>;
+  selectedPageInfo: PageInfo<MovimientoCajaVirtual> | any;
   displayedColumns = ['creadoEn', 'responsable', 'tipoMovimiento', 'descripcion', 'cantidad', 'saldoPosterior', 'acciones'];
+
+  // Fuente de la tabla: caja mayor o una cuenta bancaria (los movimientos de banco no
+  // ocurren en la caja mayor; el selector permite verlos sin salir del dashboard).
+  fuentes: { label: string; tipo: 'CAJA' | 'BANCO'; cuentaId: number | null }[] =
+    [{ label: 'Caja Mayor', tipo: 'CAJA', cuentaId: null }];
+  fuenteSel = this.fuentes[0];
+  fuenteEsBanco = false;
+
+  dataSourceBanco = new MatTableDataSource<MovimientoBancario>([]);
+  displayedColumnsBanco = ['creadoEn', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco'];
+
+  bancoTipoLabels: Record<string, string> = {
+    ENTRADA_MANUAL: 'Entrada', SALIDA_MANUAL: 'Salida',
+    AJUSTE_POSITIVO: 'Ajuste +', AJUSTE_NEGATIVO: 'Ajuste −', ACREDITACION_POS: 'Acreditación POS',
+  };
+  bancoTipoColores: Record<string, string> = {
+    ENTRADA_MANUAL: '#4caf50', ACREDITACION_POS: '#4caf50', AJUSTE_POSITIVO: '#4caf50',
+    SALIDA_MANUAL: '#f44336', AJUSTE_NEGATIVO: '#f44336',
+  };
 
   // Filtros de movimientos
   desdeControl = new FormControl();
@@ -92,6 +118,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   constructor(
     private cajaVirtualService: CajaVirtualService,
+    private operacionFinancieraService: OperacionFinancieraService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
@@ -126,11 +153,34 @@ export class CajaVirtualDashboardComponent implements OnInit {
         this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
           .pipe(untilDestroyed(this)).subscribe(res => {
             this.resumenBancario = res || [];
+            this.construirFuentes();
           });
       });
   }
 
+  /** Arma el selector de fuente: Caja Mayor + cada cuenta bancaria visible (banco - nº cuenta). */
+  private construirFuentes() {
+    const bancos = this.resumenBancario.map(r => ({
+      label: `${r.cuentaBancaria?.banco?.nombre || 'Banco'} - ${r.cuentaBancaria?.numero || ''}`,
+      tipo: 'BANCO' as const,
+      cuentaId: r.cuentaBancaria?.id || null,
+    }));
+    this.fuentes = [{ label: 'Caja Mayor', tipo: 'CAJA', cuentaId: null }, ...bancos];
+    // Preserva la selección actual si la cuenta sigue visible; si no, vuelve a Caja Mayor.
+    const sigue = this.fuentes.find(f => f.tipo === this.fuenteSel.tipo && f.cuentaId === this.fuenteSel.cuentaId);
+    this.fuenteSel = sigue || this.fuentes[0];
+    this.fuenteEsBanco = this.fuenteSel.tipo === 'BANCO';
+  }
+
+  onFuenteChange(f: { label: string; tipo: 'CAJA' | 'BANCO'; cuentaId: number | null }) {
+    this.fuenteSel = f;
+    this.fuenteEsBanco = f.tipo === 'BANCO';
+    this.pageIndex = 0;
+    this.cargarMovimientos();
+  }
+
   cargarMovimientos() {
+    if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
     if (!this.cajaVirtual?.id) return;
     this.isLoading = true;
     this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
@@ -144,7 +194,25 @@ export class CajaVirtualDashboardComponent implements OnInit {
         this.isLoading = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.dataSource.data = (res.getContent || []).map(m => this.toRow(m));
+          const rows = (res.getContent || []).map(m => this.toRow(m));
+          this.marcarGruposOperacion(rows);
+          this.dataSource.data = rows;
+        }
+      });
+  }
+
+  /** Carga los movimientos de la cuenta bancaria seleccionada como fuente. */
+  private cargarMovimientosBancarios() {
+    const cuentaId = this.fuenteSel.cuentaId;
+    if (!cuentaId) { this.dataSourceBanco.data = []; return; }
+    this.isLoading = true;
+    this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        this.isLoading = false;
+        if (res != null) {
+          this.dataSourceBanco.data = res.getContent || [];
+          this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         }
       });
   }
@@ -155,7 +223,27 @@ export class CajaVirtualDashboardComponent implements OnInit {
     row._anulable = this.puedeGestionar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false;
+    row._opGrupo = (m.origenTipo === 'OPERACION_FINANCIERA' && m.referenciaId) ? m.referenciaId : null;
     return row;
+  }
+
+  // Paleta estable para el acento lateral de los grupos de operación (por referenciaId).
+  private opGrupoPaleta = ['#7e57c2', '#26a69a', '#5c6bc0', '#ab47bc', '#26c6da', '#66bb6a', '#ec407a'];
+
+  /**
+   * Marca las patas consecutivas de una misma operación financiera (mismo referenciaId)
+   * como un grupo visual: comparten color de acento y se dibujan sin divisoria entre ellas.
+   */
+  private marcarGruposOperacion(rows: MovimientoRow[]) {
+    for (let i = 0; i < rows.length; i++) {
+      const g = rows[i]._opGrupo;
+      if (g == null) { rows[i]._grupoInicio = false; rows[i]._grupoFin = false; continue; }
+      rows[i]._opColor = this.opGrupoPaleta[g % this.opGrupoPaleta.length];
+      const prevIgual = i > 0 && rows[i - 1]._opGrupo === g;
+      const nextIgual = i < rows.length - 1 && rows[i + 1]._opGrupo === g;
+      rows[i]._grupoInicio = !prevIgual;
+      rows[i]._grupoFin = !nextIgual;
+    }
   }
 
   toggleFiltros() {
@@ -226,29 +314,41 @@ export class CajaVirtualDashboardComponent implements OnInit {
       .afterClosed().subscribe(res => { if (res) this.cargarConfigYBancos(); });
   }
 
-  /** Anula un movimiento manual con contra-movimiento. El backend bloquea los de otro módulo y los AJUSTE. */
+  /**
+   * Anula un movimiento. Si proviene de una operación financiera, anula la operación entera
+   * (revierte todas sus patas: ambos lados de un cambio/transferencia, caja+banco de un
+   * depósito/retiro). Un movimiento manual se anula con su contra-movimiento.
+   */
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
+    const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
+    const mensaje = esOpFinanciera
+      ? '¿Anular la operación financiera completa? Se revertirán TODOS sus movimientos vinculados (origen y destino).'
+      : '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).';
+
     this.dialogosService.confirm(
-      'Anular movimiento',
-      '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).',
-      mov.descripcion || null, null, true, 'Sí, anular', 'No'
+      esOpFinanciera ? 'Anular operación financiera' : 'Anular movimiento',
+      mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res === true) {
-        this.cajaVirtualService.onAnularMovimiento(mov.id)
-          .pipe(untilDestroyed(this)).subscribe({
-            next: r => {
-              if (r != null) {
-                this.notificacion.notification$.next({ texto: 'Movimiento anulado', color: NotificacionColor.success, duracion: 3 });
-                this.recargar();
-              }
-            },
-            error: err => {
-              const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular el movimiento';
-              this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
-            }
-          });
-      }
+      if (res !== true) return;
+      const obs = esOpFinanciera
+        ? this.operacionFinancieraService.onAnular(mov.referenciaId)
+        : this.cajaVirtualService.onAnularMovimiento(mov.id);
+      obs.pipe(untilDestroyed(this)).subscribe({
+        next: r => {
+          if (r != null) {
+            this.notificacion.notification$.next({
+              texto: esOpFinanciera ? 'Operación financiera anulada' : 'Movimiento anulado',
+              color: NotificacionColor.success, duracion: 3
+            });
+            this.recargar();
+          }
+        },
+        error: err => {
+          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
+          this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
+        }
+      });
     });
   }
 

@@ -10,6 +10,7 @@ import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
+import { CambioService } from '../../cambio/cambio.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
@@ -73,6 +74,13 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   monedaOrigenEditable = false;
   monedaDestinoEditable = false;
 
+  // Monto único (misma moneda a ambos lados) vs. montos separados (cambio divisa / transf. bancaria).
+  mostrarMontoDestino = false;
+  labelMontoOrigen = 'Monto';
+  // Orden visual de los bloques (depósito muestra el banco destino antes que la caja origen).
+  ordenOrigen = 1;
+  ordenDestino = 2;
+
   tituloActual = '';
 
   // Opciones de formato de moneda por lado (formato PY, sin negativos).
@@ -88,6 +96,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     private cajaVirtualService: CajaVirtualService,
     private cuentaBancariaService: CuentaBancariaService,
     private monedaService: MonedaService,
+    private cambioService: CambioService,
     private notificacion: NotificacionSnackbarService,
   ) { }
 
@@ -142,11 +151,26 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     this.mostrarCajaDestino = [TipoOperacionFinanciera.CAMBIO_DIVISA, TipoOperacionFinanciera.RETIRO_BANCARIO, TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS].includes(tipo);
     this.mostrarCuentaDestino = [TipoOperacionFinanciera.DEPOSITO_BANCARIO, TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA].includes(tipo);
     this.mostrarCotizacion = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
-    this.mostrarDiferencia = tipo !== TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA;
+    // La diferencia (sobra/falta por redondeo) solo tiene sentido en el cambio de divisa;
+    // el resto de las operaciones se mantienen mínimas.
+    this.mostrarDiferencia = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
 
-    // Editable solo en cambio de divisa (cajas con monedas distintas). El resto se autoselecciona.
-    this.monedaOrigenEditable = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+    // Moneda editable cuando NO se deriva de una cuenta bancaria: el usuario elige la
+    // moneda de la caja en cambio de divisa (ambos lados) y en transferencia entre cajas
+    // (origen; el destino la espeja). En depósito/retiro/transf. bancaria se autoselecciona del banco.
+    this.monedaOrigenEditable = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA
+      || tipo === TipoOperacionFinanciera.TRANSFERENCIA_ENTRE_CAJAS;
     this.monedaDestinoEditable = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA;
+
+    // Monto separado solo cuando origen y destino pueden diferir de monto/moneda.
+    this.mostrarMontoDestino = tipo === TipoOperacionFinanciera.CAMBIO_DIVISA
+      || tipo === TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA;
+    this.labelMontoOrigen = this.mostrarMontoDestino ? 'Monto Origen' : 'Monto';
+
+    // Depósito bancario: primero se elige el banco (destino), luego la caja (origen).
+    const destinoPrimero = tipo === TipoOperacionFinanciera.DEPOSITO_BANCARIO;
+    this.ordenOrigen = destinoPrimero ? 2 : 1;
+    this.ordenDestino = destinoPrimero ? 1 : 2;
 
     // Limpiar todo lo que no aplica.
     this.cajaMayorOrigenControl.setValue(null);
@@ -212,12 +236,37 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       this.monedaDestinoControl.setValue(this.monedaOrigenControl.value);
     }
     this.actualizarCurrencyOpts();
+    this.precargarCotizacion();
     this.recalcularMontoDestino();
   }
 
   onMonedaDestinoChange() {
     this.actualizarCurrencyOpts();
+    this.precargarCotizacion();
     this.recalcularMontoDestino();
+  }
+
+  /**
+   * Precarga la cotización de compra comercial (valorEnGsCompraMercado) de la divisa
+   * extranjera al elegir las monedas de un cambio de divisa. Fallback: venta mercado → local.
+   */
+  private precargarCotizacion() {
+    if (this.tipoOperacionControl.value !== TipoOperacionFinanciera.CAMBIO_DIVISA) return;
+    const mo: Moneda = this.monedaOrigenControl.value;
+    const md: Moneda = this.monedaDestinoControl.value;
+    if (!mo || !md) return;
+    // La divisa a cotizar es la NO principal (la cotización es Gs por 1 de esa divisa).
+    const extranjera = !(mo as any).principal ? mo : (!(md as any).principal ? md : null);
+    if (!extranjera?.id) return;
+    this.cambioService.getUltimoCambioPorMonedaId(extranjera.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(c => {
+        const tasa = (c as any)?.valorEnGsCompraMercado ?? (c as any)?.valorEnGsVentaMercado ?? (c as any)?.valorEnGs ?? null;
+        if (tasa && tasa > 0) {
+          this.cotizacionControl.setValue(tasa);
+          this.recalcularMontoDestino();
+        }
+      });
   }
 
   private actualizarCurrencyOpts() {

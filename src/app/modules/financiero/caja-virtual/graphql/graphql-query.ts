@@ -170,6 +170,7 @@ const movimientoFields = `
     simbolo
   }
   referenciaId
+  origenTipo
   descripcion
   usuario {
     id
