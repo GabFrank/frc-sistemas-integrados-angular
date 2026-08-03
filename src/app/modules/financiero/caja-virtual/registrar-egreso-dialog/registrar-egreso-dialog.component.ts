@@ -38,7 +38,7 @@ export class RegistrarEgresoDialogComponent {
       return;
     }
     const tipoMov = op.tipo === 'AJUSTE' ? CajaVirtualTipoMovimiento.AJUSTE : CajaVirtualTipoMovimiento.EGRESO;
-    const d: MovimientoDialogData = { cajaVirtual: this.data.cajaVirtual, tipoMovimiento: tipoMov };
+    const d: MovimientoDialogData = { cajaVirtual: this.data.cajaVirtual, tipoMovimiento: tipoMov, esEgreso: true };
     this.abrir(AddMovimientoCajaVirtualDialogComponent, { width: '500px', data: d });
   }
 

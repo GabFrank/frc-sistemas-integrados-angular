@@ -13,6 +13,9 @@ import { MainService } from '../../../../main.service';
 export interface MovimientoDialogData {
   cajaVirtual: CajaVirtual;
   tipoMovimiento: CajaVirtualTipoMovimiento;
+  // Para AJUSTE: si es un ajuste "de egreso", el monto se envía negativo (el backend
+  // respeta el signo del AJUSTE). Ingreso vs egreso del selector define la dirección.
+  esEgreso?: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -137,7 +140,9 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
     const movimiento = new MovimientoCajaVirtual();
     movimiento.cajaVirtual = this.data.cajaVirtual;
     movimiento.tipoMovimiento = this.data.tipoMovimiento;
-    movimiento.cantidad = cantidad;
+    // AJUSTE respeta el signo: un ajuste de egreso resta (monto negativo).
+    const esAjusteEgreso = this.data.tipoMovimiento === CajaVirtualTipoMovimiento.AJUSTE && this.data.esEgreso;
+    movimiento.cantidad = esAjusteEgreso ? -Math.abs(cantidad) : cantidad;
     movimiento.moneda = moneda;
     movimiento.descripcion = this.descripcionControl.value?.toUpperCase();
     movimiento.usuario = this.mainService.usuarioActual;

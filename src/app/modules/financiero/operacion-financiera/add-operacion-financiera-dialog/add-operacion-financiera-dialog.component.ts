@@ -223,6 +223,8 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     if (this.mostrarCuentaDestino && !this.cuentaBancariaDestinoControl.value) return this.err('Seleccione la cuenta bancaria de destino');
     if (!this.montoOrigenControl.value || !this.montoDestinoControl.value) return this.err('Debe ingresar el monto de origen y de destino');
     if (this.mostrarCotizacion && !this.cotizacionControl.value) return this.err('Ingrese la cotización');
+    if ((this.mostrarCajaOrigen || this.mostrarCuentaOrigen) && !this.monedaOrigenControl.value) return this.err('Seleccione la moneda de origen');
+    if ((this.mostrarCajaDestino || this.mostrarCuentaDestino) && !this.monedaDestinoControl.value) return this.err('Seleccione la moneda de destino');
 
     const operacion = new OperacionFinanciera();
     operacion.tipoOperacion = tipo;
