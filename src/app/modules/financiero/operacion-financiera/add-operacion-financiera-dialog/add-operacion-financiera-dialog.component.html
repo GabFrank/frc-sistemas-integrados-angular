@@ -1,140 +1,145 @@
-<div style="margin: 20px; min-width: 560px;">
-<h2 class="titulo-center" style="font-weight: 500;">Nueva Operación Financiera</h2>
+<div class="op-dialog">
 
-<mat-tab-group [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)" mat-stretch-tabs="false">
-  <mat-tab *ngFor="let t of tipoOperacionList">
-    <ng-template mat-tab-label>
-      <mat-icon style="margin-right: 6px;">{{ t.icono }}</mat-icon> {{ t.label }}
-    </ng-template>
-  </mat-tab>
-</mat-tab-group>
+  <!-- Menú lateral de tipos -->
+  <div class="op-menu">
+    <div class="op-menu-title">Operación</div>
+    <button
+      *ngFor="let t of tipoOperacionList"
+      type="button"
+      class="op-menu-item"
+      [class.selected]="tipoOperacionControl.value === t.value"
+      (click)="seleccionarTipo(t.value)">
+      <mat-icon>{{ t.icono }}</mat-icon>
+      <div class="op-menu-text">
+        <div class="op-menu-label">{{ t.label }}</div>
+        <div class="op-menu-desc">{{ t.desc }}</div>
+      </div>
+    </button>
+  </div>
 
-<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
-  <div fxLayout="column" fxLayoutGap="14px">
+  <!-- Formulario -->
+  <div class="op-form">
+    <h2 class="op-form-title">{{ tituloActual }}</h2>
 
-    <mat-form-field appearance="outline" *ngIf="categoriaList.length > 0">
-      <mat-label>Categoría</mat-label>
-      <mat-select [formControl]="categoriaControl">
-        <mat-option [value]="null">— Sin categoría —</mat-option>
-        <mat-option *ngFor="let c of categoriaList" [value]="c">{{ c.nombre }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <mat-dialog-content [formGroup]="formGroup">
+      <div fxLayout="column" fxLayoutGap="12px">
 
-    <!-- ═══ ORIGEN ═══ -->
-    <div class="seccion-titulo" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">ORIGEN (sale)</div>
-
-    <mat-form-field appearance="outline" *ngIf="mostrarCajaOrigen">
-      <mat-label class="required-field">Caja Mayor Origen</mat-label>
-      <mat-select [formControl]="cajaMayorOrigenControl">
-        <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" *ngIf="mostrarCuentaOrigen">
-      <mat-label class="required-field">Cuenta Bancaria Origen</mat-label>
-      <mat-select [formControl]="cuentaBancariaOrigenControl" (selectionChange)="onCuentaOrigenChange()">
-        <mat-option *ngFor="let c of cuentaBancariaList" [value]="c">
-          {{ c.nombre || c.banco?.nombre }} — {{ c.numero }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <div fxLayout="row" fxLayoutGap="10px" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">
-      <mat-form-field appearance="outline" fxFlex="50%">
-        <mat-label>Moneda Origen</mat-label>
-        <mat-select [formControl]="monedaOrigenControl" (selectionChange)="recalcularMontoDestino()">
-          <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" fxFlex="50%">
-        <mat-label class="required-field">Monto Origen</mat-label>
-        <input matInput type="number" [formControl]="montoOrigenControl" (input)="recalcularMontoDestino()" placeholder="0" />
-        <mat-error *ngIf="montoOrigenControl.hasError('min')">Debe ser mayor a 0</mat-error>
-      </mat-form-field>
-    </div>
-
-    <mat-form-field appearance="outline" *ngIf="mostrarCotizacion">
-      <mat-label>Cotización (moneda principal por 1 de divisa)</mat-label>
-      <input matInput type="number" [formControl]="cotizacionControl" (input)="recalcularMontoDestino()" placeholder="0" />
-    </mat-form-field>
-
-    <!-- ═══ DESTINO ═══ -->
-    <div class="seccion-titulo" *ngIf="mostrarCajaDestino || mostrarCuentaDestino">DESTINO (entra)</div>
-
-    <mat-form-field appearance="outline" *ngIf="mostrarCajaDestino">
-      <mat-label class="required-field">Caja Mayor Destino</mat-label>
-      <mat-select [formControl]="cajaMayorDestinoControl">
-        <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" *ngIf="mostrarCuentaDestino">
-      <mat-label class="required-field">Cuenta Bancaria Destino</mat-label>
-      <mat-select [formControl]="cuentaBancariaDestinoControl" (selectionChange)="onCuentaDestinoChange()">
-        <mat-option *ngFor="let c of cuentaBancariaList" [value]="c">
-          {{ c.nombre || c.banco?.nombre }} — {{ c.numero }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <div fxLayout="row" fxLayoutGap="10px" *ngIf="mostrarCajaDestino || mostrarCuentaDestino">
-      <mat-form-field appearance="outline" fxFlex="50%">
-        <mat-label>Moneda Destino</mat-label>
-        <mat-select [formControl]="monedaDestinoControl">
-          <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" fxFlex="50%">
-        <mat-label class="required-field">Monto Destino</mat-label>
-        <input matInput type="number" [formControl]="montoDestinoControl" placeholder="0" />
-        <mat-error *ngIf="montoDestinoControl.hasError('min')">Debe ser mayor a 0</mat-error>
-      </mat-form-field>
-    </div>
-
-    <!-- ═══ DIFERENCIA ═══ -->
-    <ng-container *ngIf="mostrarDiferencia">
-      <div class="seccion-titulo">DIFERENCIA (opcional)</div>
-      <div fxLayout="row" fxLayoutGap="10px">
-        <mat-form-field appearance="outline" fxFlex="50%">
-          <mat-label>Diferencia (+ sobra / − falta)</mat-label>
-          <input matInput type="number" [formControl]="diferenciaControl" placeholder="0" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" fxFlex="50%">
-          <mat-label>Destino de la diferencia</mat-label>
-          <mat-select [formControl]="diferenciaDestinoTipoControl">
-            <mat-option *ngFor="let d of diferenciaDestinoList" [value]="d.value">{{ d.label }}</mat-option>
+        <mat-form-field appearance="outline" *ngIf="categoriaList.length > 0">
+          <mat-label>Categoría</mat-label>
+          <mat-select [formControl]="categoriaControl">
+            <mat-option [value]="null">— Sin categoría —</mat-option>
+            <mat-option *ngFor="let c of categoriaList" [value]="c">{{ c.nombre }}</mat-option>
           </mat-select>
         </mat-form-field>
+
+        <!-- ═══ ORIGEN ═══ -->
+        <div class="seccion-titulo" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">ORIGEN (sale)</div>
+
+        <mat-form-field appearance="outline" *ngIf="mostrarCajaOrigen">
+          <mat-label class="required-field">Caja Mayor Origen</mat-label>
+          <mat-select [formControl]="cajaMayorOrigenControl">
+            <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" *ngIf="mostrarCuentaOrigen">
+          <mat-label class="required-field">Cuenta Bancaria Origen</mat-label>
+          <mat-select [formControl]="cuentaBancariaOrigenControl" (selectionChange)="onCuentaOrigenChange()">
+            <mat-option *ngFor="let c of cuentaBancariaList" [value]="c">
+              {{ c.banco?.nombre }} · {{ c.nombre }} · {{ c.numero }} ({{ c.moneda?.simbolo }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div fxLayout="row" fxLayoutGap="10px" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Moneda Origen</mat-label>
+            <mat-select [formControl]="monedaOrigenControl" (selectionChange)="onMonedaOrigenChange()">
+              <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label class="required-field">Monto Origen</mat-label>
+            <input matInput currencyMask [options]="currencyOptsOrigen" [formControl]="montoOrigenControl" (input)="recalcularMontoDestino()" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" *ngIf="mostrarCotizacion">
+          <mat-label>Cotización (moneda principal por 1 de divisa)</mat-label>
+          <input matInput type="number" min="0" [formControl]="cotizacionControl" (input)="recalcularMontoDestino()" placeholder="0" />
+        </mat-form-field>
+
+        <!-- ═══ DESTINO ═══ -->
+        <div class="seccion-titulo" *ngIf="mostrarCajaDestino || mostrarCuentaDestino">DESTINO (entra)</div>
+
+        <mat-form-field appearance="outline" *ngIf="mostrarCajaDestino">
+          <mat-label class="required-field">Caja Mayor Destino</mat-label>
+          <mat-select [formControl]="cajaMayorDestinoControl">
+            <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" *ngIf="mostrarCuentaDestino">
+          <mat-label class="required-field">Cuenta Bancaria Destino</mat-label>
+          <mat-select [formControl]="cuentaBancariaDestinoControl" (selectionChange)="onCuentaDestinoChange()">
+            <mat-option *ngFor="let c of cuentaBancariaList" [value]="c">
+              {{ c.banco?.nombre }} · {{ c.nombre }} · {{ c.numero }} ({{ c.moneda?.simbolo }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div fxLayout="row" fxLayoutGap="10px" *ngIf="mostrarCajaDestino || mostrarCuentaDestino">
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label>Moneda Destino</mat-label>
+            <mat-select [formControl]="monedaDestinoControl" (selectionChange)="onMonedaDestinoChange()">
+              <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="50%">
+            <mat-label class="required-field">Monto Destino</mat-label>
+            <input matInput currencyMask [options]="currencyOptsDestino" [formControl]="montoDestinoControl" />
+          </mat-form-field>
+        </div>
+
+        <!-- ═══ DIFERENCIA ═══ -->
+        <ng-container *ngIf="mostrarDiferencia">
+          <div class="seccion-titulo">DIFERENCIA (opcional)</div>
+          <div fxLayout="row" fxLayoutGap="10px">
+            <mat-form-field appearance="outline" fxFlex="50%">
+              <mat-label>Diferencia (+ sobra / − falta)</mat-label>
+              <input matInput type="number" [formControl]="diferenciaControl" placeholder="0" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" fxFlex="50%">
+              <mat-label>Destino de la diferencia</mat-label>
+              <mat-select [formControl]="diferenciaDestinoTipoControl">
+                <mat-option *ngFor="let d of diferenciaDestinoList" [value]="d.value">{{ d.label }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Observación de la diferencia</mat-label>
+            <input matInput [formControl]="diferenciaObservacionControl" placeholder="Opcional" />
+          </mat-form-field>
+        </ng-container>
+
+        <mat-form-field appearance="outline">
+          <mat-label>N° Comprobante</mat-label>
+          <input matInput [formControl]="numeroComprobanteControl" placeholder="Opcional" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Descripción</mat-label>
+          <textarea matInput [formControl]="descripcionControl" rows="2" placeholder="Opcional"></textarea>
+        </mat-form-field>
+
       </div>
-      <mat-form-field appearance="outline">
-        <mat-label>Observación de la diferencia</mat-label>
-        <input matInput [formControl]="diferenciaObservacionControl" placeholder="Opcional" />
-      </mat-form-field>
-    </ng-container>
+    </mat-dialog-content>
 
-    <mat-form-field appearance="outline">
-      <mat-label>N° Comprobante</mat-label>
-      <input matInput [formControl]="numeroComprobanteControl" placeholder="Opcional" />
-    </mat-form-field>
-
-    <mat-form-field appearance="outline">
-      <mat-label>Descripción</mat-label>
-      <textarea matInput [formControl]="descripcionControl" rows="2" placeholder="Opcional"></textarea>
-    </mat-form-field>
-
+    <mat-dialog-actions align="end">
+      <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
+        <mat-icon>save</mat-icon> Confirmar
+      </button>
+    </mat-dialog-actions>
   </div>
-</mat-dialog-content>
-
-<mat-dialog-actions align="end">
-  <button mat-stroked-button (click)="onCancel()">Cancelar</button>
-  <button
-    mat-raised-button
-    color="primary"
-    (click)="onSave()"
-    [disabled]="formGroup.invalid || isSaving"
-  >
-    <mat-icon style="transform: scale(1.5);">save</mat-icon>
-    Confirmar
-  </button>
-</mat-dialog-actions>
 </div>

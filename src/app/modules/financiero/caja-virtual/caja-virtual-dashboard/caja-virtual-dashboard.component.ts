@@ -211,7 +211,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   onOperacionFinanciera() {
-    this.dialog.open(AddOperacionFinancieraDialogComponent, { width: '600px', maxHeight: '90vh', data: null })
+    this.dialog.open(AddOperacionFinancieraDialogComponent, { width: '880px', maxWidth: '95vw', maxHeight: '92vh', data: null })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 

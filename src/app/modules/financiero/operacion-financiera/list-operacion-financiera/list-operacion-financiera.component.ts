@@ -74,8 +74,9 @@ export class ListOperacionFinancieraComponent implements OnInit {
 
   onAdd() {
     this.dialog.open(AddOperacionFinancieraDialogComponent, {
-      width: '600px',
-      maxHeight: '90vh',
+      width: '880px',
+      maxWidth: '95vw',
+      maxHeight: '92vh',
       data: null
     }).afterClosed().subscribe(res => {
       if (res != null) this.onFiltrar();
