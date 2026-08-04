@@ -164,6 +164,29 @@ export const saveConteo = gql`
   }
 `;
 
+export const editarConteoCajaDesdeServidor = gql`
+  mutation editarConteoCajaDesdeServidor(
+    $cajaId: Int!
+    $sucursalId: Int!
+    $conteoAnteriorId: ID!
+    $apertura: Boolean!
+    $conteoInput: ConteoInput!
+    $conteoMonedaInputList: [ConteoMonedaInput]
+  ) {
+    data: editarConteoCajaDesdeServidor(
+      cajaId: $cajaId
+      sucursalId: $sucursalId
+      conteoAnteriorId: $conteoAnteriorId
+      apertura: $apertura
+      conteoInput: $conteoInput
+      conteoMonedaInputList: $conteoMonedaInputList
+    ) {
+      exito
+      cajaId
+    }
+  }
+`;
+
 export const deleteConteoQuery = gql`
   mutation deleteConteo($id: ID!, $sucId: ID) {
     deleteConteo(id: $id, sucId: $sucId)
