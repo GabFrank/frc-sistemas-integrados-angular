@@ -93,6 +93,7 @@ export const buscarStockPorLoteQuery = gql`
   query buscarStockPorLote(
     $productoId: ID
     $sucursalId: ID
+    $proveedorId: ID
     $estado: EstadoLote
     $numeroLote: String
     $texto: String
@@ -103,6 +104,7 @@ export const buscarStockPorLoteQuery = gql`
     data: buscarStockPorLote(
       productoId: $productoId
       sucursalId: $sucursalId
+      proveedorId: $proveedorId
       estado: $estado
       numeroLote: $numeroLote
       texto: $texto
@@ -125,6 +127,7 @@ export const buscarStockPorLoteQuery = gql`
         fechaVencimiento
         fechaRetiro
         estado
+        proveedorNombre
         cantidadDisponible
       }
     }
@@ -167,6 +170,45 @@ export const cambiarEstadoLoteMutation = gql`
       estado
       observacion
       actualizadoEn
+    }
+  }
+`;
+
+/**
+ * Historial de un lote, del movimiento más reciente al más viejo. Con sucursalId nulo devuelve el
+ * recorrido completo por toda la red: la compra que lo trajo, las transferencias que lo
+ * repartieron y las ventas que lo sacaron.
+ */
+export const movimientosPorLoteQuery = gql`
+  query movimientosPorLote(
+    $loteId: ID!
+    $sucursalId: ID
+    $page: Int
+    $size: Int
+  ) {
+    data: movimientosPorLote(
+      loteId: $loteId
+      sucursalId: $sucursalId
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        fecha
+        sucursalNombre
+        tipoMovimiento
+        referencia
+        cantidad
+        usuarioNombre
+      }
     }
   }
 `;

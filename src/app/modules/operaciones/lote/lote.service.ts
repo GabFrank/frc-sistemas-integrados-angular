@@ -7,10 +7,18 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
+import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
-import { EstadoLote, Lote, StockLote, StockLotePresentacion, StockLoteSucursal } from './lote.model';
+import {
+  EstadoLote,
+  Lote,
+  MovimientoLote,
+  StockLote,
+  StockLotePresentacion,
+  StockLoteSucursal
+} from './lote.model';
 
 /**
  * Maestro de lotes: consulta y administración del estado.
@@ -30,6 +38,7 @@ export class LoteService {
     private stockPorLoteEnPresentacionGQL: StockPorLoteEnPresentacionGQL,
     private buscarStockPorLoteGQL: BuscarStockPorLoteGQL,
     private stockLotePorSucursalGQL: StockLotePorSucursalGQL,
+    private movimientosPorLoteGQL: MovimientosPorLoteGQL,
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
   ) {}
 
@@ -91,6 +100,7 @@ export class LoteService {
     filtros: {
       productoId?: number;
       sucursalId?: number;
+      proveedorId?: number;
       estado?: EstadoLote;
       numeroLote?: string;
       texto?: string;
@@ -106,6 +116,7 @@ export class LoteService {
       {
         productoId: filtros.productoId ?? null,
         sucursalId: filtros.sucursalId ?? null,
+        proveedorId: filtros.proveedorId ?? null,
         estado: filtros.estado ?? null,
         numeroLote: filtros.numeroLote || null,
         texto: filtros.texto || null,
@@ -134,6 +145,30 @@ export class LoteService {
     return this.genericService.onCustomQuery(
       this.stockLotePorSucursalGQL,
       { loteId },
+      servidor,
+      null,
+      silentLoad
+    );
+  }
+
+  /**
+   * Historial de un lote, del movimiento más reciente al más viejo.
+   *
+   * Con sucursalId nulo trae el recorrido completo por la red. Va paginado desde el backend: un
+   * lote de rotación alta acumula una fila por venta, y traerlas todas para mostrar las primeras
+   * veinte sería trabajo tirado.
+   */
+  onMovimientosPorLote(
+    loteId: number,
+    sucursalId?: number,
+    page = 0,
+    size = 20,
+    servidor = true,
+    silentLoad = true
+  ): Observable<PageInfo<MovimientoLote>> {
+    return this.genericService.onCustomQuery(
+      this.movimientosPorLoteGQL,
+      { loteId, sucursalId: sucursalId ?? null, page, size },
       servidor,
       null,
       silentLoad

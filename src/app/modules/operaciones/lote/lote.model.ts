@@ -74,7 +74,28 @@ export class StockLote {
   fechaVencimiento?: Date;
   fechaRetiro?: Date;
   estado: EstadoLote;
+  /** De quién vino el lote. Solo lo completa buscarStockPorLote; stockPorLote lo deja null. */
+  proveedorNombre?: string;
   cantidadDisponible: number;
+}
+
+/**
+ * Un movimiento del historial de un lote. Es la lectura inversa del ledger: responde de dónde
+ * vino el lote y a dónde fue, que es lo que hace utilizable el bloqueo por recall.
+ */
+export class MovimientoLote {
+  /** No es único por sí solo: la clave del ledger es (id, sucursalId). */
+  id: number;
+  sucursalId: number;
+  fecha?: Date;
+  sucursalNombre?: string;
+  /** COMPRA, VENTA, AJUSTE o TRANSFERENCIA. Nulo si el movimiento padre ya no está. */
+  tipoMovimiento?: string;
+  /** Id del documento que originó el movimiento. Su significado depende del tipo. */
+  referencia?: number;
+  /** Positiva si entró al lote, negativa si salió. */
+  cantidad: number;
+  usuarioNombre?: string;
 }
 
 /**

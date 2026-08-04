@@ -12,7 +12,7 @@
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="25%">
+      <div fxFlex="20%">
         <mat-form-field style="width: 100%">
           <mat-label>Producto</mat-label>
           <input
@@ -25,7 +25,7 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="15%">
+      <div fxFlex="12%">
         <mat-form-field style="width: 100%">
           <mat-label>Nº de Lote</mat-label>
           <input
@@ -37,7 +37,43 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="20%">
+      <!--
+        Mismo control que el filtro de proveedor del listado de compras: el campo no se tipea, se
+        elige del diálogo de búsqueda. Son cientos de proveedores y un desplegable no escala.
+      -->
+      <div fxFlex="18%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Proveedor</mat-label>
+          <input
+            matInput
+            formControlName="proveedorTexto"
+            placeholder="Buscar proveedor..."
+            [readonly]="proveedorSeleccionado != null"
+            (click)="onSearchProveedor()"
+            (keydown)="onProveedorKeyDown($event)"
+          />
+          <mat-icon
+            *ngIf="proveedorSeleccionado == null"
+            matSuffix
+            style="cursor: pointer"
+            (click)="onSearchProveedor()"
+          >
+            search
+          </mat-icon>
+          <button
+            *ngIf="proveedorSeleccionado != null"
+            type="button"
+            matSuffix
+            mat-icon-button
+            aria-label="Quitar el filtro de proveedor"
+            (click)="onClearProveedor($event)"
+          >
+            <mat-icon>clear</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursal</mat-label>
           <mat-select formControlName="sucursal" (selectionChange)="onFiltrar()">
@@ -49,7 +85,7 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="15%">
+      <div fxFlex="12%">
         <mat-form-field style="width: 100%">
           <mat-label>Estado</mat-label>
           <mat-select formControlName="estado" (selectionChange)="onFiltrar()">
@@ -61,14 +97,14 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="20%">
+      <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Vence o se retira hasta</mat-label>
           <input
             matInput
             [matDatepicker]="pickerVencimiento"
             formControlName="vencimientoHasta"
-            (dateChange)="onFiltrar()"
+            (dateChange)="onVencimientoHastaChange()"
           />
           <mat-datepicker-toggle
             matSuffix
@@ -78,10 +114,37 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="100%">
-        <span class="leyenda">
-          Ordenado por FEFO: primero lo que hay que sacar antes.
-        </span>
+      <!--
+        Los dos atajos de urgencia. Conservan el color de la fila que filtran incluso apagados:
+        así siguen explicando el rojo y el naranja de la tabla, que es lo que hacían de leyenda.
+      -->
+      <div
+        fxFlex="100%"
+        fxLayout="row wrap"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+      >
+        <button
+          type="button"
+          class="chip-filtro chip-filtro-vencido"
+          [class.chip-filtro-activo]="filtroVencimiento === 'VENCIDO'"
+          [attr.aria-pressed]="filtroVencimiento === 'VENCIDO'"
+          (click)="onToggleVencimiento('VENCIDO')"
+        >
+          <mat-icon *ngIf="filtroVencimiento === 'VENCIDO'">check</mat-icon>
+          Vencido
+        </button>
+
+        <button
+          type="button"
+          class="chip-filtro chip-filtro-por-vencer"
+          [class.chip-filtro-activo]="filtroVencimiento === 'POR_VENCER'"
+          [attr.aria-pressed]="filtroVencimiento === 'POR_VENCER'"
+          (click)="onToggleVencimiento('POR_VENCER')"
+        >
+          <mat-icon *ngIf="filtroVencimiento === 'POR_VENCER'">check</mat-icon>
+          Se retira en 30 días o menos
+        </button>
       </div>
     </div>
   </div>
@@ -105,28 +168,42 @@
     >
 
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 30%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 22%">
           Producto
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 30%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 22%">
           {{ fila.productoDescripcion }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="numeroLote">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
           Nº de Lote
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 20%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 13%">
           {{ fila.numeroLote }}
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="proveedor">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 16%"
+          matTooltip="Proveedor del que vino el lote"
+        >
+          Proveedor
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 16%">
+          {{ fila.proveedorNombre }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="fechaVencimiento">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 11%">
           Vencimiento
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 11%">
           {{ fila.fechaVencimientoLabel }}
         </td>
       </ng-container>
@@ -135,21 +212,21 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 12%"
+          style="text-align: center; width: 11%"
           matTooltip="Fecha por la que se prioriza la salida (FEFO)"
         >
           Retiro
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 11%">
           {{ fila.fechaRetiroLabel }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
           Estado
         </th>
-        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 13%">
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
           <span class="chip-estado" [class]="fila.estadoClase">
             {{ fila.estadoLabel }}
           </span>
@@ -157,16 +234,38 @@
       </ng-container>
 
       <ng-container matColumnDef="cantidad">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 9%">
           Disponible
         </th>
         <td
           mat-cell
           *matCellDef="let fila"
           class="celda-cantidad"
-          style="text-align: center; width: 13%"
+          style="text-align: center; width: 9%"
         >
           {{ fila.cantidadDisponible | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <!--
+        El menú se abre en un overlay del CDK, fuera de la tabla: sus items no burbujean a la
+        fila. El que sí lo hace es el botón, y por eso frena la propagación.
+      -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 6%"></th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 6%">
+          <button
+            *ngIf="fila.esLoteReal"
+            mat-icon-button
+            class="boton-acciones"
+            [matMenuTriggerFor]="menuEstado"
+            [matMenuTriggerData]="{ fila: fila }"
+            (click)="onAccionesClick($event)"
+            matTooltip="Cambiar estado del lote"
+            aria-label="Cambiar estado del lote"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
         </td>
       </ng-container>
 
@@ -251,6 +350,32 @@
       No hay stock por lotes con esos filtros. Los lotes se generan al recibir mercadería de
       productos marcados con control de lote.
     </div>
+
+    <!--
+      Un solo menú para toda la tabla: el lote llega por matMenuTriggerData, así que no se
+      instancian 15 overlays por página.
+    -->
+    <mat-menu #menuEstado="matMenu">
+      <ng-template matMenuContent let-fila="fila">
+        <button mat-menu-item (click)="onVerHistorial(fila)">
+          <mat-icon>history</mat-icon>
+          <span>Ver historial</span>
+        </button>
+
+        <mat-divider></mat-divider>
+
+        <div class="menu-titulo">Cambiar estado</div>
+        <button
+          mat-menu-item
+          *ngFor="let est of opcionesEstado"
+          [disabled]="fila.estado === est.valor"
+          (click)="onCambiarEstado(fila, est.valor)"
+        >
+          <mat-icon [ngClass]="est.claseIcono">{{ est.icono }}</mat-icon>
+          <span>{{ est.label }}</span>
+        </button>
+      </ng-template>
+    </mat-menu>
 
     <mat-paginator
       itemsPerPageLabel="Itens por pagina"

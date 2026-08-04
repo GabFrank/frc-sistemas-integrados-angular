@@ -15,6 +15,7 @@ import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.
 import { InventarioModule } from './inventario/inventario.module';
 import { ModificacionesModuleModule } from './modificaciones-sistema/modificaciones.module';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { HistorialLoteDialogComponent } from './lote/historial-lote-dialog/historial-lote-dialog.component';
 import { ListStockLoteComponent } from './lote/list-stock-lote/list-stock-lote.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
@@ -84,6 +85,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     EditNecesidadComponent,
     ListMovimientoStockComponent,
     ListStockLoteComponent,
+    HistorialLoteDialogComponent,
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
