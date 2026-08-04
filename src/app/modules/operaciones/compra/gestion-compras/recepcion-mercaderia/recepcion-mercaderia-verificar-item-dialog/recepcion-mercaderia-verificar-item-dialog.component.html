@@ -185,6 +185,16 @@
                       </mat-form-field>
                     </div>
 
+                    <!-- El número tipeado coincide con un lote ya registrado del producto: se
+                         trajeron sus fechas, que son las que el backend va a conservar. -->
+                    <div
+                      class="lote-existente-aviso"
+                      *ngIf="loteExistenteInfo[i] as infoLote"
+                      [class.requiere-atencion]="infoLote.requiereAtencion">
+                      <mat-icon>{{ infoLote.requiereAtencion ? 'error_outline' : 'info' }}</mat-icon>
+                      <span>{{ infoLote.detalle }}</span>
+                    </div>
+
                     <mat-form-field appearance="outline" class="observaciones-field">
                       <mat-label>Observaciones</mat-label>
                       <textarea 

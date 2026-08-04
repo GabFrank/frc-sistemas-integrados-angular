@@ -516,6 +516,40 @@ mat-dialog-content {
                 }
               }
 
+              // Aviso de lote ya registrado. Informativo en azul; en rojo cuando el lote está
+              // fuera de circulación (bloqueado o en cuarentena).
+              .lote-existente-aviso {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: -8px 0 16px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                border-left: 3px solid #2196f3;
+                background-color: rgba(33, 150, 243, 0.12);
+                color: #90caf9;
+                font-size: 13px;
+                line-height: 1.35;
+
+                mat-icon {
+                  flex-shrink: 0;
+                  font-size: 18px;
+                  width: 18px;
+                  height: 18px;
+                  color: #2196f3;
+                }
+
+                &.requiere-atencion {
+                  border-left-color: #f44336;
+                  background-color: rgba(244, 67, 54, 0.12);
+                  color: #ef9a9a;
+
+                  mat-icon {
+                    color: #f44336;
+                  }
+                }
+              }
+
               .observaciones-field {
                 width: 100%;
 

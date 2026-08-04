@@ -12,10 +12,14 @@ import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { NotaRecepcionItem } from '../../nota-recepcion-item.model';
 import { NotaRecepcionItemDistribucion } from '../../models/nota-recepcion-item-distribucion.model';
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
+import { EstadoLote, ESTADO_LOTE_LABELS, Lote } from '../../../../lote/lote.model';
 import { MotivoModificacion, MOTIVO_MODIFICACION_LABELS } from './motivo-modificacion.enum';
 
 // Importar servicios
 import { PresentacionService } from '../../../../../productos/presentacion/presentacion.service';
+import { LoteService } from '../../../../lote/lote.service';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { dateToString } from '../../../../../../commons/core/utils/dateUtils';
 
 interface DistribucionFormData {
   sucursalId: number;
@@ -30,6 +34,18 @@ interface DistribucionFormData {
   motivoModificacion: MotivoModificacion | null;
   motivoOtro: string;
   tieneDiscrepancia: boolean;
+}
+
+/**
+ * Aviso que se muestra bajo el número de lote cuando lo tipeado coincide con un lote ya
+ * registrado para el producto. Se arma en el .ts y no en el template para no llamar funciones
+ * ni pipes desde el HTML en cada change detection.
+ */
+interface LoteExistenteInfo {
+  numeroLote: string;
+  detalle: string;
+  /** Lote fuera de circulación (bloqueado o en cuarentena): el aviso va en rojo. */
+  requiereAtencion: boolean;
 }
 
 export interface RecepcionMercaderiaVerificarItemDialogData {
@@ -83,6 +99,22 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
   cantidadPorUnidadComputed = 0;
   loadingPresentaciones = false;
 
+  /**
+   * Lotes ya registrados del producto, indexados por número normalizado (trim + mayúsculas,
+   * igual que `LoteService.normalizarNumeroLote` del backend). Se traen una sola vez al abrir el
+   * diálogo: el producto no cambia y así el reconocimiento mientras se tipea no pega al servidor.
+   */
+  private lotesPorNumero = new Map<string, Lote>();
+  /** Aviso de lote existente por distribución. Índice paralelo a `distribucionesFormData`. */
+  loteExistenteInfo: (LoteExistenteInfo | null)[] = [];
+  /** Vencimiento con el que arrancó cada fila, para poder restaurarlo si el lote deja de coincidir. */
+  private vencimientoBase: (Date | null)[] = [];
+  /**
+   * Fechas que escribió el autocompletado en cada fila. Sirven para distinguirlas de una edición
+   * manual posterior: al deshacer solo se restaura lo que todavía coincide con lo autocompletado.
+   */
+  private fechasAutocompletadas: { vencimiento: Date | null; fechaRetiro: Date | null }[] = [];
+
   // Enums y constantes
   MotivoModificacion = MotivoModificacion;
   MOTIVO_MODIFICACION_LABELS = MOTIVO_MODIFICACION_LABELS;
@@ -95,7 +127,9 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<RecepcionMercaderiaVerificarItemDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: RecepcionMercaderiaVerificarItemDialogData,
-    private presentacionService: PresentacionService
+    private presentacionService: PresentacionService,
+    private loteService: LoteService,
+    private notificacionService: NotificacionSnackbarService
   ) {
     this.item = data.item;
     this.distribuciones = data.distribuciones;
@@ -160,15 +194,30 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
           )
       : of([]);
 
+    // Lotes ya registrados del producto. Solo hacen falta si el producto lleva control de lote;
+    // un fallo acá no puede frenar la verificación, así que degrada a lista vacía.
+    const lotesObservable = this.requiereLoteComputed && this.item.producto?.id
+      ? this.loteService.onGetLotesPorProducto(this.item.producto.id, true)
+          .pipe(
+            catchError(error => {
+              console.error('Error cargando lotes del producto:', error);
+              return of([] as Lote[]);
+            })
+          )
+      : of([] as Lote[]);
+
     // Usar forkJoin para cargar todos los datos antes de inicializar
     forkJoin({
-      presentaciones: presentacionesObservable
+      presentaciones: presentacionesObservable,
+      lotes: lotesObservable
     })
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (result) => {
         console.log('Todos los datos cargados:', result);
-        
+
+        this.indexarLotes(result.lotes);
+
         // Establecer presentaciones disponibles
         this.presentacionesDisponibles = result.presentaciones;
         
@@ -256,7 +305,33 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
     }
   }
 
+  /**
+   * Arma el índice de lotes por número normalizado. Si el maestro tuviera dos filas con el mismo
+   * número (no debería: la unicidad es producto + número), gana la primera, que por el orden FEFO
+   * del backend es la de retiro más próximo.
+   */
+  private indexarLotes(lotes: Lote[]): void {
+    this.lotesPorNumero.clear();
+    (lotes || []).forEach(lote => {
+      const clave = this.normalizarNumeroLote(lote?.numeroLote);
+      if (clave && !this.lotesPorNumero.has(clave)) {
+        this.lotesPorNumero.set(clave, lote);
+      }
+    });
+  }
+
+  private normalizarNumeroLote(numero: string | null | undefined): string {
+    return (numero || '').trim().toUpperCase();
+  }
+
   private initializeForm(): void {
+    // Línea base por fila, para poder deshacer el autocompletado si el lote deja de coincidir.
+    this.vencimientoBase = this.distribucionesFormData.map(dist => dist.vencimiento);
+    this.fechasAutocompletadas = this.distribucionesFormData.map(
+      () => ({ vencimiento: null, fechaRetiro: null })
+    );
+    this.loteExistenteInfo = this.distribucionesFormData.map(() => null);
+
     const formControls: { [key: string]: any } = {
       presentacionGlobal: [this.presentacionSeleccionadaComputed] // Usar la presentación ya seleccionada
     };
@@ -298,6 +373,164 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
       .subscribe(() => {
         this.updateComputedProperties();
       });
+
+    // Reconocimiento del lote mientras se tipea. El match es contra el índice en memoria, así que
+    // no hay una llamada al servidor por tecla.
+    if (this.requiereLoteComputed) {
+      this.distribucionesFormData.forEach((_, index) => {
+        this.verificarForm.get(`dist_${index}_lote`)?.valueChanges
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(valor => this.onNumeroLoteChange(index, valor));
+      });
+    }
+  }
+
+  /**
+   * Reacciona a lo tipeado en el número de lote de una fila.
+   *
+   * Si coincide con un lote ya registrado del producto, trae sus fechas. Las escribe aunque el
+   * campo ya tuviera algo: el backend (`LoteService.obtenerOCrear`) nunca pisa las fechas de un
+   * lote existente, así que dejar en pantalla una fecha distinta a la que se va a guardar sería
+   * mentirle al operador.
+   */
+  private onNumeroLoteChange(index: number, valor: string | null): void {
+    const clave = this.normalizarNumeroLote(valor);
+    const lote = clave ? this.lotesPorNumero.get(clave) || null : null;
+
+    if (!lote) {
+      this.limpiarLoteExistente(index);
+      return;
+    }
+
+    // Ya se resolvió este mismo lote para esta fila: nada que hacer. Evita reescribir las fechas
+    // (y volver a avisar) en cada tecla mientras el número sigue coincidiendo.
+    if (this.loteExistenteInfo[index]?.numeroLote === lote.numeroLote) {
+      return;
+    }
+
+    // Venía de otro lote existente: se deshace primero, para que no queden pegadas fechas del
+    // anterior en los campos que el nuevo no completa.
+    this.limpiarLoteExistente(index);
+
+    const vencimiento = this.normalizarFecha(lote.fechaVencimiento);
+    const fechaRetiro = this.normalizarFecha(lote.fechaRetiro);
+    const reemplazoFechaCargada = this.aplicarFechasDelLote(index, vencimiento, fechaRetiro);
+    const requiereAtencion = !!lote.estado && lote.estado !== EstadoLote.LIBERADO;
+
+    this.loteExistenteInfo[index] = {
+      numeroLote: lote.numeroLote,
+      detalle: this.armarDetalleLote(lote, vencimiento, fechaRetiro),
+      requiereAtencion
+    };
+
+    this.updateComputedProperties();
+
+    if (requiereAtencion) {
+      this.notificacionService.openWarn(
+        `El lote ${lote.numeroLote} está ${ESTADO_LOTE_LABELS[lote.estado].toLowerCase()}.`,
+        5
+      );
+    } else if (reemplazoFechaCargada) {
+      // Solo se avisa por snackbar cuando efectivamente se cambió una fecha que ya estaba cargada.
+      // Que las fechas coincidan es el caso normal y no merece interrumpir.
+      this.notificacionService.openWarn(
+        `El lote ${lote.numeroLote} ya está registrado. Se aplicaron sus fechas.`,
+        4
+      );
+    }
+  }
+
+  /**
+   * Escribe en el formulario las fechas del lote registrado. Devuelve true si alguna de ellas
+   * reemplazó a una fecha distinta que ya estaba cargada.
+   */
+  private aplicarFechasDelLote(
+    index: number,
+    vencimiento: Date | null,
+    fechaRetiro: Date | null
+  ): boolean {
+    let reemplazoFechaCargada = false;
+
+    const aplicar = (campo: 'vencimiento' | 'fechaRetiro', nueva: Date | null): void => {
+      if (!nueva) {
+        return;
+      }
+      const formControl = this.verificarForm.get(`dist_${index}_${campo}`);
+      if (!formControl) {
+        return;
+      }
+      const actual = this.normalizarFecha(formControl.value);
+      if (this.mismaFecha(actual, nueva)) {
+        // El campo ya tenía esa fecha: no se escribió nada, así que tampoco hay nada que deshacer.
+        return;
+      }
+      reemplazoFechaCargada = reemplazoFechaCargada || actual != null;
+      // Sin emitEvent: `updateComputedProperties` se llama una sola vez desde el llamador.
+      formControl.setValue(nueva, { emitEvent: false });
+      this.fechasAutocompletadas[index][campo] = nueva;
+    };
+
+    aplicar('vencimiento', vencimiento);
+    aplicar('fechaRetiro', fechaRetiro);
+
+    return reemplazoFechaCargada;
+  }
+
+  /**
+   * El número dejó de coincidir con un lote registrado. Se saca el aviso y, si las fechas las
+   * había puesto el autocompletado, se vuelve a la línea base para no dejar pegadas las de un
+   * lote que ya no es el que se está cargando.
+   */
+  private limpiarLoteExistente(index: number): void {
+    if (!this.loteExistenteInfo[index]) {
+      return;
+    }
+
+    this.loteExistenteInfo[index] = null;
+
+    const aplicadas = this.fechasAutocompletadas[index];
+    const deshacer = (campo: 'vencimiento' | 'fechaRetiro', base: Date | null): void => {
+      const aplicada = aplicadas[campo];
+      if (!aplicada) {
+        return;
+      }
+      aplicadas[campo] = null;
+      const formControl = this.verificarForm.get(`dist_${index}_${campo}`);
+      // Si el operador editó la fecha después del autocompletado, esa edición gana.
+      if (formControl && this.mismaFecha(this.normalizarFecha(formControl.value), aplicada)) {
+        formControl.setValue(base, { emitEvent: false });
+      }
+    };
+
+    deshacer('vencimiento', this.vencimientoBase[index] ?? null);
+    deshacer('fechaRetiro', null);
+
+    this.updateComputedProperties();
+  }
+
+  private mismaFecha(a: Date | null, b: Date | null): boolean {
+    if (!a || !b) {
+      return a === b;
+    }
+    return a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate() === b.getDate();
+  }
+
+  private armarDetalleLote(lote: Lote, vencimiento: Date | null, fechaRetiro: Date | null): string {
+    const partes: string[] = [];
+    if (vencimiento) {
+      partes.push(`vence ${dateToString(vencimiento, 'dd/MM/yyyy')}`);
+    }
+    if (fechaRetiro) {
+      partes.push(`retiro ${dateToString(fechaRetiro, 'dd/MM/yyyy')}`);
+    }
+    if (lote.estado && lote.estado !== EstadoLote.LIBERADO) {
+      partes.push(ESTADO_LOTE_LABELS[lote.estado].toLowerCase());
+    }
+
+    const detalle = partes.length ? ` — ${partes.join(' · ')}` : ' — sin fechas cargadas';
+    return `Lote ya registrado para este producto${detalle}`;
   }
 
   private updateComputedProperties(): void {
