@@ -7,6 +7,7 @@ import { ValesPageGQL } from './graphql/ValesPage';
 import { SaveValeGQL } from './graphql/SaveVale';
 import { ConfirmarValeGQL } from './graphql/ConfirmarVale';
 import { AnularValeGQL } from './graphql/AnularVale';
+import { CrearValeConfirmadoGQL } from './graphql/CrearValeConfirmado';
 import { Vale } from './vale.model';
 
 @Injectable({ providedIn: 'root' })
@@ -19,8 +20,15 @@ export class ValeService {
     private valesPageGQL: ValesPageGQL,
     private saveValeGQL: SaveValeGQL,
     private confirmarValeGQL: ConfirmarValeGQL,
-    private anularValeGQL: AnularValeGQL
+    private anularValeGQL: AnularValeGQL,
+    private crearValeConfirmadoGQL: CrearValeConfirmadoGQL
   ) { }
+
+  /** Crea y confirma el vale en un paso, egresando de la caja mayor (origen RRHH_VALE). */
+  onCrearConfirmado(input: any, cajaVirtualId: number, autorizadoPorId?: number, servidor = true): Observable<Vale> {
+    return this.genericService.onSaveCustom<Vale>(this.crearValeConfirmadoGQL,
+      { entity: input, cajaVirtualId, autorizadoPorId: autorizadoPorId || null }, servidor);
+  }
 
   onGetPorFuncionario(funcionarioId: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.valesPorFuncionarioGQL, { funcionarioId }, servidor);

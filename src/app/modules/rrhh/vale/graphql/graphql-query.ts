@@ -58,3 +58,9 @@ export const anularValeMutation = gql`
     data: anularVale(id: $id) { ${VALE_FIELDS} }
   }
 `;
+
+export const crearValeConfirmadoMutation = gql`
+  mutation crearValeConfirmado($entity: ValeRrhhInput!, $cajaVirtualId: ID!, $autorizadoPorId: ID) {
+    data: crearValeConfirmado(vale: $entity, cajaVirtualId: $cajaVirtualId, autorizadoPorId: $autorizadoPorId) { ${VALE_FIELDS} }
+  }
+`;

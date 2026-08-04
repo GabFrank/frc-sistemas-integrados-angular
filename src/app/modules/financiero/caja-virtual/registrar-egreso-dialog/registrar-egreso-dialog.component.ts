@@ -4,6 +4,7 @@ import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
+import { RegistrarValeDialogComponent, RegistrarValeDialogData } from '../registrar-vale-dialog/registrar-vale-dialog.component';
 
 interface OpcionEgreso {
   tipo: string;
@@ -24,6 +25,7 @@ export class RegistrarEgresoDialogComponent {
     { tipo: 'EFECTIVO', titulo: 'Egreso de Efectivo', descripcion: 'Egreso manual de efectivo de la caja', icono: 'payments', color: '#c62828' },
     { tipo: 'ENTRADA_VARIA', titulo: 'Egreso Vario', descripcion: 'Egreso categorizado (gastos varios, otros)', icono: 'trending_down', color: '#e65100' },
     { tipo: 'MALETIN', titulo: 'Egreso de Maletín', descripcion: 'Efectivo que se despacha dentro de un maletín', icono: 'work', color: '#00838f' },
+    { tipo: 'VALE', titulo: 'Registrar Vale', descripcion: 'Adelanto/vale a funcionario (egresa al confirmar)', icono: 'receipt_long', color: '#ad1457' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección negativa del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
   ];
 
@@ -42,6 +44,11 @@ export class RegistrarEgresoDialogComponent {
     if (op.tipo === 'MALETIN') {
       const d: MaletinTesoreriaDialogData = { cajaVirtual: this.data.cajaVirtual, esEgreso: true };
       this.abrir(MaletinTesoreriaDialogComponent, { width: '480px', data: d });
+      return;
+    }
+    if (op.tipo === 'VALE') {
+      const d: RegistrarValeDialogData = { cajaVirtual: this.data.cajaVirtual };
+      this.abrir(RegistrarValeDialogComponent, { width: '500px', data: d });
       return;
     }
     const tipoMov = op.tipo === 'AJUSTE' ? CajaVirtualTipoMovimiento.AJUSTE : CajaVirtualTipoMovimiento.EGRESO;
