@@ -9,6 +9,10 @@
 $fila-vencida: #c62828;
 $fila-por-vencer: #ef6c00;
 
+// Verde de fila abierta, el mismo del listado de productos: expandir se ve igual en todo el
+// sistema.
+$fila-expandida: #38853c;
+
 // fxLayoutGap solo separa horizontalmente dentro de la fila; entre líneas de un row wrap no pone
 // nada, así que los chips quedaban pegados a los campos de arriba.
 .fila-chips {
@@ -129,15 +133,17 @@ $chip-por-vencer: #fb8c00;
 }
 
 // Sobre una fila de color, el chip translúcido se lava y deja de leerse: pasa a ser una pastilla
-// oscura sólida, que funciona igual sobre el rojo y sobre el naranja.
+// oscura sólida, que funciona igual sobre el rojo, el naranja y el verde de la fila abierta.
 .fila-vencida .chip-estado,
-.fila-por-vencer .chip-estado {
+.fila-por-vencer .chip-estado,
+.fila-expandida .chip-estado {
   background-color: rgba(0, 0, 0, 0.35);
   color: #fff;
 }
 
 .fila-vencida .boton-acciones,
-.fila-por-vencer .boton-acciones {
+.fila-por-vencer .boton-acciones,
+.fila-expandida .boton-acciones {
   color: #fff;
 }
 
@@ -156,17 +162,19 @@ $chip-por-vencer: #fb8c00;
 
   // El foco tiene que verse: la fila se abre también con teclado.
   &:focus-visible {
-    outline: 2px solid #64b5f6;
+    outline: 2px solid $fila-expandida;
     outline-offset: -2px;
   }
 }
 
-// El fondo azul no se ve sobre las filas de color, que van con !important. El borde inferior sí,
-// así que es él quien marca la fila abierta en todos los casos. Va con la misma especificidad que
-// el hover y después en el archivo, para que abrir gane sobre pasar el mouse.
+// El fondo verde no se ve sobre las filas de color, que van con !important. El borde inferior sí,
+// así que es él quien marca la fila abierta en esos casos; va del mismo verde que el fondo, de
+// modo que en una fila normal no se distingue y el verde se lee como uno solo. Misma especificidad
+// que el hover y después en el archivo, para que abrir gane sobre pasar el mouse.
 .fila-lote.fila-expandida td {
-  background-color: rgba(100, 181, 246, 0.12);
-  box-shadow: inset 0 -3px 0 #64b5f6;
+  background-color: $fila-expandida;
+  box-shadow: inset 0 -3px 0 $fila-expandida;
+  color: #fff;
 }
 
 // Colores de los íconos del menú de estado. El menú se renderiza en un overlay del CDK, pero el
