@@ -5,11 +5,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../../app.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { ClienteLote, MostradorLote, MovimientoLote } from '../lote.model';
+import {
+  GenericListVentaComponent
+} from '../../venta/generic-list-venta/generic-list-venta.component';
+import { ClienteLote, MovimientoLote } from '../lote.model';
 import { LoteService } from '../lote.service';
 
 /** Lo que el listado manda al abrir la solapa. */
@@ -40,13 +44,17 @@ interface MovimientoRow {
   usuarioNombre: string;
 }
 
-/** Fila de clientes, con los mismos valores ya resueltos. */
+/** Fila de clientes: una por venta, con los mismos valores ya resueltos. */
 interface ClienteRow {
   clienteNombre: string;
   clienteDocumento: string;
-  ventasLabel: string;
+  ventaId: number;
+  ventaLabel: string;
+  sucursalNombre: string;
   cantidadLabel: string;
-  ultimaVentaLabel: string;
+  fechaLabel: string;
+  /** Se guarda aparte del label porque el salto a la venta la necesita: la clave es el par. */
+  sucursalId: number;
 }
 
 /** Opción del filtro de tipo. El valor viaja crudo al backend, que espera el enum. */
@@ -78,7 +86,7 @@ export class HistorialLoteComponent implements OnInit {
   @Input() data: Tab;
 
   columnasMovimientos = ['fecha', 'sucursal', 'tipo', 'comprobante', 'cantidad', 'usuario'];
-  columnasClientes = ['cliente', 'documento', 'ventas', 'cantidad', 'ultima'];
+  columnasClientes = ['cliente', 'documento', 'venta', 'sucursal', 'cantidad', 'fecha'];
 
   /**
    * Los tipos que puede tener un movimiento de stock. Se ofrecen todos y no solo los que hoy
@@ -126,16 +134,18 @@ export class HistorialLoteComponent implements OnInit {
   cliSinResultados = false;
 
   /**
-   * Lo que salió sin cliente identificado. Se muestra siempre, incluso en cero: la lista de
-   * clientes sin este número se lee como si fuera todo lo que salió del lote, y es al revés.
+   * Marcado (el default) trae las ventas con cliente identificado, que son las que se pueden
+   * llamar. Desmarcado, las de mostrador: no dicen a quién, pero se pueden abrir para ver qué se
+   * vendió. Nunca los dos conjuntos juntos, porque el mostrador es la abrumadora mayoría y
+   * taparía a los clientes reales.
    */
-  mostradorLabel = '';
-  hayMostrador = false;
+  rastreableControl = new FormControl<boolean>(true);
 
   constructor(
     private loteService: LoteService,
     private sucursalService: SucursalService,
     private notificacionService: NotificacionSnackbarService,
+    private tabService: TabService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -155,7 +165,6 @@ export class HistorialLoteComponent implements OnInit {
     this.cargarSucursales();
     this.buscarMovimientos();
     this.buscarClientes();
-    this.buscarMostrador();
   }
 
   private cargarSucursales(): void {
@@ -175,7 +184,6 @@ export class HistorialLoteComponent implements OnInit {
     this.cliPageIndex = 0;
     this.buscarMovimientos();
     this.buscarClientes();
-    this.buscarMostrador();
   }
 
   onTipoChange(): void {
@@ -192,6 +200,12 @@ export class HistorialLoteComponent implements OnInit {
   onClientesPage(event: PageEvent): void {
     this.cliPageIndex = event.pageIndex;
     this.cliPageSize = event.pageSize;
+    this.buscarClientes();
+  }
+
+  /** Cambia el conjunto entero, así que vuelve a la primera página. */
+  onRastreableChange(): void {
+    this.cliPageIndex = 0;
     this.buscarClientes();
   }
 
@@ -235,6 +249,7 @@ export class HistorialLoteComponent implements OnInit {
       .onClientesPorLote(
         this.loteId,
         this.sucursalControl.value?.id,
+        this.rastreableControl.value,
         this.cliPageIndex,
         this.cliPageSize
       )
@@ -256,33 +271,6 @@ export class HistorialLoteComponent implements OnInit {
       });
   }
 
-  /**
-   * El error no molesta con un snackbar: es un dato de contexto y la solapa sigue siendo útil sin
-   * él. Se deja la franja apagada en vez de mostrar un cero que se leería como "todo rastreado".
-   */
-  private buscarMostrador(): void {
-    if (this.loteId == null) {
-      return;
-    }
-    this.loteService
-      .onResumenMostradorLote(this.loteId, this.sucursalControl.value?.id)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: MostradorLote) => {
-          const ventas = res?.ventas || 0;
-          const cantidad = res?.cantidad || 0;
-          this.hayMostrador = ventas > 0;
-          this.mostradorLabel = this.hayMostrador
-            ? `${cantidad} un. en ${ventas} ventas de mostrador, sin cliente identificado`
-            : '';
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.hayMostrador = false;
-          this.cdr.markForCheck();
-        }
-      });
-  }
 
   private mapearMovimiento(item: MovimientoLote): MovimientoRow {
     const cantidad = item.cantidad || 0;
@@ -318,10 +306,34 @@ export class HistorialLoteComponent implements OnInit {
     return {
       clienteNombre: (item.clienteNombre || this.referenciaSinNombre(item.clienteId)).toUpperCase(),
       clienteDocumento: item.clienteDocumento || '-',
-      ventasLabel: `${item.ventas || 0}`,
+      ventaId: item.ventaId,
+      ventaLabel: item.ventaId != null ? `#${item.ventaId}` : '-',
+      sucursalId: item.sucursalId,
+      sucursalNombre: (item.sucursalNombre || this.referenciaSinNombre(item.sucursalId)).toUpperCase(),
       cantidadLabel: `${item.cantidad || 0}`,
-      ultimaVentaLabel: item.ultimaVenta ? dateToString(item.ultimaVenta, 'dd/MM/yyyy') : '-'
+      fechaLabel: item.fecha ? dateToString(item.fecha, 'dd/MM/yyyy HH:mm') : '-'
     };
+  }
+
+  /**
+   * Abre el buscador de ventas ya filtrado en esta venta puntual.
+   *
+   * Van el número y la sucursal porque la clave de venta es el par: filtrar solo por número
+   * traería la venta homónima de cada sucursal.
+   */
+  onVerVenta(fila: ClienteRow): void {
+    if (fila.ventaId == null) {
+      return;
+    }
+    this.tabService.addTab(new Tab(
+      GenericListVentaComponent,
+      `Venta ${fila.ventaId}`,
+      new TabData(fila.ventaId, {
+        ventaId: fila.ventaId,
+        sucursalId: fila.sucursalId
+      }),
+      HistorialLoteComponent
+    ));
   }
 
   private referenciaSinNombre(id: number): string {

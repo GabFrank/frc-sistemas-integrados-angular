@@ -17,8 +17,8 @@
     </div>
 
     <!--
-      Los dos filtros van juntos acá arriba. El de tipo solo recorta la solapa de movimientos
-      (la de clientes son todas ventas por definición), pero se deja siempre visible: esconderlo
+      Los tres filtros van juntos acá arriba. La sucursal recorta las dos solapas; el tipo solo
+      Movimientos y el checkbox solo Clientes, pero los dos quedan siempre visibles: esconderlos
       al cambiar de solapa haría desaparecer un filtro que sigue aplicado al volver.
     -->
     <div
@@ -46,6 +46,20 @@
           </mat-option>
         </mat-select>
       </mat-form-field>
+
+      <!--
+        Marcado trae las ventas con cliente; desmarcado, las de mostrador. Son dos conjuntos que
+        no se solapan: juntos, el mostrador tapa a los clientes reales.
+      -->
+      <mat-checkbox
+        class="filtro-rastreable"
+        color="primary"
+        [formControl]="rastreableControl"
+        matTooltip="Marcado: ventas con cliente identificado. Desmarcado: ventas de mostrador, sin cliente."
+        (change)="onRastreableChange()"
+      >
+        Rastreable
+      </mat-checkbox>
     </div>
   </div>
 
@@ -137,22 +151,13 @@
       <div class="tab-contenido" fxLayout="column">
         <div class="tab-cuerpo">
 
-        <!--
-          La cobertura va arriba y no al pie: la lista de abajo se lee como si fuera todo lo que
-          salió del lote, y la venta de mostrador (la mayoría) no identifica a nadie.
-        -->
-        <div *ngIf="hayMostrador" class="franja-mostrador">
-          <mat-icon>info</mat-icon>
-          <span>No rastreable: {{ mostradorLabel }}</span>
-        </div>
+          <div *ngIf="cliCargando" class="mensaje-estado">
+            Cargando ventas...
+          </div>
 
-        <div *ngIf="cliCargando" class="mensaje-estado">
-          Cargando clientes...
-        </div>
-
-        <div *ngIf="!cliCargando && cliSinResultados" class="mensaje-estado">
-          Este lote no se le vendió a ningún cliente identificado con ese filtro.
-        </div>
+          <div *ngIf="!cliCargando && cliSinResultados" class="mensaje-estado">
+            No hay ventas de este lote con ese filtro.
+          </div>
 
         <div class="tabla-container" *ngIf="!cliCargando && !cliSinResultados">
             <table mat-table [dataSource]="clientes" class="mat-elevation-z8 tabla-historial">
@@ -167,9 +172,27 @@
                 <td mat-cell *matCellDef="let fila">{{ fila.clienteDocumento }}</td>
               </ng-container>
 
-              <ng-container matColumnDef="ventas">
-                <th mat-header-cell *matHeaderCellDef>Ventas</th>
-                <td mat-cell *matCellDef="let fila">{{ fila.ventasLabel }}</td>
+              <ng-container matColumnDef="venta">
+                <th mat-header-cell *matHeaderCellDef>Nº de venta</th>
+                <td mat-cell *matCellDef="let fila">
+                  <span class="celda-venta">
+                    {{ fila.ventaLabel }}
+                    <button
+                      mat-icon-button
+                      class="boton-ver-venta"
+                      matTooltip="Abrir esta venta en el buscador de ventas"
+                      [attr.aria-label]="'Abrir la venta ' + fila.ventaLabel"
+                      (click)="onVerVenta(fila)"
+                    >
+                      <mat-icon>open_in_new</mat-icon>
+                    </button>
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="sucursal">
+                <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.sucursalNombre }}</td>
               </ng-container>
 
               <ng-container matColumnDef="cantidad">
@@ -179,9 +202,9 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="ultima">
-                <th mat-header-cell *matHeaderCellDef>Última venta</th>
-                <td mat-cell *matCellDef="let fila">{{ fila.ultimaVentaLabel }}</td>
+              <ng-container matColumnDef="fecha">
+                <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.fechaLabel }}</td>
               </ng-container>
 
               <tr mat-header-row *matHeaderRowDef="columnasClientes; sticky: true"></tr>

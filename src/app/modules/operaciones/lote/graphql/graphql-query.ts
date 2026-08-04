@@ -217,22 +217,24 @@ export const movimientosPorLoteQuery = gql`
 `;
 
 /**
- * A qué clientes se les vendió el lote, agrupado por cliente. Es lo que hace accionable el recall:
+ * A qué clientes se les vendió el lote, una fila por venta. Es lo que hace accionable el recall:
  * bloquear el lote lo saca del mostrador, pero avisar exige saber a quién llamar.
  *
- * No incluye la venta de mostrador, que no identifica a nadie: su total se pide aparte con
- * resumenMostradorLote.
+ * rastreable parte el resultado en dos conjuntos que no se solapan: en true las ventas con cliente
+ * identificado, en false las de mostrador.
  */
 export const clientesPorLoteQuery = gql`
   query clientesPorLote(
     $loteId: ID!
     $sucursalId: ID
+    $rastreable: Boolean
     $page: Int
     $size: Int
   ) {
     data: clientesPorLote(
       loteId: $loteId
       sucursalId: $sucursalId
+      rastreable: $rastreable
       page: $page
       size: $size
     ) {
@@ -244,26 +246,16 @@ export const clientesPorLoteQuery = gql`
       hasNext
       hasPrevious
       getContent {
+        ventaId
+        sucursalId
+        sucursalNombre
+        fecha
         clienteId
         clienteNombre
         clienteDocumento
-        ventas
         cantidad
-        ultimaVenta
       }
     }
   }
 `;
 
-/**
- * Cuánto del lote se vendió sin cliente identificado. Sin este número la lista de clientes se lee
- * como si fuera todo lo que salió del lote, y es al revés: la venta de mostrador es la mayoría.
- */
-export const resumenMostradorLoteQuery = gql`
-  query resumenMostradorLote($loteId: ID!, $sucursalId: ID) {
-    data: resumenMostradorLote(loteId: $loteId, sucursalId: $sucursalId) {
-      ventas
-      cantidad
-    }
-  }
-`;

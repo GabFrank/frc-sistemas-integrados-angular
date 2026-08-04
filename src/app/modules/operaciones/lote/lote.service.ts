@@ -9,7 +9,6 @@ import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { ClientesPorLoteGQL } from './graphql/clientesPorLote';
 import { LotesPorProductoGQL } from './graphql/lotesPorProducto';
 import { MovimientosPorLoteGQL } from './graphql/movimientosPorLote';
-import { ResumenMostradorLoteGQL } from './graphql/resumenMostradorLote';
 import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
@@ -17,7 +16,6 @@ import {
   ClienteLote,
   EstadoLote,
   Lote,
-  MostradorLote,
   MovimientoLote,
   StockLote,
   StockLotePresentacion,
@@ -44,7 +42,6 @@ export class LoteService {
     private stockLotePorSucursalGQL: StockLotePorSucursalGQL,
     private movimientosPorLoteGQL: MovimientosPorLoteGQL,
     private clientesPorLoteGQL: ClientesPorLoteGQL,
-    private resumenMostradorLoteGQL: ResumenMostradorLoteGQL,
     private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
   ) {}
 
@@ -189,13 +186,15 @@ export class LoteService {
   }
 
   /**
-   * A qué clientes se les vendió el lote, agrupado por cliente y ordenado por lo que se llevaron.
+   * A qué clientes se les vendió el lote, una fila por venta, de la más reciente a la más vieja.
    *
-   * Deja afuera la venta de mostrador: su total se pide con {@link #onResumenMostradorLote}.
+   * rastreable parte el resultado en dos conjuntos que no se solapan: en true las ventas con
+   * cliente identificado, en false las de mostrador.
    */
   onClientesPorLote(
     loteId: number,
     sucursalId?: number,
+    rastreable = true,
     page = 0,
     size = 20,
     servidor = true,
@@ -203,28 +202,13 @@ export class LoteService {
   ): Observable<PageInfo<ClienteLote>> {
     return this.genericService.onCustomQuery(
       this.clientesPorLoteGQL,
-      { loteId, sucursalId: sucursalId ?? null, page, size },
+      { loteId, sucursalId: sucursalId ?? null, rastreable, page, size },
       servidor,
       null,
       silentLoad
     );
   }
 
-  /** Cuánto del lote se vendió sin cliente identificado. */
-  onResumenMostradorLote(
-    loteId: number,
-    sucursalId?: number,
-    servidor = true,
-    silentLoad = true
-  ): Observable<MostradorLote> {
-    return this.genericService.onCustomQuery(
-      this.resumenMostradorLoteGQL,
-      { loteId, sucursalId: sucursalId ?? null },
-      servidor,
-      null,
-      silentLoad
-    );
-  }
 
   /**
    * Cambia el estado de un lote. Pasar a BLOQUEADO es el mecanismo de recall: lo saca de FEFO

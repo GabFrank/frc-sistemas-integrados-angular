@@ -104,30 +104,28 @@ export class MovimientoLote {
 }
 
 /**
- * Un cliente al que se le vendió un lote, con lo que se llevó sumado.
+ * Una venta de un lote a un cliente identificado.
  *
- * NO es la venta completa del lote: la venta de mostrador va contra el cliente genérico y no
- * identifica a nadie, así que queda afuera. Su total viene en {@link MostradorLote}.
+ * Va una fila por VENTA y no una por cliente, aunque eso repita al que compró varias veces: cada
+ * fila tiene que poder abrir su venta, y un cliente agrupado no tiene un único número al que
+ * apuntar.
+ *
+ * Una consulta devuelve las ventas rastreables o las de mostrador, nunca las dos juntas: la
+ * abrumadora mayoría va contra el cliente genérico y mezcladas taparían a los clientes reales.
  */
 export class ClienteLote {
+  ventaId: number;
+  /** La clave de venta es (id, sucursalId): sin la sucursal el número es ambiguo. */
+  sucursalId: number;
+  sucursalNombre?: string;
+  fecha?: Date;
   clienteId: number;
   clienteNombre?: string;
   clienteDocumento?: string;
-  /** Cuántas ventas distintas de este lote se le hicieron. */
-  ventas: number;
-  /** Unidades que se llevó, en positivo: el ledger las guarda negativas. */
+  /** Unidades que se llevó en esa venta, en positivo: el ledger las guarda negativas. */
   cantidad: number;
-  ultimaVenta?: Date;
 }
 
-/**
- * Lo que se vendió de un lote sin cliente identificado. Es el complemento honesto de
- * {@link ClienteLote}: sin este número la lista de clientes se lee como si fuera todo lo que salió.
- */
-export class MostradorLote {
-  ventas: number;
-  cantidad: number;
-}
 
 /**
  * Saldo de un lote en una sucursal puntual. Es el desglose de una fila de StockLote e incluye las

@@ -20,25 +20,31 @@ $fila-por-vencer: #ef6c00;
 //
 // Botones planos y no mat-button-toggle porque el fondo tiene que ser exactamente el mismo color
 // que el de la fila, y el theme de Material lo pisa con el suyo.
+// Los chips van mas saturados que la fila que filtran: la fila pinta una superficie grande y el
+// chip es una pastilla chica, asi que el mismo tono se lee mas apagado aca que alla.
+$chip-vencida: #e53935;
+$chip-por-vencer: #fb8c00;
+
 .chip-filtro {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 9px 18px;
+  min-height: 42px;
+  padding: 10px 22px;
   border: 2px solid transparent;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  border-radius: 21px;
+  font-size: 15px;
+  font-weight: 600;
   font-family: inherit;
   color: #fff;
   cursor: pointer;
-  // Apagado no es gris: es el color atenuado, para que se siga leyendo como referencia.
-  opacity: 0.55;
+  // Apagado casi no baja: bajarlo mucho los volvia grises y dejaban de leerse como referencia
+  // del color de la fila. El estado activo se distingue por el anillo y el tilde, no por el brillo.
+  opacity: 0.88;
   transition: opacity 120ms ease, border-color 120ms ease;
 
   &:hover {
-    opacity: 0.8;
+    opacity: 1;
   }
 
   &:focus-visible {
@@ -55,8 +61,8 @@ $fila-por-vencer: #ef6c00;
   }
 }
 
-// El anillo blanco es lo que distingue "prendido" de "solo pasando el mouse": la opacidad sola no
-// alcanza porque el hover ya sube a 0,8.
+// El anillo blanco y el tilde son lo que distingue "prendido": con los chips ya casi opacos, la
+// diferencia de brillo sola no alcanzaria para verse.
 .chip-filtro-activo,
 .chip-filtro-activo:hover {
   opacity: 1;
@@ -64,11 +70,11 @@ $fila-por-vencer: #ef6c00;
 }
 
 .chip-filtro-vencido {
-  background-color: $fila-vencida;
+  background-color: $chip-vencida;
 }
 
 .chip-filtro-por-vencer {
-  background-color: $fila-por-vencer;
+  background-color: $chip-por-vencer;
 }
 
 .mensaje-estado {

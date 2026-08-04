@@ -93,26 +93,16 @@
   background-color: rgb(70, 70, 70);
 }
 
-// La cobertura de la lista de clientes. Va en ámbar y no en rojo: no es un error, es el recorte
-// real del dato, y tiene que leerse antes que la tabla de abajo.
-.franja-mostrador {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: rgba(255, 167, 38, 0.14);
-  border-left: 3px solid #ffa726;
-  border-radius: 3px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
+// El checkbox reemplaza a la franja de aviso: no informa, filtra.
+//
+// Sin margenes verticales a proposito. La fila centra sus items, y en un mat-form-field la linea
+// de texto cae casi en el centro de su caja (el alto del campo mas el subscript que reserva
+// abajo), asi que el centrado ya lo alinea. Cualquier margen vertical aca agranda la caja externa
+// del checkbox y lo corre la mitad de ese valor, que es como se despegaba de los selects.
+.filtro-rastreable {
+  margin-top: 0;
+  margin-bottom: 0;
   font-size: 14px;
-  color: #ffcc80;
-
-  .mat-icon {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
-    line-height: 20px;
-  }
 }
 
 .mensaje-estado {
@@ -171,6 +161,42 @@
 .tipo-desconocido {
   background-color: rgba(255, 255, 255, 0.12);
   color: #bdbdbd;
+}
+
+// El boton va pegado al numero y no en una columna aparte: la accion es "abrir ESTA venta", y
+// separarlos obliga a cruzar la fila con la vista para saber cual se esta abriendo.
+.celda-venta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  // La celda esta centrada por la regla general de la tabla; el inline-flex se centra solo.
+  line-height: 1;
+}
+
+// mat-icon-button trae padding 8px calculado para su caja de 40px. Al achicarla el padding queda
+// y empuja el icono abajo a la derecha, que es lo que lo desalineaba del numero. Se anula el
+// padding y se centra por flex, en vez de depender del line-height heredado.
+.boton-ver-venta {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  vertical-align: middle;
+  color: #64b5f6;
+
+  .mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    line-height: 16px;
+    margin: 0;
+    // Sin esto mat-icon sigue siendo inline y se apoya en la linea base, no en el centro.
+    display: block;
+  }
 }
 
 .cantidad-entrada {

@@ -130,21 +130,27 @@
           class="chip-filtro chip-filtro-vencido"
           [class.chip-filtro-activo]="filtroVencimiento === 'VENCIDO'"
           [attr.aria-pressed]="filtroVencimiento === 'VENCIDO'"
+          matTooltip="Solo los lotes cuya fecha de retiro ya pasó"
           (click)="onToggleVencimiento('VENCIDO')"
         >
           <mat-icon *ngIf="filtroVencimiento === 'VENCIDO'">check</mat-icon>
           Vencido
         </button>
 
+        <!--
+          La etiqueta corta necesita el tooltip: "Mes" solo no dice que la ventana es de 30 días
+          ni que arrastra a los ya vencidos.
+        -->
         <button
           type="button"
           class="chip-filtro chip-filtro-por-vencer"
           [class.chip-filtro-activo]="filtroVencimiento === 'POR_VENCER'"
           [attr.aria-pressed]="filtroVencimiento === 'POR_VENCER'"
+          matTooltip="Lo que hay que sacar dentro de 30 días, incluido lo ya vencido"
           (click)="onToggleVencimiento('POR_VENCER')"
         >
           <mat-icon *ngIf="filtroVencimiento === 'POR_VENCER'">check</mat-icon>
-          Se retira en 30 días o menos
+          Mes
         </button>
       </div>
     </div>
