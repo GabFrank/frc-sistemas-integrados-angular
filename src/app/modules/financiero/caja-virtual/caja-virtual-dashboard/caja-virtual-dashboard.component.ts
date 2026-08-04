@@ -35,6 +35,7 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   _opColor?: string;          // color del acento lateral del grupo
   _grupoInicio?: boolean;     // primera fila del grupo consecutivo
   _grupoFin?: boolean;        // última fila del grupo consecutivo
+  _esGrupoMulti?: boolean;    // el grupo tiene 2+ filas consecutivas (par de cambio/transferencia)
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -70,7 +71,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   fuenteEsBanco = false;
 
   dataSourceBanco = new MatTableDataSource<MovimientoBancario>([]);
-  displayedColumnsBanco = ['creadoEn', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco'];
+  displayedColumnsBanco = ['creadoEn', 'responsableBanco', 'tipoBanco', 'descripcion', 'montoBanco', 'saldoBanco'];
 
   bancoTipoLabels: Record<string, string> = {
     ENTRADA_MANUAL: 'Entrada', SALIDA_MANUAL: 'Salida',
@@ -238,12 +239,15 @@ export class CajaVirtualDashboardComponent implements OnInit {
   private marcarGruposOperacion(rows: MovimientoRow[]) {
     for (let i = 0; i < rows.length; i++) {
       const g = rows[i]._opGrupo;
-      if (g == null) { rows[i]._grupoInicio = false; rows[i]._grupoFin = false; continue; }
+      if (g == null) { rows[i]._grupoInicio = false; rows[i]._grupoFin = false; rows[i]._esGrupoMulti = false; continue; }
       rows[i]._opColor = this.opGrupoPaleta[g % this.opGrupoPaleta.length];
       const prevIgual = i > 0 && rows[i - 1]._opGrupo === g;
       const nextIgual = i < rows.length - 1 && rows[i + 1]._opGrupo === g;
       rows[i]._grupoInicio = !prevIgual;
       rows[i]._grupoFin = !nextIgual;
+      // Solo se agrupa visualmente cuando hay 2+ patas consecutivas (cambio/transferencia).
+      // Un depósito/retiro tiene una sola pata en caja mayor: no se marca.
+      rows[i]._esGrupoMulti = prevIgual || nextIgual;
     }
   }
 

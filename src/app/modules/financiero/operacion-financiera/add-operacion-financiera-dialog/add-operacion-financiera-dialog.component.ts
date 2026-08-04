@@ -134,7 +134,24 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       if (res != null) this.monedaList = res;
     });
 
+    // Cálculo bidireccional de montos vía la cotización: tipeando el origen se calcula el
+    // destino y viceversa. Usa valueChanges (no el (input) del currencyMask, que llega con el
+    // valor sin propagar) con un guard de reentrada para no entrar en bucle.
+    this.montoOrigenControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      if (!this.ajustandoMontos) this.calcularDesdeOrigen();
+    });
+    this.montoDestinoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      if (!this.ajustandoMontos) this.calcularDesdeDestino();
+    });
+
     this.seleccionarTipo(TipoOperacionFinanciera.CAMBIO_DIVISA);
+  }
+
+  private ajustandoMontos = false;
+  private setSilencioso(ctrl: FormControl, val: number) {
+    this.ajustandoMontos = true;
+    ctrl.setValue(val);
+    this.ajustandoMontos = false;
   }
 
   seleccionarTipo(tipo: TipoOperacionFinanciera) {
@@ -205,7 +222,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       }
     }
     this.actualizarCurrencyOpts();
-    this.recalcularMontoDestino();
+    this.calcularDesdeOrigen();
   }
 
   onCuentaDestinoChange() {
@@ -219,7 +236,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
       }
     }
     this.actualizarCurrencyOpts();
-    this.recalcularMontoDestino();
+    this.calcularDesdeOrigen();
   }
 
   /** Resuelve la moneda completa (con principal/decimales) desde monedaList por id. */
@@ -237,13 +254,13 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     }
     this.actualizarCurrencyOpts();
     this.precargarCotizacion();
-    this.recalcularMontoDestino();
+    this.calcularDesdeOrigen();
   }
 
   onMonedaDestinoChange() {
     this.actualizarCurrencyOpts();
     this.precargarCotizacion();
-    this.recalcularMontoDestino();
+    this.calcularDesdeOrigen();
   }
 
   /**
@@ -264,7 +281,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
         const tasa = (c as any)?.valorEnGsCompraMercado ?? (c as any)?.valorEnGsVentaMercado ?? (c as any)?.valorEnGs ?? null;
         if (tasa && tasa > 0) {
           this.cotizacionControl.setValue(tasa);
-          this.recalcularMontoDestino();
+          this.calcularDesdeOrigen();
         }
       });
   }
@@ -296,34 +313,41 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     return (moneda?.denominacion || '').toUpperCase().includes('GUARANI');
   }
 
-  /** Recalcula montoDestino: en cambio de divisa por cotización; en el resto = montoOrigen (misma moneda). */
-  recalcularMontoDestino() {
+  /** Al cambiar el monto origen (o la cotización), calcula el monto destino. */
+  calcularDesdeOrigen() {
     const monto = this.montoOrigenControl.value;
     const cot = this.cotizacionControl.value;
     const tipo = this.tipoOperacionControl.value;
+    const mo: Moneda = this.monedaOrigenControl.value;
+    const md: Moneda = this.monedaDestinoControl.value;
 
+    if (tipo === TipoOperacionFinanciera.CAMBIO_DIVISA) {
+      if (monto == null || !cot || cot <= 0 || !mo) return;
+      const destino = !!(mo as any).principal ? monto / cot : monto * cot;
+      this.setSilencioso(this.montoDestinoControl, this.round(destino, md));
+      return;
+    }
     if (tipo === TipoOperacionFinanciera.TRANSFERENCIA_BANCARIA) {
-      // Si las cuentas tienen distinta moneda, se usa cotización; si no, igual monto.
-      const mo: Moneda = this.monedaOrigenControl.value;
-      const md: Moneda = this.monedaDestinoControl.value;
-      if (mo && md && mo.id !== md.id && cot && cot > 0) {
-        this.montoDestinoControl.setValue(this.round(!!(mo as any).principal ? monto / cot : monto * cot, md));
+      if (mo && md && mo.id !== md.id && cot && cot > 0 && monto != null) {
+        this.setSilencioso(this.montoDestinoControl, this.round(!!(mo as any).principal ? monto / cot : monto * cot, md));
       } else if (monto != null) {
-        this.montoDestinoControl.setValue(monto);
+        this.setSilencioso(this.montoDestinoControl, monto);
       }
       return;
     }
+    // Misma moneda (depósito/retiro/transf. entre cajas): el destino espeja al origen.
+    if (monto != null) this.setSilencioso(this.montoDestinoControl, monto);
+  }
 
-    if (tipo !== TipoOperacionFinanciera.CAMBIO_DIVISA) {
-      if (monto != null) this.montoDestinoControl.setValue(monto); // misma moneda
-      return;
-    }
-    const monOrigen: Moneda = this.monedaOrigenControl.value;
-    const monDestino: Moneda = this.monedaDestinoControl.value;
-    if (monto == null || !cot || cot <= 0 || !monOrigen) return;
-    const origenEsPrincipal = !!(monOrigen as any).principal;
-    const destino = origenEsPrincipal ? monto / cot : monto * cot;
-    this.montoDestinoControl.setValue(this.round(destino, monDestino));
+  /** Al cambiar el monto destino en un cambio de divisa, calcula el monto origen (inverso). */
+  calcularDesdeDestino() {
+    if (this.tipoOperacionControl.value !== TipoOperacionFinanciera.CAMBIO_DIVISA) return;
+    const monto = this.montoDestinoControl.value;
+    const cot = this.cotizacionControl.value;
+    const mo: Moneda = this.monedaOrigenControl.value;
+    if (monto == null || !cot || cot <= 0 || !mo) return;
+    const origen = !!(mo as any).principal ? monto * cot : monto / cot;
+    this.setSilencioso(this.montoOrigenControl, this.round(origen, mo));
   }
 
   private round(valor: number, moneda: Moneda | null): number {
@@ -335,6 +359,12 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
   onSave() {
     if (this.formGroup.invalid) return;
     const tipo: TipoOperacionFinanciera = this.tipoOperacionControl.value;
+
+    // Operaciones de monto único (depósito/retiro/transf. entre cajas): el destino espeja al
+    // origen. Se fuerza acá porque el (input) del currencyMask puede no haber propagado aún.
+    if (!this.mostrarMontoDestino) {
+      this.montoDestinoControl.setValue(this.montoOrigenControl.value);
+    }
 
     if (this.mostrarCajaOrigen && !this.cajaMayorOrigenControl.value) return this.err('Seleccione la caja mayor de origen');
     if (this.mostrarCuentaOrigen && !this.cuentaBancariaOrigenControl.value) return this.err('Seleccione la cuenta bancaria de origen');

@@ -1,6 +1,7 @@
 import { CajaVirtual } from "../caja-virtual/caja-virtual.model";
 import { CuentaBancaria } from "../cuenta-bancaria/cuenta-bancaria.model";
 import { Moneda } from "../moneda/moneda.model";
+import { Usuario } from "../../personas/usuarios/usuario.model";
 
 export enum TipoOperacionFinanciera {
   CAMBIO_DIVISA = 'CAMBIO_DIVISA',
@@ -100,4 +101,5 @@ export class MovimientoBancario {
   descripcion: string;
   anulado: boolean;
   creadoEn: Date;
+  usuario: Usuario;
 }

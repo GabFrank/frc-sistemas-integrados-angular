@@ -33,12 +33,33 @@
 .valor-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: rgba(76, 175, 80, 0.16);
-  color: #8bc34a;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
   font-size: 13px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
+
+  &.sel {
+    background: rgba(76, 175, 80, 0.18);
+    border-color: rgba(76, 175, 80, 0.55);
+    color: #8bc34a;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
 }
 
 @media (max-width: 480px) {

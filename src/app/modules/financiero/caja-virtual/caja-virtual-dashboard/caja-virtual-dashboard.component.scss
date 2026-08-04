@@ -170,6 +170,9 @@
 /* Agrupación visual de las patas de una misma operación financiera.
    Las filas del grupo comparten acento lateral (box-shadow inline) y se
    dibujan sin divisoria entre ellas; solo la última fila del grupo la conserva. */
+.mov-row.op-grupo td {
+  background: rgba(255, 255, 255, 0.028);
+}
 .mov-row.op-grupo:not(.op-grupo-fin) td {
   border-bottom-color: transparent !important;
 }

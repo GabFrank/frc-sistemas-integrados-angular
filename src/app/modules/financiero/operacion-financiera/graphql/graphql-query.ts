@@ -118,6 +118,13 @@ const movimientoBancarioFields = `
   descripcion
   anulado
   creadoEn
+  usuario {
+    id
+    persona {
+      id
+      nombre
+    }
+  }
 `;
 
 export const movimientosBancariosQuery = gql`

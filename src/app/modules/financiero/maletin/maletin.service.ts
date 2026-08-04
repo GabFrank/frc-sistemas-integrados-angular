@@ -9,6 +9,7 @@ import { MaletinPorDescripcionGQL } from './graphql/maletinPorDescripcion';
 import { SaveMaletinGQL } from './graphql/saveMaletin';
 import { ValorMaletinGQL } from './graphql/valorMaletin';
 import { IngresarMaletinCajaMayorGQL } from './graphql/ingresarMaletinCajaMayor';
+import { IngresarMaletinCierreGQL } from './graphql/ingresarMaletinCierre';
 import { EgresarMaletinCajaMayorGQL } from './graphql/egresarMaletinCajaMayor';
 import { MaletinInput } from './maletin.model';
 
@@ -27,8 +28,14 @@ export class MaletinService {
     private countMaletin: CountMaletinGQL,
     private valorMaletinGQL: ValorMaletinGQL,
     private ingresarMaletinGQL: IngresarMaletinCajaMayorGQL,
+    private ingresarMaletinCierreGQL: IngresarMaletinCierreGQL,
     private egresarMaletinGQL: EgresarMaletinCajaMayorGQL,
   ) { }
+
+  /** Ingresa de una vez el valor del cierre del maletín para las monedas seleccionadas. */
+  onIngresarCierre(cajaVirtualId: number, maletinId: number, monedaIds: number[], descripcion?: string, servidor: boolean = true): Observable<any> {
+    return this.genericCrud.onSaveCustom(this.ingresarMaletinCierreGQL, { cajaVirtualId, maletinId, monedaIds, descripcion: descripcion || null }, servidor);
+  }
 
   /** Valor físico estimado dentro del maletín (por moneda, del último cierre). */
   onGetValor(maletinId: number, servidor: boolean = true): Observable<any> {

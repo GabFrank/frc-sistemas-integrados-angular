@@ -14,7 +14,7 @@ export interface MaletinTesoreriaDialogData {
   esEgreso: boolean;
 }
 
-interface ValorItem { total: number; moneda: Moneda; }
+interface ValorItem { total: number; moneda: Moneda; sel?: boolean; }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -33,7 +33,11 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
   descripcionControl = new FormControl('');
 
   maletinList: Maletin[] = [];
+  maletinFiltrados: Maletin[] = [];
   monedaList: Moneda[] = [];
+
+  // El maletín se identifica por su descripción (código de barras): autocomplete con lector o tipeo.
+  displayMaletin = (m: Maletin): string => (m && m.descripcion) ? m.descripcion : '';
   // Valor por moneda dentro del maletín (solo ingreso): del último cierre de la caja que lo usó.
   valorItems: ValorItem[] = [];
   cargandoValor = false;
@@ -56,6 +60,20 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     this.maletinService.onGetAll(0, 500).pipe(untilDestroyed(this)).subscribe(res => {
       const items = res?.getContent || res || [];
       this.maletinList = (items as Maletin[]).filter(m => m.activo !== false);
+      this.maletinFiltrados = this.maletinList.slice(0, 50);
+    });
+
+    // Autocomplete de maletín por código (descripción). El usuario tipea/escanea; al seleccionar
+    // una opción el control pasa a tener el objeto Maletin. Mientras tipea, el valor es un string.
+    this.maletinControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
+      if (typeof val === 'string') {
+        const t = val.trim().toUpperCase();
+        this.maletinFiltrados = t
+          ? this.maletinList.filter(m => (m.descripcion || '').toUpperCase().includes(t)).slice(0, 50)
+          : this.maletinList.slice(0, 50);
+      } else {
+        this.maletinFiltrados = [];
+      }
     });
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.monedaList = res;
@@ -72,18 +90,25 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
     this.maletinService.onGetValor(maletin.id).pipe(untilDestroyed(this)).subscribe({
       next: (res: ValorItem[]) => {
         this.cargandoValor = false;
-        this.valorItems = res || [];
-        if (this.valorItems.length > 0) {
-          // Preselecciona la primera moneda con valor y precarga su monto (editable).
-          const item = this.valorItems[0];
-          const moneda = this.resolverMoneda(item.moneda);
-          this.monedaControl.setValue(moneda);
-          this.actualizarCurrencyOpts();
-          this.montoControl.setValue(item.total);
-        }
+        // Todas las monedas con valor arrancan seleccionadas; el usuario destilda las que no quiere.
+        this.valorItems = (res || []).map(v => ({ ...v, sel: (v.total || 0) > 0 }));
+        this.recalcularSeleccion();
       },
       error: () => { this.cargandoValor = false; }
     });
+  }
+
+  cantSeleccionadas = 0;
+
+  /** Alterna la inclusión de una moneda en el ingreso (solo si tiene valor). */
+  toggleValor(item: ValorItem) {
+    if ((item.total || 0) <= 0) return;
+    item.sel = !item.sel;
+    this.recalcularSeleccion();
+  }
+
+  private recalcularSeleccion() {
+    this.cantSeleccionadas = this.valorItems.filter(v => v.sel && (v.total || 0) > 0).length;
   }
 
   onMonedaChange() {
@@ -94,11 +119,6 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
       const item = this.valorItems.find(v => v.moneda?.id === moneda?.id);
       if (item) this.montoControl.setValue(item.total);
     }
-  }
-
-  private resolverMoneda(m: Moneda | null | undefined): Moneda | null {
-    if (!m) return null;
-    return this.monedaList.find(x => x.id === m.id) || m;
   }
 
   private actualizarCurrencyOpts() {
@@ -116,20 +136,25 @@ export class MaletinTesoreriaDialogComponent implements OnInit {
   }
 
   onSave() {
-    if (this.maletinControl.invalid) return this.err('Seleccione el maletín');
-    if (this.monedaControl.invalid) return this.err('Seleccione la moneda');
-    if (!this.montoControl.value || this.montoControl.value <= 0) return this.err('Ingrese un monto válido');
-
+    if (!this.maletinControl.value?.id) return this.err('Seleccione un maletín válido de la lista');
     const cajaId = this.data.cajaVirtual?.id;
     const maletinId = this.maletinControl.value?.id;
-    const monedaId = this.monedaControl.value?.id;
-    const monto = this.montoControl.value;
     const desc = this.descripcionControl.value;
 
+    let obs;
+    if (this.esEgreso) {
+      // Egreso: moneda + monto manuales (no hay valor de cierre para despachar).
+      if (this.monedaControl.invalid) return this.err('Seleccione la moneda');
+      if (!this.montoControl.value || this.montoControl.value <= 0) return this.err('Ingrese un monto válido');
+      obs = this.maletinService.onEgresar(cajaId, maletinId, this.monedaControl.value?.id, this.montoControl.value, desc);
+    } else {
+      // Ingreso: se ingresan todas las monedas tildadas del cierre, en una sola operación.
+      const monedaIds = this.valorItems.filter(v => v.sel && (v.total || 0) > 0).map(v => v.moneda.id);
+      if (monedaIds.length === 0) return this.err('Seleccione al menos una moneda para ingresar');
+      obs = this.maletinService.onIngresarCierre(cajaId, maletinId, monedaIds, desc);
+    }
+
     this.isSaving = true;
-    const obs = this.esEgreso
-      ? this.maletinService.onEgresar(cajaId, maletinId, monedaId, monto, desc)
-      : this.maletinService.onIngresar(cajaId, maletinId, monedaId, monto, desc);
     obs.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;

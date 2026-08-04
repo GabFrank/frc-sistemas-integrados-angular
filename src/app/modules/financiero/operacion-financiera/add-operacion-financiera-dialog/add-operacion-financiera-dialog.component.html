@@ -22,7 +22,7 @@
     <h2 class="op-form-title">{{ tituloActual }}</h2>
 
     <mat-dialog-content [formGroup]="formGroup">
-      <div fxLayout="column" fxLayoutGap="12px">
+      <div class="op-body">
 
         <mat-form-field appearance="outline" *ngIf="categoriaList.length > 0" style="order: 0;">
           <mat-label>Categoría</mat-label>
@@ -97,8 +97,7 @@
           <!-- Cotización: dentro de destino, tras la moneda (se precarga al elegir la divisa). -->
           <mat-form-field appearance="outline" *ngIf="mostrarCotizacion">
             <mat-label>Cotización (Gs por 1 de divisa)</mat-label>
-            <input matInput type="number" min="0" [formControl]="cotizacionControl" (input)="recalcularMontoDestino()" placeholder="0" />
-            <mat-hint>Se precarga la compra comercial; editable</mat-hint>
+            <input matInput type="number" min="0" [formControl]="cotizacionControl" (input)="calcularDesdeOrigen()" placeholder="0" />
           </mat-form-field>
         </div>
 
@@ -106,7 +105,7 @@
         <div class="montos-bloque" style="order: 3;" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">
           <mat-form-field appearance="outline" [fxFlex]="mostrarMontoDestino ? '50%' : '100%'">
             <mat-label class="required-field">{{ labelMontoOrigen }}</mat-label>
-            <input matInput currencyMask [options]="currencyOptsOrigen" [formControl]="montoOrigenControl" (input)="recalcularMontoDestino()" />
+            <input matInput currencyMask [options]="currencyOptsOrigen" [formControl]="montoOrigenControl"  />
           </mat-form-field>
           <mat-form-field appearance="outline" fxFlex="50%" *ngIf="mostrarMontoDestino">
             <mat-label class="required-field">Monto Destino</mat-label>

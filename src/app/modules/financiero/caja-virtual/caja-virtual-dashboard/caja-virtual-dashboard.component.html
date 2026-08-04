@@ -153,7 +153,7 @@
               <th mat-header-cell *matHeaderCellDef style="text-align: left;">Descripción</th>
               <td mat-cell *matCellDef="let row" style="text-align: left;"
                   [style.text-decoration]="row.activo === false ? 'line-through' : null">
-                <span *ngIf="row._grupoInicio && row._opGrupo" class="op-vinculo-badge" [style.color]="row._opColor">
+                <span *ngIf="row._grupoInicio && row._esGrupoMulti" class="op-vinculo-badge" [style.color]="row._opColor">
                   <mat-icon>link</mat-icon> Operación #{{ row._opGrupo }}
                 </span>
                 {{ row.descripcion }}
@@ -189,9 +189,9 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"
                 class="mov-row"
-                [class.op-grupo]="!!row._opGrupo"
+                [class.op-grupo]="row._esGrupoMulti"
                 [class.op-grupo-fin]="row._grupoFin"
-                [style.box-shadow]="row._opGrupo ? ('inset 3px 0 0 ' + row._opColor) : null"
+                [style.box-shadow]="row._esGrupoMulti ? ('inset 4px 0 0 ' + row._opColor) : null"
                 [style.opacity]="row.activo === false ? 0.6 : 1"></tr>
           </table>
         </div>
@@ -203,6 +203,11 @@
             <ng-container matColumnDef="creadoEn">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Fecha</th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="responsableBanco">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Responsable</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.usuario?.persona?.nombre || '-' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="tipoBanco">

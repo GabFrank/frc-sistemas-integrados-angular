@@ -206,3 +206,11 @@ export const egresarMaletinCajaMayorMutation = gql`
     }
   }
 `;
+
+export const ingresarMaletinCierreMutation = gql`
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaIds: [ID], $descripcion: String) {
+    data: ingresarMaletinCierre(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaIds: $monedaIds, descripcion: $descripcion) {
+      id
+    }
+  }
+`;

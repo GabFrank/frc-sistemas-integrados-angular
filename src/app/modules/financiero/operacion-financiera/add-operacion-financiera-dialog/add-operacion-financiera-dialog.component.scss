@@ -77,6 +77,14 @@
   margin-top: 4px;
 }
 
+/* Cuerpo del formulario: columna con gap CSS (respeta el `order` visual de los bloques,
+   a diferencia de fxLayoutGap que aplica margen por orden del DOM y provocaba solapes). */
+.op-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Bloques origen/destino/montos/diferencia ordenados con flex `order` según el tipo. */
 .lado-bloque,
 .diferencia-bloque {
