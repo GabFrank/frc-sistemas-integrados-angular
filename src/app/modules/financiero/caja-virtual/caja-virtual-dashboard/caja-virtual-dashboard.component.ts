@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { Observable } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -331,7 +332,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      const obs = esOpFinanciera
+      const obs: Observable<any> = esOpFinanciera
         ? this.operacionFinancieraService.onAnular(mov.referenciaId)
         : this.cajaVirtualService.onAnularMovimiento(mov.id);
       obs.pipe(untilDestroyed(this)).subscribe({
