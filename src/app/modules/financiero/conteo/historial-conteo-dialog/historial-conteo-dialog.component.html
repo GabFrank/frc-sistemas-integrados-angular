@@ -1,71 +1,78 @@
-<div class="historial" fxLayout="column">
-  <div class="historial__encabezado">
-    <h3>Historial de edición</h3>
-    <span class="historial__subtitulo">{{ titulo }}</span>
+<div class="historial">
+  <div class="historial__banda">
+    <mat-icon>edit_note</mat-icon>
+    <div class="historial__titulo">
+      <h3>Montos corregidos</h3>
+      <span>{{ titulo }}</span>
+    </div>
   </div>
 
   <div class="historial__cuerpo">
-    <table class="comparacion">
-      <thead>
-        <tr>
-          <th class="comparacion__denominacion">Denominación</th>
-          <th class="comparacion__numero">Antes</th>
-          <th class="comparacion__numero">Ahora</th>
-          <th class="comparacion__delta"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          *ngFor="let fila of filas"
-          [class.comparacion__fila--cambiada]="fila.diferencia !== 0"
+    <div class="totales">
+      <div class="totales__tarjeta" *ngFor="let total of totales">
+        <div class="totales__moneda">{{ total.simbolo }}</div>
+        <div class="totales__cifras">
+          <span class="totales__antes">{{ total.anterior | number : total.decimales }}</span>
+          <span class="totales__ahora">{{ total.actual | number : total.decimales }}</span>
+        </div>
+        <div
+          class="totales__chip"
+          *ngIf="total.diferencia !== 0"
+          [class.totales__chip--baja]="total.diferencia < 0"
         >
-          <td class="comparacion__denominacion">
-            {{ fila.valor | number : "1.0-2" }}
-            <span class="comparacion__moneda">{{ fila.denominacion }}</span>
-          </td>
-          <td class="comparacion__numero">{{ fila.cantidadAnterior }}</td>
-          <td class="comparacion__numero">{{ fila.cantidadActual }}</td>
-          <td class="comparacion__delta">
-            <span *ngIf="fila.diferencia !== 0">
-              {{ fila.diferencia > 0 ? "+" : "" }}{{ fila.diferencia }}
-            </span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div *ngIf="!hayCambios" class="historial__sin-cambios">
-      Las cantidades por billete no cambiaron entre las dos versiones.
+          <mat-icon>{{ total.diferencia > 0 ? "arrow_upward" : "arrow_downward" }}</mat-icon>
+          {{ total.diferencia > 0 ? "+" : "" }}{{ total.diferencia | number : total.decimales }}
+        </div>
+        <div class="totales__chip totales__chip--igual" *ngIf="total.diferencia === 0">
+          sin cambio
+        </div>
+      </div>
     </div>
 
-    <div class="totales">
-      <div class="totales__fila" *ngFor="let total of totales">
-        <span class="totales__etiqueta">Total {{ total.simbolo }}</span>
-        <span class="totales__valor totales__valor--anterior">
-          {{ total.anterior | number : total.decimales }}
+    <div class="detalle">
+      <div class="detalle__encabezado">
+        <span>Denominación</span>
+        <span>Antes</span>
+        <span>Ahora</span>
+        <span></span>
+      </div>
+      <div
+        class="detalle__fila"
+        *ngFor="let fila of filas"
+        [class.detalle__fila--cambiada]="fila.diferencia !== 0"
+      >
+        <span class="detalle__denominacion">
+          {{ fila.valor | number : "1.0-2" }}
+          <em>{{ fila.denominacion }}</em>
         </span>
-        <mat-icon class="totales__flecha">arrow_forward</mat-icon>
-        <span class="totales__valor">
-          {{ total.actual | number : total.decimales }}
+        <span class="detalle__numero">{{ fila.cantidadAnterior }}</span>
+        <span class="detalle__numero detalle__numero--ahora">{{ fila.cantidadActual }}</span>
+        <span class="detalle__delta">
+          <span
+            class="detalle__pastilla"
+            *ngIf="fila.diferencia !== 0"
+            [class.detalle__pastilla--baja]="fila.diferencia < 0"
+          >
+            {{ fila.diferencia > 0 ? "+" : "" }}{{ fila.diferencia }}
+          </span>
         </span>
-        <span
-          class="totales__delta"
-          [class.totales__delta--baja]="total.diferencia < 0"
-          *ngIf="total.diferencia !== 0"
-        >
-          {{ total.diferencia > 0 ? "+" : "" }}{{ total.diferencia | number : total.decimales }}
-        </span>
+      </div>
+
+      <div *ngIf="!hayCambios" class="detalle__sin-cambios">
+        Las cantidades por billete no cambiaron entre las dos versiones.
       </div>
     </div>
   </div>
 
   <div class="historial__pie">
     <div class="historial__autor">
-      <mat-icon>history</mat-icon>
-      <span>
-        Editado por {{ editadoPor | uppercase }}
-        <span *ngIf="editadoEn"> · {{ editadoEn | date : "dd/MM/yyyy HH:mm" }}</span>
-      </span>
+      <div class="historial__avatar">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="historial__datos">
+        <strong>{{ editadoPor | uppercase }}</strong>
+        <span *ngIf="editadoEn">{{ editadoEn | date : "dd/MM/yyyy · HH:mm" }}</span>
+      </div>
     </div>
     <button mat-raised-button color="accent" (click)="onCerrar()">Cerrar</button>
   </div>

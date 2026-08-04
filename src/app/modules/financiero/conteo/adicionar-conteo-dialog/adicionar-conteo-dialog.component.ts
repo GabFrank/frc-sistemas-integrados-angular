@@ -176,8 +176,9 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         conteoAnterior,
         apertura: this.apertura,
       },
-      width: "520px",
+      width: "540px",
       maxWidth: "95vw",
+      panelClass: "historial-conteo-panel",
       autoFocus: false,
       restoreFocus: true,
     });

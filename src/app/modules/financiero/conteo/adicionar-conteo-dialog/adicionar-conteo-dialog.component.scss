@@ -45,17 +45,44 @@
   }
 }
 
-// La botonera crece segun cuantas acciones esten visibles (guardar / editar / cancelar /
-// historial). Sin alto fijo, porque con mas de un boton se recortaban contra el borde.
+// La accion principal (abrir / cerrar caja / guardar edicion) manda: ocupa todo el ancho.
+// Las secundarias van debajo, repartidas en una sola fila, para no empujar fuera de vista
+// el boton de transferir caja, que vive despues del stepper en flujo normal.
 .acciones-conteo {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
   padding: 12px 8px 4px;
   box-sizing: border-box;
+
+  &__principal {
+    display: block;
+    width: 100%;
+
+    ::ng-deep button {
+      width: 100%;
+    }
+  }
+
+  &__secundarias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    button {
+      flex: 1 1 0;
+      min-width: 140px;
+      height: 36px;
+      line-height: 36px;
+    }
+  }
+
+  &__historial {
+    // Unica pista en pantalla de que este conteo fue corregido: se distingue del resto.
+    border-color: rgba(255, 179, 0, 0.6) !important;
+    color: #ffb300 !important;
+  }
 
   button mat-icon {
     margin-right: 4px;
