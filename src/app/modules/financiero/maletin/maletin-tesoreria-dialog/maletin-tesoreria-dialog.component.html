@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ titulo }}</h2>
+
+<mat-dialog-content>
+  <div fxLayout="column" fxLayoutGap="12px" class="maletin-form">
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Maletín</mat-label>
+      <mat-select [formControl]="maletinControl" (selectionChange)="onMaletinChange()">
+        <mat-option *ngFor="let m of maletinList" [value]="m">
+          {{ m.descripcion }}<span *ngIf="m.abierto"> · (en uso)</span>
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Valor dentro del maletín (solo ingreso) -->
+    <div class="valor-maletin" *ngIf="!esEgreso && maletinControl.value">
+      <div class="valor-titulo">Valor dentro del maletín (último cierre)</div>
+      <div *ngIf="cargandoValor" class="valor-cargando">Calculando…</div>
+      <ng-container *ngIf="!cargandoValor">
+        <div *ngIf="valorItems.length === 0" class="valor-vacio">
+          Sin cierre registrado para este maletín (o está en una caja abierta). Ingrese el monto manualmente.
+        </div>
+        <div class="valor-chip" *ngFor="let v of valorItems">
+          {{ v.moneda?.simbolo }} {{ v.total | number:'1.0-2' }}
+        </div>
+      </ng-container>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Moneda</mat-label>
+      <mat-select [formControl]="monedaControl" (selectionChange)="onMonedaChange()">
+        <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Monto</mat-label>
+      <input matInput currencyMask [options]="currencyOpts" [formControl]="montoControl" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <input matInput [formControl]="descripcionControl" placeholder="Opcional" />
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving">
+    <mat-icon>save</mat-icon> Confirmar
+  </button>
+</mat-dialog-actions>

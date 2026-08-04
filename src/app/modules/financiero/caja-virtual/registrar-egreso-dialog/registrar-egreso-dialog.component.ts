@@ -3,6 +3,7 @@ import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dial
 import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
+import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 
 interface OpcionEgreso {
   tipo: string;
@@ -22,6 +23,7 @@ export class RegistrarEgresoDialogComponent {
   opciones: OpcionEgreso[] = [
     { tipo: 'EFECTIVO', titulo: 'Egreso de Efectivo', descripcion: 'Egreso manual de efectivo de la caja', icono: 'payments', color: '#c62828' },
     { tipo: 'ENTRADA_VARIA', titulo: 'Egreso Vario', descripcion: 'Egreso categorizado (gastos varios, otros)', icono: 'trending_down', color: '#e65100' },
+    { tipo: 'MALETIN', titulo: 'Egreso de Maletín', descripcion: 'Efectivo que se despacha dentro de un maletín', icono: 'work', color: '#00838f' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección negativa del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
   ];
 
@@ -35,6 +37,11 @@ export class RegistrarEgresoDialogComponent {
     if (op.tipo === 'ENTRADA_VARIA') {
       const d: EntradaVariaDialogData = { cajaVirtual: this.data.cajaVirtual, esIngreso: false };
       this.abrir(AddEntradaVariaDialogComponent, { width: '500px', data: d });
+      return;
+    }
+    if (op.tipo === 'MALETIN') {
+      const d: MaletinTesoreriaDialogData = { cajaVirtual: this.data.cajaVirtual, esEgreso: true };
+      this.abrir(MaletinTesoreriaDialogComponent, { width: '480px', data: d });
       return;
     }
     const tipoMov = op.tipo === 'AJUSTE' ? CajaVirtualTipoMovimiento.AJUSTE : CajaVirtualTipoMovimiento.EGRESO;

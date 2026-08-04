@@ -7,6 +7,9 @@ import { DeleteMaletinGQL } from './graphql/deleteMaletin';
 import { MaletinByIdGQL } from './graphql/MaletinById';
 import { MaletinPorDescripcionGQL } from './graphql/maletinPorDescripcion';
 import { SaveMaletinGQL } from './graphql/saveMaletin';
+import { ValorMaletinGQL } from './graphql/valorMaletin';
+import { IngresarMaletinCajaMayorGQL } from './graphql/ingresarMaletinCajaMayor';
+import { EgresarMaletinCajaMayorGQL } from './graphql/egresarMaletinCajaMayor';
 import { MaletinInput } from './maletin.model';
 
 @Injectable({
@@ -21,8 +24,26 @@ export class MaletinService {
     private saveMaletin: SaveMaletinGQL,
     private deleteMaletin: DeleteMaletinGQL,
     private getMaletinPorDescripcion: MaletinPorDescripcionGQL,
-    private countMaletin: CountMaletinGQL
+    private countMaletin: CountMaletinGQL,
+    private valorMaletinGQL: ValorMaletinGQL,
+    private ingresarMaletinGQL: IngresarMaletinCajaMayorGQL,
+    private egresarMaletinGQL: EgresarMaletinCajaMayorGQL,
   ) { }
+
+  /** Valor físico estimado dentro del maletín (por moneda, del último cierre). */
+  onGetValor(maletinId: number, servidor: boolean = true): Observable<any> {
+    return this.genericCrud.onCustomQuery(this.valorMaletinGQL, { maletinId }, servidor);
+  }
+
+  /** Ingresa a la caja mayor el valor de un maletín. */
+  onIngresar(cajaVirtualId: number, maletinId: number, monedaId: number, monto: number, descripcion?: string, servidor: boolean = true): Observable<any> {
+    return this.genericCrud.onSaveCustom(this.ingresarMaletinGQL, { cajaVirtualId, maletinId, monedaId, monto, descripcion: descripcion || null }, servidor);
+  }
+
+  /** Egresa de la caja mayor el valor que se despacha en un maletín. */
+  onEgresar(cajaVirtualId: number, maletinId: number, monedaId: number, monto: number, descripcion?: string, servidor: boolean = true): Observable<any> {
+    return this.genericCrud.onSaveCustom(this.egresarMaletinGQL, { cajaVirtualId, maletinId, monedaId, monto, descripcion: descripcion || null }, servidor);
+  }
 
   onCount(servidor: boolean = true): Observable<number> {
     return this.genericCrud.onCustomQuery(this.countMaletin, null, servidor);

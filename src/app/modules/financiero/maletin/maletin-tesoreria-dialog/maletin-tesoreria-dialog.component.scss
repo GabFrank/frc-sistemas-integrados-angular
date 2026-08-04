@@ -1,0 +1,46 @@
+:host { display: block; }
+
+.maletin-form {
+  min-width: 420px;
+  padding-top: 8px;
+}
+
+.valor-maletin {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.valor-titulo {
+  width: 100%;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
+
+.valor-cargando,
+.valor-vacio {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.valor-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(76, 175, 80, 0.16);
+  color: #8bc34a;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .maletin-form { min-width: 0; }
+}

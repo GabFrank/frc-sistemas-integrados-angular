@@ -63,6 +63,7 @@ import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transfer
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
+import { MaletinTesoreriaDialogComponent } from './maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
 import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
@@ -131,6 +132,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     CajaVirtualDashboardComponent,
     ConfigurarCajaVirtualDialogComponent,
     RegistrarIngresoDialogComponent,
+    MaletinTesoreriaDialogComponent,
     RegistrarEgresoDialogComponent,
     ListCajaVirtualComponent,
     HistorialMovimientosCajaVirtualComponent,
