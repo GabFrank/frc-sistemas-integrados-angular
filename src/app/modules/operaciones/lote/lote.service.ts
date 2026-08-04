@@ -107,6 +107,8 @@ export class LoteService {
       estado?: EstadoLote;
       numeroLote?: string;
       texto?: string;
+      /** Piso del corte por fecha. Con el tope arman una ventana; cada uno vale por separado. */
+      vencimientoDesde?: string;
       vencimientoHasta?: string;
     },
     page = 0,
@@ -123,6 +125,7 @@ export class LoteService {
         estado: filtros.estado ?? null,
         numeroLote: filtros.numeroLote || null,
         texto: filtros.texto || null,
+        vencimientoDesde: filtros.vencimientoDesde || null,
         vencimientoHasta: filtros.vencimientoHasta || null,
         page,
         size

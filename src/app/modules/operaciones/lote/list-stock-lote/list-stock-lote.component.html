@@ -12,7 +12,7 @@
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="20%">
+      <div fxFlex="18%">
         <mat-form-field style="width: 100%">
           <mat-label>Producto</mat-label>
           <input
@@ -41,7 +41,7 @@
         Mismo control que el filtro de proveedor del listado de compras: el campo no se tipea, se
         elige del diálogo de búsqueda. Son cientos de proveedores y un desplegable no escala.
       -->
-      <div fxFlex="18%">
+      <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Proveedor</mat-label>
           <input
@@ -97,20 +97,32 @@
         </mat-form-field>
       </div>
 
-      <div fxFlex="15%">
+      <!--
+        Rango en vez de una sola fecha: con el tope solo se responde "qué se me vence antes de X",
+        y con los dos extremos se puede aislar una ventana, por ejemplo el mes que viene.
+        Cualquiera de las dos puntas vale por separado.
+      -->
+      <div fxFlex="20%">
         <mat-form-field style="width: 100%">
-          <mat-label>Vence o se retira hasta</mat-label>
-          <input
-            matInput
-            [matDatepicker]="pickerVencimiento"
-            formControlName="vencimientoHasta"
-            (dateChange)="onVencimientoHastaChange()"
-          />
+          <mat-label>Vence o se retira entre</mat-label>
+          <mat-date-range-input
+            [formGroup]="vencimiento"
+            [rangePicker]="pickerVencimiento"
+            style="width: 100%"
+          >
+            <input matStartDate formControlName="desde" placeholder="Desde" />
+            <input
+              matEndDate
+              formControlName="hasta"
+              placeholder="Hasta"
+              (dateChange)="onVencimientoRangoChange()"
+            />
+          </mat-date-range-input>
           <mat-datepicker-toggle
             matSuffix
             [for]="pickerVencimiento"
           ></mat-datepicker-toggle>
-          <mat-datepicker #pickerVencimiento></mat-datepicker>
+          <mat-date-range-picker #pickerVencimiento></mat-date-range-picker>
         </mat-form-field>
       </div>
 

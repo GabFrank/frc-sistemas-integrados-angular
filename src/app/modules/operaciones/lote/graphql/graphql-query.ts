@@ -97,6 +97,7 @@ export const buscarStockPorLoteQuery = gql`
     $estado: EstadoLote
     $numeroLote: String
     $texto: String
+    $vencimientoDesde: String
     $vencimientoHasta: String
     $page: Int
     $size: Int
@@ -108,6 +109,7 @@ export const buscarStockPorLoteQuery = gql`
       estado: $estado
       numeroLote: $numeroLote
       texto: $texto
+      vencimientoDesde: $vencimientoDesde
       vencimientoHasta: $vencimientoHasta
       page: $page
       size: $size

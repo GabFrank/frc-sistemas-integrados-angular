@@ -119,6 +119,16 @@ export class ListStockLoteComponent implements OnInit {
   dataSource = new MatTableDataSource<StockLoteRow>([]);
   filtros: FormGroup;
 
+  /**
+   * Rango del corte por fecha. Va en un FormGroup propio y no anidado en `filtros` porque
+   * mat-date-range-input necesita su propio [formGroup], igual que el rango de fechas del listado
+   * de compras. Se limpia a mano en resetFiltro().
+   */
+  readonly vencimiento = new FormGroup({
+    desde: new FormControl(null),
+    hasta: new FormControl(null)
+  });
+
   sucursales: Sucursal[] = [];
 
   /**
@@ -183,8 +193,7 @@ export class ListStockLoteComponent implements OnInit {
       // Solo la etiqueta visible del proveedor: el id sale de proveedorSeleccionado.
       proveedorTexto: new FormControl(null),
       sucursal: new FormControl(null),
-      estado: new FormControl(null),
-      vencimientoHasta: new FormControl(null)
+      estado: new FormControl(null)
     });
   }
 
@@ -236,7 +245,8 @@ export class ListStockLoteComponent implements OnInit {
           estado: valores.estado,
           numeroLote: valores.numeroLote,
           texto: valores.texto,
-          vencimientoHasta: this.resolverVencimientoHasta(valores.vencimientoHasta)
+          vencimientoDesde: this.resolverVencimientoDesde(),
+          vencimientoHasta: this.resolverVencimientoHasta()
         },
         this.pageIndex,
         this.pageSize,
@@ -274,17 +284,21 @@ export class ListStockLoteComponent implements OnInit {
 
   resetFiltro(): void {
     this.filtros.reset();
+    // El rango no cuelga de `filtros`, así que no lo alcanza el reset de arriba.
+    this.vencimiento.reset();
     this.proveedorSeleccionado = null;
     this.filtroVencimiento = null;
     this.onFiltrar();
   }
 
   /**
-   * Los dos atajos de color y el datepicker son el mismo corte por fecha, así que solo puede haber
-   * uno activo: el atajo gana y la fecha manual se limpia. Dejarlos convivir obligaría a decidir
-   * en silencio cuál de los dos topes se aplica.
+   * Los dos atajos de color y el rango son el mismo corte por fecha, así que solo puede haber uno
+   * activo: el atajo gana y el rango se limpia. Dejarlos convivir obligaría a decidir en silencio
+   * cuál de los dos topes se aplica.
+   *
+   * Los atajos son abiertos hacia atrás ("todo lo que vence antes de X"), así que no aportan piso.
    */
-  private resolverVencimientoHasta(fechaManual: Date): string {
+  private resolverVencimientoHasta(): string {
     if (this.filtroVencimiento != null) {
       const limite = new Date();
       if (this.filtroVencimiento === 'POR_VENCER') {
@@ -292,20 +306,35 @@ export class ListStockLoteComponent implements OnInit {
       }
       return dateToString(limite, 'yyyy-MM-dd');
     }
-    return fechaManual ? dateToString(fechaManual, 'yyyy-MM-dd') : null;
+    const hasta = this.vencimiento.get('hasta').value;
+    return hasta ? dateToString(hasta, 'yyyy-MM-dd') : null;
+  }
+
+  private resolverVencimientoDesde(): string {
+    if (this.filtroVencimiento != null) {
+      return null;
+    }
+    const desde = this.vencimiento.get('desde').value;
+    return desde ? dateToString(desde, 'yyyy-MM-dd') : null;
   }
 
   /** Prender el atajo que ya estaba activo lo apaga: es la única forma de volver a "todos". */
   onToggleVencimiento(filtro: FiltroVencimiento): void {
     this.filtroVencimiento = this.filtroVencimiento === filtro ? null : filtro;
     if (this.filtroVencimiento != null) {
-      this.filtros.get('vencimientoHasta').setValue(null);
+      this.vencimiento.reset();
     }
     this.onFiltrar();
   }
 
-  /** Elegir una fecha a mano apaga el atajo, que si no le pisaría el tope. */
-  onVencimientoHastaChange(): void {
+  /**
+   * Elegir fechas a mano apaga el atajo, que si no le pisaría el tope.
+   *
+   * Se dispara desde el fin del rango y no desde el inicio: con el rango picker el inicio es un
+   * paso intermedio, y buscar ahí traería el resultado de un rango que el usuario todavía no
+   * terminó de armar. Un rango abierto (solo desde) se busca con el botón Buscar.
+   */
+  onVencimientoRangoChange(): void {
     this.filtroVencimiento = null;
     this.onFiltrar();
   }
