@@ -25,6 +25,7 @@ import { SaveVueltoGQL } from "../../../../modules/operaciones/vuelto/graphql/sa
 import { SaveVueltoItemGQL } from "../../../../modules/operaciones/vuelto/vuelto-item/graphql/saveVueltoItem";
 import { Codigo } from "../../../../modules/productos/codigo/codigo.model";
 import { Producto } from "../../../../modules/productos/producto/producto.model";
+import { ProductoService } from "../../../../modules/productos/producto/producto.service";
 import { AllTiposPreciosGQL } from "../../../../modules/productos/tipo-precio/graphql/allTiposPrecios";
 import { TipoPrecio } from "../../../../modules/productos/tipo-precio/tipo-precio.model";
 import {
@@ -197,7 +198,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private puntoDeVentaService: PuntoDeVentaService,
     private ventaTarjetaService: VentaTarjetaService,
-    private facturaLegalService: FacturaLegalService
+    private facturaLegalService: FacturaLegalService,
+    private productoService: ProductoService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -582,13 +584,53 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * Para el catálogo sin control de lote llama directo a addItem: cero cambio en el camino de
    * siempre. Para los que sí lo tienen, abre el selector antes de agregar, que es el momento en el
    * que el cajero todavía tiene el producto en la cabeza. Cancelar no agrega el ítem.
+   *
+   * Distingue `lote === false` (el producto no lleva control) de `lote` ausente (la query que trajo
+   * el producto no pidió el campo). Tratarlos igual es lo que hacía que el acceso rápido vendiera
+   * sin abrir el selector.
    */
   agregarConLote(item: VentaItem): void {
-    if (item?.producto?.lote !== true) {
+    const controlaLote = item?.producto?.lote;
+
+    if (controlaLote === true) {
+      this.abrirSelectorDeLote(item);
+      return;
+    }
+
+    if (controlaLote === false || item?.producto?.id == null) {
       this.addItem(item);
       return;
     }
 
+    // El flag no vino en el selection set de la query que trajo el producto. Asumir que no lleva
+    // control de lote lo vendería sin trazabilidad y en silencio, así que se resuelve contra el
+    // servidor filial antes de decidir. Con las queries al día este camino no se usa: es la red
+    // que evita que una query nueva que olvide el campo vuelva a desactivar el control.
+    this.productoService
+      .onGetProductoPorId(item.producto.id, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (producto) => {
+          item.producto.lote = producto?.lote === true;
+          if (item.producto.lote) {
+            this.abrirSelectorDeLote(item);
+          } else {
+            this.addItem(item);
+          }
+        },
+        error: () => {
+          // Sin respuesta no se puede saber si lleva lote. Se agrega igual para no trabar el
+          // mostrador, avisando que el ítem puede quedar sin lote asignado.
+          this.notificacionSnackbar.openWarn(
+            "No se pudo verificar el control de lote del producto."
+          );
+          this.addItem(item);
+        },
+      });
+  }
+
+  /** Abre el selector de lote y agrega el ítem con lo elegido. Cancelar no agrega el ítem. */
+  private abrirSelectorDeLote(item: VentaItem): void {
     this.isDialogOpen = true;
     this.matDialog
       .open(SeleccionarLoteVentaDialogComponent, {
