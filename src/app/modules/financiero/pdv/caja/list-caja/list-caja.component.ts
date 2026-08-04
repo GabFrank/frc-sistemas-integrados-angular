@@ -30,7 +30,6 @@ import { CajaService } from "../caja.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
-import { ROLES } from "../../../../personas/roles/roles.enum";
 import { SucursalesByNombreGQL } from "../../../../empresarial/sucursal/graphql/sucursalesByNombre";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
@@ -121,9 +120,6 @@ export class ListCajaComponent implements OnInit {
   pageSize = 15;
   pageIndex = 0;
 
-  /** Solo ADMIN puede corregir los montos de una caja. Se resuelve una vez, no desde el template. */
-  esAdmin = false;
-
   constructor(
     private cajaService: CajaService,
     private matDialog: MatDialog,
@@ -131,7 +127,7 @@ export class ListCajaComponent implements OnInit {
     private tabService: TabService,
     private ventaService: VentaService,
     private searchMaletin: SearchMaletinGQL,
-    public mainService: MainService,
+    private mainService: MainService,
     private searchSucursal: SucursalesSearchGQL,
     private searchUsuario: UsuarioSearchGQL, 
     private cajaObservacionService: CajaObservacionService,
@@ -140,8 +136,6 @@ export class ListCajaComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.esAdmin = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false;
-
     let hoy = new Date();
     let aux = new Date();
     aux.setDate(hoy.getDate() - 5);
@@ -174,14 +168,6 @@ export class ListCajaComponent implements OnInit {
       autoFocus: true,
       restoreFocus: true,
     });
-  }
-
-  /**
-   * Abre la caja para que un ADMIN corrija los montos cargados. El boton de edicion vive dentro
-   * del stepper, sobre el conteo de apertura o el de cierre.
-   */
-  onEditarConteos(caja: PdvCaja) {
-    this.onAdd(caja);
   }
 
   onFilter() {
