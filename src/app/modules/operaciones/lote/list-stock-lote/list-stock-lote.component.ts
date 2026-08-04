@@ -1,7 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -17,7 +16,12 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { HistorialLoteDialogComponent } from '../historial-lote-dialog/historial-lote-dialog.component';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabData, TabService } from '../../../../layouts/tab/tab.service';
+import {
+  HistorialLoteComponent,
+  HistorialLoteTabData
+} from '../historial-lote/historial-lote.component';
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLote, StockLoteSucursal } from '../lote.model';
 import { LoteService } from '../lote.service';
 
@@ -169,7 +173,7 @@ export class ListStockLoteComponent implements OnInit {
     private proveedorService: ProveedorService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
-    private matDialog: MatDialog,
+    private tabService: TabService,
     private mainService: MainService,
     private cdr: ChangeDetectorRef
   ) {
@@ -388,29 +392,37 @@ export class ListStockLoteComponent implements OnInit {
   }
 
   /**
-   * Abre el historial del lote: de qué compra vino, qué transferencias lo repartieron y qué
-   * ventas lo sacaron.
+   * Abre el historial del lote: de qué compra vino, qué transferencias lo repartieron, qué ventas
+   * lo sacaron y a qué clientes fue.
    *
    * Es lo que hace utilizable el bloqueo de al lado. Bloquear saca el lote del mostrador, pero
    * para avisar hay que poder recorrer a dónde ya fue.
    *
-   * Le pasa la sucursal filtrada para que el diálogo abra con el mismo recorte que el listado.
+   * Va en solapa y no en diálogo: son dos listados paginados con filtros propios, que en un
+   * diálogo compiten por un alto que no tienen. Se le pasa la fila entera ya resuelta para que la
+   * cabecera no tenga que volver a consultar lo que el listado ya sabe, y la sucursal filtrada
+   * para que abra con el mismo recorte.
    */
   onVerHistorial(fila: StockLoteRow): void {
     if (!fila.esLoteReal) {
       return;
     }
-    this.matDialog.open(HistorialLoteDialogComponent, {
-      data: {
-        loteId: fila.loteId,
-        numeroLote: fila.numeroLote,
-        productoDescripcion: fila.productoDescripcion,
-        sucursal: this.filtros.value.sucursal
-      },
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh'
-    });
+    const tabData: HistorialLoteTabData = {
+      loteId: fila.loteId,
+      numeroLote: fila.numeroLote,
+      productoDescripcion: fila.productoDescripcion,
+      proveedorNombre: fila.proveedorNombre,
+      fechaVencimientoLabel: fila.fechaVencimientoLabel,
+      fechaRetiroLabel: fila.fechaRetiroLabel,
+      estadoLabel: fila.estadoLabel,
+      sucursal: this.filtros.value.sucursal
+    };
+    this.tabService.addTab(new Tab(
+      HistorialLoteComponent,
+      `Historial lote ${fila.numeroLote}`,
+      new TabData(fila.loteId, tabData),
+      ListStockLoteComponent
+    ));
   }
 
   /**

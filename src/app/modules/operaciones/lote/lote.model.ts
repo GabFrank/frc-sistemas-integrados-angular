@@ -91,11 +91,42 @@ export class MovimientoLote {
   sucursalNombre?: string;
   /** COMPRA, VENTA, AJUSTE o TRANSFERENCIA. Nulo si el movimiento padre ya no está. */
   tipoMovimiento?: string;
-  /** Id del documento que originó el movimiento. Su significado depende del tipo. */
+  /**
+   * OJO: no es el documento, es el ÍTEM del documento, porque el ledger se escribe por ítem.
+   * Mostrarlo como documento manda a buscar un id que no existe. Para eso está documentoId.
+   */
   referencia?: number;
+  /** El documento al que pertenece ese ítem: la venta, la recepción o la transferencia. */
+  documentoId?: number;
   /** Positiva si entró al lote, negativa si salió. */
   cantidad: number;
   usuarioNombre?: string;
+}
+
+/**
+ * Un cliente al que se le vendió un lote, con lo que se llevó sumado.
+ *
+ * NO es la venta completa del lote: la venta de mostrador va contra el cliente genérico y no
+ * identifica a nadie, así que queda afuera. Su total viene en {@link MostradorLote}.
+ */
+export class ClienteLote {
+  clienteId: number;
+  clienteNombre?: string;
+  clienteDocumento?: string;
+  /** Cuántas ventas distintas de este lote se le hicieron. */
+  ventas: number;
+  /** Unidades que se llevó, en positivo: el ledger las guarda negativas. */
+  cantidad: number;
+  ultimaVenta?: Date;
+}
+
+/**
+ * Lo que se vendió de un lote sin cliente identificado. Es el complemento honesto de
+ * {@link ClienteLote}: sin este número la lista de clientes se lee como si fuera todo lo que salió.
+ */
+export class MostradorLote {
+  ventas: number;
+  cantidad: number;
 }
 
 /**

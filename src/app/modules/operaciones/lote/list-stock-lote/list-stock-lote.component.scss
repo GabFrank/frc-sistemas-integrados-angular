@@ -9,6 +9,12 @@
 $fila-vencida: #c62828;
 $fila-por-vencer: #ef6c00;
 
+// fxLayoutGap solo separa horizontalmente dentro de la fila; entre líneas de un row wrap no pone
+// nada, así que los chips quedaban pegados a los campos de arriba.
+.fila-chips {
+  margin-top: 14px;
+}
+
 // Atajos de urgencia. Son filtros, pero siguen llevando el color de la fila que traen: apagados
 // explican el rojo y el naranja de la tabla, que es lo que antes hacía la leyenda.
 //
