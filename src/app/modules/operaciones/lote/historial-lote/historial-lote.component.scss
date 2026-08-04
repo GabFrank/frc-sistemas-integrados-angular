@@ -127,6 +127,15 @@
   }
 }
 
+// La dirección es texto libre y puede ser larga. Se acota para que no empuje al resto de las
+// columnas, que son las que identifican la venta.
+.celda-direccion {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chip-tipo {
   display: inline-block;
   padding: 3px 12px;

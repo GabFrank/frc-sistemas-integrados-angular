@@ -122,6 +122,8 @@ export class ClienteLote {
   clienteId: number;
   clienteNombre?: string;
   clienteDocumento?: string;
+  /** Dónde ubicarlo si hay que avisarle por un recall. Nula cuando la persona no la tiene cargada. */
+  clienteDireccion?: string;
   /** Unidades que se llevó en esa venta, en positivo: el ledger las guarda negativas. */
   cantidad: number;
 }

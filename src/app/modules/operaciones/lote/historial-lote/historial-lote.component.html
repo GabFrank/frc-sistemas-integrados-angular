@@ -172,6 +172,20 @@
                 <td mat-cell *matCellDef="let fila">{{ fila.clienteDocumento }}</td>
               </ng-container>
 
+              <ng-container matColumnDef="direccion">
+                <th mat-header-cell *matHeaderCellDef>Dirección</th>
+                <!-- La celda recorta con ellipsis; el tooltip deja llegar a la dirección completa,
+                     que es justamente el dato que se necesita entero en un recall. -->
+                <td
+                  mat-cell
+                  *matCellDef="let fila"
+                  class="celda-direccion"
+                  [matTooltip]="fila.clienteDireccion"
+                >
+                  {{ fila.clienteDireccion }}
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="venta">
                 <th mat-header-cell *matHeaderCellDef>Nº de venta</th>
                 <td mat-cell *matCellDef="let fila">

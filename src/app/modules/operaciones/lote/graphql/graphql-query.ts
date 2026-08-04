@@ -253,6 +253,7 @@ export const clientesPorLoteQuery = gql`
         clienteId
         clienteNombre
         clienteDocumento
+        clienteDireccion
         cantidad
       }
     }

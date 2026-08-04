@@ -48,6 +48,8 @@ interface MovimientoRow {
 interface ClienteRow {
   clienteNombre: string;
   clienteDocumento: string;
+  /** Dónde ubicarlo en un recall. Guion cuando la persona no la tiene cargada. */
+  clienteDireccion: string;
   ventaId: number;
   ventaLabel: string;
   sucursalNombre: string;
@@ -86,7 +88,7 @@ export class HistorialLoteComponent implements OnInit {
   @Input() data: Tab;
 
   columnasMovimientos = ['fecha', 'sucursal', 'tipo', 'comprobante', 'cantidad', 'usuario'];
-  columnasClientes = ['cliente', 'documento', 'venta', 'sucursal', 'cantidad', 'fecha'];
+  columnasClientes = ['cliente', 'documento', 'direccion', 'venta', 'sucursal', 'cantidad', 'fecha'];
 
   /**
    * Los tipos que puede tener un movimiento de stock. Se ofrecen todos y no solo los que hoy
@@ -306,6 +308,7 @@ export class HistorialLoteComponent implements OnInit {
     return {
       clienteNombre: (item.clienteNombre || this.referenciaSinNombre(item.clienteId)).toUpperCase(),
       clienteDocumento: item.clienteDocumento || '-',
+      clienteDireccion: item.clienteDireccion ? item.clienteDireccion.toUpperCase() : '-',
       ventaId: item.ventaId,
       ventaLabel: item.ventaId != null ? `#${item.ventaId}` : '-',
       sucursalId: item.sucursalId,
