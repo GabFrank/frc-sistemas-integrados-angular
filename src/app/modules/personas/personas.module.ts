@@ -26,6 +26,8 @@ import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveed
 import { ClienteDashboardComponent } from './clientes/cliente-dashboard/cliente-dashboard.component';
 import { ListClientesComponent } from './clientes/list-clientes/list-clientes.component';
 import { ProductoModule } from '../productos/productos.module';
+import { EditProveedorServicioComponent } from './proveedor-servicio/edit-proveedor-servicio/edit-proveedor-servicio.component';
+import { ListProveedorServicioComponent } from './proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
 
 
 @NgModule({
@@ -48,7 +50,9 @@ import { ProductoModule } from '../productos/productos.module';
     AddClienteDialogComponent,
     AdicionarProveedorDialogComponent,
     ClienteDashboardComponent,
-    ListClientesComponent
+    ListClientesComponent,
+    EditProveedorServicioComponent,
+    ListProveedorServicioComponent
   ],
   imports: [
     CommonModule,

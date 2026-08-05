@@ -16,6 +16,7 @@ import {
 export type TipoCoincidenciaBuscador =
   | 'CODIGO_EXACTO'
   | 'CODIGO_PREFIJO'
+  | 'CODIGO_PARCIAL'
   | 'TEXTO'
   | 'ID';
 
@@ -240,7 +241,7 @@ export class BuscadorComprasService {
           resultado.getContent = (pageInfo.getContent ?? []).map((producto) => ({
             producto,
             codigoCoincidente: producto.codigoPrincipal,
-            tipoCoincidencia: esCodigo ? 'CODIGO_PREFIJO' : 'TEXTO',
+            tipoCoincidencia: esCodigo ? 'CODIGO_PARCIAL' : 'TEXTO',
           }));
           return resultado;
         })

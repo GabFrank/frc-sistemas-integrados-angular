@@ -7,7 +7,48 @@
   [isAdicionar]="true"
   (adicionar)="onAdd()"
 >
-  <div filtros></div>
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <div fxFlex="30%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl" name="sucursalControl">
+            <mat-option [value]="null"> Todas </mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+              {{ sucursal?.id }} - {{ sucursal?.nombre | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Código</mat-label>
+          <input
+            matInput
+            type="text"
+            [formControl]="codigoControl"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-label>Abierto</mat-label>
+        <mat-checkbox
+          [checked]="abiertoControl.value == true"
+          [indeterminate]="abiertoControl.value == null"
+          (click)="onCambiarAbierto()"
+        >
+          {{
+            abiertoControl.value == null
+              ? "Todos"
+              : abiertoControl.value == true
+              ? "Si"
+              : "No"
+          }}
+        </mat-checkbox>
+      </div>
+    </div>
+  </div>
   <div table>
     <table
       mat-table

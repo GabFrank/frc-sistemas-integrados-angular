@@ -35,10 +35,12 @@ $text-secondary: #aaaaaa;
         .mat-mdc-header-cell {
             color: white !important;
             background-color: #464646 !important;
+            text-align: center !important;
         }
 
         .mat-mdc-cell {
             color: white !important;
+            text-align: center !important;
         }
 
         .mat-mdc-paginator {
@@ -55,6 +57,20 @@ $text-secondary: #aaaaaa;
 
 table {
     width: 100%;
+}
+
+.cargando-lista {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    width: 100%;
+
+    p {
+        color: white;
+        margin-top: 10px;
+    }
 }
 
 tr.detail-row {

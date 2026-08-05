@@ -10,7 +10,10 @@ import { VentasDiasComponent } from "../ventas-dias/ventas-dias.component";
 import { GastoCategoriaComponent } from "../gasto-categoria/gasto-categoria.component";
 import { IngresoGastoComponent } from "../ingreso-gasto/ingreso-gasto.component";
 import { VentaSucursalComponent } from "../venta-sucursal/venta-sucursal.component";
+import { DeliverySucursalComponent } from "../delivery-sucursal/delivery-sucursal.component";
 import { VentaCiudadComponent } from "../venta-ciudad/venta-ciudad.component";
+import { EvolucionCostoComponent } from "../evolucion-costo/evolucion-costo.component";
+import { RankingInflacionComponent } from "../ranking-inflacion/ranking-inflacion.component";
 import { GraficosDashboardVista } from "./interfaces/graficos-dashboard-vista.model";
 import { construirVistaDashboardMock } from "./graficos-dashboard-opciones.util";
 
@@ -23,7 +26,10 @@ type TipoGraficoDashboard =
   | "hora"
   | "ingreso-gasto"
   | "venta-sucursal"
-  | "venta-ciudad";
+  | "delivery-sucursal"
+  | "venta-ciudad"
+  | "evolucion-costo"
+  | "ranking-inflacion";
 
 @Component({
   selector: "app-graficos",
@@ -88,9 +94,24 @@ export class GraficosComponent {
           new Tab(VentaSucursalComponent, "Ventas por Sucursal", null, null)
         );
         break;
+      case "delivery-sucursal":
+        this.tabService.addTab(
+          new Tab(DeliverySucursalComponent, "Ventas con Delivery", null, null)
+        );
+        break;
       case "venta-ciudad":
         this.tabService.addTab(
           new Tab(VentaCiudadComponent, "Ventas por Ciudad", null, null)
+        );
+        break;
+      case "evolucion-costo":
+        this.tabService.addTab(
+          new Tab(EvolucionCostoComponent, "Evolución de Costos", null, null)
+        );
+        break;
+      case "ranking-inflacion":
+        this.tabService.addTab(
+          new Tab(RankingInflacionComponent, "Inflación de Costos", null, null)
         );
         break;
     }

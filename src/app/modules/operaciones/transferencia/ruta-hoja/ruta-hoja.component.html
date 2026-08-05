@@ -1,82 +1,117 @@
-<h2 mat-dialog-title>Hoja de Ruta</h2>
+<div class="hoja-ruta-dialog">
 
-<mat-dialog-content>
-    <div fxLayout="column" fxLayoutGap="15px">
-        <div fxLayout="row" fxLayoutAlign="start center">
-            <mat-form-field appearance="outline" fxFlex class="dark-outline-input">
-                <mat-label>Vehículo</mat-label>
-                <input matInput
-                    [value]="selectedVehiculo ? (selectedVehiculo.modelo?.marca?.descripcion + ' ' + selectedVehiculo.modelo?.descripcion + ' - ' + selectedVehiculo.chapa) : ''"
-                    readonly (click)="onBuscarVehiculo()" style="cursor: pointer;">
-                <button mat-icon-button matSuffix (click)="onBuscarVehiculo()">
-                    <mat-icon>search</mat-icon>
-                </button>
-                <mat-error *ngIf="vehiculoControl.invalid">El vehículo es obligatorio</mat-error>
-            </mat-form-field>
+    <div class="dialog-header">
+        <div class="header-icon">
+            <mat-icon>route</mat-icon>
+        </div>
+        <div class="header-text">
+            <h2>{{ tituloDialog }}</h2>
+            <span class="header-sub">{{ subtituloDialog }}</span>
+        </div>
+        <button mat-icon-button class="header-close" (click)="onCancel()" matTooltip="Cerrar">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <mat-dialog-content class="dialog-body">
+
+        <div *ngIf="isLoading" class="cargando-overlay">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span>Cargando hoja de ruta...</span>
         </div>
 
+        <ng-container *ngIf="!isLoading">
 
-        <div fxLayout="row" fxLayoutAlign="start center">
-            <mat-form-field appearance="outline" fxFlex class="dark-outline-input">
-                <mat-label>Chofer</mat-label>
-                <input matInput [formControl]="choferControl" readonly (click)="onBuscarChofer()"
-                    style="cursor: pointer;">
-                <button mat-icon-button matSuffix (click)="onBuscarChofer()">
-                    <mat-icon>search</mat-icon>
-                </button>
-                <mat-error *ngIf="choferControl.hasError('required')">El chofer es obligatorio</mat-error>
-            </mat-form-field>
-        </div>
+            <!-- VEHICULO -->
+            <div class="selector-card" [class.vacio]="!selectedVehiculo" (click)="onBuscarVehiculo()"
+                matTooltip="Click para buscar un vehículo">
+                <div class="selector-avatar vehiculo">
+                    <mat-icon>local_shipping</mat-icon>
+                </div>
+                <div class="selector-info">
+                    <span class="selector-label">Vehículo <span class="requerido">*</span></span>
+                    <ng-container *ngIf="selectedVehiculo; else vehiculoVacio">
+                        <span class="selector-value">{{ vehiculoTitulo }}</span>
+                        <span class="selector-sub" *ngIf="vehiculoSubtitulo">{{ vehiculoSubtitulo }}</span>
+                    </ng-container>
+                    <ng-template #vehiculoVacio>
+                        <span class="selector-placeholder">Seleccionar vehículo</span>
+                    </ng-template>
+                </div>
+                <mat-icon class="selector-action">{{ selectedVehiculo ? 'swap_horiz' : 'search' }}</mat-icon>
+            </div>
 
+            <!-- CHOFER -->
+            <div class="selector-card" [class.vacio]="!selectedChofer" (click)="onBuscarChofer()"
+                matTooltip="Click para buscar un chofer">
+                <div class="selector-avatar chofer" [class.iniciales]="selectedChofer">
+                    <span *ngIf="selectedChofer">{{ choferIniciales }}</span>
+                    <mat-icon *ngIf="!selectedChofer">person</mat-icon>
+                </div>
+                <div class="selector-info">
+                    <span class="selector-label">Chofer <span class="requerido">*</span></span>
+                    <ng-container *ngIf="selectedChofer; else choferVacio">
+                        <span class="selector-value">{{ choferTitulo }}</span>
+                        <span class="selector-sub" *ngIf="choferSubtitulo">{{ choferSubtitulo }}</span>
+                    </ng-container>
+                    <ng-template #choferVacio>
+                        <span class="selector-placeholder">Seleccionar chofer</span>
+                    </ng-template>
+                </div>
+                <mat-icon class="selector-action">{{ selectedChofer ? 'swap_horiz' : 'search' }}</mat-icon>
+            </div>
 
-        <div fxLayout="row" fxLayoutGap="10px">
-            <mat-form-field appearance="outline" fxFlex="50" class="dark-outline-input">
-                <mat-label>Fecha de Salida</mat-label>
-                <input matInput [matDatepicker]="pickerSalida" [formControl]="fechaSalidaControl">
+            <!-- FECHA DE SALIDA -->
+            <mat-form-field appearance="outline" class="dark-outline-input fecha-field">
+                <mat-label>Fecha de salida</mat-label>
+                <input matInput [matDatepicker]="pickerSalida" [formControl]="fechaSalidaControl" readonly
+                    (click)="pickerSalida.open()">
                 <mat-datepicker-toggle matSuffix [for]="pickerSalida"></mat-datepicker-toggle>
                 <mat-datepicker #pickerSalida></mat-datepicker>
             </mat-form-field>
-        </div>
 
+            <!-- ACOMPAÑANTES -->
+            <div class="acompanhantes-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <mat-icon>groups</mat-icon>
+                        <span>Acompañantes</span>
+                        <span class="contador" *ngIf="cantidadAcompanhantes > 0">{{ cantidadAcompanhantes }}</span>
+                    </div>
+                    <button mat-stroked-button class="btn-agregar" (click)="onAddAcompanhante()">
+                        <mat-icon>person_add</mat-icon>
+                        Agregar
+                    </button>
+                </div>
 
-        <div>
-            <div fxLayout="row" fxLayoutAlign="space-between center">
-                <h3>Acompañantes</h3>
-                <button mat-raised-button color="accent" (click)="onAddAcompanhante()">
-                    <mat-icon>add</mat-icon> Agregar
-                </button>
+                <div class="lista-vacia" *ngIf="cantidadAcompanhantes === 0">
+                    <mat-icon>group_off</mat-icon>
+                    <span>Sin acompañantes asignados</span>
+                    <small>Opcional — agregá a quienes viajan con el chofer</small>
+                </div>
+
+                <div class="acompanhante-item" *ngFor="let a of acompanhantesView; trackBy: trackByAcompanhante">
+                    <div class="selector-avatar iniciales chico">{{ a.iniciales }}</div>
+                    <div class="acompanhante-info">
+                        <span class="acompanhante-nombre">{{ a.nombre }}</span>
+                        <span class="acompanhante-doc" *ngIf="a.documento">Doc. {{ a.documento }}</span>
+                    </div>
+                    <button mat-icon-button class="btn-quitar" (click)="onRemoveAcompanhante(a)"
+                        matTooltip="Quitar acompañante">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
             </div>
 
-            <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%; margin-top: 10px;">
-                <ng-container matColumnDef="id">
-                    <th mat-header-cell *matHeaderCellDef> ID </th>
-                    <td mat-cell *matCellDef="let element"> {{element.id}} </td>
-                </ng-container>
-                <ng-container matColumnDef="nombre">
-                    <th mat-header-cell *matHeaderCellDef> Nombre </th>
-                    <td mat-cell *matCellDef="let element"> {{element.nombre | uppercase}} </td>
-                </ng-container>
-                <ng-container matColumnDef="accion">
-                    <th mat-header-cell *matHeaderCellDef> </th>
-                    <td mat-cell *matCellDef="let element">
-                        <button mat-icon-button color="warn" (click)="onRemoveAcompanhante(element)">
-                            <mat-icon>delete</mat-icon>
-                        </button>
-                    </td>
-                </ng-container>
+        </ng-container>
+    </mat-dialog-content>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-            </table>
-        </div>
-
-    </div>
-</mat-dialog-content>
-
-<mat-dialog-actions align="end">
-    <button mat-button (click)="onCancel()">Cancelar</button>
-    <button mat-raised-button color="primary" (click)="onSave()"
-        [disabled]="vehiculoControl.invalid || choferControl.invalid">
-        Guardar
-    </button>
-</mat-dialog-actions>
+    <mat-dialog-actions class="dialog-footer">
+        <button mat-button class="btn-cancelar" (click)="onCancel()" [disabled]="isSaving">Cancelar</button>
+        <button mat-flat-button class="btn-guardar" (click)="onSave()" [disabled]="guardarDeshabilitado">
+            <mat-spinner *ngIf="isSaving" diameter="18" class="btn-spinner"></mat-spinner>
+            <mat-icon *ngIf="!isSaving">save</mat-icon>
+            {{ isSaving ? 'Guardando...' : 'Guardar' }}
+        </button>
+    </mat-dialog-actions>
+</div>

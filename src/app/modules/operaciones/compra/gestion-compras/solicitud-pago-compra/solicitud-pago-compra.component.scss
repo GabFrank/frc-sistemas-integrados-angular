@@ -327,7 +327,8 @@
     padding: 60px 20px;
     color: #ccc;
 
-    mat-icon {
+    // Solo el ícono ilustrativo del estado vacío, no los que van dentro de botones
+    > mat-icon {
       font-size: 4rem;
       width: 4rem;
       height: 4rem;

@@ -10,6 +10,7 @@ query ($page: Int) {
       sexo
       direccion
       documento
+      email
       telefono
       socialMedia
       creadoEn
@@ -93,6 +94,7 @@ export const personaQuery = gql`
       apodo
       nacimiento
       documento
+      email
       sexo
       direccion
       telefono

@@ -1,0 +1,262 @@
+// Colores tomados del tema de la app (styles.scss): accent = verde 600, primary = rojo 500,
+// warn = naranja 600. El ambar identifica "esto fue corregido" y no compite con esos tres.
+$ambar: #ffb300;
+$ambar-oscuro: #c87f00;
+$sube: #4caf50;
+$baja: #ef5350;
+$panel: rgb(32, 32, 32);
+
+.historial {
+  width: 100%;
+  box-sizing: border-box;
+
+  // La banda es lo primero que se ve: dice de una que este conteo no es el original.
+  // Mismo degradado que las cabeceras de los demas dialogos del sistema.
+  &__banda {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    h3 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    span {
+      font-size: 0.8em;
+      opacity: 0.85;
+    }
+  }
+
+  &__titulo {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__cuerpo {
+    padding: 16px 20px 4px;
+    max-height: 55vh;
+    overflow-y: auto;
+    overflow-x: auto;
+  }
+
+  &__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  &__autor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 179, 0, 0.18);
+    color: $ambar;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &__datos {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+
+    strong {
+      font-size: 0.9em;
+    }
+
+    span {
+      font-size: 0.78em;
+      opacity: 0.65;
+    }
+  }
+}
+
+// Los totales son el titular: que subio o bajo la caja, y cuanto.
+.totales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+
+  &__tarjeta {
+    flex: 1 1 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: $panel;
+    border-left: 4px solid $ambar;
+  }
+
+  &__moneda {
+    font-size: 0.72em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  &__cifras {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__antes {
+    font-size: 0.85em;
+    opacity: 0.45;
+    text-decoration: line-through;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__ahora {
+    font-size: 1.45em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__chip {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    background: rgba(76, 175, 80, 0.18);
+    color: $sube;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+
+    &--baja {
+      background: rgba(239, 83, 80, 0.18);
+      color: $baja;
+    }
+
+    &--igual {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.55);
+      font-weight: 400;
+    }
+  }
+}
+
+// Detalle billete por billete. Las filas que no cambiaron quedan al fondo visual,
+// pero legibles: sirven de contexto, no son el foco.
+.detalle {
+  &__encabezado,
+  &__fila {
+    display: grid;
+    grid-template-columns: minmax(120px, 2fr) 1fr 1fr 70px;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+  }
+
+  &__encabezado {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.5;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+    span:not(:first-child) {
+      text-align: right;
+    }
+  }
+
+  &__fila {
+    border-radius: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    opacity: 0.5;
+
+    &--cambiada {
+      opacity: 1;
+      background: rgba(255, 179, 0, 0.08);
+      box-shadow: inset 3px 0 0 $ambar;
+    }
+  }
+
+  &__denominacion {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+
+    em {
+      font-style: normal;
+      font-size: 0.68em;
+      opacity: 0.5;
+      margin-left: 5px;
+    }
+  }
+
+  &__numero {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &--ahora {
+      font-weight: 600;
+    }
+  }
+
+  &__delta {
+    text-align: right;
+  }
+
+  &__pastilla {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.8em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    background: rgba(76, 175, 80, 0.2);
+    color: $sube;
+
+    &--baja {
+      background: rgba(239, 83, 80, 0.2);
+      color: $baja;
+    }
+  }
+
+  &__sin-cambios {
+    padding: 10px 2px;
+    font-size: 0.85em;
+    opacity: 0.6;
+  }
+}

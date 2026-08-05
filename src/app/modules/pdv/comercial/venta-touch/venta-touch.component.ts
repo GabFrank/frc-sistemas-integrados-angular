@@ -103,7 +103,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, map, startWith, switchMap } from "rxjs/operators";
+import { catchError, map, startWith, switchMap, takeUntil } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -1019,55 +1019,81 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onTicketClick(ticket?: boolean) {
     if (this.modoConsulta) return;
+    // Evita reentradas mientras se procesa un cobro rápido en curso.
+    if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
-    //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
-    let venta = new Venta();
-    venta.formaPago = this.formaPagoService.formaPagoList.find(
-      (f) => f.descripcion == "EFECTIVO"
-    );
-    let descuento = 0;
-    venta.totalGs = this.totalGs;
-    venta.totalRs = this.totalGs / this.cambioRs;
-    venta.totalDs = this.totalGs / this.cambioDs;
-    venta.ventaItemList = this.selectedItemList;
-    venta.caja = this.cajaService?.selectedCaja;
-    let cobro = new Cobro();
-    cobro.totalGs = this.totalGs;
-    let cobroDetalle = new CobroDetalle();
-    cobroDetalle.moneda = this.monedas.find((m) => m.denominacion == "GUARANI");
-    cobroDetalle.cambio = cobroDetalle.moneda.cambio;
-    cobroDetalle.formaPago = this.formaPagoList.find(
-      (f) => f.descripcion == "EFECTIVO"
-    );
-    cobroDetalle.descuento = false;
-    cobroDetalle.aumento = false;
-    cobroDetalle.vuelto = false;
-    cobroDetalle.pago = true;
-    cobroDetalle.valor = this.totalGs;
-    cobro.cobroDetalleList = [cobroDetalle];
-    this.selectedItemList.forEach((vi) => {
-      descuento += vi.valorDescuento;
-    });
-    if (descuento > 0) {
-      let cobroDetalleDesc = new CobroDetalle();
-      cobroDetalleDesc.moneda = this.monedas.find(
+    // try/finally: pase lo que pase (ej. monedas no cargadas), el flag se
+    // resetea siempre y los botones NUNCA quedan bloqueados.
+    try {
+      // Guarda: la moneda base (GUARANI) debe estar cargada para armar el
+      // cobro. Si las monedas no se cargaron (query al filial falló), avisar
+      // y salir; el finally destraba los botones para reintentar.
+      const monedaGuarani = this.monedas?.find(
         (m) => m.denominacion == "GUARANI"
       );
-      cobroDetalleDesc.cambio = cobroDetalleDesc.moneda.cambio;
-      cobroDetalleDesc.formaPago = this.formaPagoList.find(
+      if (monedaGuarani == null) {
+        this.notificacionSnackbar.notification$.next({
+          texto:
+            "No se pudieron cargar las monedas. Reintente en unos segundos.",
+          color: NotificacionColor.warn,
+          duracion: 3,
+        });
+        return;
+      }
+      // Cambio de la moneda base: siempre 1 (guaraní). Fallback defensivo.
+      const cambioGuarani =
+        monedaGuarani.cambio != null ? monedaGuarani.cambio : 1;
+
+      //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
+      let venta = new Venta();
+      venta.formaPago = this.formaPagoService.formaPagoList.find(
         (f) => f.descripcion == "EFECTIVO"
       );
-      cobroDetalleDesc.descuento = true;
-      cobroDetalleDesc.aumento = false;
-      cobroDetalleDesc.vuelto = false;
-      cobroDetalleDesc.pago = false;
-      cobroDetalleDesc.valor = descuento;
-      cobro.cobroDetalleList.push(cobroDetalleDesc);
+      let descuento = 0;
+      venta.totalGs = this.totalGs;
+      // Conversión a moneda extranjera solo si hay cotización válida; si no,
+      // dejar null (desconocido) en vez de un 1:1 engañoso. No frena la venta.
+      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
+      venta.ventaItemList = this.selectedItemList;
+      venta.caja = this.cajaService?.selectedCaja;
+      let cobro = new Cobro();
+      cobro.totalGs = this.totalGs;
+      let cobroDetalle = new CobroDetalle();
+      cobroDetalle.moneda = monedaGuarani;
+      cobroDetalle.cambio = cambioGuarani;
+      cobroDetalle.formaPago = this.formaPagoList.find(
+        (f) => f.descripcion == "EFECTIVO"
+      );
+      cobroDetalle.descuento = false;
+      cobroDetalle.aumento = false;
+      cobroDetalle.vuelto = false;
+      cobroDetalle.pago = true;
+      cobroDetalle.valor = this.totalGs;
+      cobro.cobroDetalleList = [cobroDetalle];
+      this.selectedItemList.forEach((vi) => {
+        descuento += vi.valorDescuento;
+      });
+      if (descuento > 0) {
+        let cobroDetalleDesc = new CobroDetalle();
+        cobroDetalleDesc.moneda = monedaGuarani;
+        cobroDetalleDesc.cambio = cambioGuarani;
+        cobroDetalleDesc.formaPago = this.formaPagoList.find(
+          (f) => f.descripcion == "EFECTIVO"
+        );
+        cobroDetalleDesc.descuento = true;
+        cobroDetalleDesc.aumento = false;
+        cobroDetalleDesc.vuelto = false;
+        cobroDetalleDesc.pago = false;
+        cobroDetalleDesc.valor = descuento;
+        cobro.cobroDetalleList.push(cobroDetalleDesc);
+      }
+      // cobroDetalle.
+      this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
+    } finally {
+      this.disableCobroRapido = false;
+      this.buscadorFocusSub.next();
     }
-    // cobroDetalle.
-    this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
-    this.disableCobroRapido = false;
-    this.buscadorFocusSub.next();
   }
 
   onSaveVenta(
@@ -1226,7 +1252,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                     const pago = tarjetaPagos[index];
                     const montoFmt = pago.monto.toLocaleString('es-PY');
                     const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
-                    this.matDialog.open(QrCodeComponent, {
+                    const qrDialogRef = this.matDialog.open(QrCodeComponent, {
                       data: {
                         codigo: qrPayload,
                         nombre: resultados.length > 1
@@ -1236,7 +1262,22 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                         segundos: 120
                       },
                       disableClose: false
-                    }).afterClosed().subscribe(() => mostrarQr(index + 1));
+                    });
+                    const qrClosed$ = qrDialogRef.afterClosed();
+                    if (vt?.id) {
+                      interval(3000)
+                        .pipe(
+                          switchMap(() => this.ventaTarjetaService.onGetEstadoPorId(vt.id, sucursalIdQr)),
+                          takeUntil(qrClosed$),
+                          untilDestroyed(this)
+                        )
+                        .subscribe(estadoVt => {
+                          if (estadoVt && estadoVt.estado !== 'PENDIENTE') {
+                            qrDialogRef.close();
+                          }
+                        });
+                    }
+                    qrClosed$.subscribe(() => mostrarQr(index + 1));
                   };
                   mostrarQr(0);
                 },

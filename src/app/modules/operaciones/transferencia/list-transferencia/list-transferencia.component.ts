@@ -66,7 +66,7 @@ export class ListTransferenciaComponent implements OnInit {
   idControl = new FormControl();
   sucOrigenControl = new FormControl();
   sucDestinoControl = new FormControl();
-  estadoControl = new FormControl();
+  estadoControl = new FormControl<TransferenciaEstado[]>([]);
   etapaControl = new FormControl();
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
@@ -75,6 +75,7 @@ export class ListTransferenciaComponent implements OnInit {
   sucursalIdlist: Number[];
   estadoList = Object.values(TransferenciaEstado);
   etapaList = Object.values(EtapaTransferencia);
+  estadoTriggerLabel = "";
   today = new Date();
 
   displayedColumns = [
@@ -191,12 +192,22 @@ export class ListTransferenciaComponent implements OnInit {
     this.idControl.setValue(null);
     this.sucOrigenControl.setValue(null);
     this.sucDestinoControl.setValue(null);
-    this.estadoControl.setValue(null);
+    this.estadoControl.setValue([]);
+    this.onEstadoSelectionChange();
     this.etapaControl.setValue(null);
     let unaSemanaAtras = new Date();
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
     this.fechaFinControl.setValue(this.today);
+  }
+
+  // Se recalcula solo al cambiar la seleccion (no en cada change detection cycle,
+  // por eso no se llama desde el HTML).
+  onEstadoSelectionChange() {
+    const estados = this.estadoControl.value ?? [];
+    this.estadoTriggerLabel = estados
+      .map((e) => e.replace(/_/g, " "))
+      .join(", ");
   }
 
   onRowClick(transferencia: Transferencia, index) {
@@ -316,13 +327,15 @@ export class ListTransferenciaComponent implements OnInit {
   onAsignarRuta() {
     if (this.selection.selected.length > 0) {
       this.matDialog.open(RutaHojaComponent, {
-        width: '30%',
+        width: '560px',
+        maxWidth: '95vw',
         disableClose: true,
         panelClass: 'custom-dialog-container'
       }).afterClosed().subscribe(async (res) => {
         if (res) {
           this.cargandoService.openDialog();
           let count = 0;
+          const fallidas: number[] = [];
           try {
             for (let transferencia of this.selection.selected) {
               const input = new TransferenciaInput();
@@ -332,22 +345,38 @@ export class ListTransferenciaComponent implements OnInit {
               input.estado = transferencia.estado;
               input.tipo = transferencia.tipo;
               input.etapa = transferencia.etapa;
+              // saveTransferencia persiste con merge: todo campo ausente se guarda como
+              // null, por eso se reenvian los datos que ya tiene la transferencia.
+              input.observacion = transferencia.observacion;
+              input.isOrigen = transferencia.isOrigen;
+              input.isDestino = transferencia.isDestino;
               input.hojaRutaId = res.id;
 
-              await new Promise<void>((resolve, reject) => {
+              await new Promise<void>((resolve) => {
                 this.transferenciaService.onSaveTransferencia(input).subscribe({
                   next: (result) => {
-                    count++;
+                    if (result != null) {
+                      count++;
+                    } else {
+                      fallidas.push(transferencia.id);
+                    }
                     resolve();
                   },
                   error: (err) => {
                     console.error('Error al guardar transferencia:', err);
+                    fallidas.push(transferencia.id);
                     resolve();
                   }
                 });
               });
             }
-            this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+            if (fallidas.length > 0) {
+              this.notificacionService.openWarn(
+                'Ruta asignada a ' + count + ' transferencias. No se pudo asignar a: ' + fallidas.join(', ')
+              );
+            } else {
+              this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+            }
           } catch (error) {
             console.error('Error en asignación de ruta:', error);
             this.notificacionService.openWarn('Ocurrió un error durante la asignación');

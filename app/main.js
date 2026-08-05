@@ -1326,7 +1326,9 @@ function registerPrinterIpcHandlers() {
                         const push = (b) => chunks.push(buffer_1.Buffer.isBuffer(b) ? b : buffer_1.Buffer.from(b));
                         const textEnc = (s) => buffer_1.Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
                         push([0x1B, 0x40]);
-                        push(textEnc('\n\n')); // Double feed at top to completely prevent tear bar cutoff
+                        // Un solo avance al inicio (antes eran 2): evita hueco entre título y barcode
+                        // sin pegar el texto a la guillotina.
+                        push(textEnc('\n'));
                         for (const item of printData) {
                             if (item.type === 'text') {
                                 const center = item.style && item.style.textAlign === 'center';
@@ -1358,21 +1360,39 @@ function registerPrinterIpcHandlers() {
                                     else if (item.position === 'ABOVE')
                                         hriPos = 0x01;
                                     push([0x1D, 0x48, hriPos]);
-                                    // Handle height
-                                    const height = item.height ? parseInt(item.height) : 60;
+                                    // Handle height (mín. 60; muchos drivers ignoran barras demasiado bajas)
+                                    let height = item.height ? parseInt(item.height, 10) : 80;
+                                    if (!Number.isFinite(height) || height < 60)
+                                        height = 80;
+                                    if (height > 255)
+                                        height = 255;
                                     push([0x1D, 0x68, height]);
                                     // Handle width
-                                    const width = item.width ? parseInt(item.width) : 2;
+                                    let width = item.width ? parseInt(item.width, 10) : 2;
+                                    if (!Number.isFinite(width) || width < 2)
+                                        width = 2;
+                                    if (width > 6)
+                                        width = 6;
                                     push([0x1D, 0x77, width]);
+                                    const requestedType = ((item.barcodeType || item.format || 'CODE128') + '').toUpperCase();
+                                    const digitsOnly = value.replace(/[^0-9]/g, '');
                                     let m = 0x49; // CODE128 (73)
                                     let printValue = value;
-                                    if (item.barcodeType === 'CODE128' || !item.barcodeType) {
-                                        m = 0x49; // 0x49 = 73 = CODE128
-                                        printValue = value; // Generic printers assume Charset B
+                                    // EAN-13 nativo si el valor es retail de 12/13 dígitos (más fiable en térmicas ESC/POS).
+                                    // CODE128 requiere prefijo de code set "{B" (Epson GS k m=73); sin él imprime en blanco.
+                                    if (requestedType === 'EAN13' || (/^\d{12,13}$/.test(digitsOnly) && requestedType !== 'CODE39')) {
+                                        m = 0x43; // EAN13
+                                        printValue = digitsOnly.length === 13
+                                            ? digitsOnly.substring(0, 12)
+                                            : digitsOnly.padStart(12, '0');
                                     }
-                                    else if (item.barcodeType === 'EAN13') {
-                                        m = 0x43; // 0x43 = 67 = EAN13
-                                        printValue = value.replace(/[^0-9]/g, '');
+                                    else if (requestedType === 'CODE128' || !item.barcodeType) {
+                                        m = 0x49;
+                                        printValue = value.startsWith('{') ? value : ('{B' + value);
+                                    }
+                                    else {
+                                        m = 0x49;
+                                        printValue = value.startsWith('{') ? value : ('{B' + value);
                                     }
                                     push([0x1D, 0x6B, m, printValue.length]);
                                     push(buffer_1.Buffer.from(printValue, 'ascii'));

@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { Retiro } from '../retiro.model';
+import { EstadoRetiro, Retiro } from '../retiro.model';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { RetiroService } from '../retiro.service';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -13,6 +13,11 @@ import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-v
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
 import { PageEvent } from '@angular/material/paginator';
+import { MainService } from '../../../../main.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 
 @UntilDestroy({checkProperties: true})
 @Component({
@@ -49,8 +54,13 @@ export class ListRetiroComponent implements OnInit {
     'retiroDs',
     'responsable',
     'creadoEn',
-    'usuario'
+    'usuario',
+    'estado',
+    'acciones'
   ]
+  // Se resuelve en ngOnInit y no en el template: llamar roles.includes(...) desde el
+  // HTML lo re-evalua en cada ciclo de change detection.
+  esAdmin = false;
   pageIndex = 0;
   pageSize = 15;
 
@@ -64,10 +74,15 @@ export class ListRetiroComponent implements OnInit {
   constructor(
     private retiroService: RetiroService,
     private sucursalService: SucursalService,
-    private tabService: TabService
+    private tabService: TabService,
+    private mainService: MainService,
+    private dialogoService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
+    this.esAdmin = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ?? false;
+
     this.formGroup = new FormGroup({
       idCajaControl: this.idCajaControl,
       idRetiroControl: this.idRetiroControl,
@@ -101,6 +116,37 @@ export class ListRetiroComponent implements OnInit {
 
   onIrACaja(cajaSalida: PdvCaja){
     this.tabService.addTab(new Tab(ListVentaComponent, 'Ventas de la caja ' + cajaSalida.id, new TabData(null, cajaSalida), ListRetiroComponent))
+  }
+
+  onCancelarRetiro(retiro: Retiro, index: number) {
+    const estabaCancelado = retiro.estado == EstadoRetiro.CANCELADO;
+    const mensaje = estabaCancelado
+      ? 'Realmente desea habilitar este retiro?'
+      : 'Realmente desea cancelar este retiro?';
+    this.dialogoService.confirm('Atención!!', mensaje).subscribe((res) => {
+      if (res) {
+        const sucId = retiro.sucursalId ?? retiro.cajaSalida?.sucursalId;
+        this.retiroService.onCancelarRetiro(retiro.id, sucId).subscribe((res1) => {
+          if (res1) {
+            // El estado se actualiza en memoria, sin refetch, igual que en la
+            // lista de ventas.
+            retiro.estado = estabaCancelado
+              ? EstadoRetiro.CONCLUIDO
+              : EstadoRetiro.CANCELADO;
+            this.dataSource.data = updateDataSource(this.dataSource.data, retiro, index);
+            this.notificacionService.openSucess(
+              estabaCancelado ? 'Retiro habilitado con éxito' : 'Retiro cancelado con éxito'
+            );
+          } else {
+            this.notificacionService.openAlgoSalioMal(
+              estabaCancelado
+                ? 'Ups! No se pudo habilitar el retiro. '
+                : 'Ups! No se pudo cancelar el retiro. '
+            );
+          }
+        });
+      }
+    });
   }
 
   handlePageEvent(e: PageEvent) {

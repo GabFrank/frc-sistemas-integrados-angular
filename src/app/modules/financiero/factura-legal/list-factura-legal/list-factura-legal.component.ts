@@ -63,6 +63,7 @@ export class ListFacturaLegalComponent implements OnInit {
   nombreControl = new FormControl(null);
   rucControl = new FormControl(null);
   cdcControl = new FormControl(null);
+  ventaIdControl = new FormControl(null);
   tipoControl = new FormControl('TODOS');
   estadoControl = new FormControl('TODOS');
   fechaInicioControl = new FormControl(null, Validators.required);
@@ -164,6 +165,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.tipoControl.disable();
         this.estadoControl.disable();
         this.sinNombreControl.disable();
+        this.ventaIdControl.disable();
       } else {
         this.sucursalControl.enable();
         this.nombreControl.enable();
@@ -175,6 +177,7 @@ export class ListFacturaLegalComponent implements OnInit {
         this.tipoControl.enable();
         this.estadoControl.enable();
         this.sinNombreControl.enable();
+        this.ventaIdControl.enable();
       }
     });
 
@@ -270,7 +273,8 @@ export class ListFacturaLegalComponent implements OnInit {
           false,
           isElectronico,
           activo,
-          this.sinNombreControl.value
+          this.sinNombreControl.value,
+          this.toVentaId(this.ventaIdControl.value)
         )
         .subscribe((res) => {
           this.selectedPageInfo = res;
@@ -300,6 +304,15 @@ export class ListFacturaLegalComponent implements OnInit {
       let ruc = removeSecondDigito(f.ruc);
       f.ruc = ruc;
     });
+  }
+
+  // Acepta el nro. de venta con o sin separadores de miles (ej: 756.526 -> 756526)
+  toVentaId(value: any): number {
+    if (value == null || value === '') {
+      return null;
+    }
+    let soloDigitos = String(value).replace(/\D/g, '');
+    return soloDigitos.length > 0 ? parseInt(soloDigitos, 10) : null;
   }
 
   toSucursalesId(sucursales: Sucursal[]) {
@@ -407,6 +420,7 @@ export class ListFacturaLegalComponent implements OnInit {
     this.nombreControl.setValue(null);
     this.rucControl.setValue(null);
     this.sinNombreControl.setValue(null);
+    this.ventaIdControl.setValue(null);
     this.selectedResumenFacturas = null;
     this.dataSource.data = [];
   }
@@ -653,11 +667,6 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onDescargarPdf(factura: FacturaLegal) {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
-
     this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
@@ -683,7 +692,8 @@ export class ListFacturaLegalComponent implements OnInit {
           document.body.appendChild(a);
           a.setAttribute('style', 'display: none');
           a.href = url;
-          a.download = `KuDE-${factura.id}-${factura.cdc}.pdf`;
+          const sufijoArchivo = this.esElectronica(factura) ? factura.cdc : factura.numeroFactura;
+          a.download = `Factura-${factura.id}-${sufijoArchivo}.pdf`;
           a.click();
           window.URL.revokeObjectURL(url);
           a.remove();
@@ -697,11 +707,6 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onAbrirPdf(factura: FacturaLegal) {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
-
     this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
@@ -713,7 +718,9 @@ export class ListFacturaLegalComponent implements OnInit {
           }
 
           // Agregar el PDF al servicio de reportes
-          const nombreReporte = `KuDE ${factura.numeroFactura} - ${factura.cdc}`;
+          const nombreReporte = this.esElectronica(factura)
+            ? `KuDE ${factura.numeroFactura} - ${factura.cdc}`
+            : `Factura ${factura.numeroFactura}`;
           this.reporteService.onAdd(nombreReporte, base64String);
 
           // Abrir el componente de reportes en un nuevo tab
@@ -737,10 +744,6 @@ export class ListFacturaLegalComponent implements OnInit {
 
   /** "Imprimir en la sucursal" (PDF A4): aditivo, no reemplaza onDescargarPdf/onAbrirPdf. */
   onImprimirPdfEnSucursal(factura: FacturaLegal): void {
-    if (!this.esElectronica(factura)) {
-      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
-      return;
-    }
     this.matDialog.open(ImprimirEnSucursalDialogComponent, {
       data: { tipo: 'NORMAL', factura },
       width: '900px',

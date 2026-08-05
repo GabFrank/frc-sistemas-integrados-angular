@@ -14,6 +14,7 @@ export const facturaLegalesQuery = gql`
     $isElectronico: Boolean
     $activo: Boolean
     $sinNombre: Boolean
+    $ventaId: ID
   ) {
     data: facturaLegales(
       page: $page
@@ -28,6 +29,7 @@ export const facturaLegalesQuery = gql`
       isElectronico: $isElectronico
       activo: $activo
       sinNombre: $sinNombre
+      ventaId: $ventaId
     ) {
       getTotalPages
       getTotalElements
@@ -62,6 +64,9 @@ export const facturaLegalesQuery = gql`
             documento
           }
         }
+        venta {
+          id
+        }
         documentoElectronico {
           id
           cdc
@@ -83,6 +88,7 @@ export const facturaLegalesFullInfoQuery = gql`
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $ventaId: ID
   ) {
     data: facturaLegales(
       page: $page
@@ -94,6 +100,7 @@ export const facturaLegalesFullInfoQuery = gql`
       ruc: $ruc
       iva5: $iva5
       iva10: $iva10
+      ventaId: $ventaId
     ) {
       getTotalPages
       getTotalElements
@@ -254,6 +261,28 @@ export const facturaLegalQuery = gql`
     }
   }
 `;
+export const facturaSimilarRecienteQuery = gql`
+  query facturaSimilarReciente(
+    $usuarioId: ID!
+    $clienteId: ID
+    $totalFinal: Float!
+    $items: [FacturaLegalItemInput]
+  ) {
+    data: facturaSimilarReciente(
+      usuarioId: $usuarioId
+      clienteId: $clienteId
+      totalFinal: $totalFinal
+      items: $items
+    ) {
+      facturaLegalId
+      numeroFactura
+      fecha
+      totalFinal
+      clienteNombre
+    }
+  }
+`;
+
 // this returns TimbradoDetalle
 export const saveFacturaLegal = gql`
   mutation saveFacturaLegal(
