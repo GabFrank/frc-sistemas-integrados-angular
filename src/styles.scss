@@ -508,6 +508,42 @@ input {
   }
 }
 
+// Diálogo Pagar Compras (CPP): contenedor flex a alto completo para que el stepper llene el diálogo
+.pagar-compras-panel {
+
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  // MDC intercala un inner-container que centra la surface (rompe el alto completo)
+  .mat-mdc-dialog-inner-container,
+  .mdc-dialog__container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 16px 24px 12px;
+  }
+}
+
 // Estilo de inputs outline usado en transferencias (código de barra, búsqueda)
 mat-form-field.transferencia-input-field {
   height: 30px !important;

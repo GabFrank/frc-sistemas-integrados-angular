@@ -1,0 +1,226 @@
+<h2 mat-dialog-title>Pagar Compras (CPP)</h2>
+
+<mat-dialog-content class="pagar-content">
+  <mat-stepper #stepper class="pagar-stepper">
+
+    <!-- ═══ PASO 1: NOTAS ═══ -->
+    <mat-step [completed]="haySeleccion">
+      <ng-template matStepLabel>Seleccionar notas</ng-template>
+      <div class="paso">
+        <mat-form-field appearance="outline" class="filtro-prov" subscriptSizing="dynamic">
+          <mat-label>Filtrar por proveedor</mat-label>
+          <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del proveedor" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <div class="hint" *ngIf="proveedorNombreSel">
+          <mat-icon>info</mat-icon> Solo se pueden sumar notas de <strong>{{ proveedorNombreSel }}</strong> en {{ monedaDeuda?.denominacion }}.
+        </div>
+
+        <div class="tabla-scroll">
+          <table mat-table [dataSource]="dataSource" style="width: 100%;">
+            <ng-container matColumnDef="sel">
+              <th mat-header-cell *matHeaderCellDef style="width: 44px;"></th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">
+                <mat-checkbox [checked]="row._sel" [disabled]="row._disabled" (change)="onToggle(row)"></mat-checkbox>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="proveedor">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Proveedor</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled">{{ row.proveedorNombre }}</td>
+            </ng-container>
+            <ng-container matColumnDef="numero">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Solicitud</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">{{ row.numeroSolicitud }}</td>
+            </ng-container>
+            <ng-container matColumnDef="moneda">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Moneda</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">{{ row.monedaDenominacion }}</td>
+            </ng-container>
+            <ng-container matColumnDef="saldo">
+              <th mat-header-cell *matHeaderCellDef style="text-align: right;">Saldo pendiente</th>
+              <td mat-cell *matCellDef="let row" style="text-align: right;" [class.dim]="row._disabled">{{ row.monedaSimbolo }} {{ row.saldoPendiente | number:'1.0-2' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="montoAPagar">
+              <th mat-header-cell *matHeaderCellDef style="text-align: right;">Monto a pagar</th>
+              <td mat-cell *matCellDef="let row" style="text-align: right;">
+                <mat-form-field appearance="outline" class="monto-input" subscriptSizing="dynamic">
+                  <input matInput currencyMask [options]="row._currencyOpts" [(ngModel)]="row._montoAPagar" [disabled]="!row._sel" (ngModelChange)="onMontoNotaChange()" />
+                </mat-form-field>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">No hay solicitudes de pago pendientes.</div>
+        </div>
+
+        <div class="tabla-footer">
+          <div class="mini-cards" *ngIf="haySeleccion">
+            <div class="mini-card">
+              <span class="mc-label">Notas</span>
+              <strong class="mc-valor">{{ cantidadNotas }}</strong>
+            </div>
+            <div class="mini-card">
+              <span class="mc-label">Total {{ monedaDeuda?.denominacion }}</span>
+              <strong class="mc-valor">{{ monedaDeuda?.simbolo }} {{ totalDeuda | number:'1.0-2' }}</strong>
+            </div>
+            <div class="mini-card" *ngIf="mostrarPrincipal">
+              <span class="mc-label">Total {{ monedaPrincipal?.denominacion }}</span>
+              <strong class="mc-valor">{{ monedaPrincipal?.simbolo }} {{ totalDeudaPrincipal | number:'1.0-2' }}</strong>
+            </div>
+          </div>
+          <mat-paginator [pageSizeOptions]="[5, 10, 25]" pageSize="10" showFirstLastButtons class="pag"></mat-paginator>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- ═══ PASO 2: FORMAS DE PAGO ═══ -->
+    <mat-step [completed]="balanceOk">
+      <ng-template matStepLabel>Formas de pago</ng-template>
+      <div class="paso">
+        <div class="deuda-header">
+          <span>Pagar a <strong>{{ proveedorNombreSel }}</strong></span>
+          <span class="deuda-total">Total: {{ monedaDeuda?.simbolo }} {{ totalDeuda | number:'1.0-2' }}</span>
+        </div>
+
+        <!-- Form de forma de pago (siempre visible) -->
+        <div class="fp-form" *ngIf="draft">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-fuente">
+            <mat-label>Fuente</mat-label>
+            <mat-select [(ngModel)]="draft.fuente" (selectionChange)="onFuenteChange(draft)">
+              <mat-option value="CAJA_MAYOR">Efectivo (caja mayor)</mat-option>
+              <mat-option value="CUENTA_BANCARIA">Cuenta bancaria</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-cuenta" *ngIf="draft.fuente === 'CUENTA_BANCARIA'">
+            <mat-label>Cuenta</mat-label>
+            <mat-select [(ngModel)]="draft.cuenta" (selectionChange)="onCuentaChange(draft)">
+              <mat-option *ngFor="let c of cuentaList" [value]="c">{{ c.banco?.nombre }} · {{ c.numero }} ({{ c.moneda?.simbolo }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-moneda" *ngIf="draft.fuente === 'CAJA_MAYOR'">
+            <mat-label>Moneda</mat-label>
+            <mat-select [(ngModel)]="draft.moneda" (selectionChange)="onMonedaLineaChange(draft)">
+              <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-cotiz" *ngIf="draft.necesitaCotizacion">
+            <mat-label>Cotización</mat-label>
+            <input matInput type="number" min="0" [(ngModel)]="draft.cotizacion" (ngModelChange)="onCotizacionChange(draft)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-monto">
+            <mat-label>Monto</mat-label>
+            <input matInput currencyMask [options]="draft._currencyOpts" [(ngModel)]="draft.monto" (ngModelChange)="onMontoLineaChange()" />
+          </mat-form-field>
+
+          <div class="f-convertido" *ngIf="draft.necesitaCotizacion">= {{ monedaDeuda?.simbolo }} {{ draft.convertido | number:'1.0-2' }}</div>
+
+          <button mat-raised-button color="primary" class="f-add" (click)="agregarDraft()" [disabled]="!draftValido">
+            <mat-icon>{{ editIndex >= 0 ? 'save' : 'add' }}</mat-icon> {{ editIndex >= 0 ? 'Guardar' : 'Agregar' }}
+          </button>
+          <button mat-icon-button *ngIf="editIndex >= 0" (click)="cancelarEdicion()" matTooltip="Cancelar edición"><mat-icon>close</mat-icon></button>
+        </div>
+
+        <!-- Lista de formas de pago agregadas -->
+        <div class="fp-lista">
+          <div class="fp-item" *ngFor="let l of lineas; let i = index" [class.editando]="editIndex === i">
+            <mat-icon class="fp-ico">{{ l.fuente === 'CAJA_MAYOR' ? 'payments' : 'account_balance' }}</mat-icon>
+            <div class="fp-desc">
+              <span class="fp-fuente">{{ l.fuente === 'CAJA_MAYOR' ? 'Efectivo caja mayor' : (l.cuenta?.banco?.nombre + ' · ' + l.cuenta?.numero) }}</span>
+              <span class="fp-sub" *ngIf="l.necesitaCotizacion">Cotización {{ l.cotizacion | number:'1.0-6' }} · = {{ monedaDeuda?.simbolo }} {{ l.convertido | number:'1.0-2' }}</span>
+            </div>
+            <span class="fp-monto">{{ l.moneda?.simbolo }} {{ l.monto | number:'1.0-2' }}</span>
+            <button mat-icon-button (click)="editarLinea(i)" matTooltip="Editar"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="quitarLinea(i)" matTooltip="Quitar"><mat-icon>delete</mat-icon></button>
+          </div>
+          <div class="fp-vacio" *ngIf="lineas.length === 0">Agregue al menos una forma de pago.</div>
+        </div>
+
+        <div class="balance" [class.ok]="balanceOk">
+          <div class="balance-item"><span>Total a pagar</span><strong>{{ monedaDeuda?.simbolo }} {{ totalDeuda | number:'1.0-2' }}</strong></div>
+          <mat-icon class="balance-eq">{{ balanceOk ? 'check_circle' : 'sync_alt' }}</mat-icon>
+          <div class="balance-item"><span>Total formas de pago</span><strong [class.warn]="!balanceOk">{{ monedaDeuda?.simbolo }} {{ totalPago | number:'1.0-2' }}</strong></div>
+          <div class="balance-item" *ngIf="!balanceOk && !ajusteDisponible"><span>Saldo faltante</span><strong class="warn">{{ monedaDeuda?.simbolo }} {{ faltantePago | number:'1.0-2' }}</strong></div>
+        </div>
+
+        <!-- Ajuste por diferencia de cambio/redondeo -->
+        <div class="ajuste-card" *ngIf="ajusteDisponible" [class.on]="ajusteAplicado">
+          <mat-checkbox [checked]="ajusteAplicado" (change)="toggleAjuste()">
+            Registrar diferencia de <strong>{{ monedaDeuda?.simbolo }} {{ ajusteMonto | number:'1.0-2' }}</strong> como ajuste
+          </mat-checkbox>
+          <div class="ajuste-tipo" *ngIf="ajusteAplicado">
+            <button mat-stroked-button [color]="ajusteTipo === 'DESCUENTO' ? 'primary' : ''" (click)="setAjusteTipo('DESCUENTO')">
+              <mat-icon>trending_down</mat-icon> Descuento
+            </button>
+            <button mat-stroked-button [color]="ajusteTipo === 'AUMENTO' ? 'warn' : ''" (click)="setAjusteTipo('AUMENTO')">
+              <mat-icon>trending_up</mat-icon> Aumento
+            </button>
+          </div>
+        </div>
+      </div>
+    </mat-step>
+
+    <!-- ═══ PASO 3: REVISAR ═══ -->
+    <mat-step>
+      <ng-template matStepLabel>Revisar y confirmar</ng-template>
+      <div class="paso revisar">
+        <div class="rev-card">
+          <div class="rev-titulo">Proveedor</div>
+          <div class="rev-valor">{{ proveedorNombreSel }}</div>
+        </div>
+        <div class="rev-card">
+          <div class="rev-titulo">Notas ({{ monedaDeuda?.denominacion }})</div>
+          <div class="rev-linea" *ngFor="let r of todas">
+            <ng-container *ngIf="r._sel">
+              <span>{{ r.numeroSolicitud }}</span>
+              <span class="rev-monto">{{ r.monedaSimbolo }} {{ r._montoAPagar | number:'1.0-2' }}</span>
+            </ng-container>
+          </div>
+          <div class="rev-total"><span>Total</span><strong>{{ monedaDeuda?.simbolo }} {{ totalDeuda | number:'1.0-2' }}</strong></div>
+        </div>
+        <div class="rev-card">
+          <div class="rev-titulo">Formas de pago</div>
+          <div class="rev-linea" *ngFor="let l of lineas">
+            <span>{{ l.fuente === 'CAJA_MAYOR' ? 'Efectivo caja mayor' : (l.cuenta?.banco?.nombre + ' · ' + l.cuenta?.numero) }} — {{ l.moneda?.simbolo }} {{ l.monto | number:'1.0-2' }}</span>
+            <span class="rev-monto" *ngIf="l.necesitaCotizacion">= {{ monedaDeuda?.simbolo }} {{ l.convertido | number:'1.0-2' }}</span>
+          </div>
+          <div class="rev-linea" *ngIf="ajusteAplicado">
+            <span>Ajuste — {{ ajusteTipo === 'DESCUENTO' ? 'descuento' : 'aumento' }} (diferencia de cambio)</span>
+            <span class="rev-monto">{{ ajusteTipo === 'DESCUENTO' ? '−' : '+' }}{{ monedaDeuda?.simbolo }} {{ ajusteMonto | number:'1.0-2' }}</span>
+          </div>
+          <div class="rev-total"><span>Aplicado a la deuda</span><strong>{{ monedaDeuda?.simbolo }} {{ (ajusteAplicado ? totalDeuda : totalPago) | number:'1.0-2' }}</strong></div>
+        </div>
+      </div>
+    </mat-step>
+
+  </mat-stepper>
+
+  <!-- Footer único fijo (fuera del stepper) -->
+  <div class="dialog-footer">
+    <ng-container [ngSwitch]="stepper.selectedIndex">
+      <ng-container *ngSwitchCase="0">
+        <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="stepper.next()" [disabled]="!haySeleccion">
+          Siguiente <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </ng-container>
+      <ng-container *ngSwitchCase="1">
+        <button mat-stroked-button (click)="stepper.previous()"><mat-icon>arrow_back</mat-icon> Atrás</button>
+        <button mat-raised-button color="primary" (click)="stepper.next()" [disabled]="!balanceOk">
+          Revisar <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </ng-container>
+      <ng-container *ngSwitchCase="2">
+        <button mat-stroked-button (click)="stepper.previous()"><mat-icon>arrow_back</mat-icon> Atrás</button>
+        <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving || !balanceOk">
+          <mat-icon>payments</mat-icon> Confirmar pago
+        </button>
+      </ng-container>
+    </ng-container>
+  </div>
+</mat-dialog-content>

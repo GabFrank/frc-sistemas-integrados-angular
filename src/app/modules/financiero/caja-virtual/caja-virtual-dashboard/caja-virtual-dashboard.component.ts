@@ -21,6 +21,7 @@ import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../en
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
+import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
 import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
@@ -28,7 +29,8 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 // Fila de la tabla de movimientos con campos de display precalculados.
 interface MovimientoRow extends MovimientoCajaVirtual {
-  _color?: string;
+  _color?: string;          // color saturado del chip (fondo)
+  _colorTexto?: string;     // color claro del monto (texto sobre fondo oscuro)
   _anulable?: boolean;
   // Agrupación visual de las patas de una misma operación financiera (mismo referenciaId).
   _opGrupo?: number | null;   // referenciaId de la op, o null si no es op financiera
@@ -82,6 +84,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
     SALIDA_MANUAL: '#f44336', AJUSTE_NEGATIVO: '#f44336',
   };
 
+  // Variantes claras para el texto del monto bancario (contraste AA sobre fondo oscuro).
+  bancoTipoColoresTexto: Record<string, string> = {
+    ENTRADA_MANUAL: '#81c784', ACREDITACION_POS: '#81c784', AJUSTE_POSITIVO: '#81c784',
+    SALIDA_MANUAL: '#ff8a80', AJUSTE_NEGATIVO: '#ff8a80',
+  };
+
   // Filtros de movimientos
   desdeControl = new FormControl();
   hastaControl = new FormControl();
@@ -109,6 +117,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     AJUSTE: 'Ajuste',
   };
 
+  // Colores saturados para el fondo del chip (texto blanco encima).
   tipoColores: Record<string, string> = {
     INGRESO: '#4caf50',
     EGRESO: '#f44336',
@@ -118,9 +127,21 @@ export class CajaVirtualDashboardComponent implements OnInit {
     AJUSTE: '#607d8b',
   };
 
+  // Variantes claras para el TEXTO del monto sobre el fondo gris oscuro (~#303030).
+  // Verificadas con contraste WCAG ≥ 4.5:1 (AA): saturado como #9c27b0 daba 2.1:1 (ilegible).
+  tipoColoresTexto: Record<string, string> = {
+    INGRESO: '#81c784',              // 6.6:1
+    EGRESO: '#ff8a80',               // 5.8:1
+    TRANSFERENCIA_ENTRADA: '#64b5f6',// 6.0:1
+    TRANSFERENCIA_SALIDA: '#ffb74d', // 7.6:1
+    PAGO_PROVEEDOR: '#ce93d8',       // 5.5:1
+    AJUSTE: '#b0bec5',               // 6.9:1
+  };
+
   constructor(
     private cajaVirtualService: CajaVirtualService,
     private operacionFinancieraService: OperacionFinancieraService,
+    private pagarComprasService: PagarComprasService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
@@ -222,6 +243,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   private toRow(m: MovimientoCajaVirtual): MovimientoRow {
     const row = m as MovimientoRow;
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
+    row._colorTexto = this.tipoColoresTexto[m.tipoMovimiento as any] || '#b0bec5';
     row._anulable = this.puedeGestionar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false;
@@ -277,12 +299,12 @@ export class CajaVirtualDashboardComponent implements OnInit {
   // ---- Acciones ----
 
   onIngreso() {
-    this.dialog.open(RegistrarIngresoDialogComponent, { width: '440px', data: { cajaVirtual: this.cajaVirtual } })
+    this.dialog.open(RegistrarIngresoDialogComponent, { width: '720px', maxWidth: '95vw', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
   onEgreso() {
-    this.dialog.open(RegistrarEgresoDialogComponent, { width: '440px', data: { cajaVirtual: this.cajaVirtual } })
+    this.dialog.open(RegistrarEgresoDialogComponent, { width: '720px', maxWidth: '95vw', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
   }
 
@@ -327,25 +349,37 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
-    const mensaje = esOpFinanciera
-      ? '¿Anular la operación financiera completa? Se revertirán TODOS sus movimientos vinculados (origen y destino).'
-      : '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).';
+    // El movimiento consolidado del pago CPP lleva referenciaId = origenId = pago.id (el evento).
+    const esPagoCpp = mov.origenTipo === 'PAGO_CPP' && !!mov.referenciaId;
+
+    let titulo: string, mensaje: string, exito: string;
+    if (esPagoCpp) {
+      titulo = 'Anular pago a proveedor';
+      mensaje = '¿Anular todo el pago a proveedor? Se revertirán TODOS los movimientos consolidados (caja y banco) y se reabrirán las notas pagadas.';
+      exito = 'Pago a proveedor anulado';
+    } else if (esOpFinanciera) {
+      titulo = 'Anular operación financiera';
+      mensaje = '¿Anular la operación financiera completa? Se revertirán TODOS sus movimientos vinculados (origen y destino).';
+      exito = 'Operación financiera anulada';
+    } else {
+      titulo = 'Anular movimiento';
+      mensaje = '¿Anular este movimiento? Se generará un contra-movimiento de ajuste (el original no se borra).';
+      exito = 'Movimiento anulado';
+    }
 
     this.dialogosService.confirm(
-      esOpFinanciera ? 'Anular operación financiera' : 'Anular movimiento',
-      mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
+      titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      const obs: Observable<any> = esOpFinanciera
-        ? this.operacionFinancieraService.onAnular(mov.referenciaId)
-        : this.cajaVirtualService.onAnularMovimiento(mov.id);
+      const obs: Observable<any> = esPagoCpp
+        ? this.pagarComprasService.onAnularPago(mov.referenciaId)
+        : esOpFinanciera
+          ? this.operacionFinancieraService.onAnular(mov.referenciaId)
+          : this.cajaVirtualService.onAnularMovimiento(mov.id);
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {
-            this.notificacion.notification$.next({
-              texto: esOpFinanciera ? 'Operación financiera anulada' : 'Movimiento anulado',
-              color: NotificacionColor.success, duracion: 3
-            });
+            this.notificacion.notification$.next({ texto: exito, color: NotificacionColor.success, duracion: 3 });
             this.recargar();
           }
         },
