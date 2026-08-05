@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { OperacionFinanciera, OperacionFinancieraCategoria, MovimientoBancario } from './operacion-financiera.model';
 import { OperacionesFinancierasGQL } from './graphql/operacionesFinancieras';
+import { OperacionFinancieraGQL } from './graphql/operacionFinanciera';
 import { OperacionFinancieraCategoriasGQL } from './graphql/operacionFinancieraCategorias';
 import { RegistrarOperacionFinancieraGQL } from './graphql/registrarOperacionFinanciera';
 import { AnularOperacionFinancieraGQL } from './graphql/anularOperacionFinanciera';
@@ -24,6 +25,7 @@ export class OperacionFinancieraService {
   constructor(
     private genericService: GenericCrudService,
     private operacionesGQL: OperacionesFinancierasGQL,
+    private operacionGQL: OperacionFinancieraGQL,
     private categoriasGQL: OperacionFinancieraCategoriasGQL,
     private registrarGQL: RegistrarOperacionFinancieraGQL,
     private anularGQL: AnularOperacionFinancieraGQL,
@@ -32,6 +34,11 @@ export class OperacionFinancieraService {
 
   onGetOperaciones(page = 0, size = 10): Observable<SimplePage<OperacionFinanciera>> {
     return this.genericService.onCustomQuery(this.operacionesGQL, { page, size });
+  }
+
+  /** Detalle de una operación financiera por id (para el diálogo read-only en caja mayor). */
+  onGetOperacion(id: number): Observable<OperacionFinanciera> {
+    return this.genericService.onCustomQuery(this.operacionGQL, { id });
   }
 
   onGetCategorias(): Observable<OperacionFinancieraCategoria[]> {

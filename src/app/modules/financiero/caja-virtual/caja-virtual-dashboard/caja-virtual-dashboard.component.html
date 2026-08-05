@@ -179,6 +179,9 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
+                  <button mat-menu-item *ngIf="row._verOrigen" (click)="irAlOrigen(row)">
+                    <mat-icon>{{ row._origenIcon }}</mat-icon><span>{{ row._origenLabel }}</span>
+                  </button>
                   <button mat-menu-item (click)="onAnular(row)" [disabled]="!row._anulable">
                     <mat-icon>block</mat-icon><span>Anular</span>
                   </button>

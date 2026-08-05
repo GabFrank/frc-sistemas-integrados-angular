@@ -69,6 +69,14 @@ export const operacionesFinancierasQuery = gql`
   }
 `;
 
+export const operacionFinancieraQuery = gql`
+  query ($id: ID!) {
+    data: operacionFinanciera(id: $id) {
+      ${operacionFinancieraFields}
+    }
+  }
+`;
+
 export const operacionFinancieraCategoriasQuery = gql`
   query {
     data: operacionFinancieraCategorias {

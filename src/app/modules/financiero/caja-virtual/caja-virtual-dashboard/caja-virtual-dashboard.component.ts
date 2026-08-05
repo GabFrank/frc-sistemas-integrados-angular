@@ -6,6 +6,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
 import { FormControl } from '@angular/forms';
 import { Tab } from '../../../../layouts/tab/tab.model';
+import { TabService } from '../../../../layouts/tab/tab.service';
+import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
@@ -20,6 +22,7 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
 import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
@@ -32,6 +35,9 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   _color?: string;          // color saturado del chip (fondo)
   _colorTexto?: string;     // color claro del monto (texto sobre fondo oscuro)
   _anulable?: boolean;
+  _verOrigen?: boolean;     // el origenTipo tiene una pantalla destino navegable
+  _origenLabel?: string;    // etiqueta del ítem "Ir al origen"
+  _origenIcon?: string;     // ícono del ítem
   // Agrupación visual de las patas de una misma operación financiera (mismo referenciaId).
   _opGrupo?: number | null;   // referenciaId de la op, o null si no es op financiera
   _opColor?: string;          // color del acento lateral del grupo
@@ -94,7 +100,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
   desdeControl = new FormControl();
   hastaControl = new FormControl();
   tipoControl = new FormControl();
-  verAnulaciones = false;
+  verAnulaciones = true;   // anulados visibles (tachados) por defecto; el toggle los oculta
   showFiltros = false;
 
   puedeGestionar = false;
@@ -142,6 +148,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private cajaVirtualService: CajaVirtualService,
     private operacionFinancieraService: OperacionFinancieraService,
     private pagarComprasService: PagarComprasService,
+    private tabService: TabService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
     private notificacion: NotificacionSnackbarService,
@@ -244,6 +251,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const row = m as MovimientoRow;
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
     row._colorTexto = this.tipoColoresTexto[m.tipoMovimiento as any] || '#b0bec5';
+    const nav = this.origenNav[m.origenTipo as any];
+    row._verOrigen = !!nav;
+    row._origenLabel = nav?.label;
+    row._origenIcon = nav?.icon;
     row._anulable = this.puedeGestionar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false;
@@ -346,6 +357,38 @@ export class CajaVirtualDashboardComponent implements OnInit {
    * (revierte todas sus patas: ambos lados de un cambio/transferencia, caja+banco de un
    * depósito/retiro). Un movimiento manual se anula con su contra-movimiento.
    */
+  /**
+   * Registro genérico "Ir al origen": mapea cada origenTipo a la pantalla dueña del movimiento.
+   * Solo los que tienen destino real aparecen en el menú; agregar uno nuevo = una entrada acá.
+   * Se navega con el origenId (o referenciaId) cuando la pantalla destino lo acepta.
+   */
+  private origenNav: Record<string, { label: string; icon: string; open: (row: MovimientoRow) => void }> = {
+    ENTRADA_VARIA: {
+      label: 'Ver entradas/salidas varias', icon: 'receipt_long',
+      open: () => this.dialog.open(ListEntradasVariasDialogComponent, {
+        width: '95vw', maxWidth: '1200px', height: '85vh', data: this.cajaVirtual
+      }),
+    },
+    RRHH_VALE: {
+      label: 'Ir a Vales (RRHH)', icon: 'payments',
+      open: () => this.tabService.addTab(new Tab(ListValeComponent, 'Vales', null, null)),
+    },
+    OPERACION_FINANCIERA: {
+      label: 'Ver operación financiera', icon: 'swap_horiz',
+      open: (row) => {
+        if (!row.referenciaId) return;
+        this.dialog.open(OperacionFinancieraDetalleDialogComponent, {
+          width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+          data: { operacionId: row.referenciaId, puedeGestionar: this.puedeGestionar },
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
+      },
+    },
+  };
+
+  irAlOrigen(row: MovimientoRow) {
+    this.origenNav[row.origenTipo as any]?.open(row);
+  }
+
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
