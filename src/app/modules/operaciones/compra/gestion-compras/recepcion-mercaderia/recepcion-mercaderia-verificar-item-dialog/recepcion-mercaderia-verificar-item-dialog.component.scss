@@ -725,6 +725,45 @@ mat-dialog-actions {
   }
 }
 
+// Autocompletado de lote. Va en un bloque aparte porque el panel se renderiza en el overlay del
+// CDK, fuera de .dialog-container: los estilos de opciones de arriba no lo alcanzan.
+::ng-deep .lote-autocomplete-panel.mat-mdc-autocomplete-panel {
+  background-color: #2d2d2d !important;
+
+  .mat-mdc-option {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    min-height: 40px;
+
+    &:hover,
+    &.mat-mdc-option-active {
+      background-color: #444 !important;
+    }
+
+    .lote-sugerencia-numero {
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .lote-sugerencia-detalle {
+      margin-left: 8px;
+      color: #9e9e9e;
+      font-size: 12px;
+    }
+
+    // Bloqueado o en cuarentena: se puede elegir igual, pero tiene que cantar a la vista.
+    &.requiere-atencion {
+      .lote-sugerencia-numero {
+        color: #ef9a9a;
+      }
+
+      .lote-sugerencia-detalle {
+        color: #f44336;
+      }
+    }
+  }
+}
+
 // Responsive Design
 @media (max-width: 768px) {
   .top-panel .producto-info-card {

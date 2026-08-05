@@ -48,6 +48,18 @@ interface LoteExistenteInfo {
   requiereAtencion: boolean;
 }
 
+/**
+ * Una opción del autocompletado de lote. La etiqueta viene ya formateada desde el .ts para no
+ * llamar funciones ni pipes desde el template en cada change detection.
+ */
+interface LoteSugerido {
+  numeroLote: string;
+  /** Vencimiento, retiro y estado, ya formateados y listos para pintar. */
+  detalle: string;
+  /** Lote fuera de circulación (bloqueado o en cuarentena): la opción va en rojo. */
+  requiereAtencion: boolean;
+}
+
 export interface RecepcionMercaderiaVerificarItemDialogData {
   item: NotaRecepcionItem;
   distribuciones: NotaRecepcionItemDistribucion[];
@@ -105,6 +117,15 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
    * diálogo: el producto no cambia y así el reconocimiento mientras se tipea no pega al servidor.
    */
   private lotesPorNumero = new Map<string, Lote>();
+  /**
+   * Los mismos lotes del índice, ya formateados como opciones y en el orden FEFO con el que
+   * llegaron del backend. Es la base del autocompletado.
+   */
+  private lotesDelProducto: LoteSugerido[] = [];
+  /** Opciones visibles del autocompletado por distribución. Índice paralelo a `distribucionesFormData`. */
+  lotesSugeridos: LoteSugerido[][] = [];
+  /** Tope de opciones del panel: más que esto deja de ser una ayuda y pasa a ser un listado. */
+  private readonly MAX_SUGERENCIAS_LOTE = 8;
   /** Aviso de lote existente por distribución. Índice paralelo a `distribucionesFormData`. */
   loteExistenteInfo: (LoteExistenteInfo | null)[] = [];
   /** Vencimiento con el que arrancó cada fila, para poder restaurarlo si el lote deja de coincidir. */
@@ -312,12 +333,79 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
    */
   private indexarLotes(lotes: Lote[]): void {
     this.lotesPorNumero.clear();
+    this.lotesDelProducto = [];
     (lotes || []).forEach(lote => {
       const clave = this.normalizarNumeroLote(lote?.numeroLote);
       if (clave && !this.lotesPorNumero.has(clave)) {
         this.lotesPorNumero.set(clave, lote);
+        this.lotesDelProducto.push(this.armarSugerencia(lote));
       }
     });
+  }
+
+  /** Arma la opción del autocompletado con todo ya formateado. Se hace una sola vez por lote. */
+  private armarSugerencia(lote: Lote): LoteSugerido {
+    const vencimiento = this.normalizarFecha(lote.fechaVencimiento);
+    const fechaRetiro = this.normalizarFecha(lote.fechaRetiro);
+    const requiereAtencion = !!lote.estado && lote.estado !== EstadoLote.LIBERADO;
+
+    const partes: string[] = [];
+    if (vencimiento) {
+      partes.push(`vence ${dateToString(vencimiento, 'dd/MM/yyyy')}`);
+    }
+    if (fechaRetiro) {
+      partes.push(`retiro ${dateToString(fechaRetiro, 'dd/MM/yyyy')}`);
+    }
+    if (requiereAtencion) {
+      partes.push(ESTADO_LOTE_LABELS[lote.estado].toLowerCase());
+    }
+
+    return {
+      numeroLote: lote.numeroLote,
+      detalle: partes.length ? partes.join(' · ') : 'sin fechas cargadas',
+      requiereAtencion
+    };
+  }
+
+  /**
+   * Recalcula las opciones de una fila con lo que se lleva tipeado. El filtro corre sobre la
+   * lista ya cargada en memoria: no hay una llamada al servidor por tecla.
+   *
+   * Los que arrancan con lo tipeado van primero y después los que lo contienen en el medio;
+   * dentro de cada grupo se respeta el orden FEFO con el que llegaron del backend.
+   */
+  private actualizarSugerenciasLote(index: number, valor: string | null): void {
+    const filtro = this.normalizarNumeroLote(valor);
+
+    if (!filtro) {
+      this.lotesSugeridos[index] = this.lotesDelProducto.slice(0, this.MAX_SUGERENCIAS_LOTE);
+      return;
+    }
+
+    const empiezan: LoteSugerido[] = [];
+    const contienen: LoteSugerido[] = [];
+    this.lotesDelProducto.forEach(sugerencia => {
+      const numero = this.normalizarNumeroLote(sugerencia.numeroLote);
+      if (numero.startsWith(filtro)) {
+        empiezan.push(sugerencia);
+      } else if (numero.includes(filtro)) {
+        contienen.push(sugerencia);
+      }
+    });
+
+    this.lotesSugeridos[index] = empiezan.concat(contienen).slice(0, this.MAX_SUGERENCIAS_LOTE);
+  }
+
+  /**
+   * Al enfocar el campo se vuelven a ofrecer los lotes del producto. Con el campo vacío esa
+   * lista es la completa: es el caso de volver a recibir un lote que ya se compró antes, sin
+   * tener que acordarse del número.
+   */
+  onLoteFocus(index: number): void {
+    if (!this.requiereLoteComputed) {
+      return;
+    }
+    this.actualizarSugerenciasLote(index, this.verificarForm.get(`dist_${index}_lote`)?.value);
   }
 
   private normalizarNumeroLote(numero: string | null | undefined): string {
@@ -331,6 +419,11 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
       () => ({ vencimiento: null, fechaRetiro: null })
     );
     this.loteExistenteInfo = this.distribucionesFormData.map(() => null);
+    // Se arranca con la lista completa (recortada) para que el panel tenga opciones ya en el
+    // primer foco, antes de que se tipee nada.
+    this.lotesSugeridos = this.distribucionesFormData.map(
+      () => this.lotesDelProducto.slice(0, this.MAX_SUGERENCIAS_LOTE)
+    );
 
     const formControls: { [key: string]: any } = {
       presentacionGlobal: [this.presentacionSeleccionadaComputed] // Usar la presentación ya seleccionada
@@ -374,13 +467,16 @@ export class RecepcionMercaderiaVerificarItemDialogComponent implements OnInit {
         this.updateComputedProperties();
       });
 
-    // Reconocimiento del lote mientras se tipea. El match es contra el índice en memoria, así que
-    // no hay una llamada al servidor por tecla.
+    // Sugerencias y reconocimiento del lote mientras se tipea. Ambos resuelven contra la lista
+    // que ya está en memoria, así que no hay una llamada al servidor por tecla.
     if (this.requiereLoteComputed) {
       this.distribucionesFormData.forEach((_, index) => {
         this.verificarForm.get(`dist_${index}_lote`)?.valueChanges
           .pipe(takeUntil(this.destroy$))
-          .subscribe(valor => this.onNumeroLoteChange(index, valor));
+          .subscribe(valor => {
+            this.actualizarSugerenciasLote(index, valor);
+            this.onNumeroLoteChange(index, valor);
+          });
       });
     }
   }

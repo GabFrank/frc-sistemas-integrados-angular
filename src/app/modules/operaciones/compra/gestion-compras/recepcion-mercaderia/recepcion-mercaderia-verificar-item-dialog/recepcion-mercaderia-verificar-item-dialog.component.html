@@ -174,8 +174,24 @@
                           matInput
                           [formControlName]="'dist_' + i + '_lote'"
                           maxlength="50"
+                          [matAutocomplete]="loteAuto"
+                          (focus)="onLoteFocus(i)"
                           (keydown.enter)="onKeyDown($any($event), 'dist_' + i + '_lote')"
                           placeholder="Ej: LOTE2024001">
+                        <!-- Lotes ya registrados del producto que se parecen a lo tipeado. Elegir
+                             uno solo escribe su número: de ahí en más actúa la misma lógica que si
+                             se hubiera tipeado completo (aviso y fechas del lote existente). -->
+                        <mat-autocomplete
+                          #loteAuto="matAutocomplete"
+                          panelClass="lote-autocomplete-panel">
+                          <mat-option
+                            *ngFor="let sugerencia of lotesSugeridos[i]"
+                            [value]="sugerencia.numeroLote"
+                            [class.requiere-atencion]="sugerencia.requiereAtencion">
+                            <span class="lote-sugerencia-numero">{{ sugerencia.numeroLote }}</span>
+                            <span class="lote-sugerencia-detalle">— {{ sugerencia.detalle }}</span>
+                          </mat-option>
+                        </mat-autocomplete>
                         <mat-error *ngIf="getLoteControl(i)?.hasError('required')">
                           El número de lote es obligatorio para este producto
                         </mat-error>
