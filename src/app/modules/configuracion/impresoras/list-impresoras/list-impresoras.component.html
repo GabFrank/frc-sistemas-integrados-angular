@@ -29,7 +29,8 @@
     </div>
   </div>
 
-  <cdk-virtual-scroll-viewport itemSize="260" class="viewport-container" (scrolledIndexChange)="nextBatch($event, 2)">
+  <cdk-virtual-scroll-viewport *ngIf="cargando || total > 0" itemSize="260" class="viewport-container"
+    (scrolledIndexChange)="nextBatch($event, 2)">
     <div *cdkVirtualFor="let fila of filas" class="fila-grid" fxLayout="row" fxLayoutGap="16px">
       <ng-container *ngFor="let imp of fila">
         <mat-card *ngIf="imp" class="impresora-card theme-color-{{ imp.colorIndex }}" [class.inactiva]="!imp.activo"
@@ -99,10 +100,6 @@
   <div *ngIf="!cargando && total === 0" class="sin-datos" fxLayout="column" fxLayoutAlign="center center">
     <mat-icon class="icono-vacio">print_disabled</mat-icon>
     <p>No hay impresoras que coincidan con la búsqueda.</p>
-    <button mat-raised-button color="primary" (click)="agregarNuevo()">
-      <mat-icon>add</mat-icon>
-      Agregar nueva
-    </button>
   </div>
 
 </div>

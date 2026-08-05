@@ -1,3 +1,9 @@
 input {
     text-transform: uppercase;
 }
+
+// Anula el uppercase !important global de styles.scss
+:host ::ng-deep input.email-input,
+:host ::ng-deep .email-input.mat-mdc-input-element {
+    text-transform: lowercase !important;
+}

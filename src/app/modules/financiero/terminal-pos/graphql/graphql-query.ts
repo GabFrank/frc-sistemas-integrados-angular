@@ -5,6 +5,12 @@ const terminalPosFields = `
   descripcion
   codigo
   moneda { id denominacion simbolo }
+  proveedorServicio {
+    id
+    nombreContacto
+    numeroContacto
+    persona { id nombre documento }
+  }
   activo
   creadoEn
   usuario {

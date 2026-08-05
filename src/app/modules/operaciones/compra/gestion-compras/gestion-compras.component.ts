@@ -392,6 +392,10 @@ export class GestionComprasComponent
   selectedProductoProveedorIndex: number = -1; // Índice del producto seleccionado para navegación con teclado
   private isNavigatingWithKeyboard = false; // Flag para indicar que estamos navegando con teclado entre páginas
   private keyboardNavigationDirection: 'next' | 'previous' | null = null; // Dirección de navegación con teclado
+  // Flag one-shot: cuando se acaba de agregar un producto desde la tabla de "Productos del proveedor"
+  // se auto-selecciona y enfoca la siguiente fila. Evita que la recarga del resumen del pedido
+  // vuelva a robar el foco hacia el input "Código de barra" (ver loadPedidoResumen).
+  private mantenerFocoEnProductoProveedor = false;
   productosProveedorLoading = false;
   ultimasComprasLoading = false;
   productosProveedorPageSize = 10;
@@ -766,8 +770,12 @@ export class GestionComprasComponent
           this.updateStep3ComputedProperties();
         }
         
-        // Si estamos en el tab de Items y el estado es EN PLANIFICACION, hacer focus en el buscador de ítems
-        if (this.selectedTabIndex === 1 && this.isEstadoEnPlanificacion()) {
+        // Si estamos en el tab de Items y el estado es EN PLANIFICACION, hacer focus en el buscador de ítems.
+        // Excepción: si se acaba de agregar un producto desde la tabla de proveedor, el foco debe quedar
+        // en la siguiente fila auto-seleccionada (no robarlo hacia el buscador). Flag one-shot.
+        if (this.mantenerFocoEnProductoProveedor) {
+          this.mantenerFocoEnProductoProveedor = false;
+        } else if (this.selectedTabIndex === 1 && this.isEstadoEnPlanificacion()) {
           setTimeout(() => {
             this.focusAddItemInput();
           }, 100);
@@ -2341,6 +2349,8 @@ export class GestionComprasComponent
   }
 
   onCodigoFocus(): void {
+    // El usuario volvió manualmente al buscador: cancelar el "mantener foco en la fila".
+    this.mantenerFocoEnProductoProveedor = false;
     const text = this.codigoControl.value?.trim();
     if (text && text.length >= 2) {
       this.buscadorComprasService
@@ -4457,6 +4467,9 @@ export class GestionComprasComponent
             }
 
             if (this.isEditMode) {
+              // Evitar que la recarga del resumen re-enfoque el buscador: el foco debe
+              // quedar en la siguiente fila auto-seleccionada para poder abrirla con Enter.
+              this.mantenerFocoEnProductoProveedor = true;
               this.loadPedidoResumen();
             }
 
@@ -4768,10 +4781,38 @@ export class GestionComprasComponent
       this.loadUltimasCompras(producto.producto.id);
     }
 
-    // Hacer scroll al elemento seleccionado
+    // Hacer scroll al elemento seleccionado y darle foco de teclado.
+    // El foco en la fila es clave: mueve el foco fuera del input "Código de barra"
+    // para que el listener global de Enter (onProductosProveedorKeydown) abra el
+    // diálogo del producto seleccionado en lugar de que el buscador capture el Enter.
     setTimeout(() => {
       this.scrollToSelectedProducto(index);
+      this.focusProductoProveedorRow(index);
     }, 0);
+  }
+
+  /**
+   * Da foco de teclado a la fila del producto del proveedor indicada.
+   * Se usa tras seleccionar una fila (navegación con flechas o auto-selección
+   * del siguiente producto luego de agregar uno) para que el input "Código de barra"
+   * no retenga el foco y el Enter abra directamente el siguiente producto.
+   */
+  private focusProductoProveedorRow(index: number): void {
+    const tableContainer = document.querySelector('.productos-proveedor-section .table-content-wrapper');
+
+    if (!tableContainer) {
+      return;
+    }
+
+    const rows = tableContainer.querySelectorAll('tr[mat-row]');
+
+    if (index < 0 || index >= rows.length) {
+      return;
+    }
+
+    const targetRow = rows[index] as HTMLElement;
+    // preventScroll: el scroll a la vista ya lo maneja scrollToSelectedProducto
+    targetRow?.focus({ preventScroll: true });
   }
 
   /**

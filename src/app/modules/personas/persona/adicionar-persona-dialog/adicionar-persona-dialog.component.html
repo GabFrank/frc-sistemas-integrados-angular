@@ -161,7 +161,7 @@
     </div>
     <div fxFlex="50">
       <mat-form-field class="form-element" style="width: 90%">
-        <input #email matInput placeholder="Email" formControlName="email" (keyup.enter)="guardar.focus()"/>
+        <input #email matInput placeholder="Email" class="email-input" formControlName="email" (input)="onEmailInput($event)" (keyup.enter)="guardar.focus()"/>
       </mat-form-field>
     </div>
   </div>

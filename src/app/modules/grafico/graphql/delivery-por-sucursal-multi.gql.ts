@@ -1,0 +1,19 @@
+import { Injectable } from "@angular/core";
+import { Query } from "apollo-angular";
+import gql from "graphql-tag";
+import { GRAFICO_MULTI_FRAGMENTS } from "./grafico-multi.fragments";
+
+@Injectable({ providedIn: "root" })
+export class DeliveryPorSucursalMultiGQL extends Query<any> {
+  override document = gql`
+    query deliveryPorSucursalMulti($periodos: [PeriodoGraficoInput!]!) {
+      data: deliveryPorSucursalMulti(periodos: $periodos) {
+        sucId
+        nombre
+        total
+        cantidadVentas
+        ${GRAFICO_MULTI_FRAGMENTS.DESGLOSE_PERIODO}
+      }
+    }
+  `;
+}

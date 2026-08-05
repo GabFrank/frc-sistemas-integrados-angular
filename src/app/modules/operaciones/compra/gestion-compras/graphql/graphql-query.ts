@@ -67,6 +67,7 @@ export const pedidoQuery = gql`
         }
         creadoEn
       }
+      montoTotal
     }
   }
 `;
@@ -1479,6 +1480,7 @@ export const pedidosWithFiltersQuery = gql`
           }
           creadoEn
         }
+        montoTotal
       }
     }
   }

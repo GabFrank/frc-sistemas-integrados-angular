@@ -5,6 +5,7 @@ import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ListCompraComponent } from '../list-compra/list-compra.component';
 import { ListSolicitudPagoComponent } from '../../solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { ListProveedorComponent } from '../../../personas/proveedor/list-proveedor/list-proveedor.component';
 
 @Component({
   selector: 'compra-dashboard',
@@ -26,8 +27,9 @@ export class CompraDashboardComponent {
   }
 
   onListProveedores() {
-    // TODO: Implementar cuando se cree el componente de lista de proveedores
-    this.notificacionService.openWarn('Funcionalidad en desarrollo. ')
+    this.tabService.addTab(
+      new Tab(ListProveedorComponent, 'Lista de proveedores', null, CompraDashboardComponent)
+    );
   }
 
   onListVendedores() {

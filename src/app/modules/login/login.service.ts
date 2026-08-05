@@ -16,7 +16,7 @@ export interface LoginResponse {
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable, of } from "rxjs";
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, timeout } from 'rxjs/operators';
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
@@ -97,7 +97,12 @@ export class LoginService {
       });
   }
 
-  cerrarSesionActiva(servidor: boolean = true): void {
+  /**
+   * Cierra la sesion activa. Sin `servidor` explicito el destino lo resuelve
+   * `onSaveInicioSesion` desde la configuracion, para que el cierre vaya al
+   * mismo lado que la apertura (ver `registrarSesionActiva`).
+   */
+  cerrarSesionActiva(servidor?: boolean): void {
     const sesionActual = this.mainService.usuarioActual?.inicioSesion;
     if (!sesionActual?.id || !sesionActual?.sucursal) {
       return;
@@ -209,6 +214,9 @@ export class LoginService {
       nickname: nickname,
       password: password
     }, this.httpOptions).pipe(
+      // Si el central está offline, no dejar esta petición colgada: se corta a
+      // los 3s y el catchError la resuelve silenciosamente (es fire-and-forget).
+      timeout(3000),
       tap((res: any) => {
         if (res && res.token) {
           localStorage.setItem("token_central", res.token);

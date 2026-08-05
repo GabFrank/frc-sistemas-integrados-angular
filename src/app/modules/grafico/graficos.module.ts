@@ -16,8 +16,11 @@ import { VentasDiasComponent } from './ventas-dias/ventas-dias.component';
 import { GastoCategoriaComponent } from './gasto-categoria/gasto-categoria.component';
 import { IngresoGastoComponent } from './ingreso-gasto/ingreso-gasto.component';
 import { VentaSucursalComponent } from './venta-sucursal/venta-sucursal.component';
+import { DeliverySucursalComponent } from './delivery-sucursal/delivery-sucursal.component';
 import { VentaCiudadComponent } from './venta-ciudad/venta-ciudad.component';
 import { VentaMesComponent } from './venta-mes/venta-mes.component';
+import { EvolucionCostoComponent } from './evolucion-costo/evolucion-costo.component';
+import { RankingInflacionComponent } from './ranking-inflacion/ranking-inflacion.component';
 
 export function loadEcharts() {
     return import('echarts/core').then(echarts => {
@@ -52,8 +55,11 @@ export function loadEcharts() {
         GastoCategoriaComponent,
         IngresoGastoComponent,
         VentaSucursalComponent,
+        DeliverySucursalComponent,
         VentaCiudadComponent,
         VentaMesComponent,
+        EvolucionCostoComponent,
+        RankingInflacionComponent,
     ],
     imports: [
         CommonModule,

@@ -2,6 +2,8 @@ import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { ProveedorServicio } from "../../../personas/proveedor-servicio/proveedor-servicio.model";
+import { ProveedorServicioService } from "../../../personas/proveedor-servicio/proveedor-servicio.service";
 import { Moneda } from "../../moneda/moneda.model";
 import { MonedaService } from "../../moneda/moneda.service";
 import { TerminalPos } from "../terminal-pos.model";
@@ -26,14 +28,17 @@ export class AddTerminalPosDialogComponent implements OnInit {
   codigoControl = new FormControl(null, Validators.required);
   monedaControl = new FormControl(null, Validators.required);
   activoControl = new FormControl(true);
+  proveedorServicioControl = new FormControl(null);
   selectedTerminalPos: TerminalPos;
+  selectedProveedorServicio: ProveedorServicio = null;
   monedas: Moneda[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
     private matDialogRef: MatDialogRef<AddTerminalPosDialogComponent>,
     private terminalPosService: TerminalPosService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private proveedorServicioService: ProveedorServicioService
   ) {
     if (data?.terminalPos != null) {
       this.selectedTerminalPos = data.terminalPos;
@@ -45,6 +50,7 @@ export class AddTerminalPosDialogComponent implements OnInit {
       descripcion: this.descripcionControl,
       codigo: this.codigoControl,
       moneda: this.monedaControl,
+      proveedorServicio: this.proveedorServicioControl,
       activo: this.activoControl,
     });
 
@@ -67,6 +73,30 @@ export class AddTerminalPosDialogComponent implements OnInit {
     this.codigoControl.setValue(this.selectedTerminalPos.codigo);
     this.monedaControl.setValue(this.selectedTerminalPos.moneda?.id ?? null);
     this.activoControl.setValue(this.selectedTerminalPos.activo);
+    this.selectedProveedorServicio =
+      this.selectedTerminalPos.proveedorServicio ?? null;
+    this.proveedorServicioControl.setValue(
+      this.selectedProveedorServicio?.persona?.nombre ?? null
+    );
+  }
+
+  onBuscarProveedorServicio() {
+    if (!this.isEditting) return;
+    this.proveedorServicioService
+      .onSearchProveedorServicioPorTexto(null)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res?.id != null) {
+          this.selectedProveedorServicio = res;
+          this.proveedorServicioControl.setValue(res.persona?.nombre ?? null);
+        }
+      });
+  }
+
+  onLimpiarProveedorServicio() {
+    if (!this.isEditting) return;
+    this.selectedProveedorServicio = null;
+    this.proveedorServicioControl.setValue(null);
   }
 
   onSave() {
@@ -85,6 +115,7 @@ export class AddTerminalPosDialogComponent implements OnInit {
 
     const input = terminalPos.toInput();
     input.monedaId = this.monedaControl.value ?? undefined;
+    input.proveedorServicioId = this.selectedProveedorServicio?.id ?? null;
 
     this.terminalPosService
       .onSave(input)

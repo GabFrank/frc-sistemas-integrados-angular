@@ -1,6 +1,7 @@
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
-import { Observable, timeout } from "rxjs";
+import { Observable, OperatorFunction, timeout } from "rxjs";
+import { map } from "rxjs/operators";
 import { MainService } from "../main.service";
 import {
   NotificacionColor,
@@ -25,6 +26,13 @@ export interface QueryError {
   };
 }
 
+// Resultado sintético usado cuando el link de Apollo emite una respuesta vacía
+// (servidor que responde con cuerpo vacío, operación cortada, etc.).
+const RESPUESTA_VACIA = {
+  data: null,
+  errors: [{ message: "Respuesta vacía del servidor" }],
+};
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -43,6 +51,24 @@ export class GenericCrudService {
     private apollo: Apollo
   ) {
     setTimeout(() => (this.mainService = injector.get(MainService)));
+  }
+
+  /**
+   * Apollo puede emitir `null`/`undefined` cuando el servidor responde con
+   * cuerpo vacío o la operación se corta antes de tiempo. Todos los handlers de
+   * abajo asumen un objeto con `errors`/`data`, así que se normaliza acá: el
+   * flujo entra por la rama de error ya existente (cierra el diálogo, avisa)
+   * en vez de romper con "Cannot read properties of null (reading 'errors')".
+   */
+  private sinRespuestaVacia(): OperatorFunction<any, any> {
+    return map((res: any) => {
+      if (res != null) return res;
+      // Si esto aparece SIN el warning "[GraphQL] Respuesta vacía del servidor"
+      // de graphql-connection.service, la operación terminó sin emitir ningún
+      // resultado (link terminal ausente), no por un cuerpo HTTP vacío.
+      console.warn("[GraphQL] Resultado nulo en GenericCrudService");
+      return RESPUESTA_VACIA;
+    });
   }
 
   onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
@@ -64,20 +90,27 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+          },
+          error: () => {
+            // Ej: servidor central offline. Cerrar el spinner en vez de colgarse.
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+          },
         });
     });
   }
@@ -109,7 +142,8 @@ export class GenericCrudService {
       })
         .pipe(
           untilDestroyed(this),
-          timeout(300000) // Adjust as per your needs
+          timeout(300000), // Adjust as per your needs
+          this.sinRespuestaVacia()
         )
         .subscribe({
           next: (res) => {
@@ -122,7 +156,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -173,7 +207,7 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             if (silentLoad !== true) {
@@ -186,7 +220,7 @@ export class GenericCrudService {
             } else {
               if (silentLoad !== true) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+                  texto: "Ups! Algo salió mal: " + res.errors[0].message,
                   color: NotificacionColor.danger,
                   duracion: 3,
                 });
@@ -231,22 +265,30 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (cargando == true) {
-            this.cargandoService.closeDialog(requestId);
-          }
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+        .subscribe({
+          next: (res) => {
+            if (cargando == true) {
+              this.cargandoService.closeDialog(requestId);
+            }
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+          },
+          error: () => {
+            if (cargando == true) {
+              this.cargandoService.closeDialog(requestId);
+            }
+            this.isLoading = false;
+          },
         });
     });
   }
@@ -282,7 +324,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe(
           (res) => {
             silentLoad != true
@@ -343,7 +385,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.cargandoService.closeDialog(requestId);
@@ -418,7 +460,7 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
         .subscribe({
           next: (res) => {
             this.isLoading = false;
@@ -480,28 +522,35 @@ export class GenericCrudService {
             fetchOptions: { signal },
           },
         })
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.isLoading = false;
-          this.cargandoService.closeDialog(requestId);
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-            this.notificacionSnackBar.notification$.next({
-              texto: "Guardado con éxito",
-              duracion: 2,
-              color: NotificacionColor.success,
-            });
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto:
-                "Ups! Algo salió mal en operacion: " +
-                res.errors[0].message +
-                res,
-              color: NotificacionColor.danger,
-              duracion: 5,
-            });
-          }
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+        .subscribe({
+          next: (res) => {
+            this.isLoading = false;
+            this.cargandoService.closeDialog(requestId);
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+              this.notificacionSnackBar.notification$.next({
+                texto: "Guardado con éxito",
+                duracion: 2,
+                color: NotificacionColor.success,
+              });
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto:
+                  "Ups! Algo salió mal en operacion: " +
+                  res.errors[0].message +
+                  res,
+                color: NotificacionColor.danger,
+                duracion: 5,
+              });
+            }
+          },
+          error: (error) => {
+            this.isLoading = false;
+            this.cargandoService.closeDialog(requestId);
+            obs.error(error);
+          },
         });
     });
   }
@@ -534,29 +583,35 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            this.cargandoService.closeDialog(requestId);
-            if (res.errors == null) {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Eliminado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
-              obs.next(true);
-              obs.complete();
-            } else {
-              {
+          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+          .subscribe({
+            next: (res) => {
+              this.cargandoService.closeDialog(requestId);
+              if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
-                  texto:
-                    "Ups! Ocurrió algun problema al eliminar: " +
-                    res.errors[0].message,
-                  duracion: 3,
-                  color: NotificacionColor.danger,
+                  texto: "Eliminado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
                 });
-                obs.next(null);
+                obs.next(true);
+                obs.complete();
+              } else {
+                {
+                  this.notificacionSnackBar.notification$.next({
+                    texto:
+                      "Ups! Ocurrió algun problema al eliminar: " +
+                      res.errors[0].message,
+                    duracion: 3,
+                    color: NotificacionColor.danger,
+                  });
+                  obs.next(null);
+                }
               }
-            }
+            },
+            error: () => {
+              this.cargandoService.closeDialog(requestId);
+              obs.next(null);
+            },
           });
       } else {
         this.dialogoService
@@ -581,29 +636,37 @@ export class GenericCrudService {
                     },
                   }
                 )
-                .subscribe((res) => {
-                  this.cargandoService.closeDialog(requestId);
-                  if (res.errors == null) {
-                    this.notificacionSnackBar.notification$.next({
-                      texto: "Eliminado con éxito",
-                      duracion: 2,
-                      color: NotificacionColor.success,
-                    });
-                    obs.next(true);
-                    obs.complete();
-                  } else {
-                    {
+                .pipe(this.sinRespuestaVacia())
+                .subscribe({
+                  next: (res) => {
+                    this.cargandoService.closeDialog(requestId);
+                    if (res.errors == null) {
                       this.notificacionSnackBar.notification$.next({
-                        texto:
-                          "Ups! Ocurrió algun problema al eliminar: " +
-                          res.errors[0].message,
-                        duracion: 3,
-                        color: NotificacionColor.danger,
+                        texto: "Eliminado con éxito",
+                        duracion: 2,
+                        color: NotificacionColor.success,
                       });
-                      obs.next(null);
+                      obs.next(true);
                       obs.complete();
+                    } else {
+                      {
+                        this.notificacionSnackBar.notification$.next({
+                          texto:
+                            "Ups! Ocurrió algun problema al eliminar: " +
+                            res.errors[0].message,
+                          duracion: 3,
+                          color: NotificacionColor.danger,
+                        });
+                        obs.next(null);
+                        obs.complete();
+                      }
                     }
-                  }
+                  },
+                  error: () => {
+                    this.cargandoService.closeDialog(requestId);
+                    obs.next(null);
+                    obs.complete();
+                  },
                 });
             } else {
             }
@@ -641,29 +704,35 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            this.cargandoService.closeDialog(requestId);
-            if (res.errors == null) {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Eliminado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
-              obs.next(true);
-              obs.complete();
-            } else {
-              {
+          .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+          .subscribe({
+            next: (res) => {
+              this.cargandoService.closeDialog(requestId);
+              if (res.errors == null) {
                 this.notificacionSnackBar.notification$.next({
-                  texto:
-                    "Ups! Ocurrió algun problema al eliminar: " +
-                    res.errors[0].message,
-                  duracion: 3,
-                  color: NotificacionColor.danger,
+                  texto: "Eliminado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
                 });
-                obs.next(null);
+                obs.next(true);
+                obs.complete();
+              } else {
+                {
+                  this.notificacionSnackBar.notification$.next({
+                    texto:
+                      "Ups! Ocurrió algun problema al eliminar: " +
+                      res.errors[0].message,
+                    duracion: 3,
+                    color: NotificacionColor.danger,
+                  });
+                  obs.next(null);
+                }
               }
-            }
+            },
+            error: () => {
+              this.cargandoService.closeDialog(requestId);
+              obs.next(null);
+            },
           });
       } else {
         this.dialogoService
@@ -688,29 +757,37 @@ export class GenericCrudService {
                     },
                   }
                 )
-                .subscribe((res) => {
-                  this.cargandoService.closeDialog(requestId);
-                  if (res.errors == null) {
-                    this.notificacionSnackBar.notification$.next({
-                      texto: "Eliminado con éxito",
-                      duracion: 2,
-                      color: NotificacionColor.success,
-                    });
-                    obs.next(true);
-                    obs.complete();
-                  } else {
-                    {
+                .pipe(this.sinRespuestaVacia())
+                .subscribe({
+                  next: (res) => {
+                    this.cargandoService.closeDialog(requestId);
+                    if (res.errors == null) {
                       this.notificacionSnackBar.notification$.next({
-                        texto:
-                          "Ups! Ocurrió algun problema al eliminar: " +
-                          res.errors[0].message,
-                        duracion: 3,
-                        color: NotificacionColor.danger,
+                        texto: "Eliminado con éxito",
+                        duracion: 2,
+                        color: NotificacionColor.success,
                       });
-                      obs.next(null);
+                      obs.next(true);
                       obs.complete();
+                    } else {
+                      {
+                        this.notificacionSnackBar.notification$.next({
+                          texto:
+                            "Ups! Ocurrió algun problema al eliminar: " +
+                            res.errors[0].message,
+                          duracion: 3,
+                          color: NotificacionColor.danger,
+                        });
+                        obs.next(null);
+                        obs.complete();
+                      }
                     }
-                  }
+                  },
+                  error: () => {
+                    this.cargandoService.closeDialog(requestId);
+                    obs.next(null);
+                    obs.complete();
+                  },
                 });
             } else {
             }
@@ -765,19 +842,25 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+          },
+          error: () => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+          },
         });
     });
   }
@@ -812,36 +895,47 @@ export class GenericCrudService {
             },
           }
         )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          if (res.errors == null) {
-            this.notificacionBar.notification$.next({
-              texto: "Guardado con éxito!!",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-            if (error) {
-              obs.next({ data: res.data["data"] });
-              obs.complete();
+        .pipe(untilDestroyed(this), this.sinRespuestaVacia())
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            if (res.errors == null) {
+              this.notificacionBar.notification$.next({
+                texto: "Guardado con éxito!!",
+                color: NotificacionColor.success,
+                duracion: 2,
+              });
+              if (error) {
+                obs.next({ data: res.data["data"] });
+                obs.complete();
+              } else {
+                obs.next(res.data["data"]);
+                obs.complete();
+              }
             } else {
-              obs.next(res.data["data"]);
-              obs.complete();
+              this.notificacionBar.notification$.next({
+                texto: "Ups!! Algo salio mal: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 5,
+              });
+              if (error) {
+                obs.next({ error: res.errors });
+                obs.complete();
+              } else {
+                obs.next(null);
+                obs.complete();
+              }
             }
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups!! Algo salio mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 5,
-            });
+          },
+          error: (err) => {
+            this.cargandoService.closeDialog(requestId);
             if (error) {
-              obs.next({ error: res.errors });
-              obs.complete();
+              obs.next({ error: err });
             } else {
               obs.next(null);
-              obs.complete();
             }
-          }
+            obs.complete();
+          },
         });
     });
   }
