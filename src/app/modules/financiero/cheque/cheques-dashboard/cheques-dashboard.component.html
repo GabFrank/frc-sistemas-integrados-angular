@@ -198,15 +198,13 @@
             <ng-container matColumnDef="estado">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">
-                <span class="estado-chip" [style.background-color]="row._estadoColor">
-                  {{ estadoLabels[row.estado] || row.estado }}
-                </span>
+                {{ estadoLabels[row.estado] || row.estado }}
               </td>
             </ng-container>
 
             <ng-container matColumnDef="monto">
               <th mat-header-cell *matHeaderCellDef style="text-align: right;">Monto</th>
-              <td mat-cell *matCellDef="let row" style="text-align: right;" [style.color]="row._estadoColorTexto">
+              <td mat-cell *matCellDef="let row" style="text-align: right;">
                 {{ row.total | number:'1.0-2' }} {{ row._monedaSimbolo }}
               </td>
             </ng-container>

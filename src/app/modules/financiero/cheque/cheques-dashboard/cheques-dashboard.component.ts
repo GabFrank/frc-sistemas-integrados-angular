@@ -19,8 +19,6 @@ import { Cheque, ChequeResumenDia, ChequeSaldoChequera, EstadoCheque } from '../
 
 // Fila de la tabla con campos de display precalculados (sin funciones en el template).
 interface ChequeRow extends Cheque {
-  _estadoColor?: string;       // fondo del chip de estado
-  _estadoColorTexto?: string;  // texto claro del monto (contraste AA sobre fondo oscuro)
   _cobrable?: boolean;
   _anulable?: boolean;
   _monedaSimbolo?: string;
@@ -84,13 +82,6 @@ export class ChequesDashboardComponent implements OnInit {
 
   puedeGestionar = false;
 
-  // Colores de estado (fondo saturado del chip + texto claro AA para el monto).
-  private estadoColores: Record<string, string> = {
-    DIFERIDO: '#ff9800', EMITIDO: '#2196f3', COBRADO: '#4caf50', ANULADO: '#757575',
-  };
-  private estadoColoresTexto: Record<string, string> = {
-    DIFERIDO: '#ffb74d', EMITIDO: '#64b5f6', COBRADO: '#81c784', ANULADO: '#bdbdbd',
-  };
   estadoLabels: Record<string, string> = {
     DIFERIDO: 'Diferido', EMITIDO: 'Emitido', COBRADO: 'Cobrado', ANULADO: 'Anulado',
   };
@@ -207,9 +198,6 @@ export class ChequesDashboardComponent implements OnInit {
     // Apollo congela los resultados (dev): clonar antes de agregar props de display,
     // si no, asignar sobre el objeto congelado lanza TypeError en modo estricto.
     const row = { ...c } as ChequeRow;
-    const est = c.estado as any;
-    row._estadoColor = this.estadoColores[est] || '#607d8b';
-    row._estadoColorTexto = this.estadoColoresTexto[est] || '#b0bec5';
     row._cobrable = this.puedeGestionar && c.estado === EstadoCheque.DIFERIDO;
     row._anulable = this.puedeGestionar && (c.estado === EstadoCheque.DIFERIDO || c.estado === EstadoCheque.EMITIDO);
     row._monedaSimbolo = c.moneda?.simbolo || '';

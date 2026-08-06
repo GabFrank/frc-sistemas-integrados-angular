@@ -223,15 +223,6 @@
   opacity: 0.7;
 }
 
-.estado-chip {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  color: #fff;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
 /* Fila del día enfocado por el KPI */
 .cheque-row.foco-row td {
   background: rgba(255, 152, 0, 0.1);
