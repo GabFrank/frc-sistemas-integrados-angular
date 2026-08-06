@@ -1,0 +1,66 @@
+<div class="dialog-head">
+  <h2 mat-dialog-title>Chequeras</h2>
+  <button mat-raised-button color="primary" (click)="nueva()">
+    <mat-icon>add</mat-icon> Nueva
+  </button>
+</div>
+
+<mat-dialog-content class="content">
+  <table mat-table [dataSource]="dataSource" style="width: 100%;">
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef style="text-align: left;">Nombre</th>
+      <td mat-cell *matCellDef="let row" style="text-align: left;">
+        {{ row.nombre || ('Chequera #' + row.id) }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="cuenta">
+      <th mat-header-cell *matHeaderCellDef style="text-align: left;">Cuenta</th>
+      <td mat-cell *matCellDef="let row" style="text-align: left;">{{ row._cuentaLabel }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="rango">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;">Rango</th>
+      <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.rangoDesde }} – {{ row.rangoHasta }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="siguiente">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;">Siguiente</th>
+      <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.siguienteNumero }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="hojas">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;">Hojas</th>
+      <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.hojasDisponibles }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+      <td mat-cell *matCellDef="let row" style="text-align: center;">
+        <span class="estado-chip" [style.background-color]="row._estadoColor">{{ row.estado }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let row" style="text-align: center;">
+        <button mat-icon-button (click)="editar(row)" matTooltip="Editar">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+
+  <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+    <mat-icon>menu_book</mat-icon>
+    <span>Sin chequeras. Creá una con "Nueva".</span>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cerrar()">Cerrar</button>
+</mat-dialog-actions>

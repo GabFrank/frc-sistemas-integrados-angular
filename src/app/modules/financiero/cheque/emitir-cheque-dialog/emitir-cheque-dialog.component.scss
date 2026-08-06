@@ -1,0 +1,40 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  padding-top: 6px;
+  min-width: 440px;
+}
+
+.full { width: 100%; }
+
+.info-chequera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  opacity: 0.85;
+  margin: -4px 0 12px;
+
+  strong { font-variant-numeric: tabular-nums; }
+}
+
+.chk { margin-bottom: 12px; }
+
+.nota-contado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 0 0 12px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 540px) {
+  .form { min-width: 0; }
+}

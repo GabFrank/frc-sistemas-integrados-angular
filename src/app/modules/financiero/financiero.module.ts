@@ -73,6 +73,10 @@ import { AddEntradaVariaDialogComponent } from './entrada-varia/add-entrada-vari
 import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
+import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
+import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
+import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
+import { GestionarChequerasDialogComponent } from './chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
 import { ListOperacionFinancieraComponent } from './operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
 import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
@@ -145,6 +149,10 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     ListEntradasVariasDialogComponent,
     AddOperacionFinancieraDialogComponent,
     OperacionFinancieraDetalleDialogComponent,
+    ChequesDashboardComponent,
+    EmitirChequeDialogComponent,
+    EditChequeraDialogComponent,
+    GestionarChequerasDialogComponent,
     ListOperacionFinancieraComponent,
     ListMovimientosBancariosDialogComponent,
     AddBancoDialogComponent,

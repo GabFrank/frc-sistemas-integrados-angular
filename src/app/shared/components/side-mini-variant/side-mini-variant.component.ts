@@ -79,6 +79,7 @@ import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.compo
 import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
 import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
+import { ChequesDashboardComponent } from '../../../modules/financiero/cheque/cheques-dashboard/cheques-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -457,6 +458,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Bancos',
               icon: 'business',
               action: 'list-bancos',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Cheques',
+              icon: 'menu_book',
+              action: 'cheques-dashboard',
               visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
             }
           ]
@@ -943,6 +950,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-bancos":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(BancoComponent, "Bancos", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "cheques-dashboard":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ChequesDashboardComponent, "Cheques", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

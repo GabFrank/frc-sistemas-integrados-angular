@@ -1,22 +1,29 @@
 import gql from 'graphql-tag';
 
+// Campos completos de una chequera (para gestión y selects del dashboard de cheques).
+const chequeraFields = `
+  id
+  nombre
+  rangoDesde
+  rangoHasta
+  siguienteNumero
+  estado
+  hojasDisponibles
+  fechaRetiro
+  creadoEn
+  cuentaBancaria {
+    id
+    numero
+    banco { id nombre }
+    moneda { id simbolo denominacion }
+  }
+  usuario { id }
+`;
+
 export const chequeraQuery = gql`
   query chequeraQuery($id: ID!) {
     data: chequera(id: $id) {
-      id
-      cuentaBancaria {
-        id
-      }
-      rangoDesde
-      rangoHasta
-      fechaRetiro
-      creadoEn
-      usuario {
-        id
-      }
-      cheques {
-        id
-      }
+      ${chequeraFields}
     }
   }
 `;
@@ -24,17 +31,7 @@ export const chequeraQuery = gql`
 export const chequerasQuery = gql`
   query chequerasQuery($page: Int, $size: Int) {
     data: chequeras(page: $page, size: $size) {
-      id
-      cuentaBancaria {
-        id
-      }
-      rangoDesde
-      rangoHasta
-      fechaRetiro
-      creadoEn
-      usuario {
-        id
-      }
+      ${chequeraFields}
     }
   }
 `;
@@ -42,17 +39,7 @@ export const chequerasQuery = gql`
 export const chequerasSearchQuery = gql`
   query chequerasSearchQuery($texto: String) {
     data: chequerasSearch(texto: $texto) {
-      id
-      cuentaBancaria {
-        id
-      }
-      rangoDesde
-      rangoHasta
-      fechaRetiro
-      creadoEn
-      usuario {
-        id
-      }
+      ${chequeraFields}
     }
   }
 `;

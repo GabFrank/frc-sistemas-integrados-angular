@@ -1,0 +1,51 @@
+<h2 mat-dialog-title>Emitir cheque</h2>
+
+<mat-dialog-content [formGroup]="formGroup" class="form">
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Chequera</mat-label>
+    <mat-select [formControl]="chequeraControl" (selectionChange)="onChequeraChange($event.value)">
+      <mat-option *ngFor="let c of chequeras" [value]="c">
+        {{ c.nombre || ('Chequera #' + c.id) }} — {{ c.cuentaBancaria?.banco?.nombre }} · {{ c.cuentaBancaria?.numero }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <div class="info-chequera" *ngIf="chequeraSel">
+    <span>Moneda: <strong>{{ chequeraSel.cuentaBancaria?.moneda?.simbolo || '-' }}</strong></span>
+    <span>Próximo Nº: <strong>{{ chequeraSel.siguienteNumero }}</strong></span>
+    <span>Hojas: <strong>{{ chequeraSel.hojasDisponibles }}</strong></span>
+  </div>
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Monto</mat-label>
+    <input matInput type="number" [formControl]="totalControl" />
+    <span matPrefix *ngIf="chequeraSel">{{ chequeraSel.cuentaBancaria?.moneda?.simbolo }}&nbsp;</span>
+  </mat-form-field>
+
+  <mat-checkbox [formControl]="diferidoControl" class="chk">Diferido</mat-checkbox>
+
+  <mat-form-field appearance="outline" class="full" *ngIf="diferidoControl.value">
+    <mat-label>Fecha de pago (vencimiento)</mat-label>
+    <input matInput [matDatepicker]="dp" [formControl]="fechaPagoControl" />
+    <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+    <mat-datepicker #dp></mat-datepicker>
+    <mat-hint>El diferido reserva el saldo hasta esta fecha; no debita al emitir.</mat-hint>
+  </mat-form-field>
+
+  <p class="nota-contado" *ngIf="!diferidoControl.value">
+    <mat-icon>info</mat-icon>
+    Un cheque <b>al día</b> debita el saldo de la cuenta inmediatamente.
+  </p>
+
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>Concepto (opcional)</mat-label>
+    <input matInput [formControl]="conceptoControl" maxlength="120" />
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving">
+    <mat-icon>send</mat-icon> Emitir
+  </button>
+</mat-dialog-actions>
