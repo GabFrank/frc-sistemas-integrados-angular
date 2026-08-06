@@ -19,6 +19,13 @@
         <input matInput [formControl]="nombreControl" maxlength="80" />
       </mat-form-field>
 
+      <mat-form-field appearance="outline" class="uppercase">
+        <mat-label>Firmantes (opcional)</mat-label>
+        <textarea matInput [formControl]="firmantesControl" rows="2" maxlength="300"
+                  placeholder="Ej: JUAN PÉREZ, MARÍA GONZÁLEZ"></textarea>
+        <mat-hint>Personas autorizadas a firmar los cheques de esta chequera.</mat-hint>
+      </mat-form-field>
+
       <div fxLayout="row" fxLayoutGap="12px">
         <mat-form-field appearance="outline" fxFlex>
           <mat-label>Rango desde</mat-label>

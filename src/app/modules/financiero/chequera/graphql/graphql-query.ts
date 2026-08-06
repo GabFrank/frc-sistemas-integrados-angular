@@ -4,6 +4,7 @@ import gql from 'graphql-tag';
 const chequeraFields = `
   id
   nombre
+  firmantes
   rangoDesde
   rangoHasta
   siguienteNumero

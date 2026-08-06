@@ -22,6 +22,7 @@ export class EditChequeraDialogComponent implements OnInit {
   formGroup: FormGroup;
   cuentaControl = new FormControl(null, Validators.required);
   nombreControl = new FormControl('');
+  firmantesControl = new FormControl('');
   rangoDesdeControl = new FormControl(null, [Validators.required, Validators.min(0)]);
   rangoHastaControl = new FormControl(null, [Validators.required, Validators.min(0)]);
   siguienteControl = new FormControl(null, [Validators.min(0)]);
@@ -50,6 +51,7 @@ export class EditChequeraDialogComponent implements OnInit {
     this.formGroup = new FormGroup({
       cuentaControl: this.cuentaControl,
       nombreControl: this.nombreControl,
+      firmantesControl: this.firmantesControl,
       rangoDesdeControl: this.rangoDesdeControl,
       rangoHastaControl: this.rangoHastaControl,
       siguienteControl: this.siguienteControl,
@@ -69,6 +71,7 @@ export class EditChequeraDialogComponent implements OnInit {
     if (ch) {
       this.esEdicion = true;
       this.nombreControl.setValue(ch.nombre || '');
+      this.firmantesControl.setValue(ch.firmantes || '');
       this.rangoDesdeControl.setValue(ch.rangoDesde);
       this.rangoHastaControl.setValue(ch.rangoHasta);
       this.siguienteControl.setValue(ch.siguienteNumero);
@@ -92,6 +95,7 @@ export class EditChequeraDialogComponent implements OnInit {
       id: this.data?.chequera?.id,
       cuentaBancariaId: (this.cuentaControl.value as CuentaBancaria)?.id,
       nombre: this.nombreControl.value ? String(this.nombreControl.value).toUpperCase() : null,
+      firmantes: this.firmantesControl.value ? String(this.firmantesControl.value).toUpperCase() : null,
       rangoDesde: desde,
       rangoHasta: hasta,
       // Si no se indica el siguiente número, arranca desde el inicio del rango.

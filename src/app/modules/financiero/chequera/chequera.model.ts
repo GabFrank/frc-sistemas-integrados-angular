@@ -12,6 +12,7 @@ export class Chequera {
     id: number;
     cuentaBancaria: CuentaBancaria;
     nombre: string;
+    firmantes: string;
     rangoDesde: number;
     rangoHasta: number;
     siguienteNumero: number;
@@ -27,6 +28,7 @@ export class Chequera {
         input.id = this?.id;
         input.cuentaBancariaId = this?.cuentaBancaria?.id;
         input.nombre = this?.nombre;
+        input.firmantes = this?.firmantes;
         input.rangoDesde = this?.rangoDesde;
         input.rangoHasta = this?.rangoHasta;
         input.siguienteNumero = this?.siguienteNumero;
@@ -41,6 +43,7 @@ export class ChequeraInput {
     id?: number;
     cuentaBancariaId?: number;
     nombre?: string;
+    firmantes?: string;
     rangoDesde?: number;
     rangoHasta?: number;
     siguienteNumero?: number;
