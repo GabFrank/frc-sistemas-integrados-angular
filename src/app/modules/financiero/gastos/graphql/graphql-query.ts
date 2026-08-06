@@ -177,6 +177,7 @@ export const filterGastosQuery = gql`
       getContent {
         id
         sucursalId
+        cancelado
         sucursal {
           id
           nombre
@@ -708,5 +709,11 @@ export const gastoRendicionesByPreGastoQuery = gql`
       creadoEn
       tipoGasto { id descripcion }
     }
+  }
+`;
+
+export const cancelarGasto = gql`
+  mutation cancelarGasto($id: ID!, $sucId: ID) {
+    data: cancelarGasto(id: $id, sucId: $sucId)
   }
 `;

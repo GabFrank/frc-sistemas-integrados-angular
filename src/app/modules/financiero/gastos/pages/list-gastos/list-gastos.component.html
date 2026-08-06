@@ -246,6 +246,13 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onAdd(gasto, i)">Editar</button>
+            <button
+              mat-menu-item
+              *ngIf="esAdmin"
+              (click)="onCancelarGasto(gasto)"
+            >
+              {{ gasto.cancelado ? 'Habilitar' : 'Cancelar' }}
+            </button>
           </mat-menu>
         </td>
       </ng-container>
