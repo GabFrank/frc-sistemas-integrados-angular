@@ -384,7 +384,7 @@ export class GastoService {
   }
 
   onCancelarGasto(id: number, sucId: number, servidor = true): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.cancelarGastoGQL, {
+    return this.genericService.onCustomMutation(this.cancelarGastoGQL, {
       id,
       sucId
     }, servidor);
