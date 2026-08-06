@@ -8,7 +8,6 @@ import { EditChequeraDialogComponent, EditChequeraData } from '../edit-chequera-
 
 interface ChequeraRow extends Chequera {
   _cuentaLabel?: string;
-  _estadoColor?: string;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -23,10 +22,6 @@ export class GestionarChequerasDialogComponent implements OnInit {
   displayedColumns = ['nombre', 'cuenta', 'rango', 'siguiente', 'hojas', 'estado', 'acciones'];
   isLoading = false;
   cambios = false;   // se devuelve al cerrar para que el dashboard recargue si hubo altas/ediciones
-
-  private estadoColores: Record<string, string> = {
-    ACTIVA: '#4caf50', AGOTADA: '#ff9800', ANULADA: '#757575',
-  };
 
   constructor(
     private dialogRef: MatDialogRef<GestionarChequerasDialogComponent>,
@@ -52,7 +47,6 @@ export class GestionarChequerasDialogComponent implements OnInit {
     const row = { ...ch } as ChequeraRow;
     const banco = ch.cuentaBancaria?.banco?.nombre || '';
     row._cuentaLabel = banco ? (banco + ' · ' + (ch.cuentaBancaria?.numero || '')) : '-';
-    row._estadoColor = this.estadoColores[ch.estado as any] || '#607d8b';
     return row;
   }
 

@@ -1,20 +1,26 @@
-.form {
-  display: flex;
-  flex-direction: column;
-  padding-top: 6px;
-  min-width: 420px;
+.edit-chequera-dialog {
+  margin: 20px;
+  min-width: 460px;
 }
 
-.full { width: 100%; }
+.titulo-center {
+  text-align: center;
+  margin: 0 0 4px;
+}
 
-.row {
-  display: flex;
-  gap: 12px;
+mat-form-field {
+  width: 100%;
+}
 
-  mat-form-field { flex: 1; }
+.uppercase input {
+  text-transform: uppercase;
+}
+
+mat-dialog-actions {
+  gap: 8px;
+  padding-top: 4px;
 }
 
 @media (max-width: 520px) {
-  .form { min-width: 0; }
-  .row { flex-direction: column; gap: 0; }
+  .edit-chequera-dialog { min-width: 0; margin: 12px; }
 }
