@@ -13,6 +13,7 @@ import { ListOperacionFinancieraComponent } from '../operacion-financiera/list-o
 import { CuentaBancariaComponent } from '../cuenta-bancaria/cuenta-bancaria.component';
 import { BancoComponent } from '../banco/banco.component';
 import { MonedaComponent } from '../moneda/moneda.component';
+import { ChequesDashboardComponent } from '../cheque/cheques-dashboard/cheques-dashboard.component';
 import { MainService } from '../../../main.service';
 import { DashRankingItem } from '../../../shared/components/dashboard/dash-ranking-list/dash-ranking-list.component';
 import { EChartsOption } from 'echarts';
@@ -42,6 +43,7 @@ export class FinancieroDashboardComponent implements OnInit {
 
   accesos: AccesoItem[] = [
     { icon: 'sync_alt', title: 'Operaciones Financieras', color: '#6a1b9a', accion: 'operaciones' },
+    { icon: 'menu_book', title: 'Cheques', color: '#4527a0', accion: 'cheques' },
     { icon: 'account_balance', title: 'Cuentas Bancarias', color: '#1565c0', accion: 'cuentas' },
     { icon: 'business', title: 'Bancos', color: '#00838f', accion: 'bancos' },
     { icon: 'paid', title: 'Monedas', color: '#2e7d32', accion: 'monedas' },
@@ -141,6 +143,7 @@ export class FinancieroDashboardComponent implements OnInit {
   onAcceso(accion: string) {
     switch (accion) {
       case 'operaciones': this.abrir(ListOperacionFinancieraComponent, 'Operaciones Financieras'); break;
+      case 'cheques': this.abrir(ChequesDashboardComponent, 'Cheques'); break;
       case 'cuentas': this.abrir(CuentaBancariaComponent, 'Cuentas Bancarias'); break;
       case 'bancos': this.abrir(BancoComponent, 'Bancos'); break;
       case 'monedas': this.abrir(MonedaComponent, 'Monedas'); break;

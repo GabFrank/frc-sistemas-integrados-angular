@@ -19,22 +19,19 @@
 
   <!-- Filtro -->
   <div class="filtro-bar">
-    <mat-form-field appearance="outline" class="f-date" subscriptSizing="dynamic">
-      <mat-label>Desde (pago)</mat-label>
-      <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
-      <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
-      <mat-datepicker #dp1></mat-datepicker>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="f-date" subscriptSizing="dynamic">
-      <mat-label>Hasta (pago)</mat-label>
-      <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" />
-      <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
-      <mat-datepicker #dp2></mat-datepicker>
+    <mat-form-field appearance="outline" class="f-rango" subscriptSizing="dynamic">
+      <mat-label>Rango (fecha de pago)</mat-label>
+      <mat-date-range-input [rangePicker]="rangoPicker">
+        <input matStartDate [formControl]="desdeControl" placeholder="Desde" />
+        <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="aplicarFiltros()" />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="rangoPicker"></mat-datepicker-toggle>
+      <mat-date-range-picker #rangoPicker></mat-date-range-picker>
     </mat-form-field>
 
     <div class="presets">
       <button mat-stroked-button (click)="preset('hoy')">Hoy</button>
+      <button mat-stroked-button (click)="preset('semana')">Próx. semana</button>
       <button mat-stroked-button (click)="preset('mes')">Este mes</button>
       <button mat-stroked-button (click)="preset('p30')">Próx. 30</button>
       <button mat-stroked-button (click)="preset('p60')">Próx. 60</button>
@@ -58,6 +55,9 @@
     <button mat-raised-button color="primary" (click)="aplicarFiltros()">
       <mat-icon>search</mat-icon> Aplicar
     </button>
+    <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Restablecer filtros">
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
   </div>
 
   <!-- Contenido: main + sidebar -->
@@ -66,24 +66,18 @@
     <!-- Sidebar de saldos -->
     <aside class="saldos-sidebar">
 
-      <!-- KPI: a pagar en la fecha / total del rango -->
+      <!-- KPI: total del rango filtrado, o del día enfocado al clickear una barra -->
       <div class="kpi-card">
-        <div class="kpi-label">
-          <ng-container *ngIf="!kpiEsRango">A pagar el {{ kpiFecha }}</ng-container>
-          <ng-container *ngIf="kpiEsRango">Total del rango (por pagar)</ng-container>
-        </div>
+        <div class="kpi-label">{{ kpiLabel }}</div>
         <div class="kpi-total">{{ kpiTotal | number:'1.0-2' }}</div>
         <div class="kpi-sub">{{ kpiCantidad }} cheque(s)</div>
-        <mat-form-field appearance="outline" class="kpi-foco" subscriptSizing="dynamic">
-          <mat-label>Enfocar día</mat-label>
-          <input matInput [matDatepicker]="dpFoco" [formControl]="focoControl"
-                 (dateChange)="onFocoChange($event.value)" />
-          <mat-datepicker-toggle matSuffix [for]="dpFoco"></mat-datepicker-toggle>
-          <mat-datepicker #dpFoco></mat-datepicker>
-          <button *ngIf="focoControl.value" matSuffix mat-icon-button (click)="limpiarFoco()">
-            <mat-icon>close</mat-icon>
-          </button>
-        </mat-form-field>
+
+        <button mat-button class="kpi-quitar" *ngIf="focoDesdeControl.value" (click)="limpiarFoco()">
+          <mat-icon>close</mat-icon> Quitar foco del día
+        </button>
+        <div class="kpi-hint" *ngIf="!focoDesdeControl.value && hayDatosGrafico">
+          Clic en una barra para enfocar un día.
+        </div>
       </div>
 
       <!-- Posición general -->

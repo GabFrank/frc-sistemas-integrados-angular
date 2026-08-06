@@ -42,7 +42,9 @@ export class ChequesDashboardComponent implements OnInit {
   // ── Filtro (header) ──
   desdeControl = new FormControl();
   hastaControl = new FormControl();
-  focoControl = new FormControl();          // día puntual para el KPI (opcional)
+  // Foco del KPI: un rango (desde/hasta). Si es un solo día, desde == hasta.
+  focoDesdeControl = new FormControl();
+  focoHastaControl = new FormControl();
   chequeraSel: number | null = null;
   estadoSel: string | null = EstadoCheque.DIFERIDO;   // default: diferidos (pendientes)
 
@@ -74,9 +76,8 @@ export class ChequesDashboardComponent implements OnInit {
   consolidadoReservado = 0;
   consolidadoDisponible = 0;
 
-  // ── KPI "a pagar en la fecha" ──
-  kpiEsRango = true;         // true = total del rango; false = un día enfocado
-  kpiFecha: string | null = null;
+  // ── KPI "a pagar en la fecha/rango" ──
+  kpiLabel = 'Total del rango (por pagar)';
   kpiTotal = 0;
   kpiCantidad = 0;
 
@@ -120,11 +121,14 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   // Presets de rango por fecha de pago.
-  preset(tipo: 'hoy' | 'mes' | 'p30' | 'p60') {
+  preset(tipo: 'hoy' | 'semana' | 'mes' | 'p30' | 'p60') {
     const hoy = new Date();
     if (tipo === 'hoy') {
       this.desdeControl.setValue(hoy);
       this.hastaControl.setValue(hoy);
+    } else if (tipo === 'semana') {
+      this.desdeControl.setValue(hoy);
+      this.hastaControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 7));
     } else if (tipo === 'mes') {
       this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
       this.hastaControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
@@ -140,6 +144,19 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   aplicarFiltros() {
+    this.recargar();
+  }
+
+  /** Restablece todos los filtros a su estado por defecto (mes actual, todas las chequeras,
+   *  diferidos) y quita el foco del día. */
+  limpiarFiltros() {
+    const hoy = new Date();
+    this.desdeControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+    this.hastaControl.setValue(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+    this.chequeraSel = null;
+    this.estadoSel = EstadoCheque.DIFERIDO;
+    this.focoDesdeControl.setValue(null);
+    this.focoHastaControl.setValue(null);
     this.recargar();
   }
 
@@ -216,57 +233,76 @@ export class ChequesDashboardComponent implements OnInit {
 
   // ── KPI / foco de día / gráfico ──
 
-  private get focoStr(): string | null {
-    return this.focoControl.value ? dateToString(this.focoControl.value, 'yyyy-MM-dd') : null;
+  private get focoDesdeStr(): string | null {
+    return this.focoDesdeControl.value ? dateToString(this.focoDesdeControl.value, 'yyyy-MM-dd') : null;
+  }
+  // Si solo hay "desde", el foco es de un solo día (hasta = desde).
+  private get focoHastaStr(): string | null {
+    const d = this.focoDesdeStr;
+    if (!d) return null;
+    return this.focoHastaControl.value ? dateToString(this.focoHastaControl.value, 'yyyy-MM-dd') : d;
   }
 
-  /** Aplica el día enfocado a KPI, gráfico y lista (foco null = rango completo). */
+  /** True si la fecha (yyyy-MM-dd) cae dentro del foco. Comparación lexicográfica = cronológica. */
+  private enFoco(fecha: string): boolean {
+    const d = this.focoDesdeStr;
+    if (!d) return false;
+    return fecha >= d && fecha <= this.focoHastaStr;
+  }
+
+  /** Aplica el foco (día o rango) a KPI, gráfico y lista (foco null = rango completo). */
   private aplicarFoco() {
     this.recalcularKpi();
     this.construirGrafico();
     this.aplicarFocoALista();
   }
 
-  onFocoChange(d: Date | null) {
-    this.aplicarFoco();
-  }
-
   limpiarFoco() {
-    this.focoControl.setValue(null);
+    this.focoDesdeControl.setValue(null);
+    this.focoHastaControl.setValue(null);
     this.aplicarFoco();
   }
 
-  /** Clic en una barra del gráfico: enfoca ese día (toggle si ya estaba enfocado). */
+  /** Clic en una barra del gráfico: enfoca ese día puntual (toggle si ya era el único enfocado). */
   onBarClick(e: any) {
     const dia = this.resumen[e?.dataIndex];
     if (!dia) return;
-    const yaEnfocado = this.focoStr === dia.fecha;
-    this.focoControl.setValue(yaEnfocado ? null : stringToLocalDate(dia.fecha));
+    const yaSolo = this.focoDesdeStr === dia.fecha && this.focoHastaStr === dia.fecha;
+    if (yaSolo) {
+      this.focoDesdeControl.setValue(null);
+      this.focoHastaControl.setValue(null);
+    } else {
+      const d = stringToLocalDate(dia.fecha);
+      this.focoDesdeControl.setValue(d);
+      this.focoHastaControl.setValue(d);
+    }
     this.aplicarFoco();
   }
 
   private recalcularKpi() {
-    const foco = this.focoStr;
-    this.kpiFecha = foco;
-    if (foco) {
-      const dia = this.resumen.find(r => r.fecha === foco);
-      this.kpiEsRango = false;
-      this.kpiTotal = dia?.total || 0;
-      this.kpiCantidad = dia?.cantidad || 0;
+    const d = this.focoDesdeStr;
+    if (d) {
+      const h = this.focoHastaStr;
+      this.kpiLabel = d === h
+        ? `A pagar el ${this.labelDia(d)}`
+        : `A pagar del ${this.labelDia(d)} al ${this.labelDia(h)}`;
+      const items = this.resumen.filter(r => r.fecha >= d && r.fecha <= h);
+      this.kpiTotal = items.reduce((a, r) => a + (r.total || 0), 0);
+      this.kpiCantidad = items.reduce((a, r) => a + (r.cantidad || 0), 0);
     } else {
-      this.kpiEsRango = true;
+      this.kpiLabel = 'Total del rango (por pagar)';
       this.kpiTotal = this.resumen.reduce((a, r) => a + (r.total || 0), 0);
       this.kpiCantidad = this.resumen.reduce((a, r) => a + (r.cantidad || 0), 0);
     }
   }
 
-  /** Con un día enfocado la tabla muestra solo ese día; sin foco, todo el rango. */
+  /** Con un foco activo la tabla muestra solo ese día/rango; sin foco, todo el rango. */
   private aplicarFocoALista() {
-    const foco = this.focoStr;
-    const filas = foco
-      ? this.chequesFull.filter(r => this.diaDe(r.fechaPago) === foco)
+    const activo = !!this.focoDesdeStr;
+    const filas = activo
+      ? this.chequesFull.filter(r => { const f = this.diaDe(r.fechaPago); return f && this.enFoco(f); })
       : this.chequesFull;
-    for (const row of filas) row._esFoco = !!foco;
+    for (const row of filas) row._esFoco = activo;
     this.dataSource.data = filas;
   }
 
@@ -283,7 +319,6 @@ export class ChequesDashboardComponent implements OnInit {
     const dias = this.resumen;
     this.hayDatosGrafico = dias.length > 0;
     if (!this.hayDatosGrafico) { this.chartOptions = null; return; }
-    const foco = this.focoStr;
     this.chartOptions = {
       grid: { left: 58, right: 16, top: 20, bottom: dias.length > 12 ? 60 : 40 },
       tooltip: {
@@ -317,7 +352,7 @@ export class ChequesDashboardComponent implements OnInit {
         cursor: 'pointer',
         data: dias.map(d => ({
           value: d.total,
-          itemStyle: { color: (foco && d.fecha === foco) ? GRAFICO_COLORES.warning : GRAFICO_COLORES.info },
+          itemStyle: { color: this.enFoco(d.fecha) ? GRAFICO_COLORES.warning : GRAFICO_COLORES.info },
         })),
       }],
     };
@@ -331,7 +366,8 @@ export class ChequesDashboardComponent implements OnInit {
   }
 
   onGestionarChequeras() {
-    this.dialog.open(GestionarChequerasDialogComponent, { width: '820px', maxWidth: '95vw', maxHeight: '90vh' })
+    // Alto fijo: el diálogo no crece con la cantidad de chequeras (scroll interno).
+    this.dialog.open(GestionarChequerasDialogComponent, { width: '880px', height: '600px', maxWidth: '95vw', maxHeight: '92vh' })
       .afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
   }
 
