@@ -39,6 +39,7 @@ import { MontosRetiroDesdeLineasGQL } from '../graphql/montosRetiroDesdeLineas';
 import { PreGastoRetiroConfirmadoGQL } from '../graphql/preGastoRetiroConfirmado';
 import { RegistrarDevolucionSaldoGQL } from '../graphql/registrarDevolucionSaldo';
 import { SaveGastoRendicionGQL } from '../graphql/saveGastoRendicion';
+import { CancelarGastoGQL } from '../graphql/cancelarGasto';
 
 @Injectable({
   providedIn: 'root'
@@ -74,7 +75,8 @@ export class GastoService {
     private montosRetiroDesdeLineasGQL: MontosRetiroDesdeLineasGQL,
     private preGastoRetiroConfirmadoGQL: PreGastoRetiroConfirmadoGQL,
     private registrarDevolucionSaldoGQL: RegistrarDevolucionSaldoGQL,
-    private saveGastoRendicionGQL: SaveGastoRendicionGQL
+    private saveGastoRendicionGQL: SaveGastoRendicionGQL,
+    private cancelarGastoGQL: CancelarGastoGQL
   ) { }
 
   onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
@@ -379,6 +381,13 @@ export class GastoService {
 
   saveGastoRendicion(input: unknown): Observable<unknown> {
     return this.genericService.onSave(this.saveGastoRendicionGQL, input);
+  }
+
+  onCancelarGasto(id: number, sucId: number, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.cancelarGastoGQL, {
+      id,
+      sucId
+    }, servidor);
   }
 
 }
