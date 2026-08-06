@@ -101,6 +101,11 @@
             </mat-select>
           </mat-form-field>
 
+          <mat-slide-toggle *ngIf="draft.fuente === 'CUENTA_BANCARIA' && draft.cuenta && puedeCheque"
+                            class="f-cheque-toggle" [checked]="chequeActivo" (change)="onToggleCheque()">
+            Pagar con cheque
+          </mat-slide-toggle>
+
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-moneda" *ngIf="draft.fuente === 'CAJA_MAYOR'">
             <mat-label>Moneda</mat-label>
             <mat-select [(ngModel)]="draft.moneda" (selectionChange)="onMonedaLineaChange(draft)">
@@ -120,8 +125,53 @@
 
           <div class="f-convertido" *ngIf="draft.necesitaCotizacion">= {{ monedaDeuda?.simbolo }} {{ draft.convertido | number:'1.0-2' }}</div>
 
-          <button mat-raised-button color="primary" class="f-add" (click)="agregarDraft()" [disabled]="!draftValido">
-            <mat-icon>{{ editIndex >= 0 ? 'save' : 'add' }}</mat-icon> {{ editIndex >= 0 ? 'Guardar' : 'Agregar' }}
+          <!-- Panel cheque (full-width) -->
+          <div class="cheque-panel" *ngIf="chequeActivo">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-chequera">
+              <mat-label>Chequera</mat-label>
+              <mat-select [(ngModel)]="chequeraSel" (selectionChange)="recalcularCheque()">
+                <mat-option *ngFor="let c of chequerasCuenta" [value]="c">{{ c.nombre || ('Chequera #' + c.id) }} · {{ c.hojasDisponibles }} hojas</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-checkbox [(ngModel)]="chequeNominal" class="ch-chk">Nominal</mat-checkbox>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-benef">
+              <mat-label>Beneficiario</mat-label>
+              <input matInput [(ngModel)]="chequeBeneficiario" [disabled]="!chequeNominal" />
+            </mat-form-field>
+            <mat-checkbox [(ngModel)]="chequeDiferido" class="ch-chk">Diferido</mat-checkbox>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-fecha">
+              <mat-label>Fecha emisión</mat-label>
+              <input matInput [matDatepicker]="dpEmi" [(ngModel)]="chequeFechaEmision" />
+              <mat-datepicker-toggle matSuffix [for]="dpEmi"></mat-datepicker-toggle>
+              <mat-datepicker #dpEmi></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-fecha">
+              <mat-label>Fecha de pago (1ª cuota)</mat-label>
+              <input matInput [matDatepicker]="dpPago" [(ngModel)]="chequeFechaPago" (ngModelChange)="recalcularCheque()" />
+              <mat-datepicker-toggle matSuffix [for]="dpPago"></mat-datepicker-toggle>
+              <mat-datepicker #dpPago></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-cuotas">
+              <mat-label>Cuotas</mat-label>
+              <mat-select [(ngModel)]="chequeCuotas" (selectionChange)="recalcularCheque()">
+                <mat-option *ngFor="let n of cuotasOpciones" [value]="n">{{ n }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ch-interv" *ngIf="chequeCuotas > 1">
+              <mat-label>Intervalo</mat-label>
+              <mat-select [(ngModel)]="chequeIntervalo" (selectionChange)="recalcularCheque()">
+                <mat-option *ngFor="let d of intervalos" [value]="d">{{ d }} días</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <div class="ch-warn" *ngIf="chequeraSel && chequeCuotas > chequeraSel.hojasDisponibles">
+              <mat-icon>warning</mat-icon> La chequera solo tiene {{ chequeraSel.hojasDisponibles }} hoja(s) disponible(s).
+            </div>
+          </div>
+
+          <button mat-raised-button color="primary" class="f-add" (click)="agregarDraft()"
+                  [disabled]="chequeActivo ? !chequeValido : !draftValido">
+            <mat-icon>{{ chequeActivo ? 'account_balance_wallet' : (editIndex >= 0 ? 'save' : 'add') }}</mat-icon>
+            {{ chequeActivo ? (chequeCuotas > 1 ? ('Agregar ' + chequeCuotas + ' cheques') : 'Agregar cheque') : (editIndex >= 0 ? 'Guardar' : 'Agregar') }}
           </button>
           <button mat-icon-button *ngIf="editIndex >= 0" (click)="cancelarEdicion()" matTooltip="Cancelar edición"><mat-icon>close</mat-icon></button>
         </div>
@@ -129,13 +179,15 @@
         <!-- Lista de formas de pago agregadas -->
         <div class="fp-lista">
           <div class="fp-item" *ngFor="let l of lineas; let i = index" [class.editando]="editIndex === i">
-            <mat-icon class="fp-ico">{{ l.fuente === 'CAJA_MAYOR' ? 'payments' : 'account_balance' }}</mat-icon>
+            <mat-icon class="fp-ico">{{ l.esCheque ? 'account_balance_wallet' : (l.fuente === 'CAJA_MAYOR' ? 'payments' : 'account_balance') }}</mat-icon>
             <div class="fp-desc">
-              <span class="fp-fuente">{{ l.fuente === 'CAJA_MAYOR' ? 'Efectivo caja mayor' : (l.cuenta?.banco?.nombre + ' · ' + l.cuenta?.numero) }}</span>
-              <span class="fp-sub" *ngIf="l.necesitaCotizacion">Cotización {{ l.cotizacion | number:'1.0-6' }} · = {{ monedaDeuda?.simbolo }} {{ l.convertido | number:'1.0-2' }}</span>
+              <span class="fp-fuente" *ngIf="!l.esCheque">{{ l.fuente === 'CAJA_MAYOR' ? 'Efectivo caja mayor' : (l.cuenta?.banco?.nombre + ' · ' + l.cuenta?.numero) }}</span>
+              <span class="fp-fuente" *ngIf="l.esCheque">Cheque {{ l._numeroCheque }} · {{ l.diferido ? 'diferido' : 'contado' }} · vence {{ l.fechaPago }}</span>
+              <span class="fp-sub" *ngIf="l.esCheque">{{ l.nominal ? l.beneficiario : 'Al portador' }} · {{ l._chequeraNombre }}</span>
+              <span class="fp-sub" *ngIf="!l.esCheque && l.necesitaCotizacion">Cotización {{ l.cotizacion | number:'1.0-6' }} · = {{ monedaDeuda?.simbolo }} {{ l.convertido | number:'1.0-2' }}</span>
             </div>
             <span class="fp-monto">{{ l.moneda?.simbolo }} {{ l.monto | number:'1.0-2' }}</span>
-            <button mat-icon-button (click)="editarLinea(i)" matTooltip="Editar"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button *ngIf="!l.esCheque" (click)="editarLinea(i)" matTooltip="Editar"><mat-icon>edit</mat-icon></button>
             <button mat-icon-button color="warn" (click)="quitarLinea(i)" matTooltip="Quitar"><mat-icon>delete</mat-icon></button>
           </div>
           <div class="fp-vacio" *ngIf="lineas.length === 0">Agregue al menos una forma de pago.</div>
@@ -194,6 +246,17 @@
             <span class="rev-monto">{{ ajusteTipo === 'DESCUENTO' ? '−' : '+' }}{{ monedaDeuda?.simbolo }} {{ ajusteMonto | number:'1.0-2' }}</span>
           </div>
           <div class="rev-total"><span>Aplicado a la deuda</span><strong>{{ monedaDeuda?.simbolo }} {{ (ajusteAplicado ? totalDeuda : totalPago) | number:'1.0-2' }}</strong></div>
+        </div>
+
+        <div class="rev-card" *ngIf="hayCheques">
+          <div class="rev-titulo-row">
+            <div class="rev-titulo">Cheques ({{ chequesList.length }})</div>
+            <button mat-stroked-button (click)="imprimirCheques()"><mat-icon>print</mat-icon> Imprimir</button>
+          </div>
+          <div class="rev-linea" *ngFor="let c of chequesList">
+            <span>Cheque {{ c._numeroCheque }} · {{ c.diferido ? 'diferido' : 'contado' }} · vence {{ c.fechaPago }} · {{ c.nominal ? c.beneficiario : 'al portador' }}</span>
+            <span class="rev-monto">{{ c.moneda?.simbolo }} {{ c.monto | number:'1.0-2' }}</span>
+          </div>
         </div>
       </div>
     </mat-step>

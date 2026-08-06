@@ -135,6 +135,30 @@ h2[mat-dialog-title] { flex-shrink: 0; margin-bottom: 8px; }
   .f-add { margin-left: auto; height: 40px; }
 }
 
+/* Toggle + panel de cheque */
+.f-cheque-toggle { align-self: center; font-size: 13px; }
+.cheque-panel {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(100, 181, 246, 0.06);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+
+  .ch-chequera { flex: 1 1 220px; min-width: 190px; }
+  .ch-benef { flex: 1 1 220px; min-width: 190px; }
+  .ch-fecha { width: 170px; }
+  .ch-cuotas { width: 100px; }
+  .ch-interv { width: 130px; }
+  .ch-chk { font-size: 13px; }
+  .ch-warn { flex-basis: 100%; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ffa726;
+    mat-icon { font-size: 17px; width: 17px; height: 17px; } }
+}
+
 /* Lista de formas agregadas */
 .fp-lista {
   flex: 1;
@@ -222,6 +246,7 @@ h2[mat-dialog-title] { flex-shrink: 0; margin-bottom: 8px; }
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .rev-titulo { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; margin-bottom: 6px; }
+.rev-titulo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; button { font-size: 12px; } }
 .rev-valor { font-size: 16px; font-weight: 500; }
 .rev-linea { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 14px; }
 .rev-monto { opacity: 0.85; white-space: nowrap; }

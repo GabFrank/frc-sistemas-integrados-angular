@@ -6,13 +6,14 @@ import { SolicitudesPagoPendientesGQL } from './graphql/solicitudesPagoPendiente
 import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote';
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
 import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
+import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 
 export interface PagoLote { solicitudId: number; monedaId: number; monto: number; }
 
 // Una línea de pago (mixto): fuente + caja/cuenta + moneda + monto (+ conversión).
 // AJUSTE = línea de diferencia de cambio/redondeo (no mueve efectivo), marcada descuento/aumento.
 export interface LineaPagoInput {
-  fuente: 'CAJA_MAYOR' | 'CUENTA_BANCARIA' | 'AJUSTE';
+  fuente: 'CAJA_MAYOR' | 'CUENTA_BANCARIA' | 'AJUSTE' | 'CHEQUE';
   cajaVirtualId?: number;
   cuentaBancariaId?: number;
   monedaId: number;
@@ -21,6 +22,14 @@ export interface LineaPagoInput {
   montoSolicitud?: number;
   descuento?: boolean;
   aumento?: boolean;
+  // Fuente CHEQUE
+  chequeRef?: number;
+  chequeraId?: number;
+  diferido?: boolean;
+  fechaEmision?: string;
+  fechaPago?: string;
+  beneficiario?: string;
+  nominal?: boolean;
 }
 
 export interface SolicitudConLineas { solicitudId: number; lineas: LineaPagoInput[]; }
@@ -34,7 +43,13 @@ export class PagarComprasService {
     private pagarLoteGQL: PagarSolicitudesLoteCajaMayorGQL,
     private pagarMixtoGQL: PagarSolicitudesMixtoGQL,
     private anularGQL: AnularPagoCppGQL,
+    private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
   ) { }
+
+  /** Chequeras activas de una cuenta bancaria (para ofrecer cheque como forma de pago). */
+  onGetChequerasPorCuenta(cuentaBancariaId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.chequerasPorCuentaGQL, { cuentaBancariaId, soloActivas: true }, servidor);
+  }
 
   onGetPendientes(proveedorId?: number, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.pendientesGQL, { proveedorId: proveedorId || null }, servidor);

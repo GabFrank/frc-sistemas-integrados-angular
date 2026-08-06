@@ -14,6 +14,7 @@ import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.ser
 import { CambioService } from '../../cambio/cambio.service';
 import { PagarComprasService, SolicitudConLineas, LineaPagoInput } from './pagar-compras.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -36,7 +37,7 @@ interface SolicitudRow {
 }
 
 interface PagoLinea {
-  fuente: 'CAJA_MAYOR' | 'CUENTA_BANCARIA';
+  fuente: 'CAJA_MAYOR' | 'CUENTA_BANCARIA' | 'CHEQUE';
   cuenta?: CuentaBancaria;
   moneda?: Moneda;
   monto: number;
@@ -45,6 +46,17 @@ interface PagoLinea {
   convertido: number;      // monto × cotizacion, en la moneda de la deuda
   _cotizManual?: boolean;  // el usuario editó la cotización (no autopisar)
   _currencyOpts: any;
+  // Fuente CHEQUE
+  esCheque?: boolean;
+  chequeRef?: number;
+  chequeraId?: number;
+  diferido?: boolean;
+  nominal?: boolean;
+  beneficiario?: string;
+  fechaEmision?: string;   // ISO
+  fechaPago?: string;      // ISO
+  _numeroCheque?: number;  // display (siguienteNumero proyectado)
+  _chequeraNombre?: string;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -88,6 +100,25 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   ajusteTipo: 'DESCUENTO' | 'AUMENTO' = 'DESCUENTO';
   ajusteMonto = 0;            // magnitud de la diferencia (en moneda de la deuda)
   haySeleccion = false;
+
+  // Cheque (cuando la cuenta bancaria del draft tiene chequera activa con hojas)
+  chequerasCuenta: any[] = [];
+  puedeCheque = false;
+  chequeActivo = false;
+  chequeraSel: any = null;
+  chequeDiferido = true;
+  chequeNominal = true;
+  chequeBeneficiario = '';
+  chequeFechaEmision: Date = new Date();
+  chequeFechaPago: Date = new Date();
+  chequeCuotas = 1;
+  chequeIntervalo = 30;
+  intervalos = [7, 15, 30, 45];
+  cuotasOpciones = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  chequeValido = false;
+  chequesList: PagoLinea[] = [];
+  hayCheques = false;
+  private chequeRefSeq = 1;
 
   isLoading = false;
   isSaving = false;
@@ -230,12 +261,44 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   /** Confirma el draft: lo agrega a la lista (o reemplaza si se estaba editando) y resetea. */
   agregarDraft() {
+    if (this.chequeActivo && this.draft.fuente === 'CUENTA_BANCARIA') { this.agregarCheques(); return; }
     if (!this.draftValido) return;
     const linea: PagoLinea = { ...this.draft };
     if (this.editIndex >= 0) this.lineas[this.editIndex] = linea;
     else this.lineas.push(linea);
     this.recalcularPago();
     this.nuevoDraft();
+  }
+
+  /** Genera N líneas CHEQUE (cuotas) encadenadas por intervalo de días desde la fecha de pago. */
+  private agregarCheques() {
+    if (!this.chequeraSel || !this.draft.monto || this.draft.monto <= 0) return;
+    const cuotas = Math.max(1, Math.min(12, this.chequeCuotas || 1));
+    const total = this.draft.monto;                       // en la moneda de la cuenta
+    const cuota = this.round(total / cuotas, this.draft.moneda);
+    const sig = Number(this.chequeraSel.siguienteNumero) || 0;
+    for (let i = 0; i < cuotas; i++) {
+      const monto = (i === cuotas - 1) ? this.round(total - cuota * (cuotas - 1), this.draft.moneda) : cuota;
+      const fecha = this.addDias(this.chequeFechaPago, cuotas > 1 ? i * this.chequeIntervalo : 0);
+      this.lineas.push({
+        fuente: 'CHEQUE', cuenta: this.draft.cuenta, moneda: this.draft.moneda,
+        monto, cotizacion: this.draft.cotizacion, necesitaCotizacion: this.draft.necesitaCotizacion, convertido: 0,
+        _currencyOpts: this.currencyOpts(this.draft.moneda),
+        esCheque: true, chequeRef: this.chequeRefSeq++, chequeraId: this.chequeraSel.id,
+        diferido: this.chequeDiferido, nominal: this.chequeNominal,
+        beneficiario: this.chequeBeneficiario || this.proveedorNombreSel,
+        fechaEmision: dateToString(this.chequeFechaEmision),
+        fechaPago: dateToString(fecha),
+        _numeroCheque: sig + i, _chequeraNombre: this.chequeraSel.nombre,
+      });
+    }
+    this.recalcularPago();
+    this.chequeActivo = false; this.chequeCuotas = 1;
+    this.nuevoDraft();
+  }
+
+  private addDias(base: Date, dias: number): Date {
+    const d = new Date(base); d.setDate(d.getDate() + dias); return d;
   }
 
   /** Carga una línea de la lista de vuelta al draft para editarla. */
@@ -259,16 +322,46 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   onFuenteChange(l: PagoLinea) {
     if (l.fuente === 'CAJA_MAYOR') { l.cuenta = undefined; l.moneda = this.monedaDeuda; }
     else { l.moneda = l.cuenta ? this.resolverMoneda(l.cuenta.moneda) : undefined; }
+    // Cheque solo aplica a cuenta bancaria; resetear al cambiar de fuente.
+    this.chequeActivo = false; this.puedeCheque = false; this.chequerasCuenta = []; this.chequeraSel = null;
+    if (l.fuente === 'CUENTA_BANCARIA' && l.cuenta) this.cargarChequeras(l.cuenta);
     this.actualizarLinea(l, true);
   }
 
   onCuentaChange(l: PagoLinea) {
     l.moneda = this.resolverMoneda(l.cuenta?.moneda);
+    this.cargarChequeras(l.cuenta);
     this.actualizarLinea(l, true);
   }
 
+  /** Carga las chequeras activas de la cuenta y habilita la opción de pagar con cheque si hay hojas. */
+  private cargarChequeras(cuenta: any) {
+    this.chequeActivo = false; this.puedeCheque = false; this.chequerasCuenta = []; this.chequeraSel = null;
+    if (!cuenta?.id) return;
+    this.pagarComprasService.onGetChequerasPorCuenta(cuenta.id).pipe(untilDestroyed(this)).subscribe(res => {
+      this.chequerasCuenta = (res || []).filter((c: any) => (c.hojasDisponibles || 0) > 0);
+      this.puedeCheque = this.chequerasCuenta.length > 0;
+      if (this.puedeCheque) {
+        this.chequeraSel = this.chequerasCuenta[0];
+        if (!this.chequeBeneficiario) this.chequeBeneficiario = this.proveedorNombreSel;
+      }
+    });
+  }
+
+  onToggleCheque() {
+    this.chequeActivo = !this.chequeActivo && this.puedeCheque;
+    if (this.chequeActivo && !this.chequeBeneficiario) this.chequeBeneficiario = this.proveedorNombreSel;
+    this.recalcularCheque();
+  }
+
+  recalcularCheque() {
+    this.chequeValido = this.chequeActivo && !!this.chequeraSel && (this.draft?.monto || 0) > 0
+      && !!this.chequeFechaPago && (this.chequeCuotas <= 1 || !!this.chequeIntervalo)
+      && this.chequeCuotas <= (this.chequeraSel?.hojasDisponibles || 0);
+  }
+
   onMonedaLineaChange(l: PagoLinea) { l._cotizManual = false; this.actualizarLinea(l, true); }
-  onMontoLineaChange() { this.recalcularDraft(); }
+  onMontoLineaChange() { this.recalcularDraft(); this.recalcularCheque(); }
   onCotizacionChange(l: PagoLinea) { l._cotizManual = true; this.recalcularDraft(); }
 
   /**
@@ -338,6 +431,8 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     }
     this.totalPago = this.round(total, this.monedaDeuda);
     this.faltantePago = this.round(this.totalDeuda - this.totalPago, this.monedaDeuda);
+    this.chequesList = this.lineas.filter(l => l.esCheque);
+    this.hayCheques = this.chequesList.length > 0;
 
     const absFalt = Math.abs(this.faltantePago);
     const tol = this.tolerancia();
@@ -361,8 +456,9 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   setAjusteTipo(t: 'DESCUENTO' | 'AUMENTO') { this.ajusteTipo = t; }
 
   private tolerancia(): number {
-    // 1 unidad de la moneda de la deuda (Gs: 1; con decimales: 0.01·nº líneas por redondeo de cross-rate).
-    return this.decimales(this.monedaDeuda) > 0 ? 0.05 : Math.max(1, this.lineas.length);
+    // Tolerancia ESTRICTA (antes escalaba con nº de líneas, dejando faltantes silenciosos):
+    // Gs (sin decimales) < 1 unidad; con decimales, 0.05. El reparto exacto lo garantiza el true-up de distribuirFifo.
+    return this.decimales(this.monedaDeuda) > 0 ? 0.05 : 0.5;
   }
 
   private round(valor: number, moneda: any, decOverride?: number): number {
@@ -417,21 +513,45 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
         const cur = lns[li];
         const takeConv = Math.min(need, cur.remConv);              // en moneda de la deuda
         const montoLinea = this.round(takeConv / (cur.l.cotizacion || 1), cur.l.moneda); // en moneda de la línea
+        const esCheque = cur.l.fuente === 'CHEQUE';
         const parte: LineaPagoInput = {
           fuente: cur.l.fuente,
           cajaVirtualId: cur.l.fuente === 'CAJA_MAYOR' ? this.data.cajaVirtual?.id : undefined,
-          cuentaBancariaId: cur.l.fuente === 'CUENTA_BANCARIA' ? cur.l.cuenta?.id : undefined,
+          cuentaBancariaId: (cur.l.fuente === 'CUENTA_BANCARIA' || esCheque) ? cur.l.cuenta?.id : undefined,
           monedaId: cur.l.moneda!.id,
           monto: montoLinea,
           cotizacion: cur.l.cotizacion,
           montoSolicitud: this.round(takeConv, this.monedaDeuda),
         };
+        if (esCheque) {
+          // 1 cheque por chequeRef aunque el FIFO lo reparta entre notas.
+          parte.chequeRef = cur.l.chequeRef;
+          parte.chequeraId = cur.l.chequeraId;
+          parte.diferido = cur.l.diferido;
+          parte.nominal = cur.l.nominal;
+          parte.beneficiario = cur.l.beneficiario;
+          parte.fechaEmision = cur.l.fechaEmision;
+          parte.fechaPago = cur.l.fechaPago;
+        }
         const arr = pagosMap.get(nota.id) || [];
         arr.push(parte);
         pagosMap.set(nota.id, arr);
         need -= takeConv;
         cur.remConv -= takeConv;
         if (cur.remConv <= this.tolerancia()) li++;
+      }
+    }
+    // True-up: garantizar que Σ montoSolicitud de cada nota == su rem exactamente (evita que la
+    // solicitud quede PARCIAL por un residuo de redondeo). La diferencia (siempre < tolerancia) se
+    // absorbe en la última parte de esa nota; queda dentro de la tolerancia de consistencia del backend.
+    for (const nota of notas) {
+      const parts = pagosMap.get(nota.id);
+      if (!parts || parts.length === 0) continue;
+      const suma = parts.reduce((s, p) => s + (p.montoSolicitud || 0), 0);
+      const diff = this.round(nota.rem - suma, this.monedaDeuda);
+      if (Math.abs(diff) > 1e-9) {
+        const last = parts[parts.length - 1];
+        last.montoSolicitud = this.round((last.montoSolicitud || 0) + diff, this.monedaDeuda);
       }
     }
     // Línea de ajuste (diferencia de cambio) en la última nota: no mueve efectivo.
@@ -450,6 +570,11 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       pagosMap.set(lastId, arr);
     }
     return Array.from(pagosMap.entries()).map(([solicitudId, lineas]) => ({ solicitudId, lineas }));
+  }
+
+  /** Stub de impresión de cheques (D6): abre el flujo de impresión — el formato se define en otra iteración. */
+  imprimirCheques() {
+    this.notificacion.openWarn('Impresión de cheques: pendiente de implementar (el pago se registra igual).', 4);
   }
 
   private err(msg: string) { this.notificacion.openAlgoSalioMal(msg); }

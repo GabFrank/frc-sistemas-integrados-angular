@@ -15,6 +15,20 @@ export const solicitudesPagoPendientesQuery = gql`
   }
 `;
 
+export const chequerasPorCuentaQuery = gql`
+  query ($cuentaBancariaId: ID!, $soloActivas: Boolean) {
+    data: chequerasPorCuenta(cuentaBancariaId: $cuentaBancariaId, soloActivas: $soloActivas) {
+      id
+      nombre
+      siguienteNumero
+      rangoHasta
+      estado
+      hojasDisponibles
+      cuentaBancaria { id numero moneda { id denominacion simbolo principal decimales } }
+    }
+  }
+`;
+
 export const pagarSolicitudesLoteCajaMayorMutation = gql`
   mutation ($cajaVirtualId: ID!, $pagos: [PagoLoteInput!]!) {
     data: pagarSolicitudesLoteCajaMayor(cajaVirtualId: $cajaVirtualId, pagos: $pagos) {
