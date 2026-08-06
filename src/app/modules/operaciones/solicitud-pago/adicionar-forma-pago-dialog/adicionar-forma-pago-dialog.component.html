@@ -83,38 +83,57 @@
         <mat-checkbox formControlName="nominal">Nominal</mat-checkbox>
         <mat-checkbox formControlName="diferido">Diferido</mat-checkbox>
       </div>
+
+      <!-- Cuotas: una forma de pago por cheque, encadenadas por intervalo -->
+      <div class="form-row cuotas-row" *ngIf="mostrarCamposCheque && !isModoEdicion">
+        <mat-form-field appearance="outline" class="cuotas-field">
+          <mat-label>Cuotas (cheques)</mat-label>
+          <mat-select formControlName="cuotas">
+            <mat-option *ngFor="let c of cuotasOpciones" [value]="c">{{ c }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="intervalo-field" *ngIf="esMultiCuota">
+          <mat-label>Intervalo</mat-label>
+          <mat-select formControlName="intervalo">
+            <mat-option *ngFor="let d of intervalos" [value]="d">Cada {{ d }} días</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <div class="cuotas-hint" *ngIf="esMultiCuota">
+          <mat-icon>info</mat-icon>
+          Se creará <b>una forma de pago por cheque</b> ({{ form.get('cuotas').value }} cheques desde la fecha de pago).
+        </div>
+      </div>
       <div class="form-row">
         <mat-form-field appearance="outline" class="observaciones-field">
           <mat-label>Observación</mat-label>
           <input matInput formControlName="observacion" />
         </mat-form-field>
       </div>
-      <mat-card class="balance-pago-card">
-        <div class="balance-pago-kpis">
-          <div class="balance-pago-kpi balance-kpi-monto">
-            <span class="kpi-label">A pagar</span>
-            <span class="kpi-value">Gs {{ (data?.montoSugerido ?? 0) | number:'1.0-0' }}</span>
-          </div>
-          <div class="balance-pago-kpi balance-kpi-equiv">
-            <span class="kpi-label">Equivalente Gs</span>
-            <span class="kpi-value">Gs {{ valorEnGuaraniesDisplay | number:'1.0-0' }}</span>
-          </div>
-          <div class="balance-pago-kpi balance-kpi-diferencia" [ngClass]="'estado-' + diferenciaEstado">
-            <span class="kpi-label">Diferencia</span>
-            <span class="kpi-value">
-              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'cubre'">check_circle</mat-icon>
-              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'exceso'">north</mat-icon>
-              <mat-icon class="kpi-icon" *ngIf="diferenciaEstado === 'falta'">south</mat-icon>
-              Gs {{ diferenciaGsDisplay | number:'1.0-0' }}
-            </span>
-            <span class="kpi-hint">
-              <ng-container *ngIf="diferenciaEstado === 'cubre'">Cubre exacto</ng-container>
-              <ng-container *ngIf="diferenciaEstado === 'exceso'">Exceso</ng-container>
-              <ng-container *ngIf="diferenciaEstado === 'falta'">Falta cubrir</ng-container>
-            </span>
-          </div>
+      <!-- Balance compacto (patrón dashboard) -->
+      <div class="balance-strip">
+        <div class="bstat">
+          <span class="b-label">A pagar</span>
+          <strong class="b-value">Gs {{ (data?.montoSugerido ?? 0) | number:'1.0-0' }}</strong>
         </div>
-      </mat-card>
+        <div class="bstat">
+          <span class="b-label">Equivalente Gs</span>
+          <strong class="b-value">Gs {{ valorEnGuaraniesDisplay | number:'1.0-0' }}</strong>
+        </div>
+        <div class="bstat b-dif" [ngClass]="'estado-' + diferenciaEstado">
+          <span class="b-label">Diferencia</span>
+          <strong class="b-value">
+            <mat-icon *ngIf="diferenciaEstado === 'cubre'">check_circle</mat-icon>
+            <mat-icon *ngIf="diferenciaEstado === 'exceso'">north</mat-icon>
+            <mat-icon *ngIf="diferenciaEstado === 'falta'">south</mat-icon>
+            Gs {{ diferenciaGsDisplay | number:'1.0-0' }}
+          </strong>
+          <small class="b-hint">
+            <ng-container *ngIf="diferenciaEstado === 'cubre'">Cubre exacto</ng-container>
+            <ng-container *ngIf="diferenciaEstado === 'exceso'">Exceso</ng-container>
+            <ng-container *ngIf="diferenciaEstado === 'falta'">Falta cubrir</ng-container>
+          </small>
+        </div>
+      </div>
     </form>
   </mat-dialog-content>
 

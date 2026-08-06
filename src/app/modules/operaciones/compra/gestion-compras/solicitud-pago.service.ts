@@ -362,6 +362,8 @@ export class SolicitudPagoService {
     switch (estado) {
       case SolicitudPagoEstado.PENDIENTE:
         return 'Pendiente';
+      case SolicitudPagoEstado.SOLICITADO:
+        return 'Solicitado';
       case SolicitudPagoEstado.PARCIAL:
         return 'Pago Parcial';
       case SolicitudPagoEstado.CONCLUIDO:
@@ -382,6 +384,8 @@ export class SolicitudPagoService {
     switch (estado) {
       case SolicitudPagoEstado.PENDIENTE:
         return 'warn';
+      case SolicitudPagoEstado.SOLICITADO:
+        return 'accent';
       case SolicitudPagoEstado.PARCIAL:
         return 'accent';
       case SolicitudPagoEstado.CONCLUIDO:

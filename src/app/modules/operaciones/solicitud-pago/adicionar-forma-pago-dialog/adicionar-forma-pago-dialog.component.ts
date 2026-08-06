@@ -1,5 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
@@ -55,6 +56,12 @@ export class AdicionarFormaPagoDialogComponent {
   /** Opciones ngx-currency para Cotización (siempre con decimales). */
   cotizacionCurrencyOptions: any;
 
+  /** Cuotas de cheque: genera una forma de pago por cheque, encadenadas por intervalo de días. */
+  intervalos = [7, 15, 30, 45];
+  cuotasOpciones = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  /** true cuando es cheque, alta (no edición) y cuotas > 1 → se dividirá en varios cheques. */
+  esMultiCuota = false;
+
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<AdicionarFormaPagoDialogComponent>,
@@ -88,8 +95,11 @@ export class AdicionarFormaPagoDialogComponent {
       fechaEmisionCheque: [hoy],
       portador: [this.proveedorNombreDisplay],
       nominal: [true],
-      diferido: [true]
+      diferido: [true],
+      cuotas: [1],
+      intervalo: [30]
     });
+    this.form.get('cuotas').valueChanges.subscribe(() => this.updateMultiCuota());
     this.form.get('formaPagoId').valueChanges.subscribe((id) => {
       const fp = this.formaPagoList.find((f) => f.id === id);
       this.mostrarCamposCheque = fp?.descripcion != null && (fp.descripcion + '').toUpperCase().includes('CHEQUE');
@@ -106,6 +116,7 @@ export class AdicionarFormaPagoDialogComponent {
               : this.form.get('fechaPago').value
         });
       }
+      this.updateMultiCuota();
     });
     this.form.get('monedaId').valueChanges.subscribe((id) => {
       const m = this.monedaList.find((mo) => mo.id === id);
@@ -277,50 +288,95 @@ export class AdicionarFormaPagoDialogComponent {
     this.updateValorEnGuaraniesDisplay();
   }
 
+  /** Recalcula si el cheque se dividirá en varias cuotas (una forma de pago por cheque). */
+  private updateMultiCuota(): void {
+    const cuotas = Number(this.form.get('cuotas')?.value) || 1;
+    this.esMultiCuota = this.mostrarCamposCheque && !this.isModoEdicion && cuotas > 1;
+  }
+
   onConfirmar(): void {
     if (!this.form.valid) {
       this.form.markAllAsTouched();
       return;
     }
-    const detalle = this.buildDetalleFromForm();
-    if (this.isModoEdicion && this.data?.detalleExistente) {
-      this.dialogosService.confirm('Guardar cambios', this.textoConfirmacion).subscribe((confirmed) => {
-        if (!confirmed) return;
-        const row = {
-          ...detalle,
-          monedaDenominacion: (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
-          formaPagoDescripcion: (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
-        };
-        this.dialogRef.close(row);
-      });
-      return;
+    const detalles = this.buildDetallesArray();   // 1 forma, o N (una por cheque)
+    const esVarias = detalles.length > 1;
+    const titulo = this.isModoEdicion ? 'Guardar cambios' : 'Confirmar forma de pago';
+    const mensaje = esVarias
+      ? `Se crearán ${detalles.length} cheques (una forma de pago por cheque, cada ${this.form.get('intervalo').value} días). ¿Confirmar?`
+      : this.textoConfirmacion;
+
+    this.dialogosService.confirm(titulo, mensaje).subscribe((confirmed) => {
+      if (!confirmed) return;
+
+      // Edición de un detalle existente: siempre 1, el padre reemplaza (no persiste acá).
+      if (this.isModoEdicion && this.data?.detalleExistente) {
+        this.dialogRef.close([this.toRow(detalles[0])]);
+        return;
+      }
+
+      const solicitudPagoId = this.data?.solicitudPagoId;
+      if (solicitudPagoId != null) {
+        // Modo edición de la solicitud: persistir cada detalle y devolver las filas guardadas.
+        const calls = detalles.map((d) => this.solicitudPagoService.onAgregarSolicitudPagoDetalle(solicitudPagoId, d));
+        forkJoin(calls.length ? calls : [of(null)]).subscribe({
+          next: (savedList: any[]) => {
+            const rows = (savedList || []).filter(Boolean).map((s) => this.mapSavedToRow(s));
+            this.dialogRef.close(rows);
+          },
+          error: () => this.notificacionService.openAlgoSalioMal('No se pudo guardar la forma de pago')
+        });
+      } else {
+        // Solicitud nueva (aún no creada): devolver los detalles sin guardar.
+        this.dialogRef.close(detalles.map((d) => this.toRow(d)));
+      }
+    });
+  }
+
+  /**
+   * Construye el/los detalle(s). Para cheque con cuotas > 1 genera una forma de pago por
+   * cheque: divide el valor en N (última cuota absorbe el redondeo) y encadena la fecha de
+   * pago por el intervalo de días desde la fecha de pago base.
+   */
+  private buildDetallesArray(): SolicitudPagoDetalleInput[] {
+    const base = this.buildDetalleFromForm();
+    const cuotas = this.esMultiCuota ? Math.max(1, Math.min(12, Number(this.form.get('cuotas').value) || 1)) : 1;
+    if (cuotas <= 1) return [base];
+
+    const intervalo = Number(this.form.get('intervalo').value) || 0;
+    const moneda = this.monedaList.find((m) => m.id === base.monedaId);
+    const unidad = this.getUnidadMinima(moneda);
+    const total = base.valor || 0;
+    const porCuota = Math.max(unidad, Math.floor((total / cuotas) / unidad) * unidad);
+    const fechaBase = this.form.get('fechaPago').value instanceof Date
+      ? this.form.get('fechaPago').value
+      : (this.form.get('fechaPago').value ? new Date(this.form.get('fechaPago').value) : new Date());
+
+    const detalles: SolicitudPagoDetalleInput[] = [];
+    let acumulado = 0;
+    for (let i = 0; i < cuotas; i++) {
+      const ultima = i === cuotas - 1;
+      const valor = ultima ? Math.round((total - acumulado) * 100) / 100 : porCuota;
+      acumulado += valor;
+      const fp = this.addDias(fechaBase, i * intervalo);
+      detalles.push({ ...base, valor, fechaPago: dateToString(fp), orden: i + 1 });
     }
-    this.dialogosService
-      .confirm('Confirmar forma de pago', this.textoConfirmacion)
-      .subscribe((confirmed) => {
-        if (!confirmed) return;
-        const solicitudPagoId = this.data?.solicitudPagoId;
-        if (solicitudPagoId != null) {
-          this.solicitudPagoService.onAgregarSolicitudPagoDetalle(solicitudPagoId, detalle).subscribe({
-            next: (saved) => {
-              if (saved) {
-                const row = this.mapSavedToRow(saved);
-                this.dialogRef.close(row);
-              }
-            },
-            error: () => {
-              this.notificacionService.openAlgoSalioMal('No se pudo guardar la forma de pago');
-            }
-          });
-        } else {
-          const row = {
-            ...detalle,
-            monedaDenominacion: (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
-            formaPagoDescripcion: (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
-          };
-          this.dialogRef.close(row);
-        }
-      });
+    return detalles;
+  }
+
+  private addDias(base: Date, dias: number): Date {
+    const d = base ? new Date(base) : new Date();
+    d.setDate(d.getDate() + dias);
+    return d;
+  }
+
+  /** Envuelve un detalle con las descripciones de display para la tabla del padre. */
+  private toRow(d: SolicitudPagoDetalleInput): SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string } {
+    return {
+      ...d,
+      monedaDenominacion: (this.monedaList.find((m) => m.id === d.monedaId)?.denominacion || '').toString().toUpperCase(),
+      formaPagoDescripcion: (this.formaPagoList.find((f) => f.id === d.formaPagoId)?.descripcion || '').toString().toUpperCase()
+    };
   }
 
   private buildDetalleFromForm(): SolicitudPagoDetalleInput {
