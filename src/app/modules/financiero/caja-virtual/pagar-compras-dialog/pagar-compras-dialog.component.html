@@ -84,6 +84,40 @@
           <span class="deuda-total">Total: {{ monedaDeuda?.simbolo }} {{ totalDeuda | number:'1.0-2' }}</span>
         </div>
 
+        <!-- Plan de la solicitud: N cheques planificados → autogenerar eligiendo chequera -->
+        <div class="plan-panel" *ngIf="tienePlanCheques && !planGenerado">
+          <div class="plan-info">
+            <mat-icon>event_repeat</mat-icon>
+            <span>La solicitud tiene un plan de <strong>{{ planCheques.length }} cheque(s)</strong>
+              — total {{ monedaDeuda?.simbolo }} {{ planTotal | number:'1.0-2' }}.</span>
+          </div>
+          <div class="plan-acciones">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-chequera">
+              <mat-label>Chequera</mat-label>
+              <mat-select [(ngModel)]="planChequeraSel">
+                <mat-option *ngFor="let c of chequerasActivas"
+                            [value]="c"
+                            [disabled]="c.cuentaBancaria?.moneda?.id !== monedaDeuda?.id || (c.hojasDisponibles || 0) < planCheques.length">
+                  {{ c.nombre || ('Chequera #' + c.id) }} — {{ c.cuentaBancaria?.banco?.nombre }} · {{ c.cuentaBancaria?.numero }}
+                  ({{ c.hojasDisponibles }} hojas)
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="generarChequesDelPlan()" [disabled]="!planChequeraSel">
+              <mat-icon>auto_awesome</mat-icon> Generar {{ planCheques.length }} cheque(s)
+            </button>
+          </div>
+          <div class="plan-detalle">
+            <span *ngFor="let pc of planCheques; let i = index" class="plan-cheque">
+              #{{ i + 1 }}: {{ monedaDeuda?.simbolo }} {{ pc.valor | number:'1.0-0' }}
+              <ng-container *ngIf="pc.fechaPago"> · {{ pc.fechaPago | date:'dd/MM/yy' }}</ng-container>
+            </span>
+          </div>
+          <div class="plan-aviso" *ngIf="planChequeraSel == null">
+            <mat-icon>info</mat-icon> No hay chequera activa en {{ monedaDeuda?.denominacion }} con {{ planCheques.length }} hojas. Podés cargar los cheques manualmente abajo.
+          </div>
+        </div>
+
         <!-- Form de forma de pago (siempre visible) -->
         <div class="fp-form" *ngIf="draft">
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-fuente">

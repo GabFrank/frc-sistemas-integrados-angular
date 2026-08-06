@@ -11,6 +11,15 @@ export const solicitudesPagoPendientesQuery = gql`
       estado
       proveedor { id persona { id nombre } }
       moneda { id denominacion simbolo principal decimales }
+      detalles {
+        id
+        orden
+        valor
+        fechaPago
+        diferido
+        nominal
+        formaPago { id descripcion }
+      }
     }
   }
 `;

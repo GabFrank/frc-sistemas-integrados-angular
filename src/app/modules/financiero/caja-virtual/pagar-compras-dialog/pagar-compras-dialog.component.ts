@@ -13,11 +13,22 @@ import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { CambioService } from '../../cambio/cambio.service';
 import { PagarComprasService, SolicitudConLineas, LineaPagoInput } from './pagar-compras.service';
+import { ChequeraService } from '../../chequera/chequera.service';
+import { EstadoChequera } from '../../chequera/chequera.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
+}
+
+/** Un cheque del plan de una solicitud (forma de pago CHEQUE ya registrada). */
+interface PlanCheque {
+  valor: number;        // en la moneda de la deuda
+  fechaPago?: string;   // ISO
+  diferido: boolean;
+  nominal: boolean;
+  orden: number;
 }
 
 interface SolicitudRow {
@@ -34,6 +45,7 @@ interface SolicitudRow {
   _disabled: boolean;
   _currencyOpts: any;
   _montoAPagar: number;
+  _planCheques: PlanCheque[];   // cheques planificados en la solicitud (forma de pago CHEQUE)
 }
 
 interface PagoLinea {
@@ -120,6 +132,14 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   hayCheques = false;
   private chequeRefSeq = 1;
 
+  // Plan de la solicitud: cheques ya planificados → se autogeneran eligiendo una chequera.
+  chequerasActivas: any[] = [];
+  planCheques: PlanCheque[] = [];
+  tienePlanCheques = false;
+  planChequeraSel: any = null;
+  planGenerado = false;
+  planTotal = 0;
+
   isLoading = false;
   isSaving = false;
 
@@ -135,6 +155,7 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     private monedaService: MonedaService,
     private cuentaBancariaService: CuentaBancariaService,
     private cambioService: CambioService,
+    private chequeraService: ChequeraService,
     private notificacion: NotificacionSnackbarService,
   ) {}
 
@@ -143,6 +164,10 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       if (res) { this.monedaList = res; this.monedaPrincipal = res.find((m: any) => m.principal) || null; }
     });
     this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.cuentaList = res; });
+    // Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud).
+    this.chequeraService.onGetChequeras(0, 200).pipe(untilDestroyed(this)).subscribe(res => {
+      this.chequerasActivas = (res || []).filter((c: any) => c.estado === EstadoChequera.ACTIVA && (c.hojasDisponibles || 0) > 0);
+    });
     this.cargar();
     this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
   }
@@ -162,12 +187,23 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   private toRow(s: any): SolicitudRow {
     const saldo = Math.max(0, (s.montoTotal || 0) - (s.montoPagado || 0));
+    const planCheques: PlanCheque[] = (s.detalles || [])
+      .filter((d: any) => (d.formaPago?.descripcion || '').toUpperCase().includes('CHEQUE'))
+      .map((d: any) => ({
+        valor: d.valor || 0,
+        fechaPago: d.fechaPago,
+        diferido: d.diferido !== false,
+        nominal: d.nominal !== false,
+        orden: d.orden != null ? d.orden : 0,
+      }))
+      .sort((a: PlanCheque, b: PlanCheque) => a.orden - b.orden);
     return {
       id: s.id, numeroSolicitud: s.numeroSolicitud,
       proveedorId: s.proveedor?.id, proveedorNombre: s.proveedor?.persona?.nombre || '-',
       monedaId: s.moneda?.id, monedaSimbolo: s.moneda?.simbolo || '', monedaDenominacion: s.moneda?.denominacion || '',
       decimales: this.decimales(s.moneda), saldoPendiente: saldo,
       _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(s.moneda),
+      _planCheques: planCheques,
     };
   }
 
@@ -217,6 +253,46 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     this.recalcularTotalesNotas();
     this.recalcularPago();
     if (this._draftInit) this.refrescarMontoDraft();
+    this.recomputarPlan(sel);
+  }
+
+  /** Junta los cheques planificados de las solicitudes seleccionadas y prepara el panel de plan. */
+  private recomputarPlan(sel: SolicitudRow[]) {
+    this.planCheques = sel.flatMap(r => r._planCheques || []);
+    this.planTotal = this.round(this.planCheques.reduce((s, c) => s + (c.valor || 0), 0), this.monedaDeuda);
+    this.tienePlanCheques = this.planCheques.length > 0;
+    this.planGenerado = false;
+    // Chequeras candidatas: activas, en la moneda de la deuda, con hojas suficientes para los N cheques.
+    const n = this.planCheques.length;
+    const candidatas = this.chequerasActivas.filter(c =>
+      (c.cuentaBancaria?.moneda?.id === this.monedaDeuda?.id) && (c.hojasDisponibles || 0) >= n);
+    this.planChequeraSel = candidatas[0] || null;
+  }
+
+  /** Genera una línea de pago CHEQUE por cada cheque del plan, usando la chequera elegida (números consecutivos). */
+  generarChequesDelPlan() {
+    if (!this.planChequeraSel || this.planCheques.length === 0) return;
+    const ch = this.planChequeraSel;
+    const cuenta = this.cuentaList.find(c => c.id === ch.cuentaBancaria?.id)
+      || (ch.cuentaBancaria as any);
+    const sig = Number(ch.siguienteNumero) || 0;
+    this.planCheques.forEach((pc, i) => {
+      this.lineas.push({
+        fuente: 'CHEQUE', cuenta, moneda: this.monedaDeuda!,
+        monto: pc.valor, cotizacion: 1, necesitaCotizacion: false, convertido: pc.valor,
+        _currencyOpts: this.currencyOpts(this.monedaDeuda),
+        esCheque: true, chequeRef: this.chequeRefSeq++, chequeraId: ch.id,
+        diferido: pc.diferido, nominal: pc.nominal,
+        beneficiario: this.proveedorNombreSel,
+        fechaEmision: dateToString(new Date()),
+        // stringToLocalDate evita el corrimiento de un día (new Date('yyyy-MM-dd') = medianoche UTC).
+        fechaPago: pc.fechaPago ? dateToString(stringToLocalDate(pc.fechaPago)) : dateToString(new Date()),
+        _numeroCheque: sig + i, _chequeraNombre: ch.nombre,
+      });
+    });
+    this.planGenerado = true;
+    this.recalcularPago();
+    this.notificacion.openSucess(`${this.planCheques.length} cheque(s) generados del plan`);
   }
 
   onMontoNotaChange() {
