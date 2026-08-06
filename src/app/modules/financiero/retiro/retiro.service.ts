@@ -15,6 +15,7 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
+import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
@@ -33,8 +34,15 @@ export class RetiroService {
     private retiroPorCajaId: RetiroPorCajaSalidaIdGQL,
     private reimprimirRetiro: ReimprimirRetiroGQL,
     private filterRetiro: FilterRetirosGQL,
+    private cancelarRetiro: CancelarRetiroGQL,
     private configService: ConfiguracionService
   ) { }
+
+  // servidor = true: la mutation vive en el central, igual que la lista que se
+  // consume con onFilterRetiro. El estado baja a la filial por replicacion.
+  onCancelarRetiro(id: number, sucId: number, servidor = true): Observable<boolean> {
+    return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId }, servidor);
+  }
 
   onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {
     return this.crudService.onGetById(this.retiroPorCajaId, id, null, null, servidor);

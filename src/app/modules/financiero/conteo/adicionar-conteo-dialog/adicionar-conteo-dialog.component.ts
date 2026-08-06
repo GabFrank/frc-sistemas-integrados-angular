@@ -13,7 +13,7 @@ import {
   OnDestroy,
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
-import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { Observable, Subscription } from "rxjs";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
@@ -40,6 +40,8 @@ export interface AdicionarConteoResponse {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
+import { MainService } from '../../../../main.service';
+import { HistorialConteoDialogComponent } from '../historial-conteo-dialog/historial-conteo-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -59,6 +61,10 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   @Input() sucursalId;
   @Input() nombreBoton: string;
   @Input() isVentaTouch: boolean;
+  /** Habilita el boton de correccion de montos. Lo calcula el padre: ADMIN y caja no verificada. */
+  @Input() puedeEditar: boolean;
+  /** Sucursal de la caja, necesaria para rutear la edicion a la filial correcta. */
+  @Input() cajaSucursalId: number;
   @Output()
   onGetConteoMoneda = new EventEmitter<AdicionarConteoResponse>(null);
 
@@ -82,6 +88,9 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   selectedConteo: Conteo;
 
+  /** true mientras el ADMIN esta corrigiendo los montos ya cargados. */
+  enEdicion = false;
+
   guaraniList: MonedaBillete[];
   realList: MonedaBillete[];
   dolarList: MonedaBillete[];
@@ -104,7 +113,9 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     private monedaService: MonedaService,
     private conteoService: ConteoService,
     private dialogService: DialogosService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private mainService: MainService,
+    private matDialog: MatDialog
   ) { }
 
   ngOnInit(): void {
@@ -147,8 +158,48 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   onButtonClick() {
     setTimeout(() => {
-      this.guardarConteo(this.createMonedaBilletes(), this.apertura)
+      if (this.enEdicion) {
+        this.editarConteo(this.createMonedaBilletes(), this.apertura)
+      } else {
+        this.guardarConteo(this.createMonedaBilletes(), this.apertura)
+      }
     }, 1000);
+  }
+
+  /** Abre la comparacion entre la version vigente del conteo y la que reemplazo. */
+  verHistorial() {
+    const conteoAnterior = this.selectedConteo?.conteoAnterior;
+    if (conteoAnterior == null) return;
+    this.matDialog.open(HistorialConteoDialogComponent, {
+      data: {
+        conteoActual: this.selectedConteo,
+        conteoAnterior,
+        apertura: this.apertura,
+      },
+      width: "540px",
+      maxWidth: "95vw",
+      panelClass: "historial-conteo-panel",
+      autoFocus: false,
+      restoreFocus: true,
+    });
+  }
+
+  activarEdicion() {
+    this.enEdicion = true;
+    this.gsFormGroup.enable();
+    this.rsFormGroup.enable();
+    this.dsFormGroup.enable();
+    setTimeout(() => {
+      this.gs500Input.nativeElement.focus();
+    }, 200);
+  }
+
+  cancelarEdicion() {
+    this.enEdicion = false;
+    this.gsFormGroup.reset();
+    this.rsFormGroup.reset();
+    this.dsFormGroup.reset();
+    this.cargarDatos();
   }
 
   cargarDatos() {
@@ -376,6 +427,68 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         }
       });
 
+  }
+
+  /**
+   * Corrige los montos de un conteo ya cargado. No pisa el conteo original: el backend guarda una
+   * version nueva enlazada a la anterior, con el usuario y la fecha de la correccion.
+   */
+  editarConteo(conteoMonedaList: ConteoMoneda[], apertura: boolean) {
+    let conteoAnteriorId = this.selectedConteo?.id;
+    if (conteoAnteriorId == null) return;
+    let conteo = new Conteo();
+    conteo.totalGs = this.totalGs;
+    conteo.totalRs = this.totalRs;
+    conteo.totalDs = this.totalDs;
+    conteo.sucursalId = this.cajaSucursalId != null ? this.cajaSucursalId : this.sucursalId;
+    conteo.usuario = this.mainService.usuarioActual;
+    conteo.conteoMonedaList = conteoMonedaList;
+    let texto = apertura
+      ? "Confirmar la correccion del conteo de apertura"
+      : "Confirmar la correccion del conteo de cierre";
+    this.dialogService
+      .confirm("Atención!!", texto, "Se guardara como una nueva version, dejando registro de los montos anteriores.", [
+        `Guaranies:     ${stringToInteger(this.totalGs.toString())}`,
+        `Reales:        ${stringToDecimal(this.totalRs.toString())}`,
+        `Dolares:       ${stringToDecimal(this.totalDs.toString())}`,
+      ]).pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.conteoService
+            .onEditar(conteo, this.cajaId, conteo.sucursalId, conteoAnteriorId, apertura)
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+              if (res?.exito) {
+                this.enEdicion = false;
+                this.gsFormGroup.disable();
+                this.rsFormGroup.disable();
+                this.dsFormGroup.disable();
+                // El conteo nuevo todavia no llego por replicacion al central: se refleja en memoria,
+                // incluyendo el enlace a la version reemplazada para poder abrir el historial.
+                conteo.conteoAnteriorId = conteoAnteriorId;
+                conteo.creadoEn = new Date();
+                conteo.conteoAnterior = this.selectedConteo;
+                this.selectedConteo = conteo;
+                if (apertura) {
+                  this.cajaService.selectedCaja.conteoApertura = conteo;
+                } else {
+                  this.cajaService.selectedCaja.conteoCierre = conteo;
+                }
+                let response: AdicionarConteoResponse = {
+                  apertura: this.apertura,
+                  conteo,
+                  totalGs: this.totalGs.toString(),
+                  totalRs: this.totalRs.toString(),
+                  totalDs: this.totalDs.toString(),
+                };
+                this.onGetConteoMoneda.emit(response);
+              }
+            }, () => {
+              // El motivo lo muestra el snackbar del servicio. Se mantiene el modo edicion
+              // con los montos ya tipeados para que el usuario pueda reintentar.
+            });
+        }
+      });
   }
 
   ngOnDestroy(): void {

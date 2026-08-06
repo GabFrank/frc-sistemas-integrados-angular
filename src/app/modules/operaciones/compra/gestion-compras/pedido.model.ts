@@ -28,6 +28,7 @@ export class Pedido {
   sucursalEntregaList: PedidoSucursalEntrega[];
   sucursalInfluenciaList: PedidoSucursalInfluencia[];
   procesoEtapas: ProcesoEtapa[];
+  montoTotal?: number;
 
   toInput(): PedidoInput {
     let input = new PedidoInput();

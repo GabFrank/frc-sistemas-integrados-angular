@@ -124,6 +124,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isCierre = false;
 
+  /** Habilita la correccion de montos en los conteos: solo ADMIN y sobre cajas no verificadas. */
+  puedeEditarConteos = false;
+
   isDeliveryAbierto = false;
   isSolicitudPendienteOAutorizado = false;
   hayVentasTarjetaPendientes = false;
@@ -171,6 +174,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
           if (res != null) {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;
+            // Una caja verificada queda congelada: ni el ADMIN puede corregir sus montos.
+            this.puedeEditarConteos =
+              (this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false) &&
+              this.selectedCaja?.verificado !== true;
             this.cargarDatos();
 
             const targetSection = this.data?.tabData?.goToSection;

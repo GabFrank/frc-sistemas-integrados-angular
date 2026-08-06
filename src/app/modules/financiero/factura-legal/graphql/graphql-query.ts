@@ -261,6 +261,28 @@ export const facturaLegalQuery = gql`
     }
   }
 `;
+export const facturaSimilarRecienteQuery = gql`
+  query facturaSimilarReciente(
+    $usuarioId: ID!
+    $clienteId: ID
+    $totalFinal: Float!
+    $items: [FacturaLegalItemInput]
+  ) {
+    data: facturaSimilarReciente(
+      usuarioId: $usuarioId
+      clienteId: $clienteId
+      totalFinal: $totalFinal
+      items: $items
+    ) {
+      facturaLegalId
+      numeroFactura
+      fecha
+      totalFinal
+      clienteNombre
+    }
+  }
+`;
+
 // this returns TimbradoDetalle
 export const saveFacturaLegal = gql`
   mutation saveFacturaLegal(

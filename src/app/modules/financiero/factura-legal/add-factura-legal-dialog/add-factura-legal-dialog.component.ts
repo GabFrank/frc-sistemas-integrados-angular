@@ -15,7 +15,10 @@ import {
 import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { Subject } from "rxjs";
+import { Observable, Subject, of } from "rxjs";
+import { map, switchMap } from "rxjs/operators";
+import { MainService } from "../../../../main.service";
+import { FacturaSimilar } from "../factura-similar.model";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { getDigitoVerificadorString } from "../../../../commons/core/utils/rucUtils";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -136,7 +139,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private sucursalService: SucursalService,
     private timbradoService: TimbradoService,
     private monedaService: MonedaService,
-    private cambioService: CambioService
+    private cambioService: CambioService,
+    private mainService: MainService
   ) {}
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -685,6 +689,79 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       return;
     }
     this.guardando = true;
+    // Antes de emitir, avisar si ya se generó una factura casi idéntica en este turno
+    // de caja. Va acá y no después de guardar porque emitir imprime y consume un
+    // número de timbrado: una vez emitida, ya no se puede deshacer.
+    this.verificarFacturaDuplicada().subscribe((emitirIgual) => {
+      if (!emitirIgual) {
+        this.guardando = false;
+        return;
+      }
+      this.continuarGuardado();
+    });
+  }
+
+  /**
+   * @return observable que emite true si se debe emitir la factura (no hay duplicado,
+   * o el cajero confirmó que quiere emitirla igual) y false si decidió cancelar.
+   */
+  private verificarFacturaDuplicada(): Observable<boolean> {
+    const items: FacturaLegalItemInput[] = this.dataSource.data.map((f) =>
+      f.toInput()
+    );
+    this.calcularTotal();
+    const totalFinal =
+      this.totalFinalControl.value - (this.data?.descuento || 0);
+
+    return this.facturaService
+      .onVerificarFacturaSimilar(
+        this.mainService?.usuarioActual?.id,
+        this.selectedCliente?.id,
+        totalFinal,
+        items
+      )
+      .pipe(
+        switchMap((facturaSimilar) => {
+          if (facturaSimilar == null) {
+            return of(true);
+          }
+          return this.dialogoService.confirm(
+            "Atención!!",
+            "Ya se emitió hoy una factura muy parecida a este cliente",
+            "¿Seguro que desea generar otra factura?",
+            this.detalleFacturaSimilar(facturaSimilar),
+            true,
+            "Sí, generar igual",
+            "Cancelar"
+          ).pipe(map((confirmado) => confirmado === true));
+        })
+      );
+  }
+
+  /**
+   * Líneas de detalle de la factura previa que se muestran en el aviso. Se arma acá y
+   * no en el template para no llamar funciones desde el HTML.
+   */
+  private detalleFacturaSimilar(facturaSimilar: FacturaSimilar): string[] {
+    const hora = facturaSimilar.fecha
+      ? new Date(facturaSimilar.fecha).toLocaleTimeString("es-PY", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "-";
+    const total =
+      facturaSimilar.totalFinal != null
+        ? facturaSimilar.totalFinal.toLocaleString("es-PY") + " Gs."
+        : "-";
+    return [
+      "Factura: " + (facturaSimilar.numeroFactura ?? "sin número"),
+      "Cliente: " + (facturaSimilar.clienteNombre ?? "-"),
+      "Hora: " + hora,
+      "Total: " + total,
+    ];
+  }
+
+  private continuarGuardado() {
     // Si es modo filial, preguntar si desea imprimir (pero el guardado siempre ocurre)
     if (this.isServidor) {
       this.dialogoService
