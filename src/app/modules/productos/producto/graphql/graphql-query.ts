@@ -87,6 +87,7 @@ export const productoSearchPdv = gql`
       garantia
       vencimiento
       diasVencimiento
+      lote
       observacion
       codigoPrincipal
       precioPrincipal
@@ -220,6 +221,7 @@ export const searchProductoWithFilters = gql`
       getContent {
         id
         descripcion
+        lote
         costo {
           costoMedio
           ultimoPrecioCompra
@@ -295,6 +297,7 @@ export const productoPorCodigoQuery = gql`
       garantia
       vencimiento
       diasVencimiento
+      lote
       observacion
       cambiable
       imagenPrincipal
@@ -390,6 +393,7 @@ export const productoQuery = gql`
       balanza
       vencimiento
       diasVencimiento
+      lote
       observacion
       cambiable
       imagenPrincipal
@@ -527,6 +531,7 @@ export const saveProducto = gql`
       promocion
       vencimiento
       diasVencimiento
+      lote
       costo {
         ultimoPrecioCompra
       }

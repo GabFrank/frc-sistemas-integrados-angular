@@ -22,6 +22,7 @@ export class Producto {
   promocion?: boolean;
   vencimiento?: boolean;
   diasVencimiento?: number;
+  lote?: boolean;
   cambiable?: boolean;
   usuario?: Usuario;
   imagenPrincipal?: string;

@@ -15,6 +15,8 @@ import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.
 import { InventarioModule } from './inventario/inventario.module';
 import { ModificacionesModuleModule } from './modificaciones-sistema/modificaciones.module';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { HistorialLoteComponent } from './lote/historial-lote/historial-lote.component';
+import { ListStockLoteComponent } from './lote/list-stock-lote/list-stock-lote.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
 
@@ -24,6 +26,7 @@ import { CreateItemDialogComponent } from './transferencia/create-item-dialog/cr
 import { EditTransferenciaComponent } from './transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from './transferencia/list-transferencia/list-transferencia.component';
 import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
+import { SeleccionarLotesDialogComponent } from './transferencia/seleccionar-lotes-dialog/seleccionar-lotes-dialog.component';
 import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { TransferenciaComponent } from './transferencia/transferencia.component';
 import { ListVentaComponent } from './venta/list-venta/list-venta.component';
@@ -81,6 +84,8 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     ListNecesidadComponent,
     EditNecesidadComponent,
     ListMovimientoStockComponent,
+    ListStockLoteComponent,
+    HistorialLoteComponent,
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
@@ -95,6 +100,7 @@ import { LucroPorFuncionarioComponent } from './venta/reportes/lucro-por-funcion
     SeleccionarSucursalDialogComponent,
     CreateItemDialogComponent,
     ModificarItemDialogComponent,
+    SeleccionarLotesDialogComponent,
     TransferenciaTimelineDialogComponent,
     PrecioDeliveryComponent,
     DeliveryDashboardComponent,

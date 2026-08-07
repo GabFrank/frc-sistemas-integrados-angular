@@ -63,6 +63,7 @@ import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
+import { LotesProductoDialogComponent } from "../lotes-producto-dialog/lotes-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
@@ -559,6 +560,21 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       maxWidth: '50vw',
       maxHeight: '50vh',
       panelClass: 'gestion-proveedores-producto-dialog-panel',
+    }).afterClosed().subscribe(() => {
+      this.expandedProducto = null;
+    });
+  }
+
+  /**
+   * Abre el maestro de lotes del producto. Desde ahí se puede bloquear un lote (recall):
+   * deja de venderse en todas las sucursales sin modificar el stock físico.
+   */
+  onVerLotes(producto: Producto): void {
+    this.matDialog.open(LotesProductoDialogComponent, {
+      data: { producto },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
     }).afterClosed().subscribe(() => {
       this.expandedProducto = null;
     });
