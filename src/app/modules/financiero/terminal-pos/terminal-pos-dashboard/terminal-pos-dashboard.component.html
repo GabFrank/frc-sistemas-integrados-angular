@@ -7,6 +7,9 @@
       <div fxFlex="30%" style="height: 250px">
         <app-boton nombre="Ventas con tarjeta" icon="tune" [iconSize]="4" (clickEvent)="onListVentaTarjeta()"></app-boton>
       </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton nombre="Proveedores de servicios" icon="support_agent" [iconSize]="4" (clickEvent)="onListProveedorServicio()"></app-boton>
+      </div>
       <div fxFlex="30%" style="height: 250px" *ngIf="
                 mainService.usuarioActual?.roles.includes(
                   ROLES.ADMIN

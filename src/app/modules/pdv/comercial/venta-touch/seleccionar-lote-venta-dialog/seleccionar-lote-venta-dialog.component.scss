@@ -1,0 +1,138 @@
+// Modo oscuro siempre: la app no usa fondos claros.
+:host {
+  display: block;
+  min-width: 620px;
+}
+
+.resumen {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .resumen-etiqueta {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .resumen-valor {
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
+  // La unidad al lado del número: toda la pantalla razona en unidades del lote.
+  .resumen-unidad {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.modo {
+  margin-bottom: 12px;
+  // El campo de búsqueda es más alto que los botones; sin esto la fila salta al aparecer.
+  min-height: 56px;
+}
+
+.ayuda {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 8px;
+}
+
+.spinner {
+  margin: 24px auto;
+}
+
+.aviso {
+  background-color: rgba(255, 193, 7, 0.15);
+  border-left: 3px solid #ffc107;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+// Corto y en la misma fila que los botones de modo: es un filtro puntual por número, no un campo
+// de carga. A lo ancho competía visualmente con la tabla, que es lo que el cajero tiene que mirar.
+.campo-busqueda {
+  width: 220px;
+
+  // Sin hint ni error abajo, el subscript solo agrega un hueco que desalinea la fila.
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+.mensaje-estado {
+  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 0;
+}
+
+// Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.
+.mensaje-error {
+  background-color: rgba(244, 67, 54, 0.18);
+  border-left: 3px solid #ef5350;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.tabla-scroll {
+  max-height: 320px;
+  overflow: auto;
+}
+
+// Lo elegido sobrevive a la búsqueda y a la paginación, así que tiene que verse aunque su fila
+// no esté en la página actual.
+.elegidos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+
+  .elegidos-titulo {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .chip-lote {
+    line-height: 30px;
+    padding: 0 10px;
+  }
+
+  .chip-icono {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+  }
+}
+
+// Mismo fondo que los listados del sistema, para que el diálogo no se lea como otra app.
+.tabla-lotes {
+  width: 100%;
+  background-color: rgb(70, 70, 70);
+
+  th,
+  td {
+    text-align: center;
+  }
+}
+
+// La reparte el sistema al marcar el lote: se muestra, no se edita.
+.cantidad-asignada {
+  font-weight: 600;
+}
+
+.cantidad-vacia {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+}
+
+// Contraste suficiente sobre fondo oscuro para cumplir WCAG AA.
+.fila-vencida {
+  background-color: rgba(244, 67, 54, 0.22);
+}
+
+.fila-por-vencer {
+  background-color: rgba(255, 193, 7, 0.18);
+}
+
+.faltante {
+  margin-top: 10px;
+  color: #ffca28;
+}

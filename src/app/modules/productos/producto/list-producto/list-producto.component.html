@@ -347,6 +347,14 @@
               <mat-icon>local_shipping</mat-icon>
               Gestionar proveedores
             </button>
+            <button
+              mat-menu-item
+              (click)="onVerLotes(producto)"
+              *ngIf="producto.lote"
+            >
+              <mat-icon>inventory_2</mat-icon>
+              Lotes
+            </button>
           </mat-menu>
         </td>
       </ng-container>

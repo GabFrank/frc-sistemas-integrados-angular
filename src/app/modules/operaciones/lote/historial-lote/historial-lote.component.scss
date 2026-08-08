@@ -1,0 +1,219 @@
+// App siempre en modo oscuro: no usar fondos claros.
+// Sin padding abajo: el paginador tiene que apoyar contra el borde de la pantalla, igual que en
+// el listado de stock por lotes.
+.historial-container {
+  width: 100%;
+  height: 100%;
+  padding: 10px 10px 0 10px;
+  box-sizing: border-box;
+}
+
+// La identidad del lote queda fija arriba: las dos solapas hablan del mismo y perderla al cambiar
+// de solapa obliga a recordar de cuál se trataba.
+.cabecera {
+  flex: none;
+  background-color: rgb(50, 50, 50);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+
+.cabecera-titulo {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+// 14px es el tamaño de celda de la tabla: la cabecera dice de qué lote se está hablando, así que
+// no puede leerse peor que los datos que describe.
+//
+// La etiqueta se apaga con color y no con opacity: bajarle la opacidad al bloque entero apagaba
+// también el valor, que es justamente lo que hay que leer.
+.cabecera-datos {
+  margin-top: 8px;
+  font-size: 14px;
+
+  b {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+  }
+}
+
+.cabecera-filtro {
+  margin-top: 12px;
+}
+
+.filtro-sucursal {
+  width: 280px;
+}
+
+.filtro-tipo {
+  width: 260px;
+}
+
+// El grupo de solapas toma el alto que sobra despues de la cabecera. Sin esto el cuerpo de la
+// solapa se encoge a su contenido y la tabla queda flotando con media pantalla vacia abajo.
+//
+// Los ::ng-deep son necesarios: el wrapper y el body los renderiza Material dentro del
+// componente y no aceptan alto por fuera.
+.historial-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  ::ng-deep .mat-mdc-tab-body-wrapper {
+    flex: 1;
+    min-height: 0;
+  }
+
+  ::ng-deep .mat-mdc-tab-body-content {
+    height: 100%;
+    // El scroll lo maneja .tab-cuerpo: sin esto quedan dos barras, una dentro de la otra.
+    overflow: hidden;
+  }
+}
+
+// Mismo armado que el slot de tabla de app-generic-list: alto completo, fondo oscuro y el
+// paginador anclado abajo mientras el cuerpo scrollea.
+.tab-contenido {
+  height: 100%;
+  background-color: rgb(70, 70, 70);
+}
+
+.tab-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 10px 0 10px;
+}
+
+.paginador {
+  width: 100%;
+  flex: none;
+  background-color: rgb(70, 70, 70);
+}
+
+// El checkbox reemplaza a la franja de aviso: no informa, filtra.
+//
+// Sin margenes verticales a proposito. La fila centra sus items, y en un mat-form-field la linea
+// de texto cae casi en el centro de su caja (el alto del campo mas el subscript que reserva
+// abajo), asi que el centrado ya lo alinea. Cualquier margen vertical aca agranda la caja externa
+// del checkbox y lo corre la mitad de ese valor, que es como se despegaba de los selects.
+.filtro-rastreable {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.mensaje-estado {
+  text-align: center;
+  padding: 24px 12px;
+  opacity: 0.8;
+}
+
+// Sin alto propio: el scroll y el limite los pone .tab-cuerpo, que es quien conoce el alto real
+// de la pantalla. Un max-height en vh aca cortaba la tabla antes de llegar al borde.
+.tabla-container {
+  width: 100%;
+}
+
+.tabla-historial {
+  width: 100%;
+
+  // Texto centrado en tablas por default (convención del proyecto).
+  th,
+  td {
+    text-align: center;
+  }
+}
+
+// La dirección es texto libre y puede ser larga. Se acota para que no empuje al resto de las
+// columnas, que son las que identifican la venta.
+.celda-direccion {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-tipo {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+// Un color por origen del movimiento. El signo de la cantidad dice si entró o salió; el chip dice
+// por qué, que es lo que se rastrea en un recall.
+.tipo-compra {
+  background-color: rgba(76, 175, 80, 0.22);
+  color: #81c784;
+}
+
+.tipo-venta {
+  background-color: rgba(244, 67, 54, 0.22);
+  color: #e57373;
+}
+
+.tipo-transferencia {
+  background-color: rgba(100, 181, 246, 0.22);
+  color: #90caf9;
+}
+
+.tipo-ajuste {
+  background-color: rgba(255, 167, 38, 0.22);
+  color: #ffb74d;
+}
+
+.tipo-desconocido {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #bdbdbd;
+}
+
+// El boton va pegado al numero y no en una columna aparte: la accion es "abrir ESTA venta", y
+// separarlos obliga a cruzar la fila con la vista para saber cual se esta abriendo.
+.celda-venta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  // La celda esta centrada por la regla general de la tabla; el inline-flex se centra solo.
+  line-height: 1;
+}
+
+// mat-icon-button trae padding 8px calculado para su caja de 40px. Al achicarla el padding queda
+// y empuja el icono abajo a la derecha, que es lo que lo desalineaba del numero. Se anula el
+// padding y se centra por flex, en vez de depender del line-height heredado.
+.boton-ver-venta {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  vertical-align: middle;
+  color: #64b5f6;
+
+  .mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    line-height: 16px;
+    margin: 0;
+    // Sin esto mat-icon sigue siendo inline y se apoya en la linea base, no en el centro.
+    display: block;
+  }
+}
+
+.cantidad-entrada {
+  color: #81c784;
+  font-weight: 500;
+}
+
+.cantidad-salida {
+  color: #e57373;
+  font-weight: 500;
+}

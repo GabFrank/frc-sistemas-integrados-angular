@@ -27,6 +27,7 @@ import { ListProveedorComponent } from "../../../modules/personas/proveedor/list
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
+import { ListStockLoteComponent } from "../../../modules/operaciones/lote/list-stock-lote/list-stock-lote.component";
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
@@ -495,6 +496,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Productos',
           icon: 'category',
           action: 'list-producto',
+          visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
+        },
+        {
+          name: 'Stock por lotes',
+          icon: 'inventory',
+          action: 'list-stock-lote',
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         }
       ]
@@ -993,6 +1000,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
           this.tabService.addTab(new Tab(ListProductoComponent, "Lista de productos", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-stock-lote":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS)
+          || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.tabService.addTab(new Tab(ListStockLoteComponent, "Stock por lotes", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }

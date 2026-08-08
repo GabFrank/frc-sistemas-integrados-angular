@@ -1,0 +1,277 @@
+// App siempre en modo oscuro: no usar fondos claros.
+// El layout de filtros, alto y scroll los aporta app-generic-list, igual que en el resto de los
+// listados del sistema.
+
+// Colores planos y saturados, mismo criterio que el histórico de transferencias: la fila entera
+// se pinta del color del problema. Un tinte translúcido sobre fondo oscuro casi no se distingue,
+// y el sentido de esta pantalla es que un lote vencido salte a la vista sin leer la fecha.
+// Los dos van con texto blanco: 5,7:1 de contraste sobre el rojo y 4,5:1 sobre el naranja.
+$fila-vencida: #c62828;
+$fila-por-vencer: #ef6c00;
+
+// Verde de fila abierta, el mismo del listado de productos: expandir se ve igual en todo el
+// sistema.
+$fila-expandida: #38853c;
+
+// fxLayoutGap solo separa horizontalmente dentro de la fila; entre líneas de un row wrap no pone
+// nada, así que los chips quedaban pegados a los campos de arriba.
+.fila-chips {
+  margin-top: 14px;
+}
+
+// Atajos de urgencia. Son filtros, pero siguen llevando el color de la fila que traen: apagados
+// explican el rojo y el naranja de la tabla, que es lo que antes hacía la leyenda.
+//
+// Botones planos y no mat-button-toggle porque el fondo tiene que ser exactamente el mismo color
+// que el de la fila, y el theme de Material lo pisa con el suyo.
+// Los chips van mas saturados que la fila que filtran: la fila pinta una superficie grande y el
+// chip es una pastilla chica, asi que el mismo tono se lee mas apagado aca que alla.
+$chip-vencida: #e53935;
+$chip-por-vencer: #fb8c00;
+
+.chip-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 10px 22px;
+  border: 2px solid transparent;
+  border-radius: 21px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  // Apagado casi no baja: bajarlo mucho los volvia grises y dejaban de leerse como referencia
+  // del color de la fila. El estado activo se distingue por el anillo y el tilde, no por el brillo.
+  opacity: 0.88;
+  transition: opacity 120ms ease, border-color 120ms ease;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #64b5f6;
+    outline-offset: 2px;
+  }
+
+  .mat-icon {
+    // El ícono de Material viene a 24px y desalinea la pastilla.
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    line-height: 18px;
+  }
+}
+
+// El anillo blanco y el tilde son lo que distingue "prendido": con los chips ya casi opacos, la
+// diferencia de brillo sola no alcanzaria para verse.
+.chip-filtro-activo,
+.chip-filtro-activo:hover {
+  opacity: 1;
+  border-color: #fff;
+}
+
+.chip-filtro-vencido {
+  background-color: $chip-vencida;
+}
+
+.chip-filtro-por-vencer {
+  background-color: $chip-por-vencer;
+}
+
+.mensaje-estado {
+  width: 100%;
+  text-align: center;
+  padding: 40px 16px;
+  opacity: 0.8;
+}
+
+.tabla-stock-lote {
+  width: 100%;
+}
+
+.celda-cantidad {
+  font-weight: 500;
+}
+
+.chip-estado {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.estado-liberado {
+  background-color: rgba(76, 175, 80, 0.22);
+  color: #81c784;
+}
+
+.estado-cuarentena {
+  background-color: rgba(255, 167, 38, 0.22);
+  color: #ffb74d;
+}
+
+.estado-bloqueado {
+  background-color: rgba(244, 67, 54, 0.22);
+  color: #e57373;
+}
+
+// Resaltado por proximidad de la fecha de retiro. Se calcula en el componente, no en el template.
+// !important porque MatTable aplica su propio fondo a la celda con mayor especificidad.
+.fila-vencida td {
+  background-color: $fila-vencida !important;
+  color: #fff;
+}
+
+.fila-por-vencer td {
+  background-color: $fila-por-vencer !important;
+  color: #fff;
+}
+
+// Sobre una fila de color, el chip translúcido se lava y deja de leerse: pasa a ser una pastilla
+// oscura sólida, que funciona igual sobre el rojo, el naranja y el verde de la fila abierta.
+.fila-vencida .chip-estado,
+.fila-por-vencer .chip-estado,
+.fila-expandida .chip-estado {
+  background-color: rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+.fila-vencida .boton-acciones,
+.fila-por-vencer .boton-acciones,
+.fila-expandida .boton-acciones {
+  color: #fff;
+}
+
+// ---------------------------------------------------------------------------
+// Desglose por sucursal (fila expandible)
+// ---------------------------------------------------------------------------
+
+.fila-lote {
+  cursor: pointer;
+
+  // Aclarado por encima del fondo y no cambiándolo: así el hover también se ve en las filas de
+  // color, cuyo fondo va con !important.
+  &:hover td {
+    box-shadow: inset 0 0 0 9999px rgba(255, 255, 255, 0.06);
+  }
+
+  // El foco tiene que verse: la fila se abre también con teclado.
+  &:focus-visible {
+    outline: 2px solid $fila-expandida;
+    outline-offset: -2px;
+  }
+}
+
+// El fondo verde no se ve sobre las filas de color, que van con !important. El borde inferior sí,
+// así que es él quien marca la fila abierta en esos casos; va del mismo verde que el fondo, de
+// modo que en una fila normal no se distingue y el verde se lee como uno solo. Misma especificidad
+// que el hover y después en el archivo, para que abrir gane sobre pasar el mouse.
+.fila-lote.fila-expandida td {
+  background-color: $fila-expandida;
+  box-shadow: inset 0 -3px 0 $fila-expandida;
+  color: #fff;
+}
+
+// Colores de los íconos del menú de estado. El menú se renderiza en un overlay del CDK, pero el
+// atributo de encapsulación se estampa igual porque el template es de este componente.
+.icono-liberado {
+  color: #81c784;
+}
+
+.icono-cuarentena {
+  color: #ffb74d;
+}
+
+.icono-bloqueado {
+  color: #e57373;
+}
+
+.menu-titulo {
+  padding: 8px 16px 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+// La fila de detalle no ocupa alto propio: lo aporta el panel al expandirse.
+.fila-detalle {
+  height: 0;
+}
+
+.celda-detalle {
+  padding: 0 !important;
+  background-color: rgb(50, 50, 50);
+}
+
+.detalle-sucursales {
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+.detalle-caja {
+  width: 60%;
+  min-width: 320px;
+  margin: 10px;
+  padding: 10px;
+  background-color: rgb(32, 32, 32);
+  border-radius: 4px;
+  // Hay ~30 sucursales y la mayoría va en 0: el panel scrollea en vez de empujar la tabla.
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.detalle-titulo {
+  text-align: center;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.detalle-spinner {
+  margin: 8px auto;
+}
+
+.tabla-detalle {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th {
+    color: #ffa726;
+    font-weight: 500;
+    padding-bottom: 6px;
+  }
+
+  td {
+    padding: 4px 0;
+  }
+}
+
+.detalle-columna-nombre {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.detalle-columna-stock {
+  text-align: right;
+  padding-right: 8px;
+  font-weight: 500;
+}
+
+// Las sucursales sin stock quedan atenuadas: informan, pero no son lo que se busca.
+.detalle-sin-stock {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.detalle-vacio {
+  text-align: center;
+  padding: 16px;
+  opacity: 0.8;
+}

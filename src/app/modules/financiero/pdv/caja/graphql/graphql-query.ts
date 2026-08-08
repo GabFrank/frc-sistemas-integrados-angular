@@ -227,10 +227,18 @@ export const cajaQuery = gql`
           nombre
         }
       }
+      verificado
       conteoApertura {
         id
         observacion
         creadoEn
+        conteoAnteriorId
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
         conteoMonedaList {
           id
           monedaBilletes {
@@ -243,11 +251,40 @@ export const cajaQuery = gql`
           }
           cantidad
         }
+        conteoAnterior {
+          id
+          creadoEn
+          usuario {
+            id
+            persona {
+              nombre
+            }
+          }
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
       }
       conteoCierre {
         id
         observacion
         creadoEn
+        conteoAnteriorId
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
         conteoMonedaList {
           id
           monedaBilletes {
@@ -259,6 +296,28 @@ export const cajaQuery = gql`
             valor
           }
           cantidad
+        }
+        conteoAnterior {
+          id
+          creadoEn
+          usuario {
+            id
+            persona {
+              nombre
+            }
+          }
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
         }
       }
     }

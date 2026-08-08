@@ -419,6 +419,7 @@ export const saveTransferenciaItem = gql`
           id
           descripcion
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -510,6 +511,17 @@ export const saveTransferenciaItem = gql`
         }
       }
       creadoEn
+      lotesAsignados {
+        id
+        loteId
+        numeroLote
+        cantidad
+        cantidadPresentacion
+        etapa
+        fechaVencimiento
+        fechaRetiro
+        estadoLote
+      }
     }
   }
 `;
@@ -535,6 +547,7 @@ export const saveTransferenciaItemDetalle = gql`
           id
           descripcion
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -666,6 +679,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
             descripcion
             descripcionFactura
             codigoPrincipal
+            lote
             costo {
               costoMedio
               ultimoPrecioCompra
@@ -752,6 +766,17 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
         activo
         poseeVencimiento
         creadoEn
+        lotesAsignados {
+          id
+          loteId
+          numeroLote
+          cantidad
+          cantidadPresentacion
+          etapa
+          fechaVencimiento
+          fechaRetiro
+          estadoLote
+        }
       }
     }
   }
@@ -779,6 +804,7 @@ export const transferenciaItemQuery = gql`
           descripcion
           descripcionFactura
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -865,6 +891,17 @@ export const transferenciaItemQuery = gql`
       activo
       poseeVencimiento
       creadoEn
+      lotesAsignados {
+        id
+        loteId
+        numeroLote
+        cantidad
+        cantidadPresentacion
+        etapa
+        fechaVencimiento
+        fechaRetiro
+        estadoLote
+      }
     }
   }
 `;
@@ -901,6 +938,7 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
             descripcion
             descripcionFactura
             codigoPrincipal
+            lote
             costo {
               costoMedio
               ultimoPrecioCompra
@@ -987,6 +1025,17 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
         activo
         poseeVencimiento
         creadoEn
+        lotesAsignados {
+          id
+          loteId
+          numeroLote
+          cantidad
+          cantidadPresentacion
+          etapa
+          fechaVencimiento
+          fechaRetiro
+          estadoLote
+        }
       }
     }
   }

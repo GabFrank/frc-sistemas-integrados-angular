@@ -28,6 +28,7 @@ import { RecepcionMercaderiaVerificarItemDialogComponent } from './recepcion-mer
 import { RecepcionMercaderiaRechazarItemDialogComponent, RecepcionMercaderiaRechazarItemDialogData } from './recepcion-mercaderia-rechazar-item-dialog/recepcion-mercaderia-rechazar-item-dialog.component';
 import { VerificacionRapidaSucursalesDialogComponent } from './verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 import { MainService } from '../../../../../main.service';
+import { dateToString } from '../../../../../commons/core/utils/dateUtils';
 
 // Enums y interfaces reales
 export enum RecepcionMercaderiaEstado {
@@ -826,6 +827,16 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
     // Validaciones básicas
     if (!this.validarVerificacionRapida(item)) {
+      return;
+    }
+
+    // La verificación rápida no captura el número de lote. Solo los productos con control de
+    // lote se derivan a la verificación detallada; el vencimiento por sí solo no lo exige.
+    if (item.producto?.lote === true) {
+      this.notificacionService.openWarn(
+        'Este producto requiere control de lote. Se abrirá la verificación detallada.'
+      );
+      this.onVerificacionDetallada(item);
       return;
     }
 
@@ -1732,7 +1743,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
               usuarioId: this.mainService.usuarioActual?.id,
               cantidadRecibida: distDialogo.cantidadRecibida, // Ya convertido a unidades base por el diálogo
               cantidadRechazada: 0,
-              esBonificacion: item.esBonificacion || false
+              esBonificacion: item.esBonificacion || false,
+              // Trazabilidad por lote: el diálogo captura estos datos por sucursal y el backend
+              // los usa para generar el desglose de stock por lote al finalizar la recepción.
+              lote: distDialogo.lote ? distDialogo.lote.trim().toUpperCase() : null,
+              vencimientoRecibido: dateToString(distDialogo.vencimiento),
+              // Opcional: si va null el backend sigue derivando el retiro de los días de
+              // vencimiento del producto, que es el comportamiento histórico.
+              fechaRetiro: dateToString(distDialogo.fechaRetiro)
             };
 
             // Si se encontró la distribución, incluir su ID para vinculación directa
@@ -1768,6 +1786,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
               // Actualizar UI del item
               this.actualizarUIItemVerificadoDetallado(item, result);
+
+              // La primera verificación mueve el proceso a RECEPCION_MERCADERIA / EN_PROCESO en
+              // el backend. Sin releer esas dos propiedades el botón "Finalizar Recepción Física"
+              // sigue deshabilitado hasta salir y volver a entrar a la pantalla.
+              this.recargarPedidoYEtapa();
 
               // Notificar éxito
               this.notificacionService.openSucess('Verificación detallada completada exitosamente');
@@ -2418,6 +2441,34 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
   }
 
   /**
+   * Recarga el pedido y la etapa del proceso. Hay que hacer las dos cosas: `loadEtapaActual`
+   * resuelve `etapaActualComputed` contra el backend, pero `etapaEstadoComputed` sale de
+   * `this.pedido.procesoEtapas`, así que con el pedido viejo en memoria la etapa queda a medias.
+   *
+   * Toda ruta que verifique ítems tiene que llamarlo: la primera verificación mueve el proceso a
+   * RECEPCION_MERCADERIA / EN_PROCESO, y de esas dos propiedades depende que se habilite el botón
+   * "Finalizar Recepción Física".
+   */
+  private recargarPedidoYEtapa(): void {
+    if (!this.pedidoId) {
+      this.loadEtapaActual();
+      return;
+    }
+    this.pedidoService.onGetPedidoById(this.pedidoId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (pedido) => {
+          this.pedido = pedido;
+          this.loadEtapaActual();
+        },
+        error: (error) => {
+          console.error('Error al recargar pedido:', error);
+          this.loadEtapaActual();
+        }
+      });
+  }
+
+  /**
    * Carga la etapa actual del proceso para validar si se puede finalizar
    */
   private loadEtapaActual(): void {
@@ -2569,6 +2620,43 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
    * Maneja el botón "Recepcionar todo"
    * Abre un diálogo de confirmación antes de recepcionar todos los items
    */
+  /**
+   * Separa los items que se pueden recepcionar de forma masiva de los que exigen control de lote.
+   *
+   * La recepción masiva no captura número de lote, así que el backend saltea esos items
+   * (ver RecepcionMercaderiaItemGraphQL.recepcionarTodoPorNota). Se separan acá para poder
+   * avisarle al usuario en vez de que desaparezcan sin explicación.
+   */
+  private separarItemsPorControlDeLote(items: NotaRecepcionItem[]): {
+    sinLote: NotaRecepcionItem[];
+    conLote: NotaRecepcionItem[];
+  } {
+    const sinLote: NotaRecepcionItem[] = [];
+    const conLote: NotaRecepcionItem[] = [];
+    items.forEach(item => {
+      if (item.producto?.lote === true) {
+        conLote.push(item);
+      } else {
+        sinLote.push(item);
+      }
+    });
+    return { sinLote, conLote };
+  }
+
+  /**
+   * Arma el texto de bloqueo con los productos que exigen control de lote.
+   */
+  private armarAvisoControlDeLote(itemsConLote: NotaRecepcionItem[]): string {
+    const nombres = itemsConLote
+      .map(item => item.producto?.descripcion)
+      .filter(descripcion => !!descripcion);
+    const listado = nombres.slice(0, 5).join(', ');
+    const resto = nombres.length > 5 ? ` y ${nombres.length - 5} más` : '';
+    return `Esta nota contiene ${nombres.length} producto(s) con control de lote ` +
+      `(${listado}${resto}). La recepción masiva no captura el número de lote, ` +
+      `así que debe verificar los ítems de esta nota con el botón de Verificación Detallada.`;
+  }
+
   onRecepcionarTodo(): void {
     if (!this.notaSeleccionada) {
       this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
@@ -2607,6 +2695,21 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
 
         if (itemsRecepcionables.length === 0) {
           this.notificacionService.openWarn('No hay items pendientes o parciales para recepcionar');
+          return;
+        }
+
+        // Regla de negocio: si la nota contiene AL MENOS UN producto con control de lote,
+        // no se recepciona nada de forma masiva. Es todo o nada por nota.
+        const { conLote } = this.separarItemsPorControlDeLote(itemsRecepcionables);
+
+        if (conLote.length > 0) {
+          this.dialogosService.confirm(
+            'No se puede recepcionar en masa',
+            this.armarAvisoControlDeLote(conLote),
+            'Ningún ítem de esta nota será recepcionado en esta operación.',
+            undefined,
+            false // solo informativo, sin botones de acción
+          ).subscribe();
           return;
         }
 
@@ -2673,6 +2776,21 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy, AfterVie
     const itemsVerificados = itemsARecepcionar.filter(item => item.estadoRecepcion === 'VERIFICADO');
     if (itemsVerificados.length > 0) {
       this.notificacionService.openWarn('Algunos items seleccionados ya están verificados y no serán recepcionados nuevamente.');
+    }
+
+    // Regla de negocio: si la selección incluye AL MENOS UN producto con control de lote,
+    // no se recepciona nada. Es todo o nada, igual que en la recepción por nota.
+    const { conLote } = this.separarItemsPorControlDeLote(itemsRecepcionables);
+
+    if (conLote.length > 0) {
+      this.dialogosService.confirm(
+        'No se puede recepcionar en masa',
+        this.armarAvisoControlDeLote(conLote),
+        'Ningún ítem seleccionado será recepcionado en esta operación.',
+        undefined,
+        false // solo informativo, sin botones de acción
+      ).subscribe();
+      return;
     }
 
     // Determinar el mensaje según la cantidad de items recepcionables

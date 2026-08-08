@@ -159,6 +159,24 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="estado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 10%"
+        >
+          Estado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let retiro"
+          style="text-align: center; width: 10%"
+          [ngClass]="{ cancelada: retiro?.estado == 'CANCELADO' }"
+        >
+          {{ retiro?.estado | enumToString | titlecase }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="acciones">
         <th
           mat-header-cell
@@ -169,7 +187,7 @@
         </th>
         <td
           mat-cell
-          *matCellDef="let retiro; let i = index"
+          *matCellDef="let retiro; let i = dataIndex"
           style="text-align: center; width: 5%"
         >
           <button
@@ -180,13 +198,13 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <!-- <button
+            <button
               mat-menu-item
-              (click)="onEditRetiro(retiro, i)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+              (click)="onCancelarRetiro(retiro, i)"
+              *ngIf="esAdmin"
             >
-              Editar
-            </button> -->
+              {{ retiro?.estado == "CANCELADO" ? "Habilitar" : "Cancelar" }}
+            </button>
           </mat-menu>
         </td>
       </ng-container>

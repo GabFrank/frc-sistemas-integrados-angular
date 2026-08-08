@@ -169,6 +169,31 @@ export class GenericListVentaComponent implements OnInit {
         this.onObservado(this.ventaDataSource.data);
         this.ventaDataSource.data = [...this.ventaDataSource.data];
       })
+
+    this.aplicarFiltroInicial();
+  }
+
+  /**
+   * Cuando otra pantalla abre esta solapa apuntando a una venta puntual, deja los filtros puestos
+   * y busca sola. Sin esto la pantalla abre vacía y el operador tiene que retipear el número que
+   * acaba de clickear.
+   *
+   * Van el número Y la sucursal porque la clave de venta es el par (id, sucursalId): filtrar solo
+   * por número traería la venta homónima de cada sucursal.
+   *
+   * Abierta desde el menú no llega tabData y todo sigue como antes: sin filtro y sin buscar.
+   */
+  private aplicarFiltroInicial(): void {
+    const filtro = this.data?.tabData?.data;
+    const ventaId = filtro?.ventaId ?? this.data?.tabData?.id;
+    if (ventaId == null) {
+      return;
+    }
+    this.idVentaControl.setValue(ventaId);
+    if (filtro?.sucursalId != null) {
+      this.sucursalControl.setValue(filtro.sucursalId);
+    }
+    this.onFiltrar();
   }
 
 
