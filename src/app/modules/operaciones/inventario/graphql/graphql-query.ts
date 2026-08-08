@@ -583,6 +583,34 @@ export const productosVencidosQuery = gql`
   }
 `;
 
+export const reporteProductosVencidosQuery = gql`
+  query ReporteProductosVencidos(
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $sectorIdList: [Int]
+    $zonaIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $fuenteVerdadList: [FuenteVerdadVencimiento]
+    $soloRealmenteVencidos: Boolean
+    $usuarioResponsableId: ID
+  ) {
+    data: reporteProductosVencidos(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      sectorIdList: $sectorIdList
+      zonaIdList: $zonaIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      fuenteVerdadList: $fuenteVerdadList
+      soloRealmenteVencidos: $soloRealmenteVencidos
+      usuarioResponsableId: $usuarioResponsableId
+    )
+  }
+`;
+
 export const inventarioProductoQuery = gql`
   query ($id: ID!) {
     data: inventarioProducto(id: $id) {
