@@ -178,6 +178,15 @@ export class TransferenciaItem {
 }
 
 /**
+ * `ultimoResponsable` se precalcula al armar la grilla: el template no puede resolver
+ * por fila cuál de las cuatro etapas tiene el responsable más avanzado en cada ciclo
+ * de detección de cambios.
+ */
+export type TransferenciaView = Transferencia & {
+  ultimoResponsable: string;
+};
+
+/**
  * Etapa en la que se eligieron los lotes de un ítem. PREPARACION pisa a PRE_TRANSFERENCIA al
  * momento de resolver el desglose; ambas quedan guardadas para poder auditar qué se había pedido.
  */
