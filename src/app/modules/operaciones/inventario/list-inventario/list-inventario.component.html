@@ -126,6 +126,40 @@
         </mat-form-field>
       </div>
     </div>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vencimiento</mat-label>
+          <mat-select [formControl]="vencimientoFiltroControl" (selectionChange)="onVencimientoFiltroSelect()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let opcion of vencimientoOpciones" [value]="opcion.value">{{ opcion.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10%" *ngIf="mostrarDiasPorVencer">
+        <mat-form-field style="width: 100%">
+          <mat-label>Días</mat-label>
+          <input matInput type="number" min="1" [formControl]="diasPorVencerControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vence desde</mat-label>
+          <input matInput [matDatepicker]="pickerVencDesde" [formControl]="vencimientoDesdeControl" />
+          <mat-datepicker-toggle matSuffix [for]="pickerVencDesde"></mat-datepicker-toggle>
+          <mat-datepicker #pickerVencDesde></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vence hasta</mat-label>
+          <input matInput [matDatepicker]="pickerVencHasta" [formControl]="vencimientoHastaControl" />
+          <mat-datepicker-toggle matSuffix [for]="pickerVencHasta"></mat-datepicker-toggle>
+          <mat-datepicker #pickerVencHasta></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </div>
   </div>
   <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
     fxLayoutAlign="space-between start">
@@ -230,6 +264,16 @@
             ? "SOBRA"
             : null
             }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 8%">
+          Vencimiento
+        </th>
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 8%"
+          [ngClass]="inventarioProductoItem?.vencimientoClase">
+          {{ (inventarioProductoItem?.vencimiento | date : "dd/MM/yy") || "-" }}
         </td>
       </ng-container>
 

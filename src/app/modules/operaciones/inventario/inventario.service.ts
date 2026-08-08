@@ -34,6 +34,17 @@ import {
 } from "./inventario.model";
 import { ListInventarioComponent } from "./list-inventario/list-inventario.component";
 
+/**
+ * Filtros de vencimiento de la lista de inventarios. Van agrupados para no
+ * seguir estirando la lista de argumentos posicionales de las consultas.
+ */
+export interface VencimientoFiltroParams {
+  vencimientoFiltro?: string;
+  diasPorVencer?: number;
+  vencimientoDesde?: string;
+  vencimientoHasta?: string;
+}
+
 @UntilDestroy()
 @Injectable({
   providedIn: "root",
@@ -154,7 +165,8 @@ export class InventarioService {
     sucursalIdList?: number[],
     usuarioIdList?: number[],
     productoIdList?: number[],
-    estado?: string
+    estado?: string,
+    vencimiento?: VencimientoFiltroParams
   ) {
     return this.genericCrudService.onCustomQuery(
       this.inventarioProductoItemWithFilters,
@@ -169,6 +181,10 @@ export class InventarioService {
         orderBy,
         tipoOrder,
         estado,
+        vencimientoFiltro: vencimiento?.vencimientoFiltro,
+        diasPorVencer: vencimiento?.diasPorVencer,
+        vencimientoDesde: vencimiento?.vencimientoDesde,
+        vencimientoHasta: vencimiento?.vencimientoHasta,
       }
     );
   }
@@ -183,7 +199,9 @@ export class InventarioService {
     nickname: string,
     sucursalIdList?: number[],
     usuarioIdList?: number[],
-    productoIdList?: number[]
+    productoIdList?: number[],
+    estado?: string,
+    vencimiento?: VencimientoFiltroParams
   ) {
     this.genericCrudService
       .onCustomQuery(
@@ -199,6 +217,11 @@ export class InventarioService {
           usuarioIdList,
           productoIdList,
           nickname: this.mainService.usuarioActual.nickname,
+          estado,
+          vencimientoFiltro: vencimiento?.vencimientoFiltro,
+          diasPorVencer: vencimiento?.diasPorVencer,
+          vencimientoDesde: vencimiento?.vencimientoDesde,
+          vencimientoHasta: vencimiento?.vencimientoHasta,
         },
         true
       )
