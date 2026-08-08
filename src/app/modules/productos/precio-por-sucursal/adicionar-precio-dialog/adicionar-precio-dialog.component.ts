@@ -10,10 +10,17 @@ import { TipoPrecioService } from '../../tipo-precio/tipo-precio.service';
 import { PrecioPorSucursalInput } from '../precio-por-sucursal-input.model';
 import { PrecioPorSucursal } from '../precio-por-sucursal.model';
 import { PrecioPorSucursalService } from '../precio-por-sucursal.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import {
+  evaluarMargenPrecio,
+  MARGEN_MINIMO_PORCENTAJE,
+} from '../margen-precio.util';
 
 export class AdicionarPrecioPorSucursalData {
   precio: PrecioPorSucursal;
   presentacion: Presentacion;
+  /** Costo medio del producto en guaraníes, por unidad base de stock. */
+  costoMedio?: number;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -42,7 +49,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     private notificacionSnackBar: NotificacionSnackbarService,
     private tipoPrecioService: TipoPrecioService,
     private cargandoDialog: CargandoDialogService,
-    private mainService: MainService
+    private mainService: MainService,
+    private dialogosService: DialogosService
   ) {}
 
   ngOnInit(): void {
@@ -127,12 +135,82 @@ export class AdicionarPrecioDialogComponent implements OnInit {
             return;
           }
 
-          this.continuarGuardado();
+          this.verificarMargen();
         });
       return;
     }
 
-    this.continuarGuardado();
+    this.verificarMargen();
+  }
+
+  /**
+   * Avisa cuando el precio deja un margen menor al mínimo sobre el costo del producto.
+   * El usuario elige entre cancelar (no guarda y el diálogo queda abierto con el valor
+   * cargado, para corregirlo ahí mismo), aplicar el precio mínimo sugerido, o guardar
+   * igual el precio que ingresó.
+   */
+  private verificarMargen() {
+    const evaluacion = evaluarMargenPrecio(
+      Number(this.precioControl.value),
+      this.data?.costoMedio,
+      this.data?.presentacion?.cantidad
+    );
+
+    if (evaluacion == null || !evaluacion.debeAvisar) {
+      this.continuarGuardado();
+      return;
+    }
+
+    const precioSugerido = Math.round(evaluacion.precioMinimoSugerido);
+
+    this.dialogosService
+      .confirm(
+        'Margen por debajo del mínimo',
+        `El precio ingresado deja un margen de ${this.formatearPorcentaje(
+          evaluacion.margenPorcentaje
+        )}% sobre el costo.`,
+        `Se espera un margen mínimo de ${MARGEN_MINIMO_PORCENTAJE}%.`,
+        [
+          `Costo de la presentación: ${this.formatearGs(
+            evaluacion.costoPresentacion
+          )}`,
+          `Precio ingresado: ${this.formatearGs(
+            Number(this.precioControl.value)
+          )}`,
+          `Precio mínimo sugerido: ${this.formatearGs(precioSugerido)}`,
+        ],
+        true,
+        'Cancelar',
+        'Usar precio sugerido',
+        'Continuar igual'
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        // DialogosComponent enfoca siempre el primer botón, y cada botón cierra con un valor
+        // fijo: el 1° con true, el 2° con false y el 3° con null. "Cancelar" va primero para
+        // que un Enter reflejo no se saltee el aviso. Con tres botones el diálogo se puede
+        // cerrar con ESC, que devuelve undefined y también cuenta como cancelar.
+        if (res === false) {
+          this.aplicarPrecioSugerido(precioSugerido);
+          this.continuarGuardado();
+        } else if (res === null) {
+          this.continuarGuardado();
+        }
+      });
+  }
+
+  /** Reemplaza el precio ingresado por el mínimo sugerido, antes de guardar. */
+  private aplicarPrecioSugerido(precioSugerido: number) {
+    this.precioControl.setValue(precioSugerido);
+    this.precioInput.precio = precioSugerido;
+  }
+
+  private formatearGs(valor: number): string {
+    return Math.round(valor).toLocaleString('es-PY');
+  }
+
+  private formatearPorcentaje(valor: number): string {
+    return valor.toFixed(1).replace('.', ',');
   }
 
   private continuarGuardado() {
