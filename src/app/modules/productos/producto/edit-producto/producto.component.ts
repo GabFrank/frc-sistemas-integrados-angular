@@ -1185,6 +1185,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     let data = new AdicionarPrecioPorSucursalData();
     data.precio = index === null ? null : this.selectedPrecio;
     data.presentacion = presentacion;
+    // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
+    data.costoMedio = this.selectedProducto?.costo?.costoMedio;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,

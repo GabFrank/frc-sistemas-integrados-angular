@@ -534,6 +534,7 @@ export const saveProducto = gql`
       lote
       costo {
         ultimoPrecioCompra
+        costoMedio
       }
       tipoConservacion
       subfamilia {
