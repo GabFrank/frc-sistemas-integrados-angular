@@ -67,6 +67,7 @@ import { NgxEchartsModule } from 'ngx-echarts';
 import { GraficoShellComponent } from './components/grafico-shell/grafico-shell.component';
 import { GraficoFiltrosFechaComponent } from './components/grafico-filtros-fecha/grafico-filtros-fecha.component';
 import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
+import { MontoMonedaPipe } from './pipes/monto-moneda.pipe';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -117,7 +118,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CellFormatPipe,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
-    CostoDisplayComponent
+    CostoDisplayComponent,
+    MontoMonedaPipe
   ],
   imports: [
     CommonModule,
@@ -175,7 +177,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
     NgxEchartsModule,
-    CostoDisplayComponent
+    CostoDisplayComponent,
+    MontoMonedaPipe
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })
