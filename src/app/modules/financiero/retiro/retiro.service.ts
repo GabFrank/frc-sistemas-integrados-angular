@@ -15,6 +15,8 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
+import { RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
+import { IngresarRetiroACajaMayorGQL } from "./graphql/ingresarRetiroACajaMayor";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
@@ -33,8 +35,25 @@ export class RetiroService {
     private retiroPorCajaId: RetiroPorCajaSalidaIdGQL,
     private reimprimirRetiro: ReimprimirRetiroGQL,
     private filterRetiro: FilterRetirosGQL,
+    private retirosFlotantesGQL: RetirosFlotantesGQL,
+    private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
     private configService: ConfiguracionService
   ) { }
+
+  onGetFlotantes(sucId?: number, cajaId?: number, desde?: string, hasta?: string,
+                 page = 0, size = 10, servidor = true): Observable<PageInfo<Retiro>> {
+    return this.crudService.onCustomQuery(this.retirosFlotantesGQL, {
+      sucId: sucId ?? null,
+      cajaId: cajaId ?? null,
+      desde: desde ?? null,
+      hasta: hasta ?? null,
+      page, size
+    }, servidor);
+  }
+
+  onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true): Observable<Retiro> {
+    return this.crudService.onSaveCustom(this.ingresarRetiroACajaMayorGQL, { retiroId, sucId, cajaVirtualId }, servidor);
+  }
 
   onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {
     return this.crudService.onGetById(this.retiroPorCajaId, id, null, null, servidor);

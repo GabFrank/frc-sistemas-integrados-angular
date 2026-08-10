@@ -4,6 +4,7 @@ import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
+import { IngresarRetiroCajaMayorDialogComponent, IngresarRetiroCajaMayorDialogData } from '../ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
 
 interface OpcionIngreso {
   tipo: string;
@@ -22,6 +23,7 @@ export class RegistrarIngresoDialogComponent {
 
   opciones: OpcionIngreso[] = [
     { tipo: 'EFECTIVO', titulo: 'Ingreso de Efectivo', descripcion: 'Ingreso manual de efectivo a la caja', icono: 'payments', color: '#2e7d32' },
+    { tipo: 'RETIRO_PDV', titulo: 'Ingresar Retiro de PDV', descripcion: 'Retiro de una caja de venta que está flotando', icono: 'move_to_inbox', color: '#00695c' },
     { tipo: 'ENTRADA_VARIA', titulo: 'Entrada Varia', descripcion: 'Ingreso categorizado (cobros varios, otros)', icono: 'trending_up', color: '#1565c0' },
     { tipo: 'MALETIN', titulo: 'Ingreso de Maletín', descripcion: 'Recaudación que llega dentro de un maletín', icono: 'work', color: '#00838f' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección positiva del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
@@ -37,6 +39,11 @@ export class RegistrarIngresoDialogComponent {
     if (op.tipo === 'ENTRADA_VARIA') {
       const d: EntradaVariaDialogData = { cajaVirtual: this.data.cajaVirtual, esIngreso: true };
       this.abrir(AddEntradaVariaDialogComponent, { width: '500px', data: d });
+      return;
+    }
+    if (op.tipo === 'RETIRO_PDV') {
+      const d: IngresarRetiroCajaMayorDialogData = { cajaVirtual: this.data.cajaVirtual };
+      this.abrir(IngresarRetiroCajaMayorDialogComponent, { width: '65vw', height: '70vh', maxWidth: '96vw', data: d });
       return;
     }
     if (op.tipo === 'MALETIN') {
