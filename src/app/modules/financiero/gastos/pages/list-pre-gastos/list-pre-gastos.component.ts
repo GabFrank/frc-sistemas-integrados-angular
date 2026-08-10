@@ -37,8 +37,8 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
   alturaContenedor = this.windowInfoService.innerTabHeight;
   alturaTabla = this.windowInfoService.innerTabHeight * 0.72;
 
-  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'RECHAZADO', 'COMPLETADO', null];
-  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Rechazados', 'Completados', 'Todos'];
+  tabEstados = ['PENDIENTE', 'TRAMITE', 'AUTORIZADO', 'ENVIADO_A_TESORERIA', 'PAGADO', 'RECHAZADO', 'COMPLETADO', null];
+  tabEtiquetas = ['Pendientes', 'En Trámite', 'Autorizados', 'Enviados a Tesorería', 'Pagados', 'Rechazados', 'Completados', 'Todos'];
 
   columnasVisibles = [
     'id', 'funcionario', 'tipoGasto', 'descripcion',
