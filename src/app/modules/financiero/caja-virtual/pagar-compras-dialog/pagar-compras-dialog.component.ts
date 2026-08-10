@@ -12,14 +12,18 @@ import { MonedaService } from '../../moneda/moneda.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { CambioService } from '../../cambio/cambio.service';
-import { PagarComprasService, SolicitudConLineas, LineaPagoInput } from './pagar-compras.service';
+import { PagarComprasService, SolicitudConLineas, LineaPagoInput, GastoParaPagoInput } from './pagar-compras.service';
 import { ChequeraService } from '../../chequera/chequera.service';
 import { EstadoChequera } from '../../chequera/chequera.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
+import { GastoService } from '../../gastos/service/gasto.service';
+import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
+  modo?: 'COMPRAS' | 'GASTOS';   // GASTOS reusa el mismo builder de pago; default COMPRAS
 }
 
 /** Un cheque del plan de una solicitud (forma de pago CHEQUE ya registrada). */
@@ -46,6 +50,8 @@ interface SolicitudRow {
   _currencyOpts: any;
   _montoAPagar: number;
   _planCheques: PlanCheque[];   // cheques planificados en la solicitud (forma de pago CHEQUE)
+  _descripcion?: string;        // gasto: descripción (observaciones de la solicitud)
+  _categoria?: string;          // gasto: categoría (tipoGasto.descripcion)
 }
 
 interface PagoLinea {
@@ -143,6 +149,28 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   isLoading = false;
   isSaving = false;
 
+  // ── Modo GASTOS (mismo builder de pago; fuente = gastosPendientes + alta de gasto) ──
+  esGasto = false;
+  titulo = 'Pagar Compras (CPP)';
+  vistaNuevoGasto = false;       // true = oculta el stepper y muestra solo el form de gasto
+  creandoGasto = false;
+  // Filtros de la tabla de gastos
+  filtroIdControl = new FormControl('');
+  filtroCategoriaControl = new FormControl('');
+  filtroDescripcionControl = new FormControl('');
+  // Form de nuevo gasto
+  proveedorFiltrados: Proveedor[] = [];
+  tipoGastoFiltrados: any[] = [];
+  nuevoGastoCurrencyOpts: any;
+  ngBeneficiarioControl = new FormControl(null);
+  ngTipoGastoControl = new FormControl(null);          // autocomplete (categoría obligatoria)
+  ngDescripcionControl = new FormControl('');
+  ngMonedaControl = new FormControl(null);
+  ngMontoControl = new FormControl(null);
+  ngVencimientoControl = new FormControl(null);
+  displayProveedor = (p: Proveedor): string => (p && p.persona) ? (p.persona.nombre || '') : '';
+  displayTipoGasto = (t: any): string => (t && t.descripcion) ? t.descripcion : '';
+
   // Caché de cotización a Guaraní por moneda (valorEnGsCompraMercado). Principal = 1.
   private rateGs: Record<number, number> = {};
 
@@ -157,11 +185,42 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     private cambioService: CambioService,
     private chequeraService: ChequeraService,
     private notificacion: NotificacionSnackbarService,
+    private gastoService: GastoService,
+    private proveedorService: ProveedorService,
   ) {}
 
   ngOnInit(): void {
+    this.esGasto = this.data?.modo === 'GASTOS';
+    if (this.esGasto) {
+      this.titulo = 'Pagar Gasto';
+      this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar'];
+      // Autocomplete de beneficiario (proveedor, opcional).
+      this.ngBeneficiarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
+        if (typeof val === 'string' && val.trim().length >= 2) {
+          this.proveedorService.onSearch(val.trim()).pipe(untilDestroyed(this)).subscribe(r => this.proveedorFiltrados = r || []);
+        } else if (typeof val !== 'string') { this.proveedorFiltrados = []; }
+      });
+      // Autocomplete de categoría (server-side; pueden ser cientos).
+      this.ngTipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
+        if (typeof val === 'string' && val.trim().length >= 1) {
+          this.gastoService.tipoGastoOnSearch(val.trim()).pipe(untilDestroyed(this)).subscribe(r => this.tipoGastoFiltrados = r || []);
+        } else if (typeof val !== 'string') { this.tipoGastoFiltrados = []; }
+      });
+      // Filtros de la tabla (client-side sobre lo cargado).
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroDescripcionControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+    }
     this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) { this.monedaList = res; this.monedaPrincipal = res.find((m: any) => m.principal) || null; }
+      if (res) {
+        this.monedaList = res;
+        this.monedaPrincipal = res.find((m: any) => m.principal) || null;
+        if (this.esGasto && !this.ngMonedaControl.value) {
+          const gs = res.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || res[0];
+          this.ngMonedaControl.setValue(gs);
+          this.onNuevoGastoMonedaChange();
+        }
+      }
     });
     this.cuentaBancariaService.onGetAllOperables().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.cuentaList = res; });
     // Chequeras activas con hojas (para autogenerar cheques del plan de la solicitud).
@@ -178,7 +237,10 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   cargar() {
     this.isLoading = true;
-    this.pagarComprasService.onGetPendientes().pipe(untilDestroyed(this)).subscribe(res => {
+    const fuente$ = this.esGasto
+      ? this.pagarComprasService.onGetGastosPendientes()
+      : this.pagarComprasService.onGetPendientes();
+    fuente$.pipe(untilDestroyed(this)).subscribe(res => {
       this.isLoading = false;
       this.todas = (res || []).map((s: any) => this.toRow(s));
       this.aplicarFiltro();
@@ -197,13 +259,15 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
         orden: d.orden != null ? d.orden : 0,
       }))
       .sort((a: PlanCheque, b: PlanCheque) => a.orden - b.orden);
+    // En gasto, la columna Beneficiario muestra el proveedor o "—" (la descripción tiene su propia columna).
+    const nombreMostrar = s.proveedor?.persona?.nombre || (this.esGasto ? '—' : '-');
     return {
       id: s.id, numeroSolicitud: s.numeroSolicitud,
-      proveedorId: s.proveedor?.id, proveedorNombre: s.proveedor?.persona?.nombre || '-',
+      proveedorId: s.proveedor?.id, proveedorNombre: nombreMostrar,
       monedaId: s.moneda?.id, monedaSimbolo: s.moneda?.simbolo || '', monedaDenominacion: s.moneda?.denominacion || '',
       decimales: this.decimales(s.moneda), saldoPendiente: saldo,
       _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(s.moneda),
-      _planCheques: planCheques,
+      _planCheques: planCheques, _descripcion: s.observaciones, _categoria: s.tipoGasto?.descripcion || '',
     };
   }
 
@@ -221,8 +285,76 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   }
 
   aplicarFiltro() {
+    if (this.esGasto) {
+      const fid = (this.filtroIdControl.value || '').trim();
+      const fcat = (this.filtroCategoriaControl.value || '').toUpperCase().trim();
+      const fprov = (this.filtroProveedorControl.value || '').toUpperCase().trim();
+      const fdesc = (this.filtroDescripcionControl.value || '').toUpperCase().trim();
+      this.dataSource.data = this.todas.filter(r =>
+        (!fid || String(r.id).includes(fid)) &&
+        (!fcat || (r._categoria || '').toUpperCase().includes(fcat)) &&
+        (!fprov || (r.proveedorNombre || '').toUpperCase().includes(fprov)) &&
+        (!fdesc || (r._descripcion || '').toUpperCase().includes(fdesc))
+      );
+      return;
+    }
     const t = (this.filtroProveedorControl.value || '').toUpperCase().trim();
     this.dataSource.data = t ? this.todas.filter(r => r.proveedorNombre.toUpperCase().includes(t)) : this.todas;
+  }
+
+  // ── Alta de gasto (vista de form; oculta el stepper) ──
+  abrirNuevoGasto() {
+    if (!this.ngMonedaControl.value && this.monedaList.length) {
+      const gs = this.monedaList.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || this.monedaList[0];
+      this.ngMonedaControl.setValue(gs);
+      this.onNuevoGastoMonedaChange();
+    }
+    this.vistaNuevoGasto = true;
+  }
+
+  cerrarNuevoGasto() { this.vistaNuevoGasto = false; }
+
+  onNuevoGastoMonedaChange() {
+    this.nuevoGastoCurrencyOpts = this.currencyOpts(this.ngMonedaControl.value);
+  }
+
+  crearGasto() {
+    const cat: any = this.ngTipoGastoControl.value;
+    if (!cat || typeof cat === 'string' || !cat.id) {
+      this.notificacion.openAlgoSalioMal('La categoría es obligatoria');
+      return;
+    }
+    const moneda: any = this.ngMonedaControl.value;
+    const monto = this.ngMontoControl.value;
+    const desc = (this.ngDescripcionControl.value || '').trim();
+    if (!moneda || !monto || monto <= 0 || !desc) {
+      this.notificacion.openAlgoSalioMal('Completá descripción, monto y moneda del gasto');
+      return;
+    }
+    const ben: any = this.ngBeneficiarioControl.value;
+    const input: GastoParaPagoInput = {
+      tipoGastoId: cat.id,
+      descripcion: desc,
+      monedaId: moneda.id,
+      monto,
+      beneficiarioProveedorId: (ben && typeof ben !== 'string') ? ben.id : undefined,
+      fechaVencimiento: this.ngVencimientoControl.value ? dateToString(this.ngVencimientoControl.value) : undefined,
+    };
+    this.creandoGasto = true;
+    this.pagarComprasService.onCrearGasto(input).pipe(untilDestroyed(this)).subscribe({
+      next: () => {
+        this.creandoGasto = false;
+        this.notificacion.openSucess('Gasto creado');
+        this.ngTipoGastoControl.reset(); this.ngDescripcionControl.reset('');
+        this.ngMontoControl.reset(); this.ngBeneficiarioControl.reset(); this.ngVencimientoControl.reset();
+        this.vistaNuevoGasto = false;   // volver al stepper con la tabla actualizada
+        this.cargar();
+      },
+      error: (err) => {
+        this.creandoGasto = false;
+        this.notificacion.openAlgoSalioMal(err?.message || 'Error al crear el gasto');
+      }
+    });
   }
 
   // ── Paso 1: selección (mismo proveedor + misma moneda) ──
@@ -243,8 +375,10 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       this.proveedorSel = primero.proveedorId;
       this.proveedorNombreSel = primero.proveedorNombre;
       this.monedaDeuda = this.monedaList.find(m => m.id === primero.monedaId) || null;
-      // Solo se pueden sumar notas del mismo proveedor y misma moneda.
-      this.todas.forEach(r => r._disabled = !r._sel && (r.proveedorId !== primero.proveedorId || r.monedaId !== primero.monedaId));
+      // Compras: mismo proveedor + misma moneda. Gastos: solo misma moneda (beneficiario puede variar/faltar).
+      this.todas.forEach(r => r._disabled = !r._sel && (this.esGasto
+        ? r.monedaId !== primero.monedaId
+        : (r.proveedorId !== primero.proveedorId || r.monedaId !== primero.monedaId)));
       if (this.monedaDeuda) this.getRateGs(this.monedaDeuda).pipe(untilDestroyed(this)).subscribe(); // warm cache
       if (!this._draftInit) { this.nuevoDraft(); this._draftInit = true; }
     }

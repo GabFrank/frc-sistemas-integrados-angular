@@ -1,19 +1,98 @@
-<h2 mat-dialog-title>Pagar Compras (CPP)</h2>
+<h2 mat-dialog-title>{{ titulo }}</h2>
 
 <mat-dialog-content class="pagar-content">
+
+  <!-- ═══ Vista alta de gasto (oculta el stepper) ═══ -->
+  <div *ngIf="vistaNuevoGasto" class="gasto-form-view">
+    <div class="gfv-header">Nuevo gasto</div>
+    <div class="gfv-body" fxLayout="column" fxLayoutGap="14px">
+      <div fxLayout="row wrap" fxLayoutGap="16px">
+        <mat-form-field appearance="outline" fxFlex="1 1 320px">
+          <mat-label>Proveedor / Beneficiario (opcional)</mat-label>
+          <input matInput [formControl]="ngBeneficiarioControl" [matAutocomplete]="autoBen" placeholder="Buscar proveedor" autocomplete="off" />
+          <mat-icon matSuffix>person_search</mat-icon>
+          <mat-autocomplete #autoBen="matAutocomplete" [displayWith]="displayProveedor">
+            <mat-option *ngFor="let p of proveedorFiltrados" [value]="p">{{ p.persona?.nombre }}</mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="1 1 320px">
+          <mat-label>Categoría *</mat-label>
+          <input matInput [formControl]="ngTipoGastoControl" [matAutocomplete]="autoCat" placeholder="Buscar categoría" autocomplete="off" />
+          <mat-icon matSuffix>category</mat-icon>
+          <mat-autocomplete #autoCat="matAutocomplete" [displayWith]="displayTipoGasto">
+            <mat-option *ngFor="let t of tipoGastoFiltrados" [value]="t">{{ t.descripcion }}</mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Descripción *</mat-label>
+        <input matInput [formControl]="ngDescripcionControl" placeholder="Ej: FACTURA ANDE MAYO" />
+      </mat-form-field>
+      <div fxLayout="row wrap" fxLayoutGap="16px">
+        <mat-form-field appearance="outline" fxFlex="180px">
+          <mat-label>Moneda *</mat-label>
+          <mat-select [formControl]="ngMonedaControl" (selectionChange)="onNuevoGastoMonedaChange()">
+            <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="220px">
+          <mat-label>Valor *</mat-label>
+          <input matInput currencyMask [options]="nuevoGastoCurrencyOpts" [formControl]="ngMontoControl" placeholder="0" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="220px">
+          <mat-label>Vencimiento</mat-label>
+          <input matInput [matDatepicker]="vencPicker" [formControl]="ngVencimientoControl" placeholder="Opcional" />
+          <mat-datepicker-toggle matSuffix [for]="vencPicker"></mat-datepicker-toggle>
+          <mat-datepicker #vencPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </div>
+    <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+      <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="crearGasto()" [disabled]="creandoGasto">
+        <mat-icon>save</mat-icon> Guardar gasto
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="!vistaNuevoGasto" class="stepper-wrap">
   <mat-stepper #stepper class="pagar-stepper">
 
     <!-- ═══ PASO 1: NOTAS ═══ -->
     <mat-step [completed]="haySeleccion">
       <ng-template matStepLabel>Seleccionar notas</ng-template>
       <div class="paso">
-        <mat-form-field appearance="outline" class="filtro-prov" subscriptSizing="dynamic">
+        <!-- Compras: filtro por proveedor -->
+        <mat-form-field *ngIf="!esGasto" appearance="outline" class="filtro-prov" subscriptSizing="dynamic">
           <mat-label>Filtrar por proveedor</mat-label>
           <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del proveedor" />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
-        <div class="hint" *ngIf="proveedorNombreSel">
+        <!-- Gastos: filtros de la tabla (100% width) + botón Nuevo Gasto a la derecha -->
+        <div *ngIf="esGasto" class="gasto-filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+          <mat-form-field appearance="outline" fxFlex="0 0 80px" subscriptSizing="dynamic">
+            <mat-label>N°</mat-label>
+            <input matInput [formControl]="filtroIdControl" placeholder="Id" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Categoría</mat-label>
+            <input matInput [formControl]="filtroCategoriaControl" placeholder="Categoría" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Beneficiario</mat-label>
+            <input matInput [formControl]="filtroProveedorControl" placeholder="Proveedor" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Descripción</mat-label>
+            <input matInput [formControl]="filtroDescripcionControl" placeholder="Descripción" />
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="button" fxFlex="0 0 auto" (click)="abrirNuevoGasto()">
+            <mat-icon>add</mat-icon> Nuevo Gasto
+          </button>
+        </div>
+
+        <div class="hint" *ngIf="proveedorNombreSel && !esGasto">
           <mat-icon>info</mat-icon> Solo se pueden sumar notas de <strong>{{ proveedorNombreSel }}</strong> en {{ monedaDeuda?.denominacion }}.
         </div>
 
@@ -26,8 +105,20 @@
               </td>
             </ng-container>
             <ng-container matColumnDef="proveedor">
-              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Proveedor</th>
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">{{ esGasto ? 'Beneficiario' : 'Proveedor' }}</th>
               <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled">{{ row.proveedorNombre }}</td>
+            </ng-container>
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 60px;">N°</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">{{ row.id }}</td>
+            </ng-container>
+            <ng-container matColumnDef="categoria">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Categoría</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled">{{ row._categoria || '—' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Descripción</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled" [title]="row._descripcion">{{ row._descripcion || '—' }}</td>
             </ng-container>
             <ng-container matColumnDef="numero">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Solicitud</th>
@@ -52,7 +143,7 @@
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
-          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">No hay solicitudes de pago pendientes.</div>
+          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">{{ esGasto ? 'No hay gastos pendientes. Creá uno con "Nuevo gasto".' : 'No hay solicitudes de pago pendientes.' }}</div>
         </div>
 
         <div class="tabla-footer">
@@ -256,7 +347,7 @@
       <ng-template matStepLabel>Revisar y confirmar</ng-template>
       <div class="paso revisar">
         <div class="rev-card">
-          <div class="rev-titulo">Proveedor</div>
+          <div class="rev-titulo">{{ esGasto ? 'Beneficiario' : 'Proveedor' }}</div>
           <div class="rev-valor">{{ proveedorNombreSel }}</div>
         </div>
         <div class="rev-card">
@@ -319,5 +410,6 @@
         </button>
       </ng-container>
     </ng-container>
+  </div>
   </div>
 </mat-dialog-content>

@@ -301,3 +301,44 @@ h2[mat-dialog-title] { flex-shrink: 0; margin-bottom: 8px; }
     mat-icon { font-size: 16px; width: 16px; height: 16px; }
   }
 }
+
+/* ── Modo GASTOS ── */
+.gasto-filtros {
+  width: 100%;
+  margin-bottom: 8px;
+  button { white-space: nowrap; }
+}
+
+.gasto-form-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 360px;
+
+  .gfv-header {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    margin: 4px 0 12px;
+  }
+  .gfv-body {
+    flex: 1 1 auto;
+    overflow: auto;
+    mat-form-field { width: 100%; }
+  }
+  .gfv-footer {
+    flex: 0 0 auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Wrapper del stepper (para ocultarlo en vista de nuevo gasto): mantiene la cadena flex
+   de altura para que el footer quede pegado abajo y el contenido ocupe el 100%. */
+.stepper-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}

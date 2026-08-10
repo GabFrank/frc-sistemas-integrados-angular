@@ -27,6 +27,7 @@ export class RegistrarEgresoDialogComponent {
     { tipo: 'ENTRADA_VARIA', titulo: 'Egreso Vario', descripcion: 'Egreso categorizado (gastos varios, otros)', icono: 'trending_down', color: '#e65100' },
     { tipo: 'MALETIN', titulo: 'Egreso de Maletín', descripcion: 'Efectivo que se despacha dentro de un maletín', icono: 'work', color: '#00838f' },
     { tipo: 'PAGO_CPP', titulo: 'Pagar Compras', descripcion: 'Pagar solicitudes de compra pendientes (CPP)', icono: 'shopping_cart_checkout', color: '#00695c' },
+    { tipo: 'GASTO', titulo: 'Pagar Gasto', descripcion: 'Pagar o crear un gasto (ANDE, alquiler, servicios…)', icono: 'request_quote', color: '#5d4037' },
     { tipo: 'VALE', titulo: 'Registrar Vale', descripcion: 'Adelanto/vale a funcionario (egresa al confirmar)', icono: 'receipt_long', color: '#ad1457' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección negativa del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
   ];
@@ -53,9 +54,9 @@ export class RegistrarEgresoDialogComponent {
       this.abrir(RegistrarValeDialogComponent, { width: '500px', data: d });
       return;
     }
-    if (op.tipo === 'PAGO_CPP') {
-      const d: PagarComprasDialogData = { cajaVirtual: this.data.cajaVirtual };
-      this.abrir(PagarComprasDialogComponent, { width: '60vw', maxWidth: '95vw', minWidth: '760px', height: '65vh', panelClass: 'pagar-compras-panel', data: d });
+    if (op.tipo === 'PAGO_CPP' || op.tipo === 'GASTO') {
+      const d: PagarComprasDialogData = { cajaVirtual: this.data.cajaVirtual, modo: op.tipo === 'GASTO' ? 'GASTOS' : 'COMPRAS' };
+      this.abrir(PagarComprasDialogComponent, { width: '65vw', maxWidth: '95vw', minWidth: '760px', height: '70vh', panelClass: 'pagar-compras-panel', data: d });
       return;
     }
     const tipoMov = op.tipo === 'AJUSTE' ? CajaVirtualTipoMovimiento.AJUSTE : CajaVirtualTipoMovimiento.EGRESO;

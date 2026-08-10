@@ -7,6 +7,19 @@ import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
 import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
+import { GastosPendientesGQL } from './graphql/gastosPendientes';
+import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
+
+export interface GastoParaPagoInput {
+  tipoGastoId?: number;
+  descripcion?: string;
+  monedaId: number;
+  monto: number;
+  beneficiarioProveedorId?: number;
+  beneficiarioPersonaId?: number;
+  fechaVencimiento?: string;
+  sucursalId?: number;
+}
 
 export interface PagoLote { solicitudId: number; monedaId: number; monto: number; }
 
@@ -44,7 +57,19 @@ export class PagarComprasService {
     private pagarMixtoGQL: PagarSolicitudesMixtoGQL,
     private anularGQL: AnularPagoCppGQL,
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
+    private gastosPendientesGQL: GastosPendientesGQL,
+    private crearGastoGQL: CrearGastoParaPagoGQL,
   ) { }
+
+  /** Gastos pagables (SolicitudPago tipo GASTO en SOLICITADO/PARCIAL). */
+  onGetGastosPendientes(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.gastosPendientesGQL, {}, servidor);
+  }
+
+  /** Crea un gasto (PreGasto liviano) + su SolicitudPago GASTO en SOLICITADO. Devuelve la solicitud. */
+  onCrearGasto(input: GastoParaPagoInput, servidor = true): Observable<any> {
+    return this.mutar(this.crearGastoGQL, { input }, servidor);
+  }
 
   /** Chequeras activas de una cuenta bancaria (para ofrecer cheque como forma de pago). */
   onGetChequerasPorCuenta(cuentaBancariaId: number, servidor = true): Observable<any> {

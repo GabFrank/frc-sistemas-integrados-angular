@@ -24,6 +24,40 @@ export const solicitudesPagoPendientesQuery = gql`
   }
 `;
 
+export const gastosPendientesQuery = gql`
+  query {
+    data: gastosPendientes {
+      id
+      numeroSolicitud
+      fechaSolicitud
+      montoTotal
+      montoPagado
+      estado
+      tipo
+      observaciones
+      tipoGasto { id descripcion }
+      proveedor { id persona { id nombre } }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
+export const crearGastoParaPagoMutation = gql`
+  mutation ($input: GastoParaPagoInput!) {
+    data: crearGastoParaPago(input: $input) {
+      id
+      numeroSolicitud
+      montoTotal
+      montoPagado
+      estado
+      tipo
+      observaciones
+      proveedor { id persona { id nombre } }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
 export const chequerasPorCuentaQuery = gql`
   query ($cuentaBancariaId: ID!, $soloActivas: Boolean) {
     data: chequerasPorCuenta(cuentaBancariaId: $cuentaBancariaId, soloActivas: $soloActivas) {
