@@ -172,6 +172,14 @@ input::selection {
   color: #f57c00 !important;
 }
 
+/* Convención de diálogos: el título va en BLANCO (el subtítulo menor puede ir naranja
+   con su propia clase, ej. .subtitulo-dialog). Solo aplica dentro de un diálogo, para
+   no afectar los headings naranjas de las páginas/listas que también usan .titulo-center. */
+.mat-mdc-dialog-container .titulo-center,
+.mat-dialog-container .titulo-center {
+  color: #fff !important;
+}
+
 .center {
   text-align: center !important;
 }
