@@ -125,7 +125,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CellFormatPipe,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
-    MontoMonedaPipe
+    MontoMonedaPipe,
     DashSectionHeaderComponent,
     DashStatChipComponent,
     DashQuickActionComponent,
@@ -189,7 +189,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
     NgxEchartsModule,
-    MontoMonedaPipe
+    MontoMonedaPipe,
     DashSectionHeaderComponent,
     DashStatChipComponent,
     DashQuickActionComponent,
