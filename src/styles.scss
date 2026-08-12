@@ -496,6 +496,21 @@ input {
   }
 }
 
+// Historial de edicion de un conteo: sin padding, para que la banda de color
+// llegue hasta los bordes del dialogo.
+.historial-conteo-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 10px;
+
+    .mat-mdc-dialog-surface {
+      padding: 0;
+      overflow: hidden;
+    }
+  }
+}
+
 .gestion-proveedores-producto-dialog-panel {
 
   .mat-mdc-dialog-container,

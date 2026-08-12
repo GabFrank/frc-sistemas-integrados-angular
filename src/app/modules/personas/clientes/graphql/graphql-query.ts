@@ -46,6 +46,7 @@ export const clientesSearchByPersona = gql`
       }
       tributa
       verificadoSet
+      activo
       contactos {
         id
         telefono
@@ -80,6 +81,7 @@ export const clientePorPersonaDocumento = gql`
       }
       tributa
       verificadoSet
+      activo
       contactos {
         id
         telefono
@@ -118,6 +120,7 @@ export const clientePorPersonaDocumentoDetallado = gql`
         }
         tributa
         verificadoSet
+        activo
         contactos {
           id
           telefono

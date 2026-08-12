@@ -1,0 +1,243 @@
+<h2 mat-dialog-title>Elegir lotes a transferir</h2>
+
+<mat-dialog-content class="contenido">
+
+  <div class="encabezado">
+    <div class="dato">
+      <span class="etiqueta">Producto</span>
+      <span class="valor">{{ productoDescripcion }}</span>
+    </div>
+    <div class="dato">
+      <span class="etiqueta">Sale de</span>
+      <span class="valor">{{ sucursalOrigenNombre }}</span>
+    </div>
+    <div class="dato">
+      <span class="etiqueta">Presentación</span>
+      <span class="valor">{{ presentacionLabel }}</span>
+    </div>
+    <div class="dato">
+      <span class="etiqueta">{{ tituloCantidad }}</span>
+      <span class="valor">{{ cantidadRequeridaLabel }}</span>
+    </div>
+  </div>
+
+  <div
+    class="fila-busqueda"
+    *ngIf="!cargandoInicial && !sinLotes"
+  >
+    <mat-form-field
+      appearance="outline"
+      class="campo-busqueda"
+    >
+      <mat-label>Buscar por Nº de lote</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="busquedaControl"
+        autocomplete="off"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <span
+      class="aviso-un-lote"
+      *ngIf="hayLoteElegido"
+      role="status"
+      aria-live="polite"
+    >
+      Estás sacando del lote {{ numeroLoteSeleccionado }}. Solo se puede transferir de un lote
+      por vez: para cambiarlo, borrá la cantidad.
+    </span>
+  </div>
+
+  <div
+    *ngIf="cargandoInicial"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Cargando lotes disponibles...
+  </div>
+
+  <div
+    *ngIf="sinCoincidencias"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Ningún lote coincide con la búsqueda.
+  </div>
+
+  <div
+    *ngIf="!cargandoInicial && sinLotes"
+    class="mensaje-estado"
+    role="status"
+    aria-live="polite"
+  >
+    Este producto no tiene stock por lote en la sucursal de origen. Al guardar, el desglose
+    queda a cargo del sistema.
+  </div>
+
+  <div
+    class="tabla-container"
+    *ngIf="!cargandoInicial && !sinLotes && !sinCoincidencias"
+  >
+    <table
+      mat-table
+      [dataSource]="filas"
+      class="mat-elevation-z8 tabla-lotes"
+      style="width: 100%"
+    >
+
+      <ng-container matColumnDef="numeroLote">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Nº de Lote
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.numeroLote }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaVencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.fechaVencimientoLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaRetiro">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center"
+          matTooltip="Fecha por la que se prioriza la salida (FEFO)"
+        >
+          Retiro
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.fechaRetiroLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          <span class="chip-estado" [class]="fila.estadoClase">
+            {{ fila.estadoLabel }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="disponible">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Disponible
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          {{ fila.disponibleLabel }}
+          <div class="equivalencia" *ngIf="esPresentacionMultiple">
+            {{ fila.disponibleUnidadesLabel }}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          A transferir
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center">
+          <mat-form-field
+            appearance="outline"
+            class="campo-cantidad"
+            floatLabel="always"
+          >
+            <input
+              matInput
+              type="number"
+              min="0"
+              [attr.step]="pasoCantidad"
+              [attr.max]="fila.disponible"
+              [formControl]="fila.control"
+              (input)="onCantidadCambiada(fila)"
+              [attr.aria-label]="'Cantidad a transferir del lote ' + fila.numeroLote"
+            />
+          </mat-form-field>
+        </td>
+      </ng-container>
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="displayedColumns; sticky: true"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [class.fila-no-seleccionable]="!row.seleccionable"
+        [class.fila-bloqueada]="row.bloqueada"
+      ></tr>
+    </table>
+
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[5, 10, 25, 50]"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [length]="totalElementos"
+      (page)="handlePageEvent($event)"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+
+  <div
+    class="resumen"
+    [class.resumen-error]="excedeRequerido"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="resumen-numeros" *ngIf="!cantidadDefinidaPorLotes">
+      Asignado
+      <strong>{{ totalAsignadoLabel }}</strong>
+      de
+      <strong>{{ cantidadRequeridaLabel }}</strong>
+      <span *ngIf="hayFaltante">
+        &nbsp;&mdash;&nbsp;faltan {{ faltanteLabel }}
+      </span>
+    </div>
+    <div class="resumen-numeros" *ngIf="cantidadDefinidaPorLotes">
+      Total a transferir
+      <strong>{{ totalAsignadoLabel }}</strong>
+    </div>
+    <div class="resumen-mensaje">
+      {{ mensajeFaltante }}
+    </div>
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions class="acciones">
+  <button
+    mat-stroked-button
+    (click)="onLimpiar()"
+    [disabled]="cargando"
+  >
+    Limpiar
+  </button>
+  <span class="espaciador"></span>
+  <button
+    mat-button
+    (click)="onCancelar()"
+  >
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="accent"
+    (click)="onConfirmar()"
+    [disabled]="cargando || excedeRequerido"
+  >
+    Confirmar
+  </button>
+</mat-dialog-actions>

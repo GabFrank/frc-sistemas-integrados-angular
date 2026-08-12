@@ -15,6 +15,8 @@ import { combineLatest, BehaviorSubject, Observable } from 'rxjs';
 import { switchMap, tap, map, shareReplay } from 'rxjs/operators';
 import { ListPreGastosComponent } from '../list-pre-gastos/list-pre-gastos.component';
 import { GastosDashboardComponent } from '../gastos-dashboard/gastos-dashboard.component';
+import { MainService } from '../../../../../main.service';
+import { ROLES } from '../../../../personas/roles/roles.enum';
 
 @UntilDestroy()
 @Component({
@@ -36,6 +38,9 @@ export class ListGastosComponent implements OnInit {
   private gastoService = inject(GastoService);
   private sucursalService = inject(SucursalService);
   private tabService = inject(TabService);
+  public mainService = inject(MainService);
+
+  esAdmin = false;
 
   expandedGasto: Gasto;
   
@@ -78,6 +83,10 @@ export class ListGastosComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    // Se resuelve aca y no en el template: llamar roles.includes(...) desde el HTML
+    // lo re-evalua en cada ciclo de change detection.
+    this.esAdmin = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ?? false;
+
     if (this.data?.tabData?.data?.caja?.id) {
       this.idCajaControl.setValue(this.data.tabData.data.caja.id);
     }
@@ -118,6 +127,13 @@ export class ListGastosComponent implements OnInit {
     }
   }
 
+  onCancelarGasto(gasto: Gasto) {
+    if (!gasto?.id) return;
+    this.gastoService.onCancelarGasto(gasto.id, gasto.sucursalId).subscribe(res => {
+      if (res) this.onFiltrar();
+    });
+  }
+
   onIrASolicitudGasto(gasto: Gasto): void {
     const buscarId = gasto?.preGasto?.id || gasto?.id;
     if (!buscarId) return;
@@ -143,6 +159,9 @@ export class ListGastosComponent implements OnInit {
   }
 
   getEstadoSolicitudColor(gasto: Gasto): string {
+    if (gasto?.cancelado) {
+      return '#ef5350';
+    }
     const estadoColor = gasto?.preGasto?.estadoColor;
     if (estadoColor) {
       return estadoColor;
@@ -164,6 +183,9 @@ export class ListGastosComponent implements OnInit {
   }
 
   getEstadoSolicitudIcono(gasto: Gasto): string {
+    if (gasto?.cancelado) {
+      return 'cancel';
+    }
     const estadoIcono = gasto?.preGasto?.estadoIcono;
     if (estadoIcono) {
       return estadoIcono;
@@ -185,6 +207,9 @@ export class ListGastosComponent implements OnInit {
   }
 
   getEstadoSolicitudEtiqueta(gasto: Gasto): string {
+    if (gasto?.cancelado) {
+      return 'CANCELADO';
+    }
     return gasto?.preGasto?.estadoEtiqueta || gasto?.preGasto?.estado || '-';
   }
 

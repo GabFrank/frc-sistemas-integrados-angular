@@ -1,0 +1,409 @@
+<app-generic-list
+  [titulo]="titulo"
+  [data]="dataSource.data"
+  [isLastPage]="isSearching"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+>
+  <div filtros [formGroup]="filtros">
+    <div
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="18%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Producto</mat-label>
+          <input
+            matInput
+            formControlName="texto"
+            placeholder="Buscar por descripción"
+            (keyup.enter)="onFiltrar()"
+          />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="12%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Nº de Lote</mat-label>
+          <input
+            matInput
+            formControlName="numeroLote"
+            placeholder="Ej: LOTE2024001"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+
+      <!--
+        Mismo control que el filtro de proveedor del listado de compras: el campo no se tipea, se
+        elige del diálogo de búsqueda. Son cientos de proveedores y un desplegable no escala.
+      -->
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Proveedor</mat-label>
+          <input
+            matInput
+            formControlName="proveedorTexto"
+            placeholder="Buscar proveedor..."
+            [readonly]="proveedorSeleccionado != null"
+            (click)="onSearchProveedor()"
+            (keydown)="onProveedorKeyDown($event)"
+          />
+          <mat-icon
+            *ngIf="proveedorSeleccionado == null"
+            matSuffix
+            style="cursor: pointer"
+            (click)="onSearchProveedor()"
+          >
+            search
+          </mat-icon>
+          <button
+            *ngIf="proveedorSeleccionado != null"
+            type="button"
+            matSuffix
+            mat-icon-button
+            aria-label="Quitar el filtro de proveedor"
+            (click)="onClearProveedor($event)"
+          >
+            <mat-icon>clear</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select formControlName="sucursal" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let suc of sucursales" [value]="suc">
+              {{ suc.id }} - {{ suc.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="12%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="estado" (selectionChange)="onFiltrar()">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let est of opcionesEstado" [value]="est.valor">
+              {{ est.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!--
+        Rango en vez de una sola fecha: con el tope solo se responde "qué se me vence antes de X",
+        y con los dos extremos se puede aislar una ventana, por ejemplo el mes que viene.
+        Cualquiera de las dos puntas vale por separado.
+      -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vence o se retira entre</mat-label>
+          <mat-date-range-input
+            [formGroup]="vencimiento"
+            [rangePicker]="pickerVencimiento"
+            style="width: 100%"
+          >
+            <input matStartDate formControlName="desde" placeholder="Desde" />
+            <input
+              matEndDate
+              formControlName="hasta"
+              placeholder="Hasta"
+              (dateChange)="onVencimientoRangoChange()"
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="pickerVencimiento"
+          ></mat-datepicker-toggle>
+          <mat-date-range-picker #pickerVencimiento></mat-date-range-picker>
+        </mat-form-field>
+      </div>
+
+      <!--
+        Los dos atajos de urgencia. Conservan el color de la fila que filtran incluso apagados:
+        así siguen explicando el rojo y el naranja de la tabla, que es lo que hacían de leyenda.
+      -->
+      <div
+        fxFlex="100%"
+        fxLayout="row wrap"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+        class="fila-chips"
+      >
+        <button
+          type="button"
+          class="chip-filtro chip-filtro-vencido"
+          [class.chip-filtro-activo]="filtroVencimiento === 'VENCIDO'"
+          [attr.aria-pressed]="filtroVencimiento === 'VENCIDO'"
+          matTooltip="Solo los lotes cuya fecha de retiro ya pasó"
+          (click)="onToggleVencimiento('VENCIDO')"
+        >
+          <mat-icon *ngIf="filtroVencimiento === 'VENCIDO'">check</mat-icon>
+          Vencido
+        </button>
+
+        <!--
+          La etiqueta corta necesita el tooltip: "Mes" solo no dice que la ventana es de 30 días
+          ni que arrastra a los ya vencidos.
+        -->
+        <button
+          type="button"
+          class="chip-filtro chip-filtro-por-vencer"
+          [class.chip-filtro-activo]="filtroVencimiento === 'POR_VENCER'"
+          [attr.aria-pressed]="filtroVencimiento === 'POR_VENCER'"
+          matTooltip="Lo que hay que sacar dentro de 30 días, incluido lo ya vencido"
+          (click)="onToggleVencimiento('POR_VENCER')"
+        >
+          <mat-icon *ngIf="filtroVencimiento === 'POR_VENCER'">check</mat-icon>
+          Mes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <!--
+      multiTemplateDataRows es obligatorio con dos matRowDef: sin él MatTable considera que hay
+      dos filas por defecto sin predicado `when` y falla en ngAfterContentChecked.
+    -->
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8 tabla-stock-lote"
+      style="width: 100%"
+    >
+
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 22%">
+          Producto
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 22%">
+          {{ fila.productoDescripcion }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numeroLote">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
+          Nº de Lote
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 13%">
+          {{ fila.numeroLote }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="proveedor">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 16%"
+          matTooltip="Proveedor del que vino el lote"
+        >
+          Proveedor
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 16%">
+          {{ fila.proveedorNombre }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaVencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 11%">
+          Vencimiento
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 11%">
+          {{ fila.fechaVencimientoLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaRetiro">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 11%"
+          matTooltip="Fecha por la que se prioriza la salida (FEFO)"
+        >
+          Retiro
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 11%">
+          {{ fila.fechaRetiroLabel }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 12%">
+          <span class="chip-estado" [class]="fila.estadoClase">
+            {{ fila.estadoLabel }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 9%">
+          Disponible
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let fila"
+          class="celda-cantidad"
+          style="text-align: center; width: 9%"
+        >
+          {{ fila.cantidadDisponible | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <!--
+        El menú se abre en un overlay del CDK, fuera de la tabla: sus items no burbujean a la
+        fila. El que sí lo hace es el botón, y por eso frena la propagación.
+      -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 6%"></th>
+        <td mat-cell *matCellDef="let fila" style="text-align: center; width: 6%">
+          <button
+            *ngIf="fila.esLoteReal"
+            mat-icon-button
+            class="boton-acciones"
+            [matMenuTriggerFor]="menuEstado"
+            [matMenuTriggerData]="{ fila: fila }"
+            (click)="onAccionesClick($event)"
+            matTooltip="Cambiar estado del lote"
+            aria-label="Cambiar estado del lote"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let fila"
+          [attr.colspan]="displayedColumns.length"
+          class="celda-detalle"
+        >
+          <div
+            class="detalle-sucursales"
+            [@detailExpand]="fila.estadoDetalle"
+          >
+            <div class="detalle-caja">
+              <div class="detalle-titulo">
+                {{ tituloDetalle }}
+              </div>
+
+              <mat-spinner
+                *ngIf="!fila.sucursales"
+                diameter="30"
+                class="detalle-spinner"
+              ></mat-spinner>
+
+              <table
+                *ngIf="fila.sucursales"
+                class="tabla-detalle"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col" class="detalle-columna-nombre">Sucursal</th>
+                    <th scope="col" class="detalle-columna-stock">Stock Disponible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let suc of fila.sucursales">
+                    <td class="detalle-columna-nombre">
+                      {{ suc.nombre }}
+                    </td>
+                    <td
+                      class="detalle-columna-stock"
+                      [class.detalle-sin-stock]="suc.sinStock"
+                    >
+                      {{ suc.cantidadDisponible | number: "1.0-2" }}
+                    </td>
+                  </tr>
+                  <tr *ngIf="!fila.sucursales.length">
+                    <td colspan="2" class="detalle-vacio">
+                      No hay sucursales para mostrar
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        class="fila-lote"
+        tabindex="0"
+        [class]="row.filaClase"
+        [class.fila-expandida]="row === filaExpandida"
+        [attr.aria-expanded]="row === filaExpandida"
+        [attr.aria-label]="'Ver stock por sucursal del lote ' + row.numeroLote"
+        (click)="onFilaClick(row)"
+        (keydown.enter)="onFilaClick(row)"
+        (keydown.space)="onFilaClick(row)"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="fila-detalle"
+      ></tr>
+    </table>
+
+    <div *ngIf="sinResultados" class="mensaje-estado">
+      No hay stock por lotes con esos filtros. Los lotes se generan al recibir mercadería de
+      productos marcados con control de lote.
+    </div>
+
+    <!--
+      Un solo menú para toda la tabla: el lote llega por matMenuTriggerData, así que no se
+      instancian 15 overlays por página.
+    -->
+    <mat-menu #menuEstado="matMenu">
+      <ng-template matMenuContent let-fila="fila">
+        <button mat-menu-item (click)="onVerHistorial(fila)">
+          <mat-icon>history</mat-icon>
+          <span>Ver historial</span>
+        </button>
+
+        <mat-divider></mat-divider>
+
+        <div class="menu-titulo">Cambiar estado</div>
+        <button
+          mat-menu-item
+          *ngFor="let est of opcionesEstado"
+          [disabled]="fila.estado === est.valor"
+          (click)="onCambiarEstado(fila, est.valor)"
+        >
+          <mat-icon [ngClass]="est.claseIcono">{{ est.icono }}</mat-icon>
+          <span>{{ est.label }}</span>
+        </button>
+      </ng-template>
+    </mat-menu>
+
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="handlePageEvent($event)"
+      [length]="totalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>

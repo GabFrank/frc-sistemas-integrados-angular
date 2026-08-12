@@ -33,7 +33,7 @@
         [selectedTipoPrecio]="selectedTipoPrecio"
         [tiposPrecios]="tiposPrecios"
         (dialogEvent)="isDialogOpen = true"
-        (addItemEvent)="addItem($event)"
+        (addItemEvent)="agregarConLote($event)"
         [focusEvent]="!isDialogOpen ? buscadorFocusSub.asObservable() : null"
         [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"

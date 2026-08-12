@@ -67,6 +67,7 @@ export const pedidoQuery = gql`
         }
         creadoEn
       }
+      montoTotal
     }
   }
 `;
@@ -1479,6 +1480,7 @@ export const pedidosWithFiltersQuery = gql`
           }
           creadoEn
         }
+        montoTotal
       }
     }
   }
@@ -1521,6 +1523,8 @@ export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
           id
           descripcion
           codigoPrincipal
+          lote
+          vencimiento
         }
         presentacionEnNota {
           id

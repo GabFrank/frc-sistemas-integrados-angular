@@ -87,6 +87,7 @@ export const RECEPCION_MERCADERIA_ITEMS_POR_RECEPCION_QUERY = gql`
       cantidadRechazada
       esBonificacion
       vencimientoRecibido
+      fechaRetiro
       lote
       motivoRechazo
       observaciones
@@ -233,6 +234,7 @@ export const SAVE_RECEPCION_MERCADERIA_ITEM_MUTATION = gql`
       cantidadRechazada
       esBonificacion
       vencimientoRecibido
+      fechaRetiro
       lote
       motivoRechazo
       observaciones

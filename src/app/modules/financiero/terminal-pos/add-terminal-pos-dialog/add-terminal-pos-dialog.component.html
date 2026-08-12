@@ -52,6 +52,39 @@
       </div>
     </div>
 
+    <!-- Proveedor de servicio -->
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <div fxFlex>
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Proveedor de servicio</mat-label>
+          <input
+            matInput
+            [formControl]="proveedorServicioControl"
+            readonly
+            placeholder="Sin proveedor asignado"
+          />
+        </mat-form-field>
+      </div>
+      <button
+        mat-icon-button
+        color="primary"
+        type="button"
+        [disabled]="!isEditting"
+        (click)="onBuscarProveedorServicio()"
+      >
+        <mat-icon>search</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        color="warn"
+        type="button"
+        [disabled]="!isEditting || !selectedProveedorServicio"
+        (click)="onLimpiarProveedorServicio()"
+      >
+        <mat-icon>clear</mat-icon>
+      </button>
+    </div>
+
     <!-- Checkbox -->
     <div fxLayout="column" fxLayoutGap="10px">
       <div fxLayout="row" fxLayoutGap="20px">

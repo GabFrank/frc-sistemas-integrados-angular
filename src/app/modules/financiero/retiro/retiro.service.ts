@@ -17,6 +17,7 @@ import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
 import { RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
 import { IngresarRetiroACajaMayorGQL } from "./graphql/ingresarRetiroACajaMayor";
+import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
@@ -37,6 +38,7 @@ export class RetiroService {
     private filterRetiro: FilterRetirosGQL,
     private retirosFlotantesGQL: RetirosFlotantesGQL,
     private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
+    private cancelarRetiro: CancelarRetiroGQL,
     private configService: ConfiguracionService
   ) { }
 
@@ -49,6 +51,12 @@ export class RetiroService {
       hasta: hasta ?? null,
       page, size
     }, servidor);
+  }
+
+  // servidor = true: la mutation vive en el central, igual que la lista que se
+  // consume con onFilterRetiro. El estado baja a la filial por replicacion.
+  onCancelarRetiro(id: number, sucId: number, servidor = true): Observable<boolean> {
+    return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId }, servidor);
   }
 
   onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true): Observable<Retiro> {

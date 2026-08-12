@@ -7,6 +7,7 @@ import { ListVentaTarjetaComponent } from "../../venta-tarjeta/list-venta-tarjet
 import { ROLES } from "../../../personas/roles/roles.enum";
 import { ConfiguracionVentaTarjetaDialogComponent } from "../../venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
+import { ListProveedorServicioComponent } from "../../../personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component";
 
 @Component({
   selector: 'app-terminal-pos-dashboard',
@@ -32,6 +33,10 @@ export class TerminalPosDashboard  implements OnInit{
 
   onListVentaTarjeta() {
     this.tabService.addTab(new Tab(ListVentaTarjetaComponent, 'Lista de ventas con tarjeta', null, TerminalPosDashboard));
+  }
+
+  onListProveedorServicio() {
+    this.tabService.addTab(new Tab(ListProveedorServicioComponent, 'Proveedores de servicios', null, TerminalPosDashboard));
   }
 
   onAbrirConfiguracion() {

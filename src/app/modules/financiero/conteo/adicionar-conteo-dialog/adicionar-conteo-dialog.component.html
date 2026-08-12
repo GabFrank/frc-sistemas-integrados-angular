@@ -553,15 +553,44 @@
       </mat-card>
     </div>
   </div>
-  <div style="width: 100%; text-align: center; height: 40px">
+  <div class="acciones-conteo">
     <!-- <button mat-raised-button (click)="onButtonClick()" [disabled]="selectedConteo!=null" color="accent" style="width: 150px;">{{nombreBoton}}</button> -->
     <app-boton
       #btn
+      class="acciones-conteo__principal"
       color="accent"
-      [nombre]="nombreBoton"
-      [disableExpression]="selectedConteo != null"
+      [nombre]="enEdicion ? 'Guardar edición' : nombreBoton"
+      [disableExpression]="selectedConteo != null && !enEdicion"
       (clickEvent)="onButtonClick()"
-      style="height: 100%"
     ></app-boton>
+
+    <div
+      class="acciones-conteo__secundarias"
+      *ngIf="(puedeEditar && selectedConteo != null) || enEdicion || selectedConteo?.conteoAnteriorId"
+    >
+      <button
+        mat-stroked-button
+        color="accent"
+        *ngIf="puedeEditar && selectedConteo != null && !enEdicion"
+        (click)="activarEdicion()"
+      >
+        <mat-icon>edit</mat-icon>
+        Editar montos
+      </button>
+      <button mat-stroked-button *ngIf="enEdicion" (click)="cancelarEdicion()">
+        <mat-icon>close</mat-icon>
+        Cancelar
+      </button>
+      <button
+        mat-stroked-button
+        class="acciones-conteo__historial"
+        *ngIf="selectedConteo?.conteoAnteriorId && !enEdicion"
+        (click)="verHistorial()"
+        matTooltip="Ver qué se corrigió y quién lo hizo"
+      >
+        <mat-icon>history</mat-icon>
+        Ver historial
+      </button>
+    </div>
   </div>
 </div>

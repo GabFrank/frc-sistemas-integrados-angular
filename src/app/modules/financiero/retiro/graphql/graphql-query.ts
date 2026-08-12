@@ -151,6 +151,12 @@ export const deleteRetiroQuery = gql`
   }
 `;
 
+export const cancelarRetiroQuery = gql`
+  mutation cancelarRetiro($id: ID!, $sucId: ID) {
+    data: cancelarRetiro(id: $id, sucId: $sucId)
+  }
+`;
+
 export const filterRetirosQuery = gql`
   query (
     $id: ID
@@ -179,6 +185,7 @@ export const filterRetirosQuery = gql`
       hasPrevious
       getContent {
         id
+        sucursalId
         responsable {
           id
           persona {

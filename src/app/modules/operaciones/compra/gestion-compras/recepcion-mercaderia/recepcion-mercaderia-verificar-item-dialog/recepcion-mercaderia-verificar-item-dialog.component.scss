@@ -516,6 +516,40 @@ mat-dialog-content {
                 }
               }
 
+              // Aviso de lote ya registrado. Informativo en azul; en rojo cuando el lote está
+              // fuera de circulación (bloqueado o en cuarentena).
+              .lote-existente-aviso {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: -8px 0 16px;
+                padding: 8px 12px;
+                border-radius: 4px;
+                border-left: 3px solid #2196f3;
+                background-color: rgba(33, 150, 243, 0.12);
+                color: #90caf9;
+                font-size: 13px;
+                line-height: 1.35;
+
+                mat-icon {
+                  flex-shrink: 0;
+                  font-size: 18px;
+                  width: 18px;
+                  height: 18px;
+                  color: #2196f3;
+                }
+
+                &.requiere-atencion {
+                  border-left-color: #f44336;
+                  background-color: rgba(244, 67, 54, 0.12);
+                  color: #ef9a9a;
+
+                  mat-icon {
+                    color: #f44336;
+                  }
+                }
+              }
+
               .observaciones-field {
                 width: 100%;
 
@@ -687,6 +721,45 @@ mat-dialog-actions {
 
     &.mat-mdc-option-active {
       background-color: #2196f3 !important;
+    }
+  }
+}
+
+// Autocompletado de lote. Va en un bloque aparte porque el panel se renderiza en el overlay del
+// CDK, fuera de .dialog-container: los estilos de opciones de arriba no lo alcanzan.
+::ng-deep .lote-autocomplete-panel.mat-mdc-autocomplete-panel {
+  background-color: #2d2d2d !important;
+
+  .mat-mdc-option {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    min-height: 40px;
+
+    &:hover,
+    &.mat-mdc-option-active {
+      background-color: #444 !important;
+    }
+
+    .lote-sugerencia-numero {
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .lote-sugerencia-detalle {
+      margin-left: 8px;
+      color: #9e9e9e;
+      font-size: 12px;
+    }
+
+    // Bloqueado o en cuarentena: se puede elegir igual, pero tiene que cantar a la vista.
+    &.requiere-atencion {
+      .lote-sugerencia-numero {
+        color: #ef9a9a;
+      }
+
+      .lote-sugerencia-detalle {
+        color: #f44336;
+      }
     }
   }
 }

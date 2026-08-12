@@ -19,6 +19,12 @@ export class VentaItem {
     sucursalId: number;
     valorDescuento: number = 0;
     activo: boolean
+    /**
+     * Lotes elegidos a mano por el cajero, en unidades. Vacío o sin definir significa FEFO
+     * automático, que es el camino de casi todas las ventas. Solo se completa para productos con
+     * control de lote y solo si el cajero abre el selector.
+     */
+    lotes: VentaItemLoteInput[];
 
     toInput(): VentaItemInput{
         let input = new VentaItemInput()
@@ -36,8 +42,19 @@ export class VentaItem {
         input.sucursalId = this.sucursalId
         input.valorDescuento = this.valorDescuento;
         input.activo = this.activo;
+        // Se omite cuando está vacío para que el backend lo lea como FEFO puro.
+        input.lotes = this.lotes?.length ? this.lotes : null;
         return input;
     }
+}
+
+/**
+ * Lote elegido a mano para un ítem. La cantidad va EN UNIDADES, la misma unidad que muestra el
+ * selector del POS y en la que el backend lleva el ledger de lotes: no hay conversión en el medio.
+ */
+export class VentaItemLoteInput {
+    loteId: number;
+    cantidad: number;
 }
 
 export class VentaItemInput {
@@ -56,4 +73,6 @@ export class VentaItemInput {
     sucursalId: number;
     valorDescuento: number;
     activo: boolean
+    /** Null = FEFO puro. Ver VentaLoteService en el filial. */
+    lotes: VentaItemLoteInput[];
 }

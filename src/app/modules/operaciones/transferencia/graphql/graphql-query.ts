@@ -53,24 +53,28 @@ export const transferenciaQuery = gql`
       }
       usuarioPreTransferencia {
         id
+        nickname
         persona {
           nombre
         }
       }
       usuarioPreparacion {
         id
+        nickname
         persona {
           nombre
         }
       }
       usuarioTransporte {
         id
+        nickname
         persona {
           nombre
         }
       }
       usuarioRecepcion {
         id
+        nickname
         persona {
           nombre
         }
@@ -324,6 +328,7 @@ export const transferenciaWithFiltersQuery = gql`
     $etapa: EtapaTransferencia
     $isOrigen: Boolean
     $isDestino: Boolean
+    $ultimoResponsableId: Int
     $creadoDesde: String
     $creadoHasta: String
     $page: Int
@@ -337,6 +342,7 @@ export const transferenciaWithFiltersQuery = gql`
       etapa: $etapa
       isOrigen: $isOrigen
       isDestino: $isDestino
+      ultimoResponsableId: $ultimoResponsableId
       creadoDesde: $creadoDesde
       creadoHasta: $creadoHasta
       page: $page
@@ -372,6 +378,22 @@ export const transferenciaWithFiltersQuery = gql`
         creadoEn
         hojaRuta {
           id
+        }
+        usuarioPreTransferencia {
+          id
+          nickname
+        }
+        usuarioPreparacion {
+          id
+          nickname
+        }
+        usuarioTransporte {
+          id
+          nickname
+        }
+        usuarioRecepcion {
+          id
+          nickname
         }
       }
     }
@@ -419,6 +441,7 @@ export const saveTransferenciaItem = gql`
           id
           descripcion
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -510,6 +533,17 @@ export const saveTransferenciaItem = gql`
         }
       }
       creadoEn
+      lotesAsignados {
+        id
+        loteId
+        numeroLote
+        cantidad
+        cantidadPresentacion
+        etapa
+        fechaVencimiento
+        fechaRetiro
+        estadoLote
+      }
     }
   }
 `;
@@ -535,6 +569,7 @@ export const saveTransferenciaItemDetalle = gql`
           id
           descripcion
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -666,6 +701,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
             descripcion
             descripcionFactura
             codigoPrincipal
+            lote
             costo {
               costoMedio
               ultimoPrecioCompra
@@ -752,6 +788,17 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
         activo
         poseeVencimiento
         creadoEn
+        lotesAsignados {
+          id
+          loteId
+          numeroLote
+          cantidad
+          cantidadPresentacion
+          etapa
+          fechaVencimiento
+          fechaRetiro
+          estadoLote
+        }
       }
     }
   }
@@ -779,6 +826,7 @@ export const transferenciaItemQuery = gql`
           descripcion
           descripcionFactura
           codigoPrincipal
+          lote
           costo {
             costoMedio
             ultimoPrecioCompra
@@ -865,6 +913,17 @@ export const transferenciaItemQuery = gql`
       activo
       poseeVencimiento
       creadoEn
+      lotesAsignados {
+        id
+        loteId
+        numeroLote
+        cantidad
+        cantidadPresentacion
+        etapa
+        fechaVencimiento
+        fechaRetiro
+        estadoLote
+      }
     }
   }
 `;
@@ -901,6 +960,7 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
             descripcion
             descripcionFactura
             codigoPrincipal
+            lote
             costo {
               costoMedio
               ultimoPrecioCompra
@@ -987,6 +1047,17 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
         activo
         poseeVencimiento
         creadoEn
+        lotesAsignados {
+          id
+          loteId
+          numeroLote
+          cantidad
+          cantidadPresentacion
+          etapa
+          fechaVencimiento
+          fechaRetiro
+          estadoLote
+        }
       }
     }
   }

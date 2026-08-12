@@ -45,6 +45,20 @@
         </mat-select>
       </mat-form-field>
 
+      <div fxFlex="25" fxLayout="row" fxLayoutAlign="start center">
+        <mat-form-field fxFlex="80">
+          <mat-label>Último responsable</mat-label>
+          <input matInput readonly [formControl]="ultimoResponsableControl"
+            (click)="onBuscarUltimoResponsable()" />
+        </mat-form-field>
+        <div fxFlex="10" style="text-align: center">
+          <mat-icon class="icon" (click)="onBuscarUltimoResponsable()">search</mat-icon>
+        </div>
+        <div fxFlex="10" style="text-align: center" *ngIf="selectedUltimoResponsable != null">
+          <mat-icon class="icon" (click)="onClearUltimoResponsable()">clear</mat-icon>
+        </div>
+      </div>
+
       <mat-form-field fxFlex="25">
         <mat-label>Rango de fecha</mat-label>
         <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="font-size: 1em; width: 100%">
@@ -87,7 +101,7 @@
     fxLayoutAlign="space-between start">
     <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="select">
-        <th mat-header-cell *matHeaderCellDef style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="width: 4%">
           <mat-checkbox (change)="$event ? masterToggle() : null" [checked]="selection.hasValue() && isAllSelected()"
             [indeterminate]="selection.hasValue() && !isAllSelected()">
           </mat-checkbox>
@@ -100,73 +114,82 @@
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+      <ng-container matColumnDef="id" style="width: 4%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 4%">
           Id
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 5%">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 4%">
           {{ transferencia.id }}
         </td>
       </ng-container>
       <ng-container matColumnDef="origen">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 14%">
           Suc. Origen
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 14%">
           {{ transferencia?.sucursalOrigen?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="destino">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 14%">
           Suc. Destino
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 14%">
           {{ transferencia?.sucursalDestino?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="estado">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
           Estado
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 13%">
           {{ transferencia?.estado | enumToString | titlecase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="etapa">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
           Etapa
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 15%">
           {{ transferencia?.etapa }}
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="responsable">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%">
+          Responsable
+        </th>
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 13%">
+          {{ transferencia?.ultimoResponsable | uppercase }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="fecha">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
           Fecha
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 15%">
+        <td mat-cell *matCellDef="let transferencia" class="celda-fecha" style="text-align: center; width: 12%">
           {{ transferencia?.creadoEn | date : "short" }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="tipo">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 7%">
           Tipo
         </th>
-        <td mat-cell *matCellDef="let transferencia" style="text-align: center">
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 7%">
           {{ transferencia?.tipo }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
+        <th mat-header-cell *matHeaderCellDef style="width: 4%; text-align: center">
           ...
         </th>
-        <td mat-cell *matCellDef="let transferencia; let i = dataIndex" style="text-align: center; width: 5%">
+        <td mat-cell *matCellDef="let transferencia; let i = dataIndex" style="text-align: center; width: 4%">
           <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
@@ -193,12 +216,30 @@
             <div fxLayout="row" fxLayoutAlign="center start" style="width: 100%">
               <div fxLayout="column" style="width: 90%">
                 <br />
-                <div *ngFor="let item of transferencia?.transferenciaItemList" fxLayout="row" style="width: 100%">
-                  <div fxFlex="50%">
-                    {{ item?.presentacion?.producto?.descripcion | uppercase }}
+                <div fxLayout="row" style="width: 100%" class="responsables">
+                  <div fxFlex="25%" fxLayout="column">
+                    <div class="titulo responsable-etapa">Pre Transferencia</div>
+                    <div class="responsable-usuario">
+                      {{ transferencia?.usuarioPreTransferencia?.nickname ? (transferencia?.usuarioPreTransferencia?.nickname | uppercase) : "-" }}
+                    </div>
                   </div>
-                  <div fxFlex="50%">
-                    {{ item?.cantidad | number : "1.0-2" }}
+                  <div fxFlex="25%" fxLayout="column">
+                    <div class="titulo responsable-etapa">Preparación</div>
+                    <div class="responsable-usuario">
+                      {{ transferencia?.usuarioPreparacion?.nickname ? (transferencia?.usuarioPreparacion?.nickname | uppercase) : "-" }}
+                    </div>
+                  </div>
+                  <div fxFlex="25%" fxLayout="column">
+                    <div class="titulo responsable-etapa">Transporte</div>
+                    <div class="responsable-usuario">
+                      {{ transferencia?.usuarioTransporte?.nickname ? (transferencia?.usuarioTransporte?.nickname | uppercase) : "-" }}
+                    </div>
+                  </div>
+                  <div fxFlex="25%" fxLayout="column">
+                    <div class="titulo responsable-etapa">Recepción</div>
+                    <div class="responsable-usuario">
+                      {{ transferencia?.usuarioRecepcion?.nickname ? (transferencia?.usuarioRecepcion?.nickname | uppercase) : "-" }}
+                    </div>
                   </div>
                 </div>
                 <br />

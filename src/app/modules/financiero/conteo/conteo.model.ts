@@ -6,6 +6,8 @@ export class Conteo {
     observacion: String
     creadoEn: Date
     usuario: Usuario
+    conteoAnteriorId: number;
+    conteoAnterior: Conteo;
     conteoMonedaList: ConteoMoneda[]
     totalGs: number;
     totalRs; number;
@@ -35,4 +37,5 @@ export class ConteoInput {
     totalRs; number;
     totalDs: number;
     sucursalId: number;
+    conteoAnteriorId: number;
 }

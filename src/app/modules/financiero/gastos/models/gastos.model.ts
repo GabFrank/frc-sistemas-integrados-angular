@@ -18,6 +18,7 @@ export class Gasto {
     gastoDetalleList: GastoDetalle[]
     activo: boolean;
     finalizado: boolean;
+    cancelado: boolean;
     creadoEn: Date
     usuario: Usuario
     retiroGs: number;

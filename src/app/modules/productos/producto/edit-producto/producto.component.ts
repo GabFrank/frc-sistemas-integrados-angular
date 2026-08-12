@@ -294,6 +294,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
           this.datosGeneralesControl.controls.esAlcoholico.setValue(false);
           this.datosGeneralesControl.controls.promocion.setValue(false);
           this.datosGeneralesControl.controls.vencimiento.setValue(false);
+          this.datosGeneralesControl.controls.lote.setValue(false);
         }
       });
   }
@@ -392,6 +393,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.datosGeneralesControl.controls.diasVencimiento.setValue(
           this.selectedProducto.diasVencimiento
         );
+        this.datosGeneralesControl.controls.lote.setValue(
+          this.selectedProducto.lote
+        );
         this.datosGeneralesControl.controls.activo.setValue(
           this.selectedProducto.activo
         );
@@ -431,6 +435,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       promocion: new FormControl(null),
       vencimiento: new FormControl(null),
       diasVencimiento: new FormControl(null),
+      lote: new FormControl(false),
       subfamilia: new FormControl(null),
       tipoConservacion: new FormControl(null),
       ingredientesList: new FormControl(null),
@@ -519,6 +524,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         promocion,
         vencimiento,
         diasVencimiento,
+        lote,
         tipoConservacion,
         subfamiliaId,
         isEnvase,
@@ -544,6 +550,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         promocion,
         vencimiento,
         diasVencimiento,
+        lote,
         tipoConservacion,
         subfamiliaId,
         isEnvase,
@@ -1178,6 +1185,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     let data = new AdicionarPrecioPorSucursalData();
     data.precio = index === null ? null : this.selectedPrecio;
     data.presentacion = presentacion;
+    // Para avisar cuando el precio quede por debajo del margen mínimo sobre el costo.
+    data.costoMedio = this.selectedProducto?.costo?.costoMedio;
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,

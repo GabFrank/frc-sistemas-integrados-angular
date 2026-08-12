@@ -18,6 +18,7 @@ import { AdicionarMaletinDialogComponent } from './maletin/adicionar-maletin-dia
 import { AdicionarCajaDialogComponent } from './pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
 import { SinMaletinDialogComponent } from './pdv/sin-maletin-dialog/sin-maletin-dialog.component';
 import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component';
+import { HistorialConteoDialogComponent } from './conteo/historial-conteo-dialog/historial-conteo-dialog.component';
 import { AdicionarRetiroDialogComponent } from './retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
 import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component';
 import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-cambio-dialog.component';
@@ -99,6 +100,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     AdicionarCajaDialogComponent,
     SinMaletinDialogComponent,
     AdicionarConteoDialogComponent,
+    HistorialConteoDialogComponent,
     AdicionarRetiroDialogComponent,
     ListRetiroComponent,
     CrearCambioDialogComponent,

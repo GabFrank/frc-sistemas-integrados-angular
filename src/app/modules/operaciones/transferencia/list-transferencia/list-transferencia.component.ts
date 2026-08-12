@@ -22,6 +22,7 @@ import {
   Transferencia,
   TransferenciaEstado,
   TransferenciaInput,
+  TransferenciaView,
 } from "../transferencia.model";
 import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
 import { MainService } from "./../../../../main.service";
@@ -35,6 +36,12 @@ import {
 } from "./../../../../notificacion-snackbar.service";
 import { SelectionModel } from "@angular/cdk/collections";
 import { RutaHojaComponent } from "../ruta-hoja/ruta-hoja.component";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
+import { Usuario } from "../../../personas/usuarios/usuario.model";
 
 @UntilDestroy()
 @Component({
@@ -57,8 +64,8 @@ export class ListTransferenciaComponent implements OnInit {
 
   titulo = "Lista de Transferencias";
 
-  dataSource = new MatTableDataSource<Transferencia>([]);
-  selection = new SelectionModel<Transferencia>(true, []);
+  dataSource = new MatTableDataSource<TransferenciaView>([]);
+  selection = new SelectionModel<TransferenciaView>(true, []);
 
   selectedTransferencia: Transferencia;
   expandedTransferencia: Transferencia;
@@ -68,6 +75,7 @@ export class ListTransferenciaComponent implements OnInit {
   sucDestinoControl = new FormControl();
   estadoControl = new FormControl<TransferenciaEstado[]>([]);
   etapaControl = new FormControl();
+  ultimoResponsableControl = new FormControl();
   fechaInicioControl = new FormControl();
   fechaFinControl = new FormControl();
   fechaFormGroup: FormGroup;
@@ -76,6 +84,7 @@ export class ListTransferenciaComponent implements OnInit {
   estadoList = Object.values(TransferenciaEstado);
   etapaList = Object.values(EtapaTransferencia);
   estadoTriggerLabel = "";
+  selectedUltimoResponsable: Usuario;
   today = new Date();
 
   displayedColumns = [
@@ -85,6 +94,7 @@ export class ListTransferenciaComponent implements OnInit {
     "destino",
     "estado",
     "etapa",
+    "responsable",
     "fecha",
     "tipo",
     "acciones",
@@ -103,7 +113,8 @@ export class ListTransferenciaComponent implements OnInit {
     public mainService: MainService,
     private sucursalService: SucursalService,
     private matDialog: MatDialog,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private usuarioSearch: UsuarioSearchGQL
   ) { }
 
   ngOnInit(): void {
@@ -165,6 +176,7 @@ export class ListTransferenciaComponent implements OnInit {
           this.etapaControl.value,
           null,
           null,
+          this.selectedUltimoResponsable?.id,
           dateToString(fechaInicio),
           dateToString(fechaFin),
           this.pageIndex,
@@ -174,7 +186,7 @@ export class ListTransferenciaComponent implements OnInit {
         .subscribe((res: PageInfo<Transferencia>) => {
           if (res != null) {
             this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent;
+            this.dataSource.data = res.getContent.map((t) => this.toView(t));
           }
         });
     } else {
@@ -182,7 +194,7 @@ export class ListTransferenciaComponent implements OnInit {
         .onGetTransferencia(this.idControl.value)
         .subscribe((res) => {
           if (res != null) {
-            this.dataSource.data = [res];
+            this.dataSource.data = [this.toView(res)];
           }
         });
     }
@@ -195,6 +207,7 @@ export class ListTransferenciaComponent implements OnInit {
     this.estadoControl.setValue([]);
     this.onEstadoSelectionChange();
     this.etapaControl.setValue(null);
+    this.onClearUltimoResponsable();
     let unaSemanaAtras = new Date();
     unaSemanaAtras.setDate(this.today.getDate() - 7);
     this.fechaInicioControl.setValue(unaSemanaAtras);
@@ -208,6 +221,57 @@ export class ListTransferenciaComponent implements OnInit {
     this.estadoTriggerLabel = estados
       .map((e) => e.replace(/_/g, " "))
       .join(", ");
+  }
+
+  /**
+   * Mismo criterio que usa el filtro del backend: gana el responsable de la etapa
+   * mas avanzada que ya tiene uno asignado. Se resuelve aca y no en el template
+   * porque el HTML no puede llamar funciones en cada ciclo de deteccion de cambios.
+   */
+  private toView(transferencia: Transferencia): TransferenciaView {
+    const ultimo =
+      transferencia?.usuarioRecepcion ??
+      transferencia?.usuarioTransporte ??
+      transferencia?.usuarioPreparacion ??
+      transferencia?.usuarioPreTransferencia;
+    return Object.assign({}, transferencia, {
+      ultimoResponsable: ultimo?.nickname ?? "-",
+    }) as TransferenciaView;
+  }
+
+  /**
+   * El backend filtra por el responsable de la etapa mas avanzada que ya tiene uno
+   * asignado, asi que este control no matchea contra las etapas anteriores.
+   */
+  onBuscarUltimoResponsable() {
+    let data: SearchListtDialogData = {
+      titulo: "Buscar usuario",
+      query: this.usuarioSearch,
+      tableData: [
+        { id: "id", nombre: "Id", width: "10%" },
+        { id: "nickname", nombre: "Nombre", width: "70%" },
+      ],
+      search: true,
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data,
+        height: "80%",
+        width: "80%",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Usuario) => {
+        if (res != null) {
+          this.selectedUltimoResponsable = res;
+          this.ultimoResponsableControl.setValue(res.id + " - " + res.nickname);
+        }
+      });
+  }
+
+  onClearUltimoResponsable() {
+    this.selectedUltimoResponsable = null;
+    this.ultimoResponsableControl.setValue(null);
   }
 
   onRowClick(transferencia: Transferencia, index) {

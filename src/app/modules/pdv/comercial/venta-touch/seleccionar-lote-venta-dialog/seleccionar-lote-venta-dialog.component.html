@@ -1,0 +1,241 @@
+<h2 mat-dialog-title>
+  Lote — {{ productoDescripcion }}
+</h2>
+
+<mat-dialog-content>
+  <div class="resumen">
+    <span class="resumen-etiqueta">Cantidad a vender:</span>
+    <span class="resumen-valor">{{ cantidadRequerida }}</span>
+    <span class="resumen-unidad">unid.</span>
+  </div>
+
+  <div
+    class="modo"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    fxLayoutGap="12px"
+  >
+    <div
+      role="radiogroup"
+      aria-label="Modo de asignación de lote"
+      fxLayout="row"
+      fxLayoutGap="8px"
+    >
+      <button
+        mat-raised-button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="modoFefo"
+        [color]="modoFefo ? 'primary' : null"
+        (click)="activarFefo()"
+      >
+        FEFO automático
+      </button>
+      <button
+        mat-raised-button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="!modoFefo"
+        [color]="!modoFefo ? 'primary' : null"
+        [disabled]="sinLotes"
+        (click)="activarManual()"
+      >
+        Elegir lote
+      </button>
+    </div>
+
+    <mat-form-field
+      class="campo-busqueda"
+      *ngIf="!modoFefo && !cargandoInicial && !sinLotes"
+    >
+      <mat-label>Nº de lote</mat-label>
+      <input
+        matInput
+        #inputBusqueda
+        type="text"
+        autocomplete="off"
+        matTooltip="Escribí el número y presioná Enter: si queda un solo lote, se elige solo"
+        [formControl]="busquedaControl"
+        (keydown.enter)="onEnterBusqueda()"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <p class="ayuda" *ngIf="modoFefo">
+    Se saca primero lo que vence antes. No hace falta elegir nada.
+  </p>
+
+  <mat-spinner
+    *ngIf="cargandoInicial"
+    diameter="36"
+    class="spinner"
+  ></mat-spinner>
+
+  <div
+    class="aviso"
+    *ngIf="!cargandoInicial && sinLotes"
+    role="status"
+    aria-live="polite"
+  >
+    {{ mensajeSinLotes }}
+  </div>
+
+  <ng-container *ngIf="!modoFefo && !cargandoInicial && !sinLotes">
+
+    <div
+      class="mensaje-estado"
+      *ngIf="sinCoincidencias"
+      role="status"
+      aria-live="polite"
+    >
+      Ningún lote coincide con la búsqueda.
+    </div>
+
+    <div
+      class="mensaje-error"
+      *ngIf="mensajeError"
+      role="status"
+      aria-live="polite"
+    >
+      {{ mensajeError }}
+    </div>
+
+    <div class="tabla-scroll" *ngIf="!sinCoincidencias && !mensajeError">
+      <table
+        mat-table
+        [dataSource]="filas"
+        class="mat-elevation-z8 tabla-lotes"
+        style="width: 100%"
+      >
+        <ng-container matColumnDef="seleccion">
+          <th mat-header-cell *matHeaderCellDef style="width: 8%"></th>
+          <td mat-cell *matCellDef="let fila" style="width: 8%">
+            <mat-checkbox
+              [checked]="fila.seleccionado"
+              [attr.aria-label]="'Usar lote ' + fila.numeroLote"
+              (change)="alternarLote(fila)"
+            ></mat-checkbox>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="numeroLote">
+          <th mat-header-cell *matHeaderCellDef style="width: 22%">Nº de Lote</th>
+          <td mat-cell *matCellDef="let fila" style="width: 22%">
+            {{ fila.numeroLote }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef style="width: 18%">Vencimiento</th>
+          <td mat-cell *matCellDef="let fila" style="width: 18%">
+            {{ fila.vencimientoLabel }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="retiro">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 18%"
+            matTooltip="Fecha por la que se prioriza la salida (FEFO)"
+          >
+            Retiro
+          </th>
+          <td mat-cell *matCellDef="let fila" style="width: 18%">
+            {{ fila.retiroLabel }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="disponible">
+          <th mat-header-cell *matHeaderCellDef style="width: 16%">Disponible (unid.)</th>
+          <td mat-cell *matCellDef="let fila" style="width: 16%">
+            {{ fila.disponibleLabel }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef style="width: 18%">A vender (unid.)</th>
+          <td mat-cell *matCellDef="let fila" style="width: 18%">
+            <span
+              class="cantidad-asignada"
+              [class.cantidad-vacia]="!fila.seleccionado"
+            >
+              {{ fila.cantidadLabel }}
+            </span>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns; sticky: true"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class]="row.clase"
+        ></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      *ngIf="!sinCoincidencias && !mensajeError"
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[5, 10, 25]"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [length]="totalElementos"
+      (page)="handlePageEvent($event)"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+
+    <div
+      class="elegidos"
+      *ngIf="hayLotesElegidos"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="elegidos-titulo">
+        Elegido {{ totalSeleccionadoLabel }} de {{ cantidadRequerida }}:
+      </span>
+      <button
+        mat-stroked-button
+        type="button"
+        class="chip-lote"
+        *ngFor="let elegido of lotesElegidos"
+        [attr.aria-label]="'Quitar el lote ' + elegido.numeroLote"
+        (click)="quitarLote(elegido)"
+      >
+        {{ elegido.numeroLote }} · {{ elegido.cantidadLabel }}
+        <mat-icon class="chip-icono">close</mat-icon>
+      </button>
+    </div>
+
+  </ng-container>
+
+  <div class="faltante" *ngIf="hayFaltante">
+    {{ faltanteLabel }}
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="cancelar()"
+  >
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    type="button"
+    cdkFocusInitial
+    #botonConfirmar
+    [disabled]="!puedeConfirmar"
+    (click)="confirmar()"
+  >
+    Confirmar
+  </button>
+</mat-dialog-actions>

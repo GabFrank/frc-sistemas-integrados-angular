@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, of } from "rxjs";
+import { catchError, timeout } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import {
@@ -33,11 +34,16 @@ import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFactura
 import { ImprimirTicketFacturaEnImpresoraGQL } from "./graphql/imprimirTicketFacturaEnImpresora";
 import { ImprimirPdfFacturaEnImpresoraGQL } from "./graphql/imprimirPdfFacturaEnImpresora";
 import { VincularFacturaLegalAVentaGQL } from "./graphql/vincularFacturaLegalAVenta";
+import { FacturaSimilarRecienteGQL } from "./graphql/facturaSimilarReciente";
+import { FacturaSimilar } from "./factura-similar.model";
 
 @Injectable({
   providedIn: "root",
 })
 export class FacturaLegalService {
+  /** El aviso de duplicado no puede demorar la emisión: si no responde a tiempo, se ignora */
+  private readonly TIMEOUT_VERIFICACION_MS = 5000;
+
   constructor(
     private saveFactura: SaveFacturaLegalGQL,
     private genericService: GenericCrudService,
@@ -61,8 +67,51 @@ export class FacturaLegalService {
     private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL,
     private imprimirTicketFacturaEnImpresoraGQL: ImprimirTicketFacturaEnImpresoraGQL,
     private imprimirPdfFacturaEnImpresoraGQL: ImprimirPdfFacturaEnImpresoraGQL,
-    private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL
+    private vincularFacturaLegalAVentaGQL: VincularFacturaLegalAVentaGQL,
+    private facturaSimilarRecienteGQL: FacturaSimilarRecienteGQL
   ) {}
+
+  /**
+   * Busca una factura de hoy, del mismo cajero y con el mismo cliente, total e items,
+   * para avisar al cajero ANTES de emitir un duplicado (emitir imprime y consume un
+   * número de timbrado, así que después no hay vuelta atrás).
+   *
+   * Solo aplica con cliente identificado: sin cliente, o con un cliente nuevo todavía
+   * sin id, no hay contra qué comparar.
+   *
+   * Nunca bloquea la emisión: si la consulta falla o tarda, resuelve en null.
+   */
+  onVerificarFacturaSimilar(
+    usuarioId: number,
+    clienteId: number,
+    totalFinal: number,
+    items: FacturaLegalItemInput[],
+    servidor: boolean = false
+  ): Observable<FacturaSimilar> {
+    if (
+      usuarioId == null ||
+      clienteId == null ||
+      clienteId <= 0 ||
+      totalFinal == null ||
+      items == null ||
+      items.length === 0
+    ) {
+      return of(null);
+    }
+
+    return this.genericService
+      .onCustomQuery(
+        this.facturaSimilarRecienteGQL,
+        { usuarioId, clienteId, totalFinal, items },
+        servidor,
+        null,
+        true
+      )
+      .pipe(
+        timeout(this.TIMEOUT_VERIFICACION_MS),
+        catchError(() => of(null))
+      );
+  }
 
   onVincularFacturaAVenta(
     facturaLegalId: number,

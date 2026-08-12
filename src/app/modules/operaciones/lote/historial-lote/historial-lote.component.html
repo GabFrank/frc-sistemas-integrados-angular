@@ -1,0 +1,243 @@
+<div fxLayout="column" class="historial-container">
+
+  <!--
+    Cabecera: la identidad del lote queda fija arriba porque las dos solapas hablan del mismo, y
+    perderla al cambiar de solapa obliga a recordar de cuál se trataba.
+  -->
+  <div class="cabecera">
+    <div class="cabecera-titulo">
+      {{ productoDescripcion }} · Lote {{ numeroLote }}
+    </div>
+
+    <div class="cabecera-datos" fxLayout="row wrap" fxLayoutGap="18px">
+      <span><b>Proveedor:</b> {{ proveedorNombre }}</span>
+      <span><b>Vence:</b> {{ fechaVencimientoLabel }}</span>
+      <span><b>Retiro:</b> {{ fechaRetiroLabel }}</span>
+      <span><b>Estado:</b> {{ estadoLabel }}</span>
+    </div>
+
+    <!--
+      Los tres filtros van juntos acá arriba. La sucursal recorta las dos solapas; el tipo solo
+      Movimientos y el checkbox solo Clientes, pero los dos quedan siempre visibles: esconderlos
+      al cambiar de solapa haría desaparecer un filtro que sigue aplicado al volver.
+    -->
+    <div
+      class="cabecera-filtro"
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="16px"
+    >
+      <mat-form-field class="filtro-sucursal">
+        <mat-label>Sucursal</mat-label>
+        <mat-select [formControl]="sucursalControl" (selectionChange)="onSucursalChange()">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let suc of sucursales" [value]="suc">
+            {{ suc.id }} - {{ suc.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filtro-tipo">
+        <mat-label>Tipo de movimiento</mat-label>
+        <mat-select [formControl]="tipoControl" (selectionChange)="onTipoChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of opcionesTipo" [value]="t.valor">
+            {{ t.label }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!--
+        Marcado trae las ventas con cliente; desmarcado, las de mostrador. Son dos conjuntos que
+        no se solapan: juntos, el mostrador tapa a los clientes reales.
+      -->
+      <mat-checkbox
+        class="filtro-rastreable"
+        color="primary"
+        [formControl]="rastreableControl"
+        matTooltip="Marcado: ventas con cliente identificado. Desmarcado: ventas de mostrador, sin cliente."
+        (change)="onRastreableChange()"
+      >
+        Rastreable
+      </mat-checkbox>
+    </div>
+  </div>
+
+  <mat-tab-group class="historial-tabs" animationDuration="0ms">
+
+    <mat-tab label="Movimientos">
+      <!--
+        Mismo armado que el slot de tabla de app-generic-list: el contenedor toma todo el alto y
+        el cuerpo scrollea, así el paginador queda anclado abajo en vez de flotar detrás de la
+        última fila.
+      -->
+      <div class="tab-contenido" fxLayout="column">
+        <div class="tab-cuerpo">
+
+          <div *ngIf="movCargando" class="mensaje-estado">
+            Cargando historial...
+          </div>
+
+          <div *ngIf="!movCargando && movSinResultados" class="mensaje-estado">
+            Este lote no tiene movimientos con esos filtros.
+          </div>
+
+          <div class="tabla-container" *ngIf="!movCargando && !movSinResultados">
+            <table mat-table [dataSource]="movimientos" class="mat-elevation-z8 tabla-historial">
+
+              <ng-container matColumnDef="fecha">
+                <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.fechaLabel }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="sucursal">
+                <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.sucursalNombre }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="tipo">
+                <th mat-header-cell *matHeaderCellDef>Tipo</th>
+                <td mat-cell *matCellDef="let fila">
+                  <span class="chip-tipo" [ngClass]="fila.tipoClase">{{ fila.tipoLabel }}</span>
+                </td>
+              </ng-container>
+
+              <!--
+                "Comprobante" y no "Documento": en la solapa de clientes documento es el RUC/CI, y
+                acá el número es el de la venta, la recepción o la transferencia que movió el lote.
+              -->
+              <ng-container matColumnDef="comprobante">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  matTooltip="Número de la venta, recepción o transferencia que originó el movimiento"
+                >
+                  Comprobante
+                </th>
+                <td mat-cell *matCellDef="let fila">{{ fila.comprobanteLabel }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="cantidad">
+                <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+                <td mat-cell *matCellDef="let fila" [ngClass]="fila.cantidadClase">
+                  {{ fila.cantidadLabel }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="usuario">
+                <th mat-header-cell *matHeaderCellDef>Usuario</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.usuarioNombre }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columnasMovimientos; sticky: true"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasMovimientos"></tr>
+            </table>
+          </div>
+        </div>
+
+        <mat-paginator
+          class="paginador"
+          itemsPerPageLabel="Itens por pagina"
+          [pageSizeOptions]="[20, 50, 100]"
+          [pageIndex]="movPageIndex"
+          (page)="onMovimientosPage($event)"
+          [length]="movTotalElements"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Clientes">
+      <div class="tab-contenido" fxLayout="column">
+        <div class="tab-cuerpo">
+
+          <div *ngIf="cliCargando" class="mensaje-estado">
+            Cargando ventas...
+          </div>
+
+          <div *ngIf="!cliCargando && cliSinResultados" class="mensaje-estado">
+            No hay ventas de este lote con ese filtro.
+          </div>
+
+        <div class="tabla-container" *ngIf="!cliCargando && !cliSinResultados">
+            <table mat-table [dataSource]="clientes" class="mat-elevation-z8 tabla-historial">
+
+              <ng-container matColumnDef="cliente">
+                <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.clienteNombre }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="documento">
+                <th mat-header-cell *matHeaderCellDef>RUC / CI</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.clienteDocumento }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="direccion">
+                <th mat-header-cell *matHeaderCellDef>Dirección</th>
+                <!-- La celda recorta con ellipsis; el tooltip deja llegar a la dirección completa,
+                     que es justamente el dato que se necesita entero en un recall. -->
+                <td
+                  mat-cell
+                  *matCellDef="let fila"
+                  class="celda-direccion"
+                  [matTooltip]="fila.clienteDireccion"
+                >
+                  {{ fila.clienteDireccion }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="venta">
+                <th mat-header-cell *matHeaderCellDef>Nº de venta</th>
+                <td mat-cell *matCellDef="let fila">
+                  <span class="celda-venta">
+                    {{ fila.ventaLabel }}
+                    <button
+                      mat-icon-button
+                      class="boton-ver-venta"
+                      matTooltip="Abrir esta venta en el buscador de ventas"
+                      [attr.aria-label]="'Abrir la venta ' + fila.ventaLabel"
+                      (click)="onVerVenta(fila)"
+                    >
+                      <mat-icon>open_in_new</mat-icon>
+                    </button>
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="sucursal">
+                <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.sucursalNombre }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="cantidad">
+                <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+                <td mat-cell *matCellDef="let fila" class="cantidad-salida">
+                  {{ fila.cantidadLabel }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="fecha">
+                <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                <td mat-cell *matCellDef="let fila">{{ fila.fechaLabel }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columnasClientes; sticky: true"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasClientes"></tr>
+            </table>
+          </div>
+        </div>
+
+        <mat-paginator
+          class="paginador"
+          itemsPerPageLabel="Itens por pagina"
+          [pageSizeOptions]="[20, 50, 100]"
+          [pageIndex]="cliPageIndex"
+          (page)="onClientesPage($event)"
+          [length]="cliTotalElements"
+          showFirstLastButtons
+        ></mat-paginator>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div>
