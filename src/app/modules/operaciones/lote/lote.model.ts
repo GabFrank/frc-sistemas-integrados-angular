@@ -138,3 +138,80 @@ export class StockLoteSucursal {
   sucursalNombre?: string;
   cantidadDisponible: number;
 }
+
+/**
+ * Un lote del maestro con el saldo que tiene en una sucursal puntual.
+ *
+ * Es lo que devuelve el buscador de lotes del ajuste. Incluye los de saldo cero: son los que hacen
+ * falta para trazar mercadería que ya estaba en góndola sin lote asignado.
+ */
+export class LoteDeProducto {
+  loteId: number;
+  numeroLote: string;
+  fechaVencimiento?: Date;
+  fechaRetiro?: Date;
+  estado: EstadoLote;
+  /** Saldo en la sucursal consultada. */
+  saldo: number;
+  /**
+   * Saldo del lote en toda la red. Sin este dato un lote con mercadería en otro depósito se ve
+   * igual que un lote agotado: los dos en cero.
+   */
+  saldoTotal: number;
+}
+
+/**
+ * Qué está haciendo el operador al ajustar el stock de un lote. Decide si la existencia total
+ * cambia o no, y por eso se elige a mano en vez de deducirse del saldo sin trazar: el mismo número
+ * tecleado tendría efectos distintos según un saldo que el operador no controla.
+ */
+export enum ModoAjusteLote {
+  /** El stock ya estaba contado pero sin lote. El total no cambia, solo se traza. */
+  ATRIBUIR = 'ATRIBUIR',
+  /** La existencia estaba mal: rotura, faltante, mercadería encontrada. El total cambia. */
+  CORREGIR = 'CORREGIR'
+}
+
+/**
+ * Las tres cuentas de un producto en una sucursal, en unidades base.
+ *
+ * `sinTrazar` es `existencia - enLotes` y puede venir negativo: eso significa que se vendió más de
+ * lo que el ledger tenía atribuido, o sea deuda de trazabilidad, no un error de cálculo.
+ */
+export class ResumenStockLote {
+  productoId: number;
+  sucursalId: number;
+  existencia: number;
+  enLotes: number;
+  sinTrazar: number;
+}
+
+/** Lo que devuelve el ajuste: los saldos ya recalculados contra la base, no los que predijo la UI. */
+export class AjusteStockLoteResultado {
+  movimientoStockId: number;
+  sucursalId: number;
+  loteId: number;
+  numeroLote: string;
+  /** Lo que se escribió en el movimiento agregado. Es 0 cuando fue una atribución. */
+  cantidadMovimiento: number;
+  saldoLote: number;
+  resumen: ResumenStockLote;
+}
+
+/** Un ajuste de stock sobre un lote. El lote va por id, o por número cuando se lo está creando. */
+export interface AjusteStockLoteInput {
+  productoId: number;
+  sucursalId: number;
+  modo: ModoAjusteLote;
+  /** Cuántas unidades de ESE lote hay realmente, en unidades base. No es la diferencia. */
+  cantidadFinal: number;
+  /** Opcional. Si viene, queda en el registro de modificaciones junto con el ajuste. */
+  motivo?: string;
+  usuarioId?: number;
+  loteId?: number;
+  numeroLote?: string;
+  /** yyyy-MM-dd. Solo se usa al crear el lote. */
+  fechaVencimiento?: string;
+  /** yyyy-MM-dd. Solo se usa al crear el lote. */
+  fechaRetiro?: string;
+}

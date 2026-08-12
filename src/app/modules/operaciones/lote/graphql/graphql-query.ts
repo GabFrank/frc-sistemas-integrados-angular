@@ -262,3 +262,86 @@ export const clientesPorLoteQuery = gql`
   }
 `;
 
+
+/**
+ * Las tres cuentas del producto en una sucursal. Es lo que la pantalla de ajuste muestra para que
+ * el operador vea el efecto de lo que está por confirmar antes de confirmarlo.
+ */
+export const resumenStockLoteQuery = gql`
+  query resumenStockLote($productoId: ID!, $sucursalId: ID!) {
+    data: resumenStockLote(productoId: $productoId, sucursalId: $sucursalId) {
+      productoId
+      sucursalId
+      existencia
+      enLotes
+      sinTrazar
+    }
+  }
+`;
+
+/**
+ * Ajusta el stock de un lote en una sucursal. El backend escribe el movimiento agregado y su
+ * desglose por lote en la misma transacción.
+ *
+ * Devuelve los saldos ya recalculados: entre que se abrió el diálogo y se confirmó pudo entrar una
+ * venta del mismo lote, así que la pantalla muestra lo que quedó y no lo que ella predijo.
+ */
+export const ajustarStockLoteMutation = gql`
+  mutation ajustarStockLote($input: AjusteStockLoteInput!) {
+    data: ajustarStockLote(input: $input) {
+      movimientoStockId
+      sucursalId
+      loteId
+      numeroLote
+      cantidadMovimiento
+      saldoLote
+      resumen {
+        existencia
+        enLotes
+        sinTrazar
+      }
+    }
+  }
+`;
+
+/**
+ * Buscador paginado de lotes de un producto, con el saldo de cada uno en la sucursal.
+ *
+ * A diferencia de buscarStockPorLote, parte del maestro: incluye los lotes con saldo cero en esa
+ * sucursal, que son justamente los que hacen falta para trazar mercadería que ya estaba en góndola
+ * sin lote asignado.
+ */
+export const buscarLotesDeProductoQuery = gql`
+  query buscarLotesDeProducto(
+    $productoId: ID!
+    $sucursalId: ID
+    $texto: String
+    $page: Int
+    $size: Int
+  ) {
+    data: buscarLotesDeProducto(
+      productoId: $productoId
+      sucursalId: $sucursalId
+      texto: $texto
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        loteId
+        numeroLote
+        fechaVencimiento
+        fechaRetiro
+        estado
+        saldo
+        saldoTotal
+      }
+    }
+  }
+`;

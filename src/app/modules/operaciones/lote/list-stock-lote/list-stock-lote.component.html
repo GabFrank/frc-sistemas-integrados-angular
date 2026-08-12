@@ -280,8 +280,8 @@
             [matMenuTriggerFor]="menuEstado"
             [matMenuTriggerData]="{ fila: fila }"
             (click)="onAccionesClick($event)"
-            matTooltip="Cambiar estado del lote"
-            aria-label="Cambiar estado del lote"
+            matTooltip="Acciones del lote"
+            aria-label="Acciones del lote"
           >
             <mat-icon>more_vert</mat-icon>
           </button>
@@ -318,6 +318,11 @@
                   <tr>
                     <th scope="col" class="detalle-columna-nombre">Sucursal</th>
                     <th scope="col" class="detalle-columna-stock">Stock Disponible</th>
+                    <th
+                      scope="col"
+                      class="detalle-columna-accion"
+                      *ngIf="puedeAjustarStock"
+                    ></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -331,9 +336,20 @@
                     >
                       {{ suc.cantidadDisponible | number: "1.0-2" }}
                     </td>
+                    <td class="detalle-columna-accion" *ngIf="puedeAjustarStock">
+                      <button
+                        *ngIf="fila.esLoteReal"
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Ajustar el stock de este lote en esta sucursal"
+                        (click)="onAjustarStock(fila, suc.sucursalId); $event.stopPropagation()"
+                      >
+                        <mat-icon>production_quantity_limits</mat-icon>
+                      </button>
+                    </td>
                   </tr>
                   <tr *ngIf="!fila.sucursales.length">
-                    <td colspan="2" class="detalle-vacio">
+                    <td colspan="3" class="detalle-vacio">
                       No hay sucursales para mostrar
                     </td>
                   </tr>
@@ -379,6 +395,15 @@
         <button mat-menu-item (click)="onVerHistorial(fila)">
           <mat-icon>history</mat-icon>
           <span>Ver historial</span>
+        </button>
+
+        <button
+          mat-menu-item
+          *ngIf="puedeAjustarStock"
+          (click)="onAjustarStock(fila)"
+        >
+          <mat-icon>production_quantity_limits</mat-icon>
+          <span>Ajustar stock</span>
         </button>
 
         <mat-divider></mat-divider>
