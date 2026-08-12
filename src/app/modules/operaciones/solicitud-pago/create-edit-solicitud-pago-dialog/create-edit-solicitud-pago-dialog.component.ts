@@ -90,6 +90,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   puedeEditarFormaPagoComputed = false;
   /** true si se puede cambiar el proveedor; solo cuando no hay notas ni formas de pago agregadas. */
   puedeEditarProveedorComputed = false;
+  /** true si se puede "Solicitar" (PENDIENTE → SOLICITADO): en edición, borrador y con al menos una nota. */
+  puedeSolicitar = false;
+  /** true si la solicitud está SOLICITADA (validada, read-only, con opción Reabrir). */
+  esSolicitado = false;
 
   displayedColumnsNotas: string[] = ['numero', 'fecha', 'monedaNota', 'valorTotal', 'moneda', 'formaPago', 'plazo', 'quitar'];
   displayedColumnsDetalles: string[] = ['moneda', 'formaPago', 'valor', 'fechaPago', 'acciones'];
@@ -372,23 +376,22 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         solicitudPagoId: this.isEditMode ? this.solicitudPagoId : undefined
       }
     });
-    ref.afterClosed().subscribe((detalle: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }) | null) => {
-      if (!detalle) return;
-      const row = {
-        ...detalle,
-        monedaDenominacion: detalle.monedaDenominacion ?? (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
-        formaPagoDescripcion: detalle.formaPagoDescripcion ?? (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
-      };
-      this.detallesAgregados.push(row);
+    ref.afterClosed().subscribe((detalles: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] | null) => {
+      // El diálogo devuelve un array: 1 forma, o N (una por cheque si se eligieron cuotas).
+      if (!detalles?.length) return;
+      detalles.forEach((detalle) => {
+        this.detallesAgregados.push({
+          ...detalle,
+          monedaDenominacion: detalle.monedaDenominacion ?? (this.monedaList.find((m) => m.id === detalle.monedaId)?.denominacion || '').toString().toUpperCase(),
+          formaPagoDescripcion: detalle.formaPagoDescripcion ?? (this.formaPagoList.find((f) => f.id === detalle.formaPagoId)?.descripcion || '').toString().toUpperCase()
+        });
+      });
       this.detallesTableDataSource.data = this.detallesAgregados;
       this.updateTotalFormasPago();
       this.updateResumenFormasPago();
       this.updatePuedeEditarProveedor();
       // En modo edición el diálogo ya guardó en backend; no volver a llamar a la API para evitar duplicado.
-      if (this.solicitudPagoId != null) {
-        // El diálogo ya llamó a onAgregarSolicitudPagoDetalle y cerró con la fila guardada (con id). Nada más que hacer.
-        return;
-      }
+      if (this.solicitudPagoId != null) return;
       this.crearSolicitudYActivarEdicion();
     });
   }
@@ -407,7 +410,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
         detalleExistente: detalle
       }
     });
-    ref.afterClosed().subscribe((actualizado: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }) | null) => {
+    ref.afterClosed().subscribe((resultado: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] | (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string }) | null) => {
+      // El diálogo de edición devuelve un array de 1 (la forma editada).
+      const actualizado = Array.isArray(resultado) ? resultado[0] : resultado;
       if (!actualizado) return;
       const row = {
         ...actualizado,
@@ -515,6 +520,64 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       this.isEditable &&
       this.notasAgregadas.length === 0 &&
       this.detallesAgregados.length === 0;
+    this.updateEstadoAcciones();
+  }
+
+  /** Recalcula la visibilidad de las acciones Solicitar / Reabrir según estado + notas. */
+  private updateEstadoAcciones(): void {
+    this.esSolicitado = this.solicitudPagoEstado === SolicitudPagoEstado.SOLICITADO;
+    this.puedeSolicitar =
+      this.isEditMode &&
+      this.solicitudPagoEstado === SolicitudPagoEstado.PENDIENTE &&
+      this.notasAgregadas.length >= 1;
+  }
+
+  /** Solicitar: valida la solicitud (borrador → SOLICITADO, lista para pagar). */
+  onSolicitar(): void {
+    if (!this.puedeSolicitar || this.solicitudPagoId == null) return;
+    this.dialogosService
+      .confirm('Solicitar pago', 'La solicitud quedará lista para pagar (Solicitado). ¿Continuar?')
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.saving = true;
+        this.solicitudPagoService.onActualizarEstado(this.solicitudPagoId, SolicitudPagoEstado.SOLICITADO).subscribe({
+          next: () => {
+            this.notificacionService.openSucess('Solicitud lista para pagar (Solicitado)');
+            this.dialogRef.close(true);
+          },
+          error: () => {
+            this.saving = false;
+            this.notificacionService.openAlgoSalioMal('No se pudo solicitar');
+          }
+        });
+      });
+  }
+
+  /** Reabrir: SOLICITADO → PENDIENTE (borrador editable), in-place. */
+  onReabrir(): void {
+    if (!this.esSolicitado || this.solicitudPagoId == null) return;
+    this.dialogosService
+      .confirm('Reabrir solicitud', 'Volverá a borrador (Pendiente) y podrá editarse. ¿Continuar?')
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.saving = true;
+        this.solicitudPagoService.onActualizarEstado(this.solicitudPagoId, SolicitudPagoEstado.PENDIENTE).subscribe({
+          next: () => {
+            this.saving = false;
+            this.solicitudPagoEstado = SolicitudPagoEstado.PENDIENTE;
+            this.isEditable = true;
+            this.tituloDialogo = 'Editar solicitud de pago';
+            this.form.enable();
+            this.updatePuedeEditarFormaPago();
+            this.updatePuedeEditarProveedor();
+            this.notificacionService.openSucess('Solicitud reabierta (Pendiente)');
+          },
+          error: () => {
+            this.saving = false;
+            this.notificacionService.openAlgoSalioMal('No se pudo reabrir');
+          }
+        });
+      });
   }
 
   private updateResumenFormasPago(): void {

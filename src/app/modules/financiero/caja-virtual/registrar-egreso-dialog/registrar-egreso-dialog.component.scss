@@ -1,0 +1,39 @@
+:host { display: block; }
+
+.tipo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  padding: 6px 0 8px;
+}
+
+.tipo-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  height: 100%;
+  cursor: pointer;
+  border-left: 4px solid #607d8b;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+
+  &:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
+}
+
+.tipo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon { color: #fff; }
+}
+
+.tipo-text { min-width: 0; }
+.tipo-title { font-weight: 500; }
+.tipo-desc { font-size: 12px; opacity: 0.65; }

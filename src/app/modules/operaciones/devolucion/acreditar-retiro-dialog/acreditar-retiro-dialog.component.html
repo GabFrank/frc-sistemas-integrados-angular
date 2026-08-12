@@ -1,0 +1,97 @@
+<h2 mat-dialog-title>Registrar nota de crédito</h2>
+
+<mat-dialog-content class="acred-content">
+  <div class="acred-prov" *ngIf="proveedorNombre">
+    <mat-icon>local_shipping</mat-icon>
+    <span>{{ proveedorNombre | titlecase }}</span>
+  </div>
+
+  <div class="acred-cab">
+    <mat-form-field appearance="outline">
+      <mat-label>Nro. nota de crédito (opcional)</mat-label>
+      <input matInput [(ngModel)]="nroNotaCredito" (ngModelChange)="actualizarValidez()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Fecha</mat-label>
+      <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="acred-cargando" *ngIf="cargando">
+    <mat-spinner diameter="28"></mat-spinner>
+  </div>
+
+  <div class="acred-vacio" *ngIf="!cargando && lineas.length === 0">
+    No hay items para acreditar en este retiro.
+  </div>
+
+  <table class="acred-tabla" *ngIf="!cargando && lineas.length > 0">
+    <thead>
+      <tr>
+        <th class="col-prod">Producto</th>
+        <th class="col-pres">Presentación</th>
+        <th class="col-num">Cantidad</th>
+        <th class="col-num">Costo</th>
+        <th class="col-num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let l of lineas">
+        <td class="col-prod">{{ l.productoDescripcion }}</td>
+        <td class="col-pres">
+          <mat-select
+            [(ngModel)]="l.presentacionId"
+            (ngModelChange)="onPresentacionChange(l)"
+          >
+            <mat-option *ngFor="let p of l.presentaciones" [value]="p.id">
+              x{{ p.cantidad }}
+            </mat-option>
+          </mat-select>
+        </td>
+        <td class="col-num">
+          <input
+            type="number"
+            class="acred-input"
+            [(ngModel)]="l.cantidad"
+            (ngModelChange)="onCantidadChange(l)"
+          />
+        </td>
+        <td class="col-num">
+          <input
+            type="number"
+            class="acred-input"
+            [(ngModel)]="l.costo"
+            (ngModelChange)="onCostoChange(l)"
+          />
+        </td>
+        <td class="col-num">
+          <input
+            type="number"
+            class="acred-input"
+            [(ngModel)]="l.total"
+            (ngModelChange)="onTotalChange(l)"
+          />
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="acred-total" *ngIf="!cargando && lineas.length > 0">
+    <span>Monto total</span>
+    <strong>{{ montoTotal | number: "1.0-2" }}</strong>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button [disabled]="procesando" (click)="onCancelar()">Cancelar</button>
+  <button
+    mat-raised-button
+    color="accent"
+    [disabled]="!puedeConfirmar"
+    (click)="onConfirmar()"
+  >
+    Confirmar crédito
+  </button>
+</mat-dialog-actions>

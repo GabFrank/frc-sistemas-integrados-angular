@@ -1,0 +1,10 @@
+<mat-form-field style="width: 100%" (click)="onBuscar()">
+  <mat-label>{{ titulo }}</mat-label>
+  <input matInput readonly [value]="etiqueta" [disabled]="disabled"
+    placeholder="Click para buscar" class="campo-funcionario" />
+  <button mat-icon-button matSuffix *ngIf="etiqueta && !disabled" (click)="onLimpiar($event)"
+    matTooltip="Quitar selección" type="button">
+    <mat-icon>close</mat-icon>
+  </button>
+  <mat-icon matSuffix *ngIf="!etiqueta">search</mat-icon>
+</mat-form-field>

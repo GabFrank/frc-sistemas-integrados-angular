@@ -1,0 +1,95 @@
+<h2 mat-dialog-title>Liquidación final — {{ data.nombre }}</h2>
+
+<div mat-dialog-content class="generar-content">
+
+  <div class="antiguedad-linea" *ngIf="antiguedadTexto">Antigüedad: <b>{{ antiguedadTexto }}</b></div>
+
+  <!-- Datos principales -->
+  <div fxLayout="row" fxLayoutGap="10px">
+    <mat-form-field fxFlex="55">
+      <mat-label>Motivo de egreso</mat-label>
+      <mat-select [formControl]="motivoControl">
+        <mat-option *ngFor="let m of motivos" [value]="m">{{ m }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field fxFlex="45">
+      <mat-label>Fecha de egreso</mat-label>
+      <input matInput [matDatepicker]="pEgreso" [formControl]="fechaEgresoControl" (dateChange)="onFechaEgresoChange()" />
+      <mat-datepicker-toggle matSuffix [for]="pEgreso"></mat-datepicker-toggle>
+      <mat-datepicker #pEgreso></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div fxLayout="row" fxLayoutGap="10px">
+    <mat-form-field fxFlex="45">
+      <mat-label>Fecha de ingreso</mat-label>
+      <input matInput [matDatepicker]="pIngreso" [formControl]="fechaIngresoControl" />
+      <mat-datepicker-toggle matSuffix [for]="pIngreso"></mat-datepicker-toggle>
+      <mat-datepicker #pIngreso></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field fxFlex="55">
+      <mat-label>Salario promedio</mat-label>
+      <input matInput type="text" numericOnly [formControl]="salarioBaseControl"
+        currencyMask [options]="currencyMask.currencyOptionsGuarani" />
+      <span matSuffix>Gs</span>
+    </mat-form-field>
+  </div>
+
+  <mat-form-field class="input-medio">
+    <mat-label>Días trabajados del mes</mat-label>
+    <input matInput type="number" [formControl]="diasTrabajadosMesControl" min="0" max="31" />
+    <span matSuffix>días</span>
+  </mat-form-field>
+
+  <!-- Preaviso -->
+  <div class="bloque">
+    <mat-slide-toggle [formControl]="preavisoOtorgadoControl">¿Se otorgó el preaviso?</mat-slide-toggle>
+    <mat-form-field class="input-medio">
+      <mat-label>Días de preaviso</mat-label>
+      <input matInput type="number" [formControl]="preavisoDiasControl" />
+      <span matSuffix>días</span>
+    </mat-form-field>
+    <span class="hint">Si no se otorgó: despido injustificado <b>paga</b> estos días; renuncia <b>descuenta</b> la mitad.</span>
+  </div>
+
+  <!-- Haberes editables -->
+  <div fxLayout="row" fxLayoutGap="10px">
+    <mat-form-field fxFlex="50">
+      <mat-label>Días vac. no gozadas</mat-label>
+      <input matInput type="number" [formControl]="diasVacacionesControl" />
+      <span matSuffix>días</span>
+    </mat-form-field>
+    <mat-form-field fxFlex="50">
+      <mat-label>Aguinaldo proporcional</mat-label>
+      <input matInput type="text" numericOnly [formControl]="aguinaldoControl"
+        currencyMask [options]="currencyMask.currencyOptionsGuarani" />
+      <span matSuffix>Gs</span>
+    </mat-form-field>
+  </div>
+
+  <!-- IPS: la base solo cuando se descuenta -->
+  <mat-form-field class="campo-ancho" *ngIf="descontarIpsControl.value">
+    <mat-label>Base de cálculo IPS</mat-label>
+    <input matInput type="text" numericOnly [formControl]="ipsBaseControl"
+      currencyMask [options]="currencyMask.currencyOptionsGuarani" />
+    <span matSuffix>Gs</span>
+  </mat-form-field>
+
+  <!-- Qué descontar -->
+  <div class="bloque toggles">
+    <span class="bloque-titulo">Descuentos a aplicar</span>
+    <mat-slide-toggle [formControl]="descontarIpsControl">Descontar IPS</mat-slide-toggle>
+    <mat-slide-toggle [formControl]="cobrarValesControl">Cobrar vales y adelantos</mat-slide-toggle>
+    <mat-slide-toggle [formControl]="cobrarConveniosControl">Cobrar convenios (compras)</mat-slide-toggle>
+    <mat-slide-toggle [formControl]="cobrarPrestamosControl">Cobrar préstamos</mat-slide-toggle>
+    <mat-slide-toggle [formControl]="descontarPenalizacionesControl">Descontar penalizaciones del mes</mat-slide-toggle>
+  </div>
+</div>
+
+<div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+  <mat-spinner *ngIf="cargandoPreview" diameter="18"></mat-spinner>
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="generando || cargandoPreview" (click)="onGenerar()">
+    {{ generando ? 'Generando…' : 'Generar borrador' }}
+  </button>
+</div>

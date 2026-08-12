@@ -1,0 +1,35 @@
+<div fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+  <div style="text-align: center; font-weight: bold">
+    Registrar reingreso (canje)
+  </div>
+  <div style="text-align: center">
+    {{ data?.item?.producto?.descripcion | uppercase }}
+  </div>
+  <div style="text-align: center; color: #a99c96">
+    Devuelto: {{ data?.item?.cantidad | number : "1.0-3" }}
+    {{ data?.item?.presentacion?.descripcion }}
+  </div>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Cantidad reingresada</mat-label>
+    <input matInput type="number" [formControl]="cantidadReingresadaControl" />
+  </mat-form-field>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Vencimiento del reingreso</mat-label>
+    <input matInput [matDatepicker]="picker" [formControl]="vencimientoControl" />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+  <div style="width: 100%; text-align: center">
+    <button mat-raised-button color="primary" style="width: 150px" (click)="onCancelar()">
+      Cancelar
+    </button>
+    <button mat-raised-button color="accent" style="width: 150px; margin-left: 10px"
+      (click)="onGuardar()"
+      [disabled]="cantidadReingresadaControl.invalid || vencimientoControl.invalid">
+      Aceptar
+    </button>
+  </div>
+</div>

@@ -117,7 +117,7 @@
           Estado
         </th>
         <td mat-cell *matCellDef="let row" style="text-align: center; width: 15%">
-          {{ row.estadoDisplayNameComputed }}
+          <span class="estado-chip" [ngClass]="'estado-' + row.estado">{{ row.estadoDisplayNameComputed }}</span>
         </td>
       </ng-container>
 
@@ -218,7 +218,6 @@
         *matRowDef="let row; columns: displayedColumns"
         class="example-element-row"
         [class.example-expanded-row]="expandedSolicitud === row"
-        [ngClass]="estadoToRowClass[row.estado] || ''"
         (click)="onRowClick(row)"
       ></tr>
       <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>

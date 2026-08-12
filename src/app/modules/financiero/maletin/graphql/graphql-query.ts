@@ -174,3 +174,43 @@ export const countMaletinQuery = gql`
     data: countMaletin
   }
 `;
+
+// --- Maletín ↔ caja mayor (tesorería) ---
+export const valorMaletinQuery = gql`
+  query ($maletinId: ID!) {
+    data: valorMaletin(maletinId: $maletinId) {
+      total
+      moneda {
+        id
+        denominacion
+        simbolo
+        principal
+        decimales
+      }
+    }
+  }
+`;
+
+export const ingresarMaletinCajaMayorMutation = gql`
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String) {
+    data: ingresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion) {
+      id
+    }
+  }
+`;
+
+export const egresarMaletinCajaMayorMutation = gql`
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaId: ID!, $monto: Float!, $descripcion: String) {
+    data: egresarMaletinCajaMayor(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaId: $monedaId, monto: $monto, descripcion: $descripcion) {
+      id
+    }
+  }
+`;
+
+export const ingresarMaletinCierreMutation = gql`
+  mutation ($cajaVirtualId: ID!, $maletinId: ID!, $monedaIds: [ID], $descripcion: String) {
+    data: ingresarMaletinCierre(cajaVirtualId: $cajaVirtualId, maletinId: $maletinId, monedaIds: $monedaIds, descripcion: $descripcion) {
+      id
+    }
+  }
+`;

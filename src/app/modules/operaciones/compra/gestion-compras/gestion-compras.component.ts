@@ -91,11 +91,19 @@ import { MatSelect } from "@angular/material/select";
 import { comparatorLike } from "../../../../commons/core/utils/string-utils";
 import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { DevolucionService } from "../../devolucion/devolucion.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
+import { DevolucionEstado } from "../../devolucion/devolucion.model";
+import { RetiroProveedorComponent } from "../../devolucion/retiro-proveedor/retiro-proveedor.component";
+import { DevolucionConfiguracionService } from "../../devolucion/configuracion/devolucion-configuracion.service";
+import {
+  DevolucionesPendientesDialogComponent,
+  DevolucionesPendientesDialogResult,
+} from "./dialogs/devoluciones-pendientes-dialog/devoluciones-pendientes-dialog.component";
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
 import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
@@ -459,7 +467,9 @@ export class GestionComprasComponent
     private tabService: TabService,
     public mainService: MainService,
     private reporteService: ReporteService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private devolucionService: DevolucionService,
+    private devolucionConfigService: DevolucionConfiguracionService
   ) {
     // Inicializar objeto "Todos" para sucursales
     this.sucursalTodos = {
@@ -483,7 +493,21 @@ export class GestionComprasComponent
     this.initializeForms();
   }
 
+  // Config del aviso de devoluciones (default = conducta previa por si no carga aún).
+  private devolucionAlertaIncluyeRetirado = false;
+  private devolucionAlertaBloqueante = true;
+
   ngOnInit(): void {
+    this.devolucionConfigService
+      .onGet()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((c) => {
+        if (c?.alertaIncluyeRetirado != null)
+          this.devolucionAlertaIncluyeRetirado = c.alertaIncluyeRetirado;
+        if (c?.alertaBloqueante != null)
+          this.devolucionAlertaBloqueante = c.alertaBloqueante;
+      });
+
     const pedidoId = this.data?.tabData?.id || this.data?.tabData?.data?.id;
     
     if (pedidoId) {
@@ -595,6 +619,7 @@ export class GestionComprasComponent
         if (typeof value === "object" && value !== null) {
           this.selectedProveedorComputed = value;
           this.showProveedorCard = true;
+          this.onVerificarDevolucionesPendientes(value?.id);
           this.vendedorDisplayTextComputed = value.vendedor?.persona?.nombre;
           this.datosGeneralesForm
             .get("vendedor")
@@ -1867,6 +1892,66 @@ export class GestionComprasComponent
    */
   private markTabAsUnloaded(tabIndex: number): void {
     this.loadedTabs.delete(tabIndex);
+  }
+
+  // Aviso al comprar/recibir de un proveedor con devoluciones en espera. Los
+  // estados que cuentan y si el aviso es bloqueante salen de la configuración
+  // del módulo (devolucion_configuracion): por defecto PENDIENTE/SEPARADO y
+  // diálogo bloqueante; con alertaIncluyeRetirado también cuenta RETIRADO.
+  onVerificarDevolucionesPendientes(proveedorId: number): void {
+    if (proveedorId == null) return;
+    this.devolucionService
+      .onGetDevolucionesPendientesPorProveedor(proveedorId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((devoluciones) => {
+        const estadosEnEspera = [
+          DevolucionEstado.PENDIENTE,
+          DevolucionEstado.SEPARADO,
+          // COLECTADO también está a la espera de que el proveedor retire.
+          DevolucionEstado.COLECTADO,
+          ...(this.devolucionAlertaIncluyeRetirado
+            ? [DevolucionEstado.RETIRADO]
+            : []),
+        ];
+        const enEspera = (devoluciones || []).filter((d) =>
+          estadosEnEspera.includes(d.estado)
+        );
+        if (enEspera.length === 0) return;
+
+        const proveedorNombre =
+          this.selectedProveedorComputed?.persona?.nombre || "El proveedor";
+
+        // No bloqueante: solo notifica y no interrumpe.
+        if (!this.devolucionAlertaBloqueante) {
+          this.notificacionService.openWarn(
+            `${proveedorNombre} tiene ${enEspera.length} devolución(es) en espera de gestión.`,
+            5
+          );
+          return;
+        }
+
+        this.dialog
+          .open(DevolucionesPendientesDialogComponent, {
+            data: { proveedorNombre, devoluciones: enEspera },
+            disableClose: true,
+            width: "640px",
+          })
+          .afterClosed()
+          .pipe(takeUntil(this.destroy$))
+          .subscribe((res: DevolucionesPendientesDialogResult) => {
+            if (res?.accion === "ir") {
+              // Abre el retiro consolidado con el proveedor ya filtrado.
+              this.tabService.addTab(
+                new Tab(
+                  RetiroProveedorComponent,
+                  "Retiro de proveedor",
+                  new TabData(undefined, this.selectedProveedorComputed),
+                  null
+                )
+              );
+            }
+          });
+      });
   }
 
   // Step 1: Datos Generales methods

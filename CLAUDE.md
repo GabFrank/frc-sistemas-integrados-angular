@@ -46,6 +46,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - **No usar la clase `container`** — entra en conflicto con Bootstrap y rompe el layout.
 - Snackbars: `notificacion-snackbar.service.ts`. Diálogos: `dialogos.service.ts`. No instanciar a mano.
 - **Strings siempre en MAYÚSCULAS** al guardar, salvo pedido contrario.
+- **Impresión de comprobantes/recibos:** usar el componente oficial `ImpresionService` + `ImprimirDialogComponent` (`shared/components/imprimir/`), que ofrece **PDF (A4) o Ticket (58/80mm)**. Es el **padrón** para toda impresión de un comprobante firmable, salvo que el usuario pida otra cosa o un formato no sea viable (ej. reportes agregados = solo PDF). Detalle: [docs/IMPRESION.md](docs/IMPRESION.md).
 
 ### Estructura de módulos
 - **No crear módulos Angular nuevos** para componentes nuevos salvo pedido explícito — usar el módulo más cercano en el path.
@@ -180,6 +181,12 @@ El desktop consume GraphQL del `frc-comercial/central`. Si el backend cambia el 
 Servicio de cotizaciones: `src/app/shared/services/cotizacion-header.service.ts`. BehaviorSubject reactivo, refresh manual desde botón del header, polling automático cada 10 min, bootstrap al login. Consume `ultimoCambioPorMonedaId` ya existente — sin cambios backend.
 
 Detalle completo + cómo extender: [docs/refactor/HEADER_REFACTOR_v2.md](docs/refactor/HEADER_REFACTOR_v2.md).
+
+## Sidebar / navegación
+
+El **único** menú lateral es `SideMiniVariantComponent` (`src/app/shared/components/side-mini-variant/`), renderizado por `default.component.html`. El viejo `SideComponent` (`components/side/`, selector `app-side`) era legacy no renderizado y fue **eliminado (2026-07)** — no re-cablear entradas de menú ahí.
+
+**Agregar una entrada de menú = 3 ediciones en `side-mini-variant.component.ts`** (si falta una, el módulo queda inalcanzable): (1) `import` del componente entry; (2) item en el árbol de menú (`name`/`icon`/`action`/`visibilityRoles`) bajo el grupo correcto; (3) `case "<action>":` en `onItemClick()` con `this.openTabIfAuthorized(ROLES.X, Component, "Title")` (permite rol `X` o `ADMIN`).
 
 ## Estructura de módulos (`src/app/modules/`)
 

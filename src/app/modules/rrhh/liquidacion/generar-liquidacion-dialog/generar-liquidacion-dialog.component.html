@@ -1,0 +1,49 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="14px">
+  <h2 mat-dialog-title>Generar liquidaciones</h2>
+
+  <div fxLayout="row" fxLayoutGap="10px">
+    <mat-form-field fxFlex="50%">
+      <mat-label>Período</mat-label>
+      <input matInput [formControl]="periodoControl" placeholder="YYYY-MM" />
+      <mat-hint>Formato AAAA-MM</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="50%">
+      <mat-label>Moneda</mat-label>
+      <mat-select [formControl]="monedaControl">
+        <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="alcance">
+    <label class="alcance-label">Alcance</label>
+    <mat-radio-group [formControl]="alcanceControl" fxLayout="column" fxLayoutGap="4px">
+      <mat-radio-button value="TODOS">Todos los funcionarios activos</mat-radio-button>
+      <mat-radio-button value="ALGUNOS">Funcionarios seleccionados</mat-radio-button>
+    </mat-radio-group>
+  </div>
+
+  <div *ngIf="alcanceControl.value === 'ALGUNOS'" class="seleccion" fxLayout="column" fxLayoutGap="8px">
+    <app-select-funcionario
+      titulo="Agregar funcionario"
+      [funcionarioId]="funcionarioSeleccionadoId"
+      (funcionarioSelected)="onAgregarFuncionario($event)">
+    </app-select-funcionario>
+
+    <mat-chip-listbox *ngIf="elegidos.length > 0">
+      <mat-chip-option *ngFor="let e of elegidos" (removed)="onQuitar(e.id)">
+        {{ e.label }}
+        <button matChipRemove><mat-icon>cancel</mat-icon></button>
+      </mat-chip-option>
+    </mat-chip-listbox>
+    <span *ngIf="elegidos.length === 0" class="vacio">Ningún funcionario agregado todavía.</span>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button [disabled]="generando" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="generando" (click)="onGenerar()">
+      {{ generando ? 'Generando…' : 'Generar' }}
+    </button>
+  </div>
+</div>

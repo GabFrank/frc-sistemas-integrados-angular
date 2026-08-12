@@ -95,7 +95,9 @@ export class ListMarcacionComponent implements OnInit {
 
   displayedColumns = [
     'id',
+    'fecha',
     'usuario',
+    'estado',
     'sucursalEntrada',
     'fechaEntrada',
     'sucursalSalida',

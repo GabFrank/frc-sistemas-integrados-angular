@@ -220,3 +220,50 @@ export const filterRetirosQuery = gql`
     }
   }
 `;
+
+export const retirosFlotantesQuery = gql`
+  query ($sucId: ID, $cajaId: ID, $desde: String, $hasta: String, $page: Int, $size: Int) {
+    data: retirosFlotantes(sucId: $sucId, cajaId: $cajaId, desde: $desde, hasta: $hasta, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursalId
+        responsable {
+          id
+          persona {
+            nombre
+          }
+        }
+        estado
+        cajaSalida {
+          id
+          sucursalId
+        }
+        creadoEn
+        retiroGs
+        retiroRs
+        retiroDs
+        sucursal {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const ingresarRetiroACajaMayorMutation = gql`
+  mutation ingresarRetiroACajaMayor($retiroId: ID!, $sucId: ID!, $cajaVirtualId: ID!) {
+    data: ingresarRetiroACajaMayor(retiroId: $retiroId, sucId: $sucId, cajaVirtualId: $cajaVirtualId) {
+      id
+      sucursalId
+      movimientoCajaVirtualId
+      cajaVirtualId
+    }
+  }
+`;

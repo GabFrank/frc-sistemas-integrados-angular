@@ -1,0 +1,16 @@
+// El componente se crea dentro de app-tab-content, que no define altura. Sin un host
+// con altura definida, el <div fxFlex> de app-generic-list (flex-basis: 0%) colapsa a
+// cero y la tabla y el paginador quedan invisibles.
+:host {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+table { width: 100%; text-align: center; }
+th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+
+.chip { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.chip-ACTIVO { background: rgba(33, 150, 243, 0.2); color: #42a5f5; }
+.chip-PAGADO { background: rgba(76, 175, 80, 0.2); color: #66bb6a; }
+.chip-CANCELADO { background: rgba(244, 67, 54, 0.2); color: #ef5350; }
