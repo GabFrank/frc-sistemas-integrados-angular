@@ -95,6 +95,7 @@ export class ListCompraComponent implements OnInit {
     "vendedor",
     "responsable",
     "montoTotal",
+    "formaPago",
     "fecha",
     "etapa",
     "acciones",
@@ -187,10 +188,7 @@ export class ListCompraComponent implements OnInit {
         .subscribe((res: PageInfo<Pedido>) => {
           if (res != null) {
             this.selectedPageInfo = res;
-            // Calcular etapa actual para cada pedido
-            res.getContent.forEach(pedido => {
-              (pedido as any).etapaActualComputed = this.computeEtapaActual(pedido);
-            });
+            res.getContent.forEach(pedido => this.enriquecerPedido(pedido));
             this.dataSource.data = res.getContent;
           }
         });
@@ -199,7 +197,7 @@ export class ListCompraComponent implements OnInit {
         .onGetPedidoById(this.idControl.value)
         .subscribe((res) => {
           if (res != null) {
-            (res as any).etapaActualComputed = this.computeEtapaActual(res);
+            this.enriquecerPedido(res);
             this.dataSource.data = [res];
           }
         });
@@ -464,6 +462,33 @@ export class ListCompraComponent implements OnInit {
     this.selectedProveedor = null;
     this.proveedorControl.setValue(null);
     this.proveedorControl.enable();
+  }
+
+  /**
+   * Agrega al pedido los campos derivados que consume la grilla. Se calculan acá y no
+   * en el template para no llamar funciones desde el HTML en cada change detection.
+   */
+  private enriquecerPedido(pedido: Pedido): void {
+    (pedido as any).etapaActualComputed = this.computeEtapaActual(pedido);
+    (pedido as any).formaPagoComputed = this.computeFormaPago(pedido);
+  }
+
+  /**
+   * Texto de la columna Forma de Pago: la descripción de la forma de pago y, si el
+   * pedido tiene plazo, los días de crédito (ej. "CREDITO · 30 DÍAS").
+   */
+  private computeFormaPago(pedido: Pedido): string {
+    const descripcion = pedido?.formaPago?.descripcion?.toUpperCase();
+    if (!descripcion) {
+      return "-";
+    }
+
+    const plazo = pedido?.plazoCredito;
+    if (plazo == null || plazo <= 0) {
+      return descripcion;
+    }
+
+    return `${descripcion} · ${plazo} ${plazo === 1 ? "DÍA" : "DÍAS"}`;
   }
 
   private computeEtapaActual(pedido: Pedido): string {

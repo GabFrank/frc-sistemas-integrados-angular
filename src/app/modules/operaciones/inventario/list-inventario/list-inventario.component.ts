@@ -25,8 +25,14 @@ import {
 } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../../productos/producto/producto.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
-import { InventarioProductoItem } from "../inventario.model";
-import { InventarioService } from "../inventario.service";
+import {
+  InventarioProductoEstado,
+  InventarioProductoItem,
+} from "../inventario.model";
+import {
+  InventarioService,
+  VencimientoFiltroParams,
+} from "../inventario.service";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { PageInfo } from "../../../../app.component";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -45,6 +51,29 @@ export interface TipoOrder {
   nombre: string;
   value: string;
 }
+
+/**
+ * Item con la clase de color del vencimiento ya resuelta. Se calcula al recibir
+ * la respuesta y no en el template, que no debe llamar funciones.
+ */
+export type InventarioProductoItemFila = InventarioProductoItem & {
+  vencimientoClase: string;
+};
+
+export interface VencimientoOpcion {
+  nombre: string;
+  value: string;
+}
+
+export const VENCIMIENTO_FILTRO = {
+  VENCIDOS: "VENCIDOS",
+  POR_VENCER: "POR_VENCER",
+  VIGENTES: "VIGENTES",
+  SIN_VENCIMIENTO: "SIN_VENCIMIENTO",
+};
+
+const DIAS_POR_VENCER_DEFAULT = 30;
+const MS_POR_DIA = 1000 * 60 * 60 * 24;
 
 @UntilDestroy()
 @Component({
@@ -70,7 +99,7 @@ export class ListInventarioComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<InventarioProductoItem>([]);
+  dataSource = new MatTableDataSource<InventarioProductoItemFila>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
   isDialogOpen = false;
   ordenarPorControl = new FormControl();
@@ -100,6 +129,21 @@ export class ListInventarioComponent implements OnInit {
   selectedProducto: Producto;
   estadoControl = new FormControl();
 
+  vencimientoFiltroControl = new FormControl();
+  diasPorVencerControl = new FormControl(DIAS_POR_VENCER_DEFAULT);
+  vencimientoDesdeControl = new FormControl();
+  vencimientoHastaControl = new FormControl();
+
+  vencimientoOpciones: VencimientoOpcion[] = [
+    { nombre: "Vencidos", value: VENCIMIENTO_FILTRO.VENCIDOS },
+    { nombre: "Por vencer", value: VENCIMIENTO_FILTRO.POR_VENCER },
+    { nombre: "Vigentes", value: VENCIMIENTO_FILTRO.VIGENTES },
+    { nombre: "Sin vencimiento", value: VENCIMIENTO_FILTRO.SIN_VENCIMIENTO },
+  ];
+
+  /** Controla el campo de dias sin evaluar funciones desde el HTML. */
+  mostrarDiasPorVencer = false;
+
   displayedColumns = [
     "descripcion", //producto
     "codigo", //producto
@@ -107,6 +151,7 @@ export class ListInventarioComponent implements OnInit {
     "cantidadFisica", //encontrada en stock
     "saldo", //diferencia inventario
     "texto", //explicito diciendo (falta, sobra)
+    "vencimiento",
     "usuario",
     "creadoEn",
     "sucursal"
@@ -140,8 +185,22 @@ export class ListInventarioComponent implements OnInit {
           value: "DESC",
         },
       ],
+    },
+    {
+      nombre: "Vencimiento",
+      value: "vencimiento",
+      tipo: [
+        {
+          nombre: "Menor a mayor",
+          value: "ASC",
+        },
+        {
+          nombre: "Mayor a menor",
+          value: "DESC",
+        },
+      ],
     }
-    
+
   ];
 
   constructor(
@@ -223,15 +282,83 @@ export class ListInventarioComponent implements OnInit {
         sucursalIds,
         usuarioIds,
         productoIdList,
-        estado
+        estado,
+        this.construirFiltroVencimiento()
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<InventarioProductoItem>) => {
-        console.log(res.getContent);
-        
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent;
+        this.dataSource.data = this.aFilas(res.getContent);
       });
+  }
+
+  /**
+   * Arma los parametros de vencimiento que entienden la lista y el reporte.
+   * Los dias solo viajan cuando el filtro es POR_VENCER.
+   */
+  construirFiltroVencimiento(): VencimientoFiltroParams {
+    const filtro = this.vencimientoFiltroControl.value;
+    const esSinVencimiento = filtro === VENCIMIENTO_FILTRO.SIN_VENCIMIENTO;
+    return {
+      vencimientoFiltro: filtro,
+      diasPorVencer:
+        filtro === VENCIMIENTO_FILTRO.POR_VENCER
+          ? this.diasPorVencerControl.value || DIAS_POR_VENCER_DEFAULT
+          : null,
+      vencimientoDesde: esSinVencimiento
+        ? null
+        : dateToString(this.vencimientoDesdeControl.value),
+      vencimientoHasta: esSinVencimiento
+        ? null
+        : dateToString(this.vencimientoHastaControl.value),
+    };
+  }
+
+  onVencimientoFiltroSelect() {
+    const filtro = this.vencimientoFiltroControl.value;
+    this.mostrarDiasPorVencer = filtro === VENCIMIENTO_FILTRO.POR_VENCER;
+
+    // "Sin vencimiento" y un rango de fechas nunca pueden dar resultado juntos.
+    if (filtro === VENCIMIENTO_FILTRO.SIN_VENCIMIENTO) {
+      this.vencimientoDesdeControl.setValue(null);
+      this.vencimientoHastaControl.setValue(null);
+      this.vencimientoDesdeControl.disable();
+      this.vencimientoHastaControl.disable();
+    } else {
+      this.vencimientoDesdeControl.enable();
+      this.vencimientoHastaControl.enable();
+    }
+  }
+
+  /**
+   * Resuelve el color del vencimiento una sola vez por respuesta: vencido contra
+   * hoy (o marcado VENCIDO al contarlo) y proximo dentro de la ventana de dias.
+   */
+  private aFilas(items: InventarioProductoItem[]): InventarioProductoItemFila[] {
+    if (items == null) return [];
+    const ahora = new Date().getTime();
+    const dias =
+      this.diasPorVencerControl.value > 0
+        ? this.diasPorVencerControl.value
+        : DIAS_POR_VENCER_DEFAULT;
+    const limiteProximo = ahora + dias * MS_POR_DIA;
+
+    return items.map((item) => {
+      const vencimiento =
+        item?.vencimiento != null ? new Date(item.vencimiento).getTime() : null;
+      let vencimientoClase = "";
+      if (
+        item?.estado === InventarioProductoEstado.VENCIDO ||
+        (vencimiento != null && vencimiento < ahora)
+      ) {
+        vencimientoClase = "venc-vencido";
+      } else if (vencimiento != null && vencimiento <= limiteProximo) {
+        vencimientoClase = "venc-proximo";
+      }
+      // Object.assign y no spread: la respuesta de Apollo viene congelada y el
+      // spread perderia el tipado de InventarioProductoItem.
+      return Object.assign({}, item, { vencimientoClase });
+    });
   }
 
   onVer(inventarioProductoItem: InventarioProductoItem) {}
@@ -395,6 +522,8 @@ export class ListInventarioComponent implements OnInit {
         this.toSucursalesId(this.sucursalControl.value),
         this.selectedUsuario != null ? [this.selectedUsuario.id] : null,
         productoIdList,
+        this.estadoControl.value,
+        this.construirFiltroVencimiento()
       )
     }
   }
@@ -415,6 +544,11 @@ export class ListInventarioComponent implements OnInit {
     this.ordenarPorControl.setValue(null);
     this.tipoOrdenControl.setValue(null);
     this.estadoControl.setValue(null);
+    this.vencimientoFiltroControl.setValue(null);
+    this.diasPorVencerControl.setValue(DIAS_POR_VENCER_DEFAULT);
+    this.vencimientoDesdeControl.setValue(null);
+    this.vencimientoHastaControl.setValue(null);
+    this.onVencimientoFiltroSelect();
     }
 
   procesarDatosTabData() {
