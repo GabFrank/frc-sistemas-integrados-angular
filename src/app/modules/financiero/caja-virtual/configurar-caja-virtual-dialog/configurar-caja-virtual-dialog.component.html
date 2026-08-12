@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>Configurar caja: {{ cajaVirtual?.nombre }}</h2>
+
+<mat-dialog-content>
+  <div *ngIf="loading" style="display: flex; justify-content: center; padding: 24px;">
+    <mat-spinner diameter="36"></mat-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Cuentas bancarias visibles -->
+    <section style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">Cuentas bancarias a mostrar</h3>
+        <div>
+          <button mat-stroked-button (click)="toggleTodas(true)">Todas</button>
+          <button mat-stroked-button (click)="toggleTodas(false)" style="margin-left: 8px;">Ninguna</button>
+        </div>
+      </div>
+      <p style="opacity: 0.6; font-size: 12px; margin: 6px 0 10px;">
+        Muestra saldo actual, reservado (cheques diferidos) y futuro (POS pendientes). Arrastrá para reordenar.
+      </p>
+
+      <div cdkDropList (cdkDropListDropped)="drop($event)">
+        <div *ngFor="let c of cuentas" cdkDrag
+             style="display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+          <mat-icon cdkDragHandle style="cursor: move; opacity: 0.5;">drag_indicator</mat-icon>
+          <mat-checkbox [(ngModel)]="c.visible">
+            {{ c.cuenta.banco?.nombre }} · {{ c.cuenta.numero }}
+            <span style="opacity: 0.6;">({{ c.cuenta.moneda?.simbolo }})</span>
+          </mat-checkbox>
+        </div>
+        <div *ngIf="cuentas.length === 0" style="opacity: 0.6; padding: 8px;">
+          No hay cuentas bancarias registradas.
+        </div>
+      </div>
+    </section>
+
+    <mat-divider></mat-divider>
+
+    <!-- Resúmenes adicionales -->
+    <section style="margin-top: 16px;">
+      <h3 style="margin: 0 0 8px;">Resúmenes adicionales</h3>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <mat-checkbox [(ngModel)]="mostrarCpp">Mostrar Cuentas por Pagar</mat-checkbox>
+        <mat-checkbox [(ngModel)]="mostrarCpc">Mostrar Cuentas por Cobrar</mat-checkbox>
+      </div>
+    </section>
+
+    <mat-divider></mat-divider>
+
+    <!-- Funcionalidad -->
+    <section style="margin-top: 16px;">
+      <h3 style="margin: 0 0 8px;">Funcionalidad</h3>
+      <mat-slide-toggle [(ngModel)]="operacionesHabilitado">Operaciones financieras habilitadas</mat-slide-toggle>
+    </section>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()" [disabled]="guardando">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="guardar()" [disabled]="guardando || loading">
+    <mat-icon>save</mat-icon> Guardar
+  </button>
+</mat-dialog-actions>

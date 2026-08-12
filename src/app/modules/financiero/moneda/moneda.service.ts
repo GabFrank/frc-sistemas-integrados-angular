@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
+import { SaveMonedaGQL } from './graphql/saveMoneda';
+import { DeleteMonedaGQL } from './graphql/deleteMoneda';
 import { Moneda } from './moneda.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -47,9 +49,11 @@ export class MonedaService {
 
   constructor(
     private getAllMonedas: MonedasGetAllGQL,
+    private saveMonedaGQL: SaveMonedaGQL,
+    private deleteMonedaGQL: DeleteMonedaGQL,
     private genericService: GenericCrudService,
     private mainService: MainService
-  ) { 
+  ) {
     // mainService.usuarioActual != null ? this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
     //   if(res!=null){
     //     this.monedaList = res;
@@ -59,6 +63,19 @@ export class MonedaService {
 
   onGetAll(servidor: boolean = true): Observable<Moneda[]>{
     return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
+  }
+
+  onSave(moneda: Moneda): Observable<Moneda> {
+    let aux = moneda;
+    if (!(moneda instanceof Moneda)) {
+      aux = new Moneda();
+      Object.assign(aux, moneda);
+    }
+    return this.genericService.onSaveCustom(this.saveMonedaGQL, { entity: aux.toInput() });
+  }
+
+  onDelete(id: number): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id });
   }
 
   currencyOptionsByMoneda(moneda: Moneda): any {

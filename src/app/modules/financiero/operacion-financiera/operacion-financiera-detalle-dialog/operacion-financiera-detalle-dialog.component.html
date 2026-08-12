@@ -1,0 +1,59 @@
+<h2 mat-dialog-title class="of-title">
+  <mat-icon>swap_horiz</mat-icon>
+  <span>{{ tipoLabel || 'Operación financiera' }}</span>
+  <span class="of-estado" *ngIf="op" [class.anulada]="op.anulado">{{ op.anulado ? 'Anulada' : 'Activa' }}</span>
+</h2>
+
+<mat-dialog-content class="of-content">
+  <div class="of-cargando" *ngIf="isLoading">Cargando…</div>
+  <div class="of-vacio" *ngIf="!isLoading && !op">No se encontró la operación.</div>
+
+  <ng-container *ngIf="op">
+    <!-- Origen → Destino -->
+    <div class="of-flujo">
+      <div class="of-lado">
+        <span class="of-lado-label">Origen</span>
+        <strong class="of-fuente">{{ origenLabel }}</strong>
+        <span class="of-monto">{{ op.monedaOrigen?.simbolo }} {{ op.montoOrigen | number:'1.0-2' }}</span>
+        <span class="of-moneda">{{ op.monedaOrigen?.denominacion }}</span>
+      </div>
+
+      <div class="of-flecha">
+        <mat-icon>arrow_forward</mat-icon>
+        <span class="of-cotiz" *ngIf="mostrarCotizacion">cotiz. {{ op.cotizacion | number:'1.0-6' }}</span>
+      </div>
+
+      <div class="of-lado" *ngIf="mostrarDestino">
+        <span class="of-lado-label">Destino</span>
+        <strong class="of-fuente">{{ destinoLabel }}</strong>
+        <span class="of-monto">{{ op.monedaDestino?.simbolo }} {{ op.montoDestino | number:'1.0-2' }}</span>
+        <span class="of-moneda">{{ op.monedaDestino?.denominacion }}</span>
+      </div>
+    </div>
+
+    <!-- Diferencia (si aplica) -->
+    <div class="of-dif" *ngIf="op.diferencia">
+      <mat-icon>call_split</mat-icon>
+      <span>Diferencia: <strong>{{ op.monedaDestino?.simbolo }} {{ op.diferencia | number:'1.0-2' }}</strong>
+        <span class="of-dif-tipo" *ngIf="op.diferenciaDestinoTipo">· {{ op.diferenciaDestinoTipo }}</span>
+      </span>
+      <span class="of-dif-obs" *ngIf="op.diferenciaObservacion">{{ op.diferenciaObservacion }}</span>
+    </div>
+
+    <!-- Metadatos -->
+    <div class="of-meta">
+      <div class="of-meta-item" *ngIf="op.categoria?.nombre"><span>Categoría</span><strong>{{ op.categoria?.nombre }}</strong></div>
+      <div class="of-meta-item" *ngIf="op.numeroComprobante"><span>Nº comprobante</span><strong>{{ op.numeroComprobante }}</strong></div>
+      <div class="of-meta-item"><span>Fecha</span><strong>{{ op.creadoEn | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+      <div class="of-meta-item" *ngIf="op.descripcion"><span>Descripción</span><strong>{{ op.descripcion }}</strong></div>
+    </div>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions class="of-actions">
+  <button mat-stroked-button (click)="cerrar()">Cerrar</button>
+  <button mat-raised-button color="warn" *ngIf="op && !op.anulado && data.puedeGestionar"
+          (click)="onAnular()" [disabled]="isAnulando">
+    <mat-icon>block</mat-icon> Anular operación
+  </button>
+</mat-dialog-actions>

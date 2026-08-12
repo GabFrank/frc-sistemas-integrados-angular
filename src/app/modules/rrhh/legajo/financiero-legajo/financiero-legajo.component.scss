@@ -1,0 +1,99 @@
+:host {
+  display: block;
+  padding: 8px 8px 24px;
+}
+
+.financiero-container {
+  width: 100%;
+}
+
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.exposicion-card {
+  padding: 12px 18px;
+  border-left: 4px solid #ef5350;
+
+  .exp-icon {
+    color: #ef5350;
+    font-size: 30px;
+    height: 30px;
+    width: 30px;
+  }
+
+  .exp-label {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .exp-sub {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .exp-valor {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ef5350;
+  }
+}
+
+.seccion-card {
+  padding: 12px 16px 8px;
+}
+
+.sub-info {
+  font-size: 13px;
+  opacity: 0.85;
+  margin: 2px 0 8px 4px;
+}
+
+.tabla-container {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+  }
+
+  th, td {
+    text-align: center;
+  }
+}
+
+.vacio {
+  padding: 14px;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+// Estados vale
+.vale-SOLICITADO { background: rgba(255, 193, 7, 0.22); color: #ffca28; }
+.vale-CONFIRMADO { background: rgba(66, 165, 245, 0.22); color: #64b5f6; }
+.vale-DESCONTADO { background: rgba(102, 187, 106, 0.22); color: #81c784; }
+.vale-ANULADO    { background: rgba(239, 83, 80, 0.22); color: #e57373; }
+
+// Estados préstamo
+.prestamo-ACTIVO    { background: rgba(66, 165, 245, 0.22); color: #64b5f6; }
+.prestamo-PAGADO    { background: rgba(102, 187, 106, 0.22); color: #81c784; }
+.prestamo-CANCELADO { background: rgba(239, 83, 80, 0.22); color: #e57373; }
+
+// Estados venta crédito
+.vc-ABIERTO     { background: rgba(66, 165, 245, 0.22); color: #64b5f6; }
+.vc-FINALIZADO  { background: rgba(102, 187, 106, 0.22); color: #81c784; }
+.vc-EN_MORA     { background: rgba(255, 152, 0, 0.24); color: #ffb74d; }
+.vc-INCOBRABLE  { background: rgba(239, 83, 80, 0.28); color: #ef5350; }
+.vc-CANCELADO   { background: rgba(158, 158, 158, 0.22); color: #bdbdbd; }

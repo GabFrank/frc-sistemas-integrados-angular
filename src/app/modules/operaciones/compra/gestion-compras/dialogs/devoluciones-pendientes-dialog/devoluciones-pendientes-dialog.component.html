@@ -1,0 +1,45 @@
+<div class="dev-pend-dialog">
+  <div class="dev-pend-header">
+    <mat-icon class="dev-pend-icon">warning</mat-icon>
+    <div>
+      <h2 mat-dialog-title class="dev-pend-title">Devoluciones en espera</h2>
+      <p class="dev-pend-sub">
+        <strong>{{ data.proveedorNombre }}</strong> tiene {{ cantidad }}
+        devolución(es) en espera de entrega. Convendría prepararlas para el
+        retiro antes de seguir.
+      </p>
+    </div>
+  </div>
+
+  <div mat-dialog-content class="dev-pend-content">
+    <table mat-table [dataSource]="filas" class="mat-elevation-z2">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>Devolución</th>
+        <td mat-cell *matCellDef="let f">#{{ f.id }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let f">{{ f.estado }}</td>
+      </ng-container>
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+        <td mat-cell *matCellDef="let f">{{ f.sucursal }}</td>
+      </ng-container>
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let f">{{ f.fecha | date: "dd/MM/yyyy" }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+    </table>
+  </div>
+
+  <div mat-dialog-actions class="dev-pend-actions">
+    <button mat-stroked-button (click)="onContinuar()">
+      Continuar de todos modos
+    </button>
+    <button mat-raised-button color="primary" (click)="onIr()">
+      <mat-icon>assignment_return</mat-icon> Ir a gestionar devoluciones
+    </button>
+  </div>
+</div>

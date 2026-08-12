@@ -8,6 +8,11 @@ export class Moneda {
   id: number;
   denominacion: string;
   simbolo: string;
+  activo: boolean;
+  principal: boolean;
+  decimales: number;
+  reglaRedondeo: string;
+  redondeoMultiplo: number;
   pais: Pais;
   creadoEn: Date;
   usuario: Usuario;
@@ -16,8 +21,14 @@ export class Moneda {
 
   toInput(): MonedaInput {
     let input = new MonedaInput();
+    input.id = this.id;
     input.denominacion = this.denominacion;
     input.simbolo = this.simbolo;
+    input.activo = this.activo;
+    input.principal = this.principal;
+    input.decimales = this.decimales;
+    input.reglaRedondeo = this.reglaRedondeo;
+    input.redondeoMultiplo = this.redondeoMultiplo;
     input.paisId = this.pais?.id;
     input.usuarioId = this.usuario?.id;
     return input;

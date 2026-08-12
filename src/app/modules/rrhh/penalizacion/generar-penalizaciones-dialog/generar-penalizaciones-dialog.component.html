@@ -1,0 +1,24 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Generar penalizaciones automáticas</h2>
+
+  <p class="aviso">
+    Se revisan las jornadas de la fecha elegida y se penaliza a quienes superaron la
+    tolerancia de tardanza. Las jornadas con un justificativo que evita la penalización
+    se saltean, y no se duplica si ya se generó antes para esa jornada.
+  </p>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Fecha a procesar</mat-label>
+    <input matInput [matDatepicker]="picker" [formControl]="fechaControl" [max]="hoy" required />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+    <mat-hint>Por defecto el día anterior</mat-hint>
+  </mat-form-field>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="fechaControl.invalid" (click)="onGenerar()">
+      Generar
+    </button>
+  </div>
+</div>

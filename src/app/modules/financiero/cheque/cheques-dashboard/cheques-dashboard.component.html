@@ -1,0 +1,239 @@
+<div class="detalle-container">
+
+  <!-- Header -->
+  <div class="header-section">
+    <div class="header-info">
+      <h1>Cheques</h1>
+      <span class="subtitle">Posición por fecha de pago</span>
+    </div>
+
+    <div class="header-actions" *ngIf="puedeGestionar">
+      <button mat-raised-button color="primary" (click)="onEmitirCheque()">
+        <mat-icon>send</mat-icon> Emitir cheque
+      </button>
+      <button mat-stroked-button (click)="onGestionarChequeras()">
+        <mat-icon>menu_book</mat-icon> Chequeras
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtro -->
+  <div class="filtro-bar">
+    <mat-form-field appearance="outline" class="f-rango" subscriptSizing="dynamic">
+      <mat-label>Rango (fecha de pago)</mat-label>
+      <mat-date-range-input [rangePicker]="rangoPicker">
+        <input matStartDate [formControl]="desdeControl" placeholder="Desde" />
+        <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="aplicarFiltros()" />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="rangoPicker"></mat-datepicker-toggle>
+      <mat-date-range-picker #rangoPicker></mat-date-range-picker>
+    </mat-form-field>
+
+    <div class="presets">
+      <button mat-stroked-button (click)="preset('hoy')">Hoy</button>
+      <button mat-stroked-button (click)="preset('semana')">Próx. semana</button>
+      <button mat-stroked-button (click)="preset('mes')">Este mes</button>
+      <button mat-stroked-button (click)="preset('p30')">Próx. 30</button>
+      <button mat-stroked-button (click)="preset('p60')">Próx. 60</button>
+    </div>
+
+    <mat-form-field appearance="outline" class="f-sel" subscriptSizing="dynamic">
+      <mat-label>Chequera</mat-label>
+      <mat-select [value]="chequeraSel" (selectionChange)="onChequeraChange($event.value)">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let ch of chequeraOpciones" [value]="ch.id">{{ ch.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="f-sel" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select [value]="estadoSel" (selectionChange)="onEstadoChange($event.value)">
+        <mat-option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" (click)="aplicarFiltros()">
+      <mat-icon>search</mat-icon> Aplicar
+    </button>
+    <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Restablecer filtros">
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
+  </div>
+
+  <!-- Contenido: main + sidebar -->
+  <div class="content-section">
+
+    <!-- Sidebar de saldos -->
+    <aside class="saldos-sidebar">
+
+      <!-- KPI: total del rango filtrado, o del día enfocado al clickear una barra -->
+      <div class="kpi-card">
+        <div class="kpi-label">{{ kpiLabel }}</div>
+        <div class="kpi-total">{{ kpiTotal | number:'1.0-2' }}</div>
+        <div class="kpi-sub">{{ kpiCantidad }} cheque(s)</div>
+
+        <button mat-button class="kpi-quitar" *ngIf="focoDesdeControl.value" (click)="limpiarFoco()">
+          <mat-icon>close</mat-icon> Quitar foco del día
+        </button>
+        <div class="kpi-hint" *ngIf="!focoDesdeControl.value && hayDatosGrafico">
+          Clic en una barra para enfocar un día.
+        </div>
+      </div>
+
+      <!-- Posición general -->
+      <div class="sidebar-title">Posición general</div>
+      <div class="mini-card">
+        <div class="mini-row">
+          <span matTooltip="Σ cheques diferidos pendientes hasta la fecha">Pendiente</span>
+          <strong style="color: #ffb74d;">{{ consolidadoPendiente | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row">
+          <span>Saldo cuentas</span>
+          <strong>{{ consolidadoSaldo | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row">
+          <span matTooltip="Σ reservado por cheques diferidos">Reservado</span>
+          <strong style="color: #ff9800;">{{ consolidadoReservado | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row total-row">
+          <span matTooltip="Saldo de cuentas − pendiente hasta la fecha">Disponible proyectado</span>
+          <strong [style.color]="consolidadoDisponible < 0 ? '#f44336' : '#81c784'">
+            {{ consolidadoDisponible | number:'1.0-2' }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- Un card por chequera activa -->
+      <div class="sidebar-title">Chequeras activas</div>
+      <div class="mini-card" *ngFor="let s of saldos">
+        <div class="mini-card-header">
+          <mat-icon>menu_book</mat-icon>
+          {{ s.chequera?.nombre || ('Chequera #' + s.chequera?.id) }}
+        </div>
+        <div class="mini-sub" *ngIf="s.cuentaBancaria">
+          {{ s.cuentaBancaria?.banco?.nombre }} · {{ s.cuentaBancaria?.numero }}
+        </div>
+        <div class="mini-row">
+          <span>Pendiente</span>
+          <strong style="color: #ffb74d;">{{ s.pendienteHastaFecha | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row">
+          <span>Saldo cuenta</span>
+          <strong>{{ s.saldoCuenta | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row" *ngIf="s.saldoReservado">
+          <span>Reservado</span>
+          <strong style="color: #ff9800;">{{ s.saldoReservado | number:'1.0-2' }}</strong>
+        </div>
+        <div class="mini-row">
+          <span>Hojas</span>
+          <strong>{{ s.hojasDisponibles }}</strong>
+        </div>
+      </div>
+      <div class="mini-card" *ngIf="saldos.length === 0">
+        <div class="mini-row"><span style="opacity: 0.6;">Sin chequeras activas</span></div>
+      </div>
+    </aside>
+
+    <!-- Panel principal: lista -->
+    <mat-card class="section-card">
+      <mat-card-header class="lista-header">
+        <mat-card-title>Cheques</mat-card-title>
+        <div class="header-actions">
+          <button mat-icon-button (click)="recargar()" matTooltip="Refrescar">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Gráfico: monto a pagar por día (clic en barra → enfoca el día) -->
+        <div class="grafico-area" *ngIf="hayDatosGrafico">
+          <div echarts [options]="chartOptions" (chartClick)="onBarClick($event)"
+               class="grafico-cheques"></div>
+        </div>
+
+        <div class="lista-scroll">
+          <table mat-table [dataSource]="dataSource" style="width: 100%;">
+
+            <ng-container matColumnDef="numero">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Nº</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">
+                {{ row.numero }}
+                <mat-icon *ngIf="row.nominal" class="nominal-ico" matTooltip="Nominal (a nombre)">badge</mat-icon>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="chequera">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Chequera / Cuenta</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;">
+                <div>{{ row._chequeraNombre }}</div>
+                <div class="cuenta-sub">{{ row._cuentaLabel }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="beneficiario">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Beneficiario</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;">{{ row.beneficiario || '-' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="fechaEmision">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Emisión</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.fechaEntrega | date:'dd/MM/yy' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="fechaPago">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Pago</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">
+                <strong>{{ row.fechaPago | date:'dd/MM/yy' }}</strong>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">
+                {{ estadoLabels[row.estado] || row.estado }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="monto">
+              <th mat-header-cell *matHeaderCellDef style="text-align: right;">Monto</th>
+              <td mat-cell *matCellDef="let row" style="text-align: right;">
+                {{ row.total | number:'1.0-2' }} {{ row._monedaSimbolo }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;"></th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;">
+                <button mat-icon-button [matMenuTriggerFor]="menu"
+                        [disabled]="!row._cobrable && !row._anulable">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item *ngIf="row._cobrable" (click)="onCobrar(row)">
+                    <mat-icon>price_check</mat-icon><span>Cobrar</span>
+                  </button>
+                  <button mat-menu-item *ngIf="row._anulable" (click)="onAnular(row)">
+                    <mat-icon>block</mat-icon><span>Anular</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                class="cheque-row"
+                [class.foco-row]="row._esFoco"
+                [style.opacity]="row.estado === 'ANULADO' ? 0.55 : 1"></tr>
+          </table>
+
+          <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+            <mat-icon>inbox</mat-icon>
+            <span>Sin cheques para el filtro seleccionado</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

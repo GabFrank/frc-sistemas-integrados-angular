@@ -1,0 +1,47 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Cambiar salario</h2>
+
+  <div class="actual" fxLayout="row wrap" fxLayoutGap="18px">
+    <span>Cargo actual: <b>{{ data.cargoActual || '—' }}</b></span>
+    <span>Salario actual: <b>{{ (data.salarioActual | number:'1.0-2') || '—' }}</b></span>
+  </div>
+
+  <div fxLayout="row" fxLayoutGap="14px">
+    <mat-form-field fxFlex="55%">
+      <mat-label>Nuevo salario</mat-label>
+      <input matInput type="number" [formControl]="salarioControl" required />
+      <mat-hint *ngIf="salarioMinimo != null">Mínimo legal: {{ salarioMinimo | number:'1.0-0' }}</mat-hint>
+      <mat-error *ngIf="salarioControl.hasError('required')">Ingrese el salario</mat-error>
+    </mat-form-field>
+    <mat-form-field fxFlex="45%">
+      <mat-label>Moneda</mat-label>
+      <mat-select [formControl]="monedaControl">
+        <mat-option *ngFor="let m of monedas" [value]="m.id">{{ m.denominacion }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="accion-minimo" *ngIf="salarioMinimo != null">
+    <button mat-stroked-button color="primary" (click)="onPonerMinimo()"
+      matTooltip="Poner el salario mínimo legal">
+      <mat-icon>vertical_align_bottom</mat-icon> Poner mínimo
+    </button>
+  </div>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Fecha de vigencia</mat-label>
+    <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Motivo</mat-label>
+    <input matInput [formControl]="motivoControl" />
+  </mat-form-field>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

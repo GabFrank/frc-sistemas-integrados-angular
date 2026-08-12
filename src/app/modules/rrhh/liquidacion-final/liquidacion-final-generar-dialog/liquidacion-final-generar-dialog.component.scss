@@ -1,0 +1,44 @@
+:host { display: block; }
+
+.generar-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 72vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 4px;
+}
+
+mat-form-field { width: 100%; }
+
+// Sufijos (días / Gs) discretos, sin robar protagonismo al valor.
+.generar-content span[matSuffix] {
+  font-size: 12px;
+  opacity: 0.6;
+  padding-left: 4px;
+  white-space: nowrap;
+}
+
+.campo-ancho { width: 100%; }
+
+.antiguedad-linea {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 4px;
+
+  .input-medio { width: 180px; }
+  .hint { font-size: 12px; opacity: 0.65; line-height: 1.4; }
+}
+
+.toggles {
+  .bloque-titulo { font-size: 12px; opacity: 0.6; margin-bottom: 2px; }
+}

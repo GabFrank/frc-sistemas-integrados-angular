@@ -45,6 +45,7 @@ export class SolicitudPagoDashboardComponent implements OnInit {
   estadoOpciones: { value: string; label: string }[] = [
     { value: '', label: 'Todos' },
     { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
+    { value: SolicitudPagoEstado.SOLICITADO, label: 'Solicitado' },
     { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
     { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
@@ -120,8 +121,9 @@ export class SolicitudPagoDashboardComponent implements OnInit {
 
   onNuevaSolicitud(): void {
     const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
-      width: '60vw',
-      height: '70vh',
+      width: '72vw',
+      maxWidth: '1150px',
+      height: '82vh',
       data: { proveedorId: this.selectedProveedor?.id }
     });
     dialogRef.afterClosed().subscribe((saved) => {

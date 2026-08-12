@@ -1,0 +1,15 @@
+.dialog-container {
+  min-width: 600px;
+  padding: 8px;
+
+  .tabla-container { overflow-x: auto; }
+  table { width: 100%; text-align: center; }
+  th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+
+  .chip { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .chip-PENDIENTE { background: rgba(158, 158, 158, 0.25); color: #bdbdbd; }
+  .chip-PARCIAL { background: rgba(255, 193, 7, 0.2); color: #ffca28; }
+  .chip-PAGADA { background: rgba(76, 175, 80, 0.2); color: #66bb6a; }
+  .chip-VENCIDA { background: rgba(244, 67, 54, 0.2); color: #ef5350; }
+  .chip-CANCELADA { background: rgba(120, 120, 120, 0.2); color: #9e9e9e; }
+}

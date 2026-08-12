@@ -1,0 +1,42 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>{{ titulo }}</h2>
+
+  <div class="aviso-sistema" *ngIf="esSistema">
+    Este tipo lo genera el sistema (vacaciones / feriados). Se puede ajustar su comportamiento,
+    pero no renombrarlo ni eliminarlo.
+  </div>
+
+  <mat-form-field>
+    <mat-label>Nombre</mat-label>
+    <input matInput [formControl]="nombreControl" required />
+    <mat-error *ngIf="nombreControl.hasError('required')">Ingrese el nombre</mat-error>
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Descripción</mat-label>
+    <input matInput [formControl]="descripcionControl" />
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Descuenta salario</mat-label>
+    <mat-select [formControl]="descuentaSalarioControl">
+      <mat-option *ngFor="let o of descuentoOpciones" [value]="o.valor">{{ o.label }}</mat-option>
+    </mat-select>
+    <mat-hint>Se aplica sobre el salario diario en la liquidación del período.</mat-hint>
+  </mat-form-field>
+
+  <div class="flags" fxLayout="column" fxLayoutGap="8px">
+    <mat-checkbox [formControl]="evitaPenalizacionControl">
+      Evita la penalización automática por tardanza
+    </mat-checkbox>
+    <mat-checkbox [formControl]="requiereDocumentoControl">
+      Requiere documento respaldatorio
+    </mat-checkbox>
+    <mat-checkbox [formControl]="activoControl">Activo</mat-checkbox>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

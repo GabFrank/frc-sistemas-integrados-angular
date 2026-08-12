@@ -1,0 +1,61 @@
+.config-dialog {
+  min-width: 520px;
+  max-width: 640px;
+
+  .config-content {
+    max-height: 68vh;
+  }
+
+  .config-cargando {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .config-seccion {
+    margin-bottom: 18px;
+
+    .config-seccion-titulo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 0 10px;
+      font-weight: 600;
+      color: #9e9e9e;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: #689f38;
+      }
+    }
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+  }
+
+  .config-full {
+    width: 100%;
+  }
+
+  .config-toggle {
+    display: block;
+    margin-top: 10px;
+  }
+
+  .config-ayuda {
+    margin: 6px 0 10px;
+    font-size: 90%;
+    color: #9e9e9e;
+  }
+
+  .config-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}

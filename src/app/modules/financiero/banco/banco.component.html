@@ -1,1 +1,51 @@
-<p>banco works!</p>
+<div style="padding: 16px;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+    <h2 class="titulo-color" style="margin: 0;">BANCOS</h2>
+    <button *ngIf="puedeGestionar" mat-raised-button color="primary" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      Nuevo Banco
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z1">
+
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let row">{{ row.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Código</th>
+        <td mat-cell *matCellDef="let row">{{ row.codigo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button *ngIf="puedeGestionar" mat-icon-button matTooltip="Editar" (click)="onEdit(row)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button *ngIf="puedeGestionar" mat-icon-button matTooltip="Eliminar" (click)="onDelete(row)">
+            <mat-icon color="warn">delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <div *ngIf="dataSource.data.length === 0 && !isSearching" class="empty-state">
+      <mat-icon>inbox</mat-icon>
+      <span>Sin bancos registrados</span>
+    </div>
+  </div>
+
+</div>

@@ -140,10 +140,20 @@
                     </button>
                     
                     <mat-divider></mat-divider>
-                    
+
+                    <!-- Solicitar: envía a tesorería (PENDIENTE → SOLICITADO). Sin este paso
+                         la solicitud queda como borrador e invisible al diálogo de pago CPP. -->
+                    <button
+                      mat-menu-item
+                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.SOLICITADO)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
+                      <mat-icon>send</mat-icon>
+                      Solicitar (enviar a tesorería)
+                    </button>
+
                     <!-- Cambios de Estado -->
-                    <button 
-                      mat-menu-item 
+                    <button
+                      mat-menu-item
                       (click)="onChangeEstado(solicitud, SolicitudPagoEstado.PARCIAL)"
                       *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
                       <mat-icon>payments</mat-icon>

@@ -362,6 +362,8 @@ export class SolicitudPagoService {
     switch (estado) {
       case SolicitudPagoEstado.PENDIENTE:
         return 'Pendiente';
+      case SolicitudPagoEstado.SOLICITADO:
+        return 'Solicitado';
       case SolicitudPagoEstado.PARCIAL:
         return 'Pago Parcial';
       case SolicitudPagoEstado.CONCLUIDO:
@@ -382,6 +384,8 @@ export class SolicitudPagoService {
     switch (estado) {
       case SolicitudPagoEstado.PENDIENTE:
         return 'warn';
+      case SolicitudPagoEstado.SOLICITADO:
+        return 'accent';
       case SolicitudPagoEstado.PARCIAL:
         return 'accent';
       case SolicitudPagoEstado.CONCLUIDO:
@@ -418,9 +422,14 @@ export class SolicitudPagoService {
    * @returns true si la transición es válida
    */
   canChangeState(solicitud: SolicitudPago, nuevoEstado: SolicitudPagoEstado): boolean {
+    // Alineado con SolicitudPagoService.isValidStateTransition del backend.
+    // PENDIENTE (borrador) → SOLICITADO (solicitar/enviar a tesorería) es la transición
+    // que faltaba: sin ella la compra queda invisible al diálogo de pago CPP.
     switch (solicitud.estado) {
       case SolicitudPagoEstado.PENDIENTE:
-        return [SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
+        return [SolicitudPagoEstado.SOLICITADO, SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
+      case SolicitudPagoEstado.SOLICITADO:
+        return [SolicitudPagoEstado.PENDIENTE, SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
       case SolicitudPagoEstado.PARCIAL:
         return [SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
       case SolicitudPagoEstado.CONCLUIDO:
