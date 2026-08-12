@@ -70,3 +70,46 @@ tr.example-detail-row {
     }
   }
 }
+.responsables {
+  text-align: center;
+
+  // `.titulo` alinea a la izquierda; en esta grilla las columnas van centradas.
+  .responsable-etapa {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    text-align: center;
+    padding-right: 0;
+  }
+
+  .responsable-usuario {
+    font-size: 1em;
+    font-weight: 500;
+  }
+}
+
+td.expanded,
+td.expanded .example-element-detail {
+  background-color: rgb(32, 32, 32) !important;
+}
+
+// styles.scss pinta todas las filas de verde al pasar el mouse; la fila de
+// detalle no es clickeable, asi que ahi el hover no corresponde.
+tr.example-detail-row.mat-mdc-row:hover,
+tr.example-detail-row:hover {
+  background-color: rgb(32, 32, 32) !important;
+}
+
+.icon {
+  cursor: pointer;
+}
+
+// Los anchos por columna suman 100%; antes sumaban 125% y el navegador los
+// aplastaba, por eso "Fecha" caia en dos lineas.
+th.mat-mdc-header-cell,
+td.mat-mdc-cell {
+  padding: 0 10px;
+}
+
+td.celda-fecha {
+  white-space: nowrap;
+}
