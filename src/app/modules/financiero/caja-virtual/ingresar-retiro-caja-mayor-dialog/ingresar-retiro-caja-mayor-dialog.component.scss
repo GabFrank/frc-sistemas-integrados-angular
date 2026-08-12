@@ -1,0 +1,128 @@
+.ingresar-retiro-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 16px 4px;
+  box-sizing: border-box;
+
+  .titulo-dialog {
+    text-align: center;
+    margin: 4px 0 2px;
+    font-weight: 500;
+    font-size: 20px;
+    color: #fff;
+  }
+
+  .subtitulo-dialog {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #ff9800;
+  }
+
+  .contenido {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .filtros {
+    margin-bottom: 4px;
+    flex: 0 0 auto;
+
+    .filtro-suc {
+      width: 240px;
+    }
+    .filtro-caja {
+      width: 120px;
+    }
+    .filtro-fecha {
+      width: 240px;
+    }
+    .spacer {
+      flex: 1 1 auto;
+    }
+    .hint {
+      opacity: 0.7;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  }
+
+  .tabla-wrap {
+    flex: 1 1 auto;
+    overflow: auto;
+
+    .tabla-retiros {
+      width: 100%;
+
+      th, td {
+        text-align: center;
+        padding: 0 8px;
+      }
+
+      // Anchos fijos para columnas cortas → deja el resto a Sucursal / Responsable.
+      .col-sel   { width: 44px; }
+      .col-id    { width: 60px; }
+      .col-caja  { width: 64px; }
+      .col-fecha { width: 116px; white-space: nowrap; }
+
+      td.montos {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      // Ellipsis para nombres largos (sucursal / responsable): una sola línea.
+      td.celda-elipsis {
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .empty {
+      text-align: center;
+      opacity: 0.6;
+      padding: 32px 0;
+    }
+  }
+
+  mat-paginator {
+    flex: 0 0 auto;
+    background: transparent;
+  }
+
+  // Strip compacto de totales (sin cards grandes).
+  .totales-strip {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 22px;
+    padding: 8px 14px;
+    margin-top: 4px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+
+    .tot-item {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+
+      .tot-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        opacity: 0.6;
+      }
+      .tot-valor {
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+}

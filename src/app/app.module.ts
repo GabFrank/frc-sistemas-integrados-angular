@@ -30,6 +30,7 @@ import { MainService } from "./main.service";
 import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { SharedModule } from "./shared/shared.module";
+import { NgxEchartsModule } from "ngx-echarts";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { GraphqlConnectionService } from "./shared/services/graphql-connection.service";
 import { BehaviorSubject } from "rxjs";
@@ -72,7 +73,10 @@ export function appInit(appConfigService: MainService) {
     HttpClientModule,
     SharedModule,
     ApolloModule,
-    NgxSpinnerModule
+    NgxSpinnerModule,
+    // Provider global de echarts para ngx-echarts. Sin esto, frc-grafico-shell
+    // (y los dashboards que lo usan) solo renderiza dentro del modulo de graficos.
+    NgxEchartsModule.forRoot({ echarts: () => import("echarts") })
   ],
   providers: [
     MainService,

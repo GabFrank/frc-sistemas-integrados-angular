@@ -1,0 +1,37 @@
+.opciones-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 340px;
+  padding-top: 8px;
+}
+
+.opcion-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: auto;
+  padding: 14px 16px;
+  text-align: left;
+  justify-content: flex-start;
+
+  mat-icon {
+    color: #689f38;
+    flex-shrink: 0;
+  }
+
+  .opcion-label {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+
+  .opcion-title {
+    font-weight: 600;
+  }
+
+  .opcion-desc {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+}

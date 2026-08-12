@@ -7,6 +7,7 @@ import { FinancieroDashboardComponent } from "./financiero-dashboard/financiero-
 import { FormaPagoComponent } from "./forma-pago/forma-pago.component";
 import { MaletinComponent } from "./maletin/maletin.component";
 import { MonedaComponent } from "./moneda/moneda.component";
+import { AddMonedaDialogComponent } from "./moneda/add-moneda-dialog/add-moneda-dialog.component";
 import { ListCajaComponent } from "./pdv/caja/list-caja/list-caja.component";
 import { FlexLayoutModule } from "ngx-flexible-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
@@ -57,6 +58,31 @@ import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/config
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
 import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
+import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-dialog/add-caja-virtual-dialog.component';
+import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
+import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
+import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
+import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
+import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
+import { IngresarRetiroCajaMayorDialogComponent } from './caja-virtual/ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
+import { MaletinTesoreriaDialogComponent } from './maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
+import { RegistrarValeDialogComponent } from './caja-virtual/registrar-vale-dialog/registrar-vale-dialog.component';
+import { PagarComprasDialogComponent } from './caja-virtual/pagar-compras-dialog/pagar-compras-dialog.component';
+import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
+import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { HistorialMovimientosCajaVirtualComponent } from './caja-virtual/historial-movimientos-caja-virtual/historial-movimientos-caja-virtual.component';
+import { AddEntradaVariaDialogComponent } from './entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
+import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
+import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
+import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
+import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
+import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
+import { GestionarChequerasDialogComponent } from './chequera/gestionar-chequeras-dialog/gestionar-chequeras-dialog.component';
+import { ListOperacionFinancieraComponent } from './operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
+import { ListMovimientosBancariosDialogComponent } from './operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
+import { AddBancoDialogComponent } from './banco/add-banco-dialog/add-banco-dialog.component';
+import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-bancaria-dialog/add-cuenta-bancaria-dialog.component';
 
 @NgModule({
   declarations: [
@@ -67,6 +93,7 @@ import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/f
     FormaPagoComponent,
     MaletinComponent,
     MonedaComponent,
+    AddMonedaDialogComponent,
     ListCajaComponent,
     ListMaletinComponent,
     AdicionarMaletinDialogComponent,
@@ -108,7 +135,32 @@ import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/f
     ListVentaTarjetaComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
-    FacturaLegalDashboard
+    FacturaLegalDashboard,
+    AddCajaVirtualDialogComponent,
+    AddMovimientoCajaVirtualDialogComponent,
+    TransferenciaCajaVirtualDialogComponent,
+    CajaVirtualDashboardComponent,
+    ConfigurarCajaVirtualDialogComponent,
+    RegistrarIngresoDialogComponent,
+    IngresarRetiroCajaMayorDialogComponent,
+    MaletinTesoreriaDialogComponent,
+    RegistrarValeDialogComponent,
+    PagarComprasDialogComponent,
+    RegistrarEgresoDialogComponent,
+    ListCajaVirtualComponent,
+    HistorialMovimientosCajaVirtualComponent,
+    AddEntradaVariaDialogComponent,
+    ListEntradasVariasDialogComponent,
+    AddOperacionFinancieraDialogComponent,
+    OperacionFinancieraDetalleDialogComponent,
+    ChequesDashboardComponent,
+    EmitirChequeDialogComponent,
+    EditChequeraDialogComponent,
+    GestionarChequerasDialogComponent,
+    ListOperacionFinancieraComponent,
+    ListMovimientosBancariosDialogComponent,
+    AddBancoDialogComponent,
+    AddCuentaBancariaDialogComponent
 
   ],
   providers: [

@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>{{ data?.titulo || 'Imprimir' }}</h2>
+
+<div mat-dialog-content>
+  <p class="subtitulo">¿En qué formato querés generar el documento?</p>
+
+  <div class="opciones">
+    <button mat-stroked-button class="opcion" (click)="elegir('pdf', null)">
+      <mat-icon>picture_as_pdf</mat-icon>
+      <span class="titulo">PDF (A4)</span>
+      <span class="detalle">Documento completo para archivar/firmar</span>
+    </button>
+
+    <ng-container *ngIf="!data?.soloPdf">
+      <button mat-stroked-button class="opcion" (click)="elegir('ticket', 58)">
+        <mat-icon>receipt</mat-icon>
+        <span class="titulo">Ticket 58mm</span>
+        <span class="detalle">Impresora térmica angosta</span>
+      </button>
+
+      <button mat-stroked-button class="opcion" (click)="elegir('ticket', 80)">
+        <mat-icon>receipt_long</mat-icon>
+        <span class="titulo">Ticket 80mm</span>
+        <span class="detalle">Impresora térmica ancha</span>
+      </button>
+    </ng-container>
+  </div>
+</div>
+
+<div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+</div>

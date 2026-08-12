@@ -1,0 +1,126 @@
+<div style="margin: 20px;">
+<h2 class="titulo-center" style="font-weight: 500;">
+  {{ titulo }} — {{ data?.cajaVirtual?.nombre }}
+</h2>
+
+<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-form-field appearance="outline" [fxFlex]="data?.tipoMovimiento === 'INGRESO' ? '100%' : '50%'">
+        <mat-label>Monto Guaraníes</mat-label>
+        <input 
+          matInput
+          currencyMask
+          [options]="currencyOptionsGs"
+          [formControl]="cantidadGsControl"
+          placeholder="0" 
+        />
+        <span style="margin-right: 10px; margin-left: 5px;" matSuffix>Gs.</span>
+        <mat-error *ngIf="cantidadGsControl.hasError('min')">
+          Debe ser mayor a 0
+        </mat-error>
+      </mat-form-field>
+      <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
+        <span class="saldo-actual">Saldo Actual</span>
+        <strong class="saldo-actual-value">
+          {{ data?.cajaVirtual?.saldoGs | number:'1.0-0' }} Gs.
+        </strong>
+      </div>
+    </div>
+
+    <div 
+      fxLayout="row" 
+      fxLayoutAlign="start center" 
+      fxLayoutGap="10px" 
+      style="margin-top: -10px;"
+    >
+      <mat-form-field appearance="outline" [fxFlex]="data?.tipoMovimiento === 'INGRESO' ? '100%' : '50%'">
+        <mat-label>Monto Reales</mat-label>
+        <input 
+          matInput
+          currencyMask
+          [options]="currencyOptionsRs"
+          [formControl]="cantidadRsControl"
+          placeholder="0.00" 
+        />
+        <span style="margin-right: 10px; margin-left: 5px;" matSuffix>R$</span>
+        <mat-error *ngIf="cantidadRsControl.hasError('min')">
+          Debe ser mayor a 0
+        </mat-error>
+      </mat-form-field>
+      <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
+        <span class="saldo-actual">Saldo Actual</span>
+        <strong class="saldo-actual-value">
+          {{ data?.cajaVirtual?.saldoRs | number:'1.2-2' }} R$
+        </strong>
+      </div>
+    </div>
+
+    <div 
+      fxLayout="row" 
+      fxLayoutAlign="start center" 
+      fxLayoutGap="10px" 
+      style="margin-top: -10px;"
+    >
+      <mat-form-field appearance="outline" [fxFlex]="data?.tipoMovimiento === 'INGRESO' ? '100%' : '50%'">
+        <mat-label>Monto Dólares</mat-label>
+        <input 
+          matInput
+          currencyMask
+          [options]="currencyOptionsDs"
+          [formControl]="cantidadDsControl"
+          placeholder="0.00" 
+        />
+        <span style="margin-right: 10px; margin-left: 5px;" matSuffix>US$</span>
+        <mat-error *ngIf="cantidadDsControl.hasError('min')">
+          Debe ser mayor a 0
+        </mat-error>
+      </mat-form-field>
+      <div fxFlex="50%" fxLayout="column" style="margin-bottom: 12px; color: #888;" *ngIf="data?.tipoMovimiento !== 'INGRESO'">
+        <span class="saldo-actual">Saldo Actual</span>
+        <strong class="saldo-actual-value">
+          {{ data?.cajaVirtual?.saldoDs | number:'1.2-2' }} US$
+        </strong>
+      </div>
+    </div>
+
+    <!-- Descripción -->
+    <mat-form-field 
+      appearance="outline" 
+      style="margin-top: 5px !important; text-transform: uppercase;">
+      <mat-label>Descripción / Motivo</mat-label>
+      <textarea 
+        matInput 
+        [formControl]="descripcionControl" 
+        rows="2" 
+        placeholder="Ej: RETIRO PARA PAGO DE PROVEEDORES"
+      ></textarea>
+      <mat-error *ngIf="descripcionControl.hasError('required')">
+        La descripción es requerida
+      </mat-error>
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSave()"
+    [disabled]="
+      formGroup.invalid || isSaving || 
+      (!cantidadGsControl.value && 
+      !cantidadRsControl.value && 
+      !cantidadDsControl.value)
+    "
+  >
+    <mat-icon style="transform: scale(1.5);">save</mat-icon>
+      Confirmar
+  </button>
+</mat-dialog-actions>
+</div>

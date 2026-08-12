@@ -1,74 +1,217 @@
 import gql from "graphql-tag";
 
-// Fragmento para DevolucionItem
-export const DevolucionItemFragment = gql`
-  fragment DevolucionItemFragment on DevolucionItem {
+const devolucionItemFields = `
+  id
+  producto {
     id
-    producto {
-      id
-      descripcion
-    }
-    cantidad
-    lote
-    recepcionMercaderiaItem {
-        id # Para trazabilidad
-    }
+    descripcion
+    codigoPrincipal
   }
+  presentacion {
+    id
+    descripcion
+    cantidad
+  }
+  motivoAveria {
+    id
+    descripcion
+    generaGasto
+    aplicaProveedor
+  }
+  recepcionMercaderiaItem {
+    id
+  }
+  cantidad
+  lote
+  motivo
+  vencimiento
+  costoUnitario
+  cantidadReingresada
+  vencimientoReingreso
 `;
 
-// Fragmento para la cabecera de Devolucion
-export const DevolucionFragment = gql`
-  fragment DevolucionFragment on Devolucion {
+const devolucionFields = `
+  id
+  tipo
+  estado
+  identificador
+  resolucion
+  nroNotaCredito
+  montoAcreditado
+  motivo
+  observacion
+  fecha
+  creadoEn
+  finalizado
+  proveedor {
     id
-    proveedor {
-      id
-      persona {
-        nombre
-      }
-    }
-    sucursalOrigen {
+    persona {
       id
       nombre
     }
-    fecha
-    motivo
-    estado
-    usuario {
-      id
-      persona {
-        nombre
+  }
+  sucursalOrigen {
+    id
+    nombre
+  }
+  sucursalUbicacion {
+    id
+    nombre
+  }
+  colectadoEn
+  usuario {
+    id
+    persona {
+      nombre
+    }
+  }
+`;
+
+export const devolucionQuery = gql`
+  query ($id: ID!) {
+    data: devolucion(id: $id) {
+      ${devolucionFields}
+      items {
+        ${devolucionItemFields}
       }
     }
-    devolucionItemList {
-      ...DevolucionItemFragment
-    }
   }
-  ${DevolucionItemFragment}
 `;
 
-// Query para obtener una Devolucion por ID
-export const getDevolucionById = gql`
-  query getDevolucionById($id: ID!) {
-    data: devolucion(id: $id) {
-      ...DevolucionFragment
+export const devolucionConFiltrosQuery = gql`
+  query (
+    $proveedorId: ID
+    $sucursalId: ID
+    $estado: DevolucionEstado
+    $fechaInicio: String
+    $fechaFin: String
+    $page: Int
+    $size: Int
+  ) {
+    data: devolucionConFiltros(
+      proveedorId: $proveedorId
+      sucursalId: $sucursalId
+      estado: $estado
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        ${devolucionFields}
+      }
     }
   }
-  ${DevolucionFragment}
 `;
 
-// Mutation para crear/actualizar una Devolucion
-export const saveDevolucion = gql`
+export const devolucionesPendientesPorProveedorQuery = gql`
+  query ($proveedorId: ID!) {
+    data: devolucionesPendientesPorProveedor(proveedorId: $proveedorId) {
+      ${devolucionFields}
+    }
+  }
+`;
+
+export const devolucionItemsPorDevolucionQuery = gql`
+  query ($devolucionId: ID!) {
+    data: devolucionItemsPorDevolucion(devolucionId: $devolucionId) {
+      ${devolucionItemFields}
+    }
+  }
+`;
+
+export const motivosAveriaActivosQuery = gql`
+  query {
+    data: motivosAveriaActivos {
+      id
+      descripcion
+      activo
+      generaGasto
+      aplicaProveedor
+    }
+  }
+`;
+
+export const saveDevolucionMutation = gql`
   mutation saveDevolucion($entity: DevolucionInput!) {
     data: saveDevolucion(entity: $entity) {
-      ...DevolucionFragment
+      ${devolucionFields}
+      items {
+        ${devolucionItemFields}
+      }
     }
   }
-  ${DevolucionFragment}
 `;
 
-// Mutation para confirmar una Devolucion
-export const confirmarDevolucion = gql`
-    mutation confirmarDevolucion($id: ID!) {
-        data: confirmarDevolucion(id: $id)
+export const saveDevolucionItemMutation = gql`
+  mutation saveDevolucionItem($entity: DevolucionItemInput!) {
+    data: saveDevolucionItem(entity: $entity) {
+      ${devolucionItemFields}
     }
-`; 
+  }
+`;
+
+export const deleteDevolucionItemMutation = gql`
+  mutation deleteDevolucionItem($id: ID!) {
+    data: deleteDevolucionItem(id: $id)
+  }
+`;
+
+export const avanzarEstadoDevolucionMutation = gql`
+  mutation avanzarEstadoDevolucion(
+    $devolucionId: ID!
+    $estado: DevolucionEstado!
+    $usuarioId: ID
+  ) {
+    data: avanzarEstadoDevolucion(
+      devolucionId: $devolucionId
+      estado: $estado
+      usuarioId: $usuarioId
+    ) {
+      ${devolucionFields}
+    }
+  }
+`;
+
+export const acreditarDevolucionMutation = gql`
+  mutation acreditarDevolucion(
+    $devolucionId: ID!
+    $nroNotaCredito: String
+    $montoAcreditado: Float
+    $usuarioId: ID
+  ) {
+    data: acreditarDevolucion(
+      devolucionId: $devolucionId
+      nroNotaCredito: $nroNotaCredito
+      montoAcreditado: $montoAcreditado
+      usuarioId: $usuarioId
+    ) {
+      ${devolucionFields}
+    }
+  }
+`;
+
+export const cancelarDevolucionMutation = gql`
+  mutation cancelarDevolucion(
+    $devolucionId: ID!
+    $motivoCancelacion: String
+  ) {
+    data: cancelarDevolucion(
+      devolucionId: $devolucionId
+      motivoCancelacion: $motivoCancelacion
+    ) {
+      ${devolucionFields}
+    }
+  }
+`;

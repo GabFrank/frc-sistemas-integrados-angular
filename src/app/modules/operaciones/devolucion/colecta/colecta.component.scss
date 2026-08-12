@@ -1,0 +1,31 @@
+.colecta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+
+  .colecta-titulo {
+    margin: 0;
+    font-weight: 600;
+  }
+  .colecta-sub {
+    color: #9e9e9e;
+    font-size: 0.9rem;
+  }
+  .colecta-destino {
+    width: 260px;
+  }
+  .colecta-tabla {
+    width: 100%;
+  }
+  .colecta-vacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 40px;
+    color: #9e9e9e;
+  }
+}

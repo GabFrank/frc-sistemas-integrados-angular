@@ -6,6 +6,7 @@ export const cargosQuery = gql`
       id
       nombre
       descripcion
+      sueldoBase
       subcargoList {
         id
         nombre

@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>Registrar Vale</h2>
+
+<mat-dialog-content>
+  <div fxLayout="column" fxLayoutGap="12px" class="vale-form">
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Funcionario</mat-label>
+      <input matInput [formControl]="funcionarioControl" [matAutocomplete]="autoFunc"
+             placeholder="Buscar por nombre" autocomplete="off" />
+      <mat-icon matSuffix>person_search</mat-icon>
+      <mat-autocomplete #autoFunc="matAutocomplete" [displayWith]="displayFuncionario">
+        <mat-option *ngFor="let f of funcionarioFiltrados" [value]="f">
+          {{ f.persona?.nombre }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Motivo</mat-label>
+      <mat-select [formControl]="motivoControl">
+        <mat-option [value]="null">— Sin motivo —</mat-option>
+        <mat-option *ngFor="let m of motivoList" [value]="m">{{ m.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field appearance="outline" fxFlex="50%">
+        <mat-label class="required-field">Moneda</mat-label>
+        <mat-select [formControl]="monedaControl" (selectionChange)="onMonedaChange()">
+          <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" fxFlex="50%">
+        <mat-label class="required-field">Monto</mat-label>
+        <input matInput currencyMask [options]="currencyOpts" [formControl]="montoControl" />
+      </mat-form-field>
+    </div>
+
+    <mat-checkbox [formControl]="esAdelantoControl">Es adelanto de sueldo</mat-checkbox>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observación</mat-label>
+      <input matInput [formControl]="observacionControl" placeholder="Opcional" />
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="isSaving">
+    <mat-icon>save</mat-icon> Confirmar
+  </button>
+</mat-dialog-actions>

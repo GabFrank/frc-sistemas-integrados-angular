@@ -8,6 +8,20 @@ export function dateToString(date: Date, format?: string): string {
   }
 }
 
+/**
+ * Parsea una fecha del backend a Date en horario LOCAL.
+ *
+ * new Date('2026-07-21') la interpreta como medianoche UTC: en Paraguay (UTC-3) eso
+ * es el 20 a las 21:00, y al volver a guardarla con dateToString se pierde un dia.
+ * Usar siempre esta funcion para llevar una fecha del backend a un datepicker.
+ */
+export function stringToLocalDate(value: string): Date {
+  if (value == null) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (m == null) return new Date(value);
+  return new Date(+m[1], +m[2] - 1, +m[3]);
+}
+
 export function getFirstDayOfNextMonth() {
   const date = new Date();
 

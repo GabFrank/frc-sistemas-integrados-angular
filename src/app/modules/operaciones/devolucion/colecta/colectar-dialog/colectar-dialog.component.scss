@@ -1,0 +1,13 @@
+.colectar-dialog {
+  min-width: 380px;
+
+  .colectar-sub {
+    color: #9e9e9e;
+    margin: 0 0 12px;
+  }
+  .colectar-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}

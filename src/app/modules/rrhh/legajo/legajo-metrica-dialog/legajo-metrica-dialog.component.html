@@ -1,0 +1,25 @@
+<div class="metrica-dialog" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>{{ titulo }}</h2>
+
+  <div class="aviso">
+    <mat-icon>construction</mat-icon>
+    <span>Módulo en desarrollo — datos de ejemplo. Se conectará al módulo real cuando esté implementado.</span>
+  </div>
+
+  <p class="resumen" *ngIf="nombre">{{ nombre }}</p>
+  <p class="resumen">{{ resumen }}</p>
+
+  <div class="filas" fxLayout="column" fxLayoutGap="10px">
+    <div class="fila" *ngFor="let f of filas" fxLayout="column" fxLayoutGap="4px">
+      <div fxLayout="row" fxLayoutAlign="space-between center">
+        <span>{{ f.label }}</span>
+        <b>{{ f.valor }}</b>
+      </div>
+      <mat-progress-bar *ngIf="f.progreso != null" mode="determinate" [value]="f.progreso"></mat-progress-bar>
+    </div>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close>Cerrar</button>
+  </div>
+</div>

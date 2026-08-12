@@ -206,8 +206,9 @@
         </div>
 
         <div *ngIf="seleccionado.estado === 'AUTORIZADO'" style="margin-top: 16px;">
-          <button mat-raised-button color="accent" style="width: 100%;" disabled
-            matTooltip="Disponible cuando el módulo de tesorería esté en producción">
+          <button mat-raised-button color="accent" style="width: 100%;"
+            (click)="onEnviarATesoreria(seleccionado)"
+            matTooltip="Genera un gasto pagable en tesorería (Pagar Gasto)">
             <mat-icon style="margin-right: 4px; font-size: 16px; width: 16px; height: 16px;">send</mat-icon>
             ENVIAR A TESORERÍA
           </button>
@@ -219,7 +220,16 @@
             style="background-color: rgba(38, 166, 154, 0.1); color: #26a69a; padding: 12px; border-radius: 4px; border: 1px solid #26a69a;"
             fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
             <mat-icon>info</mat-icon>
-            <span>Enviado a Tesorería para Pago</span>
+            <span>Enviado a Tesorería — pendiente de pago en "Pagar Gasto"</span>
+          </div>
+        </div>
+
+        <div *ngIf="seleccionado.estado === 'PAGADO'" style="margin-top: 16px;">
+          <div
+            style="background-color: rgba(76, 175, 80, 0.12); color: #66bb6a; padding: 12px; border-radius: 4px; border: 1px solid #66bb6a;"
+            fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="8px">
+            <mat-icon>check_circle</mat-icon>
+            <span>Pagado por tesorería</span>
           </div>
         </div>
 

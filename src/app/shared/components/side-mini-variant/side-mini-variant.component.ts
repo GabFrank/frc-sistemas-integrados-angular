@@ -20,6 +20,8 @@ import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/vent
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
 import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
@@ -53,8 +55,32 @@ import { ListMarcacionComponent } from '../../../modules/administrativo/marcacio
 import { MarcarHorarioComponent } from '../../../modules/administrativo/marcacion/pages/marcar-horario/marcar-horario.component';
 import { VehiculosDashboardComponent } from '../../../modules/activos/dashboard/vehiculos-dashboard/vehiculos-dashboard.component';
 import { BienesDashboardComponent } from '../../../modules/activos/dashboard/bienes-dashboard/bienes-dashboard.component';
+import { ListTerminalPosComponent } from '../../../modules/financiero/terminal-pos/list-terminal-pos/list-terminal-pos.component';
+import { PanelConfiguracionRrhhComponent } from '../../../modules/rrhh/configuracion-rrhh/panel-configuracion-rrhh/panel-configuracion-rrhh.component';
+import { ListFeriadoComponent } from '../../../modules/rrhh/feriado/list-feriado/list-feriado.component';
+import { ListPenalizacionComponent } from '../../../modules/rrhh/penalizacion/list-penalizacion/list-penalizacion.component';
+import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-hora-extra/list-hora-extra.component';
+import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
+import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
+import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
+import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
+import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
+import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-aguinaldo/list-aguinaldo.component';
+import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
+import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
+import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
+import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
+import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
+import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
+import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
+import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
+import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
+import { CuentaBancariaComponent } from '../../../modules/financiero/cuenta-bancaria/cuenta-bancaria.component';
+import { ChequesDashboardComponent } from '../../../modules/financiero/cheque/cheques-dashboard/cheques-dashboard.component';
 
 
 interface BaseNavigationItem {
@@ -142,6 +168,163 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
+      name: 'R.R.H.H.',
+      icon: 'groups',
+      isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+      items: [
+        {
+          name: 'Manual de uso',
+          icon: 'menu_book',
+          action: 'manual-rrhh',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+        },
+        {
+          name: 'Dashboard RRHH',
+          icon: 'dashboard',
+          action: 'dashboard-rrhh',
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+        },
+        {
+          name: 'Personal',
+          icon: 'badge',
+          isExpanded: false,
+          visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Funcionarios',
+              icon: 'badge',
+              action: 'list-funcionarios',
+              visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Solicitudes de funcionarios',
+              icon: 'how_to_reg',
+              action: 'solicitudes-funcionarios',
+              visibilityRoles: [ROLES.VER_FUNCIONARIOS, ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
+        },
+        {
+          name: 'Asistencia',
+          icon: 'fingerprint',
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Historial de marcaciones',
+              icon: 'fingerprint',
+              action: 'historial-marcaciones',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Justificativos',
+              icon: 'event_note',
+              action: 'list-justificativo',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Horas extra',
+              icon: 'more_time',
+              action: 'list-hora-extra',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Penalizaciones',
+              icon: 'gavel',
+              action: 'list-penalizacion',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
+        },
+        {
+          name: 'Beneficios',
+          icon: 'volunteer_activism',
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vacaciones',
+              icon: 'beach_access',
+              action: 'list-vacacion',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Aguinaldos',
+              icon: 'redeem',
+              action: 'list-aguinaldo',
+              visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Bonos',
+              icon: 'card_giftcard',
+              action: 'list-bono',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
+        },
+        {
+          name: 'Anticipos',
+          icon: 'request_quote',
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Vales',
+              icon: 'request_quote',
+              action: 'list-vale',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Préstamos',
+              icon: 'payments',
+              action: 'list-prestamo',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
+        },
+        {
+          name: 'Liquidaciones',
+          icon: 'receipt_long',
+          action: 'list-liquidacion',
+          visibilityRoles: [ROLES.RRHH_LIQUIDAR, ROLES.RRHH_VER, ROLES.ADMIN]
+        },
+        {
+          name: 'Configuración',
+          icon: 'settings',
+          isExpanded: false,
+          visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Feriados',
+              icon: 'event',
+              action: 'list-feriado',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Tipos de justificativo',
+              icon: 'rule',
+              action: 'list-tipo-justificativo',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            },
+            {
+              name: 'Motivos de vale',
+              icon: 'label',
+              action: 'list-motivo-vale',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Configuración RRHH',
+              icon: 'tune',
+              action: 'list-configuracion-rrhh',
+              visibilityRoles: [ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            }
+          ]
+        }
+      ]
+    },
+    {
       name: 'Operaciones',
       icon: 'business_center',
       isExpanded: false,
@@ -170,6 +353,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'swap_vert',
               action: 'list-movimiento',
               visibilityRoles: [ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.VER_INVENTARIO]
+            },
+            {
+              name: 'Devoluciones',
+              icon: 'assignment_return',
+              action: 'devoluciones',
+              visibilityRoles: [ROLES.VER_TRANSFERENCIA]
             }
           ]
         },
@@ -226,78 +415,134 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'account_balance',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION],
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
       items: [
         {
-          name: 'Análisis de diferencias',
-          icon: 'equalizer',
-          action: 'analisis-diferencias',
-          visibilityRoles: [ROLES.ADMIN]
+          name: 'Dashboard',
+          icon: 'dashboard',
+          action: 'finanzas-dashboard',
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
         },
         {
-          name: 'Cotización',
-          icon: 'monetization_on',
-          action: 'list-cotizacion',
-          visibilityRoles: [ROLES.CAMBIAR_COTIZACION]
+          name: 'Caja y Operativa',
+          icon: 'point_of_sale',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Gastos',
+              icon: 'money_off',
+              action: 'gastos-dashboard',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Retiros',
+              icon: 'savings',
+              action: 'list-retiros',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Pagos',
-          icon: 'payment',
-          action: 'list-pagos',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+          name: 'Cuentas y Bancos',
+          icon: 'account_balance',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Cuentas Bancarias',
+              icon: 'account_balance',
+              action: 'list-cuentas-bancarias',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Bancos',
+              icon: 'business',
+              action: 'list-bancos',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Cheques',
+              icon: 'menu_book',
+              action: 'cheques-dashboard',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Gastos',
-          icon: 'money_off',
-          action: 'gastos-dashboard',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+          name: 'Configuración',
+          icon: 'settings',
+          isExpanded: false,
+          visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.CAMBIAR_COTIZACION, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Cotización',
+              icon: 'monetization_on',
+              action: 'list-cotizacion',
+              visibilityRoles: [ROLES.CAMBIAR_COTIZACION, ROLES.ADMIN]
+            },
+            {
+              name: 'Monedas',
+              icon: 'paid',
+              action: 'list-moneda',
+              visibilityRoles: [ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Timbrado',
+              icon: 'text_snippet',
+              action: 'list-timbrado',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Documento electrónico',
+              icon: 'qr_code_2',
+              action: 'list-lote-de',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
         },
         {
-          name: 'Retiros',
-          icon: 'savings',
-          action: 'list-retiros',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Facturas',
-          icon: 'receipt',
-          action: 'factura-dashboard',
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
-        },
-        {
-          name: 'Timbrado',
-          icon: 'text_snippet',
-          action: 'list-timbrado',
-          visibilityRoles: [ROLES.ADMIN]
+          name: 'Reportes y Análisis',
+          icon: 'analytics',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          items: [
+            {
+              name: 'Análisis de diferencias',
+              icon: 'equalizer',
+              action: 'analisis-diferencias',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Lucro por funcionario',
+              icon: 'groups',
+              action: 'lucro-por-funcionario',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Lucro por producto',
+              icon: 'trending_up',
+              action: 'lucro-por-producto',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Terminales POS',
+              icon: 'contactless',
+              action: 'terminal-pos-dashboard',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Facturas',
+              icon: 'receipt',
+              action: 'factura-dashboard',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            }
+          ]
         },
         {
           name: 'Maletines',
           icon: 'work',
           action: 'list-maletin',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Lucro por funcionario',
-          icon: 'groups',
-          action: 'lucro-por-funcionario',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Lucro por producto',
-          icon: 'trending_up',
-          action: 'lucro-por-producto',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Documento electrónico',
-          icon: 'qr_code_2',
-          action: 'list-lote-de',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'Terminales POS',
-          icon: 'contactless',
-          action: 'terminal-pos-dashboard',
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
@@ -322,14 +567,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         }
       ]
-    },
-    {
-      name: 'Bancario',
-      icon: 'account_balance_wallet',
-      isExpanded: false,
-      items: [],
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN]
     },
     {
       name: 'Vehículos',
@@ -362,8 +599,8 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
-      name: 'R.R.H.H.',
-      icon: 'people',
+      name: 'Administración',
+      icon: 'admin_panel_settings',
       isExpanded: false,
       requiresServerMode: false,
       visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS],
@@ -379,12 +616,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           icon: 'manage_accounts',
           action: 'list-usuario',
           visibilityRoles: [ROLES.VER_USUARIOS]
-        },
-        {
-          name: 'Funcionarios',
-          icon: 'badge',
-          action: 'funcionario-dashboard',
-          visibilityRoles: [ROLES.VER_FUNCIONARIOS]
         },
         {
           name: 'Proveedores',
@@ -680,7 +911,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "finanzas-dashboard":
-        this.openTabIfAuthorized("ANALISIS-FINANCIERO", FinancieroDashboardComponent, "Financiero");
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(FinancieroDashboardComponent, "Financiero", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-moneda":
+        if (this.hasAnyRole([ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(MonedaComponent, "Monedas", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-gastos":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListGastosComponent, "Gastos");
@@ -690,6 +932,41 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
+        break;
+      case "list-caja-virtual":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-operacion-financiera":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListOperacionFinancieraComponent, "Operaciones Financieras", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-cuentas-bancarias":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(CuentaBancariaComponent, "Cuentas Bancarias", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "list-bancos":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(BancoComponent, "Bancos", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "cheques-dashboard":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ChequesDashboardComponent, "Cheques", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-transferencias":
         this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, TransferenciaComponent, "Transferencia");
@@ -723,6 +1000,67 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-solicitud-pago":
         this.tabService.addTab(new Tab(ListSolicitudPagoComponent, "Solicitud de pago", null, null));
+        break;
+      case "list-configuracion-rrhh":
+        this.openTabIfAuthorized(ROLES.RRHH_CONFIG, PanelConfiguracionRrhhComponent, "Configuración RRHH");
+        break;
+      case "list-feriado":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListFeriadoComponent, "Feriados");
+        break;
+      case "list-penalizacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListPenalizacionComponent, "Penalizaciones");
+        break;
+      case "list-hora-extra":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListHoraExtraComponent, "Horas extra");
+        break;
+      case "list-justificativo":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListJustificativoComponent, "Justificativos");
+        break;
+      case "list-tipo-justificativo":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListTipoJustificativoComponent, "Tipos de justificativo");
+        break;
+      case "list-vale":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListValeComponent, "Vales");
+        break;
+      case "list-motivo-vale":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-prestamo":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");
+        break;
+      case "list-vacacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListVacacionComponent, "Vacaciones");
+        break;
+      case "list-aguinaldo":
+        this.openTabIfAuthorized(ROLES.RRHH_LIQUIDAR, ListAguinaldoComponent, "Aguinaldos");
+        break;
+      case "list-bono":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
+        break;
+      case "list-liquidacion":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");
+        break;
+      case "legajo-funcionario":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, LegajoFuncionarioComponent, "Legajo funcionario");
+        break;
+      case "list-funcionarios":
+        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListFuncioarioComponent, "Funcionarios");
+        break;
+      case "solicitudes-funcionarios":
+        this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, ListPreRegistroFuncionarioComponent, "Solicitudes de funcionarios");
+        break;
+      case "manual-rrhh":
+        if (this.hasAnyRole([ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.RRHH_LIQUIDAR, ROLES.RRHH_CONFIG, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ManualRrhhComponent, "Manual de uso RRHH", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
+      case "dashboard-rrhh":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, DashboardRrhhComponent, "Dashboard RRHH");
+        break;
+      case "historial-marcaciones":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListMarcacionComponent, "Historial de marcaciones");
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
@@ -825,6 +1163,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
+        break;
+      case "devoluciones":
+        this.openTabIfAuthorized(ROLES.VER_TRANSFERENCIA, DevolucionComponent, "Devoluciones");
         break;
     }
   }
