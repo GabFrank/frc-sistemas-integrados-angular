@@ -73,6 +73,7 @@ import { DashRankingListComponent } from './components/dashboard/dash-ranking-li
 import { DashChartCardComponent } from './components/dashboard/dash-chart-card/dash-chart-card.component';
 import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.component';
 import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
+import { MontoMonedaPipe } from './pipes/monto-moneda.pipe';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -124,6 +125,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CellFormatPipe,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
+    MontoMonedaPipe,
     DashSectionHeaderComponent,
     DashStatChipComponent,
     DashQuickActionComponent,
@@ -187,6 +189,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
     NgxEchartsModule,
+    MontoMonedaPipe,
     DashSectionHeaderComponent,
     DashStatChipComponent,
     DashQuickActionComponent,

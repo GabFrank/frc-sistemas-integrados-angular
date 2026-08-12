@@ -38,7 +38,7 @@ import { formatearTooltipGraficoPeriodo } from "../utils/grafico-tooltip-periodo
 import {
   etiquetaMoneda,
   formatoMontoMoneda,
-} from "./utils/forma-pago-moneda-format.util";
+} from "../../../shared/utils/moneda-format.util";
 import {
   descargarExcelBase64,
   etiquetaSucursalesSeleccionadas,
