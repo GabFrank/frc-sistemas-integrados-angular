@@ -63,6 +63,7 @@ export class ListSolicitudPagoComponent implements OnInit {
 
   estadoToRowClass: Record<string, string> = {
     PENDIENTE: '',
+    SOLICITADO: 'row-estado-solicitado',
     PARCIAL: 'row-estado-parcial',
     CONCLUIDO: 'row-estado-concluido',
     CANCELADO: 'row-estado-cancelado'
@@ -80,6 +81,7 @@ export class ListSolicitudPagoComponent implements OnInit {
   estadoOpciones: { value: string; label: string }[] = [
     { value: '', label: 'Todos' },
     { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
+    { value: SolicitudPagoEstado.SOLICITADO, label: 'Solicitado' },
     { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
     { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
@@ -168,8 +170,9 @@ export class ListSolicitudPagoComponent implements OnInit {
 
   onAdd(): void {
     const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
-      width: '60vw',
-      height: '70vh',
+      width: '72vw',
+      maxWidth: '1150px',
+      height: '82vh',
       data: { proveedorId: this.selectedProveedor?.id }
     });
     dialogRef.afterClosed().subscribe((saved) => {
@@ -216,8 +219,9 @@ export class ListSolicitudPagoComponent implements OnInit {
   onEditarPago(row: SolicitudPago): void {
     if (!row?.id) return;
     const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
-      width: '60vw',
-      height: '70vh',
+      width: '72vw',
+      maxWidth: '1150px',
+      height: '82vh',
       data: { solicitudPago: row }
     });
     dialogRef.afterClosed().subscribe((saved) => {

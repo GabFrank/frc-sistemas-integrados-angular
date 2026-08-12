@@ -1,0 +1,59 @@
+<div class="config-container">
+  <div class="cabecera">
+    <h2 class="titulo-color">Configuración de R.R.H.H.</h2>
+    <span class="subtitulo">Parámetros del módulo. Ajustá los valores; las claves las define el sistema.</span>
+  </div>
+
+  <div *ngIf="cargando" class="cargando" fxLayout="row" fxLayoutAlign="center center">
+    <mat-spinner diameter="36"></mat-spinner>
+  </div>
+
+  <mat-tab-group *ngIf="!cargando" class="config-tabs" animationDuration="0ms">
+    <mat-tab *ngFor="let sec of secciones">
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">{{ sec.icono }}</mat-icon> {{ sec.titulo }}
+      </ng-template>
+
+      <div class="seccion-body">
+        <div class="campo" *ngFor="let campo of sec.campos" fxLayout="row" fxLayoutAlign="space-between start"
+          fxLayoutGap="16px">
+          <div class="campo-info" fxLayout="column">
+            <span class="campo-label">
+              {{ campo.label }}
+              <mat-icon class="info-icon" (click)="onInfo(campo)" matTooltip="Más información">info_outline</mat-icon>
+            </span>
+            <span class="campo-ayuda">{{ campo.ayuda }}</span>
+          </div>
+
+          <div class="campo-input">
+            <!-- Toggle (boolean) -->
+            <mat-slide-toggle *ngIf="campo.meta.widget === 'toggle'" [formControl]="campo.control"
+              (change)="onGuardar(campo)">
+              {{ campo.control.value ? 'Sí' : 'No' }}
+            </mat-slide-toggle>
+
+            <!-- Mes -->
+            <mat-form-field *ngIf="campo.meta.widget === 'month'" appearance="outline" class="input-corto">
+              <mat-select [formControl]="campo.control" (selectionChange)="onGuardar(campo)">
+                <mat-option *ngFor="let m of meses" [value]="m.v">{{ m.n }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Número / porcentaje / dinero -->
+            <mat-form-field *ngIf="campo.meta.widget === 'number' || campo.meta.widget === 'percent' || campo.meta.widget === 'money'"
+              appearance="outline" class="input-corto">
+              <input matInput type="number" [formControl]="campo.control"
+                [min]="campo.meta.min" [max]="campo.meta.max" [step]="campo.meta.step || 1"
+                (change)="onGuardar(campo)" />
+              <span matSuffix class="sufijo">
+                {{ campo.meta.widget === 'percent' ? '%' : (campo.meta.widget === 'money' ? 'Gs' : campo.meta.unidad) }}
+              </span>
+            </mat-form-field>
+
+            <mat-spinner *ngIf="campo.guardando" diameter="18" class="guardando-spinner"></mat-spinner>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

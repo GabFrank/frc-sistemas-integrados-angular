@@ -1,0 +1,80 @@
+<app-generic-list titulo="Liquidaciones" style="height: 100%" [isCustom]="true" customName="Generar"
+  (customFunction)="onGenerar()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="320px">
+      <app-select-funcionario
+        [funcionarioId]="funcionarioControl.value"
+        (idSelected)="funcionarioControl.setValue($event)">
+      </app-select-funcionario>
+    </div>
+
+    <mat-form-field fxFlex="130px">
+      <mat-label>Período</mat-label>
+      <input matInput [formControl]="periodoControl" placeholder="YYYY-MM" />
+    </mat-form-field>
+
+    <mat-form-field fxFlex="180px">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="estadoControl" (selectionChange)="onFiltrar()">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option *ngFor="let e of estadoOpciones" [value]="e">{{ e }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+      <ng-container matColumnDef="periodo">
+        <th mat-header-cell *matHeaderCellDef>Período</th>
+        <td mat-cell *matCellDef="let row">{{ row.periodo }}</td>
+      </ng-container>
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalHaberes">
+        <th mat-header-cell *matHeaderCellDef>Haberes</th>
+        <td mat-cell *matCellDef="let row">{{ row.totalHaberes | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalDescuentos">
+        <th mat-header-cell *matHeaderCellDef>Descuentos</th>
+        <td mat-cell *matCellDef="let row">{{ row.totalDescuentos | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="totalNeto">
+        <th mat-header-cell *matHeaderCellDef>Neto</th>
+        <td mat-cell *matCellDef="let row"><b>{{ row.totalNeto | number:'1.0-2' }}</b></td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="chip" [ngClass]="'chip-' + row.estado">{{ row.estado }}</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onDetalle(row)">
+              <mat-icon>receipt</mat-icon><span>Detalle</span>
+            </button>
+            <button mat-menu-item (click)="onVerRecibo(row)"
+              [disabled]="row.estado !== 'APROBADA' && row.estado !== 'PAGADA'">
+              <mat-icon>visibility</mat-icon><span>Ver Recibo</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

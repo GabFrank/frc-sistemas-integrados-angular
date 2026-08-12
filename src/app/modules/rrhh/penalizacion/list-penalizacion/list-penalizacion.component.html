@@ -1,0 +1,96 @@
+<app-generic-list titulo="Penalizaciones" style="height: 100%" [isAdicionar]="true" (adicionar)="onNueva()"
+  [isCustom]="true" customName="Generar automáticas" (customFunction)="onGenerarAuto()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="320px">
+      <app-select-funcionario
+        [funcionarioId]="funcionarioControl.value"
+        (idSelected)="funcionarioControl.setValue($event)">
+      </app-select-funcionario>
+    </div>
+
+    <mat-form-field fxFlex="180px">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipoControl" (selectionChange)="onFiltrar()">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option *ngFor="let t of tipoOpciones" [value]="t">{{ t }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="150px">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
+      <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
+      <mat-datepicker #dp1></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field fxFlex="150px">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" />
+      <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
+      <mat-datepicker #dp2></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row">{{ row.fecha | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let row">{{ row.tipo }}</td>
+      </ng-container>
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="auto">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.autoGenerada" class="chip-auto">AUTO</span>
+          <span *ngIf="!row.autoGenerada">MANUAL</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.anulada" class="chip-anulada">ANULADA</span>
+          <span *ngIf="!row.anulada">VIGENTE</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onAnular(row)" [disabled]="row.anulada">
+              <mat-icon>block</mat-icon><span>Anular</span>
+            </button>
+            <button mat-menu-item (click)="onVerRecibo(row)">
+              <mat-icon>print</mat-icon><span>Imprimir recibo</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

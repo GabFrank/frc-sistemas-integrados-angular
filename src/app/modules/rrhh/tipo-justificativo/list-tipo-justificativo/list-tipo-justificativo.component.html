@@ -1,0 +1,97 @@
+<app-generic-list titulo="Tipos de justificativo" style="height: 100%" [isAdicionar]="true" (adicionar)="onNuevo()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <mat-form-field fxFlex="250px">
+      <mat-label>Nombre</mat-label>
+      <input matInput [formControl]="nombreControl" />
+    </mat-form-field>
+
+    <mat-form-field fxFlex="180px">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="activoControl" (selectionChange)="onFiltrar()">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <p class="ayuda">
+      Cada tipo define su comportamiento: si evita la penalización automática, cuánto descuenta
+      del salario en la liquidación y si requiere documento respaldatorio.
+    </p>
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let row">{{ row.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="evitaPenalizacion">
+        <th mat-header-cell *matHeaderCellDef>Evita penalización</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.evitaPenalizacion ? 'si' : 'no'">
+            {{ row.evitaPenalizacion ? 'check_circle' : 'remove' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descuentaSalario">
+        <th mat-header-cell *matHeaderCellDef>Descuenta salario</th>
+        <td mat-cell *matCellDef="let row">{{ row.descuentaSalario }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="requiereDocumento">
+        <th mat-header-cell *matHeaderCellDef>Requiere doc.</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.requiereDocumento ? 'si' : 'no'">
+            {{ row.requiereDocumento ? 'check_circle' : 'remove' }}
+          </mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="origen">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+        <td mat-cell *matCellDef="let row">{{ row.generadoPorSistema ? 'Sistema' : 'Manual' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef>Activo</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon [ngClass]="row.activo ? 'si' : 'no'">{{ row.activo ? 'check_circle' : 'cancel' }}</mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditar(row)">
+              <mat-icon>edit</mat-icon><span>Editar</span>
+            </button>
+            <button mat-menu-item (click)="onEliminar(row)" [disabled]="row.generadoPorSistema">
+              <mat-icon>delete</mat-icon><span>Eliminar</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

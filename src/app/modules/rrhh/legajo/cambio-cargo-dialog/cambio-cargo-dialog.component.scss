@@ -1,0 +1,28 @@
+.dialog-container {
+  min-width: 460px;
+  padding: 16px 20px 8px;
+
+  h2 { margin: 0 0 4px; }
+
+  // Cargo / salario actual
+  .actual {
+    font-size: 13px;
+    opacity: 0.9;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    span { white-space: nowrap; }
+  }
+
+  mat-form-field { width: 100%; }
+
+  // el checkbox va debajo del hint "Sueldo base del cargo", necesita separarse
+  mat-checkbox {
+    margin: 4px 0 2px;
+  }
+
+  [mat-dialog-actions] {
+    margin-top: 8px;
+    padding: 8px 0 0;
+  }
+}

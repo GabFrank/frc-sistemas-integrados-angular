@@ -1,0 +1,206 @@
+<div class="retiro-proveedor">
+  <!-- Encabezado + acciones operativas (arriba a la derecha) -->
+  <div class="header-row" fxLayout="row" fxLayoutAlign="space-between center">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <h3 class="titulo">Retiro consolidado de devoluciones</h3>
+      <span class="sucursal-fija" *ngIf="sucursalFija">
+        <mat-icon>store</mat-icon>
+        {{ nombreSucursalFija }}
+      </span>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+      <button
+        mat-stroked-button
+        color="primary"
+        [disabled]="imprimiendoTicket || selectedDevolucionIdsArray.length === 0"
+        (click)="onImprimirTicket()"
+      >
+        <mat-icon>receipt_long</mat-icon>
+        Imprimir ticket
+      </button>
+      <button
+        mat-raised-button
+        color="primary"
+        [disabled]="imprimiendo || selectedDevolucionIdsArray.length === 0"
+        (click)="onImprimirRemito()"
+      >
+        <mat-icon>print</mat-icon>
+        Imprimir comprobante
+      </button>
+    </div>
+  </div>
+
+  <!-- La mercadería está físicamente en esta sucursal: no se listan otras. -->
+  <div class="aviso-sucursal" *ngIf="sucursalFija">
+    Sólo se muestran devoluciones separadas en {{ nombreSucursalFija }}.
+  </div>
+
+  <!-- Selector de proveedor -->
+  <div class="proveedor-row" *ngIf="!proveedorSeleccionado">
+    <mat-form-field appearance="outline" class="proveedor-field">
+      <mat-label>Proveedor</mat-label>
+      <input
+        matInput
+        type="text"
+        placeholder="Buscar proveedor..."
+        [formControl]="proveedorControl"
+        [matAutocomplete]="autoProveedor"
+      />
+      <mat-icon matSuffix>search</mat-icon>
+      <mat-autocomplete
+        #autoProveedor="matAutocomplete"
+        [displayWith]="displayProveedor"
+        (optionSelected)="onProveedorSeleccionado($event.option.value)"
+      >
+        <mat-option
+          *ngFor="let prov of proveedoresFiltrados"
+          [value]="prov"
+        >
+          {{ prov.persona?.nombre }}
+          <span class="doc" *ngIf="prov.persona?.documento">
+            ({{ prov.persona?.documento }})</span
+          >
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+  </div>
+
+  <!-- Tarjeta del proveedor seleccionado -->
+  <mat-card class="proveedor-card" *ngIf="proveedorSeleccionado">
+    <div fxLayout="row" fxLayoutAlign="space-between center">
+      <div class="proveedor-info">
+        <mat-icon>person</mat-icon>
+        <span class="nombre">{{ proveedorSeleccionado.persona?.nombre }}</span>
+        <span class="doc" *ngIf="proveedorSeleccionado.persona?.documento">
+          {{ proveedorSeleccionado.persona?.documento }}
+        </span>
+      </div>
+      <button
+        mat-icon-button
+        color="warn"
+        matTooltip="Cambiar proveedor"
+        (click)="onRemoverProveedor()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </mat-card>
+
+  <!-- Cargando -->
+  <div class="loading" *ngIf="buscando">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  </div>
+
+  <!-- Sin resultados -->
+  <div
+    class="sin-datos"
+    *ngIf="proveedorSeleccionado && !buscando && grupos.length === 0"
+  >
+    <mat-icon>inbox</mat-icon>
+    <span>No hay devoluciones pendientes de retiro para este proveedor.</span>
+  </div>
+
+  <!-- Grupos por sucursal -->
+  <div class="grupos" *ngIf="!buscando && grupos.length > 0">
+    <mat-card class="grupo-card" *ngFor="let grupo of grupos">
+      <div class="grupo-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div class="grupo-titulo">
+          <mat-icon>store</mat-icon>
+          <span>{{ grupo.sucursalNombre || "Sucursal" }}</span>
+        </div>
+        <mat-checkbox
+          [checked]="grupo.todasSeleccionadas"
+          (change)="onToggleGrupo(grupo, $event.checked)"
+        >
+          Seleccionar todo
+        </mat-checkbox>
+      </div>
+
+      <!-- Selección de devoluciones -->
+      <div class="devoluciones" *ngIf="grupo.devoluciones.length > 0">
+        <span class="subtitulo">Devoluciones</span>
+        <div class="devoluciones-list">
+          <mat-checkbox
+            *ngFor="let dev of grupo.devoluciones"
+            class="devolucion-chip"
+            [checked]="dev.seleccionado"
+            (change)="onToggleDevolucion(grupo, dev, $event.checked)"
+          >
+            #{{ dev.id }}
+          </mat-checkbox>
+        </div>
+      </div>
+
+      <!-- Líneas consolidadas por producto -->
+      <span class="subtitulo">Productos consolidados</span>
+      <table mat-table [dataSource]="grupo.lineas" class="tabla-centrada">
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef>Código</th>
+          <td mat-cell *matCellDef="let l">{{ l.codigo }}</td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+          <td mat-cell *matCellDef="let l">{{ l.descripcion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef>Presentación</th>
+          <td mat-cell *matCellDef="let l">{{ l.presentacion }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cantidadTotal">
+          <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+          <td mat-cell *matCellDef="let l">{{ l.cantidadTotal }}</td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="lineasColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: lineasColumns"></tr>
+      </table>
+
+    </mat-card>
+  </div>
+
+  <!-- Resultados del último retiro -->
+  <mat-card class="resultados-card" *ngIf="resultados.length > 0">
+    <span class="subtitulo">Resultado del retiro</span>
+    <table mat-table [dataSource]="resultados" class="tabla-centrada">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>Devolución</th>
+        <td mat-cell *matCellDef="let r">#{{ r.id }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let r">
+          <mat-icon [class.ok]="r.ok" [class.error]="!r.ok">
+            {{ r.ok ? "check_circle" : "error" }}
+          </mat-icon>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="mensaje">
+        <th mat-header-cell *matHeaderCellDef>Mensaje</th>
+        <td mat-cell *matCellDef="let r">{{ r.mensaje }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="resultadosColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: resultadosColumns"></tr>
+    </table>
+  </mat-card>
+
+  <!-- Footer: acción primaria a la derecha -->
+  <div
+    class="footer"
+    *ngIf="!buscando && grupos.length > 0"
+    fxLayout="row"
+    fxLayoutAlign="end center"
+  >
+    <span class="seleccion-info">
+      {{ selectedDevolucionIdsArray.length }} / {{ totalDevoluciones }}
+      devoluciones seleccionadas
+    </span>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="guardando || selectedDevolucionIdsArray.length === 0"
+      (click)="onMarcarRetiro()"
+    >
+      <mat-icon>local_shipping</mat-icon>
+      Marcar retiro
+    </button>
+  </div>
+</div>

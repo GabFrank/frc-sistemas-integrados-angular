@@ -60,77 +60,59 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.balance-pago-card {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+/* Fila de cuotas de cheque */
+.cuotas-row {
+  align-items: center;
 
-  .balance-pago-kpis {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+  .cuotas-field { width: 130px; }
+  .intervalo-field { width: 150px; }
 
-    .balance-pago-kpi {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      padding: 0.75rem 0.9rem;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+  .cuotas-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.7;
 
-      .kpi-label {
-        font-size: 90%;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        opacity: 0.75;
-      }
-
-      .kpi-value {
-        font-size: 120%;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-
-        .kpi-icon {
-          font-size: 120%;
-          width: 1.3rem;
-          height: 1.3rem;
-        }
-      }
-
-      .kpi-hint {
-        font-size: 85%;
-        opacity: 0.75;
-      }
-
-      &.balance-kpi-monto {
-        border-left: 3px solid #64b5f6;
-      }
-
-      &.balance-kpi-equiv {
-        border-left: 3px solid #ba68c8;
-      }
-
-      &.balance-kpi-diferencia {
-        &.estado-cubre {
-          border-left: 3px solid #66bb6a;
-          .kpi-value, .kpi-icon { color: #66bb6a; }
-        }
-        &.estado-exceso {
-          border-left: 3px solid #ffa726;
-          .kpi-value, .kpi-icon { color: #ffa726; }
-        }
-        &.estado-falta {
-          border-left: 3px solid #ef5350;
-          .kpi-value, .kpi-icon { color: #ef5350; }
-        }
-      }
-    }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
   }
+}
+
+/* Balance compacto (patrón dashboard) */
+.balance-strip {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 2px;
+
+  .bstat {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .b-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.6;
+  }
+  .b-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+  .b-hint { font-size: 11px; opacity: 0.6; }
+
+  .b-dif.estado-cubre { border-color: rgba(76, 175, 80, 0.5); .b-value { color: #81c784; } }
+  .b-dif.estado-exceso { border-color: rgba(255, 152, 0, 0.5); .b-value { color: #ffb74d; } }
+  .b-dif.estado-falta { border-color: rgba(244, 67, 54, 0.5); .b-value { color: #ff8a80; } }
 }

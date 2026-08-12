@@ -1,0 +1,17 @@
+.dialog-container {
+  min-width: 500px;
+  padding: 16px 20px 8px;
+
+  h2 { margin: 0 0 4px; }
+  mat-form-field { width: 100%; }
+  .aviso-sistema {
+    font-size: 12px;
+    opacity: 0.85;
+    background: rgba(255, 202, 40, 0.12);
+    border-left: 3px solid #ffca28;
+    border-radius: 6px;
+    padding: 8px 12px;
+  }
+  .flags { padding: 4px 0; }
+  [mat-dialog-actions] { margin-top: 8px; padding: 8px 0 0; }
+}

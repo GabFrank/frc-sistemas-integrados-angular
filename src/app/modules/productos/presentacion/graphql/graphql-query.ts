@@ -97,6 +97,12 @@ export const presentacionPorProductoId = gql`
         id
         precio
       }
+      producto {
+        id
+        costo {
+          costoMedio
+        }
+      }
     }
   }
 `;

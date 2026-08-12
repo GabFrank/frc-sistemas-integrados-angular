@@ -23,6 +23,14 @@ export class Funcionario {
   nickname: string;
   imagenPrincipal: string;
   horario: Horario;
+  // Campos agregados para InformacionGeneralComponent (legajo, tab "Información general").
+  codigoInterno: string;
+  ipsActivo: boolean;
+  numeroIps: string;
+  fechaIngresoIps: string;
+  cuentaBancaria: string;
+  contactoEmergenciaNombre: string;
+  contactoEmergenciaTelefono: string;
 
   toInput(): FuncionarioInput {
     let input = new FuncionarioInput;
@@ -39,6 +47,13 @@ export class Funcionario {
     input.activo = this.activo
     input.usuarioId = this.usuario?.id
     input.horarioId = this.horario?.id
+    input.codigoInterno = this.codigoInterno
+    input.ipsActivo = this.ipsActivo
+    input.numeroIps = this.numeroIps
+    input.fechaIngresoIps = dateToString(this.fechaIngresoIps ? new Date(this.fechaIngresoIps) : null, 'yyyy-MM-dd')
+    input.cuentaBancaria = this.cuentaBancaria
+    input.contactoEmergenciaNombre = this.contactoEmergenciaNombre
+    input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefono
     return input;
   }
 }

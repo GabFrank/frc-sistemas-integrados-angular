@@ -1,0 +1,22 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Egresar funcionario</h2>
+  <p class="aviso">Se marcará al funcionario <b>{{ data.nombre }}</b> como inactivo con la fecha y motivo indicados.</p>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Fecha de egreso</mat-label>
+    <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Motivo</mat-label>
+    <input matInput [formControl]="motivoControl" required />
+    <mat-error *ngIf="motivoControl.hasError('required')">Ingrese el motivo</mat-error>
+  </mat-form-field>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="warn" (click)="onEgresar()">Egresar</button>
+  </div>
+</div>

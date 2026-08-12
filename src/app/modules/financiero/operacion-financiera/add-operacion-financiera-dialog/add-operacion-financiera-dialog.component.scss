@@ -1,0 +1,133 @@
+:host {
+  display: block;
+}
+
+.op-dialog {
+  display: flex;
+  min-width: 780px;
+  max-width: 900px;
+}
+
+/* Menú lateral de tipos de operación */
+.op-menu {
+  width: 230px;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.op-menu-title {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+  padding: 4px 10px 10px;
+}
+
+.op-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  color: inherit;
+
+  mat-icon { opacity: 0.8; flex-shrink: 0; }
+
+  &:hover { background: rgba(255, 255, 255, 0.06); }
+
+  &.selected {
+    background: rgba(105, 159, 56, 0.16);
+    border-left-color: #689f38;
+    mat-icon { opacity: 1; color: #8bc34a; }
+  }
+}
+
+.op-menu-text { min-width: 0; }
+.op-menu-label { font-weight: 500; }
+.op-menu-desc { font-size: 11px; opacity: 0.6; }
+
+/* Formulario */
+.op-form {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.op-form-title {
+  margin: 0 0 8px;
+  font-weight: 500;
+}
+
+.seccion-titulo {
+  color: #f57c00;
+  font-weight: 500;
+  font-size: 0.85em;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Cuerpo del formulario: columna con gap CSS (respeta el `order` visual de los bloques,
+   a diferencia de fxLayoutGap que aplica margen por orden del DOM y provocaba solapes). */
+.op-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Bloques origen/destino/montos/diferencia ordenados con flex `order` según el tipo. */
+.lado-bloque,
+.diferencia-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.montos-bloque {
+  display: flex;
+  gap: 10px;
+}
+
+/* Chip informativo de moneda cuando no es editable (se deriva del banco). */
+.moneda-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  opacity: 0.85;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 820px) {
+  .op-dialog { flex-direction: column; min-width: 0; }
+  .op-menu {
+    width: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .op-menu-title { display: none; }
+  .op-menu-item { width: auto; }
+  .op-menu-desc { display: none; }
+}

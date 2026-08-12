@@ -13,14 +13,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SelectionModel } from '@angular/cdk/collections';
 import { Input } from '@angular/core';
 import { Tab } from '../../../../layouts/tab/tab.model';
-import { TabService } from '../../../../layouts/tab/tab.service';
+import { TabService, TabData } from '../../../../layouts/tab/tab.service';
+import { CargoService } from '../../../empresarial/cargo/cargo.service';
+import { LegajoFuncionarioComponent } from '../../../rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { HorarioService } from '../../../administrativo/horarios/service/horario.service';
 import { HorarioInput } from '../../../administrativo/horarios/models/horario.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../app.component';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { FuncionarioInput } from '../funcionario-input.model';
@@ -52,9 +53,15 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   }
   seleccionados = new SelectionModel<Funcionario>(true, []);
 
-  idControl = new FormControl(null, Validators.required)
-  nombreControl = new FormControl(null, Validators.required)
+  idControl = new FormControl(null)
+  nombreControl = new FormControl(null)
   sucursalControl = new FormControl(null)
+  // null = Todos; true/false = valor concreto
+  estadoControl = new FormControl(null)   // activo
+  cargoControl = new FormControl(null)     // cargoId
+  diaristaControl = new FormControl(null)
+  fasePruebaControl = new FormControl(null)
+  cargoList: any[] = [];
 
   length = 25;
   pageSize = 25;
@@ -79,7 +86,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     private horarioService: HorarioService,
     private tabService: TabService,
     private notificacionService: NotificacionSnackbarService,
-    private mainService: MainService
+    private mainService: MainService,
+    private cargoService: CargoService
   ) {
   }
 
@@ -100,6 +108,10 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         }
       });
     })
+
+    this.cargoService.onGetAll(true).pipe(untilDestroyed(this)).subscribe(res => {
+      this.cargoList = res || [];
+    })
   }
 
   ngAfterViewInit(): void {
@@ -108,24 +120,15 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   rowSelectedEvent(e) {
   }
 
-  onAddFuncionario(funcionario?: Funcionario, index?) {
-    this.matDialog.open(AdicionarFuncionarioDialogComponent, {
-      data: {
-        funcionario
-      },
-      width: '70%',
-      height: '70%',
-      autoFocus: true,
-      restoreFocus: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        if (funcionario == null) {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res);
-        } else {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
-        }
-      }
-    })
+  onAddFuncionario() {
+    // El alta ahora vive en el legajo (tab "Información general"). Se abre un legajo
+    // en modo nuevo (sin id); al guardar carga el funcionario recién creado.
+    this.tabService.addTab(new Tab(
+      LegajoFuncionarioComponent,
+      'Nuevo funcionario',
+      new TabData(null, {}),
+      null
+    ));
   }
 
   onFiltrar() {
@@ -135,7 +138,16 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
         sucursalIdList.push(s.id)
       }
     });
-    this.service.onGetAllWithPage(this.pageIndex, this.pageSize, this.idControl.value, this.nombreControl.value?.toUpperCase(), sucursalIdList.length > 0 ? sucursalIdList : null).pipe(untilDestroyed(this)).subscribe(res => {
+    this.service.onGetAllWithPage(
+      this.pageIndex, this.pageSize,
+      this.idControl.value,
+      this.nombreControl.value?.toUpperCase(),
+      sucursalIdList.length > 0 ? sucursalIdList : null,
+      this.estadoControl.value,
+      this.cargoControl.value,
+      this.diaristaControl.value,
+      this.fasePruebaControl.value
+    ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
@@ -144,8 +156,26 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   }
 
   onResetFiltro() {
+    this.idControl.setValue(null)
     this.nombreControl.setValue(null)
     this.sucursalControl.setValue(null)
+    this.estadoControl.setValue(null)
+    this.cargoControl.setValue(null)
+    this.diaristaControl.setValue(null)
+    this.fasePruebaControl.setValue(null)
+    this.onFiltrar()
+  }
+
+  onVerLegajo(funcionario: Funcionario) {
+    const nombre = funcionario?.persona?.nombre || funcionario?.nickname || ('#' + funcionario?.id);
+    // Título único por funcionario para evitar el dedupe por título del TabService
+    // (así cada legajo abre su propio tab y corre ngOnInit con su id).
+    this.tabService.addTab(new Tab(
+      LegajoFuncionarioComponent,
+      'Legajo — ' + nombre,
+      new TabData(funcionario.id, { id: funcionario.id }),
+      null
+    ));
   }
 
   handlePageEvent(e: PageEvent) {

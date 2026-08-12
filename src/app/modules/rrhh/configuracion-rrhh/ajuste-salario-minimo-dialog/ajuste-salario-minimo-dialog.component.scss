@@ -1,0 +1,50 @@
+.dialog-container {
+  min-width: 620px;
+  padding: 8px;
+}
+
+.aviso {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #bdbdbd;
+}
+
+.cargando {
+  padding: 20px;
+  text-align: center;
+  color: #9e9e9e;
+}
+
+.sin-afectados {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #66bb6a;
+}
+
+.tabla {
+  max-height: 45vh;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  text-align: center;
+}
+
+th.mat-header-cell,
+td.mat-cell {
+  text-align: center;
+  padding: 4px 8px;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.diferencia {
+  color: #ffca28;
+  font-weight: 600;
+}

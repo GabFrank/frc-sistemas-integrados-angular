@@ -1,0 +1,20 @@
+<h2 mat-dialog-title>Registrar Ingreso</h2>
+
+<mat-dialog-content>
+  <div class="tipo-grid">
+    <mat-card class="tipo-card" *ngFor="let op of opciones"
+              [style.border-left-color]="op.color" (click)="seleccionar(op)">
+      <div class="tipo-avatar" [style.background-color]="op.color">
+        <mat-icon>{{ op.icono }}</mat-icon>
+      </div>
+      <div class="tipo-text">
+        <div class="tipo-title">{{ op.titulo }}</div>
+        <div class="tipo-desc">{{ op.descripcion }}</div>
+      </div>
+    </mat-card>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+</mat-dialog-actions>

@@ -1,0 +1,88 @@
+.of-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  mat-icon { opacity: 0.8; }
+  .of-estado {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: rgba(139, 195, 74, 0.18);
+    color: #8bc34a;
+    &.anulada { background: rgba(255, 138, 128, 0.18); color: #ff8a80; }
+  }
+}
+
+.of-content { min-width: 420px; max-width: 620px; }
+.of-cargando, .of-vacio { text-align: center; padding: 24px; opacity: 0.6; }
+
+.of-flujo {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin: 6px 0 4px;
+}
+.of-lado {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  .of-lado-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; }
+  .of-fuente { font-size: 15px; }
+  .of-monto { font-size: 20px; font-weight: 600; color: #64b5f6; }
+  .of-moneda { font-size: 12px; opacity: 0.6; }
+}
+.of-flecha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 70px;
+  mat-icon { opacity: 0.6; }
+  .of-cotiz { font-size: 11px; opacity: 0.7; white-space: nowrap; }
+}
+
+.of-dif {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 167, 38, 0.08);
+  border: 1px solid rgba(255, 167, 38, 0.3);
+  font-size: 13px;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; opacity: 0.8; }
+  .of-dif-tipo { opacity: 0.7; }
+  .of-dif-obs { width: 100%; font-size: 12px; opacity: 0.7; padding-left: 26px; }
+}
+
+.of-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 18px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.of-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.5; }
+  strong { font-size: 14px; font-weight: 500; }
+}
+
+.of-actions {
+  justify-content: space-between;
+  padding: 8px 24px 16px;
+}

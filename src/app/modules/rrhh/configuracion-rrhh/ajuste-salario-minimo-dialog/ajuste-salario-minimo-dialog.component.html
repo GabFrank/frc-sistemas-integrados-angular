@@ -1,0 +1,62 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Funcionarios por debajo del nuevo mínimo</h2>
+
+  <p class="aviso">
+    El salario mínimo pasó a <strong>{{ data.minimo | number:'1.0-0' }}</strong>.
+    Los siguientes funcionarios quedaron por debajo. Elegí a cuáles ajustar —
+    cada ajuste queda registrado en el histórico salarial con su motivo.
+  </p>
+
+  <div *ngIf="cargando" class="cargando">Buscando funcionarios afectados…</div>
+
+  <div *ngIf="!cargando && dataSource.data.length === 0" class="sin-afectados">
+    <mat-icon>check_circle</mat-icon>
+    Ningún funcionario quedó por debajo del nuevo mínimo.
+  </div>
+
+  <div class="tabla" *ngIf="!cargando && dataSource.data.length > 0">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
+      <ng-container matColumnDef="seleccion">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox [checked]="todosSeleccionados" (change)="onToggleTodos()"></mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox [checked]="seleccion.isSelected(row)" (change)="onToggleFila(row)"></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row" class="text-left">{{ row.persona?.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cargo">
+        <th mat-header-cell *matHeaderCellDef>Cargo</th>
+        <td mat-cell *matCellDef="let row">{{ row.cargo?.nombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="sueldoActual">
+        <th mat-header-cell *matHeaderCellDef>Sueldo actual</th>
+        <td mat-cell *matCellDef="let row">{{ row.sueldo | number:'1.0-0' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="diferencia">
+        <th mat-header-cell *matHeaderCellDef>Diferencia</th>
+        <td mat-cell *matCellDef="let row" class="diferencia">+{{ row.diferencia | number:'1.0-0' }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">
+      {{ dataSource.data.length > 0 ? 'Ahora no' : 'Cerrar' }}
+    </button>
+    <button mat-raised-button color="primary" *ngIf="dataSource.data.length > 0 && puedeConfig"
+      [disabled]="seleccion.selected.length === 0" (click)="onConfirmar()">
+      Ajustar seleccionados ({{ seleccion.selected.length }})
+    </button>
+  </div>
+</div>
