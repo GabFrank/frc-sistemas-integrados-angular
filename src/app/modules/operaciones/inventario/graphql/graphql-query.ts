@@ -391,6 +391,10 @@ export const inventarioProductoItemWithFilterQuery = gql`
     $orderBy: String
     $tipoOrder: String
     $estado: String
+    $vencimientoFiltro: String
+    $diasPorVencer: Int
+    $vencimientoDesde: String
+    $vencimientoHasta: String
   ) {
     data: inventarioProductoItemWithFilter(
       startDate: $startDate
@@ -403,6 +407,10 @@ export const inventarioProductoItemWithFilterQuery = gql`
       orderBy: $orderBy
       tipoOrder: $tipoOrder
       estado: $estado
+      vencimientoFiltro: $vencimientoFiltro
+      diasPorVencer: $diasPorVencer
+      vencimientoDesde: $vencimientoDesde
+      vencimientoHasta: $vencimientoHasta
     ) {
       getTotalPages
       getTotalElements
@@ -465,6 +473,11 @@ export const reporteInventarioQuery = gql`
     $orderBy: String
     $tipoOrder: String
     $nickname: String
+    $estado: String
+    $vencimientoFiltro: String
+    $diasPorVencer: Int
+    $vencimientoDesde: String
+    $vencimientoHasta: String
   ) {
     data: reporteInventario(
       startDate: $startDate
@@ -477,6 +490,11 @@ export const reporteInventarioQuery = gql`
       orderBy: $orderBy
       tipoOrder: $tipoOrder
       nickname: $nickname
+      estado: $estado
+      vencimientoFiltro: $vencimientoFiltro
+      diasPorVencer: $diasPorVencer
+      vencimientoDesde: $vencimientoDesde
+      vencimientoHasta: $vencimientoHasta
     )
   }
 `;
