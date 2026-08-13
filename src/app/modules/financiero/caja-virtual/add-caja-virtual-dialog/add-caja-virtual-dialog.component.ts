@@ -22,7 +22,7 @@ export class AddCajaVirtualDialogComponent implements OnInit {
   formGroup: FormGroup;
   nombreControl = new FormControl('', Validators.required);
   tipoControl = new FormControl(CajaVirtualTipo.CAJA_MAYOR, Validators.required);
-  sucursalControl = new FormControl(null, Validators.required);
+  sucursalControl = new FormControl(null);
   descripcionControl = new FormControl();
   limiteGsControl = new FormControl();
   activoControl = new FormControl(true);
@@ -85,9 +85,13 @@ export class AddCajaVirtualDialogComponent implements OnInit {
     if (this.isEditing) cajaVirtual.id = this.data.id;
     cajaVirtual.nombre = this.nombreControl.value?.toUpperCase();
     cajaVirtual.tipo = this.tipoControl.value;
-    let sucursal = new Sucursal();
-    sucursal.id = this.sucursalControl.value;
-    cajaVirtual.sucursal = sucursal;
+    // Sucursal es opcional: una caja puede estar en una oficina administrativa
+    // que no es una sucursal. Solo se envia si el usuario eligio una.
+    if (this.sucursalControl.value != null) {
+      let sucursal = new Sucursal();
+      sucursal.id = this.sucursalControl.value;
+      cajaVirtual.sucursal = sucursal;
+    }
     cajaVirtual.descripcion = this.descripcionControl.value;
     cajaVirtual.limiteGs = this.limiteGsControl.value;
     cajaVirtual.activo = this.activoControl.value;

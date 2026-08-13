@@ -83,13 +83,22 @@ export class AcreditarRetiroDialogComponent implements OnInit {
     const presentaciones = (l.presentaciones || [])
       .slice()
       .sort((a: any, b: any) => (a.cantidad || 1) - (b.cantidad || 1));
+    const cantidadBase = l.cantidadBase || 0;
     // Presentacion base por defecto (principal, o factor 1, o la primera).
+    // Solo sirve la que divide exacto lo devuelto: con la principal x100 y 10
+    // unidades devueltas la nota de credito arrancaba en 0,1 — cantidad
+    // fraccionaria que el operador tenia que corregir a mano.
+    const divideExacto = (p: any) =>
+      cantidadBase % (p?.cantidad || 1) === 0;
     const base =
-      presentaciones.find((p: any) => p.principal) ||
+      [
+        presentaciones.find((p: any) => p.principal),
+        presentaciones.find((p: any) => (p.cantidad || 1) === 1),
+        presentaciones[0],
+      ].find((p: any) => p != null && divideExacto(p)) ||
       presentaciones.find((p: any) => (p.cantidad || 1) === 1) ||
       presentaciones[0];
     const factor = base?.cantidad || 1;
-    const cantidadBase = l.cantidadBase || 0;
     const costoBase = l.costoMedio || 0;
     return {
       productoId: l.productoId,
