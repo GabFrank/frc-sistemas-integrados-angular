@@ -1,0 +1,8 @@
+// El look del dashboard vive en las clases globales .dash-* (src/styles/_dashboard.scss).
+// Solo ajustes locales acá.
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}

@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>Cancelar devolución</h2>
+
+<div mat-dialog-content>
+  <p>¿Confirma cancelar esta devolución? Podés indicar el motivo (opcional).</p>
+  <mat-form-field appearance="outline" style="width: 100%">
+    <mat-label>Motivo de cancelación</mat-label>
+    <textarea
+      matInput
+      rows="3"
+      [(ngModel)]="motivo"
+      placeholder="Opcional"
+    ></textarea>
+  </mat-form-field>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Volver</button>
+  <button mat-raised-button color="warn" (click)="onConfirmar()">
+    Cancelar devolución
+  </button>
+</div>

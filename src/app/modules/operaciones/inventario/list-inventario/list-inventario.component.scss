@@ -20,6 +20,17 @@ tr:not(.example-detail-row) {
   color: rgb(44, 44, 208)
 }
 
+// Vencimiento: la clase la resuelve el componente al recibir la respuesta.
+.venc-vencido {
+  color: rgb(255, 82, 82);
+  font-weight: 600;
+}
+
+.venc-proximo {
+  color: rgb(255, 167, 38);
+  font-weight: 600;
+}
+
 .icon {
   font-size: 2em;
 }

@@ -150,14 +150,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 5%"
+          style="text-align: center; width: 4%"
         >
           Id
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 5%"
+          style="text-align: center; width: 4%"
         >
           {{ pedido.id }}
         </td>
@@ -167,14 +167,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 15%"
         >
           Proveedor
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 15%"
         >
           {{ pedido?.proveedor?.persona?.nombre | uppercase }}
         </td>
@@ -184,14 +184,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 14%"
         >
           Vendedor
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 14%"
         >
           {{ pedido?.vendedor?.persona?.nombre | uppercase }}
         </td>
@@ -201,14 +201,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 15%"
         >
           Responsable
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 15%"
         >
           {{ pedido?.usuario?.persona?.nombre | uppercase }}
         </td>
@@ -218,17 +218,40 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 11%"
         >
           Monto Total
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 11%"
         >
-          {{ pedido?.moneda?.simbolo }}
-          {{ pedido?.montoTotal | number : "1.0-2" }}
+          {{
+            pedido?.montoTotal
+              | montoMoneda
+                : pedido?.moneda?.simbolo
+                : pedido?.moneda?.denominacion
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="formaPago">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 12%"
+        >
+          Forma de Pago
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 12%"
+          [matTooltip]="pedido?.observacionFormaPago | uppercase"
+          [matTooltipDisabled]="!pedido?.observacionFormaPago"
+        >
+          {{ pedido.formaPagoComputed }}
         </td>
       </ng-container>
 
@@ -236,14 +259,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 10%"
         >
           Fecha
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 10%"
         >
           {{ pedido?.creadoEn | date : "short" }}
         </td>
@@ -253,14 +276,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 13%"
         >
           Etapa Actual
         </th>
         <td
           mat-cell
           *matCellDef="let pedido"
-          style="text-align: center; width: 20%"
+          style="text-align: center; width: 13%"
         >
           {{ pedido.etapaActualComputed }}
         </td>
@@ -270,14 +293,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="width: 10%; text-align: center"
+          style="width: 6%; text-align: center"
         >
           ...
         </th>
         <td
           mat-cell
           *matCellDef="let pedido; let i = dataIndex"
-          style="text-align: center; width: 10%"
+          style="text-align: center; width: 6%"
         >
           <button
             mat-icon-button

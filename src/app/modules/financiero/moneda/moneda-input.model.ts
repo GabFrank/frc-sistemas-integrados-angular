@@ -5,6 +5,11 @@ export class MonedaInput {
     id: number;
     denominacion: string;
     simbolo: string;
+    activo: boolean;
+    principal: boolean;
+    decimales: number;
+    reglaRedondeo: string;
+    redondeoMultiplo: number;
     paisId: number;
     usuarioId: number = null;
 }

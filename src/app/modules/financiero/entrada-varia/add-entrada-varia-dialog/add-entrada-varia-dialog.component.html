@@ -1,0 +1,79 @@
+<div style="margin: 20px;">
+<h2 class="titulo-center" style="font-weight: 500;">
+  {{ titulo }} — {{ data?.cajaVirtual?.nombre }}
+</h2>
+
+<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-form-field appearance="outline" fxFlex="60%">
+        <mat-label>Monto</mat-label>
+        <input
+          matInput
+          currencyMask
+          [options]="currencyOptions"
+          [formControl]="montoControl"
+          placeholder="0"
+        />
+        <mat-error *ngIf="montoControl.hasError('required')">El monto es requerido</mat-error>
+        <mat-error *ngIf="montoControl.hasError('min')">Debe ser mayor a 0</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="40%">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaControl" (selectionChange)="onMonedaChange()">
+          <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="monedaControl.hasError('required')">Requerido</mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Categoría</mat-label>
+      <mat-select [formControl]="categoriaControl">
+        <mat-option [value]="null">— Sin categoría —</mat-option>
+        <mat-option *ngFor="let c of categoriaList" [value]="c">{{ c.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Forma de Pago</mat-label>
+      <mat-select [formControl]="formaPagoControl">
+        <mat-option [value]="null">— Sin especificar —</mat-option>
+        <mat-option *ngFor="let fp of formaPagoList" [value]="fp">{{ fp.descripcion }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>N° Comprobante</mat-label>
+      <input matInput [formControl]="numeroComprobanteControl" placeholder="Opcional" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="text-transform: uppercase;">
+      <mat-label>Descripción / Motivo</mat-label>
+      <textarea
+        matInput
+        [formControl]="descripcionControl"
+        rows="2"
+        placeholder="Ej: PAGO DE FLETE"
+      ></textarea>
+      <mat-error *ngIf="descripcionControl.hasError('required')">La descripción es requerida</mat-error>
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="formGroup.invalid || isSaving"
+  >
+    <mat-icon style="transform: scale(1.5);">save</mat-icon>
+    Confirmar
+  </button>
+</mat-dialog-actions>
+</div>

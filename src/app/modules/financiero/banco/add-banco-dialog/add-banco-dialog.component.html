@@ -1,0 +1,35 @@
+<div style="margin: 20px;">
+<h2 class="titulo-center" style="font-weight: 500;">
+  {{ isEditing ? 'Editar Banco' : 'Nuevo Banco' }}
+</h2>
+
+<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <mat-form-field appearance="outline">
+      <mat-label class="required-field">Nombre</mat-label>
+      <input matInput [formControl]="nombreControl" />
+      <mat-error *ngIf="nombreControl.hasError('required')">El nombre es requerido</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Código</mat-label>
+      <input matInput [formControl]="codigoControl" />
+    </mat-form-field>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSave()"
+    [disabled]="formGroup.invalid || isSaving"
+  >
+    <mat-icon style="transform: scale(1.5);">save</mat-icon>
+    Guardar
+  </button>
+</mat-dialog-actions>
+</div>

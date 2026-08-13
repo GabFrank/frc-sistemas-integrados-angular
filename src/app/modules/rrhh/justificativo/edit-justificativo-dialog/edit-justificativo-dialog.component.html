@@ -1,0 +1,55 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>{{ titulo }}</h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <app-select-funcionario
+      [funcionarioId]="funcionarioControl.value"
+      (idSelected)="onFuncionarioChange($event)">
+    </app-select-funcionario>
+    <span class="error-funcionario" *ngIf="funcionarioControl.touched && funcionarioControl.hasError('required')">
+      Seleccione un funcionario
+    </span>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Fecha</mat-label>
+        <input matInput [matDatepicker]="picker" [formControl]="fechaControl" required />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field fxFlex="50%">
+        <mat-label>Tipo</mat-label>
+        <mat-select [formControl]="tipoControl" required (selectionChange)="onTipoChange()">
+          <mat-option *ngFor="let t of tipoOptions" [value]="t.id">{{ t.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Observación</mat-label>
+      <input matInput [formControl]="observacionControl" />
+    </mat-form-field>
+
+    <!-- Solo aparece si el tipo elegido lo exige (catalogo: requiereDocumento). -->
+    <div *ngIf="requiereDocumento" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-form-field fxFlex>
+        <mat-label>Documento respaldatorio</mat-label>
+        <mat-select [formControl]="documentoControl" required>
+          <mat-option *ngFor="let d of documentos" [value]="d.id">
+            {{ d.tipo }} — {{ d.nombreArchivo }}
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="documentos.length === 0">El legajo no tiene documentos cargados</mat-hint>
+      </mat-form-field>
+      <button mat-stroked-button color="primary" type="button" (click)="onSubirDocumento()"
+        matTooltip="Subir un documento nuevo al legajo">
+        <mat-icon>upload_file</mat-icon> Subir
+      </button>
+    </div>
+  </form>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

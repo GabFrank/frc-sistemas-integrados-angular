@@ -1,0 +1,78 @@
+<app-generic-list titulo="Aguinaldos" style="height: 100%" [isAdicionar]="false"
+  [isCustom]="true" customName="Calcular año" (customFunction)="onCalcular()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="320px">
+      <app-select-funcionario
+        [funcionarioId]="funcionarioControl.value"
+        (idSelected)="funcionarioControl.setValue($event)">
+      </app-select-funcionario>
+    </div>
+
+    <mat-form-field fxFlex="120px">
+      <mat-label>Año</mat-label>
+      <input matInput type="number" [formControl]="anioControl" />
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="anio">
+        <th mat-header-cell *matHeaderCellDef>Año</th>
+        <td mat-cell *matCellDef="let row">{{ row.anio }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoProyectado">
+        <th mat-header-cell *matHeaderCellDef matTooltip="Lo que se va a deber al 31/12 si nada cambia">
+          Proyectado a diciembre
+        </th>
+        <td mat-cell *matCellDef="let row" class="proyectado">
+          {{ row.montoProyectado | number:'1.0-2' }}
+          <span class="meses">({{ row.mesesProyectados }}/12)</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="mesesTrabajados">
+        <th mat-header-cell *matHeaderCellDef>Meses</th>
+        <td mat-cell *matCellDef="let row">{{ row.mesesTrabajados }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoCalculado">
+        <th mat-header-cell *matHeaderCellDef matTooltip="Lo efectivamente ganado hasta hoy">Devengado</th>
+        <td mat-cell *matCellDef="let row">{{ row.montoCalculado | number:'1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">{{ row.estado }}</td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item *ngIf="puedeAprobar" (click)="onAprobar(row)" [disabled]="row.estado !== 'CALCULADO'">
+              <mat-icon>check_circle</mat-icon><span>Aprobar</span>
+            </button>
+            <button mat-menu-item *ngIf="puedePagar" (click)="onPagar(row)" [disabled]="row.estado !== 'APROBADO'">
+              <mat-icon>payments</mat-icon><span>Pagar (por separado)</span>
+            </button>
+            <button mat-menu-item (click)="onVerRecibo(row)">
+              <mat-icon>print</mat-icon><span>Imprimir recibo</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

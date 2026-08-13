@@ -1,0 +1,82 @@
+:host { display: block; height: 100%; }
+
+.config-container {
+  padding: 12px 16px 24px;
+}
+
+.cabecera {
+  margin-bottom: 10px;
+  h2 { margin: 0; }
+  .subtitulo { font-size: 13px; opacity: 0.7; }
+}
+
+.cargando { padding: 40px; }
+
+.tab-icon {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.seccion-body {
+  padding: 16px 4px;
+  max-width: 820px;
+}
+
+.campo {
+  padding: 12px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.campo-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-label {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  opacity: 0.55;
+  cursor: pointer;
+
+  &:hover { opacity: 1; }
+}
+
+.campo-ayuda {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.campo-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.input-corto {
+  width: 150px;
+}
+
+.sufijo {
+  opacity: 0.6;
+  font-size: 12px;
+  padding-left: 4px;
+}
+
+.guardando-spinner { flex: 0 0 auto; }

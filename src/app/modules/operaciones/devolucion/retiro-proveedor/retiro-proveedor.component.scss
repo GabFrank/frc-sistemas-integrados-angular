@@ -1,0 +1,151 @@
+.retiro-proveedor {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .header-row {
+    .titulo {
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .sucursal-fija {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.8;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  .aviso-sucursal {
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+
+  .proveedor-row {
+    .proveedor-field {
+      width: 100%;
+      max-width: 480px;
+    }
+  }
+
+  .proveedor-card {
+    padding: 8px 16px;
+
+    .proveedor-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .nombre {
+        font-weight: 600;
+      }
+
+      .doc {
+        opacity: 0.7;
+        font-size: 0.85rem;
+      }
+    }
+  }
+
+  .doc {
+    opacity: 0.7;
+    font-size: 0.85rem;
+  }
+
+  .loading {
+    padding: 8px 0;
+  }
+
+  .sin-datos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px;
+    opacity: 0.7;
+  }
+
+  .grupos {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .grupo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+
+    .grupo-header {
+      .grupo-titulo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+    }
+
+    .devoluciones {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .devoluciones-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+    }
+  }
+
+  .subtitulo {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
+
+  // Texto centrado en tablas (convención del repo)
+  .tabla-centrada {
+    width: 100%;
+
+    th.mat-header-cell,
+    td.mat-cell {
+      text-align: center;
+      padding: 4px 8px;
+    }
+
+    mat-icon.ok {
+      color: #4caf50;
+    }
+    mat-icon.error {
+      color: #f44336;
+    }
+  }
+
+  .resultados-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .footer {
+    gap: 16px;
+    padding-top: 8px;
+
+    .seleccion-info {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+  }
+}

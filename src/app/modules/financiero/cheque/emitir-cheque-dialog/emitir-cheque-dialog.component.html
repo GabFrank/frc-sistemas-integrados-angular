@@ -1,0 +1,62 @@
+<div class="emitir-cheque-dialog">
+  <h2 class="titulo-center" style="font-weight: 500;">Emitir cheque</h2>
+
+  <mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;">
+    <div fxLayout="column" fxLayoutGap="14px">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Chequera</mat-label>
+        <mat-select [formControl]="chequeraControl" (selectionChange)="onChequeraChange($event.value)">
+          <mat-option *ngFor="let c of chequeras" [value]="c">
+            {{ c.nombre || ('Chequera #' + c.id) }} — {{ c.cuentaBancaria?.banco?.nombre }} · {{ c.cuentaBancaria?.numero }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="chequeraControl.hasError('required')">Seleccione una chequera</mat-error>
+      </mat-form-field>
+
+      <!-- Info de la chequera seleccionada -->
+      <div class="info-chequera" *ngIf="chequeraSel">
+        <span><mat-icon>paid</mat-icon> {{ chequeraSel.cuentaBancaria?.moneda?.simbolo || 'Gs.' }}</span>
+        <span><mat-icon>tag</mat-icon> Próximo Nº <strong>{{ chequeraSel.siguienteNumero }}</strong></span>
+        <span><mat-icon>description</mat-icon> {{ chequeraSel.hojasDisponibles }} hojas</span>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Monto</mat-label>
+        <input matInput type="number" [formControl]="totalControl" placeholder="0" />
+        <span matSuffix class="moneda-suffix">{{ chequeraSel?.cuentaBancaria?.moneda?.simbolo || 'Gs.' }}</span>
+        <mat-error *ngIf="totalControl.hasError('required') || totalControl.hasError('min')">
+          Ingrese un monto mayor a 0
+        </mat-error>
+      </mat-form-field>
+
+      <mat-checkbox [formControl]="diferidoControl" color="primary">Cheque diferido</mat-checkbox>
+
+      <mat-form-field appearance="outline" *ngIf="diferidoControl.value">
+        <mat-label>Fecha de pago (vencimiento)</mat-label>
+        <input matInput [matDatepicker]="dp" [formControl]="fechaPagoControl" />
+        <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+        <mat-datepicker #dp></mat-datepicker>
+      </mat-form-field>
+
+      <div class="nota-hint">
+        <mat-icon>info</mat-icon>
+        <span *ngIf="!diferidoControl.value">Un cheque <b>al día</b> debita el saldo de la cuenta inmediatamente.</span>
+        <span *ngIf="diferidoControl.value">El diferido <b>reserva</b> el saldo hasta la fecha de pago; no debita al emitir.</span>
+      </div>
+
+      <mat-form-field appearance="outline" class="uppercase">
+        <mat-label>Concepto (opcional)</mat-label>
+        <input matInput [formControl]="conceptoControl" maxlength="120" />
+      </mat-form-field>
+
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onSave()" [disabled]="formGroup.invalid || isSaving">
+      <mat-icon>send</mat-icon> Emitir
+    </button>
+  </mat-dialog-actions>
+</div>

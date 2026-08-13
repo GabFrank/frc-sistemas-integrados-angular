@@ -25,6 +25,10 @@ import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { PageEvent } from "@angular/material/paginator";
 import { ProductosVencidosGQL } from "../graphql/productos-vencidos.gql";
+import { ReporteProductosVencidosGQL } from "../graphql/reporteProductosVencidos";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { GenericCrudService } from "../../../../generics/generic-crud.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -113,7 +117,10 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private notificacion: NotificacionSnackbarService,
     private transferenciaService: TransferenciaService,
-    private cargandoService: CargandoDialogService
+    private cargandoService: CargandoDialogService,
+    private genericCrudService: GenericCrudService,
+    private reporteProductosVencidosGQL: ReporteProductosVencidosGQL,
+    private reporteService: ReporteService
   ) {
     this.fechaFormGroup = new FormGroup({
       inicio: new FormControl(),
@@ -279,7 +286,30 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   onGenerarPdf(): void {
-    console.log("Generar PDF de productos vencidos");
+    // El reporte trae TODO lo que matchea el filtro, no la pagina visible: por eso
+    // se mandan los mismos filtros que updateFilters() pero sin page/size.
+    this.genericCrudService.onCustomQuery(this.reporteProductosVencidosGQL, {
+      startDate: this.getStartDate(),
+      endDate: this.getEndDate(),
+      sucursalIdList: this.sucursalIdList(),
+      usuarioIdList: this.usuarioIdList(),
+      productoIdList: this.productoIdList(),
+      fuenteVerdadList: this.fuenteVerdadList(),
+      soloRealmenteVencidos: this.soloRealmenteVencidosControl.value,
+      usuarioResponsableId: this.mainService?.usuarioActual?.id,
+    })
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        // El backend devuelve null cuando el filtro no dio resultados.
+        if (res == null) {
+          this.notificacion.openWarn('No hay productos vencidos para los filtros seleccionados');
+          return;
+        }
+        this.reporteService.onAdd('Productos Vencidos', res);
+        this.tabService.addTab(
+          new Tab(ReportesComponent, 'Reportes', null, ListProductosVencidosComponent)
+        );
+      });
   }
 
   onRetirarProductos(): void {

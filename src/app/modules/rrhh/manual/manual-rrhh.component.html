@@ -1,0 +1,51 @@
+<div class="manual-container" fxLayout="column" fxLayoutGap="20px">
+
+  <header class="manual-header" fxLayout="column" fxLayoutGap="6px">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <mat-icon color="primary" class="header-icon">menu_book</mat-icon>
+      <h2>Manual de uso — Recursos Humanos</h2>
+    </div>
+    <p class="intro">
+      Guía rápida de cada función del módulo. Buscá el tema que necesitás, tocá para abrirlo
+      y seguí los pasos. Está escrito para el día a día, sin tecnicismos.
+    </p>
+  </header>
+
+  <div class="categoria" *ngFor="let cat of categorias" fxLayout="column" fxLayoutGap="8px">
+    <h3 class="categoria-titulo" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <mat-icon>{{ cat.icon }}</mat-icon>
+      <span>{{ cat.nombre }}</span>
+    </h3>
+
+    <mat-accordion multi="true">
+      <mat-expansion-panel *ngFor="let s of cat.secciones">
+        <mat-expansion-panel-header>
+          <mat-panel-title fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+            <mat-icon class="sec-icon">{{ s.icon }}</mat-icon>
+            <span>{{ s.titulo }}</span>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="sec-body" fxLayout="column" fxLayoutGap="10px">
+          <div class="bloque">
+            <span class="etiqueta">¿Para qué sirve?</span>
+            <p class="texto">{{ s.paraQue }}</p>
+          </div>
+
+          <div class="bloque">
+            <span class="etiqueta">¿Cómo se usa?</span>
+            <ol class="pasos">
+              <li *ngFor="let p of s.pasos">{{ p }}</li>
+            </ol>
+          </div>
+
+          <div class="tip" *ngIf="s.tip" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="8px">
+            <mat-icon>lightbulb</mat-icon>
+            <span>{{ s.tip }}</span>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+
+</div>

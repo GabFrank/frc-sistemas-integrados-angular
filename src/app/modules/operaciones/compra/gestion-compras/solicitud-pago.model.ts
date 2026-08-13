@@ -7,7 +7,8 @@ import { NotaRecepcion } from './nota-recepcion.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 export enum SolicitudPagoEstado {
-    PENDIENTE = 'PENDIENTE',
+    PENDIENTE = 'PENDIENTE',   // borrador
+    SOLICITADO = 'SOLICITADO', // validada, lista para pagar
     PARCIAL = 'PARCIAL',
     CONCLUIDO = 'CONCLUIDO',
     CANCELADO = 'CANCELADO'

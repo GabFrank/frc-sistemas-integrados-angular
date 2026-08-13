@@ -1,0 +1,22 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="12px">
+  <h2 mat-dialog-title>Confirmar vale</h2>
+
+  <div class="resumen" fxLayout="column" fxLayoutGap="4px">
+    <div><b>Funcionario:</b> {{ vale.funcionario?.persona?.nombre }}</div>
+    <div><b>Monto:</b> {{ vale.monto | number:'1.0-2' }} {{ vale.moneda?.denominacion }}</div>
+    <div class="advertencia">Esta acción registra el egreso real en la Caja Mayor seleccionada.</div>
+  </div>
+
+  <mat-form-field style="width: 100%">
+    <mat-label>Caja Mayor</mat-label>
+    <mat-select [formControl]="cajaControl" required>
+      <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
+    </mat-select>
+    <mat-error *ngIf="cajaControl.hasError('required')">Seleccione la caja</mat-error>
+  </mat-form-field>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" *ngIf="puedeAprobar" [disabled]="cajaControl.invalid" (click)="onConfirmar()">Confirmar</button>
+  </div>
+</div>
