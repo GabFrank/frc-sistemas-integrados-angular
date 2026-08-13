@@ -10,8 +10,11 @@ import {
   TOKEN_UPDATED,
 } from '@superhuman/electron-push-receiver/src/constants';
 
-const electron = window.require('electron');
-const ipcRenderer = electron.ipcRenderer;
+// Guard para poder servir la app en un browser normal (dev/test): fuera de Electron
+// `window.require` no existe. Todo consumidor de `electron`/`ipcRenderer` está detrás
+// del getter `isElectron` (false en web), así que en browser quedan null sin romper.
+const electron = (window && (window as any).require) ? (window as any).require('electron') : null;
+const ipcRenderer = electron ? electron.ipcRenderer : null;
 
 export interface PrinterInfo {
   name: string;
@@ -223,6 +226,8 @@ export class ElectronService {
   }
 
   getAppVersion() {
+    // En browser (dev/test) no hay ipcRenderer; el header llama esto en ngOnInit.
+    if (!this.isElectron || !ipcRenderer) return 'web';
     return ipcRenderer.sendSync('get-app-version');
   }
   getPrinters(): Observable<PrinterInfo[]> {

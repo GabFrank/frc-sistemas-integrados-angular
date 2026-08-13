@@ -1,0 +1,22 @@
+// El componente se crea dentro de app-tab-content, que no define altura. Sin un host
+// con altura definida, el <div fxFlex> de app-generic-list (flex-basis: 0%) colapsa a
+// cero y la tabla y el paginador quedan invisibles.
+:host {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}
+
+table { width: 100%; text-align: center; }
+th.mat-header-cell, td.mat-cell { text-align: center; padding: 4px 8px; }
+
+// El proyectado es informativo (prevision de caja), no lo que se debe hoy:
+// se muestra atenuado para que no compita con el devengado.
+.proyectado {
+  opacity: 0.75;
+}
+
+.meses {
+  font-size: 11px;
+  opacity: 0.7;
+}

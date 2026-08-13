@@ -37,6 +37,7 @@ export const pdvCategoriaSearch = gql`
             descripcionFactura
             imagenPrincipal
             balanza
+            lote
             garantia
             combo
             promocion
@@ -91,6 +92,7 @@ export const pdvCategoriaQuery = gql`
             descripcion
             descripcionFactura
             balanza
+            lote
             garantia
             combo
             promocion
@@ -152,6 +154,7 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
         descripcion
         descripcionFactura
         balanza
+        lote
         garantia
         combo
         promocion

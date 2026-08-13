@@ -1,0 +1,66 @@
+<app-generic-list titulo="Vacaciones" style="height: 100%" [isAdicionar]="false"
+  [isCustom]="true" customName="Devengar año actual" (customFunction)="onDevengar()"
+  (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
+
+  <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="320px">
+      <app-select-funcionario
+        [funcionarioId]="funcionarioControl.value"
+        (idSelected)="funcionarioControl.setValue($event)">
+      </app-select-funcionario>
+    </div>
+
+    <mat-form-field fxFlex="180px">
+      <mat-label>Año de servicio</mat-label>
+      <input matInput type="number" [formControl]="anioControl" />
+    </mat-form-field>
+  </div>
+
+  <div table style="height: 100%" fxLayout="column" fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z2" style="width: 100%">
+      <ng-container matColumnDef="anioServicio">
+        <th mat-header-cell *matHeaderCellDef>Año servicio</th>
+        <td mat-cell *matCellDef="let row">{{ row.anioServicio }}</td>
+      </ng-container>
+      <ng-container matColumnDef="funcionario">
+        <th mat-header-cell *matHeaderCellDef>Funcionario</th>
+        <td mat-cell *matCellDef="let row">{{ row.funcionario?.persona?.nombre }}</td>
+      </ng-container>
+      <ng-container matColumnDef="diasGenerados">
+        <th mat-header-cell *matHeaderCellDef>Generados</th>
+        <td mat-cell *matCellDef="let row">{{ row.diasGenerados }}</td>
+      </ng-container>
+      <ng-container matColumnDef="diasGozados">
+        <th mat-header-cell *matHeaderCellDef>Gozados</th>
+        <td mat-cell *matCellDef="let row">{{ row.diasGozados }}</td>
+      </ng-container>
+      <ng-container matColumnDef="disponibles">
+        <th mat-header-cell *matHeaderCellDef>Disponibles</th>
+        <td mat-cell *matCellDef="let row">{{ row.disponibles }}</td>
+      </ng-container>
+      <ng-container matColumnDef="prescrita">
+        <th mat-header-cell *matHeaderCellDef>Prescrita</th>
+        <td mat-cell *matCellDef="let row"><mat-icon *ngIf="row.prescrita" color="warn">warning</mat-icon></td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onGestionar(row)">
+              <mat-icon>date_range</mat-icon><span>Gestionar</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator itemsPerPageLabel="Ítems por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%" showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

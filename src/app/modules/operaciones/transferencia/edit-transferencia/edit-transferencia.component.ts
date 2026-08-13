@@ -43,14 +43,21 @@ import {
   updateDataSourceWithId,
 } from "../../../../commons/core/utils/numbersUtils";
 import {
+  EtapaAsignacionLote,
   EtapaTransferencia,
   TipoTransferencia,
   Transferencia,
   TransferenciaEstado,
   TransferenciaItem,
   TransferenciaItemAlerta,
+  TransferenciaItemLoteInput,
   TransferenciaItemView,
 } from "../transferencia.model";
+import {
+  SeleccionarLotesDialogComponent,
+  SeleccionarLotesDialogData,
+  SeleccionarLotesDialogResult,
+} from "../seleccionar-lotes-dialog/seleccionar-lotes-dialog.component";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { SelectionModel } from "@angular/cdk/collections";
 import { ModificarItemDialogComponent } from "../modificar-item-dialog/modificar-item-dialog.component";
@@ -190,6 +197,18 @@ export class EditTransferenciaComponent implements OnInit {
     Validators.pattern("\\d+([.]\\d+)?"),
   ]);
   vencimientoControl = new FormControl(null);
+  /**
+   * Lotes elegidos para el ítem que se está cargando, todavía sin guardar. Se manda junto con la
+   * mutación que crea el ítem. Null significa "no tocar la asignación", que es lo que ve el
+   * backend en cualquier guardado que no pase por la elección de lotes.
+   */
+  lotesPendientes: TransferenciaItemLoteInput[] = null;
+  /**
+   * Presentación con la que se hizo la elección pendiente. Si el operador cambia de presentación
+   * después de elegir lotes, el reparto queda expresado en una medida que ya no es la del ítem,
+   * así que hay que volver a pedirlo.
+   */
+  private presentacionDeLotesPendientes: number = null;
   monedaControl = new FormControl(null);
   precioUnidadControl = new FormControl(null, Validators.required);
   precioPresentacionControl = new FormControl(null, Validators.required);
@@ -460,6 +479,9 @@ export class EditTransferenciaComponent implements OnInit {
         alertaVencido,
         alertaAveriado: alerta?.alertaAveriado ?? false,
         textoVencido: alertaVencido ? "Si" : "No",
+        // Solo los productos con control de lote pueden elegir de que lote salen.
+        esProductoConLote:
+          item.presentacionPreTransferencia?.producto?.lote === true,
       }) as TransferenciaItemView;
     });
   }
@@ -612,13 +634,109 @@ export class EditTransferenciaComponent implements OnInit {
             .subscribe((dialogRes) => {
               if (dialogRes) {
                 this.onEditItem(foundItem);
+                return;
               }
+              // Sigue cargando una segunda linea del mismo producto: si es de lote, hay que
+              // elegir de cual sale igual que en el alta normal.
+              if (this.abrirSeleccionDeLotesSiCorresponde()) return;
+              setTimeout(() => {
+                this.cantPresentacionInput.nativeElement.select();
+              }, 100);
             });
+          return;
         }
+
+        // Productos con control de lote: se elige de que lote sale antes de seguir, porque el
+        // reparto entre lotes es justamente lo que define cuanto se transfiere.
+        if (this.abrirSeleccionDeLotesSiCorresponde()) return;
+
         setTimeout(() => {
           this.cantPresentacionInput.nativeElement.select();
         }, 100);
       });
+  }
+
+  /**
+   * Abre la elección de lotes al cargar un ítem nuevo, si corresponde.
+   *
+   * Acá la relación se invierte respecto del menú de la grilla: el ítem todavía no existe y no
+   * tiene cantidad, así que el total que se reparte entre lotes ES la cantidad a transferir.
+   * La selección queda pendiente hasta que se guarda el ítem, porque recién ahí hay un id al
+   * cual asociarla.
+   *
+   * Se llama desde varios puntos de entrada (búsqueda, código de barra, combo de presentación),
+   * por eso concentra todas las guardas acá en vez de repetirlas en cada llamador.
+   *
+   * @returns true si abrió el diálogo, para que el llamador no siga moviendo el foco.
+   */
+  private abrirSeleccionDeLotesSiCorresponde(): boolean {
+    if (!this.isPreTransferenciaCreacion) return false;
+    if (this.selectedProducto?.lote !== true) return false;
+    const presentacion = this.presentacionControl.value;
+    if (presentacion == null) return false;
+    // Ya eligió lotes PARA ESTA presentación: no reabrir. Si la presentación cambió sí hay que
+    // reabrir, porque el reparto quedó expresado en una medida que ya no es la del ítem.
+    if (
+      this.lotesPendientes != null &&
+      this.presentacionDeLotesPendientes === presentacion.id
+    ) {
+      return false;
+    }
+
+    this.onElegirLotesDeItemNuevo();
+    return true;
+  }
+
+  private onElegirLotesDeItemNuevo(): void {
+    const producto = this.selectedProducto;
+    const sucursalOrigenId = this.selectedTransferencia?.sucursalOrigen?.id;
+    if (producto?.id == null || sucursalOrigenId == null) {
+      return;
+    }
+
+    const data: SeleccionarLotesDialogData = {
+      productoId: producto.id,
+      productoDescripcion: `${producto.id} - ${producto.descripcion}`,
+      sucursalOrigenId,
+      sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
+      cantidad: 0,
+      etapa: EtapaAsignacionLote.PRE_TRANSFERENCIA,
+      presentacionId: this.presentacionControl.value?.id,
+      cantidadDefinidaPorLotes: true,
+    };
+
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(SeleccionarLotesDialogComponent, { data, disableClose: true })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: SeleccionarLotesDialogResult) => {
+        this.isDialogOpen = false;
+        if (res == null) {
+          // Canceló: se sigue como un producto cualquiera y el backend reparte por FEFO.
+          this.lotesPendientes = null;
+          this.presentacionDeLotesPendientes = null;
+          setTimeout(() => {
+            this.cantPresentacionInput.nativeElement.select();
+          }, 100);
+          return;
+        }
+        this.lotesPendientes = res.lotes;
+        this.presentacionDeLotesPendientes = this.presentacionControl.value?.id;
+        this.aplicarCantidadDeLotes(res.total);
+      });
+  }
+
+  /**
+   * Lleva el total elegido al campo de cantidad. El diálogo ya trabaja en presentaciones, que es
+   * la misma unidad del campo, así que se escribe tal cual; `cantidadUnidadControl` se actualiza
+   * solo por la suscripción de `cantidadPresentacionControl`.
+   */
+  private aplicarCantidadDeLotes(totalPresentaciones: number): void {
+    this.cantidadPresentacionControl.setValue(totalPresentaciones);
+    setTimeout(() => {
+      this.vencimientoInput.nativeElement.select();
+    }, 100);
   }
 
   createItem(presentacion: Presentacion, item?, cantidad?) {
@@ -673,9 +791,20 @@ export class EditTransferenciaComponent implements OnInit {
     let isNew = item?.id == null;
     Object.assign(auxItem, item);
     auxItem.transferencia = this.selectedTransferencia;
+
+    const input = auxItem.toInput();
+    // Los lotes elegidos al cargar el ítem viajan en la misma mutación que lo crea. Se consume
+    // el buffer acá, de forma sincrónica, porque el llamador hace onClear() apenas vuelve.
+    if (this.lotesPendientes != null) {
+      input.lotesAsignados = this.lotesPendientes;
+      input.etapaAsignacionLote = EtapaAsignacionLote.PRE_TRANSFERENCIA;
+      this.lotesPendientes = null;
+      this.presentacionDeLotesPendientes = null;
+    }
+
     this.cargandoService.openDialog();
     this.transferenciaService
-      .onSaveTransferenciaItem(auxItem.toInput(), precioCosto)
+      .onSaveTransferenciaItem(input, precioCosto)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.cargandoService.closeDialog();
@@ -784,6 +913,108 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onEditClick(row) { }
+
+  /**
+   * Abre la elección manual de los lotes de los que sale un ítem.
+   *
+   * Solo tiene sentido en creación y en preparación: una vez que la mercadería salió del
+   * depósito, el desglose ya quedó fijado contra el movimiento de stock.
+   */
+  onElegirLotes(item: TransferenciaItemView): void {
+    const etapaAsignacion = this.etapaAsignacionActual();
+    if (etapaAsignacion == null) {
+      return;
+    }
+    const producto = item?.presentacionPreTransferencia?.producto;
+    const sucursalOrigenId = this.selectedTransferencia?.sucursalOrigen?.id;
+    if (producto?.id == null || sucursalOrigenId == null) {
+      return;
+    }
+
+    const esPreparacion = etapaAsignacion === EtapaAsignacionLote.PREPARACION;
+    const presentacion = esPreparacion
+      ? item?.presentacionPreparacion ?? item?.presentacionPreTransferencia
+      : item?.presentacionPreTransferencia;
+
+    const data: SeleccionarLotesDialogData = {
+      productoId: producto.id,
+      productoDescripcion: `${producto.id} - ${producto.descripcion}`,
+      sucursalOrigenId,
+      sucursalOrigenNombre: this.selectedTransferencia?.sucursalOrigen?.nombre,
+      // La cantidad del ítem ya está en presentaciones, que es la unidad del diálogo.
+      cantidad: esPreparacion
+        ? item?.cantidadPreparacion ?? item?.cantidadPreTransferencia
+        : item?.cantidadPreTransferencia,
+      etapa: etapaAsignacion,
+      presentacionId: presentacion?.id,
+      asignacionActual: item.lotesAsignados,
+    };
+
+    // Sin esto, tipear cantidades dentro del diálogo dispara los atajos de teclado de la pantalla.
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(SeleccionarLotesDialogComponent, { data })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: SeleccionarLotesDialogResult) => {
+        this.isDialogOpen = false;
+        if (res != null) {
+          this.guardarAsignacionDeLotes(item, res);
+        }
+      });
+  }
+
+  /**
+   * Etapa de asignación que corresponde a la etapa actual de la transferencia.
+   * Null significa que en este momento no se pueden elegir lotes.
+   */
+  private etapaAsignacionActual(): EtapaAsignacionLote {
+    switch (this.selectedTransferencia?.etapa) {
+      case EtapaTransferencia.PRE_TRANSFERENCIA_CREACION:
+      case EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN:
+        return EtapaAsignacionLote.PRE_TRANSFERENCIA;
+      case EtapaTransferencia.PREPARACION_MERCADERIA:
+        return EtapaAsignacionLote.PREPARACION;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Persiste el reparto elegido. Se manda `lotesAsignados` explícitamente: cuando ese campo no
+   * viaja, el backend deja la asignación como estaba, que es lo que hace el resto de la pantalla.
+   */
+  private guardarAsignacionDeLotes(
+    item: TransferenciaItem,
+    seleccion: SeleccionarLotesDialogResult
+  ): void {
+    const auxItem = new TransferenciaItem();
+    Object.assign(auxItem, item);
+    auxItem.usuario = this.mainService.usuarioActual;
+    auxItem.transferencia = this.selectedTransferencia;
+
+    const input = auxItem.toInput();
+    input.lotesAsignados = seleccion.lotes;
+    input.etapaAsignacionLote = seleccion.etapa;
+
+    this.cargandoService.openDialog();
+    this.transferenciaService
+      .onSaveTransferenciaItem(input)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.cargandoService.closeDialog();
+        if (res != null) {
+          this.dataSource.data = updateDataSourceWithId(
+            this.dataSource.data,
+            res,
+            res?.id
+          );
+          // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
+          this.actualizarAlertasPaginaActual();
+          this.notificacionService.openSucess("Lotes asignados");
+        }
+      });
+  }
 
   onConfirm(item: TransferenciaItem) {
     let newItem = new TransferenciaItem();
@@ -1079,6 +1310,9 @@ export class EditTransferenciaComponent implements OnInit {
                         this.presentacionControl.value?.cantidad
                       );
                     }
+                    if (this.abrirSeleccionDeLotesSiCorresponde()) {
+                      return;
+                    }
                     if (this.selectedProducto.balanza) {
                       this.vencimientoInput.nativeElement.select();
                     } else {
@@ -1110,6 +1344,9 @@ export class EditTransferenciaComponent implements OnInit {
                   this.presentacionControl.value?.cantidad
                 );
               }
+              if (this.abrirSeleccionDeLotesSiCorresponde()) {
+                return;
+              }
               if (this.selectedProducto.balanza) {
                 this.vencimientoInput.nativeElement.select();
               } else {
@@ -1133,6 +1370,13 @@ export class EditTransferenciaComponent implements OnInit {
     }
   }
   onPresentacionSelect() {
+    // Producto con lote: elegir de que lote sale reemplaza al paso de cargar la cantidad,
+    // porque la cantidad sale del reparto entre lotes.
+    if (this.abrirSeleccionDeLotesSiCorresponde()) {
+      this.matSelect?.close();
+      return;
+    }
+
     const tienePrecioUnidad = this.precioUnidadControl.value != null && this.precioUnidadControl.value > 0;
     const tienePrecioPresentacion = this.precioPresentacionControl.value != null && this.precioPresentacionControl.value > 0;
 
@@ -1245,6 +1489,8 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onClear() {
+    this.lotesPendientes = null;
+    this.presentacionDeLotesPendientes = null;
     this.selectedProducto = null;
     this.presentacionControl.setValue(null);
     this.isPesable = false;

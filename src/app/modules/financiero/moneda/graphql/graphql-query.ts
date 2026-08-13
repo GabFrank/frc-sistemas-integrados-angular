@@ -6,6 +6,11 @@ export const monedasQuery = gql`
       id
       denominacion
       simbolo
+      activo
+      principal
+      decimales
+      reglaRedondeo
+      redondeoMultiplo
       pais {
         id
         descripcion
@@ -32,6 +37,11 @@ export const monedasSearch = gql`
       id
       denominacion
       simbolo
+      activo
+      principal
+      decimales
+      reglaRedondeo
+      redondeoMultiplo
       pais {
         id
         descripcion
@@ -58,6 +68,11 @@ export const monedaQuery = gql`
       id
       denominacion
       simbolo
+      activo
+      principal
+      decimales
+      reglaRedondeo
+      redondeoMultiplo
       pais {
         id
         descripcion
@@ -84,6 +99,11 @@ export const saveMoneda = gql`
       id
       denominacion
       simbolo
+      activo
+      principal
+      decimales
+      reglaRedondeo
+      redondeoMultiplo
       pais {
         id
         descripcion

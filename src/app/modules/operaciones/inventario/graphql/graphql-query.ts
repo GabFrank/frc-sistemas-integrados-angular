@@ -391,6 +391,10 @@ export const inventarioProductoItemWithFilterQuery = gql`
     $orderBy: String
     $tipoOrder: String
     $estado: String
+    $vencimientoFiltro: String
+    $diasPorVencer: Int
+    $vencimientoDesde: String
+    $vencimientoHasta: String
   ) {
     data: inventarioProductoItemWithFilter(
       startDate: $startDate
@@ -403,6 +407,10 @@ export const inventarioProductoItemWithFilterQuery = gql`
       orderBy: $orderBy
       tipoOrder: $tipoOrder
       estado: $estado
+      vencimientoFiltro: $vencimientoFiltro
+      diasPorVencer: $diasPorVencer
+      vencimientoDesde: $vencimientoDesde
+      vencimientoHasta: $vencimientoHasta
     ) {
       getTotalPages
       getTotalElements
@@ -465,6 +473,11 @@ export const reporteInventarioQuery = gql`
     $orderBy: String
     $tipoOrder: String
     $nickname: String
+    $estado: String
+    $vencimientoFiltro: String
+    $diasPorVencer: Int
+    $vencimientoDesde: String
+    $vencimientoHasta: String
   ) {
     data: reporteInventario(
       startDate: $startDate
@@ -477,6 +490,11 @@ export const reporteInventarioQuery = gql`
       orderBy: $orderBy
       tipoOrder: $tipoOrder
       nickname: $nickname
+      estado: $estado
+      vencimientoFiltro: $vencimientoFiltro
+      diasPorVencer: $diasPorVencer
+      vencimientoDesde: $vencimientoDesde
+      vencimientoHasta: $vencimientoHasta
     )
   }
 `;
@@ -580,6 +598,34 @@ export const productosVencidosQuery = gql`
         diasVencimientoClase
       }
     }
+  }
+`;
+
+export const reporteProductosVencidosQuery = gql`
+  query ReporteProductosVencidos(
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $sectorIdList: [Int]
+    $zonaIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $fuenteVerdadList: [FuenteVerdadVencimiento]
+    $soloRealmenteVencidos: Boolean
+    $usuarioResponsableId: ID
+  ) {
+    data: reporteProductosVencidos(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      sectorIdList: $sectorIdList
+      zonaIdList: $zonaIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      fuenteVerdadList: $fuenteVerdadList
+      soloRealmenteVencidos: $soloRealmenteVencidos
+      usuarioResponsableId: $usuarioResponsableId
+    )
   }
 `;
 

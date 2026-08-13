@@ -18,6 +18,7 @@ export class Cliente {
   tributa: boolean
   verificadoSet: boolean
   direccion: string;
+  activo: boolean;
 
   toInput(): ClienteInput {
     let input = new ClienteInput;
@@ -34,6 +35,7 @@ export class Cliente {
     input.saldo = this.saldo
     input.direccion = this.direccion;
     input.documento = this.documento;
+    input.activo = this.activo;
     return input;
   }
 }
@@ -53,6 +55,7 @@ export class ClienteInput {
   tributa: boolean
   verificadoSet: boolean
   direccion: string;
+  activo: boolean;
 
 }
 

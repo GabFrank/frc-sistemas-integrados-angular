@@ -15,6 +15,7 @@ export class ProductoInput {
   promocion: boolean;
   vencimiento: boolean;
   diasVencimiento: number;
+  lote: boolean;
   usuarioId?: number;
   imagenes?: string;
   tipoConservacion: string;

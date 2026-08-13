@@ -1,0 +1,18 @@
+.info-container {
+  min-width: 420px;
+  max-width: 560px;
+  padding: 8px;
+
+  .clave-row {
+    font-size: 13px;
+    .clave { font-family: monospace; padding: 2px 8px; border-radius: 6px; background: rgba(33, 150, 243, 0.15); color: #42a5f5; }
+    .valor { opacity: 0.85; }
+  }
+
+  .descripcion { font-size: 14px; margin: 0; }
+
+  .bloque {
+    .etiqueta { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.6; }
+    p { font-size: 13px; margin: 2px 0 0 0; }
+  }
+}

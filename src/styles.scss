@@ -172,6 +172,14 @@ input::selection {
   color: #f57c00 !important;
 }
 
+/* Convención de diálogos: el título va en BLANCO (el subtítulo menor puede ir naranja
+   con su propia clase, ej. .subtitulo-dialog). Solo aplica dentro de un diálogo, para
+   no afectar los headings naranjas de las páginas/listas que también usan .titulo-center. */
+.mat-mdc-dialog-container .titulo-center,
+.mat-dialog-container .titulo-center {
+  color: #fff !important;
+}
+
 .center {
   text-align: center !important;
 }
@@ -523,6 +531,42 @@ input {
   }
 }
 
+// Diálogo Pagar Compras (CPP): contenedor flex a alto completo para que el stepper llene el diálogo
+.pagar-compras-panel {
+
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  // MDC intercala un inner-container que centra la surface (rompe el alto completo)
+  .mat-mdc-dialog-inner-container,
+  .mdc-dialog__container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .mat-mdc-dialog-surface,
+  .mdc-dialog__surface {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 16px 24px 12px;
+  }
+}
+
 // Estilo de inputs outline usado en transferencias (código de barra, búsqueda)
 mat-form-field.transferencia-input-field {
   height: 30px !important;
@@ -571,6 +615,30 @@ mat-form-field.transferencia-input-field {
     .mdc-floating-label,
     .mat-mdc-floating-label {
       color: #f57c00 !important;
+    }
+  }
+}
+@import 'styles/dashboard';
+
+/* ---------------------------------------------------------------------------
+   RRHH — scroll de las tablas de listas.
+   La clase .tabla-container se usa SOLO en las listas del modulo RRHH. Su unico
+   estilo era `overflow-x: auto`, sin alto acotado ni scroll vertical, por lo que
+   al superar el alto del tab (el host tiene overflow:hidden) la tabla se cortaba
+   y no habia forma de ver todas las filas. Se le da alto acotado + scroll
+   vertical y encabezado sticky. !important para ganarle al estilo scoped del
+   componente. Convencion calc(100vh - N) ya usada en este archivo.
+   -------------------------------------------------------------------------- */
+.tabla-container {
+  overflow: auto !important;
+  max-height: calc(100vh - 230px);
+
+  table {
+    th.mat-header-cell {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background-color: #3c3c3c; // mismo tono que los headers sticky del proyecto (ver .mat-table-sticky)
     }
   }
 }

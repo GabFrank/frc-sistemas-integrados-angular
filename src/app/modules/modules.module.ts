@@ -18,6 +18,7 @@ import { AdministrativoModule } from './administrativo/administrativo.module';
 import { VehiculosModule } from './activos/vehiculos/vehiculos.module';
 import { DashboardActivosModule } from './activos/dashboard/dashboard-activos.module';
 import { GastosModule } from './financiero/gastos/gastos.module';
+import { RrhhModule } from './rrhh/rrhh.module';
 
 
 @NgModule({
@@ -42,6 +43,7 @@ import { GastosModule } from './financiero/gastos/gastos.module';
     DashboardActivosModule,
     AdministrativoModule,
     GastosModule,
+    RrhhModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

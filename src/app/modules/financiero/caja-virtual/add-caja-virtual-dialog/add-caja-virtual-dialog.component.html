@@ -1,0 +1,89 @@
+<div style="margin: 20px;">
+  <h2 class="titulo-center" style="font-weight: 500;">
+  {{ isEditing ? 'Editar Caja Virtual' : 'Nueva Caja Virtual' }}
+</h2>
+
+<mat-dialog-content [formGroup]="formGroup" style="padding: 16px 0;"
+>
+  <div fxLayout="column" fxLayoutGap="14px">
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre</mat-label>
+      <input 
+        matInput 
+        [formControl]="nombreControl" 
+        placeholder="Ej: CAJA MAYOR CENTRAL"
+      />
+      <mat-error *ngIf="nombreControl.hasError('required')">
+        El nombre es requerido
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="margin-top: 5px;">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipoControl">
+        <mat-option *ngFor="let tipo of tipoList" [value]="tipo.value">
+          {{ tipo.label }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="tipoControl.hasError('required')">
+        El tipo es requerido
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sucursal (opcional)</mat-label>
+      <mat-select [formControl]="sucursalControl">
+        <mat-option [value]="null">Sin sucursal (oficina administrativa)</mat-option>
+        <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal.id">
+          {{ sucursal.id}} - {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" *ngIf="tipoControl.value === 'CAJA_CHICA'">
+      <mat-label>Límite en Gs. (opcional)</mat-label>
+      <input 
+        matInput 
+        type="number" 
+        [formControl]="limiteGsControl"
+        placeholder="Monto máximo autorizado" 
+      />
+      <span matSuffix>Gs.</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" style="margin-top: 5px !important;">
+      <mat-label>Descripción</mat-label>
+      <textarea 
+        matInput 
+        [formControl]="descripcionControl"
+        rows="3" 
+        placeholder="Descripción opcional de la caja"
+      ></textarea>
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+      <mat-slide-toggle [formControl]="activoControl" color="primary">
+        {{ activoControl.value ? 'Activa' : 'Inactiva' }}
+      </mat-slide-toggle>
+    </div>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSave()"
+    [disabled]="formGroup.invalid || isSaving"
+  >
+    <mat-icon *ngIf="!isSaving" style="transform: scale(1.5);">save</mat-icon>
+    {{ isEditing ? 'Actualizar' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>
+
+</div>

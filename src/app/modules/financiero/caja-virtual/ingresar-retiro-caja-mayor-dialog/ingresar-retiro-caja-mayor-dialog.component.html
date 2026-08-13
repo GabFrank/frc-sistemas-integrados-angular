@@ -1,0 +1,133 @@
+<div class="ingresar-retiro-dialog">
+  <h2 class="titulo-dialog">Ingresar retiro de PDV</h2>
+  <div class="subtitulo-dialog">{{ data?.cajaVirtual?.nombre }}</div>
+
+  <mat-dialog-content class="contenido">
+    <div class="filtros" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="filtro-suc">
+        <mat-label>Sucursal de origen</mat-label>
+        <mat-select [formControl]="sucursalControl" (selectionChange)="onFiltroChange()">
+          <mat-option [value]="null">— Todas —</mat-option>
+          <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filtro-caja">
+        <mat-label>N° Caja</mat-label>
+        <input matInput type="number" [formControl]="cajaControl" placeholder="Todas"
+               (keyup.enter)="onFiltroChange()" (blur)="onFiltroChange()" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filtro-fecha">
+        <mat-label>Rango de fechas</mat-label>
+        <mat-date-range-input [rangePicker]="picker">
+          <input matStartDate [formControl]="desdeControl" placeholder="Desde" />
+          <input matEndDate [formControl]="hastaControl" placeholder="Hasta" (dateChange)="onFiltroChange()" />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+      </mat-form-field>
+
+      <button mat-icon-button matTooltip="Limpiar filtros" (click)="limpiarFiltros()">
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+
+      <span class="spacer"></span>
+      <span class="hint" *ngIf="!isLoading">{{ totalElements }} retiro(s) flotante(s)</span>
+    </div>
+
+    <div class="tabla-wrap">
+      <table mat-table [dataSource]="dataSource" class="tabla-retiros">
+
+        <ng-container matColumnDef="sel">
+          <th mat-header-cell *matHeaderCellDef class="col-sel"></th>
+          <td mat-cell *matCellDef="let row" class="col-sel">
+            <mat-checkbox [checked]="row._sel"
+                          (change)="row._sel = $event.checked; toggle(row)"></mat-checkbox>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="col-id">N°</th>
+          <td mat-cell *matCellDef="let row" class="col-id">{{ row.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="sucursal">
+          <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+          <td mat-cell *matCellDef="let row" class="celda-elipsis" [title]="row.sucursal?.nombre || row.sucursalId">
+            {{ row.sucursal?.nombre || row.sucursalId }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cajaSalida">
+          <th mat-header-cell *matHeaderCellDef class="col-caja">Caja</th>
+          <td mat-cell *matCellDef="let row" class="col-caja">{{ row.cajaSalida?.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="montos">
+          <th mat-header-cell *matHeaderCellDef>Montos</th>
+          <td mat-cell *matCellDef="let row" class="montos">{{ row._montos }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="responsable">
+          <th mat-header-cell *matHeaderCellDef>Responsable</th>
+          <td mat-cell *matCellDef="let row" class="celda-elipsis" [title]="row.responsable?.persona?.nombre || '—'">
+            {{ row.responsable?.persona?.nombre || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef class="col-fecha">Fecha</th>
+          <td mat-cell *matCellDef="let row" class="col-fecha">{{ row.creadoEn | date: 'dd/MM/yy HH:mm' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <div class="empty" *ngIf="!isLoading && dataSource.data.length === 0">
+        No hay retiros flotantes para ingresar.
+      </div>
+    </div>
+
+    <mat-paginator
+      [length]="totalElements"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPage($event)">
+    </mat-paginator>
+
+    <!-- Strip de totales de la selección -->
+    <div class="totales-strip" *ngIf="cantidadSeleccionada > 0">
+      <span class="tot-item">
+        <span class="tot-label">Seleccionados</span>
+        <span class="tot-valor">{{ cantidadSeleccionada }}</span>
+      </span>
+      <span class="tot-item" *ngIf="totalGs > 0">
+        <span class="tot-label">Gs</span>
+        <span class="tot-valor">{{ totalGs | number:'1.0-0' }}</span>
+      </span>
+      <span class="tot-item" *ngIf="totalRs > 0">
+        <span class="tot-label">R$</span>
+        <span class="tot-valor">{{ totalRs | number:'1.0-2' }}</span>
+      </span>
+      <span class="tot-item" *ngIf="totalDs > 0">
+        <span class="tot-label">US$</span>
+        <span class="tot-valor">{{ totalDs | number:'1.0-2' }}</span>
+      </span>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancel()">Cancelar</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onIngresar()"
+      [disabled]="cantidadSeleccionada === 0 || isSaving">
+      <mat-icon style="transform: scale(1.4);">south</mat-icon>
+      Ingresar {{ cantidadSeleccionada || '' }} retiro(s) a esta caja
+    </button>
+  </mat-dialog-actions>
+</div>

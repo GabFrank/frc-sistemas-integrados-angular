@@ -283,6 +283,27 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
   onSave() {
     if (this.selectedFuncionario == null) this.selectedFuncionario = new Funcionario();
+
+    const estabaActivo = this.selectedFuncionario.activo !== false;
+    const quedaInactivo = this.activoControl.value === false;
+    const esEdicion = this.selectedFuncionario.id != null;
+
+    if (esEdicion && estabaActivo && quedaInactivo) {
+      this.dialogoService
+        .confirm(
+          'Atención!!',
+          'Al desactivar este funcionario su usuario no podrá iniciar sesión y su cliente pasará a tipo NORMAL con crédito 0. ¿Desea continuar?'
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((confirmado) => {
+          if (confirmado) this.guardarFuncionario();
+        });
+      return;
+    }
+    this.guardarFuncionario();
+  }
+
+  private guardarFuncionario() {
     this.selectedFuncionario.activo = this.activoControl.value;
     this.selectedFuncionario.credito = this.creditoControl.value;
     this.selectedFuncionario.diarista = this.diaristaControl.value;

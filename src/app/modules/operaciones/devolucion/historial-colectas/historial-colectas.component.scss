@@ -1,0 +1,135 @@
+.hist-wrap {
+  padding: 12px 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hist-header h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.hist-cargando {
+  display: flex;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+.hist-vacio {
+  text-align: center;
+  opacity: 0.6;
+  margin-top: 48px;
+
+  mat-icon {
+    font-size: 44px;
+    height: 44px;
+    width: 44px;
+  }
+}
+
+.hist-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.op {
+  padding: 12px 14px;
+
+  .op-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .op-tit {
+    display: flex;
+    flex-direction: column;
+
+    .op-nombre {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .op-sub {
+      opacity: 0.7;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .badge {
+    background: #b71c1c;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+  }
+
+  .op-lineas {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 4px;
+
+    td {
+      padding: 4px 6px;
+      font-size: 13px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ln-id {
+      font-weight: 600;
+      width: 22%;
+    }
+
+    .ln-estado {
+      opacity: 0.75;
+      width: 18%;
+    }
+
+    .ln-accion {
+      width: 48px;
+      text-align: right;
+    }
+  }
+
+  .op-acciones {
+    margin-top: 6px;
+  }
+
+  .op-nota {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+    margin: 6px 0 0;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+    }
+  }
+}
+
+mat-paginator {
+  background: transparent;
+  margin-top: 8px;
+}
+
+.hist-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  mat-form-field {
+    width: 160px;
+  }
+}

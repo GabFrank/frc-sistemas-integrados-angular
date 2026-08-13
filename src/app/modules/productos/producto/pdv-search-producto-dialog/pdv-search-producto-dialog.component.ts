@@ -54,6 +54,10 @@ export interface PdvSearchProductoData {
   conservarUltimaBusqueda?: boolean;
   costo?: boolean;
   transferencia?: Transferencia;
+  // Sucursal explicita para filtrar/mostrar stock (ej. devoluciones), independiente
+  // de sucursalActual (que en el server cloud/administrativo no aplica). Si se pasa,
+  // la busqueda y el stock mostrado se calculan sobre esta sucursal.
+  sucursalFiltro?: Sucursal;
   servidor?: boolean;
   modoSeleccionMultiple?: boolean;
   productosSeleccionados?: Producto[];
@@ -237,6 +241,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     if (this.isTransferencia && this.data?.transferencia?.sucursalOrigen) {
       sucursalIdParaFiltro = this.data.transferencia.sucursalOrigen.id;
     }
+    if (this.data?.sucursalFiltro?.id != null) {
+      sucursalIdParaFiltro = this.data.sucursalFiltro.id;
+    }
 
     if (text == "" || text == null || text == " ") {
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
@@ -289,7 +296,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
               this.dataSource.data = [...this.dataSource.data, ...combinados];
             }
 
-            if (this.isTransferencia) {
+            if (this.isTransferencia || this.data?.sucursalFiltro?.id != null) {
               this.dataSource.data.forEach((p, index) => {
                 this.mostrarStock(p, index);
               });
@@ -615,6 +622,20 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         .subscribe((stock) => {
           if (stock != null) {
             producto.stockPorProductoDestino = stock;
+            this.dataSource[index] = producto;
+          }
+        });
+    } else if (this.data?.sucursalFiltro?.id != null) {
+      this.productoService
+        .onGetStockPorProductoAndSucursal(
+          producto.id,
+          this.data.sucursalFiltro.id,
+          this.data.servidor
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((stock) => {
+          if (stock != null) {
+            producto.stockPorProducto = stock;
             this.dataSource[index] = producto;
           }
         });

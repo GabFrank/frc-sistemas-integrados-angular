@@ -10,16 +10,22 @@ tr.example-detail-row {
   cursor: pointer;
 }
 
-.row-estado-parcial {
-  background-color: rgba(255, 235, 59, 0.5) !important;
-}
+/* Estado como chip de color (en vez de pintar toda la fila) */
+.estado-chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 
-.row-estado-concluido {
-  background-color: rgba(76, 175, 80, 0.5) !important;
-}
-
-.row-estado-cancelado {
-  background-color: rgba(244, 67, 54, 0.5) !important;
+  &.estado-PENDIENTE { background-color: #607d8b; }  // borrador
+  &.estado-SOLICITADO { background-color: #1e88e5; } // lista para pagar
+  &.estado-PARCIAL { background-color: #fb8c00; }    // pago parcial
+  &.estado-CONCLUIDO { background-color: #43a047; }  // pagada
+  &.estado-CANCELADO { background-color: #757575; }  // cancelada
 }
 
 .example-element-row td {

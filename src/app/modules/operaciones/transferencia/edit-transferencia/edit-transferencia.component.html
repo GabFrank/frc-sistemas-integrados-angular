@@ -424,6 +424,13 @@
             <button mat-menu-item (click)="onEditItem(item)" [disabled]="isPreparacionMercaderia && puedeEditar">
               Editar
             </button>
+            <button
+              mat-menu-item
+              *ngIf="item.esProductoConLote"
+              (click)="onElegirLotes(item)"
+            >
+              Elegir lotes
+            </button>
             <button mat-menu-item (click)="onDeleteItem(item, itemIndex)" style="color: red"
               [disabled]="isPreparacionMercaderia">
               Eliminar
@@ -602,6 +609,13 @@
             </button>
             <button mat-menu-item (click)="onModificarVencimiento(item)">
               Modificar vencimiento
+            </button>
+            <button
+              mat-menu-item
+              *ngIf="item.esProductoConLote"
+              (click)="onElegirLotes(item)"
+            >
+              Elegir lotes
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
               Rechazar item
