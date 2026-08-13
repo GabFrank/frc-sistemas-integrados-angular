@@ -32,15 +32,13 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Sucursal</mat-label>
+      <mat-label>Sucursal (opcional)</mat-label>
       <mat-select [formControl]="sucursalControl">
+        <mat-option [value]="null">Sin sucursal (oficina administrativa)</mat-option>
         <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal.id">
           {{ sucursal.id}} - {{ sucursal.nombre }}
         </mat-option>
       </mat-select>
-      <mat-error *ngIf="sucursalControl.hasError('required')">
-        La sucursal es requerida
-      </mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline" *ngIf="tipoControl.value === 'CAJA_CHICA'">
