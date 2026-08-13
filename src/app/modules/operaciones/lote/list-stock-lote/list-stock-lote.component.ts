@@ -1,6 +1,7 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -16,6 +17,11 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { Producto } from '../../../productos/producto/producto.model';
+import {
+  AjustarStockLoteDialogComponent,
+  AjustarStockLoteDialogData
+} from '../../../productos/producto/ajustar-stock-lote-dialog/ajustar-stock-lote-dialog.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import {
@@ -43,6 +49,8 @@ interface SucursalStockRow {
  */
 interface StockLoteRow {
   loteId: number;
+  /** Hace falta para ajustar el stock del lote sin volver a buscar el producto. */
+  productoId: number;
   productoDescripcion: string;
   numeroLote: string;
   proveedorNombre: string;
@@ -157,6 +165,9 @@ export class ListStockLoteComponent implements OnInit {
   /** La sucursal COMPRAS solo se muestra a quien tiene el rol. */
   private puedeVerStockCompras = false;
 
+  /** Lo lee el template para mostrar u ocultar el ajuste. */
+  puedeAjustarStock = false;
+
   /** Etiquetas resueltas una sola vez: el template no debe indexar mapas en cada ciclo. */
   readonly opcionesEstado: OpcionEstado[] = [
     {
@@ -193,6 +204,7 @@ export class ListStockLoteComponent implements OnInit {
     private dialogosService: DialogosService,
     private tabService: TabService,
     private mainService: MainService,
+    private matDialog: MatDialog,
     private cdr: ChangeDetectorRef
   ) {
     this.filtros = new FormGroup({
@@ -210,6 +222,11 @@ export class ListStockLoteComponent implements OnInit {
       this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
       this.mainService.usuarioActual?.roles?.includes(ROLES.VER_STOCK_COMPRAS) ||
       false;
+
+    // Mismo permiso que el ajuste de stock de la lista de productos: es la misma operación, solo
+    // que entrando por la pantalla donde se ve el número que está mal.
+    this.puedeAjustarStock =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) || false;
 
     this.cargarSucursales();
 
@@ -487,6 +504,51 @@ export class ListStockLoteComponent implements OnInit {
   }
 
   /**
+   * Ajusta el stock del lote desde el listado. Esta es la pantalla donde el operador ve el número
+   * que está mal, así que es donde tiene que poder corregirlo.
+   *
+   * Sin sucursal preseleccionada el diálogo la pide: la fila suma todas las sucursales y ajustar
+   * "el lote" sin decir dónde no significa nada. Cuando el filtro de sucursal está puesto, o
+   * cuando se entra desde el desglose, ya viene resuelta.
+   */
+  onAjustarStock(fila: StockLoteRow, sucursalId?: number): void {
+    if (!fila.esLoteReal || fila.productoId == null) {
+      return;
+    }
+    const sucursal = sucursalId != null
+      ? this.sucursales.find((s) => s.id === sucursalId)
+      : this.filtros.value.sucursal;
+
+    const producto = new Producto();
+    producto.id = fila.productoId;
+    producto.descripcion = fila.productoDescripcion;
+    producto.lote = true;
+
+    this.matDialog
+      .open(AjustarStockLoteDialogComponent, {
+        data: {
+          producto,
+          sucursalPreseleccionada: sucursal,
+          permitirCambiarSucursal: sucursal == null,
+          loteIdPreseleccionado: fila.loteId,
+          numeroLotePreseleccionado: fila.numeroLote
+        } as AjustarStockLoteDialogData,
+        width: '600px',
+        maxHeight: '90vh',
+        disableClose: true
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((resultado) => {
+        if (resultado != null) {
+          // El desglose guardado quedó viejo: se descarta para que se vuelva a pedir al expandir.
+          fila.sucursales = null;
+          this.onBuscar(true);
+        }
+      });
+  }
+
+  /**
    * Cambia el estado del lote desde el listado, sin pasar por la ficha del producto: esta es la
    * pantalla donde se ve el lote vencido, así que también es donde tiene que poder bloquearse.
    *
@@ -591,6 +653,7 @@ export class ListStockLoteComponent implements OnInit {
     const estado = item.estado;
     return {
       loteId: item.loteId,
+      productoId: item.productoId,
       productoDescripcion: item.productoDescripcion || this.referenciaSinNombre(item.productoId),
       numeroLote: item.numeroLote || '-',
       proveedorNombre: item.proveedorNombre || '-',

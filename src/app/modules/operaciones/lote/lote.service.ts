@@ -1,9 +1,18 @@
 import { Injectable } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { UntilDestroy } from '@ngneat/until-destroy';
 
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+  TableData
+} from '../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { AjustarStockLoteGQL } from './graphql/ajustarStockLote';
+import { BuscarLotesDeProductoGQL } from './graphql/buscarLotesDeProducto';
+import { ResumenStockLoteGQL } from './graphql/resumenStockLote';
 import { BuscarStockPorLoteGQL } from './graphql/buscarStockPorLote';
 import { CambiarEstadoLoteGQL } from './graphql/cambiarEstadoLote';
 import { ClientesPorLoteGQL } from './graphql/clientesPorLote';
@@ -13,10 +22,14 @@ import { StockLotePorSucursalGQL } from './graphql/stockLotePorSucursal';
 import { StockPorLoteGQL } from './graphql/stockPorLote';
 import { StockPorLoteEnPresentacionGQL } from './graphql/stockPorLoteEnPresentacion';
 import {
+  AjusteStockLoteInput,
+  AjusteStockLoteResultado,
   ClienteLote,
   EstadoLote,
   Lote,
+  LoteDeProducto,
   MovimientoLote,
+  ResumenStockLote,
   StockLote,
   StockLotePresentacion,
   StockLoteSucursal
@@ -42,7 +55,11 @@ export class LoteService {
     private stockLotePorSucursalGQL: StockLotePorSucursalGQL,
     private movimientosPorLoteGQL: MovimientosPorLoteGQL,
     private clientesPorLoteGQL: ClientesPorLoteGQL,
-    private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL
+    private cambiarEstadoLoteGQL: CambiarEstadoLoteGQL,
+    private resumenStockLoteGQL: ResumenStockLoteGQL,
+    private ajustarStockLoteGQL: AjustarStockLoteGQL,
+    private buscarLotesDeProductoGQL: BuscarLotesDeProductoGQL,
+    private dialog: MatDialog
   ) {}
 
   /** Lotes de un producto ordenados por FEFO. Incluye bloqueados y en cuarentena. */
@@ -227,6 +244,123 @@ export class LoteService {
     return this.genericService.onCustomMutation(
       this.cambiarEstadoLoteGQL,
       { loteId, estado, observacion, usuarioId },
+      servidor
+    );
+  }
+
+  /**
+   * Página del buscador de lotes, sin abrir ningún diálogo.
+   *
+   * Se usa para releer el saldo del lote elegido cuando cambia la sucursal: el saldo es por
+   * sucursal, así que el número que quedó de la elección anterior deja de valer.
+   */
+  onBuscarLotesDeProducto(
+    productoId: number,
+    sucursalId: number,
+    texto?: string,
+    page = 0,
+    size = 10,
+    servidor = true,
+    silentLoad = true
+  ): Observable<PageInfo<LoteDeProducto>> {
+    return this.genericService.onCustomQuery(
+      this.buscarLotesDeProductoGQL,
+      { productoId, sucursalId: sucursalId ?? null, texto: texto || null, page, size },
+      servidor,
+      null,
+      silentLoad
+    );
+  }
+
+  /**
+   * Abre el buscador genérico para elegir un lote del producto.
+   *
+   * Va contra el buscador paginado del backend y no contra una lista traída entera: un producto de
+   * rotación alta acumula un lote por recepción, así que un combo deja de servir apenas pasan unas
+   * decenas.
+   *
+   * Devuelve el lote elegido, o nada si el operador cerró sin elegir.
+   */
+  onBuscarLoteDeProducto(
+    productoId: number,
+    sucursalId: number,
+    texto?: string
+  ): Observable<LoteDeProducto> {
+    const tableData: TableData[] = [
+      { id: 'numeroLote', nombre: 'Nº de Lote' },
+      { id: 'fechaVencimiento', nombre: 'Vencimiento', pipe: 'date', pipeArgs: 'dd/MM/yyyy' },
+      { id: 'fechaRetiro', nombre: 'Retiro', pipe: 'date', pipeArgs: 'dd/MM/yyyy' },
+      { id: 'estado', nombre: 'Estado' },
+      // Los dos saldos juntos: sin el total, un lote que tiene mercadería en otro depósito se ve
+      // igual que uno agotado y el cero de esta sucursal parece un error de la consulta.
+      { id: 'saldo', nombre: 'Saldo aquí (unid.)', pipe: 'number', pipeArgs: '1.0-2' },
+      { id: 'saldoTotal', nombre: 'Saldo total (unid.)', pipe: 'number', pipeArgs: '1.0-2' }
+    ];
+
+    const data: SearchListtDialogData = {
+      query: this.buscarLotesDeProductoGQL,
+      tableData,
+      titulo: 'Buscar lote',
+      search: true,
+      texto,
+      inicialSearch: true,
+      paginator: true,
+      textHint: 'Nº de lote',
+      queryData: {
+        productoId,
+        sucursalId,
+        texto: texto || null,
+        page: 0,
+        size: 10
+      }
+    };
+
+    return new Observable<LoteDeProducto>((observer) => {
+      this.dialog
+        .open(SearchListDialogComponent, { data, width: '60%', height: '70%' })
+        .afterClosed()
+        .subscribe({
+          next: (res) => {
+            observer.next(res?.loteId != null ? res : null);
+            observer.complete();
+          },
+          error: (error) => observer.error(error)
+        });
+    });
+  }
+
+  /**
+   * Las tres cuentas del producto en una sucursal: existencia, lo atribuido a lotes reales y lo
+   * que quedó sin trazar. Viene calculado del backend para que la pantalla no tenga que restar
+   * dos consultas y equivocarse.
+   */
+  onResumenStockLote(
+    productoId: number,
+    sucursalId: number,
+    servidor = true,
+    silentLoad = true
+  ): Observable<ResumenStockLote> {
+    return this.genericService.onCustomQuery(
+      this.resumenStockLoteGQL,
+      { productoId, sucursalId },
+      servidor,
+      null,
+      silentLoad
+    );
+  }
+
+  /**
+   * Ajusta el stock de un lote. El backend escribe el movimiento agregado y su desglose por lote
+   * en la misma transacción, así que la existencia total y el stock por lote no pueden quedar
+   * contando cosas distintas.
+   */
+  onAjustarStockLote(
+    input: AjusteStockLoteInput,
+    servidor = true
+  ): Observable<AjusteStockLoteResultado> {
+    return this.genericService.onCustomMutation(
+      this.ajustarStockLoteGQL,
+      { input },
       servidor
     );
   }

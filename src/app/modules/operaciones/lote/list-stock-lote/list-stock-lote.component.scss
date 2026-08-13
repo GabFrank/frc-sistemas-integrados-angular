@@ -264,6 +264,12 @@ $chip-por-vencer: #fb8c00;
   font-weight: 500;
 }
 
+// Ancho fijo y chico: la columna es solo el botón de ajuste, no debe robarle lugar al saldo.
+.detalle-columna-accion {
+  width: 48px;
+  text-align: center;
+}
+
 // Las sucursales sin stock quedan atenuadas: informan, pero no son lo que se busca.
 .detalle-sin-stock {
   opacity: 0.45;
