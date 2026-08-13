@@ -1,0 +1,130 @@
+<!--
+  Mismo diálogo que el ajuste de stock común, con el lote en el medio.
+  Estructura Material estándar (title / content / actions): el surface de MDC no tiene padding
+  propio, así que maquetar el encabezado a mano con márgenes negativos lo recorta.
+-->
+<h2 mat-dialog-title class="encabezado">Ajustar Stock por lote</h2>
+
+<mat-dialog-content class="cuerpo" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+  <form [formGroup]="formGroup">
+
+    <div class="descripcion">
+      <span class="descripcion-etiqueta">Descripción:</span>
+      <div class="descripcion-producto">{{ productoDescripcion }}</div>
+    </div>
+
+    <mat-form-field class="campo">
+      <mat-label>Sucursal</mat-label>
+      <mat-select formControlName="sucursal" placeholder="Seleccione una sucursal">
+        <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+          {{ sucursal.id }} - {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="sucursalControl.hasError('required')">
+        La sucursal es requerida
+      </mat-error>
+    </mat-form-field>
+
+    <mat-spinner *ngIf="cargando" diameter="34" class="spinner"></mat-spinner>
+
+    <ng-container *ngIf="selectedSucursal && !cargando">
+
+      <!-- El stock del producto es todo lo que hay en la sucursal, con lote y sin lote. Va acá
+           arriba y de solo lectura: es el número contra el que el operador contrasta. -->
+      <mat-form-field class="campo">
+        <mat-label>Stock actual del producto</mat-label>
+        <input matInput type="number" class="dato-fijo" [value]="existencia" readonly />
+      </mat-form-field>
+
+      <!-- El lote se elige con el buscador paginado: un producto de rotación alta acumula un lote
+           por recepción y un combo deja de servir apenas pasan unas decenas. Acá no se dan de alta:
+           los lotes nacen en Compras, que es donde entra la mercadería. -->
+      <mat-form-field class="campo campo-lote">
+        <mat-label>Lote</mat-label>
+        <input
+          matInput
+          [value]="loteEtiqueta"
+          placeholder="Clic para buscar..."
+          readonly
+          (click)="onBuscarLote()"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          *ngIf="hayLote"
+          matTooltip="Elegir otro lote"
+          (click)="onQuitarLote(); $event.stopPropagation()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+        <mat-icon matSuffix *ngIf="!hayLote">search</mat-icon>
+      </mat-form-field>
+
+      <div class="fila fila-cantidad" *ngIf="hayLote">
+        <mat-form-field class="campo-tercio">
+          <mat-label>Stock del lote</mat-label>
+          <input matInput type="number" class="dato-fijo" [value]="saldoLote" readonly />
+        </mat-form-field>
+
+        <mat-form-field class="campo-tercio">
+          <mat-label>Cantidad Real</mat-label>
+          <input
+            #cantidadInput
+            matInput
+            type="number"
+            step="0.01"
+            class="dato-editable"
+            formControlName="cantidad"
+            (keyup.enter)="onGuardar()"
+          />
+          <mat-error *ngIf="cantidadControl.hasError('required')">
+            La cantidad es requerida
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="campo-tercio">
+          <mat-label>Ajuste</mat-label>
+          <input
+            matInput
+            type="text"
+            class="dato-fijo"
+            [value]="diferenciaLabel"
+            readonly
+            [style.color]="colorDiferencia"
+          />
+        </mat-form-field>
+      </div>
+
+      <!-- Lo único que se avisa: el estado del lote y cómo queda el stock del producto. Todo lo
+           demás lo resuelve el backend y no cambia lo que el operador tiene que decidir. -->
+      <div class="nota" *ngIf="hayAjuste">
+        <mat-icon class="nota-icono">info</mat-icon>
+        El stock del producto pasa de <strong>{{ existencia }}</strong>
+        a <strong>{{ existenciaDespues }}</strong> unidades.
+      </div>
+
+      <div class="nota nota-alerta" *ngIf="loteNoLiberado">
+        <mat-icon class="nota-icono">warning</mat-icon>
+        Este lote está {{ loteEstadoLabel | lowercase }}. Se puede ajustar igual: el bloqueo es
+        sobre la venta, no sobre la existencia física.
+      </div>
+
+    </ng-container>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="acciones">
+  <button mat-raised-button color="primary" type="button" (click)="onCancelar()">
+    Cancelar
+  </button>
+  <button
+    mat-raised-button
+    color="accent"
+    type="button"
+    [disabled]="!puedeGuardar"
+    (click)="onGuardar()"
+  >
+    Guardar
+  </button>
+</mat-dialog-actions>
