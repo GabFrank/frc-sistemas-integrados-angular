@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Ver histórico</h2>
+
+<div mat-dialog-content class="opciones-container">
+  <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('devoluciones')">
+    <mat-icon>assignment_return</mat-icon>
+    <div class="opcion-label">
+      <span class="opcion-title">Devoluciones</span>
+      <span class="opcion-desc">Listado individual con filtros</span>
+    </div>
+  </button>
+
+  <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('colectas')">
+    <mat-icon>move_to_inbox</mat-icon>
+    <div class="opcion-label">
+      <span class="opcion-title">Colectas internas</span>
+      <span class="opcion-desc">Traslados de sucursal a depósito</span>
+    </div>
+  </button>
+
+  <button mat-stroked-button class="opcion-btn" (click)="onSeleccionar('retiros')">
+    <mat-icon>local_shipping</mat-icon>
+    <div class="opcion-label">
+      <span class="opcion-title">Retiros a proveedor</span>
+      <span class="opcion-desc">Entregas consolidadas por proveedor</span>
+    </div>
+  </button>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCancelar()">Cancelar</button>
+</div>

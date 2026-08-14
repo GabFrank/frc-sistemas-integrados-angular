@@ -1,0 +1,81 @@
+<div style="margin: 16px;">
+  <h2 class="titulo-center" style="font-weight: 500;">
+    Entradas / Salidas Varias — {{ cajaVirtual?.nombre }}
+  </h2>
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z1">
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row">{{ row.creadoEn | date:'dd/MM/yy HH:mm' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="esIngreso">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let row" [style.color]="row.esIngreso ? '#4caf50' : '#f44336'">
+          {{ row.esIngreso ? 'INGRESO' : 'EGRESO' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="categoria">
+        <th mat-header-cell *matHeaderCellDef>Categoría</th>
+        <td mat-cell *matCellDef="let row">{{ row.categoria?.nombre || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let row">{{ row.monto | number:'1.0-2' }} {{ row.moneda?.simbolo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="formaPago">
+        <th mat-header-cell *matHeaderCellDef>Forma de Pago</th>
+        <td mat-cell *matCellDef="let row">{{ row.formaPago?.descripcion || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let row">{{ row.descripcion }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="anulado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span [class.danger]="row.anulado" [class.success]="!row.anulado">
+            {{ row.anulado ? 'ANULADO' : 'VIGENTE' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button
+            mat-icon-button
+            *ngIf="puedeGestionar && !row.anulado"
+            matTooltip="Anular"
+            (click)="onAnular(row)"
+          >
+            <mat-icon color="warn">cancel</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <div *ngIf="dataSource.data.length === 0 && !isSearching" class="empty-state">
+      <mat-icon>inbox</mat-icon>
+      <span>Sin movimientos registrados</span>
+    </div>
+  </div>
+
+  <mat-paginator
+    [length]="selectedPageInfo?.getTotalElements"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[10, 20, 50]"
+    (page)="handlePageEvent($event)"
+    showFirstLastButtons>
+  </mat-paginator>
+</div>

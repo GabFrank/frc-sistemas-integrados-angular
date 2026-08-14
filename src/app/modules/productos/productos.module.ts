@@ -28,9 +28,11 @@ import { ProductosDashboardComponent } from './productos-dashboard/productos-das
 import { ListGrupoComponent } from './list-grupo/list-grupo.component';
 import { PrintLabelDialogComponent } from './producto/list-producto/print-label-dialog/print-label-dialog.component';
 import { AjustarStockDialogComponent } from './producto/ajustar-stock-dialog/ajustar-stock-dialog.component';
+import { AjustarStockLoteDialogComponent } from './producto/ajustar-stock-lote-dialog/ajustar-stock-lote-dialog.component';
 import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/ajustar-costo-dialog.component';
 import { GestionProveedoresProductoDialogComponent } from './producto/gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component';
 import { GestionProductosProveedorDialogComponent } from './producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
+import { LotesProductoDialogComponent } from './producto/lotes-producto-dialog/lotes-producto-dialog.component';
 
 
 
@@ -59,9 +61,11 @@ import { GestionProductosProveedorDialogComponent } from './producto-proveedor/g
     ListGrupoComponent,
     PrintLabelDialogComponent,
     AjustarStockDialogComponent,
+    AjustarStockLoteDialogComponent,
     AjustarCostoDialogComponent,
     GestionProveedoresProductoDialogComponent,
-    GestionProductosProveedorDialogComponent
+    GestionProductosProveedorDialogComponent,
+    LotesProductoDialogComponent
   ],
   imports: [
     CommonModule,

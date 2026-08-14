@@ -57,6 +57,14 @@
  */
 import 'zone.js';  // Included with Angular CLI.
 
+/***************************************************************************************************
+ * Shim de `global` para poder servir la app en un browser normal (dev/test).
+ * Varias deps CommonJS (p.ej. `subscriptions-transport-ws`) referencian `global`,
+ * que existe en Electron/Node pero no en el browser. El guard preserva el `global`
+ * real cuando corre dentro de Electron.
+ */
+(window as any).global = (window as any).global || window;
+
 
 /***************************************************************************************************
  * APPLICATION IMPORTS

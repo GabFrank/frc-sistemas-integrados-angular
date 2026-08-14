@@ -66,7 +66,10 @@ export class ChequeraService {
    * @returns Observable de la Chequera guardada
    */
   onSaveChequera(entity: ChequeraInput): Observable<Chequera> {
-    return this.genericService.onSave(this.saveChequeraGQL, { entity });
+    // onSave() ya envuelve su argumento como { entity: input }; pasar { entity }
+    // producía un doble-wrap ({ entity: { entity } }) que el backend rechazaba
+    // con ValidationError. Se pasa el entity crudo, como el resto de los services.
+    return this.genericService.onSave(this.saveChequeraGQL, entity);
   }
 
   /**

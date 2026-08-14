@@ -15,6 +15,8 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
+import { RetirosFlotantesGQL } from "./graphql/retirosFlotantes";
+import { IngresarRetiroACajaMayorGQL } from "./graphql/ingresarRetiroACajaMayor";
 import { CancelarRetiroGQL } from "./graphql/cancelarRetiro";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
@@ -34,14 +36,31 @@ export class RetiroService {
     private retiroPorCajaId: RetiroPorCajaSalidaIdGQL,
     private reimprimirRetiro: ReimprimirRetiroGQL,
     private filterRetiro: FilterRetirosGQL,
+    private retirosFlotantesGQL: RetirosFlotantesGQL,
+    private ingresarRetiroACajaMayorGQL: IngresarRetiroACajaMayorGQL,
     private cancelarRetiro: CancelarRetiroGQL,
     private configService: ConfiguracionService
   ) { }
+
+  onGetFlotantes(sucId?: number, cajaId?: number, desde?: string, hasta?: string,
+                 page = 0, size = 10, servidor = true): Observable<PageInfo<Retiro>> {
+    return this.crudService.onCustomQuery(this.retirosFlotantesGQL, {
+      sucId: sucId ?? null,
+      cajaId: cajaId ?? null,
+      desde: desde ?? null,
+      hasta: hasta ?? null,
+      page, size
+    }, servidor);
+  }
 
   // servidor = true: la mutation vive en el central, igual que la lista que se
   // consume con onFilterRetiro. El estado baja a la filial por replicacion.
   onCancelarRetiro(id: number, sucId: number, servidor = true): Observable<boolean> {
     return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId }, servidor);
+  }
+
+  onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true): Observable<Retiro> {
+    return this.crudService.onSaveCustom(this.ingresarRetiroACajaMayorGQL, { retiroId, sucId, cajaVirtualId }, servidor);
   }
 
   onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {

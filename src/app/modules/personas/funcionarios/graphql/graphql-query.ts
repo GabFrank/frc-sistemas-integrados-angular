@@ -43,8 +43,8 @@ export const funcionariosQuery = gql`
 `;
 
 export const funcionariosWithPageQuery = gql`
-  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int]){
-    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList) {
+  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int], $activo: Boolean, $cargoId: Int, $diarista: Boolean, $fasePrueba: Boolean){
+    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList, activo: $activo, cargoId: $cargoId, diarista: $diarista, fasePrueba: $fasePrueba) {
         getTotalPages
         getTotalElements
         getNumberOfElements
@@ -150,6 +150,13 @@ export const funcionarioQuery = gql`
       fasePrueba
       activo
       nickname
+      codigoInterno
+      ipsActivo
+      numeroIps
+      fechaIngresoIps
+      cuentaBancaria
+      contactoEmergenciaNombre
+      contactoEmergenciaTelefono
       persona {
         id
         nombre
@@ -165,6 +172,14 @@ export const funcionarioQuery = gql`
         }
         documento
         nacimiento
+        sexo
+        direccion
+        email
+        socialMedia
+        imagenes
+        isFuncionario
+        isCliente
+        isProveedor
       }
       usuario {
         id
@@ -262,6 +277,13 @@ export const saveFuncionario = gql`
       fasePrueba
       activo
       nickname
+      codigoInterno
+      ipsActivo
+      numeroIps
+      fechaIngresoIps
+      cuentaBancaria
+      contactoEmergenciaNombre
+      contactoEmergenciaTelefono
       persona {
         id
         nombre

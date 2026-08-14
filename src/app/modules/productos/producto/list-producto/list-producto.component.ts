@@ -60,9 +60,12 @@ import {
 import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
 import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/searchByDescripcion";
 import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-stock-dialog/ajustar-stock-dialog.component";
+import { AjustarStockLoteDialogComponent } from "../ajustar-stock-lote-dialog/ajustar-stock-lote-dialog.component";
+import { ComponentType } from "@angular/cdk/portal";
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { GestionProveedoresProductoDialogComponent } from "../gestion-proveedores-producto-dialog/gestion-proveedores-producto-dialog.component";
+import { LotesProductoDialogComponent } from "../lotes-producto-dialog/lotes-producto-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliasSearchGQL } from "../../familia/graphql/familiasSearch";
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
@@ -499,6 +502,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       false;
   }
 
+  /**
+   * Los productos con control de lote van por otro diálogo: ajustar solo la existencia agregada
+   * dejaría el ledger por lote sin tocar, y esa mercadería no la podría volver a asignar FEFO. Los
+   * demás siguen por el camino de siempre, sin ningún cambio.
+   */
   onAjustarStock(producto: Producto) {
     const sucursalPreseleccionada = this.getSucursalPreseleccionada();
     const permitirCambiarSucursal = this.stockFiltroControl.value === 'todos';
@@ -509,7 +517,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       permitirCambiarSucursal: permitirCambiarSucursal
     };
 
-    const dialogRef = this.matDialog.open(AjustarStockDialogComponent, {
+    const componente: ComponentType<any> = producto?.lote === true
+      ? AjustarStockLoteDialogComponent
+      : AjustarStockDialogComponent;
+
+    const dialogRef = this.matDialog.open(componente, {
       data: dialogData,
       width: '600px',
       maxHeight: '90vh',
@@ -559,6 +571,21 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       maxWidth: '50vw',
       maxHeight: '50vh',
       panelClass: 'gestion-proveedores-producto-dialog-panel',
+    }).afterClosed().subscribe(() => {
+      this.expandedProducto = null;
+    });
+  }
+
+  /**
+   * Abre el maestro de lotes del producto. Desde ahí se puede bloquear un lote (recall):
+   * deja de venderse en todas las sucursales sin modificar el stock físico.
+   */
+  onVerLotes(producto: Producto): void {
+    this.matDialog.open(LotesProductoDialogComponent, {
+      data: { producto },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
     }).afterClosed().subscribe(() => {
       this.expandedProducto = null;
     });

@@ -172,8 +172,11 @@ export class LoginService {
             } else {
               const response: LoginResponse = {
                 usuario: null,
+                // El filial responde 200 con LoginResponse.aviso (ej: "Usuario
+                // inactivo, contacte al administrador"); sin leer 'aviso' el motivo
+                // real se perdía detrás del mensaje genérico de credenciales.
                 error: this.buildAuthErrorResponse(
-                  res?.["message"] || res?.["mensaje"]
+                  res?.["message"] || res?.["mensaje"] || res?.["aviso"]
                 ),
               };
               obs.next(response);
@@ -236,11 +239,15 @@ export class LoginService {
       );
     }
 
-    const serverMessage =
+    // Mensaje que realmente mandó el backend en el body (el central devuelve 401
+    // con {"message": ...}). error.message es el texto que arma Angular y no sirve
+    // para mostrarle al usuario, solo para clasificar el error.
+    const bodyMessage =
       error?.error?.message ||
       error?.error?.mensaje ||
-      error?.message ||
+      error?.error?.aviso ||
       "";
+    const serverMessage = bodyMessage || error?.message || "";
     const normalized = String(serverMessage).toLowerCase();
     const isInvalidCredentials =
       error?.status === 401 ||
@@ -251,7 +258,11 @@ export class LoginService {
       normalized.includes("unauthorized");
 
     if (isInvalidCredentials) {
-      return this.buildAuthErrorResponse();
+      // Si el backend explicó el motivo (usuario inactivo, usuario inexistente),
+      // se muestra ese texto en vez del genérico de credenciales.
+      return bodyMessage
+        ? this.buildAuthErrorResponse(bodyMessage)
+        : this.buildAuthErrorResponse();
     }
 
     if (error?.status === 0) {

@@ -1,0 +1,205 @@
+<div class="guia-wrap">
+  <!-- ============ TOOLBAR ============ -->
+  <div class="guia-toolbar">
+    <div class="gt-title">
+      <mat-icon>menu_book</mat-icon>
+      <span>{{ contenido.titulo }}</span>
+    </div>
+    <span class="gt-spacer"></span>
+
+    <ng-container *ngIf="puedeEditar">
+      <button *ngIf="!editando" mat-stroked-button color="primary" (click)="onEditar()">
+        <mat-icon>edit</mat-icon> Editar
+      </button>
+      <ng-container *ngIf="editando">
+        <button mat-stroked-button (click)="onRestaurar()">
+          <mat-icon>restart_alt</mat-icon> Restaurar original
+        </button>
+        <button mat-stroked-button (click)="onCancelar()">
+          <mat-icon>close</mat-icon> Cancelar
+        </button>
+        <button mat-flat-button color="primary" (click)="onGuardar()">
+          <mat-icon>save</mat-icon> Guardar
+        </button>
+      </ng-container>
+    </ng-container>
+  </div>
+
+  <div class="guia-body">
+    <!-- ============ INTRO ============ -->
+    <div class="guia-hero">
+      <ng-container *ngIf="!editando">
+        <h1>{{ contenido.titulo }}</h1>
+        <p class="lead">{{ contenido.intro }}</p>
+      </ng-container>
+      <ng-container *ngIf="editando">
+        <label class="g-lbl">Título</label>
+        <input class="g-input g-input-lg" [(ngModel)]="contenido.titulo" />
+        <label class="g-lbl">Introducción</label>
+        <textarea class="g-input" rows="3" [(ngModel)]="contenido.intro"></textarea>
+      </ng-container>
+    </div>
+
+    <!-- ============ SECCIONES ============ -->
+    <section class="guia-seccion" *ngFor="let seccion of contenido.secciones; let si = index; trackBy: trackByIndex">
+      <!-- header -->
+      <div class="gs-head">
+        <mat-icon class="gs-ic">{{ seccion.icono || 'article' }}</mat-icon>
+        <h2 *ngIf="!editando">{{ seccion.titulo }}</h2>
+        <input *ngIf="editando" class="g-input g-input-title" [(ngModel)]="seccion.titulo" />
+        <span class="gt-spacer"></span>
+        <div class="gs-actions" *ngIf="editando">
+          <input class="g-input g-input-ic" [(ngModel)]="seccion.icono" placeholder="ícono" title="Nombre de ícono (material)" />
+          <button mat-icon-button (click)="moverSeccion(si, -1)" title="Subir sección"><mat-icon>arrow_upward</mat-icon></button>
+          <button mat-icon-button (click)="moverSeccion(si, 1)" title="Bajar sección"><mat-icon>arrow_downward</mat-icon></button>
+          <button mat-icon-button color="warn" (click)="eliminarSeccion(si)" title="Eliminar sección"><mat-icon>delete</mat-icon></button>
+        </div>
+      </div>
+
+      <!-- bloques -->
+      <div class="gs-bloque" *ngFor="let bloque of seccion.bloques; let bi = index; trackBy: trackByIndex"
+           [class.editing]="editando">
+
+        <!-- controles de bloque (edicion) -->
+        <div class="gb-ctrl" *ngIf="editando">
+          <span class="gb-tag">{{ bloque.tipo }}</span>
+          <button mat-icon-button (click)="moverBloque(seccion, bi, -1)" title="Subir"><mat-icon>arrow_upward</mat-icon></button>
+          <button mat-icon-button (click)="moverBloque(seccion, bi, 1)" title="Bajar"><mat-icon>arrow_downward</mat-icon></button>
+          <button mat-icon-button color="warn" (click)="eliminarBloque(seccion, bi)" title="Eliminar bloque"><mat-icon>delete</mat-icon></button>
+        </div>
+
+        <!-- ---- TEXTO ---- -->
+        <ng-container *ngIf="bloque.tipo === 'texto'">
+          <p *ngIf="!editando" class="g-texto">{{ bloque.texto }}</p>
+          <textarea *ngIf="editando" class="g-input" rows="4" [(ngModel)]="bloque.texto"></textarea>
+        </ng-container>
+
+        <!-- ---- NOTA ---- -->
+        <ng-container *ngIf="bloque.tipo === 'nota'">
+          <div *ngIf="!editando" class="g-nota">
+            <mat-icon>lightbulb</mat-icon>
+            <span>{{ bloque.texto }}</span>
+          </div>
+          <textarea *ngIf="editando" class="g-input g-input-nota" rows="3" [(ngModel)]="bloque.texto"
+            placeholder="Texto de la nota / aviso"></textarea>
+        </ng-container>
+
+        <!-- ---- PASOS ---- -->
+        <ng-container *ngIf="bloque.tipo === 'pasos'">
+          <ol *ngIf="!editando" class="g-pasos">
+            <li *ngFor="let item of bloque.items; trackBy: trackByIndex">{{ item }}</li>
+          </ol>
+          <div *ngIf="editando" class="g-pasos-edit">
+            <div class="g-paso-row" *ngFor="let item of bloque.items; let ii = index; trackBy: trackByIndex">
+              <span class="g-paso-num">{{ ii + 1 }}</span>
+              <input class="g-input" [(ngModel)]="bloque.items[ii]" placeholder="Paso / punto" />
+              <button mat-icon-button color="warn" (click)="eliminarItem(bloque, ii)"><mat-icon>remove_circle_outline</mat-icon></button>
+            </div>
+            <button mat-stroked-button class="g-add-mini" (click)="agregarItem(bloque)">
+              <mat-icon>add</mat-icon> Agregar punto
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- ---- TABLA ---- -->
+        <ng-container *ngIf="bloque.tipo === 'tabla'">
+          <div class="g-tablewrap">
+            <table class="g-tabla">
+              <thead>
+                <tr>
+                  <th *ngFor="let col of bloque.columnas; let ci = index; trackBy: trackByIndex">
+                    <span *ngIf="!editando">{{ col }}</span>
+                    <input *ngIf="editando" class="g-input g-input-cell" [(ngModel)]="bloque.columnas[ci]" />
+                  </th>
+                  <th *ngIf="editando" class="g-th-act"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let fila of bloque.filas; let fi = index; trackBy: trackByIndex">
+                  <td *ngFor="let celda of fila; let cj = index; trackBy: trackByIndex">
+                    <span *ngIf="!editando">{{ celda }}</span>
+                    <input *ngIf="editando" class="g-input g-input-cell" [(ngModel)]="fila[cj]" />
+                  </td>
+                  <td *ngIf="editando" class="g-td-act">
+                    <button mat-icon-button color="warn" (click)="eliminarFila(bloque, fi)"><mat-icon>remove_circle_outline</mat-icon></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button *ngIf="editando" mat-stroked-button class="g-add-mini" (click)="agregarFila(bloque)">
+            <mat-icon>add</mat-icon> Agregar fila
+          </button>
+        </ng-container>
+
+        <!-- ---- IMAGEN ---- -->
+        <ng-container *ngIf="bloque.tipo === 'imagen'">
+          <figure *ngIf="!editando && bloque.url" class="g-media">
+            <img [src]="bloque.url" [alt]="bloque.caption || ''" />
+            <figcaption *ngIf="bloque.caption">{{ bloque.caption }}</figcaption>
+          </figure>
+          <div *ngIf="editando" class="g-media-edit">
+            <label class="g-lbl">URL de la imagen</label>
+            <input class="g-input" [(ngModel)]="bloque.url" placeholder="https://..." />
+            <label class="g-lbl">Descripción (opcional)</label>
+            <input class="g-input" [(ngModel)]="bloque.caption" placeholder="Pie de imagen" />
+            <figure *ngIf="bloque.url" class="g-media g-media-preview">
+              <img [src]="bloque.url" [alt]="bloque.caption || ''" />
+            </figure>
+          </div>
+        </ng-container>
+
+        <!-- ---- VIDEO ---- -->
+        <ng-container *ngIf="bloque.tipo === 'video'">
+          <figure *ngIf="!editando && bloque.url" class="g-media">
+            <div class="g-video-frame">
+              <iframe *ngIf="bloque._embedUrl" [src]="bloque._embedUrl" allowfullscreen frameborder="0"></iframe>
+              <video *ngIf="bloque._esVideoArchivo" [src]="bloque.url" controls></video>
+            </div>
+            <figcaption *ngIf="bloque.caption">{{ bloque.caption }}</figcaption>
+          </figure>
+          <div *ngIf="editando" class="g-media-edit">
+            <label class="g-lbl">URL del video (YouTube, Vimeo o archivo .mp4)</label>
+            <input class="g-input" [(ngModel)]="bloque.url" (ngModelChange)="prepararVideo(bloque)" placeholder="https://..." />
+            <label class="g-lbl">Descripción (opcional)</label>
+            <input class="g-input" [(ngModel)]="bloque.caption" placeholder="Pie de video" />
+            <figure *ngIf="bloque.url && (bloque._embedUrl || bloque._esVideoArchivo)" class="g-media g-media-preview">
+              <div class="g-video-frame">
+                <iframe *ngIf="bloque._embedUrl" [src]="bloque._embedUrl" allowfullscreen frameborder="0"></iframe>
+                <video *ngIf="bloque._esVideoArchivo" [src]="bloque.url" controls></video>
+              </div>
+            </figure>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- agregar bloque -->
+      <div class="gs-add-bloque" *ngIf="editando">
+        <span class="g-lbl">Agregar bloque:</span>
+        <button mat-stroked-button class="g-add-mini" *ngFor="let t of tiposBloque; trackBy: trackByIndex"
+          (click)="agregarBloque(seccion, t.valor)">
+          <mat-icon>{{ t.icono }}</mat-icon> {{ t.label }}
+        </button>
+      </div>
+    </section>
+
+    <!-- agregar seccion -->
+    <div class="guia-add-seccion" *ngIf="editando">
+      <button mat-stroked-button color="primary" (click)="agregarSeccion()">
+        <mat-icon>add</mat-icon> Agregar sección
+      </button>
+    </div>
+
+    <!-- footer -->
+    <div class="guia-footer">
+      <span *ngIf="contenido.actualizadoEn">
+        Última edición: {{ contenido.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}
+        <ng-container *ngIf="contenido.actualizadoPor">· por {{ contenido.actualizadoPor }}</ng-container>
+      </span>
+      <span *ngIf="editando" class="g-hint">
+        Los cambios se guardan en este equipo. Para compartir la guía entre todos los equipos, se puede
+        conectar la persistencia al servidor (ver nota técnica del módulo).
+      </span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>{{ selectedFeriado.id ? 'Editar' : 'Nuevo' }} feriado</h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <mat-form-field style="width: 100%">
+      <mat-label>Fecha</mat-label>
+      <input matInput [matDatepicker]="picker" [formControl]="fechaControl" required />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      <mat-error *ngIf="fechaControl.hasError('required')">La fecha es obligatoria</mat-error>
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Descripción</mat-label>
+      <input matInput [formControl]="descripcionControl" required />
+      <mat-error *ngIf="descripcionControl.hasError('required')">La descripción es obligatoria</mat-error>
+    </mat-form-field>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Recargo (%)</mat-label>
+      <input matInput type="number" [formControl]="recargoPorcentajeControl" />
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutGap="20px">
+      <mat-slide-toggle [formControl]="esNacionalControl">Nacional</mat-slide-toggle>
+      <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
+    </div>
+  </form>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button *ngIf="!isEditting" mat-raised-button color="primary" (click)="onHabilitarEdicion()">Editar</button>
+    <button *ngIf="isEditting" mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

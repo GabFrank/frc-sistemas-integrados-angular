@@ -1,0 +1,26 @@
+.edit-chequera-dialog {
+  margin: 20px;
+  min-width: 460px;
+}
+
+.titulo-center {
+  text-align: center;
+  margin: 0 0 4px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.uppercase input {
+  text-transform: uppercase;
+}
+
+mat-dialog-actions {
+  gap: 8px;
+  padding-top: 4px;
+}
+
+@media (max-width: 520px) {
+  .edit-chequera-dialog { min-width: 0; margin: 12px; }
+}

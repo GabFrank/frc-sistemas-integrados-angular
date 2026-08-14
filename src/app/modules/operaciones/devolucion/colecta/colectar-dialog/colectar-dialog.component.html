@@ -1,0 +1,28 @@
+<div class="colectar-dialog">
+  <h2 mat-dialog-title>Enviar a depósito</h2>
+  <div mat-dialog-content>
+    <p class="colectar-sub">
+      La mercadería separada se enviará al depósito elegido; el retiro del
+      proveedor se hará desde ahí. El stock no se mueve (ya bajó al separar).
+    </p>
+    <mat-form-field appearance="outline" style="width: 100%">
+      <mat-label>Depósito destino</mat-label>
+      <mat-select [(ngModel)]="seleccionada">
+        <mat-option *ngFor="let s of sucursales" [value]="s">
+          {{ s.id }} - {{ s.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div mat-dialog-actions class="colectar-actions">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="!seleccionada"
+      (click)="onConfirmar()"
+    >
+      <mat-icon>local_shipping</mat-icon> Enviar
+    </button>
+  </div>
+</div>

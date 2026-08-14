@@ -21,7 +21,6 @@ import { HeaderComponent } from './components/header/header.component';
 import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
-import { SideComponent } from './components/side/side.component';
 import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
 import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/digitar-contrasena-dialog.component';
@@ -40,6 +39,7 @@ import { DynamicFontSizeDirective } from './directives/dynamic-font-size.directi
 import { CopiarAClipboardDirective } from './directives/copiar-a-clipboard.directive';
 import { BootstrapModule } from '../commons/core/bootstrap.module';
 import { FrcSearchableSelectComponent } from './components/frc-searchable-select/frc-searchable-select.component';
+import { SelectFuncionarioComponent } from './components/select-funcionario/select-funcionario.component';
 import { FrcMultiDatepickerComponent } from './components/frc-multi-datepicker/frc-multi-datepicker.component';
 import { PrevisualizarImgenDirective } from './directives/previsualizar-imagen.directive';
 import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.directive';
@@ -66,20 +66,27 @@ import { NotificationBoardComponent } from '../modules/notificaciones/components
 import { NgxEchartsModule } from 'ngx-echarts';
 import { GraficoShellComponent } from './components/grafico-shell/grafico-shell.component';
 import { GraficoFiltrosFechaComponent } from './components/grafico-filtros-fecha/grafico-filtros-fecha.component';
+import { DashSectionHeaderComponent } from './components/dashboard/dash-section-header/dash-section-header.component';
+import { DashStatChipComponent } from './components/dashboard/dash-stat-chip/dash-stat-chip.component';
+import { DashQuickActionComponent } from './components/dashboard/dash-quick-action/dash-quick-action.component';
+import { DashRankingListComponent } from './components/dashboard/dash-ranking-list/dash-ranking-list.component';
+import { DashChartCardComponent } from './components/dashboard/dash-chart-card/dash-chart-card.component';
+import { ImprimirDialogComponent } from './components/imprimir/imprimir-dialog.component';
 import { CostoDisplayComponent } from './components/costo-display/costo-display.component';
+import { MontoMonedaPipe } from './pipes/monto-moneda.pipe';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 @NgModule({
   declarations: [
     HeaderComponent,
-    SideComponent,
     FooterComponent,
     CardComponent,
     FileUploadComponent,
     GenericListComponent,
     DialogosComponent,
     CargandoDialogComponent,
+    ImprimirDialogComponent,
     ConfirmDialogComponent,
     TecladoNumericoComponent,
     Imagebase64Component,
@@ -98,6 +105,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DigitarContrasenaDialogComponent,
     CopiarAClipboardDirective,
     FrcSearchableSelectComponent,
+    SelectFuncionarioComponent,
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
@@ -117,6 +125,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CellFormatPipe,
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
+    MontoMonedaPipe,
+    DashSectionHeaderComponent,
+    DashStatChipComponent,
+    DashQuickActionComponent,
+    DashRankingListComponent,
+    DashChartCardComponent,
     CostoDisplayComponent
   ],
   imports: [
@@ -138,7 +152,6 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
   ],
   exports: [
     HeaderComponent,
-    SideComponent,
     SideMiniVariantComponent,
     FooterComponent,
     CardComponent,
@@ -155,6 +168,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DigitarContrasenaDialogComponent,
     CopiarAClipboardDirective,
     FrcSearchableSelectComponent,
+    SelectFuncionarioComponent,
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
@@ -175,6 +189,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     GraficoShellComponent,
     GraficoFiltrosFechaComponent,
     NgxEchartsModule,
+    MontoMonedaPipe,
+    DashSectionHeaderComponent,
+    DashStatChipComponent,
+    DashQuickActionComponent,
+    DashRankingListComponent,
+    DashChartCardComponent,
     CostoDisplayComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
