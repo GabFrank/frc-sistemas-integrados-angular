@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ConfiguracionService } from './configuracion.service';
+import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
 
 export interface VentaStockCriticoItemPayload {
     productoId: number;
@@ -33,7 +34,7 @@ export class NotificationHttpService {
         const config = this.configService.getConfig();
         const centralIp = config?.serverCentralIp || 'localhost';
         const centralPort = config?.serverCentralPort || '8081';
-        return `http://${centralIp}:${centralPort}`;
+        return urlsDeServidor(centralIp, centralPort).http;
     }
 
     sendCompraCreditoNotification(

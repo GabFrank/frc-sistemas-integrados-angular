@@ -16,6 +16,7 @@ import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ConfiguracionService, ConfiguracionSistema } from './configuracion.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../notificacion-snackbar.service';
+import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
 
 // Connection status subjects that can be subscribed to by components
 export const connectionStatusSub = new BehaviorSubject<boolean>(null);
@@ -160,12 +161,15 @@ export class GraphqlConnectionService {
     const serverPort = this.isLocal ? (config.serverPort || (this.isDev ? '8081' : null)) : null;
 
     // Create HTTP URLs - only create local URL if isLocal is true
-    const url2 = `http://${serverCentralIp}:${serverCentralPort}/graphql`;
-    const url = this.isLocal ? `http://${serverIp}:${serverPort}/graphql` : null;
+    const central = urlsDeServidor(serverCentralIp, serverCentralPort);
+    const local = this.isLocal ? urlsDeServidor(serverIp, serverPort) : null;
+
+    const url2 = `${central.http}/graphql`;
+    const url = local ? `${local.http}/graphql` : null;
 
     // Create WebSocket URLs - only create local WebSocket URL if isLocal is true
-    const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
-    const wUri = this.isLocal ? `ws://${serverIp}:${serverPort}/subscriptions` : null;
+    const wUri2 = `${central.ws}/subscriptions`;
+    const wUri = local ? `${local.ws}/subscriptions` : null;
 
     // Create the context for basic authentication
     const basic = setContext((operation, context) => ({}));
@@ -616,10 +620,10 @@ export class GraphqlConnectionService {
       if (this.isLocal) {
         const serverIp = config.serverIp;
         const serverPort = config.serverPort;
-        wUri = `ws://${serverIp}:${serverPort}/subscriptions`;
+        wUri = `${urlsDeServidor(serverIp, serverPort).ws}/subscriptions`;
       }
 
-      const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
+      const wUri2 = `${urlsDeServidor(serverCentralIp, serverCentralPort).ws}/subscriptions`;
 
       this.setupWebSocketClients(wUri, wUri2);
 
