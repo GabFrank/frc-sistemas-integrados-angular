@@ -98,3 +98,47 @@ export const anularPagoCppMutation = gql`
     }
   }
 `;
+
+// ── Modo VALES ──
+// El vale es la unidad pagable (no la SolicitudPago): su obligacion de pago se crea/resuelve
+// en el backend. Por eso la query devuelve ValePendiente y la mutation toma valeId.
+export const valesPendientesQuery = gql`
+  query {
+    data: valesPendientes {
+      id
+      fecha
+      monto
+      saldoPendiente
+      esAdelanto
+      observacion
+      funcionarioNombre
+      motivoDescripcion
+      funcionario { id persona { id nombre } }
+      motivo { id descripcion }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
+export const crearValeParaPagoMutation = gql`
+  mutation ($input: ValeParaPagoInput!) {
+    data: crearValeParaPago(input: $input) {
+      id
+      monto
+      estado
+      esAdelanto
+      observacion
+      funcionario { id persona { id nombre } }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
+export const pagarValesMixtoMutation = gql`
+  mutation ($pagos: [ValeConLineasInput!]!) {
+    data: pagarValesMixto(pagos: $pagos) {
+      id
+      estado
+    }
+  }
+`;
