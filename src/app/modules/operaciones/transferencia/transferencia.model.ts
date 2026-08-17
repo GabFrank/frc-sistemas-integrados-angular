@@ -36,17 +36,10 @@ export enum TransferenciaItemMotivoModificacion {
   PRESENTACION_INCORRECTA = 'PRESENTACION_INCORRECTA'
 }
 
-export enum EtapaTransferencia {
-  PRE_TRANSFERENCIA_CREACION = 'PRE_TRANSFERENCIA_CREACION',
-  PRE_TRANSFERENCIA_ORIGEN = 'PRE_TRANSFERENCIA_ORIGEN',
-  PREPARACION_MERCADERIA = 'PREPARACION_MERCADERIA',
-  PREPARACION_MERCADERIA_CONCLUIDA = 'PREPARACION_MERCADERIA_CONCLUIDA',
-  TRANSPORTE_VERIFICACION = 'TRANSPORTE_VERIFICACION',
-  TRANSPORTE_EN_CAMINO = 'TRANSPORTE_EN_CAMINO',
-  TRANSPORTE_EN_DESTINO = 'TRANSPORTE_EN_DESTINO',
-  RECEPCION_EN_VERIFICACION = 'RECEPCION_EN_VERIFICACION',
-  RECEPCION_CONCLUIDA = 'RECEPCION_CONCLUIDA'
-}
+// El enum se movio a su propio archivo para que la logica que solo depende de la etapa no tenga que
+// importar este modulo (y con el, todo Angular). Se re-exporta para no tocar los import existentes.
+export { EtapaTransferencia } from './transferencia-etapa.enum';
+import { EtapaTransferencia } from './transferencia-etapa.enum';
 
 export class Transferencia {
   id: number;

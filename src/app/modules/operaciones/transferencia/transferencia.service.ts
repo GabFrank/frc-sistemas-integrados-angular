@@ -40,6 +40,7 @@ import { Persona } from '../../personas/persona/persona.model';
 import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
 import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
+import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -79,7 +80,8 @@ export class TransferenciaService {
     private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
     private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL,
     private getHojaRutaPorFechaPage: GetHojaRutaPorFechaPageGQL,
-    private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL
+    private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL,
+    private desconfirmarTransferenciaItemGQL: DesconfirmarTransferenciaItemGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
@@ -162,6 +164,16 @@ export class TransferenciaService {
 
   onSaveTransferenciaItem(input, precioCosto?: number, servidor = true): Observable<TransferenciaItem> {
     return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor);
+  }
+
+  /**
+   * Vacia las columnas de una etapa del item (el "des-verificar" de la grilla).
+   *
+   * No se hace por onSaveTransferenciaItem: ahi la ausencia de un campo significa "no lo toques",
+   * asi que limpiar tiene que ser un pedido explicito.
+   */
+  onDesconfirmarTransferenciaItem(id, etapa: EtapaTransferencia, servidor = true): Observable<TransferenciaItem> {
+    return this.genericCrudService.onCustomMutation(this.desconfirmarTransferenciaItemGQL, { id, etapa }, servidor);
   }
 
   onDeleteTransferenciaItem(id, servidor = true): Observable<boolean> {
