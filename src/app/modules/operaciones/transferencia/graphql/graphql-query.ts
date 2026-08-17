@@ -548,6 +548,48 @@ export const saveTransferenciaItem = gql`
   }
 `;
 
+/**
+ * Vacia las columnas de una etapa del item.
+ *
+ * Va aparte de saveTransferenciaItem porque ahi la ausencia de un campo significa "no lo toques".
+ * Mandar nulls para des-verificar era indistinguible de un input incompleto, y es lo que borraba
+ * etapas enteras sin que nadie lo pidiera.
+ */
+export const desconfirmarTransferenciaItem = gql`
+  mutation desconfirmarTransferenciaItem(
+    $id: ID!
+    $etapa: EtapaTransferencia!
+  ) {
+    data: desconfirmarTransferenciaItem(id: $id, etapa: $etapa) {
+      id
+      cantidadPreparacion
+      cantidadTransporte
+      cantidadRecepcion
+      vencimientoPreparacion
+      vencimientoTransporte
+      vencimientoRecepcion
+      motivoModificacionPreparacion
+      motivoModificacionTransporte
+      motivoModificacionRecepcion
+      motivoRechazoPreparacion
+      motivoRechazoTransporte
+      motivoRechazoRecepcion
+      presentacionPreparacion {
+        id
+      }
+      presentacionTransporte {
+        id
+      }
+      presentacionRecepcion {
+        id
+      }
+      usuario {
+        id
+      }
+    }
+  }
+`;
+
 export const deleteTransferenciaItemQuery = gql`
   mutation deleteTransferenciaItem($id: ID!) {
     data: deleteTransferenciaItem(id: $id)
@@ -788,6 +830,11 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
         activo
         poseeVencimiento
         creadoEn
+        # Sin esto las filas recien cargadas venian sin usuario, y toInput() mandaba usuarioId en
+        # null: saveTransferenciaItem no puede guardar un item sin responsable.
+        usuario {
+          id
+        }
         lotesAsignados {
           id
           loteId
@@ -1047,6 +1094,11 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
         activo
         poseeVencimiento
         creadoEn
+        # Sin esto las filas recien cargadas venian sin usuario, y toInput() mandaba usuarioId en
+        # null: saveTransferenciaItem no puede guardar un item sin responsable.
+        usuario {
+          id
+        }
         lotesAsignados {
           id
           loteId
