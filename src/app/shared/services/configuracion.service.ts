@@ -4,6 +4,7 @@ import { Observable, of, throwError, Subject } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfiguracionDialogComponent } from '../components/configuracion-dialog/configuracion-dialog.component';
+import { apiCentralDelHost } from '../../commons/core/utils/webEndpoints';
 
 export type UpdateChannel = 'stable' | 'beta' | 'alpha' | 'dev';
 
@@ -713,7 +714,31 @@ export class ConfiguracionService {
         }
       }
     }
-    return this.config;
+    return this.aplicarOverrideWeb(this.config);
+  }
+
+  /**
+   * Cuando la app se sirve desde una puerta web conocida, el servidor no lo
+   * elige el usuario: lo define el hostname. Además se fuerza `isLocal: false`,
+   * porque el filial vive en la LAN de cada sucursal y hablando HTTP plano — una
+   * página servida por HTTPS no puede alcanzarlo.
+   *
+   * El override es una capa en memoria y NO se persiste: dentro de Electron
+   * `apiCentralDelHost()` devuelve `null` y esto no hace absolutamente nada.
+   */
+  private aplicarOverrideWeb(config: ConfiguracionSistema): ConfiguracionSistema {
+    const apiCentral = apiCentralDelHost();
+    if (!config || !apiCentral) return config;
+
+    return {
+      ...config,
+      serverCentralIp: apiCentral,
+      serverCentralPort: '443',
+      serverIp: apiCentral,
+      serverPort: '443',
+      isLocal: false,
+      isConfigured: true
+    };
   }
 
   /**

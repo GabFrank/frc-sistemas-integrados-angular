@@ -23,6 +23,7 @@ import { ElectronService } from "../../commons/core/electron/electron.service";
 import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
 import { TipoDispositivo } from "../configuracion/inicio-sesion/tipo-dispositivo.model";
 import { NotificarInicioSesionGQL } from "../configuracion/inicio-sesion/graphql/notificarInicioSesion.gql";
+import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -129,7 +130,7 @@ export class LoginService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverIp}:${serverPort}/login`,
+          `${urlsDeServidor(serverIp, serverPort).http}/login`,
           httpBody,
           this.httpOptions
         )
@@ -213,7 +214,7 @@ export class LoginService {
 
     if (!centralIp || !centralPort) return of(null);
 
-    return this.http.post(`http://${centralIp}:${centralPort}/login`, {
+    return this.http.post(`${urlsDeServidor(centralIp, centralPort).http}/login`, {
       nickname: nickname,
       password: password
     }, this.httpOptions).pipe(
