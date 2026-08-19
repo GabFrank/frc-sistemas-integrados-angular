@@ -1,10 +1,8 @@
-<h2 mat-dialog-title class="ga-title">
-  <mat-icon>group</mat-icon>
-  <span>Accesos de la caja</span>
-  <span class="ga-sub">{{ data.cajaVirtual?.nombre }}</span>
-</h2>
+<div class="gestionar-accesos-dialog">
+  <h2 class="titulo-dialog">Accesos de la caja</h2>
+  <div class="subtitulo-dialog">{{ data.cajaVirtual?.nombre }}</div>
 
-<mat-dialog-content class="ga-content">
+  <mat-dialog-content class="ga-content">
   <p class="ga-hint">
     Solo estos usuarios pueden ver esta caja. El permiso de <strong>escritura</strong> habilita
     mover plata: ingresos, egresos, transferencias y anulaciones.
@@ -90,6 +88,7 @@
   </div>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="cerrar()">Cerrar</button>
-</mat-dialog-actions>
+  <mat-dialog-actions align="end" class="ga-acciones">
+    <button mat-button (click)="cerrar()">Cerrar</button>
+  </mat-dialog-actions>
+</div>

@@ -1,10 +1,10 @@
-<h2 mat-dialog-title class="aj-title">
-  <mat-icon>tune</mat-icon>
-  <span>Ajustar saldo</span>
-  <span class="aj-sub">{{ data.cuentaBancaria?.banco?.nombre }} · {{ data.cuentaBancaria?.numero }}</span>
-</h2>
+<div class="ajustar-saldo-dialog">
+  <h2 class="titulo-dialog">Ajustar saldo</h2>
+  <div class="subtitulo-dialog">
+    {{ data.cuentaBancaria?.banco?.nombre }} · {{ data.cuentaBancaria?.numero }}
+  </div>
 
-<mat-dialog-content class="aj-content">
+  <mat-dialog-content class="aj-content">
   <p class="aj-hint">
     Corrige el saldo contra el extracto real. El ajuste <strong>no tiene contrapartida</strong>:
     queda registrado con tu usuario y el motivo, que es toda su trazabilidad.
@@ -48,9 +48,10 @@
   </mat-form-field>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="cerrar()" [disabled]="isSaving">Cancelar</button>
-  <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="isSaving">
-    <mat-icon>check</mat-icon> Aplicar ajuste
-  </button>
-</mat-dialog-actions>
+  <mat-dialog-actions align="end" class="aj-acciones">
+    <button mat-button (click)="cerrar()" [disabled]="isSaving">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="isSaving">
+      <mat-icon>check</mat-icon> Aplicar ajuste
+    </button>
+  </mat-dialog-actions>
+</div>

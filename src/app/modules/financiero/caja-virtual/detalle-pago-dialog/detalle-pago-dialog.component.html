@@ -1,10 +1,8 @@
-<h2 mat-dialog-title class="dp-title">
-  <mat-icon>receipt_long</mat-icon>
-  <span>Detalle del pago</span>
-  <span class="dp-sub" *ngIf="data?.descripcion">{{ data.descripcion }}</span>
-</h2>
+<div class="detalle-pago-dialog">
+  <h2 class="titulo-dialog">Detalle del pago</h2>
+  <div class="subtitulo-dialog" *ngIf="data?.descripcion">{{ data.descripcion }}</div>
 
-<mat-dialog-content class="dp-content">
+  <mat-dialog-content class="dp-content">
   <div class="dp-cargando" *ngIf="isLoading">Cargando…</div>
   <div class="dp-vacio" *ngIf="!isLoading && cantidad === 0">
     Este movimiento no tiene documentos asociados.
@@ -65,6 +63,7 @@
   </ng-container>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="cerrar()">Cerrar</button>
-</mat-dialog-actions>
+  <mat-dialog-actions align="end" class="dp-acciones">
+    <button mat-button (click)="cerrar()">Cerrar</button>
+  </mat-dialog-actions>
+</div>
