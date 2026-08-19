@@ -5,6 +5,7 @@ import { catchError, take, timeout } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from '../../../environments/environment';
 import { ConfiguracionService } from './configuracion.service';
+import { urlsDeServidor } from '../../commons/core/utils/webEndpoints';
 
 /** IANA — backend (`app.timezone`) y APIs que piden nombre de zona. */
 export const ZONA_HORARIA_PARAGUAY = 'America/Asuncion';
@@ -51,7 +52,7 @@ export class HoraServidorService implements OnDestroy {
         const config = this.configService.getConfig();
         const serverIp = config?.serverCentralIp || config?.serverIp || environment['serverCentralIp'] || environment['serverIp'];
         const serverPort = config?.serverCentralPort || config?.serverPort || environment['serverCentralPort'] || environment['serverPort'];
-        const url = `http://${serverIp}:${serverPort}/config/hora-servidor`;
+        const url = `${urlsDeServidor(serverIp, serverPort).http}/config/hora-servidor`;
 
         const antesRequest = Date.now();
 

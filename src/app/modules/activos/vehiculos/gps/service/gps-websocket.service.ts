@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, Subject, Subscription } from 'rxjs';
 import SockJS from 'sockjs-client';
 import { ConfiguracionService, ConfiguracionSistema } from '../../../../../shared/services/configuracion.service';
 import { environment } from '../../../../../../environments/environment.prod';
+import { urlsDeServidor } from '../../../../../commons/core/utils/webEndpoints';
 export interface TelemetriaWsDTO {
     gpsId: number;
     imei: string;
@@ -234,7 +235,7 @@ export class GpsWebSocketService implements OnDestroy {
     private getWebSocketUrl(): string {
         const serverIp = this.currentServerIp || 'localhost';
         const serverPort = this.currentServerPort || '8080';
-        return `http://${serverIp}:${serverPort}/ws/gps`;
+        return `${urlsDeServidor(serverIp, serverPort).http}/ws/gps`;
     }
 
     getCurrentUrl(): string {
