@@ -161,6 +161,18 @@
           </button>
         </div>
 
+        <!-- RRHH: filtros de la tabla. No hay alta: el documento nace aprobado en RRHH. -->
+        <div *ngIf="esRrhh" class="gasto-filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+          <mat-form-field appearance="outline" fxFlex="0 0 80px" subscriptSizing="dynamic">
+            <mat-label>N°</mat-label>
+            <input matInput [formControl]="filtroIdControl" placeholder="Id" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Funcionario</mat-label>
+            <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del funcionario" />
+          </mat-form-field>
+        </div>
+
         <div class="hint" *ngIf="proveedorNombreSel && !esGasto && !esVale && !esRrhh">
           <mat-icon>info</mat-icon> Solo se pueden sumar notas de <strong>{{ proveedorNombreSel }}</strong> en {{ monedaDeuda?.denominacion }}.
         </div>

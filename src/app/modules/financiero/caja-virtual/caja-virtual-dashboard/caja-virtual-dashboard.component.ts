@@ -251,7 +251,9 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   private toRow(m: MovimientoCajaVirtual): MovimientoRow {
-    const row = m as MovimientoRow;
+    // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
+    // asignar sobre el objeto devuelto tira TypeError (mismo patron que cheques-dashboard).
+    const row = { ...m } as MovimientoRow;
     // Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model).
     row._label = labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels);
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';

@@ -134,8 +134,11 @@ export class ListCajaVirtualComponent implements OnInit {
    */
   private marcarAdminAccesos(rows: any[]): any[] {
     const yo = this.mainService.usuarioActual?.id;
-    (rows || []).forEach(r => r._puedeAdminAccesos = this.esAdmin || (!!yo && r?.usuario?.id === yo));
-    return rows || [];
+    // Clonar: Apollo congela los resultados y asignar props sobre ellos tira TypeError en dev.
+    return (rows || []).map(r => ({
+      ...r,
+      _puedeAdminAccesos: this.esAdmin || (!!yo && r?.usuario?.id === yo),
+    }));
   }
 
   onGestionarAccesos(item: CajaVirtual) {

@@ -17,6 +17,7 @@ const cajaVirtualFields = `
   }
   usuario {
     id
+    nickname
     persona {
       id
       nombre
@@ -174,6 +175,7 @@ const movimientoFields = `
   descripcion
   usuario {
     id
+    nickname
     persona {
       id
       nombre
