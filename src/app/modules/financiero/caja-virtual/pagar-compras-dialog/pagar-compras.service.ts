@@ -12,6 +12,11 @@ import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
 import { ValesPendientesGQL } from './graphql/valesPendientes';
 import { CrearValeParaPagoGQL } from './graphql/crearValeParaPago';
 import { PagarValesMixtoGQL } from './graphql/pagarValesMixto';
+import { LiquidacionesPendientesPagoGQL } from './graphql/liquidacionesPendientesPago';
+import { FiniquitosPendientesPagoGQL } from './graphql/finiquitosPendientesPago';
+import { AguinaldosPendientesPagoGQL } from './graphql/aguinaldosPendientesPago';
+import { PagarRrhhMixtoGQL } from './graphql/pagarRrhhMixto';
+import { DetalleDePagoGQL } from './graphql/detalleDePago';
 
 export interface GastoParaPagoInput {
   tipoGastoId?: number;
@@ -25,6 +30,9 @@ export interface GastoParaPagoInput {
 }
 
 export interface PagoLote { solicitudId: number; monedaId: number; monto: number; }
+
+/** Concepto de RRHH pagable desde la caja. Espeja el enum ConceptoRrhhPagable del central. */
+export type ConceptoRrhh = 'LIQUIDACION' | 'FINIQUITO' | 'AGUINALDO';
 
 // Una línea de pago (mixto): fuente + caja/cuenta + moneda + monto (+ conversión).
 // AJUSTE = línea de diferencia de cambio/redondeo (no mueve efectivo), marcada descuento/aumento.
@@ -53,6 +61,9 @@ export interface SolicitudConLineas { solicitudId: number; lineas: LineaPagoInpu
 /** Modo VALES: la unidad pagable es el vale; el backend resuelve su obligación de pago. */
 export interface ValeConLineas { valeId: number; lineas: LineaPagoInput[]; }
 
+/** Un documento de RRHH con su reparto de formas de pago (espejo de ValeConLineas). */
+export interface PagoRrhhConLineas { concepto: ConceptoRrhh; documentoId: number; lineas: LineaPagoInput[]; }
+
 export interface ValeParaPagoInput {
   funcionarioId: number;
   motivoId?: number;
@@ -77,7 +88,20 @@ export class PagarComprasService {
     private valesPendientesGQL: ValesPendientesGQL,
     private crearValeGQL: CrearValeParaPagoGQL,
     private pagarValesMixtoGQL: PagarValesMixtoGQL,
+    private liquidacionesPendientesGQL: LiquidacionesPendientesPagoGQL,
+    private finiquitosPendientesGQL: FiniquitosPendientesPagoGQL,
+    private aguinaldosPendientesGQL: AguinaldosPendientesPagoGQL,
+    private pagarRrhhMixtoGQL: PagarRrhhMixtoGQL,
+    private detalleDePagoGQL: DetalleDePagoGQL,
   ) { }
+
+  /**
+   * Desglose de un evento de pago: que documentos se pagaron y cuanto se imputo a cada uno.
+   * El movimiento consolidado de caja no puede decirlo en su descripcion cuando son varios.
+   */
+  onGetDetalleDePago(pagoId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.detalleDePagoGQL, { pagoId }, servidor);
+  }
 
   /** Vales pagables (estado SOLICITADO) con su saldo. */
   onGetValesPendientes(servidor = true): Observable<any> {
@@ -92,6 +116,29 @@ export class PagarComprasService {
   /** Paga N vales como un único evento consolidado. El pago parcial de un vale está prohibido. */
   onPagarValesMixto(pagos: ValeConLineas[], servidor = true): Observable<any> {
     return this.mutar(this.pagarValesMixtoGQL, { pagos }, servidor);
+  }
+
+  /** Liquidaciones mensuales APROBADAS todavia sin pagar. */
+  onGetLiquidacionesPendientes(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.liquidacionesPendientesGQL, {}, servidor);
+  }
+
+  /** Finiquitos APROBADOS todavia sin pagar. */
+  onGetFiniquitosPendientes(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.finiquitosPendientesGQL, {}, servidor);
+  }
+
+  /** Aguinaldos APROBADOS todavia sin pagar. */
+  onGetAguinaldosPendientes(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.aguinaldosPendientesGQL, {}, servidor);
+  }
+
+  /**
+   * Paga documentos de RRHH (liquidacion / finiquito / aguinaldo) con el motor de CPP.
+   * El pago parcial esta prohibido, y en la practica se manda de a uno.
+   */
+  onPagarRrhhMixto(pagos: PagoRrhhConLineas[], servidor = true): Observable<any> {
+    return this.mutar(this.pagarRrhhMixtoGQL, { pagos }, servidor);
   }
 
   /** Gastos pagables (SolicitudPago tipo GASTO en SOLICITADO/PARCIAL). */
