@@ -23,6 +23,7 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { DetallePagoDialogComponent, DetallePagoDialogData } from '../detalle-pago-dialog/detalle-pago-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
@@ -379,6 +380,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       label: 'Ir a Vales (RRHH)', icon: 'payments',
       open: () => this.tabService.addTab(new Tab(ListValeComponent, 'Vales', null, null)),
     },
+    ...this.navDetallePago(['PAGO_CPP', 'GASTO', 'RRHH_LIQUIDACION_SUELDO', 'RRHH_LIQUIDACION_FINAL', 'RRHH_AGUINALDO']),
     OPERACION_FINANCIERA: {
       label: 'Ver operación financiera', icon: 'swap_horiz',
       open: (row) => {
@@ -390,6 +392,34 @@ export class CajaVirtualDashboardComponent implements OnInit {
       },
     },
   };
+
+
+  /**
+   * Entradas de "Ir al origen" para los movimientos que genera el motor de pago.
+   *
+   * Un evento que paga N documentos postea UN movimiento consolidado, cuya descripción no
+   * puede nombrarlos a todos (ver PagoProveedorService.etiquetaDe). El destino natural es el
+   * desglose del pago, no una pantalla de listado. El movimiento lleva referenciaId = pago.id.
+   *
+   * RRHH_VALE queda afuera a propósito: convive con los vales del atajo viejo (egreso directo),
+   * cuyo referenciaId es el id del vale y no el de un evento de pago — abrirles el detalle
+   * daría una tabla vacía. Esos siguen yendo a la lista de Vales.
+   */
+  private navDetallePago(origenes: string[]): Record<string, { label: string; icon: string; open: (row: MovimientoRow) => void }> {
+    const entrada = {
+      label: 'Ver detalle del pago', icon: 'receipt_long',
+      open: (row: MovimientoRow) => {
+        if (!row.referenciaId) return;
+        const data: DetallePagoDialogData = { pagoId: row.referenciaId, descripcion: row.descripcion };
+        this.dialog.open(DetallePagoDialogComponent, {
+          width: '65vw', maxWidth: '95vw', height: '70vh', data,
+        });
+      },
+    };
+    const out: Record<string, typeof entrada> = {};
+    origenes.forEach(o => out[o] = entrada);
+    return out;
+  }
 
   irAlOrigen(row: MovimientoRow) {
     this.origenNav[row.origenTipo as any]?.open(row);

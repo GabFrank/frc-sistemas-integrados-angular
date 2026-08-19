@@ -23,11 +23,16 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
+import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
-  // GASTOS y VALES reusan el mismo builder de pago; default COMPRAS.
-  modo?: 'COMPRAS' | 'GASTOS' | 'VALES';
+  // Todos los modos reusan el mismo builder de pago; default COMPRAS.
+  //
+  // Cardinalidad: COMPRAS/GASTOS/VALES seleccionan varios documentos (carrito); los tres
+  // modos de RRHH seleccionan uno solo — la nomina no se paga en una sola operacion, cada
+  // liquidacion/finiquito/aguinaldo se paga por separado.
+  modo?: 'COMPRAS' | 'GASTOS' | 'VALES' | 'LIQUIDACION' | 'FINIQUITO' | 'AGUINALDO';
 }
 
 /** Un cheque del plan de una solicitud (forma de pago CHEQUE ya registrada). */
@@ -162,6 +167,24 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   vistaNuevoGasto = false;       // true = oculta el stepper y muestra solo el form de gasto
   creandoGasto = false;
 
+  // ── Modos de RRHH: LIQUIDACION / FINIQUITO / AGUINALDO ──
+  // Mismo builder y mismo puente que el vale (la obligacion de pago es una SolicitudPago
+  // tipo RRHH), pero el documento no se puede crear desde la caja: nace en RRHH, aprobado.
+  esRrhh = false;
+  conceptoRrhh: ConceptoRrhh | null = null;
+  /** Los modos de RRHH pagan de a uno: tildar una fila destilda las demas. */
+  seleccionSimple = false;
+
+  /** Plural del concepto, para los textos de la tabla vacia y del resumen. */
+  get tituloPlural(): string {
+    switch (this.conceptoRrhh) {
+      case 'LIQUIDACION': return 'liquidaciones';
+      case 'FINIQUITO':   return 'finiquitos';
+      case 'AGUINALDO':   return 'aguinaldos';
+      default:            return 'documentos';
+    }
+  }
+
   // ── Modo VALES (mismo builder; fuente = valesPendientes + alta de vale) ──
   // La unidad pagable es el vale de RRHH: el backend le resuelve su obligación de pago.
   esVale = false;
@@ -216,6 +239,20 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.esGasto = this.data?.modo === 'GASTOS';
     this.esVale = this.data?.modo === 'VALES';
+    this.esRrhh = this.data?.modo === 'LIQUIDACION' || this.data?.modo === 'FINIQUITO'
+      || this.data?.modo === 'AGUINALDO';
+    if (this.esRrhh) {
+      this.conceptoRrhh = this.data.modo as ConceptoRrhh;
+      this.seleccionSimple = true;
+      // El documento se paga entero: ni la liquidacion ni el finiquito ni el aguinaldo
+      // llevan saldo, entregar de menos deja una diferencia que nadie reclama despues.
+      this.montoEditable = false;
+      this.titulo = this.conceptoRrhh === 'LIQUIDACION' ? 'Pagar Liquidación'
+        : this.conceptoRrhh === 'FINIQUITO' ? 'Pagar Finiquito' : 'Pagar Aguinaldo';
+      this.displayedColumns = ['sel', 'id', 'funcionario', 'periodo', 'descripcion', 'saldo', 'montoAPagar'];
+      // Filtros de la tabla: N° / Funcionario (client-side sobre lo cargado).
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+    }
     if (this.esVale) {
       this.titulo = 'Pagar Vale';
       this.montoEditable = false;
@@ -280,14 +317,19 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   cargar() {
     this.isLoading = true;
-    const fuente$ = this.esVale
-      ? this.pagarComprasService.onGetValesPendientes()
-      : this.esGasto
-        ? this.pagarComprasService.onGetGastosPendientes()
-        : this.pagarComprasService.onGetPendientes();
+    const fuente$ = this.esRrhh
+      ? (this.conceptoRrhh === 'LIQUIDACION' ? this.pagarComprasService.onGetLiquidacionesPendientes()
+        : this.conceptoRrhh === 'FINIQUITO' ? this.pagarComprasService.onGetFiniquitosPendientes()
+        : this.pagarComprasService.onGetAguinaldosPendientes())
+      : this.esVale
+        ? this.pagarComprasService.onGetValesPendientes()
+        : this.esGasto
+          ? this.pagarComprasService.onGetGastosPendientes()
+          : this.pagarComprasService.onGetPendientes();
     fuente$.pipe(untilDestroyed(this)).subscribe(res => {
       this.isLoading = false;
-      this.todas = (res || []).map((s: any) => this.esVale ? this.toRowVale(s) : this.toRow(s));
+      this.todas = (res || []).map((s: any) => this.esRrhh ? this.toRowRrhh(s)
+        : this.esVale ? this.toRowVale(s) : this.toRow(s));
       this.aplicarFiltro();
     });
   }
@@ -310,6 +352,32 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       // Hay vales viejos sin moneda: sin ella no se sabe en qué moneda sale la plata.
       _bloqueado: !v.moneda?.id,
       _bloqueoMotivo: !v.moneda?.id ? 'Sin moneda definida: corregilo desde RRHH' : undefined,
+    };
+  }
+
+  /**
+   * Fila de los modos de RRHH. El "N°" es el id del documento y el tercero es el
+   * funcionario; el "periodo" ubica el documento (2026-07 en liquidacion, 2026 en aguinaldo).
+   */
+  private toRowRrhh(p: any): SolicitudRow {
+    const saldo = p.saldoPendiente != null ? p.saldoPendiente : (p.monto || 0);
+    const nombre = p.funcionarioNombre || p.funcionario?.persona?.nombre || '—';
+    const sinMoneda = !p.moneda?.id;
+    return {
+      id: p.id, numeroSolicitud: String(p.id),
+      proveedorId: p.funcionario?.id, proveedorNombre: nombre,
+      monedaId: p.moneda?.id, monedaSimbolo: p.moneda?.simbolo || '',
+      monedaDenominacion: p.moneda?.denominacion || '',
+      decimales: this.decimales(p.moneda), saldoPendiente: saldo,
+      _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(p.moneda),
+      _planCheques: [],
+      _descripcion: p.descripcion || '',
+      _categoria: p.periodo || '',
+      // Sin moneda no se sabe en que moneda sale la plata; saldo 0 no tiene nada que pagar.
+      _bloqueado: sinMoneda || saldo <= 0,
+      _bloqueoMotivo: sinMoneda
+        ? 'Sin moneda: falta configurar la moneda principal'
+        : (saldo <= 0 ? 'Sin saldo pendiente' : undefined),
     };
   }
 
@@ -359,6 +427,15 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
         (!fid || String(r.id).includes(fid)) &&
         (!ffun || (r.proveedorNombre || '').toUpperCase().includes(ffun)) &&
         (!fmot || (r._categoria || '').toUpperCase().includes(fmot))
+      );
+      return;
+    }
+    if (this.esRrhh) {
+      const fid = (this.filtroIdControl.value || '').trim();
+      const ffun = (this.filtroProveedorControl.value || '').toUpperCase().trim();
+      this.dataSource.data = this.todas.filter(r =>
+        (!fid || String(r.id).includes(fid)) &&
+        (!ffun || (r.proveedorNombre || '').toUpperCase().includes(ffun))
       );
       return;
     }
@@ -485,7 +562,10 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   // ── Paso 1: selección (mismo proveedor + misma moneda) ──
   onToggle(row: SolicitudRow) {
     if (row._disabled || row._bloqueado) return;
-    row._sel = !row._sel;
+    const nuevo = !row._sel;
+    // Los modos de RRHH pagan de a uno: tildar una fila destilda cualquier otra.
+    if (this.seleccionSimple && nuevo) this.todas.forEach(r => r._sel = false);
+    row._sel = nuevo;
     this.recomputarSeleccion();
   }
 
@@ -502,7 +582,7 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       this.monedaDeuda = this.monedaList.find(m => m.id === primero.monedaId) || null;
       // Compras: mismo proveedor + misma moneda. Gastos y vales: solo misma moneda
       // (el beneficiario/funcionario puede variar o faltar).
-      this.todas.forEach(r => r._disabled = r._bloqueado || !r._sel && ((this.esGasto || this.esVale)
+      this.todas.forEach(r => r._disabled = r._bloqueado || !r._sel && ((this.esGasto || this.esVale || this.esRrhh)
         ? r.monedaId !== primero.monedaId
         : (r.proveedorId !== primero.proveedorId || r.monedaId !== primero.monedaId)));
       if (this.monedaDeuda) this.getRateGs(this.monedaDeuda).pipe(untilDestroyed(this)).subscribe(); // warm cache
@@ -820,10 +900,15 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     this.isSaving = true;
     // El modo VALES paga por valeId: el backend resuelve/crea la obligación de pago de cada vale
     // (los vales que vienen del mobile nacen sin ella) y delega en el mismo motor de pago.
-    const pago$ = this.esVale
-      ? this.pagarComprasService.onPagarValesMixto(
-          pagos.map(p => ({ valeId: p.solicitudId, lineas: p.lineas } as ValeConLineas)))
-      : this.pagarComprasService.onPagarMixto(pagos);
+    const pago$ = this.esRrhh
+      ? this.pagarComprasService.onPagarRrhhMixto(
+          pagos.map(p => ({
+            concepto: this.conceptoRrhh!, documentoId: p.solicitudId, lineas: p.lineas,
+          } as PagoRrhhConLineas)))
+      : this.esVale
+        ? this.pagarComprasService.onPagarValesMixto(
+            pagos.map(p => ({ valeId: p.solicitudId, lineas: p.lineas } as ValeConLineas)))
+        : this.pagarComprasService.onPagarMixto(pagos);
     pago$.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;

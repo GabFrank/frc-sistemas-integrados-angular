@@ -142,3 +142,66 @@ export const pagarValesMixtoMutation = gql`
     }
   }
 `;
+
+// ── Pago de documentos de RRHH desde la caja (liquidacion / finiquito / aguinaldo) ──
+// Mismo puente que el vale: la obligacion de pago es una SolicitudPago tipo RRHH y el
+// pago va por el motor de CPP. Los tres conceptos comparten proyeccion.
+const pagoRrhhPendienteFields = `
+  concepto
+  id
+  fecha
+  periodo
+  monto
+  saldoPendiente
+  descripcion
+  funcionarioNombre
+  funcionario { id persona { id nombre } }
+  moneda { id denominacion simbolo principal decimales }
+`;
+
+export const liquidacionesPendientesPagoQuery = gql`
+  query {
+    data: liquidacionesPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const finiquitosPendientesPagoQuery = gql`
+  query {
+    data: finiquitosPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const aguinaldosPendientesPagoQuery = gql`
+  query {
+    data: aguinaldosPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const pagarRrhhMixtoMutation = gql`
+  mutation ($pagos: [PagoRrhhConLineasInput!]!) {
+    data: pagarRrhhMixto(pagos: $pagos) {
+      id
+      estado
+    }
+  }
+`;
+
+// Desglose de un evento de pago: que documentos se pagaron y cuanto se imputo a cada uno.
+// Lo necesita el detalle del movimiento consolidado, cuya descripcion no puede nombrar a los N.
+export const detalleDePagoQuery = gql`
+  query ($pagoId: ID!) {
+    data: detalleDePago(pagoId: $pagoId) {
+      solicitudPagoId
+      tipo
+      descripcion
+      proveedorNombre
+      monedaDenominacion
+      monedaSimbolo
+      decimales
+      montoImputado
+      montoTotal
+      montoPagado
+      estado
+    }
+  }
+`;
