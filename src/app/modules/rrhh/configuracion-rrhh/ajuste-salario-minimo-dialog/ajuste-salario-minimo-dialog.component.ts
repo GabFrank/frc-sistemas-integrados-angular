@@ -35,6 +35,11 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
   cargando = true;
   todosSeleccionados = false;
 
+  /** Total real de afectados. Se muestra fijo para que no dependa de cuanto entre en pantalla. */
+  totalAfectados = 0;
+  /** Precalculado: el template no llama funciones (convencion del repo). */
+  tooltipTodos = 'Seleccionar todos';
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AjusteSalarioMinimoDialogData,
     private dialogRef: MatDialogRef<AjusteSalarioMinimoDialogComponent>,
@@ -56,6 +61,9 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
           diferencia: this.data.minimo - (f.sueldo || 0)
         }));
         this.dataSource.data = filas;
+        this.totalAfectados = filas.length;
+        this.tooltipTodos = 'Selecciona los ' + filas.length
+          + ' funcionarios de la lista, incluidos los que no entren en pantalla';
         // Nada preseleccionado: ajustar un salario es una decision explicita.
       });
   }
