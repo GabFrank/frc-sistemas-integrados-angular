@@ -9,6 +9,9 @@ import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 import { GastosPendientesGQL } from './graphql/gastosPendientes';
 import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
+import { ValesPendientesGQL } from './graphql/valesPendientes';
+import { CrearValeParaPagoGQL } from './graphql/crearValeParaPago';
+import { PagarValesMixtoGQL } from './graphql/pagarValesMixto';
 
 export interface GastoParaPagoInput {
   tipoGastoId?: number;
@@ -47,6 +50,18 @@ export interface LineaPagoInput {
 
 export interface SolicitudConLineas { solicitudId: number; lineas: LineaPagoInput[]; }
 
+/** Modo VALES: la unidad pagable es el vale; el backend resuelve su obligación de pago. */
+export interface ValeConLineas { valeId: number; lineas: LineaPagoInput[]; }
+
+export interface ValeParaPagoInput {
+  funcionarioId: number;
+  motivoId?: number;
+  monedaId: number;
+  monto: number;
+  esAdelanto?: boolean;
+  observacion?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PagarComprasService {
 
@@ -59,7 +74,25 @@ export class PagarComprasService {
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
     private gastosPendientesGQL: GastosPendientesGQL,
     private crearGastoGQL: CrearGastoParaPagoGQL,
+    private valesPendientesGQL: ValesPendientesGQL,
+    private crearValeGQL: CrearValeParaPagoGQL,
+    private pagarValesMixtoGQL: PagarValesMixtoGQL,
   ) { }
+
+  /** Vales pagables (estado SOLICITADO) con su saldo. */
+  onGetValesPendientes(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.valesPendientesGQL, {}, servidor);
+  }
+
+  /** Crea un vale listo para pagar (queda SOLICITADO, sin mover plata). */
+  onCrearVale(input: ValeParaPagoInput, servidor = true): Observable<any> {
+    return this.mutar(this.crearValeGQL, { input }, servidor);
+  }
+
+  /** Paga N vales como un único evento consolidado. El pago parcial de un vale está prohibido. */
+  onPagarValesMixto(pagos: ValeConLineas[], servidor = true): Observable<any> {
+    return this.mutar(this.pagarValesMixtoGQL, { pagos }, servidor);
+  }
 
   /** Gastos pagables (SolicitudPago tipo GASTO en SOLICITADO/PARCIAL). */
   onGetGastosPendientes(servidor = true): Observable<any> {

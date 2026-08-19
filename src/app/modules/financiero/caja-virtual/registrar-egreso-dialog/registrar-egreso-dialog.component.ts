@@ -4,7 +4,6 @@ import { CajaVirtual, CajaVirtualTipoMovimiento } from '../caja-virtual.model';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { MaletinTesoreriaDialogComponent, MaletinTesoreriaDialogData } from '../../maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
-import { RegistrarValeDialogComponent, RegistrarValeDialogData } from '../registrar-vale-dialog/registrar-vale-dialog.component';
 import { PagarComprasDialogComponent, PagarComprasDialogData } from '../pagar-compras-dialog/pagar-compras-dialog.component';
 
 interface OpcionEgreso {
@@ -28,7 +27,7 @@ export class RegistrarEgresoDialogComponent {
     { tipo: 'MALETIN', titulo: 'Egreso de Maletín', descripcion: 'Efectivo que se despacha dentro de un maletín', icono: 'work', color: '#00838f' },
     { tipo: 'PAGO_CPP', titulo: 'Pagar Compras', descripcion: 'Pagar solicitudes de compra pendientes (CPP)', icono: 'shopping_cart_checkout', color: '#00695c' },
     { tipo: 'GASTO', titulo: 'Pagar Gasto', descripcion: 'Pagar o crear un gasto (ANDE, alquiler, servicios…)', icono: 'request_quote', color: '#5d4037' },
-    { tipo: 'VALE', titulo: 'Registrar Vale', descripcion: 'Adelanto/vale a funcionario (egresa al confirmar)', icono: 'receipt_long', color: '#ad1457' },
+    { tipo: 'VALE', titulo: 'Pagar Vale', descripcion: 'Pagar o crear un vale/adelanto a funcionario', icono: 'receipt_long', color: '#ad1457' },
     { tipo: 'AJUSTE', titulo: 'Ajuste de Saldo', descripcion: 'Corrección negativa del saldo con motivo', icono: 'tune', color: '#6a1b9a' },
   ];
 
@@ -49,13 +48,9 @@ export class RegistrarEgresoDialogComponent {
       this.abrir(MaletinTesoreriaDialogComponent, { width: '480px', data: d });
       return;
     }
-    if (op.tipo === 'VALE') {
-      const d: RegistrarValeDialogData = { cajaVirtual: this.data.cajaVirtual };
-      this.abrir(RegistrarValeDialogComponent, { width: '500px', data: d });
-      return;
-    }
-    if (op.tipo === 'PAGO_CPP' || op.tipo === 'GASTO') {
-      const d: PagarComprasDialogData = { cajaVirtual: this.data.cajaVirtual, modo: op.tipo === 'GASTO' ? 'GASTOS' : 'COMPRAS' };
+    if (op.tipo === 'PAGO_CPP' || op.tipo === 'GASTO' || op.tipo === 'VALE') {
+      const modo = op.tipo === 'GASTO' ? 'GASTOS' : op.tipo === 'VALE' ? 'VALES' : 'COMPRAS';
+      const d: PagarComprasDialogData = { cajaVirtual: this.data.cajaVirtual, modo };
       this.abrir(PagarComprasDialogComponent, { width: '65vw', maxWidth: '95vw', minWidth: '760px', height: '70vh', panelClass: 'pagar-compras-panel', data: d });
       return;
     }
