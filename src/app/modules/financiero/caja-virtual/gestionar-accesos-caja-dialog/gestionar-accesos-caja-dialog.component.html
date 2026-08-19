@@ -1,0 +1,95 @@
+<h2 mat-dialog-title class="ga-title">
+  <mat-icon>group</mat-icon>
+  <span>Accesos de la caja</span>
+  <span class="ga-sub">{{ data.cajaVirtual?.nombre }}</span>
+</h2>
+
+<mat-dialog-content class="ga-content">
+  <p class="ga-hint">
+    Solo estos usuarios pueden ver esta caja. El permiso de <strong>escritura</strong> habilita
+    mover plata: ingresos, egresos, transferencias y anulaciones.
+  </p>
+  <p class="ga-hint ga-responsable">
+    Responsable: <strong>{{ responsableNombre }}</strong> — tiene acceso total y administra esta lista.
+  </p>
+
+  <!-- Alta -->
+  <div class="ga-alta">
+    <mat-form-field appearance="outline" class="ga-buscador" subscriptSizing="dynamic">
+      <mat-label>Agregar usuario</mat-label>
+      <input matInput [formControl]="usuarioControl" [matAutocomplete]="autoUsuario"
+             placeholder="Nombre o usuario (mín. 2 letras)">
+      <mat-autocomplete #autoUsuario="matAutocomplete" [displayWith]="displayUsuario">
+        <mat-option *ngFor="let u of usuariosFiltrados" [value]="u">
+          {{ u.persona?.nombre || '—' }} <small>({{ u.nickname }})</small>
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-checkbox [(ngModel)]="nuevoPuedeEscribir" class="ga-check">Puede mover plata</mat-checkbox>
+
+    <button mat-raised-button color="primary" type="button" (click)="onAgregar()" [disabled]="isSaving">
+      <mat-icon>add</mat-icon> Agregar
+    </button>
+  </div>
+
+  <div class="ga-cargando" *ngIf="isLoading">Cargando…</div>
+  <div class="ga-vacio" *ngIf="!isLoading && dataSource.data.length === 0">
+    Nadie más tiene acceso. Solo el responsable (y un administrador) puede operar esta caja.
+  </div>
+
+  <div class="ga-tabla-wrap" *ngIf="!isLoading && dataSource.data.length > 0">
+    <table mat-table [dataSource]="dataSource" class="ga-tabla">
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: left;">Usuario</th>
+        <td mat-cell *matCellDef="let row" style="text-align: left;">
+          {{ row.nombre }} <small class="ga-nick">({{ row.nickname }})</small>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="leer">
+        <th mat-header-cell *matHeaderCellDef>Ver</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-icon class="ga-si">check</mat-icon>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="escribir">
+        <th mat-header-cell *matHeaderCellDef>Mover plata</th>
+        <td mat-cell *matCellDef="let row">
+          <mat-slide-toggle [checked]="row.puedeEscribir" [disabled]="isSaving"
+                            (change)="onToggleEscritura(row, $event.checked)"></mat-slide-toggle>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="otorgadoPor">
+        <th mat-header-cell *matHeaderCellDef>Otorgado por</th>
+        <td mat-cell *matCellDef="let row">{{ row.otorgadoPor }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button [matMenuTriggerFor]="menu" [disabled]="isSaving">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onTransferirPropiedad(row)">
+              <mat-icon>swap_horiz</mat-icon><span>Hacerlo responsable</span>
+            </button>
+            <button mat-menu-item (click)="onRevocar(row)">
+              <mat-icon>person_remove</mat-icon><span>Quitar acceso</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cerrar()">Cerrar</button>
+</mat-dialog-actions>

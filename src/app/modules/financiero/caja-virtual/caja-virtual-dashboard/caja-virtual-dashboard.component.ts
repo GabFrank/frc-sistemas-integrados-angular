@@ -34,6 +34,7 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 // Fila de la tabla de movimientos con campos de display precalculados.
 interface MovimientoRow extends MovimientoCajaVirtual {
+  _label?: string;          // concepto real del movimiento (del origenTipo, no del tipo grueso)
   _color?: string;          // color saturado del chip (fondo)
   _colorTexto?: string;     // color claro del monto (texto sobre fondo oscuro)
   _anulable?: boolean;
@@ -106,11 +107,6 @@ export class CajaVirtualDashboardComponent implements OnInit {
   showFiltros = false;
 
   puedeGestionar = false;
-
-  /** Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model). */
-  label(row: MovimientoCajaVirtual): string {
-    return labelMovimiento(row?.origenTipo, row?.tipoMovimiento, this.tipoMovimientoLabels);
-  }
 
   tipoMovimientoList = [
     { label: 'Ingreso', value: CajaVirtualTipoMovimiento.INGRESO },
@@ -256,6 +252,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   private toRow(m: MovimientoCajaVirtual): MovimientoRow {
     const row = m as MovimientoRow;
+    // Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model).
+    row._label = labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels);
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
     row._colorTexto = this.tipoColoresTexto[m.tipoMovimiento as any] || '#b0bec5';
     const nav = this.origenNav[m.origenTipo as any];

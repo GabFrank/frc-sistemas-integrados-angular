@@ -175,15 +175,12 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   /** Los modos de RRHH pagan de a uno: tildar una fila destilda las demas. */
   seleccionSimple = false;
 
-  /** Plural del concepto, para los textos de la tabla vacia y del resumen. */
-  get tituloPlural(): string {
-    switch (this.conceptoRrhh) {
-      case 'LIQUIDACION': return 'liquidaciones';
-      case 'FINIQUITO':   return 'finiquitos';
-      case 'AGUINALDO':   return 'aguinaldos';
-      default:            return 'documentos';
-    }
-  }
+  /**
+   * Plural del concepto, para los textos de la tabla vacía y del resumen. Es un campo y no
+   * un getter porque se usa en el template: un getter se re-evalúa en cada ciclo de change
+   * detection. Se resuelve una vez en ngOnInit, con el modo.
+   */
+  tituloPlural = 'documentos';
 
   // ── Modo VALES (mismo builder; fuente = valesPendientes + alta de vale) ──
   // La unidad pagable es el vale de RRHH: el backend le resuelve su obligación de pago.
@@ -249,6 +246,8 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       this.montoEditable = false;
       this.titulo = this.conceptoRrhh === 'LIQUIDACION' ? 'Pagar Liquidación'
         : this.conceptoRrhh === 'FINIQUITO' ? 'Pagar Finiquito' : 'Pagar Aguinaldo';
+      this.tituloPlural = this.conceptoRrhh === 'LIQUIDACION' ? 'liquidaciones'
+        : this.conceptoRrhh === 'FINIQUITO' ? 'finiquitos' : 'aguinaldos';
       this.displayedColumns = ['sel', 'id', 'funcionario', 'periodo', 'descripcion', 'saldo', 'montoAPagar'];
       // Filtros de la tabla: N° / Funcionario (client-side sobre lo cargado).
       this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());

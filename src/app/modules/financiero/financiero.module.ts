@@ -75,6 +75,7 @@ import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas
 import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { DetallePagoDialogComponent } from './caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
+import { GestionarAccesosCajaDialogComponent } from './caja-virtual/gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
 import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
@@ -153,6 +154,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     AddOperacionFinancieraDialogComponent,
     OperacionFinancieraDetalleDialogComponent,
     DetallePagoDialogComponent,
+    GestionarAccesosCajaDialogComponent,
     ChequesDashboardComponent,
     EmitirChequeDialogComponent,
     EditChequeraDialogComponent,

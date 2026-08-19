@@ -4,6 +4,11 @@ import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, MovimientoCajaVirtual, labelMovimiento } from '../caja-virtual.model';
+
+/** Fila con el concepto ya resuelto (no se calcula en el template). */
+interface MovimientoRow extends MovimientoCajaVirtual {
+  _label?: string;
+}
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { FormControl, FormGroup } from '@angular/forms';
@@ -16,7 +21,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 })
 export class HistorialMovimientosCajaVirtualComponent implements OnInit {
 
-  dataSource = new MatTableDataSource<MovimientoCajaVirtual>([]);
+  dataSource = new MatTableDataSource<MovimientoRow>([]);
   isSearching = false;
   pageIndex = 0;
   pageSize = 20;
@@ -56,11 +61,6 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
     AJUSTE: '#607d8b',
   };
 
-  /** Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model). */
-  label(row: MovimientoCajaVirtual): string {
-    return labelMovimiento(row?.origenTipo, row?.tipoMovimiento, this.tipoMovimientoLabels);
-  }
-
   constructor(
     @Inject(MAT_DIALOG_DATA) public cajaVirtual: CajaVirtual,
     private cajaVirtualService: CajaVirtualService
@@ -94,7 +94,13 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
     this.isSearching = false;
     if (res != null) {
       this.selectedPageInfo = res;
-      this.dataSource.data = res.getContent;
+      // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
+      // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
+      // en cada ciclo de change detection.
+      this.dataSource.data = (res.getContent || []).map(m => {
+        (m as MovimientoRow)._label = labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels);
+        return m as MovimientoRow;
+      });
     }
   }
 
