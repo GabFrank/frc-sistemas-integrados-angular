@@ -9,7 +9,8 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService } from '../../../../layouts/tab/tab.service';
 import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
-         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion } from '../caja-virtual.model';
+         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
+         labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
@@ -104,6 +105,11 @@ export class CajaVirtualDashboardComponent implements OnInit {
   showFiltros = false;
 
   puedeGestionar = false;
+
+  /** Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model). */
+  label(row: MovimientoCajaVirtual): string {
+    return labelMovimiento(row?.origenTipo, row?.tipoMovimiento, this.tipoMovimientoLabels);
+  }
 
   tipoMovimientoList = [
     { label: 'Ingreso', value: CajaVirtualTipoMovimiento.INGRESO },
