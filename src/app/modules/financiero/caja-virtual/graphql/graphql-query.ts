@@ -172,6 +172,7 @@ const movimientoFields = `
   }
   referenciaId
   origenTipo
+  esPagoConsolidado
   descripcion
   usuario {
     id

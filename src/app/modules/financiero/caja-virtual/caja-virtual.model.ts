@@ -76,6 +76,8 @@ export class MovimientoCajaVirtual {
   moneda: Moneda;
   referenciaId: number;
   origenTipo: string;
+  /** true si el movimiento es el asiento de un evento de pago (lo resuelve el backend). */
+  esPagoConsolidado: boolean;
   descripcion: string;
   usuario: Usuario;
   cajaOrigen: CajaVirtual;

@@ -259,9 +259,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
     row._colorTexto = this.tipoColoresTexto[m.tipoMovimiento as any] || '#b0bec5';
     const nav = this.origenNav[m.origenTipo as any];
-    row._verOrigen = !!nav;
-    row._origenLabel = nav?.label;
-    row._origenIcon = nav?.icon;
+    // Un pago del motor ofrece su desglose; si no, se cae al registro por origen.
+    if (m.esPagoConsolidado && m.referenciaId) {
+      row._verOrigen = true;
+      row._origenLabel = 'Ver detalle del pago';
+      row._origenIcon = 'receipt_long';
+    } else {
+      row._verOrigen = !!nav;
+      row._origenLabel = nav?.label;
+      row._origenIcon = nav?.icon;
+    }
     row._anulable = this.puedeGestionar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false;
@@ -380,7 +387,6 @@ export class CajaVirtualDashboardComponent implements OnInit {
       label: 'Ir a Vales (RRHH)', icon: 'payments',
       open: () => this.tabService.addTab(new Tab(ListValeComponent, 'Vales', null, null)),
     },
-    ...this.navDetallePago(['PAGO_CPP', 'GASTO', 'RRHH_LIQUIDACION_SUELDO', 'RRHH_LIQUIDACION_FINAL', 'RRHH_AGUINALDO']),
     OPERACION_FINANCIERA: {
       label: 'Ver operación financiera', icon: 'swap_horiz',
       open: (row) => {
@@ -395,41 +401,34 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
 
   /**
-   * Entradas de "Ir al origen" para los movimientos que genera el motor de pago.
+   * Desglose de un evento de pago, abierto desde su movimiento en la caja.
    *
-   * Un evento que paga N documentos postea UN movimiento consolidado, cuya descripción no
-   * puede nombrarlos a todos (ver PagoProveedorService.etiquetaDe). El destino natural es el
-   * desglose del pago, no una pantalla de listado. El movimiento lleva referenciaId = pago.id.
-   *
-   * RRHH_VALE queda afuera a propósito: convive con los vales del atajo viejo (egreso directo),
-   * cuyo referenciaId es el id del vale y no el de un evento de pago — abrirles el detalle
-   * daría una tabla vacía. Esos siguen yendo a la lista de Vales.
+   * Un evento que paga N documentos postea UN movimiento consolidado, cuya descripción no puede
+   * nombrarlos a todos (ver PagoProveedorService.etiquetaDe). El movimiento lleva
+   * referenciaId = pago.id, y el backend marca cuáles son de un pago con esPagoConsolidado.
    */
-  private navDetallePago(origenes: string[]): Record<string, { label: string; icon: string; open: (row: MovimientoRow) => void }> {
-    const entrada = {
-      label: 'Ver detalle del pago', icon: 'receipt_long',
-      open: (row: MovimientoRow) => {
-        if (!row.referenciaId) return;
-        const data: DetallePagoDialogData = { pagoId: row.referenciaId, descripcion: row.descripcion };
-        this.dialog.open(DetallePagoDialogComponent, {
-          width: '65vw', maxWidth: '95vw', height: '70vh', data,
-        });
-      },
-    };
-    const out: Record<string, typeof entrada> = {};
-    origenes.forEach(o => out[o] = entrada);
-    return out;
+  private abrirDetallePago(row: MovimientoRow) {
+    if (!row.referenciaId) return;
+    const data: DetallePagoDialogData = { pagoId: row.referenciaId, descripcion: row.descripcion };
+    this.dialog.open(DetallePagoDialogComponent, {
+      width: '65vw', maxWidth: '95vw', height: '70vh', data,
+    });
   }
 
   irAlOrigen(row: MovimientoRow) {
+    if (row.esPagoConsolidado && row.referenciaId) return this.abrirDetallePago(row);
     this.origenNav[row.origenTipo as any]?.open(row);
   }
 
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
-    // El movimiento consolidado del pago CPP lleva referenciaId = origenId = pago.id (el evento).
-    const esPagoCpp = mov.origenTipo === 'PAGO_CPP' && !!mov.referenciaId;
+    // El movimiento consolidado del pago lleva referenciaId = origenId = pago.id (el evento).
+    //
+    // Se pregunta por esPagoConsolidado y NO por el origenTipo: desde que el movimiento lleva el
+    // concepto real (gasto, vale, liquidación…), el origen ya no distingue un pago del motor de
+    // un egreso directo del módulo — los de RRHH usan el mismo valor para las dos cosas.
+    const esPagoCpp = !!mov.esPagoConsolidado && !!mov.referenciaId;
 
     let titulo: string, mensaje: string, exito: string;
     if (esPagoCpp) {

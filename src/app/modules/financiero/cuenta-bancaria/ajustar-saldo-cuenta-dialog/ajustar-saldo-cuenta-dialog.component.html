@@ -1,0 +1,56 @@
+<h2 mat-dialog-title class="aj-title">
+  <mat-icon>tune</mat-icon>
+  <span>Ajustar saldo</span>
+  <span class="aj-sub">{{ data.cuentaBancaria?.banco?.nombre }} · {{ data.cuentaBancaria?.numero }}</span>
+</h2>
+
+<mat-dialog-content class="aj-content">
+  <p class="aj-hint">
+    Corrige el saldo contra el extracto real. El ajuste <strong>no tiene contrapartida</strong>:
+    queda registrado con tu usuario y el motivo, que es toda su trazabilidad.
+  </p>
+
+  <div class="aj-saldos">
+    <div class="aj-saldo">
+      <span class="aj-label">Saldo actual</span>
+      <strong>{{ monedaSimbolo }} {{ saldoActual | number:'1.0-2' }}</strong>
+    </div>
+    <mat-icon class="aj-flecha">arrow_forward</mat-icon>
+    <div class="aj-saldo">
+      <span class="aj-label">Saldo resultante</span>
+      <strong [class.aj-sube]="saldoResultante > saldoActual"
+              [class.aj-baja]="saldoResultante < saldoActual">
+        {{ monedaSimbolo }} {{ saldoResultante | number:'1.0-2' }}
+      </strong>
+    </div>
+  </div>
+
+  <div class="aj-signo">
+    <button mat-stroked-button type="button" class="aj-btn-signo"
+            [class.activo-mas]="positivo" (click)="onCambiarSigno(true)">
+      <mat-icon>add</mat-icon> Aumentar
+    </button>
+    <button mat-stroked-button type="button" class="aj-btn-signo"
+            [class.activo-menos]="!positivo" (click)="onCambiarSigno(false)">
+      <mat-icon>remove</mat-icon> Disminuir
+    </button>
+  </div>
+
+  <mat-form-field appearance="outline" class="aj-campo" subscriptSizing="dynamic">
+    <mat-label>Monto del ajuste ({{ monedaDenominacion }})</mat-label>
+    <input matInput [formControl]="montoControl" currencyMask [options]="currencyOpts" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="aj-campo" subscriptSizing="dynamic">
+    <mat-label>Motivo</mat-label>
+    <input matInput [formControl]="motivoControl"
+           placeholder="Ej: diferencia con extracto del 19/08 — comisión no registrada" />
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cerrar()" [disabled]="isSaving">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="isSaving">
+    <mat-icon>check</mat-icon> Aplicar ajuste
+  </button>
+</mat-dialog-actions>

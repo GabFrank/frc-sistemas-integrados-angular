@@ -1,0 +1,75 @@
+// App siempre en dark: nada de fondos claros.
+.aj-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+
+  .aj-sub {
+    margin-left: 8px;
+    font-size: 0.72em;
+    font-weight: 400;
+    color: #ffa726;              // subtítulo naranja (convención de diálogos)
+  }
+}
+
+.aj-hint {
+  margin: 0 0 16px;
+  font-size: 0.82em;
+  opacity: 0.75;
+}
+
+.aj-saldos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  background: #3a3a3a;
+
+  .aj-saldo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .aj-label {
+    font-size: 0.72em;
+    opacity: 0.65;
+    text-transform: uppercase;
+  }
+
+  strong { font-size: 1.05em; }
+
+  // Verde sube / rojo baja: mismas variantes claras que el resto del módulo (contraste AA).
+  .aj-sube { color: #81c784; }
+  .aj-baja { color: #ff8a80; }
+
+  .aj-flecha { opacity: 0.5; }
+}
+
+.aj-signo {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  .aj-btn-signo { flex: 1 1 0; }
+
+  .activo-mas {
+    background: #2e7d32;
+    color: #ffffff;
+  }
+
+  .activo-menos {
+    background: #c62828;
+    color: #ffffff;
+  }
+}
+
+.aj-campo {
+  width: 100%;
+  margin-bottom: 14px;
+}

@@ -6,6 +6,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CuentaBancaria, TipoCuenta } from './cuenta-bancaria.model';
 import { CuentaBancariaService } from './cuenta-bancaria.service';
 import { AddCuentaBancariaDialogComponent } from './add-cuenta-bancaria-dialog/add-cuenta-bancaria-dialog.component';
+import { AjustarSaldoCuentaDialogComponent, AjustarSaldoCuentaData } from './ajustar-saldo-cuenta-dialog/ajustar-saldo-cuenta-dialog.component';
 import { ListMovimientosBancariosDialogComponent } from '../operacion-financiera/list-movimientos-bancarios-dialog/list-movimientos-bancarios-dialog.component';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../shared/components/dialogos/dialogos.service';
@@ -122,6 +123,19 @@ export class CuentaBancariaComponent implements OnInit {
   onVerMovimientos(item: CuentaBancaria) {
     this.dialog.open(ListMovimientosBancariosDialogComponent, {
       width: '95vw', maxWidth: '1200px', height: '85vh', data: item
+    });
+  }
+
+  /**
+   * Ajusta el saldo de la cuenta contra el extracto real. Exige TESORERIA GESTIONAR, igual que
+   * editar la cuenta: un ajuste crea o borra plata del ledger sin contrapartida.
+   */
+  onAjustarSaldo(item: CuentaBancaria) {
+    const data: AjustarSaldoCuentaData = { cuentaBancaria: item };
+    this.dialog.open(AjustarSaldoCuentaDialogComponent, {
+      width: '520px', maxWidth: '95vw', data
+    }).afterClosed().subscribe(res => {
+      if (res != null) this.cargar();
     });
   }
 }
