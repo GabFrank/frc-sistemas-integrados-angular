@@ -342,3 +342,29 @@ h2[mat-dialog-title] { flex-shrink: 0; margin-bottom: 8px; }
   display: flex;
   flex-direction: column;
 }
+
+/* Modo VALES: marca de adelanto de sueldo junto al motivo. */
+.chip-adelanto {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 16px;
+  background: rgba(173, 20, 87, 0.22);
+  color: #f48fb1;
+}
+
+.chk-adelanto { align-self: center; }
+
+/* Vale que no se puede pagar por dato incompleto (sin moneda). */
+.chip-bloqueado {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 16px;
+  background: rgba(230, 81, 0, 0.22);
+  color: #ffb74d;
+}

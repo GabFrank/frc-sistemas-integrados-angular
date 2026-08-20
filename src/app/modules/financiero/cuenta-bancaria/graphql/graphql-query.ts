@@ -59,3 +59,20 @@ export const deleteCuentaBancariaMutation = gql`
     data: deleteCuentaBancaria(id: $id)
   }
 `;
+
+// Ajuste de saldo contra el extracto real. Deja un movimiento AJUSTE_POSITIVO/NEGATIVO con el
+// motivo, que es toda su trazabilidad: un ajuste no tiene contrapartida.
+export const ajustarSaldoCuentaBancariaMutation = gql`
+  mutation ($cuentaBancariaId: ID!, $monto: Float!, $positivo: Boolean!, $motivo: String!) {
+    data: ajustarSaldoCuentaBancaria(
+      cuentaBancariaId: $cuentaBancariaId, monto: $monto, positivo: $positivo, motivo: $motivo
+    ) {
+      id
+      tipoMovimiento
+      monto
+      saldoAnterior
+      saldoPosterior
+      descripcion
+    }
+  }
+`;

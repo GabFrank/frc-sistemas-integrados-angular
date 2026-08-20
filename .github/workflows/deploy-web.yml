@@ -1,0 +1,90 @@
+name: Deploy Web
+
+# Publica la app como web pura en Cloudflare Pages.
+#
+# A propósito NO cuelga de `release.yml`: publicar la web es un DEPLOY, no un
+# RELEASE. Atarla al tag obligaría a cortar una versión —y con ella un instalador
+# nuevo para toda la flota Electron del canal— cada vez que se quiera republicar
+# el sitio. Es el mismo criterio que ya usa el workflow `Deploy` del central:
+# manual, parametrizado, con aprobación para producción.
+#
+# `workflow_dispatch` solo aparece si este archivo existe en la rama por defecto
+# (master). Desde ahí se puede lanzar con cualquier `ref`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Rama o tag a compilar (ej: develop, master, v4.0.0)'
+        required: true
+        default: 'develop'
+      canal:
+        description: 'Canal destino'
+        required: true
+        type: choice
+        options: [alpha, beta, prod]
+        default: alpha
+
+concurrency:
+  group: deploy-web-${{ github.event.inputs.canal }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Solo `prod` pasa por el environment con revisor obligatorio.
+    environment: ${{ github.event.inputs.canal == 'prod' && 'production' || '' }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Set up Node.js
+        # wrangler 4 exige Node >= 22. Los demás jobs del repo usan 18 y por eso
+        # este no puede compartir su configuración.
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Sellar version en el build
+        # Sin tag no hay número de semantic-release, así que la web se identifica
+        # por ref + commit. Es lo único que después permite saber qué está
+        # sirviendo cada puerta.
+        run: |
+          SELLO="${{ github.event.inputs.ref }}-$(git rev-parse --short HEAD)"
+          sed -i "s/version: '0.0.0'/version: '${SELLO}'/" src/environments/environment.web.prod.ts
+          grep -n "version:" src/environments/environment.web.prod.ts
+
+      - name: Build web (AOT, produccion)
+        run: npm run web:build
+
+      - name: Publicar en Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          CANAL="${{ github.event.inputs.canal }}"
+          # Angular 15 emite directo en dist/, sin el subdirectorio browser/ que
+          # usa la PWA en Angular 21.
+          npx wrangler pages deploy dist \
+            --project-name="frc-desk-${CANAL}" \
+            --branch=main \
+            --commit-dirty=true
+
+      - name: Resumen
+        run: |
+          CANAL="${{ github.event.inputs.canal }}"
+          case "$CANAL" in
+            alpha) PUERTAS="alpha.desk.frcsuite.com" ;;
+            beta)  PUERTAS="beta.desk.frcsuite.com" ;;
+            prod)  PUERTAS="farmacia.desk.frcsuite.com, bodega.desk.frcsuite.com" ;;
+          esac
+          echo "### Web publicada en \`${CANAL}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ref: \`${{ github.event.inputs.ref }}\` ($(git rev-parse --short HEAD))" >> $GITHUB_STEP_SUMMARY
+          echo "- puertas: ${PUERTAS}" >> $GITHUB_STEP_SUMMARY

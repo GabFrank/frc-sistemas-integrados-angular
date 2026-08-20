@@ -98,3 +98,110 @@ export const anularPagoCppMutation = gql`
     }
   }
 `;
+
+// ── Modo VALES ──
+// El vale es la unidad pagable (no la SolicitudPago): su obligacion de pago se crea/resuelve
+// en el backend. Por eso la query devuelve ValePendiente y la mutation toma valeId.
+export const valesPendientesQuery = gql`
+  query {
+    data: valesPendientes {
+      id
+      fecha
+      monto
+      saldoPendiente
+      esAdelanto
+      observacion
+      funcionarioNombre
+      motivoDescripcion
+      funcionario { id persona { id nombre } }
+      motivo { id descripcion }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
+export const crearValeParaPagoMutation = gql`
+  mutation ($input: ValeParaPagoInput!) {
+    data: crearValeParaPago(input: $input) {
+      id
+      monto
+      estado
+      esAdelanto
+      observacion
+      funcionario { id persona { id nombre } }
+      moneda { id denominacion simbolo principal decimales }
+    }
+  }
+`;
+
+export const pagarValesMixtoMutation = gql`
+  mutation ($pagos: [ValeConLineasInput!]!) {
+    data: pagarValesMixto(pagos: $pagos) {
+      id
+      estado
+    }
+  }
+`;
+
+// ── Pago de documentos de RRHH desde la caja (liquidacion / finiquito / aguinaldo) ──
+// Mismo puente que el vale: la obligacion de pago es una SolicitudPago tipo RRHH y el
+// pago va por el motor de CPP. Los tres conceptos comparten proyeccion.
+const pagoRrhhPendienteFields = `
+  concepto
+  id
+  fecha
+  periodo
+  monto
+  saldoPendiente
+  descripcion
+  funcionarioNombre
+  funcionario { id persona { id nombre } }
+  moneda { id denominacion simbolo principal decimales }
+`;
+
+export const liquidacionesPendientesPagoQuery = gql`
+  query {
+    data: liquidacionesPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const finiquitosPendientesPagoQuery = gql`
+  query {
+    data: finiquitosPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const aguinaldosPendientesPagoQuery = gql`
+  query {
+    data: aguinaldosPendientesPago { ${pagoRrhhPendienteFields} }
+  }
+`;
+
+export const pagarRrhhMixtoMutation = gql`
+  mutation ($pagos: [PagoRrhhConLineasInput!]!) {
+    data: pagarRrhhMixto(pagos: $pagos) {
+      id
+      estado
+    }
+  }
+`;
+
+// Desglose de un evento de pago: que documentos se pagaron y cuanto se imputo a cada uno.
+// Lo necesita el detalle del movimiento consolidado, cuya descripcion no puede nombrar a los N.
+export const detalleDePagoQuery = gql`
+  query ($pagoId: ID!) {
+    data: detalleDePago(pagoId: $pagoId) {
+      solicitudPagoId
+      tipo
+      descripcion
+      proveedorNombre
+      monedaDenominacion
+      monedaSimbolo
+      decimales
+      montoImputado
+      montoTotal
+      montoPagado
+      estado
+    }
+  }
+`;

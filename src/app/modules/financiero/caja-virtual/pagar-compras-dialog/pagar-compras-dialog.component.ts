@@ -12,7 +12,7 @@ import { MonedaService } from '../../moneda/moneda.service';
 import { CuentaBancaria } from '../../cuenta-bancaria/cuenta-bancaria.model';
 import { CuentaBancariaService } from '../../cuenta-bancaria/cuenta-bancaria.service';
 import { CambioService } from '../../cambio/cambio.service';
-import { PagarComprasService, SolicitudConLineas, LineaPagoInput, GastoParaPagoInput } from './pagar-compras.service';
+import { PagarComprasService, SolicitudConLineas, LineaPagoInput, GastoParaPagoInput, ValeConLineas, ValeParaPagoInput } from './pagar-compras.service';
 import { ChequeraService } from '../../chequera/chequera.service';
 import { EstadoChequera } from '../../chequera/chequera.model';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
@@ -20,10 +20,19 @@ import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/
 import { GastoService } from '../../gastos/service/gasto.service';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
+import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
+import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
+import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
+import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
-  modo?: 'COMPRAS' | 'GASTOS';   // GASTOS reusa el mismo builder de pago; default COMPRAS
+  // Todos los modos reusan el mismo builder de pago; default COMPRAS.
+  //
+  // Cardinalidad: COMPRAS/GASTOS/VALES seleccionan varios documentos (carrito); los tres
+  // modos de RRHH seleccionan uno solo — la nomina no se paga en una sola operacion, cada
+  // liquidacion/finiquito/aguinaldo se paga por separado.
+  modo?: 'COMPRAS' | 'GASTOS' | 'VALES' | 'LIQUIDACION' | 'FINIQUITO' | 'AGUINALDO';
 }
 
 /** Un cheque del plan de una solicitud (forma de pago CHEQUE ya registrada). */
@@ -50,8 +59,11 @@ interface SolicitudRow {
   _currencyOpts: any;
   _montoAPagar: number;
   _planCheques: PlanCheque[];   // cheques planificados en la solicitud (forma de pago CHEQUE)
-  _descripcion?: string;        // gasto: descripción (observaciones de la solicitud)
-  _categoria?: string;          // gasto: categoría (tipoGasto.descripcion)
+  _descripcion?: string;        // gasto: descripción (observaciones) · vale: observación
+  _categoria?: string;          // gasto: categoría (tipoGasto) · vale: motivo
+  _esAdelanto?: boolean;        // vale: adelanto de sueldo
+  _bloqueado?: boolean;         // no se puede pagar (dato incompleto); nunca seleccionable
+  _bloqueoMotivo?: string;
 }
 
 interface PagoLinea {
@@ -154,6 +166,36 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   titulo = 'Pagar Compras (CPP)';
   vistaNuevoGasto = false;       // true = oculta el stepper y muestra solo el form de gasto
   creandoGasto = false;
+
+  // ── Modos de RRHH: LIQUIDACION / FINIQUITO / AGUINALDO ──
+  // Mismo builder y mismo puente que el vale (la obligacion de pago es una SolicitudPago
+  // tipo RRHH), pero el documento no se puede crear desde la caja: nace en RRHH, aprobado.
+  esRrhh = false;
+  conceptoRrhh: ConceptoRrhh | null = null;
+  /** Los modos de RRHH pagan de a uno: tildar una fila destilda las demas. */
+  seleccionSimple = false;
+
+  /**
+   * Plural del concepto, para los textos de la tabla vacía y del resumen. Es un campo y no
+   * un getter porque se usa en el template: un getter se re-evalúa en cada ciclo de change
+   * detection. Se resuelve una vez en ngOnInit, con el modo.
+   */
+  tituloPlural = 'documentos';
+
+  // ── Modo VALES (mismo builder; fuente = valesPendientes + alta de vale) ──
+  // La unidad pagable es el vale de RRHH: el backend le resuelve su obligación de pago.
+  esVale = false;
+  // El vale se paga entero o no se paga: la liquidación descuenta el monto total del vale,
+  // así que entregar de menos dejaría plata fuera de caja que nunca se recupera del sueldo.
+  montoEditable = true;
+  funcionarioFiltrados: Funcionario[] = [];
+  motivoList: any[] = [];
+  nvFuncionarioControl = new FormControl(null);
+  nvMotivoControl = new FormControl(null);
+  nvMontoControl = new FormControl(null);
+  nvEsAdelantoControl = new FormControl(true);
+  nvObservacionControl = new FormControl('');
+  displayFuncionario = (f: Funcionario): string => (f && f.persona) ? (f.persona.nombre || '') : '';
   // Filtros de la tabla de gastos
   filtroIdControl = new FormControl('');
   filtroCategoriaControl = new FormControl('');
@@ -187,10 +229,47 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     private notificacion: NotificacionSnackbarService,
     private gastoService: GastoService,
     private proveedorService: ProveedorService,
+    private funcionarioService: FuncionarioService,
+    private motivoValeService: MotivoValeService,
   ) {}
 
   ngOnInit(): void {
     this.esGasto = this.data?.modo === 'GASTOS';
+    this.esVale = this.data?.modo === 'VALES';
+    this.esRrhh = this.data?.modo === 'LIQUIDACION' || this.data?.modo === 'FINIQUITO'
+      || this.data?.modo === 'AGUINALDO';
+    if (this.esRrhh) {
+      this.conceptoRrhh = this.data.modo as ConceptoRrhh;
+      this.seleccionSimple = true;
+      // El documento se paga entero: ni la liquidacion ni el finiquito ni el aguinaldo
+      // llevan saldo, entregar de menos deja una diferencia que nadie reclama despues.
+      this.montoEditable = false;
+      this.titulo = this.conceptoRrhh === 'LIQUIDACION' ? 'Pagar Liquidación'
+        : this.conceptoRrhh === 'FINIQUITO' ? 'Pagar Finiquito' : 'Pagar Aguinaldo';
+      this.tituloPlural = this.conceptoRrhh === 'LIQUIDACION' ? 'liquidaciones'
+        : this.conceptoRrhh === 'FINIQUITO' ? 'finiquitos' : 'aguinaldos';
+      this.displayedColumns = ['sel', 'id', 'funcionario', 'periodo', 'descripcion', 'saldo', 'montoAPagar'];
+      // Filtros de la tabla: N° / Funcionario (client-side sobre lo cargado).
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+    }
+    if (this.esVale) {
+      this.titulo = 'Pagar Vale';
+      this.montoEditable = false;
+      this.displayedColumns = ['sel', 'id', 'funcionario', 'motivo', 'descripcion', 'saldo', 'montoAPagar'];
+      this.motivoValeService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) this.motivoList = res;
+      });
+      // Autocomplete de funcionario por nombre (server-side).
+      this.nvFuncionarioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(val => {
+        if (typeof val === 'string' && val.trim().length >= 2) {
+          this.funcionarioService.onFuncionarioSearch(val.trim()).pipe(untilDestroyed(this))
+            .subscribe(r => this.funcionarioFiltrados = r || []);
+        } else if (typeof val !== 'string') { this.funcionarioFiltrados = []; }
+      });
+      // Filtros de la tabla: N° / Funcionario / Motivo (client-side sobre lo cargado).
+      this.filtroIdControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+      this.filtroCategoriaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
+    }
     if (this.esGasto) {
       this.titulo = 'Pagar Gasto';
       this.displayedColumns = ['sel', 'id', 'categoria', 'proveedor', 'descripcion', 'saldo', 'montoAPagar'];
@@ -215,7 +294,7 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       if (res) {
         this.monedaList = res;
         this.monedaPrincipal = res.find((m: any) => m.principal) || null;
-        if (this.esGasto && !this.ngMonedaControl.value) {
+        if ((this.esGasto || this.esVale) && !this.ngMonedaControl.value) {
           const gs = res.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || res[0];
           this.ngMonedaControl.setValue(gs);
           this.onNuevoGastoMonedaChange();
@@ -237,14 +316,68 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   cargar() {
     this.isLoading = true;
-    const fuente$ = this.esGasto
-      ? this.pagarComprasService.onGetGastosPendientes()
-      : this.pagarComprasService.onGetPendientes();
+    const fuente$ = this.esRrhh
+      ? (this.conceptoRrhh === 'LIQUIDACION' ? this.pagarComprasService.onGetLiquidacionesPendientes()
+        : this.conceptoRrhh === 'FINIQUITO' ? this.pagarComprasService.onGetFiniquitosPendientes()
+        : this.pagarComprasService.onGetAguinaldosPendientes())
+      : this.esVale
+        ? this.pagarComprasService.onGetValesPendientes()
+        : this.esGasto
+          ? this.pagarComprasService.onGetGastosPendientes()
+          : this.pagarComprasService.onGetPendientes();
     fuente$.pipe(untilDestroyed(this)).subscribe(res => {
       this.isLoading = false;
-      this.todas = (res || []).map((s: any) => this.toRow(s));
+      this.todas = (res || []).map((s: any) => this.esRrhh ? this.toRowRrhh(s)
+        : this.esVale ? this.toRowVale(s) : this.toRow(s));
       this.aplicarFiltro();
     });
+  }
+
+  /** Fila del modo VALES: el "N°" es el id del vale y el tercero es el funcionario. */
+  private toRowVale(v: any): SolicitudRow {
+    const saldo = v.saldoPendiente != null ? v.saldoPendiente : (v.monto || 0);
+    const nombre = v.funcionarioNombre || v.funcionario?.persona?.nombre || '—';
+    return {
+      id: v.id, numeroSolicitud: String(v.id),
+      proveedorId: v.funcionario?.id, proveedorNombre: nombre,
+      monedaId: v.moneda?.id, monedaSimbolo: v.moneda?.simbolo || '',
+      monedaDenominacion: v.moneda?.denominacion || '',
+      decimales: this.decimales(v.moneda), saldoPendiente: saldo,
+      _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(v.moneda),
+      _planCheques: [],
+      _descripcion: v.observacion || '',
+      _categoria: v.motivoDescripcion || v.motivo?.descripcion || '',
+      _esAdelanto: !!v.esAdelanto,
+      // Hay vales viejos sin moneda: sin ella no se sabe en qué moneda sale la plata.
+      _bloqueado: !v.moneda?.id,
+      _bloqueoMotivo: !v.moneda?.id ? 'Sin moneda definida: corregilo desde RRHH' : undefined,
+    };
+  }
+
+  /**
+   * Fila de los modos de RRHH. El "N°" es el id del documento y el tercero es el
+   * funcionario; el "periodo" ubica el documento (2026-07 en liquidacion, 2026 en aguinaldo).
+   */
+  private toRowRrhh(p: any): SolicitudRow {
+    const saldo = p.saldoPendiente != null ? p.saldoPendiente : (p.monto || 0);
+    const nombre = p.funcionarioNombre || p.funcionario?.persona?.nombre || '—';
+    const sinMoneda = !p.moneda?.id;
+    return {
+      id: p.id, numeroSolicitud: String(p.id),
+      proveedorId: p.funcionario?.id, proveedorNombre: nombre,
+      monedaId: p.moneda?.id, monedaSimbolo: p.moneda?.simbolo || '',
+      monedaDenominacion: p.moneda?.denominacion || '',
+      decimales: this.decimales(p.moneda), saldoPendiente: saldo,
+      _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(p.moneda),
+      _planCheques: [],
+      _descripcion: p.descripcion || '',
+      _categoria: p.periodo || '',
+      // Sin moneda no se sabe en que moneda sale la plata; saldo 0 no tiene nada que pagar.
+      _bloqueado: sinMoneda || saldo <= 0,
+      _bloqueoMotivo: sinMoneda
+        ? 'Sin moneda: falta configurar la moneda principal'
+        : (saldo <= 0 ? 'Sin saldo pendiente' : undefined),
+    };
   }
 
   private toRow(s: any): SolicitudRow {
@@ -285,6 +418,26 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
   }
 
   aplicarFiltro() {
+    if (this.esVale) {
+      const fid = (this.filtroIdControl.value || '').trim();
+      const ffun = (this.filtroProveedorControl.value || '').toUpperCase().trim();
+      const fmot = (this.filtroCategoriaControl.value || '').toUpperCase().trim();
+      this.dataSource.data = this.todas.filter(r =>
+        (!fid || String(r.id).includes(fid)) &&
+        (!ffun || (r.proveedorNombre || '').toUpperCase().includes(ffun)) &&
+        (!fmot || (r._categoria || '').toUpperCase().includes(fmot))
+      );
+      return;
+    }
+    if (this.esRrhh) {
+      const fid = (this.filtroIdControl.value || '').trim();
+      const ffun = (this.filtroProveedorControl.value || '').toUpperCase().trim();
+      this.dataSource.data = this.todas.filter(r =>
+        (!fid || String(r.id).includes(fid)) &&
+        (!ffun || (r.proveedorNombre || '').toUpperCase().includes(ffun))
+      );
+      return;
+    }
     if (this.esGasto) {
       const fid = (this.filtroIdControl.value || '').trim();
       const fcat = (this.filtroCategoriaControl.value || '').toUpperCase().trim();
@@ -357,10 +510,61 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // ── Alta de vale (misma vista que el alta de gasto; oculta el stepper) ──
+  abrirNuevoVale() {
+    if (!this.ngMonedaControl.value && this.monedaList.length) {
+      const gs = this.monedaList.find((m: any) => (m.denominacion || '').toUpperCase().includes('GUARANI')) || this.monedaList[0];
+      this.ngMonedaControl.setValue(gs);
+      this.onNuevoGastoMonedaChange();
+    }
+    this.vistaNuevoGasto = true;
+  }
+
+  crearVale() {
+    const funcionario: any = this.nvFuncionarioControl.value;
+    if (!funcionario || typeof funcionario === 'string' || !funcionario.id) {
+      this.notificacion.openAlgoSalioMal('Seleccioná un funcionario válido de la lista');
+      return;
+    }
+    const moneda: any = this.ngMonedaControl.value;
+    const monto = this.nvMontoControl.value;
+    if (!moneda || !monto || monto <= 0) {
+      this.notificacion.openAlgoSalioMal('Completá el monto y la moneda del vale');
+      return;
+    }
+    const input: ValeParaPagoInput = {
+      funcionarioId: funcionario.id,
+      motivoId: this.nvMotivoControl.value?.id || undefined,
+      monedaId: moneda.id,
+      monto,
+      esAdelanto: !!this.nvEsAdelantoControl.value,
+      observacion: (this.nvObservacionControl.value || '').trim() || undefined,
+    };
+    this.creandoGasto = true;
+    this.pagarComprasService.onCrearVale(input).pipe(untilDestroyed(this)).subscribe({
+      next: () => {
+        this.creandoGasto = false;
+        this.notificacion.openSucess('Vale registrado (pendiente de pago)');
+        this.nvFuncionarioControl.reset(); this.nvMotivoControl.reset();
+        this.nvMontoControl.reset(); this.nvObservacionControl.reset('');
+        this.nvEsAdelantoControl.setValue(true);
+        this.vistaNuevoGasto = false;   // volver al stepper con la tabla actualizada
+        this.cargar();
+      },
+      error: (err) => {
+        this.creandoGasto = false;
+        this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
+      }
+    });
+  }
+
   // ── Paso 1: selección (mismo proveedor + misma moneda) ──
   onToggle(row: SolicitudRow) {
-    if (row._disabled) return;
-    row._sel = !row._sel;
+    if (row._disabled || row._bloqueado) return;
+    const nuevo = !row._sel;
+    // Los modos de RRHH pagan de a uno: tildar una fila destilda cualquier otra.
+    if (this.seleccionSimple && nuevo) this.todas.forEach(r => r._sel = false);
+    row._sel = nuevo;
     this.recomputarSeleccion();
   }
 
@@ -368,15 +572,16 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     const sel = this.todas.filter(r => r._sel);
     if (sel.length === 0) {
       this.proveedorSel = null; this.proveedorNombreSel = ''; this.monedaDeuda = null;
-      this.todas.forEach(r => r._disabled = false);
+      this.todas.forEach(r => r._disabled = !!r._bloqueado);
       this.lineas = []; this._draftInit = false;
     } else {
       const primero = sel[0];
       this.proveedorSel = primero.proveedorId;
       this.proveedorNombreSel = primero.proveedorNombre;
       this.monedaDeuda = this.monedaList.find(m => m.id === primero.monedaId) || null;
-      // Compras: mismo proveedor + misma moneda. Gastos: solo misma moneda (beneficiario puede variar/faltar).
-      this.todas.forEach(r => r._disabled = !r._sel && (this.esGasto
+      // Compras: mismo proveedor + misma moneda. Gastos y vales: solo misma moneda
+      // (el beneficiario/funcionario puede variar o faltar).
+      this.todas.forEach(r => r._disabled = r._bloqueado || !r._sel && ((this.esGasto || this.esVale || this.esRrhh)
         ? r.monedaId !== primero.monedaId
         : (r.proveedorId !== primero.proveedorId || r.monedaId !== primero.monedaId)));
       if (this.monedaDeuda) this.getRateGs(this.monedaDeuda).pipe(untilDestroyed(this)).subscribe(); // warm cache
@@ -692,7 +897,18 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
     const pagos = this.distribuirFifo(sel);
     this.isSaving = true;
-    this.pagarComprasService.onPagarMixto(pagos).pipe(untilDestroyed(this)).subscribe({
+    // El modo VALES paga por valeId: el backend resuelve/crea la obligación de pago de cada vale
+    // (los vales que vienen del mobile nacen sin ella) y delega en el mismo motor de pago.
+    const pago$ = this.esRrhh
+      ? this.pagarComprasService.onPagarRrhhMixto(
+          pagos.map(p => ({
+            concepto: this.conceptoRrhh!, documentoId: p.solicitudId, lineas: p.lineas,
+          } as PagoRrhhConLineas)))
+      : this.esVale
+        ? this.pagarComprasService.onPagarValesMixto(
+            pagos.map(p => ({ valeId: p.solicitudId, lineas: p.lineas } as ValeConLineas)))
+        : this.pagarComprasService.onPagarMixto(pagos);
+    pago$.pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;
         if (res != null) { this.notificacion.openSucess('Pago registrado correctamente'); this.dialogRef.close(res); }

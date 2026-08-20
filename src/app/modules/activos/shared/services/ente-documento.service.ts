@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ConfiguracionService } from '../../../../shared/services/configuracion.service';
+import { urlsDeServidor } from '../../../../commons/core/utils/webEndpoints';
 
 @Injectable({ providedIn: 'root' })
 export class EnteDocumentoService {
@@ -10,7 +11,7 @@ export class EnteDocumentoService {
     const ip = cfg?.serverIp || 'localhost';
     const port = cfg?.serverPort || '8082';
     const nombre = encodeURIComponent(fileName);
-    return `http://${ip}:${port}/api/activos/documentos/${nombre}`;
+    return `${urlsDeServidor(ip, port).http}/api/activos/documentos/${nombre}`;
   }
 
   leerArchivoComoBase64(file: File): Promise<string> {

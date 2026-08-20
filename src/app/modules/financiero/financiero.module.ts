@@ -66,7 +66,6 @@ import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-
 import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent } from './caja-virtual/ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
 import { MaletinTesoreriaDialogComponent } from './maletin/maletin-tesoreria-dialog/maletin-tesoreria-dialog.component';
-import { RegistrarValeDialogComponent } from './caja-virtual/registrar-vale-dialog/registrar-vale-dialog.component';
 import { PagarComprasDialogComponent } from './caja-virtual/pagar-compras-dialog/pagar-compras-dialog.component';
 import { RegistrarEgresoDialogComponent } from './caja-virtual/registrar-egreso-dialog/registrar-egreso-dialog.component';
 import { ListCajaVirtualComponent } from './caja-virtual/list-caja-virtual/list-caja-virtual.component';
@@ -75,6 +74,9 @@ import { AddEntradaVariaDialogComponent } from './entrada-varia/add-entrada-vari
 import { ListEntradasVariasDialogComponent } from './entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from './operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from './operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
+import { DetallePagoDialogComponent } from './caja-virtual/detalle-pago-dialog/detalle-pago-dialog.component';
+import { GestionarAccesosCajaDialogComponent } from './caja-virtual/gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
+import { AjustarSaldoCuentaDialogComponent } from './cuenta-bancaria/ajustar-saldo-cuenta-dialog/ajustar-saldo-cuenta-dialog.component';
 import { ChequesDashboardComponent } from './cheque/cheques-dashboard/cheques-dashboard.component';
 import { EmitirChequeDialogComponent } from './cheque/emitir-cheque-dialog/emitir-cheque-dialog.component';
 import { EditChequeraDialogComponent } from './chequera/edit-chequera-dialog/edit-chequera-dialog.component';
@@ -144,7 +146,6 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     RegistrarIngresoDialogComponent,
     IngresarRetiroCajaMayorDialogComponent,
     MaletinTesoreriaDialogComponent,
-    RegistrarValeDialogComponent,
     PagarComprasDialogComponent,
     RegistrarEgresoDialogComponent,
     ListCajaVirtualComponent,
@@ -153,6 +154,9 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     ListEntradasVariasDialogComponent,
     AddOperacionFinancieraDialogComponent,
     OperacionFinancieraDetalleDialogComponent,
+    DetallePagoDialogComponent,
+    GestionarAccesosCajaDialogComponent,
+    AjustarSaldoCuentaDialogComponent,
     ChequesDashboardComponent,
     EmitirChequeDialogComponent,
     EditChequeraDialogComponent,

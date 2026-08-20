@@ -16,6 +16,7 @@ import { TabService, TabData } from '../../../../layouts/tab/tab.service';
 import { CajaVirtualDashboardComponent } from '../caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { MainService } from '../../../../main.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { GestionarAccesosCajaDialogComponent, GestionarAccesosCajaData } from '../gestionar-accesos-caja-dialog/gestionar-accesos-caja-dialog.component';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 
@@ -67,6 +68,7 @@ export class ListCajaVirtualComponent implements OnInit {
   activoControl = new FormControl();
 
   puedeGestionar = false;
+  esAdmin = false;
 
   constructor(
     private cajaVirtualService: CajaVirtualService,
@@ -80,6 +82,7 @@ export class ListCajaVirtualComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeGestionar = this.mainService.tieneAlgunRol([ROLES.TESORERIA_GESTIONAR]);
+    this.esAdmin = this.mainService.tieneAlgunRol([ROLES.ADMIN]);
     this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) this.sucursalList = res;
     });
@@ -99,7 +102,7 @@ export class ListCajaVirtualComponent implements OnInit {
         this.isSearching = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
+          this.dataSource.data = this.marcarAdminAccesos(res.getContent);
         }
       });
   }
@@ -118,6 +121,32 @@ export class ListCajaVirtualComponent implements OnInit {
       width: '500px',
       data: null
     }).afterClosed().subscribe(res => {
+      if (res != null) this.onFiltrar();
+    });
+  }
+
+  /**
+   * Administrar la lista de accesos: solo el responsable de la caja (quien la creó) o un
+   * ADMIN. El backend lo verifica igual — esconder la opción es comodidad, no seguridad.
+   *
+   * Se resuelve al cargar y no en el template: llamar funciones desde el HTML las re-evalúa
+   * en cada ciclo de change detection.
+   */
+  private marcarAdminAccesos(rows: any[]): any[] {
+    const yo = this.mainService.usuarioActual?.id;
+    // Clonar: Apollo congela los resultados y asignar props sobre ellos tira TypeError en dev.
+    return (rows || []).map(r => ({
+      ...r,
+      _puedeAdminAccesos: this.esAdmin || (!!yo && r?.usuario?.id === yo),
+    }));
+  }
+
+  onGestionarAccesos(item: CajaVirtual) {
+    const data: GestionarAccesosCajaData = { cajaVirtual: item };
+    this.dialog.open(GestionarAccesosCajaDialogComponent, {
+      width: '65vw', maxWidth: '95vw', height: '70vh', data
+    }).afterClosed().subscribe(res => {
+      // La transferencia de responsabilidad cambia quién puede administrar: recargar.
       if (res != null) this.onFiltrar();
     });
   }

@@ -1,0 +1,85 @@
+// App siempre en dark: nada de fondos claros.
+//
+// Cabecera con el patrón del resto de los diálogos del módulo (ver
+// ingresar-retiro-caja-mayor-dialog): título centrado en su línea, subtítulo naranja debajo,
+// y el cuerpo ocupando el alto restante para que las acciones queden abajo y no flotando.
+.gestionar-accesos-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 16px 4px;
+  box-sizing: border-box;
+}
+
+.titulo-dialog {
+  text-align: center;
+  margin: 4px 0 2px;
+  font-weight: 500;
+  font-size: 20px;
+  color: #fff;
+}
+
+.subtitulo-dialog {
+  text-align: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #ff9800;
+}
+
+.ga-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0;
+}
+
+.ga-acciones {
+  flex: 0 0 auto;
+  padding: 4px 0 0;
+}
+
+.ga-hint {
+  margin: 0 0 6px;
+  font-size: 0.82em;
+  opacity: 0.75;
+
+  &.ga-responsable { margin-bottom: 14px; }
+}
+
+.ga-alta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  .ga-buscador { flex: 1 1 320px; }
+  .ga-check { flex: 0 0 auto; }
+}
+
+.ga-cargando,
+.ga-vacio {
+  padding: 20px 4px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.ga-tabla-wrap { overflow-x: auto; }
+
+.ga-tabla {
+  width: 100%;
+  background: transparent;
+
+  th,
+  td { text-align: center; }        // centrado por default (convención del repo)
+
+  td { font-size: 0.86em; }
+}
+
+.ga-nick { opacity: 0.6; }
+
+.ga-si {
+  color: #81c784;
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+}

@@ -54,6 +54,11 @@ import {
   TransferenciaItemView,
 } from "../transferencia.model";
 import {
+  aplicarConfirmacion,
+  nombreEtapaDeOrigen,
+  puedeConfirmar,
+} from "../transferencia-item-confirmacion";
+import {
   SeleccionarLotesDialogComponent,
   SeleccionarLotesDialogData,
   SeleccionarLotesDialogResult,
@@ -1017,30 +1022,24 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onConfirm(item: TransferenciaItem) {
+    const etapa = this.selectedTransferencia?.etapa;
+
+    // Un item que no paso por la etapa anterior no tiene de donde copiar. Antes se guardaba el null
+    // igual y la fila quedaba en "Falta verificar" para siempre, sin decir por que.
+    if (!puedeConfirmar(item, etapa)) {
+      this.notificacionService.openWarn(
+        'Este producto no tiene datos de ' +
+          nombreEtapaDeOrigen(etapa) +
+          ', así que no se puede verificar. Si no llegó, corresponde rechazarlo.'
+      );
+      return;
+    }
+
     let newItem = new TransferenciaItem();
     item = Object.assign(newItem, item);
-    if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.PREPARACION_MERCADERIA
-    ) {
-      item.cantidadPreparacion = item.cantidadPreTransferencia;
-      item.presentacionPreparacion = item.presentacionPreTransferencia;
-      item.vencimientoPreparacion = item?.vencimientoPreTransferencia;
-    } else if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.TRANSPORTE_VERIFICACION
-    ) {
-      item.cantidadTransporte = item.cantidadPreparacion;
-      item.presentacionTransporte = item.presentacionPreparacion;
-      item.vencimientoTransporte = item?.vencimientoPreparacion;
-    } else if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.RECEPCION_EN_VERIFICACION
-    ) {
-      item.cantidadRecepcion = item.cantidadTransporte;
-      item.presentacionRecepcion = item.presentacionTransporte;
-      item.vencimientoRecepcion = item?.vencimientoTransporte;
-    }
+    item.usuario = item.usuario ?? this.mainService.usuarioActual;
+    aplicarConfirmacion(item, etapa);
+
     this.transferenciaService
       .onSaveTransferenciaItem(item.toInput())
       .pipe(untilDestroyed(this))
@@ -1058,32 +1057,13 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onDesconfirm(item: TransferenciaItem) {
-    let newItem = new TransferenciaItem();
-    item = Object.assign(newItem, item);
-    if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.PREPARACION_MERCADERIA
-    ) {
-      item.cantidadPreparacion = null;
-      item.presentacionPreparacion = null;
-      item.vencimientoPreparacion = null;
-    } else if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.TRANSPORTE_VERIFICACION
-    ) {
-      item.cantidadTransporte = null;
-      item.presentacionTransporte = null;
-      item.vencimientoTransporte = null;
-    } else if (
-      this.selectedTransferencia?.etapa ==
-      EtapaTransferencia.RECEPCION_EN_VERIFICACION
-    ) {
-      item.cantidadRecepcion = null;
-      item.presentacionRecepcion = null;
-      item.vencimientoRecepcion = null;
-    }
+    // Se limpia con una mutation dedicada: en saveTransferenciaItem la ausencia de un campo
+    // significa "no lo toques", asi que mandar nulls ya no vacia nada.
     this.transferenciaService
-      .onSaveTransferenciaItem(item.toInput())
+      .onDesconfirmarTransferenciaItem(
+        item.id,
+        this.selectedTransferencia?.etapa
+      )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
@@ -1166,6 +1146,10 @@ export class EditTransferenciaComponent implements OnInit {
       .subscribe((res) => {
         this.isDialogOpen = false;
         if (res?.item != null) {
+          // El dialogo devuelve la fila de la grilla, que puede venir sin usuario. Sin esto el input
+          // sale con usuarioId en null y el backend no lo puede guardar.
+          res["item"].usuario =
+            res["item"].usuario ?? this.mainService.usuarioActual;
           this.transferenciaService
             .onSaveTransferenciaItem(res["item"].toInput())
             .pipe(untilDestroyed(this))

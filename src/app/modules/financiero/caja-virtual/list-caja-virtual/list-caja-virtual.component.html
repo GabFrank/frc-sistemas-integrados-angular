@@ -109,6 +109,9 @@
             <button mat-menu-item (click)="onHistorial(row)">
               <mat-icon>history</mat-icon><span>Historial de movimientos</span>
             </button>
+            <button mat-menu-item (click)="onGestionarAccesos(row)" *ngIf="row._puedeAdminAccesos">
+              <mat-icon>group</mat-icon><span>Gestionar accesos</span>
+            </button>
             <button mat-menu-item (click)="onEdit(row)" [disabled]="!puedeGestionar">
               <mat-icon>edit</mat-icon><span>Editar</span>
             </button>

@@ -98,6 +98,9 @@
             <button mat-menu-item (click)="onVerMovimientos(row)">
               <mat-icon>receipt_long</mat-icon><span>Ver movimientos</span>
             </button>
+            <button mat-menu-item (click)="onAjustarSaldo(row)" [disabled]="!puedeGestionar">
+              <mat-icon>tune</mat-icon><span>Ajustar saldo</span>
+            </button>
             <button mat-menu-item (click)="onEdit(row)" [disabled]="!puedeGestionar">
               <mat-icon>edit</mat-icon><span>Editar</span>
             </button>

@@ -2,8 +2,58 @@
 
 <mat-dialog-content class="pagar-content">
 
+  <!-- ═══ Vista alta de vale (oculta el stepper) ═══ -->
+  <div *ngIf="vistaNuevoGasto && esVale" class="gasto-form-view">
+    <div class="gfv-header">Nuevo vale</div>
+    <div class="gfv-body" fxLayout="column" fxLayoutGap="14px">
+      <div fxLayout="row wrap" fxLayoutGap="16px">
+        <mat-form-field appearance="outline" fxFlex="1 1 320px">
+          <mat-label>Funcionario *</mat-label>
+          <input matInput [formControl]="nvFuncionarioControl" [matAutocomplete]="autoFunc" placeholder="Buscar por nombre" autocomplete="off" />
+          <mat-icon matSuffix>person_search</mat-icon>
+          <mat-autocomplete #autoFunc="matAutocomplete" [displayWith]="displayFuncionario">
+            <mat-option *ngFor="let f of funcionarioFiltrados" [value]="f">{{ f.persona?.nombre }}</mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="1 1 320px">
+          <mat-label>Motivo</mat-label>
+          <mat-select [formControl]="nvMotivoControl">
+            <mat-option [value]="null">—</mat-option>
+            <mat-option *ngFor="let m of motivoList" [value]="m">{{ m.descripcion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxLayout="row wrap" fxLayoutGap="16px">
+        <mat-form-field appearance="outline" fxFlex="180px">
+          <mat-label>Moneda *</mat-label>
+          <mat-select [formControl]="ngMonedaControl" (selectionChange)="onNuevoGastoMonedaChange()">
+            <mat-option *ngFor="let m of monedaList" [value]="m">{{ m.denominacion }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" fxFlex="220px">
+          <mat-label>Monto *</mat-label>
+          <input matInput currencyMask [options]="nuevoGastoCurrencyOpts" [formControl]="nvMontoControl" placeholder="0" />
+        </mat-form-field>
+        <mat-checkbox [formControl]="nvEsAdelantoControl" fxFlex="0 0 auto" class="chk-adelanto">Es adelanto de sueldo</mat-checkbox>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Observación</mat-label>
+        <input matInput [formControl]="nvObservacionControl" placeholder="Opcional" />
+      </mat-form-field>
+      <div class="hint">
+        <mat-icon>info</mat-icon> El vale queda <strong>pendiente de pago</strong>: la plata sale recién al confirmar el pago.
+      </div>
+    </div>
+    <div class="gfv-footer" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+      <button mat-stroked-button (click)="cerrarNuevoGasto()">Cancelar</button>
+      <button mat-raised-button color="primary" (click)="crearVale()" [disabled]="creandoGasto">
+        <mat-icon>save</mat-icon> Guardar vale
+      </button>
+    </div>
+  </div>
+
   <!-- ═══ Vista alta de gasto (oculta el stepper) ═══ -->
-  <div *ngIf="vistaNuevoGasto" class="gasto-form-view">
+  <div *ngIf="vistaNuevoGasto && !esVale" class="gasto-form-view">
     <div class="gfv-header">Nuevo gasto</div>
     <div class="gfv-body" fxLayout="column" fxLayoutGap="14px">
       <div fxLayout="row wrap" fxLayoutGap="16px">
@@ -60,10 +110,10 @@
 
     <!-- ═══ PASO 1: NOTAS ═══ -->
     <mat-step [completed]="haySeleccion">
-      <ng-template matStepLabel>Seleccionar notas</ng-template>
+      <ng-template matStepLabel>{{ esRrhh ? 'Seleccionar documento' : (esVale ? 'Seleccionar vales' : 'Seleccionar notas') }}</ng-template>
       <div class="paso">
         <!-- Compras: filtro por proveedor -->
-        <mat-form-field *ngIf="!esGasto" appearance="outline" class="filtro-prov" subscriptSizing="dynamic">
+        <mat-form-field *ngIf="!esGasto && !esVale && !esRrhh" appearance="outline" class="filtro-prov" subscriptSizing="dynamic">
           <mat-label>Filtrar por proveedor</mat-label>
           <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del proveedor" />
           <mat-icon matSuffix>search</mat-icon>
@@ -92,7 +142,38 @@
           </button>
         </div>
 
-        <div class="hint" *ngIf="proveedorNombreSel && !esGasto">
+        <!-- Vales: filtros de la tabla + botón Nuevo Vale a la derecha -->
+        <div *ngIf="esVale" class="gasto-filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+          <mat-form-field appearance="outline" fxFlex="0 0 80px" subscriptSizing="dynamic">
+            <mat-label>N°</mat-label>
+            <input matInput [formControl]="filtroIdControl" placeholder="Id" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Funcionario</mat-label>
+            <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del funcionario" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Motivo</mat-label>
+            <input matInput [formControl]="filtroCategoriaControl" placeholder="Motivo" />
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="button" fxFlex="0 0 auto" (click)="abrirNuevoVale()">
+            <mat-icon>add</mat-icon> Nuevo Vale
+          </button>
+        </div>
+
+        <!-- RRHH: filtros de la tabla. No hay alta: el documento nace aprobado en RRHH. -->
+        <div *ngIf="esRrhh" class="gasto-filtros" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+          <mat-form-field appearance="outline" fxFlex="0 0 80px" subscriptSizing="dynamic">
+            <mat-label>N°</mat-label>
+            <input matInput [formControl]="filtroIdControl" placeholder="Id" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" fxFlex="1 1 0" subscriptSizing="dynamic">
+            <mat-label>Funcionario</mat-label>
+            <input matInput [formControl]="filtroProveedorControl" placeholder="Nombre del funcionario" />
+          </mat-form-field>
+        </div>
+
+        <div class="hint" *ngIf="proveedorNombreSel && !esGasto && !esVale && !esRrhh">
           <mat-icon>info</mat-icon> Solo se pueden sumar notas de <strong>{{ proveedorNombreSel }}</strong> en {{ monedaDeuda?.denominacion }}.
         </div>
 
@@ -101,7 +182,7 @@
             <ng-container matColumnDef="sel">
               <th mat-header-cell *matHeaderCellDef style="width: 44px;"></th>
               <td mat-cell *matCellDef="let row" style="text-align: center;">
-                <mat-checkbox [checked]="row._sel" [disabled]="row._disabled" (change)="onToggle(row)"></mat-checkbox>
+                <mat-checkbox [checked]="row._sel" [disabled]="row._disabled || row._bloqueado" [title]="row._bloqueoMotivo || ''" (change)="onToggle(row)"></mat-checkbox>
               </td>
             </ng-container>
             <ng-container matColumnDef="proveedor">
@@ -120,6 +201,25 @@
               <th mat-header-cell *matHeaderCellDef style="text-align: left;">Descripción</th>
               <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled" [title]="row._descripcion">{{ row._descripcion || '—' }}</td>
             </ng-container>
+            <ng-container matColumnDef="funcionario">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Funcionario</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled">{{ row.proveedorNombre }}</td>
+            </ng-container>
+            <ng-container matColumnDef="motivo">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left;">Motivo</th>
+              <td mat-cell *matCellDef="let row" style="text-align: left;" [class.dim]="row._disabled">
+                {{ row._categoria || '—' }}
+                <span class="chip-adelanto" *ngIf="row._esAdelanto">adelanto</span>
+                <span class="chip-bloqueado" *ngIf="row._bloqueado" [title]="row._bloqueoMotivo">sin moneda</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="periodo">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;">Período</th>
+              <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">
+                {{ row._categoria || '—' }}
+                <span class="chip-bloqueado" *ngIf="row._bloqueado" [title]="row._bloqueoMotivo">sin saldo</span>
+              </td>
+            </ng-container>
             <ng-container matColumnDef="numero">
               <th mat-header-cell *matHeaderCellDef style="text-align: center;">Solicitud</th>
               <td mat-cell *matCellDef="let row" style="text-align: center;" [class.dim]="row._disabled">{{ row.numeroSolicitud }}</td>
@@ -136,20 +236,25 @@
               <th mat-header-cell *matHeaderCellDef style="text-align: right;">Monto a pagar</th>
               <td mat-cell *matCellDef="let row" style="text-align: right;">
                 <mat-form-field appearance="outline" class="monto-input" subscriptSizing="dynamic">
-                  <input matInput currencyMask [options]="row._currencyOpts" [(ngModel)]="row._montoAPagar" [disabled]="!row._sel" (ngModelChange)="onMontoNotaChange()" />
+                  <input matInput currencyMask [options]="row._currencyOpts" [(ngModel)]="row._montoAPagar" [disabled]="!row._sel || !montoEditable" (ngModelChange)="onMontoNotaChange()" />
                 </mat-form-field>
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
-          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">{{ esGasto ? 'No hay gastos pendientes. Creá uno con "Nuevo gasto".' : 'No hay solicitudes de pago pendientes.' }}</div>
+          <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">
+            <ng-container *ngIf="esVale && !esRrhh">No hay vales pendientes de pago. Creá uno con "Nuevo Vale".</ng-container>
+            <ng-container *ngIf="esGasto">No hay gastos pendientes. Creá uno con "Nuevo gasto".</ng-container>
+            <ng-container *ngIf="esRrhh">No hay {{ tituloPlural }} pendientes de pago. Se aprueban desde RRHH.</ng-container>
+            <ng-container *ngIf="!esVale && !esGasto && !esRrhh">No hay solicitudes de pago pendientes.</ng-container>
+          </div>
         </div>
 
         <div class="tabla-footer">
           <div class="mini-cards" *ngIf="haySeleccion">
             <div class="mini-card">
-              <span class="mc-label">Notas</span>
+              <span class="mc-label">{{ esRrhh ? tituloPlural : (esVale ? 'Vales' : 'Notas') }}</span>
               <strong class="mc-valor">{{ cantidadNotas }}</strong>
             </div>
             <div class="mini-card">
@@ -347,11 +452,11 @@
       <ng-template matStepLabel>Revisar y confirmar</ng-template>
       <div class="paso revisar">
         <div class="rev-card">
-          <div class="rev-titulo">{{ esGasto ? 'Beneficiario' : 'Proveedor' }}</div>
+          <div class="rev-titulo">{{ (esVale || esRrhh) ? 'Funcionario' : (esGasto ? 'Beneficiario' : 'Proveedor') }}</div>
           <div class="rev-valor">{{ proveedorNombreSel }}</div>
         </div>
         <div class="rev-card">
-          <div class="rev-titulo">Notas ({{ monedaDeuda?.denominacion }})</div>
+          <div class="rev-titulo">{{ esRrhh ? tituloPlural : (esVale ? 'Vales' : 'Notas') }} ({{ monedaDeuda?.denominacion }})</div>
           <div class="rev-linea" *ngFor="let r of todas">
             <ng-container *ngIf="r._sel">
               <span>{{ r.numeroSolicitud }}</span>

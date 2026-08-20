@@ -9,7 +9,8 @@ import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService } from '../../../../layouts/tab/tab.service';
 import { ListValeComponent } from '../../../rrhh/vale/list-vale/list-vale.component';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
-         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion } from '../caja-virtual.model';
+         CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
+         labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
@@ -22,6 +23,7 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../entrada-varia/add-entrada-varia-dialog/add-entrada-varia-dialog.component';
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
+import { DetallePagoDialogComponent, DetallePagoDialogData } from '../detalle-pago-dialog/detalle-pago-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
@@ -32,6 +34,7 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 // Fila de la tabla de movimientos con campos de display precalculados.
 interface MovimientoRow extends MovimientoCajaVirtual {
+  _label?: string;          // concepto real del movimiento (del origenTipo, no del tipo grueso)
   _color?: string;          // color saturado del chip (fondo)
   _colorTexto?: string;     // color claro del monto (texto sobre fondo oscuro)
   _anulable?: boolean;
@@ -248,13 +251,24 @@ export class CajaVirtualDashboardComponent implements OnInit {
   }
 
   private toRow(m: MovimientoCajaVirtual): MovimientoRow {
-    const row = m as MovimientoRow;
+    // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
+    // asignar sobre el objeto devuelto tira TypeError (mismo patron que cheques-dashboard).
+    const row = { ...m } as MovimientoRow;
+    // Concepto real del movimiento: sale del origen, no del tipo grueso (ver caja-virtual.model).
+    row._label = labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels);
     row._color = this.tipoColores[m.tipoMovimiento as any] || '#607d8b';
     row._colorTexto = this.tipoColoresTexto[m.tipoMovimiento as any] || '#b0bec5';
     const nav = this.origenNav[m.origenTipo as any];
-    row._verOrigen = !!nav;
-    row._origenLabel = nav?.label;
-    row._origenIcon = nav?.icon;
+    // Un pago del motor ofrece su desglose; si no, se cae al registro por origen.
+    if (m.esPagoConsolidado && m.referenciaId) {
+      row._verOrigen = true;
+      row._origenLabel = 'Ver detalle del pago';
+      row._origenIcon = 'receipt_long';
+    } else {
+      row._verOrigen = !!nav;
+      row._origenLabel = nav?.label;
+      row._origenIcon = nav?.icon;
+    }
     row._anulable = this.puedeGestionar
       && m.tipoMovimiento !== CajaVirtualTipoMovimiento.AJUSTE
       && m.activo !== false;
@@ -385,15 +399,36 @@ export class CajaVirtualDashboardComponent implements OnInit {
     },
   };
 
+
+  /**
+   * Desglose de un evento de pago, abierto desde su movimiento en la caja.
+   *
+   * Un evento que paga N documentos postea UN movimiento consolidado, cuya descripción no puede
+   * nombrarlos a todos (ver PagoProveedorService.etiquetaDe). El movimiento lleva
+   * referenciaId = pago.id, y el backend marca cuáles son de un pago con esPagoConsolidado.
+   */
+  private abrirDetallePago(row: MovimientoRow) {
+    if (!row.referenciaId) return;
+    const data: DetallePagoDialogData = { pagoId: row.referenciaId, descripcion: row.descripcion };
+    this.dialog.open(DetallePagoDialogComponent, {
+      width: '65vw', maxWidth: '95vw', height: '70vh', data,
+    });
+  }
+
   irAlOrigen(row: MovimientoRow) {
+    if (row.esPagoConsolidado && row.referenciaId) return this.abrirDetallePago(row);
     this.origenNav[row.origenTipo as any]?.open(row);
   }
 
   onAnular(mov: MovimientoCajaVirtual) {
     if (!mov?.id) return;
     const esOpFinanciera = mov.origenTipo === 'OPERACION_FINANCIERA' && !!mov.referenciaId;
-    // El movimiento consolidado del pago CPP lleva referenciaId = origenId = pago.id (el evento).
-    const esPagoCpp = mov.origenTipo === 'PAGO_CPP' && !!mov.referenciaId;
+    // El movimiento consolidado del pago lleva referenciaId = origenId = pago.id (el evento).
+    //
+    // Se pregunta por esPagoConsolidado y NO por el origenTipo: desde que el movimiento lleva el
+    // concepto real (gasto, vale, liquidación…), el origen ya no distingue un pago del motor de
+    // un egreso directo del módulo — los de RRHH usan el mismo valor para las dos cosas.
+    const esPagoCpp = !!mov.esPagoConsolidado && !!mov.referenciaId;
 
     let titulo: string, mensaje: string, exito: string;
     if (esPagoCpp) {
