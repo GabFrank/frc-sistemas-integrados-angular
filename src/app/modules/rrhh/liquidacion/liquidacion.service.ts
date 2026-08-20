@@ -9,6 +9,7 @@ import { LiquidacionItemsGQL } from './graphql/LiquidacionItems';
 import { GenerarBorradorGQL } from './graphql/GenerarBorrador';
 import { GenerarMesGQL } from './graphql/GenerarMes';
 import { GenerarLoteGQL } from './graphql/GenerarLote';
+import { ConceptosParaItemManualGQL } from './graphql/ConceptosParaItemManual';
 import { AgregarItemGQL } from './graphql/AgregarItem';
 import { EditarItemGQL } from './graphql/EditarItem';
 import { EliminarItemGQL } from './graphql/EliminarItem';
@@ -32,6 +33,7 @@ export class LiquidacionService {
     private generarMesGQL: GenerarMesGQL,
     private generarLoteGQL: GenerarLoteGQL,
     private agregarItemGQL: AgregarItemGQL,
+    private conceptosParaItemManualGQL: ConceptosParaItemManualGQL,
     private editarItemGQL: EditarItemGQL,
     private eliminarItemGQL: EliminarItemGQL,
     private aprobarLiquidacionGQL: AprobarLiquidacionGQL,
@@ -77,8 +79,21 @@ export class LiquidacionService {
     return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor);
   }
 
-  onAgregarItem(liquidacionId: number, descripcion: string, monto: number, tipo: string, servidor = true): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.agregarItemGQL, { liquidacionId, descripcion, monto, tipo }, servidor);
+  onAgregarItem(liquidacionId: number, descripcion: string, monto: number, tipo: string,
+                liquidacionConceptoId: number = null, servidor = true): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.agregarItemGQL,
+      { liquidacionId, descripcion, monto, tipo, liquidacionConceptoId }, servidor);
+  }
+
+  /**
+   * Catalogo de operaciones para el item manual.
+   *
+   * servidor=true es obligatorio: ese flag elige el cliente Apollo, y con false la query
+   * sale por el cliente por defecto en vez del central. silentLoad evita el dialogo de
+   * "Buscando..." — es una carga de fondo, no una accion del usuario.
+   */
+  onGetConceptosParaItemManual(servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.conceptosParaItemManualGQL, {}, servidor, null, true);
   }
 
   onEditarItem(itemId: number, descripcion: string, monto: number, tipo: string, usuarioId: number, servidor = true): Observable<any> {
