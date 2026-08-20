@@ -9,7 +9,7 @@
       <div class="form-section">
         <!-- Row 1: Cantidad y Precio -->
         <div fxLayout="row" fxLayout.lt-sm="column" fxLayoutGap="16px">
-          <div fxFlex="30" fxFlex.lt-sm="100">
+          <div [fxFlex]="mostrarMonedaExtranjera ? 30 : 50" fxFlex.lt-sm="100">
             <mat-form-field class="full-width">
               <mat-label>Cantidad</mat-label>
               <input 
@@ -22,7 +22,7 @@
               />
             </mat-form-field>
           </div>
-          <div fxFlex="35" fxFlex.lt-sm="100">
+          <div [fxFlex]="mostrarMonedaExtranjera ? 35 : 50" fxFlex.lt-sm="100">
             <mat-form-field class="full-width">
               <mat-label>Precio Unitario (Gs)</mat-label>
               <input 
@@ -61,7 +61,19 @@
               formControlName="descripcion"
               autocomplete="off"
               oninput="this.value == ' ' ? this.value = '': null"
+              (keydown.enter)="$event.preventDefault(); buscarProducto()"
+              (click)="buscarProductoSiVacio()"
             />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              matTooltip="Buscar producto"
+              [disabled]="formGroup.disabled"
+              (click)="buscarProducto()"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
           </mat-form-field>
         </div>
         
