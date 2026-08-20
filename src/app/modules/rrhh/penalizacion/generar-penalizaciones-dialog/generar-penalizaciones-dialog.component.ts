@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 /** Rango elegido, devuelto al cerrar. */
 export interface RangoPenalizaciones {
@@ -15,6 +16,7 @@ export interface RangoPenalizaciones {
  * pasadas manuales. La generacion es idempotente por jornada, no por fecha: re-correr un
  * rango que se solapa con otro ya procesado no duplica nada.
  */
+@UntilDestroy()
 @Component({
   selector: 'app-generar-penalizaciones-dialog',
   templateUrl: './generar-penalizaciones-dialog.component.html',
@@ -31,7 +33,7 @@ export class GenerarPenalizacionesDialogComponent {
 
   /** Precalculado: el template no llama funciones (convencion del repo). */
   error = '';
-  cantidadDias = 1;
+  cantidadDias = 0;
 
   constructor(private dialogRef: MatDialogRef<GenerarPenalizacionesDialogComponent>) {
     // Por defecto el dia anterior en ambos extremos: lo normal sigue siendo procesar la
@@ -40,8 +42,11 @@ export class GenerarPenalizacionesDialogComponent {
     const ayer = new Date(h.getFullYear(), h.getMonth(), h.getDate() - 1);
     this.desdeControl.setValue(ayer);
     this.hastaControl.setValue(ayer);
-    this.desdeControl.valueChanges.subscribe(() => this.recalcular());
-    this.hastaControl.valueChanges.subscribe(() => this.recalcular());
+    this.desdeControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
+    this.hastaControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
+    // Se calcula al abrir y no se deja hardcodeado: si manana cambia el rango por defecto,
+    // el cartel diria "1 dia" sobre un rango de siete hasta que el usuario toque una fecha.
+    this.recalcular();
   }
 
   private recalcular() {
