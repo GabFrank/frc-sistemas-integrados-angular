@@ -119,6 +119,14 @@
   <footer class="dialog-footer">
           <button
             mat-raised-button
+      color="warn"
+      class="btn-accion"
+            (click)="onCancel()"
+          >
+            Cancelar
+          </button>
+          <button
+            mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
       class="btn-accion"
@@ -129,14 +137,6 @@
             "
           >
             {{ isEditting ? "Guardar" : "Editar" }}
-          </button>
-          <button
-            mat-raised-button
-      color="warn"
-      class="btn-accion"
-            (click)="onCancel()"
-          >
-            Cancelar
           </button>
   </footer>
 </div>
