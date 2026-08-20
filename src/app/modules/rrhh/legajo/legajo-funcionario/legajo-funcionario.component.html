@@ -35,6 +35,9 @@
         [value]="(puntuacionAsistencia | number:'1.1-1') + ' / 10'" label="Puntuación asistencia"></dash-stat-chip>
       <dash-stat-chip class="clickable" (click)="onVerMetas()" icon="flag" color="warning"
         [value]="metasLogradas + ' / ' + metasTotal" label="Metas y objetivos del mes"></dash-stat-chip>
+      <!-- A diferencia de los tres de arriba, este NO es placeholder: sale del backend. -->
+      <dash-stat-chip icon="gavel" [color]="advertencias > 0 ? 'danger' : 'success'"
+        [value]="advertencias" label="Amonestaciones"></dash-stat-chip>
     </div>
 
     <!-- Accesos rápidos -->
