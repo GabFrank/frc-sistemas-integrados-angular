@@ -17,6 +17,7 @@ const cajaVirtualFields = `
   }
   usuario {
     id
+    nickname
     persona {
       id
       nombre
@@ -171,9 +172,11 @@ const movimientoFields = `
   }
   referenciaId
   origenTipo
+  esPagoConsolidado
   descripcion
   usuario {
     id
+    nickname
     persona {
       id
       nombre
@@ -275,5 +278,51 @@ export const realizarTransferenciaQuery = gql`
       descripcion: $descripcion
       usuarioId: $usuarioId
     )
+  }
+`;
+
+// ── Acceso por caja (ACL) ──
+// El rol habilita la capacidad, estas filas delimitan sobre que cajas. El responsable de la
+// caja tiene acceso total implicito y NO aparece en la lista: es quien la administra.
+export const cajaVirtualAccesosQuery = gql`
+  query ($cajaVirtualId: ID!) {
+    data: cajaVirtualAccesos(cajaVirtualId: $cajaVirtualId) {
+      id
+      puedeLeer
+      puedeEscribir
+      creadoEn
+      usuario { id nickname persona { id nombre } }
+      otorgadoPor { id nickname }
+    }
+  }
+`;
+
+export const otorgarAccesoCajaMutation = gql`
+  mutation ($cajaVirtualId: ID!, $usuarioId: ID!, $puedeLeer: Boolean, $puedeEscribir: Boolean) {
+    data: otorgarAccesoCaja(
+      cajaVirtualId: $cajaVirtualId, usuarioId: $usuarioId,
+      puedeLeer: $puedeLeer, puedeEscribir: $puedeEscribir
+    ) {
+      id
+      puedeLeer
+      puedeEscribir
+      usuario { id nickname persona { id nombre } }
+    }
+  }
+`;
+
+export const revocarAccesoCajaMutation = gql`
+  mutation ($cajaVirtualId: ID!, $usuarioId: ID!) {
+    data: revocarAccesoCaja(cajaVirtualId: $cajaVirtualId, usuarioId: $usuarioId)
+  }
+`;
+
+export const transferirPropiedadCajaMutation = gql`
+  mutation ($cajaVirtualId: ID!, $nuevoPropietarioId: ID!) {
+    data: transferirPropiedadCaja(cajaVirtualId: $cajaVirtualId, nuevoPropietarioId: $nuevoPropietarioId) {
+      id
+      nombre
+      usuario { id nickname persona { id nombre } }
+    }
   }
 `;

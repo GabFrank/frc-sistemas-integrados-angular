@@ -3,10 +3,15 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { PageEvent } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { CajaVirtual, MovimientoCajaVirtual } from '../caja-virtual.model';
+import { CajaVirtual, MovimientoCajaVirtual, labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
 import { PageInfo } from '../../../../app.component';
 import { FormControl, FormGroup } from '@angular/forms';
+
+/** Fila con el concepto ya resuelto (no se calcula en el template). */
+interface MovimientoRow extends MovimientoCajaVirtual {
+  _label?: string;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -16,7 +21,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 })
 export class HistorialMovimientosCajaVirtualComponent implements OnInit {
 
-  dataSource = new MatTableDataSource<MovimientoCajaVirtual>([]);
+  dataSource = new MatTableDataSource<MovimientoRow>([]);
   isSearching = false;
   pageIndex = 0;
   pageSize = 20;
@@ -89,7 +94,15 @@ export class HistorialMovimientosCajaVirtualComponent implements OnInit {
     this.isSearching = false;
     if (res != null) {
       this.selectedPageInfo = res;
-      this.dataSource.data = res.getContent;
+      // Concepto real del movimiento, precomputado: sale del origen y no del tipo grueso
+      // (ver caja-virtual.model). Se resuelve acá y no en el template para no recalcularlo
+      // en cada ciclo de change detection.
+      // Clonar antes de agregar props de display: Apollo congela los resultados y en dev
+      // asignar sobre el objeto devuelto tira TypeError.
+      this.dataSource.data = (res.getContent || []).map(m => ({
+        ...m,
+        _label: labelMovimiento(m.origenTipo, m.tipoMovimiento, this.tipoMovimientoLabels),
+      } as MovimientoRow));
     }
   }
 

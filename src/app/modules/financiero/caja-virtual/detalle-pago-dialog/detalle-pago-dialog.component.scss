@@ -1,0 +1,89 @@
+// Detalle read-only del evento de pago. App siempre en dark: nada de fondos claros.
+//
+// Cabecera con el patrón del resto de los diálogos del módulo (ver
+// ingresar-retiro-caja-mayor-dialog): título centrado en su línea, subtítulo naranja debajo,
+// y el cuerpo ocupando el alto restante para que las acciones queden abajo y no flotando.
+.detalle-pago-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 16px 4px;
+  box-sizing: border-box;
+}
+
+.titulo-dialog {
+  text-align: center;
+  margin: 4px 0 2px;
+  font-weight: 500;
+  font-size: 20px;
+  color: #fff;
+}
+
+.subtitulo-dialog {
+  text-align: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #ff9800;
+}
+
+.dp-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0;
+}
+
+.dp-acciones {
+  flex: 0 0 auto;
+  padding: 4px 0 0;
+}
+
+.dp-cargando,
+.dp-vacio {
+  padding: 24px 4px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.dp-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dp-chip {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #424242;
+  font-size: 0.8em;
+
+  &.dp-total { font-weight: 600; }
+
+  em {
+    font-style: normal;
+    opacity: 0.7;
+    font-weight: 400;
+  }
+}
+
+// La tabla puede ser ancha: scrollea dentro del diálogo, no empuja el layout.
+.dp-tabla-wrap { overflow-x: auto; }
+
+.dp-tabla {
+  width: 100%;
+  background: transparent;
+
+  th,
+  td { text-align: center; }        // centrado por default (convención del repo)
+
+  td { font-size: 0.86em; }
+}
+
+.dp-estado {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #5d4037;
+  font-size: 0.78em;
+
+  &.saldado { background: #2e7d32; }
+}

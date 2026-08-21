@@ -10,6 +10,10 @@ import { CajaVirtualesPorTipoGQL } from './graphql/cajaVirtualesPorTipo';
 import { CajaVirtualesActivasGQL } from './graphql/cajaVirtualesActivas';
 import { SaveCajaVirtualGQL } from './graphql/saveCajaVirtual';
 import { DeleteCajaVirtualGQL } from './graphql/deleteCajaVirtual';
+import { CajaVirtualAccesosGQL } from './graphql/cajaVirtualAccesos';
+import { OtorgarAccesoCajaGQL } from './graphql/otorgarAccesoCaja';
+import { RevocarAccesoCajaGQL } from './graphql/revocarAccesoCaja';
+import { TransferirPropiedadCajaGQL } from './graphql/transferirPropiedadCaja';
 import { SaveMovimientoCajaVirtualGQL } from './graphql/saveMovimientoCajaVirtual';
 import { MovimientosCajaVirtualGQL, MovimientosCajaVirtualPorFechaGQL } from './graphql/movimientosCajaVirtual';
 import { RealizarTransferenciaCajaVirtualGQL } from './graphql/realizarTransferenciaCajaVirtual';
@@ -43,7 +47,33 @@ export class CajaVirtualService {
     private movimientosFilterGQL: MovimientosCajaVirtualFilterGQL,
     private configuracionGQL: CajaVirtualConfiguracionGQL,
     private saveConfiguracionGQL: SaveCajaVirtualConfiguracionGQL,
+    private accesosGQL: CajaVirtualAccesosGQL,
+    private otorgarAccesoGQL: OtorgarAccesoCajaGQL,
+    private revocarAccesoGQL: RevocarAccesoCajaGQL,
+    private transferirPropiedadGQL: TransferirPropiedadCajaGQL,
   ) { }
+
+  // ── Acceso por caja (ACL) ──
+  // Solo el responsable de la caja (o un ADMIN) puede consultar y modificar esta lista;
+  // el backend lo verifica, el front solo esconde la opcion.
+
+  onGetAccesos(cajaVirtualId: number): Observable<any> {
+    return this.genericService.onCustomQuery(this.accesosGQL, { cajaVirtualId });
+  }
+
+  onOtorgarAcceso(cajaVirtualId: number, usuarioId: number, puedeLeer: boolean, puedeEscribir: boolean): Observable<any> {
+    return this.genericService.onSaveCustom(this.otorgarAccesoGQL, {
+      cajaVirtualId, usuarioId, puedeLeer, puedeEscribir,
+    });
+  }
+
+  onRevocarAcceso(cajaVirtualId: number, usuarioId: number): Observable<any> {
+    return this.genericService.onSaveCustom(this.revocarAccesoGQL, { cajaVirtualId, usuarioId });
+  }
+
+  onTransferirPropiedad(cajaVirtualId: number, nuevoPropietarioId: number): Observable<any> {
+    return this.genericService.onSaveCustom(this.transferirPropiedadGQL, { cajaVirtualId, nuevoPropietarioId });
+  }
 
   onGetAll(page = 0, size = 10): Observable<PageInfo<CajaVirtual>> {
     return this.genericService.onCustomQuery(this.cajaVirtualesGQL, { page, size });

@@ -76,6 +76,8 @@ export class MovimientoCajaVirtual {
   moneda: Moneda;
   referenciaId: number;
   origenTipo: string;
+  /** true si el movimiento es el asiento de un evento de pago (lo resuelve el backend). */
+  esPagoConsolidado: boolean;
   descripcion: string;
   usuario: Usuario;
   cajaOrigen: CajaVirtual;
@@ -145,4 +147,50 @@ export interface CajaVirtualConfiguracionInput {
   operacionesFinancierasHabilitado?: boolean;
   cuentasBancariasVisiblesIds?: number[];
   cuentasBancariasOrden?: string;
+}
+
+/**
+ * Etiqueta del concepto real de un movimiento de caja.
+ *
+ * El `tipoMovimiento` es grueso (INGRESO / EGRESO / PAGO_PROVEEDOR / ...): un pago de
+ * gasto, uno de compra y uno de liquidacion de sueldo salen todos iguales. El `origenTipo`
+ * (que el backend ya persiste en cada movimiento) sí dice de qué se trata, y es lo que se
+ * muestra. Solo cuando el origen no aporta nada — MANUAL, o ausente en movimientos viejos —
+ * se cae al `tipoMovimiento`.
+ */
+export const ORIGEN_MOVIMIENTO_LABELS: Record<string, string> = {
+  ANULACION: 'Anulación',
+  RRHH_VALE: 'Vale',
+  RRHH_PRESTAMO: 'Préstamo',
+  RRHH_AGUINALDO: 'Aguinaldo',
+  RRHH_LIQUIDACION_SUELDO: 'Liquidación',
+  RRHH_LIQUIDACION_FINAL: 'Finiquito',
+  RETIRO_CAJA: 'Retiro de PDV',
+  VENTA_CREDITO_COBRO: 'Cobro de crédito',
+  DEVOLUCION: 'Devolución',
+  GASTO: 'Gasto',
+  ENTRADA_VARIA: 'Entrada varia',
+  OPERACION_FINANCIERA: 'Operación financiera',
+  PAGO_CPP: 'Compra',
+  CHEQUE: 'Cheque',
+  ACREDITACION_POS: 'Acreditación POS',
+  MALETIN: 'Maletín',
+};
+
+/**
+ * Etiqueta a mostrar para un movimiento. `fallback` es el mapa de `tipoMovimiento` del
+ * componente (cada uno tiene el suyo).
+ *
+ * El color NO se deriva del origen a proposito: se sigue tomando del `tipoMovimiento`, que
+ * codifica la direccion de la plata (verde entra / rojo sale) y cuyas variantes de texto
+ * estan verificadas con contraste WCAG AA. Inventar 16 colores nuevos rompería las dos cosas.
+ */
+export function labelMovimiento(
+  origenTipo: string | null | undefined,
+  tipoMovimiento: string | null | undefined,
+  fallback: Record<string, string>
+): string {
+  const porOrigen = origenTipo ? ORIGEN_MOVIMIENTO_LABELS[origenTipo] : null;
+  if (porOrigen) return porOrigen;
+  return (tipoMovimiento && fallback[tipoMovimiento]) || tipoMovimiento || '';
 }
