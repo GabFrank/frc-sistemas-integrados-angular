@@ -476,9 +476,12 @@
               fxLayoutGap="20px"
               fxLayoutAlign="center center"
             >
-              <mat-card appearance="outlined" fxFlex="40%">
-                <div style="text-align: center">
-                  <h4>Item</h4>
+              <mat-card appearance="outlined" fxFlex>
+                <div
+                  *ngIf="cargandoItems"
+                  style="text-align: center; padding: 16px"
+                >
+                  Cargando ítems...
                 </div>
                 <table
                   mat-table
@@ -534,28 +537,17 @@
                   ></tr>
                   <tr
                     mat-row
-                    *matRowDef="
-                      let row;
-                      columns: facturaItemColumnsToDisplay;
-                      let facturaItemIndex = index
-                    "
-                    (click)="onEditFacturaItem(row, facturaItemIndex)"
+                    *matRowDef="let row; columns: facturaItemColumnsToDisplay"
                   ></tr>
                 </table>
-                <br />
-                <div style="width: 100%; text-align: center">
-                  <button
-                    mat-fab
-                    color="primary"
-                    aria-label="adicionar facturaItem"
-                    (click)="
-                      selectedFacturaItem = null; onAddFacturaItem(factura, i)
-                    "
-                    type="button"
-                  >
-                    <mat-icon>add</mat-icon>
-                  </button>
-                </div>
+                <mat-paginator
+                  *ngIf="totalItemsFactura > facturaItemPageSize"
+                  [length]="totalItemsFactura"
+                  [pageSize]="facturaItemPageSize"
+                  [pageIndex]="facturaItemPageIndex"
+                  [hidePageSize]="true"
+                  (page)="onPageItems($event)"
+                ></mat-paginator>
               </mat-card>
             </div>
           </div>
@@ -569,10 +561,7 @@
         class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
         [class.heightLight]="expandedElement === element"
-        (click)="
-          expandedElement = expandedElement === element ? null : element;
-          facturaItemDataSource.data = element.facturaItemList
-        "
+        (click)="onToggleExpand(element)"
       ></tr>
       <tr
         mat-row
@@ -581,6 +570,7 @@
       ></tr>
     </table>
     <mat-paginator
+      #paginadorFacturas
       itemsPerPageLabel="Itens por pagina"
       [pageSizeOptions]="[15, 25, 50, 100]"
       (page)="handlePageEvent($event)"

@@ -74,6 +74,13 @@
   h4 {
     margin: 0;
   }
+
+  // Cancelar e Imprimir viven en esta fila junto a "+ Producto", no en un
+  // footer al pie: el min-width de 200px que usaban ahi es demasiado aca.
+  .btn-accion {
+    min-width: 130px;
+    height: 42px;
+  }
 }
 
 .productos-table-container {
@@ -135,18 +142,6 @@
   }
 }
 
-.dialog-footer {
-  padding: 16px 0 0;
-  display: flex;
-  justify-content: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.btn-accion {
-  min-width: 200px;
-  height: 40px;
-}
-
 .btn-agregar-producto {
   height: 42px;
 }
@@ -166,9 +161,5 @@ input {
 
   .totales-grid {
     flex-direction: column;
-  }
-
-  .dialog-footer {
-    padding-top: 12px;
   }
 }

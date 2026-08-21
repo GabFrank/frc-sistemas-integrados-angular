@@ -54,7 +54,10 @@ import { GestionDeDialogComponent } from "../gestion-de-dialog/gestion-de-dialog
   ],
 })
 export class ListFacturaLegalComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
+  // Por referencia y no por tipo: el detalle expandido tiene su propio
+  // mat-paginator y aparece antes en la vista, asi que @ViewChild(MatPaginator)
+  // pasaria a apuntar al de los items al abrir una factura larga.
+  @ViewChild("paginadorFacturas") paginator: MatPaginator;
 
   selectedSucursal: Sucursal;
   sucursalList: Sucursal[];
@@ -93,7 +96,6 @@ export class ListFacturaLegalComponent implements OnInit {
 
   allSucursales = false;
 
-  selectedFacturaItem: FacturaLegalItem;
   facturaList: FacturaLegal[];
   page = 0;
   size = 30;
@@ -121,6 +123,12 @@ export class ListFacturaLegalComponent implements OnInit {
     "precioUnitario",
     "total",
   ];
+
+  // Paginado en memoria de los items de la factura expandida.
+  facturaItemPageSize = 15;
+  facturaItemPageIndex = 0;
+  totalItemsFactura = 0;
+  cargandoItems = false;
 
   selectedResumenFacturas: ResumenFacturasDto;
 
@@ -379,36 +387,68 @@ export class ListFacturaLegalComponent implements OnInit {
     //   })
   }
 
-  onEditFacturaItem(facturaItem, i) {
-    // console.log(i);
-    // this.matDialog.open(AdicionarFacturaItemDialogComponent, {
-    //   data: {
-    //     factura: this.expandedElement,
-    //     facturaItem
-    //   }
-    //   ,
-    //   width: '50%'
-    // }).afterClosed().subscribe(res => {
-    //   if (res != null) {
-    //     this.facturaItemDataSource.data = updateDataSource(this.facturaItemDataSource.data, res, i)
-    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)
-    //   }
-    // })
+  /**
+   * Abre o cierra el detalle de una factura. Los items no vienen en la query de
+   * la lista a proposito: pedirlos ahi obligaria al backend a resolverlos para
+   * las 30 facturas de la pagina (el resolver los busca de a una) aunque no se
+   * expanda ninguna. Se consultan al abrir y quedan cacheados en la factura.
+   */
+  onToggleExpand(factura: FacturaLegal) {
+    if (this.expandedElement === factura) {
+      this.expandedElement = null;
+      return;
+    }
+
+    this.expandedElement = factura;
+    this.facturaItemPageIndex = 0;
+
+    if (factura.facturaLegalItemList != null) {
+      this.cargandoItems = false;
+      this.aplicarPaginaItems(factura);
+      return;
+    }
+
+    // Limpiar antes de pedir: si no, mientras carga se siguen viendo los items
+    // de la factura que estaba abierta.
+    this.cargandoItems = true;
+    this.totalItemsFactura = 0;
+    this.facturaItemDataSource.data = [];
+    this.facturaService
+      .onGetFacturaLegal(factura.id, factura.sucursalId, true, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          factura.facturaLegalItemList = res?.facturaLegalItemList || [];
+          // La fila pudo cambiar mientras viajaba la consulta.
+          if (this.expandedElement === factura) {
+            this.cargandoItems = false;
+            this.aplicarPaginaItems(factura);
+          }
+        },
+        error: () => {
+          if (this.expandedElement === factura) this.cargandoItems = false;
+        },
+      });
   }
 
-  onAddFacturaItem(factura: FacturaLegalItem, i) {
-    // this.matDialog.open(AdicionarFacturaItemDialogComponent, {
-    //   data: {
-    //     factura
-    //   }
-    //   ,
-    //   width: '50%'
-    // }).afterClosed().subscribe(res => {
-    //   if (res != null) {
-    //     this.facturaItemDataSource.data = updateDataSource(this.facturaItemDataSource.data, res)
-    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)
-    //   }
-    // })
+  onPageItems(e: PageEvent) {
+    this.facturaItemPageIndex = e.pageIndex;
+    this.aplicarPaginaItems(this.expandedElement);
+  }
+
+  /**
+   * Corta la pagina en memoria: los items de una factura ya llegaron completos
+   * en la unica consulta, paginarlos es solo presentacion.
+   */
+  private aplicarPaginaItems(factura: FacturaLegal) {
+    const items: FacturaLegalItem[] = factura?.facturaLegalItemList || [];
+    // Campo y no getter: el template lo lee en cada change detection.
+    this.totalItemsFactura = items.length;
+    const desde = this.facturaItemPageIndex * this.facturaItemPageSize;
+    this.facturaItemDataSource.data = items.slice(
+      desde,
+      desde + this.facturaItemPageSize
+    );
   }
 
   resetFiltro() {

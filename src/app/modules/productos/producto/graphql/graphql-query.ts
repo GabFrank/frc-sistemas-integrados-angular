@@ -84,6 +84,7 @@ export const productoSearchPdv = gql`
       balanza
       descripcion
       descripcionFactura
+      iva
       garantia
       vencimiento
       diasVencimiento
@@ -294,6 +295,7 @@ export const productoPorCodigoQuery = gql`
       balanza
       descripcion
       descripcionFactura
+      iva
       garantia
       vencimiento
       diasVencimiento
