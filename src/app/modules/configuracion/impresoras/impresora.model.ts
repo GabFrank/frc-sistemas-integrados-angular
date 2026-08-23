@@ -8,9 +8,17 @@ export interface DispositivoDetectado {
   descripcion: string;
 }
 
+/** Estado real de una cola CUPS (lpstat -p), distinto del flag `activo` de la BD. */
+export interface ColaEstado {
+  nombre: string;
+  estado: "INACTIVA" | "IMPRIMIENDO" | "DESHABILITADA" | "DESCONOCIDA";
+  razon: string;
+  habilitada: boolean;
+}
+
 export type TipoImpresora = "TERMICA" | "NORMAL" | "ETIQUETA";
 export type UsoImpresora = "TICKET" | "FACTURA" | "REPORTE" | "ETIQUETA" | "COMANDA";
-export type TipoConexion = "CUPS" | "USB" | "RED" | "BLUETOOTH";
+export type TipoConexion = "CUPS" | "USB" | "RED" | "SMB" | "BLUETOOTH";
 export type PerfilPapel = "MM_48" | "MM_58" | "MM_72" | "MM_80" | "A4" | "CARTA" | "CUSTOM";
 
 export class Impresora {
@@ -25,6 +33,11 @@ export class Impresora {
   colaCups: string;
   ip: string;
   puerto: number;
+  /** Share de Windows (conexión SMB). Nunca incluye la contraseña. */
+  smbHost: string;
+  smbRecurso: string;
+  smbUsuario: string;
+  smbDominio: string;
   perfilPapel: PerfilPapel;
   columnas: number;
   anchoMm: number;
@@ -50,6 +63,10 @@ export class Impresora {
     input.colaCups = this?.colaCups;
     input.ip = this?.ip;
     input.puerto = this?.puerto;
+    input.smbHost = this?.smbHost;
+    input.smbRecurso = this?.smbRecurso;
+    input.smbUsuario = this?.smbUsuario;
+    input.smbDominio = this?.smbDominio;
     input.perfilPapel = this?.perfilPapel;
     input.columnas = this?.columnas;
     input.anchoMm = this?.anchoMm;
@@ -73,6 +90,10 @@ export class ImpresoraInput {
   colaCups?: string;
   ip?: string;
   puerto?: number;
+  smbHost?: string;
+  smbRecurso?: string;
+  smbUsuario?: string;
+  smbDominio?: string;
   perfilPapel?: PerfilPapel;
   columnas?: number;
   anchoMm?: number;
