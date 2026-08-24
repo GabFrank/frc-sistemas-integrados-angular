@@ -430,6 +430,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
+              name: 'Tesorería',
+              icon: 'account_balance_wallet',
+              action: 'list-caja-virtual',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Operaciones Financieras',
+              icon: 'swap_horiz',
+              action: 'list-operacion-financiera',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
               name: 'Gastos',
               icon: 'money_off',
               action: 'gastos-dashboard',
