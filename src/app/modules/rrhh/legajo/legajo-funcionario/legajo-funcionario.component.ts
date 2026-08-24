@@ -193,13 +193,21 @@ export class LegajoFuncionarioComponent implements OnInit {
    * alguien es quien puede volver a meterlo.
    */
   onRevertirEgreso() {
+    // El snapshot se pide ANTES de abrir: si existe, el diálogo precarga el crédito en
+    // vez de pedirlo. Un egreso anterior al histórico devuelve null y se carga a mano.
+    this.legajoService.onGetEgresoVigente(this.funcionario.id)
+      .pipe(untilDestroyed(this)).subscribe(snap => this.abrirReversa(snap));
+  }
+
+  private abrirReversa(snap: any) {
     this.dialog.open(RevertirEgresoDialogComponent, {
       data: {
         funcionarioId: this.funcionario.id,
         nombre: this.funcionario.persona?.nombre,
         fechaEgreso: this.funcionario.fechaEgreso,
         motivoEgreso: this.funcionario.motivoEgreso,
-        creditoActual: this.funcionario.credito
+        creditoActual: this.funcionario.credito,
+        snapshot: snap || null
       }, width: '480px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {

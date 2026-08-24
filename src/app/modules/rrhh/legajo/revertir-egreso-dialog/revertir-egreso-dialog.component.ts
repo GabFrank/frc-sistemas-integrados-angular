@@ -11,6 +11,8 @@ export interface RevertirEgresoDialogData {
   fechaEgreso?: any;
   motivoEgreso?: string;
   creditoActual?: number;
+  /** Snapshot que dejó el egreso, o null si es anterior al histórico. */
+  snapshot?: any;
 }
 
 /**
@@ -31,8 +33,12 @@ export class RevertirEgresoDialogComponent {
   creditoControl = new FormControl(0, [Validators.required, Validators.min(0)]);
   motivoControl = new FormControl(null, Validators.required);
 
-  /** Precalculado: el repo no llama funciones desde el HTML. */
+  /** Precalculados: el repo no llama funciones desde el HTML. */
   creditoActualTexto = '';
+  /** true cuando el egreso dejó snapshot: el crédito viene cargado y no hay que buscarlo. */
+  haySnapshot = false;
+  tipoClienteAnterior = '';
+  egresadoPorTexto = '';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: RevertirEgresoDialogData,
@@ -41,6 +47,16 @@ export class RevertirEgresoDialogComponent {
     private notificacion: NotificacionSnackbarService
   ) {
     this.creditoActualTexto = (this.data?.creditoActual ?? 0).toLocaleString('es-PY');
+
+    const snap = this.data?.snapshot;
+    this.haySnapshot = snap != null;
+    if (this.haySnapshot) {
+      // El egreso guardó lo que destruyó: se precarga y queda editable, porque entre el
+      // egreso y la reversa el negocio pudo cambiar.
+      this.creditoControl.setValue(snap.creditoAnterior ?? 0);
+      this.tipoClienteAnterior = snap.clienteTipoAnterior || '';
+      this.egresadoPorTexto = snap.egresadoPor?.nickname || '';
+    }
   }
 
   onRevertir() {

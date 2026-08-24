@@ -10,15 +10,22 @@
     <div *ngIf="data.motivoEgreso"><span class="etiqueta">Motivo:</span> {{ data.motivoEgreso }}</div>
   </div>
 
-  <p class="alerta">
-    El egreso puso el crédito en <b>{{ creditoActualTexto }}</b> y ese valor no se guarda en
-    ningún lado: hay que volver a cargarlo a mano.
+  <!-- Con snapshot la reversa restaura; sin él hay que reconstruir el crédito a mano. -->
+  <p class="ok" *ngIf="haySnapshot">
+    El egreso guardó lo que borró, así que el crédito ya viene cargado.
+    <span *ngIf="tipoClienteAnterior">Su cliente vuelve a <b>{{ tipoClienteAnterior }}</b>.</span>
+    <span *ngIf="egresadoPorTexto"> Lo egresó <b>{{ egresadoPorTexto }}</b>.</span>
+  </p>
+  <p class="alerta" *ngIf="!haySnapshot">
+    Este egreso es anterior al histórico, así que no hay nada guardado: el crédito quedó en
+    <b>{{ creditoActualTexto }}</b> y hay que volver a cargarlo a mano.
   </p>
 
   <mat-form-field style="width: 100%">
     <mat-label>Crédito a restaurar</mat-label>
     <input matInput type="number" [formControl]="creditoControl" required />
-    <mat-hint>Si no corresponde restaurar crédito, dejar en 0.</mat-hint>
+    <mat-hint *ngIf="haySnapshot">Es el valor que tenía antes del egreso. Se puede cambiar.</mat-hint>
+    <mat-hint *ngIf="!haySnapshot">Si no corresponde restaurar crédito, dejar en 0.</mat-hint>
     <mat-error *ngIf="creditoControl.hasError('required')">Indique el crédito</mat-error>
     <mat-error *ngIf="creditoControl.hasError('min')">No puede ser negativo</mat-error>
   </mat-form-field>

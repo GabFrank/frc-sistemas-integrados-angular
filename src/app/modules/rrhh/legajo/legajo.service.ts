@@ -9,6 +9,7 @@ import { CambiarCargoGQL } from './graphql/CambiarCargo';
 import { CambiarSalarioGQL } from './graphql/CambiarSalario';
 import { EgresarFuncionarioGQL } from './graphql/EgresarFuncionario';
 import { RevertirEgresoFuncionarioGQL } from './graphql/RevertirEgresoFuncionario';
+import { EgresoVigenteGQL } from './graphql/EgresoVigente';
 import { SaveDocumentoGQL } from './graphql/SaveDocumento';
 import { AnularDocumentoGQL } from './graphql/AnularDocumento';
 
@@ -25,6 +26,7 @@ export class LegajoService {
     private cambiarSalarioGQL: CambiarSalarioGQL,
     private egresarFuncionarioGQL: EgresarFuncionarioGQL,
     private revertirEgresoFuncionarioGQL: RevertirEgresoFuncionarioGQL,
+    private egresoVigenteGQL: EgresoVigenteGQL,
     private saveDocumentoGQL: SaveDocumentoGQL,
     private anularDocumentoGQL: AnularDocumentoGQL
   ) { }
@@ -55,6 +57,14 @@ export class LegajoService {
 
   onEgresar(funcionarioId: number, fecha: string, motivo: string, servidor = true): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.egresarFuncionarioGQL, { funcionarioId, fecha, motivo }, servidor);
+  }
+
+  /**
+   * Snapshot del egreso vigente, para precargar el credito en la reversa. Devuelve null
+   * si el egreso es anterior al historico: ahi hay que cargarlo a mano.
+   */
+  onGetEgresoVigente(funcionarioId: number, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.egresoVigenteGQL, { funcionarioId }, servidor);
   }
 
   /**

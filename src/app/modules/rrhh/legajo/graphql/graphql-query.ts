@@ -33,6 +33,10 @@ export const egresarFuncionarioMutation = gql`
     data: egresarFuncionario(funcionarioId: $funcionarioId, fecha: $fecha, motivo: $motivo) { ${FUNC_FULL} }
   }
 `;
+const EGRESO_SNAP = `id fechaEgreso motivoEgreso creditoAnterior clienteTipoAnterior clienteCreditoAnterior egresadoPor { id nickname }`;
+export const egresoVigenteQuery = gql`
+  query ($funcionarioId: ID!) { data: egresoVigenteFuncionario(funcionarioId: $funcionarioId) { ${EGRESO_SNAP} } }
+`;
 export const revertirEgresoFuncionarioMutation = gql`
   mutation revertirEgresoFuncionario($funcionarioId: ID!, $credito: Float, $motivo: String) {
     data: revertirEgresoFuncionario(funcionarioId: $funcionarioId, credito: $credito, motivo: $motivo) { ${FUNC_FULL} }
