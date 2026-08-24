@@ -58,10 +58,10 @@ export class LiquidacionService {
   }
 
   /** Padron del SaaS: lista paginada y filtrada en el backend. */
-  onGetPage(page: number, size: number, funcionarioId?: number, periodo?: string,
-            estado?: string, servidor = true): Observable<any> {
+  onGetPage(page: number, size: number, funcionarioId?: number, funcionarioNombre?: string,
+            periodo?: string, estado?: string, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.liquidacionesPageGQL,
-      { page, size, funcionarioId, periodo, estado }, servidor);
+      { page, size, funcionarioId, funcionarioNombre, periodo, estado }, servidor);
   }
 
   onGenerarBorrador(funcionarioId: number, periodo: string, monedaId: number, servidor = true): Observable<any> {
