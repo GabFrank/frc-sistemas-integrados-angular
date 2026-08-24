@@ -14,6 +14,7 @@ import { FuncionarioCargoHistorico, FuncionarioSalarioHistorico, FuncionarioDocu
 import { CambioCargoDialogComponent } from '../cambio-cargo-dialog/cambio-cargo-dialog.component';
 import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
+import { RevertirEgresoDialogComponent } from '../revertir-egreso-dialog/revertir-egreso-dialog.component';
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
@@ -183,6 +184,31 @@ export class LegajoFuncionarioComponent implements OnInit {
       if (res != null) {
         this.funcionario = res;
         this.notificacion.notification$.next({ texto: 'Funcionario egresado', color: NotificacionColor.success, duracion: 3 });
+      }
+    });
+  }
+
+  /**
+   * Deshace un egreso hecho por error. Mismo gating que egresar: quien puede sacar a
+   * alguien es quien puede volver a meterlo.
+   */
+  onRevertirEgreso() {
+    this.dialog.open(RevertirEgresoDialogComponent, {
+      data: {
+        funcionarioId: this.funcionario.id,
+        nombre: this.funcionario.persona?.nombre,
+        fechaEgreso: this.funcionario.fechaEgreso,
+        motivoEgreso: this.funcionario.motivoEgreso,
+        creditoActual: this.funcionario.credito
+      }, width: '480px', disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.funcionario = res;
+        this.notificacion.notification$.next({
+          texto: 'Egreso revertido: el funcionario, su usuario y su cliente vuelven a estar activos',
+          color: NotificacionColor.success, duracion: 4
+        });
+        this.recargar();
       }
     });
   }

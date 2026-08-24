@@ -1,0 +1,12 @@
+.dialog-container {
+  min-width: 420px;
+  padding: 8px;
+  .aviso { font-size: 13px; opacity: 0.85; }
+  .egreso-actual {
+    font-size: 13px;
+    padding: 8px 10px;
+    border-left: 3px solid rgba(255, 255, 255, 0.25);
+    .etiqueta { opacity: 0.7; }
+  }
+  .alerta { font-size: 13px; color: #ffb74d; }
+}
