@@ -104,6 +104,7 @@ export const cajaVirtualSaldosQuery = gql`
         id
         denominacion
         simbolo
+        decimales
       }
     }
   }
@@ -119,7 +120,7 @@ export const cajaVirtualResumenBancarioQuery = gql`
         id
         numero
         banco { id nombre }
-        moneda { id denominacion simbolo }
+        moneda { id denominacion simbolo decimales }
       }
     }
   }
@@ -229,8 +230,8 @@ export const movimientosCajaVirtualPorFechaQuery = gql`
 `;
 
 export const movimientosCajaVirtualFilterQuery = gql`
-  query ($cajaVirtualId: ID!, $desde: String, $fin: String, $tipo: CajaVirtualTipoMovimiento, $soloActivos: Boolean, $page: Int, $size: Int) {
-    data: movimientosCajaVirtualFilter(cajaVirtualId: $cajaVirtualId, desde: $desde, fin: $fin, tipo: $tipo, soloActivos: $soloActivos, page: $page, size: $size) {
+  query ($cajaVirtualId: ID!, $desde: String, $fin: String, $tipo: CajaVirtualTipoMovimiento, $monedaId: ID, $soloActivos: Boolean, $page: Int, $size: Int) {
+    data: movimientosCajaVirtualFilter(cajaVirtualId: $cajaVirtualId, desde: $desde, fin: $fin, tipo: $tipo, monedaId: $monedaId, soloActivos: $soloActivos, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements
