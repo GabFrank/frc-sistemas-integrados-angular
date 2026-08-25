@@ -14,6 +14,12 @@ import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 export interface IngresarRetiroCajaMayorDialogData {
   cajaVirtual: CajaVirtual;
+  /**
+   * Retiros ya resueltos por el carrito de escaneo. Cuando vienen, el diálogo arranca
+   * mostrando exactamente esos y no el listado de flotantes: si el operador escaneó tres
+   * papeles, tiene que ver esos tres, no una página donde quizá ni aparezcan.
+   */
+  preseleccion?: Retiro[];
 }
 
 // Fila de display: clon del retiro (Apollo congela los resultados) + campos derivados.
@@ -50,6 +56,12 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
   isLoading = false;
   isSaving = false;
 
+  /**
+   * true cuando el diálogo se abrió desde el escáner. La tabla muestra lo escaneado; el
+   * operador puede pasar al listado completo con "Ver todos los flotantes".
+   */
+  modoEscaneo = false;
+
   constructor(
     private dialogRef: MatDialogRef<IngresarRetiroCajaMayorDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: IngresarRetiroCajaMayorDialogData,
@@ -62,6 +74,31 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) this.sucursalList = res.filter(s => s.id != 0);
     });
+    if (this.data?.preseleccion?.length) {
+      this.modoEscaneo = true;
+      this.data.preseleccion.forEach(r => {
+        const row = { ...r } as RetiroRow;
+        row._montos = this.formatMontos(r);
+        row._sel = true;
+        this.seleccionados.set(`${r.id}_${r.sucursalId}`, row);
+      });
+      this.mostrarEscaneados();
+      return;
+    }
+    this.cargar();
+  }
+
+  /** Pinta en la tabla solo lo que vino del escáner, ya tildado. */
+  private mostrarEscaneados() {
+    this.dataSource.data = Array.from(this.seleccionados.values());
+    this.totalElements = this.dataSource.data.length;
+    this.recomputarTotales();
+  }
+
+  /** Sale del modo escaneo sin perder lo ya seleccionado. */
+  verTodosLosFlotantes() {
+    this.modoEscaneo = false;
+    this.pageIndex = 0;
     this.cargar();
   }
 

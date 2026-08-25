@@ -126,3 +126,24 @@
     }
   }
 }
+
+/* Aviso de que la tabla esta acotada a lo escaneado, con la salida al listado completo. */
+.aviso-escaneo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border-left: 3px solid #26a69a;
+  background: rgba(38, 166, 154, 0.1);
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+
+  span { flex: 1; }
+}

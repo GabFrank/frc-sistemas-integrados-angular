@@ -26,6 +26,9 @@ import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entr
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../detalle-pago-dialog/detalle-pago-dialog.component';
 import { ConteoCajaDialogComponent, ConteoCajaDialogData } from '../conteo-caja-dialog/conteo-caja-dialog.component';
+import { QrLectorDialogComponent, QrLectorDialogData, QrLectorResultado } from '../../../../shared/qr-lector/qr-lector-dialog/qr-lector-dialog.component';
+import { QrTipoSoportado } from '../../../../shared/qr-lector/qr-lector.model';
+import { IngresarRetiroCajaMayorDialogComponent, IngresarRetiroCajaMayorDialogData } from '../ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
@@ -421,6 +424,39 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onEgreso() {
     this.dialog.open(RegistrarEgresoDialogComponent, { width: '720px', maxWidth: '95vw', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
+  }
+
+  /**
+   * Carrito de escaneo: el operador pasa uno o varios documentos por el lector y el diálogo
+   * devuelve los que resolvió. El ruteo al destino vive acá y no adentro del carrito, para
+   * que el mismo diálogo sirva después al PDV o a RRHH.
+   */
+  onEscanear() {
+    const data: QrLectorDialogData = { cajaVirtual: this.cajaVirtual };
+    this.dialog.open(QrLectorDialogComponent, {
+      width: '65vw', height: '70vh', maxWidth: '96vw', autoFocus: false, disableClose: true, data,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: QrLectorResultado) => {
+      if (!res?.items?.length) return;
+      this.rutearEscaneo(res);
+    });
+  }
+
+  /**
+   * Lleva lo escaneado a su destino. Cada tipo abre el diálogo que ya sabe operarlo, con
+   * los documentos preseleccionados: el carrito resuelve y valida, el destino ejecuta.
+   */
+  private rutearEscaneo(res: QrLectorResultado) {
+    if (res.tipo === QrTipoSoportado.RETIRO) {
+      const d: IngresarRetiroCajaMayorDialogData = {
+        cajaVirtual: this.cajaVirtual,
+        preseleccion: res.items.map(i => i.documento),
+      };
+      this.dialog.open(IngresarRetiroCajaMayorDialogComponent, {
+        width: '65vw', height: '70vh', maxWidth: '96vw', data: d,
+      }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
+      return;
+    }
+    // F4 agrega SOLPAG -> pagar-compras-dialog con los documentos preseleccionados.
   }
 
   onTransferencia() {

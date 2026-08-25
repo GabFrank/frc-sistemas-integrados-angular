@@ -27,6 +27,7 @@ import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/di
 import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
 import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 import { QrCodeComponent } from './qr-code/qr-code.component';
+import { QrLectorDialogComponent } from './qr-lector/qr-lector-dialog/qr-lector-dialog.component';
 import { ReportTestComponent } from './report-test/report-test.component';
 import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
 import { TimelineComponent } from './timeline/timeline.component';
@@ -91,6 +92,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     TecladoNumericoComponent,
     Imagebase64Component,
     QrCodeComponent,
+    QrLectorDialogComponent,
     CapturarImagenComponent,
     CortarImagenDialogComponent,
     SelectIconDialogComponent,

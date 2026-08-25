@@ -3,7 +3,15 @@
   <div class="subtitulo-dialog">{{ data?.cajaVirtual?.nombre }}</div>
 
   <mat-dialog-content class="contenido">
-    <div class="filtros" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
+    <!-- Viniendo del escáner la tabla muestra solo lo escaneado; los filtros no aplican
+         hasta que el operador decida ver el listado completo. -->
+    <div class="aviso-escaneo" *ngIf="modoEscaneo">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <span>Mostrando los retiros escaneados.</span>
+      <button mat-button color="primary" (click)="verTodosLosFlotantes()">Ver todos los flotantes</button>
+    </div>
+
+    <div class="filtros" *ngIf="!modoEscaneo" fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="filtro-suc">
         <mat-label>Sucursal de origen</mat-label>
         <mat-select [formControl]="sucursalControl" (selectionChange)="onFiltroChange()">

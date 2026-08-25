@@ -213,6 +213,8 @@ export const filterRetirosQuery = gql`
         retiroGs
         retiroRs
         retiroDs
+        cajaVirtualId
+        movimientoCajaVirtualId
         sucursal {
           nombre
         }
