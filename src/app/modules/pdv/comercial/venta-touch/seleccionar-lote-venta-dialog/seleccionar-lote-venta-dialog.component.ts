@@ -83,9 +83,9 @@ interface LoteRow {
 /**
  * Selector de lote para la venta.
  *
- * Abre con FEFO preseleccionado: confirmar sin tocar nada es la venta normal y no cambia el ritmo
- * del POS. Elegir lotes a mano es la excepción deliberada, y aun así el backend recorta cada
- * elección al saldo real y completa el faltante por FEFO.
+ * Abre directo en la lista de lotes, con el buscador enfocado. Confirmar sin marcar nada sigue
+ * siendo la venta normal: no se manda ningún lote y el backend descuenta por FEFO. Lo que se marca
+ * es una preferencia, que el backend recorta al saldo real y completa por FEFO si no alcanza.
  *
  * La lista se busca y se pagina contra el backend, porque con el tiempo un producto acumula
  * muchos lotes y filtrar solo la página visible dejaría lotes invisibles sin que el cajero se
@@ -123,9 +123,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   /** La misma selección como lista, para que el template la recorra sin pipes ni conversiones. */
   lotesElegidos: LoteElegido[] = [];
   hayLotesElegidos = false;
-
-  /** Modo activo. Arranca en FEFO: es el camino de casi todas las ventas. */
-  modoFefo = true;
 
   /**
    * Solo la primera carga. Buscar y paginar recargan la lista, pero no deben esconder el buscador:
@@ -218,6 +215,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<StockLotePresentacion>) => {
+          const primeraCarga = this.cargandoInicial;
           const contenido = res?.getContent || [];
           this.totalElementos = res?.getTotalElements || 0;
           this.filas = contenido.map((lote) => this.mapearFila(lote));
@@ -226,6 +224,12 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
           this.cargandoInicial = false;
           this.recalcular();
           this.resolverEnterPendiente();
+          // El buscador recién existe cuando Angular pinta la lista, así que el foco va acá y no
+          // en ngOnInit: es lo primero que el cajero necesita para tipear el lote que tiene en la
+          // mano.
+          if (primeraCarga && !this.sinLotes) {
+            this.enfocarBusqueda();
+          }
         },
         error: () => {
           this.manejarErrorDeCarga();
@@ -322,20 +326,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     return '';
   }
 
-  /** Vuelve a FEFO: se descarta lo elegido a mano. El filtro se conserva por si se vuelve atrás. */
-  activarFefo(): void {
-    this.modoFefo = true;
-    this.seleccion.clear();
-    this.filas.forEach((fila) => this.desmarcar(fila));
-    this.recalcular();
-  }
-
-  activarManual(): void {
-    this.modoFefo = false;
-    this.recalcular();
-    this.enfocarBusqueda();
-  }
-
   /**
    * Marcar un lote le asigna lo que falta cubrir, acotado a su saldo. La cantidad no se tipea: el
    * cajero elige DE QUÉ lote sale, y el reparto lo resuelve el sistema.
@@ -404,9 +394,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
    * pareciera no responder justo cuando el cajero va rápido.
    */
   onEnterBusqueda(): void {
-    if (this.modoFefo) {
-      return;
-    }
     if (this.hayUnSoloResultado()) {
       this.elegirUnicoResultado();
       return;
@@ -432,7 +419,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   }
 
   private enfocarBusqueda(): void {
-    // El input recién existe después de que Angular pinta el modo manual.
+    // El input recién existe después de que Angular pinta la lista.
     setTimeout(() => this.inputBusqueda?.nativeElement?.focus());
   }
 
@@ -451,21 +438,17 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     this.totalSeleccionadoLabel = `${this.totalSeleccionado}`;
 
     const faltante = this.cantidadRequerida - this.totalSeleccionado;
-    this.hayFaltante = !this.modoFefo && faltante > EPSILON;
+    this.hayFaltante = faltante > EPSILON;
     this.faltanteLabel = this.hayFaltante
       ? `Faltan ${faltante} — el resto lo completa FEFO automáticamente.`
       : '';
-    // Siempre se puede confirmar: en FEFO no hay nada que elegir, y en manual lo que falte lo
-    // resuelve el backend. Bloquear acá dejaría al cajero sin salida.
+    // Siempre se puede confirmar: sin nada marcado sale todo por FEFO, y lo que falte de lo
+    // marcado también. Bloquear acá dejaría al cajero sin salida.
     this.puedeConfirmar = true;
     this.cdr.markForCheck();
   }
 
   confirmar(): void {
-    if (this.modoFefo) {
-      this.dialogRef.close({ lotes: [] } as SeleccionarLoteVentaDialogResult);
-      return;
-    }
     const lotes: VentaItemLoteInput[] = this.lotesElegidos
       .filter((elegido) => elegido.cantidad > EPSILON)
       .map((elegido) => ({ loteId: elegido.loteId, cantidad: elegido.cantidad }));

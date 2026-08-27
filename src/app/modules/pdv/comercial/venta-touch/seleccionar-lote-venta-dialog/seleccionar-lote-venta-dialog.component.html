@@ -9,44 +9,10 @@
     <span class="resumen-unidad">unid.</span>
   </div>
 
-  <div
-    class="modo"
-    fxLayout="row"
-    fxLayoutAlign="start center"
-    fxLayoutGap="12px"
-  >
-    <div
-      role="radiogroup"
-      aria-label="Modo de asignación de lote"
-      fxLayout="row"
-      fxLayoutGap="8px"
-    >
-      <button
-        mat-raised-button
-        type="button"
-        role="radio"
-        [attr.aria-checked]="modoFefo"
-        [color]="modoFefo ? 'primary' : null"
-        (click)="activarFefo()"
-      >
-        FEFO automático
-      </button>
-      <button
-        mat-raised-button
-        type="button"
-        role="radio"
-        [attr.aria-checked]="!modoFefo"
-        [color]="!modoFefo ? 'primary' : null"
-        [disabled]="sinLotes"
-        (click)="activarManual()"
-      >
-        Elegir lote
-      </button>
-    </div>
-
+  <div class="modo">
     <mat-form-field
       class="campo-busqueda"
-      *ngIf="!modoFefo && !cargandoInicial && !sinLotes"
+      *ngIf="!cargandoInicial && !sinLotes"
     >
       <mat-label>Nº de lote</mat-label>
       <input
@@ -61,10 +27,6 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
   </div>
-
-  <p class="ayuda" *ngIf="modoFefo">
-    Se saca primero lo que vence antes. No hace falta elegir nada.
-  </p>
 
   <mat-spinner
     *ngIf="cargandoInicial"
@@ -81,7 +43,7 @@
     {{ mensajeSinLotes }}
   </div>
 
-  <ng-container *ngIf="!modoFefo && !cargandoInicial && !sinLotes">
+  <ng-container *ngIf="!cargandoInicial && !sinLotes">
 
     <div
       class="mensaje-estado"
