@@ -3,12 +3,10 @@
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
   <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
-    <div fxFlex="320px">
-      <app-select-funcionario
-        [funcionarioId]="funcionarioControl.value"
-        (idSelected)="funcionarioControl.setValue($event)">
-      </app-select-funcionario>
-    </div>
+    <mat-form-field fxFlex="425px">
+      <mat-label>Funcionario (nombre o apellido)</mat-label>
+      <input matInput [formControl]="funcionarioNombreControl" (keyup.enter)="onFiltrar()" />
+    </mat-form-field>
 
     <mat-form-field fxFlex="130px">
       <mat-label>Período</mat-label>

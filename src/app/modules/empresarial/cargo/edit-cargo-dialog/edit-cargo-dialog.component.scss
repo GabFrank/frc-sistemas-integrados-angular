@@ -1,0 +1,20 @@
+// Cabecera con el patron del resto de los dialogos del modulo.
+.dialog-container {
+  padding: 8px 16px 4px;
+  box-sizing: border-box;
+}
+
+.titulo-dialog {
+  text-align: center;
+  margin: 4px 0 2px;
+  font-weight: 500;
+  font-size: 20px;
+  color: #fff;
+}
+
+.subtitulo-dialog {
+  text-align: center;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #ff9800;
+}

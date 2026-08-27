@@ -14,7 +14,7 @@ import { ImpresionService } from '../../../../shared/components/imprimir/impresi
 import { Penalizacion, PenalizacionTipo } from '../penalizacion.model';
 import { PenalizacionService } from '../penalizacion.service';
 import { EditPenalizacionDialogComponent } from '../edit-penalizacion-dialog/edit-penalizacion-dialog.component';
-import { GenerarPenalizacionesDialogComponent } from '../generar-penalizaciones-dialog/generar-penalizaciones-dialog.component';
+import { GenerarPenalizacionesDialogComponent, RangoPenalizaciones } from '../generar-penalizaciones-dialog/generar-penalizaciones-dialog.component';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -57,6 +57,15 @@ export class ListPenalizacionComponent implements OnInit {
   onVerRecibo(row: Penalizacion) {
     this.impresionService.imprimir('Recibo penalización ' + row.id,
       (anchoMm, escpos) => this.reportesRrhhService.onReciboPenalizacion(row.id, anchoMm, escpos));
+  }
+
+  /**
+   * Acta de amonestacion. soloPdf porque lleva dos firmas (funcionario y empresa) y no
+   * entran legibles en las 32/48 columnas de una termica.
+   */
+  onVerActa(row: Penalizacion) {
+    this.impresionService.imprimir('Acta de amonestación ' + row.id,
+      () => this.penalizacionService.onGetActaAdvertencia(row.id), true);
   }
 
   ngOnInit(): void {
@@ -122,18 +131,19 @@ export class ListPenalizacionComponent implements OnInit {
   }
 
   onGenerarAuto() {
-    // La fecha es parametro de la accion, no un filtro: se pide en el dialogo.
-    this.dialog.open(GenerarPenalizacionesDialogComponent, { width: '460px', disableClose: true })
-      .afterClosed().pipe(untilDestroyed(this)).subscribe((fecha: Date) => {
-        if (fecha == null) return;
-        this.penalizacionService.onGenerarAuto(dateToString(fecha, 'yyyy-MM-dd'))
+    // El rango es parametro de la accion, no un filtro: se pide en el dialogo.
+    this.dialog.open(GenerarPenalizacionesDialogComponent, { width: '520px', disableClose: true })
+      .afterClosed().pipe(untilDestroyed(this)).subscribe((rango: RangoPenalizaciones) => {
+        if (rango == null) return;
+        this.penalizacionService.onGenerarAutoRango(
+          dateToString(rango.desde, 'yyyy-MM-dd'), dateToString(rango.hasta, 'yyyy-MM-dd'))
           .pipe(untilDestroyed(this))
           .subscribe((cant: number) => {
             const generadas = cant ?? 0;
             this.notificacion.notification$.next({
               texto: generadas > 0
                 ? 'Penalizaciones automáticas generadas: ' + generadas
-                : 'No se generó ninguna penalización para esa fecha',
+                : 'No se generó ninguna penalización para ese rango',
               color: generadas > 0 ? NotificacionColor.success : NotificacionColor.warn,
               duracion: 4
             });

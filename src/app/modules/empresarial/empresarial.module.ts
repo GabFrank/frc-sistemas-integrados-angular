@@ -1,6 +1,8 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ListSectorComponent } from './sector/list-sector/list-sector.component';
+import { ListCargoComponent } from './cargo/list-cargo/list-cargo.component';
+import { EditCargoDialogComponent } from './cargo/edit-cargo-dialog/edit-cargo-dialog.component';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
@@ -15,6 +17,8 @@ import { EditSucursalDialogComponent } from './sucursal/edit-sucursal-dialog/edi
 @NgModule({
   declarations: [
     ListSectorComponent,
+    ListCargoComponent,
+    EditCargoDialogComponent,
     AdicionarZonaDialogComponent,
     AdicionarSectorDialogComponent,
     ListSucursalComponent,

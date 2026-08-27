@@ -55,6 +55,7 @@ export const CONFIGURACION_RRHH_CAMPO_META: { [clave: string]: ConfigCampoMeta }
 
   // Tardanza y penalización
   PENALIZACION_AUTO_TARDANZA: { widget: 'toggle' },
+  LIQUIDACION_CONSOLIDAR_CUOTAS_CREDITO: { widget: 'toggle' },
   TOLERANCIA_TARDANZA_MIN: { widget: 'number', unidad: 'min', min: 0, step: 1 },
   PENALIZACION_MONTO_POR_MINUTO_TARDANZA: { widget: 'money' },
   PENALIZACION_MONTO_TARDANZA: { widget: 'money' },
@@ -109,6 +110,11 @@ export const CONFIGURACION_RRHH_SECCIONES: ConfigSeccion[] = [
     icono: 'schedule',
     claves: ['PENALIZACION_AUTO_TARDANZA', 'TOLERANCIA_TARDANZA_MIN',
       'PENALIZACION_MONTO_POR_MINUTO_TARDANZA', 'PENALIZACION_MONTO_TARDANZA']
+  },
+  {
+    titulo: 'Liquidación y recibo',
+    icono: 'receipt_long',
+    claves: ['LIQUIDACION_CONSOLIDAR_CUOTAS_CREDITO', 'EMPRESA_DIRECCION', 'EMPRESA_TELEFONO']
   },
   {
     titulo: 'General',

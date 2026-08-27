@@ -96,14 +96,6 @@ type FiltroVencimiento = 'VENCIDO' | 'POR_VENCER';
 const DIAS_POR_VENCER = 30;
 
 /**
- * Ventana con la que se abre la pantalla, precargada en el rango "Vence o se retira entre".
- *
- * Va como valor del rango y no como un atajo más: así el operador VE en el campo por qué el
- * listado viene recortado, y lo corrige o lo borra desde el mismo control con el que ya trabaja.
- */
-const DIAS_VENCIMIENTO_POR_DEFECTO = 7;
-
-/**
  * Pantalla "Stock por lotes": responde "¿dónde tengo qué?".
  *
  * El saldo se deriva del ledger operaciones.movimiento_stock_lote y se resuelve contra el maestro
@@ -235,29 +227,7 @@ export class ListStockLoteComponent implements OnInit {
       .pipe(debounceTime(400), distinctUntilChanged(), untilDestroyed(this))
       .subscribe(() => this.onFiltrar(true));
 
-    this.precargarVencimientoPorDefecto();
     this.onBuscar();
-  }
-
-  /**
-   * Abre la pantalla con el rango "Vence o se retira entre" cargado de hoy a hoy + 7 días.
-   *
-   * Se cargan las DOS puntas y no solo el tope: con el piso vacío el campo muestra su placeholder
-   * ("DESDE – 15/8/2026") en vez de un rango legible.
-   *
-   * Efecto lateral de cerrar el rango: lo que YA venció queda afuera del listado inicial, porque
-   * su fecha es anterior al piso. Para eso está el atajo "Vencido", que limpia el rango y trae
-   * exactamente ese conjunto.
-   *
-   * Se hace acá y no en la construcción del FormGroup para no evaluar la fecha al instanciar el
-   * componente: la pantalla vive en una tab que puede quedar abierta de un día para el otro.
-   */
-  private precargarVencimientoPorDefecto(): void {
-    const desde = new Date();
-    const hasta = new Date();
-    hasta.setDate(hasta.getDate() + DIAS_VENCIMIENTO_POR_DEFECTO);
-    this.vencimiento.get('desde').setValue(desde);
-    this.vencimiento.get('hasta').setValue(hasta);
   }
 
   /**
@@ -333,10 +303,9 @@ export class ListStockLoteComponent implements OnInit {
     this.filtros.reset();
     this.proveedorSeleccionado = null;
     this.filtroVencimiento = null;
-    // El rango no cuelga de `filtros`, así que no lo alcanza el reset de arriba. Se recarga con el
-    // valor por defecto en vez de vaciarse: "Limpiar Filtro" deja la pantalla como recién abierta,
-    // no en un estado que no se puede alcanzar de ninguna otra forma.
-    this.precargarVencimientoPorDefecto();
+    // El rango no cuelga de `filtros`, así que no lo alcanza el reset de arriba. Se vacía a mano
+    // para que "Limpiar Filtro" deje la pantalla como recién abierta: sin ningún corte por fecha.
+    this.vencimiento.reset();
     this.onFiltrar();
   }
 

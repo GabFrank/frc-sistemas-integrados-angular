@@ -25,10 +25,15 @@
       </mat-form-field>
     </div>
 
-    <mat-form-field style="width: 100%">
+    <mat-form-field style="width: 100%" *ngIf="!esAdvertencia">
       <mat-label>Monto</mat-label>
       <input matInput type="number" [formControl]="montoControl" />
     </mat-form-field>
+
+    <p class="aviso-advertencia" *ngIf="esAdvertencia">
+      Una amonestación no descuenta dinero: queda registrada, suma al contador del
+      funcionario y se puede imprimir como acta firmable.
+    </p>
 
     <mat-form-field style="width: 100%">
       <mat-label>Descripción</mat-label>

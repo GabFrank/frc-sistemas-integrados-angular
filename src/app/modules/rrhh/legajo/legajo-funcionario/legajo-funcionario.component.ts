@@ -14,9 +14,11 @@ import { FuncionarioCargoHistorico, FuncionarioSalarioHistorico, FuncionarioDocu
 import { CambioCargoDialogComponent } from '../cambio-cargo-dialog/cambio-cargo-dialog.component';
 import { CambioSalarioDialogComponent } from '../cambio-salario-dialog/cambio-salario-dialog.component';
 import { EgresarFuncionarioDialogComponent } from '../egresar-funcionario-dialog/egresar-funcionario-dialog.component';
+import { RevertirEgresoDialogComponent } from '../revertir-egreso-dialog/revertir-egreso-dialog.component';
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
+import { PenalizacionService } from '../../penalizacion/penalizacion.service';
 import { LiquidacionFinalService } from '../../liquidacion-final/liquidacion-final.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
@@ -48,6 +50,12 @@ export class LegajoFuncionarioComponent implements OnInit {
   metasLogradas = 4;
   metasTotal = 11;
 
+  /**
+   * Amonestaciones no anuladas del funcionario. A diferencia de los otros tres chips,
+   * este NO es placeholder: sale del backend.
+   */
+  advertencias = 0;
+
   antiguedadTexto = '—';   // calculado al cargar el funcionario (no en template, regla del proyecto)
 
   cargoColumns = ['cargo', 'fechaDesde', 'fechaHasta', 'motivo'];
@@ -72,6 +80,7 @@ export class LegajoFuncionarioComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private tabService: TabService,
     private liquidacionFinalService: LiquidacionFinalService,
+    private penalizacionService: PenalizacionService,
     public mainService: MainService
   ) { }
 
@@ -96,6 +105,8 @@ export class LegajoFuncionarioComponent implements OnInit {
         this.funcionario = f;
         this.antiguedadTexto = this.calcularAntiguedad(f?.fechaIngreso);
       });
+    this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
+      .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });
     this.recargar();
   }
 
@@ -183,6 +194,39 @@ export class LegajoFuncionarioComponent implements OnInit {
       if (res != null) {
         this.funcionario = res;
         this.notificacion.notification$.next({ texto: 'Funcionario egresado', color: NotificacionColor.success, duracion: 3 });
+      }
+    });
+  }
+
+  /**
+   * Deshace un egreso hecho por error. Mismo gating que egresar: quien puede sacar a
+   * alguien es quien puede volver a meterlo.
+   */
+  onRevertirEgreso() {
+    // El snapshot se pide ANTES de abrir: si existe, el diálogo precarga el crédito en
+    // vez de pedirlo. Un egreso anterior al histórico devuelve null y se carga a mano.
+    this.legajoService.onGetEgresoVigente(this.funcionario.id)
+      .pipe(untilDestroyed(this)).subscribe(snap => this.abrirReversa(snap));
+  }
+
+  private abrirReversa(snap: any) {
+    this.dialog.open(RevertirEgresoDialogComponent, {
+      data: {
+        funcionarioId: this.funcionario.id,
+        nombre: this.funcionario.persona?.nombre,
+        fechaEgreso: this.funcionario.fechaEgreso,
+        motivoEgreso: this.funcionario.motivoEgreso,
+        creditoActual: this.funcionario.credito,
+        snapshot: snap || null
+      }, width: '480px', disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+        this.funcionario = res;
+        this.notificacion.notification$.next({
+          texto: 'Egreso revertido: el funcionario, su usuario y su cliente vuelven a estar activos',
+          color: NotificacionColor.success, duracion: 4
+        });
+        this.recargar();
       }
     });
   }

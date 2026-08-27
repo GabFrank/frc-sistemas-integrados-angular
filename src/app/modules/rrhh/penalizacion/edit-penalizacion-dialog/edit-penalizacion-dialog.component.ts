@@ -25,8 +25,16 @@ export class EditPenalizacionDialogComponent implements OnInit {
 
   tipoOptions: PenalizacionTipo[] = [
     'TARDANZA', 'AUSENCIA', 'QUEJA_CLIENTE', 'AMBIENTE_LABORAL',
-    'DANIO_MATERIAL', 'COMISION_DESCUENTO', 'OTRO'
+    'DANIO_MATERIAL', 'COMISION_DESCUENTO', 'ADVERTENCIA', 'OTRO'
   ];
+
+  /**
+   * Una amonestacion no descuenta plata: se registra, se cuenta y se imprime como acta.
+   * Con el tipo en ADVERTENCIA el monto se oculta y se fuerza a 0, para que nadie cargue
+   * un importe que despues quedaria fuera de la liquidacion sin explicacion.
+   * Precalculado: el template no llama funciones (convencion del repo).
+   */
+  esAdvertencia = false;
 
 
   funcionarioControl = new FormControl(null, [Validators.required]);
@@ -54,6 +62,13 @@ export class EditPenalizacionDialogComponent implements OnInit {
     if (this.data?.funcionarioId != null) {
       this.funcionarioControl.setValue(this.data.funcionarioId);
     }
+    this.tipoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.onTipoChange());
+    this.onTipoChange();
+  }
+
+  onTipoChange() {
+    this.esAdvertencia = this.tipoControl.value === 'ADVERTENCIA';
+    if (this.esAdvertencia) { this.montoControl.setValue(0); }
   }
 
   onCancelar() {
@@ -70,7 +85,8 @@ export class EditPenalizacionDialogComponent implements OnInit {
     p.funcionario = func;
     p.tipo = this.tipoControl.value as PenalizacionTipo;
     p.fecha = dateToString(this.fechaControl.value);
-    p.monto = this.montoControl.value ?? 0;
+    // Una amonestacion nunca lleva monto, aunque el campo hubiese quedado con un valor.
+    p.monto = this.esAdvertencia ? 0 : (this.montoControl.value ?? 0);
     p.descripcion = this.descripcionControl.value ? this.descripcionControl.value.toUpperCase() : null;
     p.autoGenerada = false;
     p.anulada = false;
