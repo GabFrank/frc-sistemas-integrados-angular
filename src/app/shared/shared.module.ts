@@ -28,6 +28,7 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
 import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 import { QrCodeComponent } from './qr-code/qr-code.component';
 import { QrLectorDialogComponent } from './qr-lector/qr-lector-dialog/qr-lector-dialog.component';
+import { GrillaConteoComponent } from './components/grilla-conteo/grilla-conteo.component';
 import { ReportTestComponent } from './report-test/report-test.component';
 import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
 import { TimelineComponent } from './timeline/timeline.component';
@@ -93,6 +94,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     Imagebase64Component,
     QrCodeComponent,
     QrLectorDialogComponent,
+    GrillaConteoComponent,
     CapturarImagenComponent,
     CortarImagenDialogComponent,
     SelectIconDialogComponent,
@@ -153,6 +155,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxEchartsModule
   ],
   exports: [
+    GrillaConteoComponent,
     HeaderComponent,
     SideMiniVariantComponent,
     FooterComponent,

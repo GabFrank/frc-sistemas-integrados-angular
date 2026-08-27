@@ -36,9 +36,22 @@
         <div class="lado-bloque" [style.order]="ordenOrigen" *ngIf="mostrarCajaOrigen || mostrarCuentaOrigen">
           <div class="seccion-titulo">ORIGEN (sale)</div>
 
+          <!-- Un cambio de divisa puede salir de una caja o de una cuenta: el resto de las
+               operaciones tienen la fuente implícita en su definición. -->
+          <mat-button-toggle-group class="fuente-toggle" *ngIf="mostrarSelectorFuente"
+                                   [value]="fuenteOrigen"
+                                   (change)="onFuenteChange('ORIGEN', $event.value)">
+            <mat-button-toggle value="CAJA">
+              <mat-icon>point_of_sale</mat-icon> Caja mayor
+            </mat-button-toggle>
+            <mat-button-toggle value="CUENTA">
+              <mat-icon>account_balance</mat-icon> Cuenta bancaria
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+
           <mat-form-field appearance="outline" *ngIf="mostrarCajaOrigen">
             <mat-label class="required-field">Caja Mayor Origen</mat-label>
-            <mat-select [formControl]="cajaMayorOrigenControl">
+            <mat-select [formControl]="cajaMayorOrigenControl" (selectionChange)="onCajaChange()">
               <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
             </mat-select>
           </mat-form-field>
@@ -68,9 +81,20 @@
         <div class="lado-bloque" [style.order]="ordenDestino" *ngIf="mostrarCajaDestino || mostrarCuentaDestino">
           <div class="seccion-titulo">DESTINO (entra)</div>
 
+          <mat-button-toggle-group class="fuente-toggle" *ngIf="mostrarSelectorFuente"
+                                   [value]="fuenteDestino"
+                                   (change)="onFuenteChange('DESTINO', $event.value)">
+            <mat-button-toggle value="CAJA">
+              <mat-icon>point_of_sale</mat-icon> Caja mayor
+            </mat-button-toggle>
+            <mat-button-toggle value="CUENTA">
+              <mat-icon>account_balance</mat-icon> Cuenta bancaria
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+
           <mat-form-field appearance="outline" *ngIf="mostrarCajaDestino">
             <mat-label class="required-field">Caja Mayor Destino</mat-label>
-            <mat-select [formControl]="cajaMayorDestinoControl">
+            <mat-select [formControl]="cajaMayorDestinoControl" (selectionChange)="onCajaChange()">
               <mat-option *ngFor="let c of cajaVirtualList" [value]="c">{{ c.nombre }}</mat-option>
             </mat-select>
           </mat-form-field>
@@ -94,11 +118,20 @@
             <mat-icon>payments</mat-icon> Moneda: {{ monedaDestinoControl.value?.denominacion }}
           </div>
 
-          <!-- Cotización: dentro de destino, tras la moneda (se precarga al elegir la divisa). -->
-          <mat-form-field appearance="outline" *ngIf="mostrarCotizacion">
-            <mat-label>Cotización (Gs por 1 de divisa)</mat-label>
-            <input matInput type="number" min="0" [formControl]="cotizacionControl" (input)="calcularDesdeOrigen()" placeholder="0" />
-          </mat-form-field>
+          <!-- Cotización: manual por defecto. La del sistema se pide, no se impone: antes se
+               precargaba sola al elegir la moneda y pisaba lo que el usuario había escrito. -->
+          <div class="cotizacion-fila" *ngIf="mostrarCotizacion">
+            <mat-form-field appearance="outline" class="f-cotizacion">
+              <mat-label>{{ cotizacionLabel }}</mat-label>
+              <input matInput type="number" min="0" [formControl]="cotizacionControl" placeholder="0" />
+              <mat-hint *ngIf="cotizacionOrigenLabel">{{ cotizacionOrigenLabel }}</mat-hint>
+            </mat-form-field>
+            <mat-checkbox [formControl]="cotizacionAutomaticaControl"
+                          (change)="onCotizacionAutomaticaChange()"
+                          matTooltip="Trae la cotización de mercado según si la divisa entra o sale">
+              Usar cotización del sistema
+            </mat-checkbox>
+          </div>
         </div>
 
         <!-- ═══ MONTO(S) ═══ -->

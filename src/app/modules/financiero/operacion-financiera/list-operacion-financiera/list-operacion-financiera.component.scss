@@ -19,3 +19,10 @@ th.mat-header-cell, td.mat-cell {
   padding: 24px;
   color: #888;
 }
+
+/* Los iconos de accion alineados al centro de la fila, igual que el resto de las listas. */
+.acciones {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,209 @@
+.detalle-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.det-header {
+  padding: 4px 0 10px 12px;
+  border-left: 4px solid #ffa726;
+
+  h2 { color: #fff; margin-bottom: 2px; }
+
+  .subtitulo { color: #ff9800; font-size: 13px; }
+}
+
+.det-content {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.et {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+ /* Los dos custodios en una sola línea, con la flecha del traspaso en el medio: la
+    discrepancia es entre ellos dos y así se lee de un vistazo de quién a quién. */
+.dos-lados {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+
+  .lado {
+    display: flex;
+    flex-direction: column;
+
+    .sub { font-size: 12px; opacity: 0.6; }
+  }
+
+  .flecha {
+    opacity: 0.4;
+    font-size: 20px;
+  }
+}
+
+/* Que la verificación haya sido rápida cambia cómo se lee la diferencia: nadie contó los
+   billetes, así que el faltante puede ser de origen o de conteo del PDV. */
+.aviso-rapida {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border-left: 3px solid #ffa726;
+  background: rgba(255, 167, 38, 0.12);
+  color: #ffb74d;
+  font-size: 12px;
+
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+}
+
+.tabla-detalle {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.55;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .izq { text-align: left; }
+  .der { text-align: right; }
+
+  .motivo { font-size: 12px; opacity: 0.75; }
+
+  /* Las monedas que cerraron se atenúan: la mirada va a las que no. */
+  tr.cierra td { opacity: 0.5; }
+}
+
+.obs {
+  margin-bottom: 16px;
+
+  p {
+    margin: 4px 0 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 13px;
+  }
+}
+
+.informe {
+  /* Ocupa el alto que sobra: el conteo son pocas filas y el resto del dialogo quedaria vacio. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+
+  mat-form-field {
+    width: 100%;
+    margin-top: 4px;
+    flex: 1;
+    display: flex;
+  }
+
+  /* Material no propaga el alto solo: hay que estirar wrapper e infix a mano. */
+  ::ng-deep .mat-mdc-text-field-wrapper,
+  ::ng-deep .mat-mdc-form-field-flex,
+  ::ng-deep .mat-mdc-form-field-infix { height: 100%; }
+
+  textarea {
+    resize: none;
+    height: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .resuelto-info {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+}
+
+.det-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+
+  .spacer { flex: 1; }
+}
+
+/* Jornada del PDV: contexto del lado que entrega, no el dato principal — se muestra más
+   tenue que el conteo, pero la diferencia de arqueo del propio cajero sí resalta. */
+.jornada {
+  margin-bottom: 16px;
+
+  .cargando {
+    font-size: 12px;
+    opacity: 0.55;
+    padding: 6px 0;
+  }
+
+  tr.destacada td {
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    font-weight: 500;
+    color: #ffb74d;
+  }
+}
+
+.cierre {
+  margin-bottom: 16px;
+
+  .opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 10px;
+
+    button.elegida {
+      border-color: #26a69a;
+      color: #26a69a;
+      background: rgba(38, 166, 154, 0.12);
+    }
+  }
+
+  .extra {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+  }
+
+  .f-reintegro { width: 240px; margin-bottom: 10px; }
+
+  .nota {
+    font-size: 12px;
+    opacity: 0.65;
+    margin-top: 4px;
+    max-width: 560px;
+  }
+}
+
+.chip-veredicto {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 11px;
+  border: 1px solid rgba(38, 166, 154, 0.5);
+  background: rgba(38, 166, 154, 0.14);
+  color: #4db6ac;
+  font-size: 11px;
+}

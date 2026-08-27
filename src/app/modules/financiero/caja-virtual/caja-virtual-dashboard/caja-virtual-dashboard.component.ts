@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -33,6 +34,7 @@ import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-finan
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
 import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
+import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -194,6 +196,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private tabService: TabService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
+    private retiroVerificacionService: RetiroVerificacionService,
     private notificacion: NotificacionSnackbarService,
     public mainService: MainService
   ) {}
@@ -555,9 +558,17 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // concepto real (gasto, vale, liquidación…), el origen ya no distingue un pago del motor de
     // un egreso directo del módulo — los de RRHH usan el mismo valor para las dos cosas.
     const esPagoCpp = !!mov.esPagoConsolidado && !!mov.referenciaId;
+    // La acreditación de un retiro no se revierte con un ajuste suelto: hay que deshacer la
+    // verificación entera (movimiento + estado del retiro + caso abierto), y para ubicarla
+    // hacen falta las dos mitades de la PK del retiro.
+    const esRetiro = mov.origenTipo === 'RETIRO_CAJA' && !!mov.origenId && !!mov.origenSucursalId;
 
     let titulo: string, mensaje: string, exito: string;
-    if (esPagoCpp) {
+    if (esRetiro) {
+      titulo = 'Anular verificación del retiro';
+      mensaje = `¿Deshacer la verificación del retiro #${mov.origenId}? Se revierte lo acreditado, el retiro vuelve a quedar pendiente y se cierra el caso abierto.`;
+      exito = 'Verificación anulada';
+    } else if (esPagoCpp) {
       titulo = 'Anular pago a proveedor';
       mensaje = '¿Anular todo el pago a proveedor? Se revertirán TODOS los movimientos consolidados (caja y banco) y se reabrirán las notas pagadas.';
       exito = 'Pago a proveedor anulado';
@@ -575,11 +586,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      const obs: Observable<any> = esPagoCpp
-        ? this.pagarComprasService.onAnularPago(mov.referenciaId)
-        : esOpFinanciera
-          ? this.operacionFinancieraService.onAnular(mov.referenciaId)
-          : this.cajaVirtualService.onAnularMovimiento(mov.id);
+      const obs: Observable<any> = esRetiro
+        ? this.retiroVerificacionService.onGetVerificacion(mov.origenId, mov.origenSucursalId).pipe(
+            switchMap(v => v?.id
+              ? this.retiroVerificacionService.onAnular(v.id)
+              : throwError(() => new Error('No se encontró la verificación de este retiro'))))
+        : esPagoCpp
+          ? this.pagarComprasService.onAnularPago(mov.referenciaId)
+          : esOpFinanciera
+            ? this.operacionFinancieraService.onAnular(mov.referenciaId)
+            : this.cajaVirtualService.onAnularMovimiento(mov.id);
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {

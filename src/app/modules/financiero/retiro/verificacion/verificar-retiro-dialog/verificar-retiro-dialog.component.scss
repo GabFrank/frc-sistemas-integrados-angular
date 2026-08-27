@@ -1,0 +1,117 @@
+.verificar-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ver-header {
+  padding: 4px 0 10px 12px;
+  border-left: 4px solid #26a69a;
+
+  h2 { color: #fff; margin-bottom: 2px; }
+
+  .subtitulo { color: #ff9800; font-size: 13px; }
+}
+
+.ver-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.aviso-borrador,
+.aviso-diferencia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+
+  mat-icon { font-size: 19px; width: 19px; height: 19px; }
+}
+
+.aviso-borrador {
+  border-left: 3px solid #ffa726;
+  background: rgba(255, 167, 38, 0.1);
+}
+
+.aviso-diferencia {
+  margin-top: 12px;
+  margin-bottom: 0;
+  border-left: 3px solid #ff8a80;
+  background: rgba(244, 67, 54, 0.1);
+  color: #ff8a80;
+}
+
+/* Una moneda por bloque: declarado, contado, diferencia y las acciones en una línea. */
+.moneda {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.moneda-fila {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+}
+
+.moneda-nombre {
+  flex: 0 0 110px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.moneda-monto {
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+
+  .etiqueta {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.55;
+  }
+
+  strong {
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.moneda-acciones {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.moneda-grilla {
+  padding: 4px 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.moneda-categoria {
+  padding: 0 14px 12px;
+
+  mat-form-field { width: 280px; }
+}
+
+.observacion {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.ver-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+
+  .spacer { flex: 1; }
+}

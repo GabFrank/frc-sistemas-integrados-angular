@@ -7,29 +7,11 @@
 
   <mat-dialog-content class="conteo-content">
 
-    <div class="cargando" *ngIf="cargando">Cargando denominaciones...</div>
+    <app-grilla-conteo [moneda]="data.moneda" [cantidades]="cantidadesGuardadas"
+                       (totalChange)="onTotalChange($event)"
+                       (cantidadesChange)="onCantidadesChange($event)"></app-grilla-conteo>
 
-    <div class="sin-billetes" *ngIf="!cargando && filas.length === 0">
-      Esta moneda no tiene denominaciones cargadas. Configurarlas en Monedas → Billetes.
-    </div>
-
-    <!-- Columnas de 10 denominaciones: la grilla crece a lo ancho, nunca a lo alto. -->
-    <div class="conteo-columnas" *ngIf="!cargando && filas.length > 0">
-      <div class="conteo-col" *ngFor="let col of columnas">
-        <div class="conteo-col-head">
-          <span class="col-valor">Denominación</span>
-          <span class="col-cantidad">Cantidad</span>
-        </div>
-        <div class="conteo-fila" *ngFor="let f of col" [class.cargada]="f.cantidad">
-          <span class="col-valor">{{ f.valor | number:formato }} {{ data.moneda?.simbolo }}</span>
-          <input type="number" min="0" step="1" class="cantidad-input"
-                 [value]="f.cantidad"
-                 (input)="onCantidadChange(f, $any($event.target).value)" />
-        </div>
-      </div>
-    </div>
-
-    <div class="resumen" *ngIf="!cargando">
+    <div class="resumen">
       <div class="resumen-row">
         <span>Saldo del sistema</span>
         <strong>{{ data.saldoSistema | number:formato }} {{ data.moneda?.simbolo }}</strong>

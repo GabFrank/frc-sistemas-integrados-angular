@@ -147,3 +147,26 @@
 
   span { flex: 1; }
 }
+
+/* Chip de estado: fondo tenue, borde y texto del color, y un punto de acento. Con muchas
+   filas seguidas, un fondo solido saturado compite con los datos en vez de ayudarlos. */
+.chip-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  .punto {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: 0 0 6px;
+  }
+}

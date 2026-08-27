@@ -9,8 +9,11 @@ import { Retiro } from '../../retiro/retiro.model';
 import { RetiroService } from '../../retiro/retiro.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
+import { VerificarRetiroDialogComponent, VerificarRetiroDialogData } from '../../retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { MatDialog } from '@angular/material/dialog';
 
 export interface IngresarRetiroCajaMayorDialogData {
   cajaVirtual: CajaVirtual;
@@ -24,9 +27,13 @@ export interface IngresarRetiroCajaMayorDialogData {
 
 // Fila de display: clon del retiro (Apollo congela los resultados) + campos derivados.
 interface RetiroRow extends Retiro {
-  sucursal?: { nombre?: string };
   _sel: boolean;
   _montos: string;
+  /** PENDIENTE | EN_PROCESO | VERIFICADO. Lo que muestra el chip de la fila. */
+  _estadoVerif: string;
+  _chipLabel: string;
+  _chipColor: string;
+  _chipBg: string;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -37,7 +44,7 @@ interface RetiroRow extends Retiro {
 })
 export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
 
-  displayedColumns = ['sel', 'id', 'sucursal', 'cajaSalida', 'montos', 'responsable', 'creadoEn'];
+  displayedColumns = ['estado', 'id', 'sucursal', 'cajaSalida', 'montos', 'responsable', 'creadoEn', 'acciones'];
   dataSource = new MatTableDataSource<RetiroRow>([]);
 
   sucursalControl = new FormControl(null);
@@ -68,6 +75,8 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
     private retiroService: RetiroService,
     private sucursalService: SucursalService,
     private notificacion: NotificacionSnackbarService,
+    private verificacionService: RetiroVerificacionService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -119,12 +128,62 @@ export class IngresarRetiroCajaMayorDialogComponent implements OnInit {
             const row = { ...r } as RetiroRow;
             row._montos = this.formatMontos(r);
             row._sel = this.seleccionados.has(`${r.id}_${r.sucursalId}`);
+            this.marcarEstadoVerificacion(row);
             return row;
           });
           this.totalElements = res?.getTotalElements ?? 0;
         },
         error: () => { this.isLoading = false; }
       });
+  }
+
+  /**
+   * Estado de verificación de la fila.
+   *
+   * "En proceso" sale del borrador local: alguien empezó a contar este retiro en esta máquina
+   * y lo dejó a medias. Es lo que evita que se cuente dos veces por olvido.
+   */
+  private marcarEstadoVerificacion(row: RetiroRow) {
+    // Fondo tenue + texto y borde del color: con diez filas iguales, un fondo sólido
+    // saturado es ruido. El acento se lo da el punto de color.
+    if (row.movimientoCajaVirtualId != null) {
+      row._estadoVerif = 'VERIFICADO';
+      row._chipLabel = 'Verificado';
+      row._chipColor = '#81c784';
+      row._chipBg = 'rgba(102, 187, 106, 0.16)';
+      return;
+    }
+    if (this.verificacionService.hayBorrador(row.id, row.sucursalId)) {
+      row._estadoVerif = 'EN_PROCESO';
+      row._chipLabel = 'En proceso';
+      row._chipColor = '#ffb74d';
+      row._chipBg = 'rgba(255, 167, 38, 0.18)';
+      return;
+    }
+    row._estadoVerif = 'PENDIENTE';
+    row._chipLabel = 'Pendiente';
+    row._chipColor = '#b0bec5';
+    row._chipBg = 'rgba(176, 190, 197, 0.14)';
+  }
+
+  /** Abre la verificación de un retiro puntual. Es el único camino de ingreso. */
+  onProcesar(row: RetiroRow) {
+    const data: VerificarRetiroDialogData = {
+      retiro: row,
+      cajaVirtual: this.data.cajaVirtual,
+    };
+    this.dialog.open(VerificarRetiroDialogComponent, {
+      width: '65vw', height: '70vh', maxWidth: '96vw', disableClose: true, data,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+      // Se recarga siempre, no solo al confirmar: cerrar a medias cambia el chip a "En proceso".
+      this.cargar();
+      if (res) {
+        this.notificacion.notification$.next({
+          texto: `Retiro #${row.id} verificado e ingresado`,
+          color: NotificacionColor.success, duracion: 3,
+        });
+      }
+    });
   }
 
   onFiltroChange() {

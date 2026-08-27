@@ -128,9 +128,13 @@ export class LiquidacionFinalGenerarDialogComponent implements OnInit {
       cobrarPrestamos: this.cobrarPrestamosControl.value,
       descontarPenalizaciones: this.descontarPenalizacionesControl.value
     };
-    this.service.onGenerar(input).pipe(untilDestroyed(this)).subscribe(res => {
-      this.generando = false;
-      if (res != null) { this.dialogRef.close(res); }
+    this.service.onGenerar(input).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        this.generando = false;
+        if (res != null) { this.dialogRef.close(res); }
+      },
+      // Si el backend rechaza, el botón tiene que volver a habilitarse para reintentar.
+      error: () => { this.generando = false; },
     });
   }
 

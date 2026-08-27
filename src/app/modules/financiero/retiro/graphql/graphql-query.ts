@@ -251,6 +251,13 @@ export const retirosFlotantesQuery = gql`
         retiroGs
         retiroRs
         retiroDs
+        cajaVirtualId
+        movimientoCajaVirtualId
+        retiroDetalleList {
+          id
+          cantidad
+          moneda { id denominacion simbolo decimales }
+        }
         sucursal {
           nombre
         }
