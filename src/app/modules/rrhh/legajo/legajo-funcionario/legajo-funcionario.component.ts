@@ -18,6 +18,7 @@ import { RevertirEgresoDialogComponent } from '../revertir-egreso-dialog/reverti
 import { SubirDocumentoDialogComponent } from '../subir-documento-dialog/subir-documento-dialog.component';
 import { LiquidacionFinalDialogComponent } from '../../liquidacion-final/liquidacion-final-dialog/liquidacion-final-dialog.component';
 import { LiquidacionFinalGenerarDialogComponent } from '../../liquidacion-final/liquidacion-final-generar-dialog/liquidacion-final-generar-dialog.component';
+import { PenalizacionService } from '../../penalizacion/penalizacion.service';
 import { LiquidacionFinalService } from '../../liquidacion-final/liquidacion-final.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
@@ -49,6 +50,12 @@ export class LegajoFuncionarioComponent implements OnInit {
   metasLogradas = 4;
   metasTotal = 11;
 
+  /**
+   * Amonestaciones no anuladas del funcionario. A diferencia de los otros tres chips,
+   * este NO es placeholder: sale del backend.
+   */
+  advertencias = 0;
+
   antiguedadTexto = '—';   // calculado al cargar el funcionario (no en template, regla del proyecto)
 
   cargoColumns = ['cargo', 'fechaDesde', 'fechaHasta', 'motivo'];
@@ -73,6 +80,7 @@ export class LegajoFuncionarioComponent implements OnInit {
     private notificacion: NotificacionSnackbarService,
     private tabService: TabService,
     private liquidacionFinalService: LiquidacionFinalService,
+    private penalizacionService: PenalizacionService,
     public mainService: MainService
   ) { }
 
@@ -97,6 +105,8 @@ export class LegajoFuncionarioComponent implements OnInit {
         this.funcionario = f;
         this.antiguedadTexto = this.calcularAntiguedad(f?.fechaIngreso);
       });
+    this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
+      .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });
     this.recargar();
   }
 

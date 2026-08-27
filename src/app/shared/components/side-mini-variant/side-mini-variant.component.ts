@@ -63,6 +63,7 @@ import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-ho
 import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
@@ -313,6 +314,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'label',
               action: 'list-motivo-vale',
               visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Cargos',
+              icon: 'work',
+              action: 'list-cargo',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
             },
             {
               name: 'Configuración RRHH',
@@ -1036,6 +1043,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-motivo-vale":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-cargo":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");
         break;
       case "list-prestamo":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");

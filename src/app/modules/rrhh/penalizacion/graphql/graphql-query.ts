@@ -53,6 +53,21 @@ export const anularPenalizacionMutation = gql`
   }
 `;
 
+export const contarAdvertenciasQuery = gql`
+  query contarAdvertencias($funcionarioId: ID!) {
+    data: contarAdvertencias(funcionarioId: $funcionarioId)
+  }
+`;
+export const actaAdvertenciaQuery = gql`
+  query imprimirActaAdvertencia($id: ID!) {
+    data: imprimirActaAdvertencia(id: $id)
+  }
+`;
+export const generarPenalizacionesAutoRangoMutation = gql`
+  mutation generarPenalizacionesAutoRango($desde: String, $hasta: String) {
+    data: generarPenalizacionesAutoRango(desde: $desde, hasta: $hasta)
+  }
+`;
 export const generarPenalizacionesAutoMutation = gql`
   mutation generarPenalizacionesAuto($fecha: String) {
     data: generarPenalizacionesAuto(fecha: $fecha)

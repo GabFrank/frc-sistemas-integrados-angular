@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Tab } from '../../../../layouts/tab/tab.model';
@@ -43,6 +43,22 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   tipoControl = new FormControl('DESCUENTO');
   tipoOptions = ['HABER', 'DESCUENTO'];
 
+  /**
+   * Operaciones elegibles al cargar un item a mano. El backend deriva el signo de
+   * esHaber del catalogo, asi que la UI no pide el tipo por separado: elegir
+   * "Bonificacion" ya implica HABER y "Faltante de caja" ya implica DESCUENTO.
+   */
+  conceptos: any[] = [];
+  /**
+   * Si el catalogo no cargo (query fallida o instancia sin seedear), se vuelve a pedir el
+   * tipo a mano. Sin esto no habria forma de crear un item HABER: el selector de tipo esta
+   * oculto en alta y quedaria clavado en DESCUENTO.
+   */
+  sinCatalogo = false;
+  conceptoControl = new FormControl(null, [Validators.required]);
+  /** Precalculado para el template (el repo no llama funciones desde el HTML). */
+  signoConcepto = '';
+
   // Gating por rol (UX; el backend valida de todas formas). ADMIN por rol o nickname.
   puedeLiquidar = false;
   puedeAprobar = false;
@@ -61,6 +77,14 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   ngOnInit(): void {
     const roles = this.mainService.usuarioActual?.roles || [];
     const esAdmin = this.mainService.usuarioActual?.nickname === 'ADMIN' || roles.includes('ADMIN');
+    this.liquidacionService.onGetConceptosParaItemManual()
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        this.conceptos = res || [];
+        this.sinCatalogo = this.conceptos.length === 0;
+        if (this.sinCatalogo) { this.conceptoControl.clearValidators(); }
+        this.conceptoControl.updateValueAndValidity();
+      });
     this.puedeLiquidar = esAdmin || roles.includes('RRHH LIQUIDAR');
     this.puedeAprobar = esAdmin || roles.includes('RRHH APROBAR');
     this.puedePagar = esAdmin || roles.includes('RRHH PAGAR');
@@ -114,18 +138,34 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   /** Guarda el panel: edición si hay editandoItemId, alta si no. */
   onGuardarItem() {
     if (this.montoControl.value == null || this.montoControl.value < 0) { return; }
+    // En alta, la operacion define el signo. Sin ella el backend cae al camino viejo y
+    // confia en el tipo que mande el cliente, que en alta esta clavado en DESCUENTO: un
+    // bono cargado sin elegir operacion se restaria del sueldo en vez de sumarse.
+    if (this.editandoItemId == null && !this.sinCatalogo && this.conceptoControl.value == null) {
+      this.notificacion.notification$.next({
+        texto: 'Elegí la operación: define si el ítem suma o resta',
+        color: NotificacionColor.warn, duracion: 4
+      });
+      return;
+    }
     const obs = this.editandoItemId != null
       ? this.liquidacionService.onEditarItem(this.editandoItemId, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
       : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
-          this.montoControl.value, this.tipoControl.value);
+          this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
     obs.pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.editandoItemId = null;
-        this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
+        this.descripcionControl.reset(); this.montoControl.setValue(0);
+        this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
         this.recargar();
       }
     });
+  }
+
+  onConceptoChange() {
+    const c = this.conceptos.find(x => x.id === this.conceptoControl.value);
+    this.signoConcepto = c ? (c.esHaber ? 'Suma al total (HABER)' : 'Resta del total (DESCUENTO)') : '';
   }
 
   onEliminarItem(it: LiquidacionItem) {
@@ -203,7 +243,8 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   onToggleAgregar() {
     this.mostrarAgregar = !this.mostrarAgregar;
     if (!this.mostrarAgregar) { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); }
-    else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0); this.tipoControl.setValue('DESCUENTO'); }
+    else { this.editandoItemId = null; this.descripcionControl.reset(); this.montoControl.setValue(0);
+      this.tipoControl.setValue('DESCUENTO'); this.conceptoControl.reset(); this.signoConcepto = ''; }
   }
 
   onCerrar() {
