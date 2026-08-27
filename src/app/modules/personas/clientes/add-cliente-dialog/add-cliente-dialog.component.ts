@@ -36,6 +36,7 @@ export class AddClienteDialogComponent implements OnInit {
   personaControl = new FormControl()
   buscarControl = new FormControl()
   creditoControl = new FormControl(0, Validators.min(0));
+  tributaControl = new FormControl(false)
 
   //persona
   nombreControl = new FormControl(null, Validators.required)
@@ -68,6 +69,7 @@ export class AddClienteDialogComponent implements OnInit {
     this.formGroup = new FormGroup({
       'tipoControl': this.tipoControl,
       'creditoControl': this.creditoControl,
+      'tributaControl': this.tributaControl,
       'nombreControl': this.nombreControl,
       'apodoControl': this.apodoControl,
       'documentoControl': this.documentoControl,
@@ -92,6 +94,7 @@ export class AddClienteDialogComponent implements OnInit {
       this.selectedPersona = this.selectedCliente.persona;
       this.tipoControl.setValue(this.selectedCliente?.tipo)
       this.creditoControl.setValue(this.selectedCliente?.credito)
+      this.tributaControl.setValue(this.selectedCliente?.tributa ?? false)
       this.nombreControl.setValue(this.selectedPersona.nombre)
       this.apodoControl.setValue(this.selectedPersona?.apodo)
       this.documentoControl.setValue(this.selectedPersona?.documento)
@@ -124,7 +127,11 @@ export class AddClienteDialogComponent implements OnInit {
       titulo: 'Buscar persona',
       search: true,
       texto: this.nombreControl.value,
-      inicialSearch: true
+      // Solo autobuscar si ya hay texto cargado (ej. se tipeó el nombre antes de
+      // abrir el buscador). Sin texto, "buscar todo" carga la lista completa de
+      // personas de una — igual que en app-select-funcionario, se espera a que
+      // el usuario tipee.
+      inicialSearch: !!this.nombreControl.value
     }
     this.dialog.open(SearchListDialogComponent, {
       data: data,
@@ -140,6 +147,7 @@ export class AddClienteDialogComponent implements OnInit {
             this.selectedCliente = res2;
             this.tipoControl.setValue(this.selectedCliente?.tipo)
             this.creditoControl.setValue(this.selectedCliente?.credito)
+            this.tributaControl.setValue(this.selectedCliente?.tributa ?? false)
           })
         }
         this.nombreControl.setValue(this.selectedPersona.nombre)
@@ -179,18 +187,25 @@ export class AddClienteDialogComponent implements OnInit {
     this.personaService.onSavePersona(newPersona.toInput()).pipe(untilDestroyed(this)).subscribe((personaRes: Persona) => {
       if (personaRes != null) {
         this.selectedPersona = personaRes;
+        let esClienteNuevo = this.selectedCliente == null;
         let newCliente = new Cliente;
         if (this.selectedCliente != null) Object.assign(newCliente, this.selectedCliente)
-        
+
         // CRÍTICO: Actualizar los campos del Cliente con los valores de la Persona actualizada
         newCliente.persona = this.selectedPersona;
         newCliente.nombre = this.selectedPersona.nombre;  // ✅ Usar nombre actualizado
-        newCliente.direccion = this.selectedPersona.direccion;  // ✅ Usar dirección actualizada  
+        newCliente.direccion = this.selectedPersona.direccion;  // ✅ Usar dirección actualizada
         newCliente.documento = this.selectedPersona.documento;  // ✅ Usar documento actualizado
-        
+
         newCliente.tipo = this.tipoControl.value;
         newCliente.credito = this.creditoControl.value;
-        
+        newCliente.tributa = this.tributaControl.value;
+        // Cliente nuevo cargado a mano: no pasó por la consulta de la SET.
+        // Si es edición, se conserva el verificadoSet ya existente (copiado por Object.assign).
+        if (esClienteNuevo) {
+          newCliente.verificadoSet = false;
+        }
+
         this.clienteService.onSaveCliente(newCliente.toInput()).pipe(untilDestroyed(this)).subscribe((clienteRes: Cliente) => {
           if (clienteRes != null) {
             this.selectedCliente = clienteRes;

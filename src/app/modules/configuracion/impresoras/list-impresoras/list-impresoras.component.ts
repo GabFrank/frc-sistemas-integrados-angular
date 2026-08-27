@@ -17,6 +17,7 @@ import {
   NotificacionSnackbarService,
 } from '../../../../notificacion-snackbar.service';
 import {
+  ColaEstado,
   Impresora,
   PerfilPapel,
   TipoConexion,
@@ -41,6 +42,11 @@ interface ImpresoraVista {
   sucursalNombre: string;
   colorIndex: number;
   compartidaEnCentral: boolean;
+  /** Texto y color del chip: estado real de CUPS si lo conocemos, si no el flag de la BD. */
+  estadoLabel: string;
+  estadoDetenida: boolean;
+  puedeReactivar: boolean;
+  razonDetencion: string;
 }
 
 const PERFIL_LABEL: Record<PerfilPapel, string> = {
@@ -69,7 +75,17 @@ const CONEXION_ICONO: Record<TipoConexion, string> = {
   CUPS: 'cable',
   USB: 'usb',
   RED: 'wifi',
+  SMB: 'desktop_windows',
   BLUETOOTH: 'bluetooth',
+};
+
+/** sucursalId del host donde corre el backend central (ver adicionar-impresora-dialog). */
+const HOST_SERVIDOR_CENTRAL_ID = 0;
+
+const ESTADO_LABEL: Record<string, string> = {
+  INACTIVA: 'Lista',
+  IMPRIMIENDO: 'Imprimiendo',
+  DESHABILITADA: 'Detenida',
 };
 
 @UntilDestroy()
@@ -101,6 +117,14 @@ export class ListImpresorasComponent implements OnInit {
   
   searchControl = new FormControl('');
 
+  /**
+   * Estado real de las colas por host, indexado por nombre de cola. Solo consultamos los dos
+   * backends que la app ya tiene configurados (central y local/filial); para impresoras de otra
+   * sucursal no tenemos lectura y la tarjeta cae al flag `activo` de la BD.
+   */
+  private colasCentral = new Map<string, ColaEstado>();
+  private colasLocal = new Map<string, ColaEstado>();
+
   ngOnInit(): void {
     this.calcularColumnas();
 
@@ -114,10 +138,12 @@ export class ListImpresorasComponent implements OnInit {
         this.recargar();
       });
 
+    this.cargarEstadoColas();
     this.cargar();
   }
 
   recargar(): void {
+    this.cargarEstadoColas();
     this.page = 0;
     this.impresoras = [];
     this.filas = [];
@@ -275,6 +301,102 @@ export class ListImpresorasComponent implements OnInit {
     });
   }
 
+  /**
+   * Lee el estado real de las colas CUPS del central y del servidor local/filial. La tarjeta
+   * mostraba `impresora.activo` (BD) mientras CUPS podia tener la cola frenada hace dias: CUPS
+   * deshabilita una cola ante un fallo del backend y no la vuelve a habilitar sola.
+   * Silencioso a proposito: es informacion complementaria, no puede bloquear la pantalla.
+   */
+  private cargarEstadoColas(): void {
+    // estadoColas() nunca falla: si el host no responde devuelve [] y la tarjeta cae al flag de la BD.
+    this.impresoraService.estadoColas(true)
+      .pipe(untilDestroyed(this))
+      .subscribe((colas) => {
+        this.colasCentral = this.indexar(colas);
+        this.refrescarEstados();
+      });
+    this.impresoraService.estadoColas(false)
+      .pipe(untilDestroyed(this))
+      .subscribe((colas) => {
+        this.colasLocal = this.indexar(colas);
+        this.refrescarEstados();
+      });
+  }
+
+  private indexar(colas: ColaEstado[]): Map<string, ColaEstado> {
+    const mapa = new Map<string, ColaEstado>();
+    (colas ?? []).forEach((c) => {
+      if (c?.nombre) {
+        mapa.set(c.nombre, c);
+      }
+    });
+    return mapa;
+  }
+
+  /** Recalcula el chip de cada tarjeta cuando llega la lectura de un host. */
+  private refrescarEstados(): void {
+    this.impresoras = this.impresoras.map((v) => ({ ...v, ...this.estadoDe(v.ref) }));
+    this.filas = this.chunkArray(this.impresoras, this.columnas);
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Rehabilita la cola en el host dueno de la impresora y libera los jobs retenidos. Ademas le
+   * fija printer-error-policy=retry-current-job para que no se vuelva a frenar en el proximo corte.
+   */
+  reactivar(impresora: Impresora): void {
+    const enCentral = (impresora?.sucursal?.id ?? HOST_SERVIDOR_CENTRAL_ID) === HOST_SERVIDOR_CENTRAL_ID;
+    this.impresoraService.reactivarCola(impresora.colaCups, enCentral)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          this.notificacion.notification$.next({
+            texto: ok
+              ? 'Cola reactivada: ' + impresora.colaCups
+              : 'No se pudo reactivar la cola (verificá permisos de CUPS del backend).',
+            color: ok ? NotificacionColor.success : NotificacionColor.warn,
+            duracion: 4,
+          });
+          if (ok) {
+            this.cargarEstadoColas();
+          }
+        },
+        error: () => this.notificarFallo(impresora, 'no se pudo reactivar la cola'),
+      });
+  }
+
+  /**
+   * Chip de estado. Precedencia: si el admin la marco inactiva en la BD, eso manda; si no, el
+   * estado real de CUPS; si no lo conocemos (impresora de otra sucursal, o backend sin permisos),
+   * cae al flag `activo`.
+   */
+  private estadoDe(i: Impresora): Pick<ImpresoraVista, 'estadoLabel' | 'estadoDetenida' | 'puedeReactivar' | 'razonDetencion'> {
+    if (i?.activo !== true) {
+      return { estadoLabel: 'Inactiva', estadoDetenida: false, puedeReactivar: false, razonDetencion: '' };
+    }
+    const cola = this.colaDe(i);
+    if (cola == null) {
+      return { estadoLabel: 'Activa', estadoDetenida: false, puedeReactivar: false, razonDetencion: '' };
+    }
+    const detenida = cola.habilitada === false;
+    return {
+      estadoLabel: ESTADO_LABEL[cola.estado] ?? 'Activa',
+      estadoDetenida: detenida,
+      puedeReactivar: detenida,
+      razonDetencion: detenida ? (cola.razon || 'CUPS detuvo la cola tras un fallo') : '',
+    };
+  }
+
+  /** La conexion RED no pasa por CUPS: no hay cola que consultar. */
+  private colaDe(i: Impresora): ColaEstado {
+    if (!i?.colaCups || i?.conexion === 'RED') {
+      return null;
+    }
+    const enCentral = (i?.sucursal?.id ?? HOST_SERVIDOR_CENTRAL_ID) === HOST_SERVIDOR_CENTRAL_ID;
+    const mapa = enCentral ? this.colasCentral : this.colasLocal;
+    return mapa.get(i.colaCups) ?? null;
+  }
+
   private aVista(i: Impresora): ImpresoraVista {
     const sucursalId = i?.sucursal?.id ?? 0;
     return {
@@ -291,6 +413,7 @@ export class ListImpresorasComponent implements OnInit {
       sucursalNombre: i?.sucursal ? `${i.sucursal.id} - ${i.sucursal.nombre}` : 'Sin sucursal',
       colorIndex: sucursalId % 6,
       compartidaEnCentral: i?.compartidaEnCentral === true,
+      ...this.estadoDe(i),
     };
   }
 
@@ -298,6 +421,10 @@ export class ListImpresorasComponent implements OnInit {
     if (i?.conexion === 'RED') {
       const puerto = i?.puerto ?? 9100;
       return `${i?.ip ?? ''}:${puerto}`;
+    }
+    if (i?.conexion === 'SMB' && i?.smbHost) {
+      // La cola es local, pero lo util para el operador es a que PC Windows entrega.
+      return `${i.colaCups ?? ''} → \\\\${i.smbHost}\\${i.smbRecurso ?? ''}`;
     }
     return i?.colaCups ?? (i?.conexion ?? '');
   }
