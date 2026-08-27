@@ -14,11 +14,16 @@
     Ningún funcionario quedó por debajo del nuevo mínimo.
   </div>
 
+  <p class="resumen-afectados" *ngIf="!cargando && totalAfectados > 0">
+    {{ totalAfectados }} funcionario/s afectado/s · {{ seleccion.selected.length }} seleccionado/s
+  </p>
+
   <div class="tabla" *ngIf="!cargando && dataSource.data.length > 0">
     <table mat-table [dataSource]="dataSource" class="mat-elevation-z2">
       <ng-container matColumnDef="seleccion">
         <th mat-header-cell *matHeaderCellDef>
-          <mat-checkbox [checked]="todosSeleccionados" (change)="onToggleTodos()"></mat-checkbox>
+          <mat-checkbox [checked]="todosSeleccionados" (change)="onToggleTodos()"
+            [matTooltip]="tooltipTodos"></mat-checkbox>
         </th>
         <td mat-cell *matCellDef="let row">
           <mat-checkbox [checked]="seleccion.isSelected(row)" (change)="onToggleFila(row)"></mat-checkbox>
