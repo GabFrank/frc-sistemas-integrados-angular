@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual } from '../caja-virtual.model';
@@ -10,6 +10,7 @@ import { MainService } from '../../../../main.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
+import { GrillaConteoComponent } from '../../../../shared/components/grilla-conteo/grilla-conteo.component';
 
 export interface ConteoCajaDialogData {
   cajaVirtual: CajaVirtual;
@@ -19,18 +20,6 @@ export interface ConteoCajaDialogData {
   /** Color de la card que abrió el diálogo, para que el diálogo se lea como continuación de ella. */
   color?: string;
 }
-
-/** Fila del conteo: una denominación con su cantidad. El subtotal alimenta el total del footer
- *  (no se muestra por fila: la suma ya se ve abajo y una columna menos angosta la grilla). */
-interface FilaConteo {
-  valor: number;
-  cantidad: number;
-  subtotal: number;
-}
-
-/** Denominaciones por columna. Fijo, para que la altura no dependa de la moneda y el
- *  resumen del footer nunca quede fuera de vista: si sobran, se abre otra columna. */
-const FILAS_POR_COLUMNA = 10;
 
 /** Lo que se guarda en localStorage. Se indexa por VALOR y no por id de billete:
  *  el id puede cambiar si se recrea la denominación, el valor no. */
@@ -47,9 +36,8 @@ interface ConteoGuardado {
 })
 export class ConteoCajaDialogComponent implements OnInit {
 
-  filas: FilaConteo[] = [];
-  /** Las mismas filas repartidas en columnas de FILAS_POR_COLUMNA (lo que renderiza el HTML). */
-  columnas: FilaConteo[][] = [];
+  @ViewChild(GrillaConteoComponent) grilla: GrillaConteoComponent;
+
   /** digitsInfo del pipe number para los valores de denominación. */
   formato = '1.0-2';
   total = 0;
@@ -84,7 +72,10 @@ export class ConteoCajaDialogComponent implements OnInit {
       ? m.decimales
       : ((m?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
     this.formato = `1.0-${this.decimales}`;
-    this.cargarDenominaciones();
+    const guardado = this.leerGuardado();
+    this.cantidadesGuardadas = guardado?.cantidades || {};
+    this.actualizadoEn = guardado?.actualizadoEn || null;
+    this.cargando = false;
   }
 
   /** Clave de persistencia local: una por (caja, moneda). */
@@ -92,32 +83,19 @@ export class ConteoCajaDialogComponent implements OnInit {
     return `frc.conteo-caja-virtual.${this.data.cajaVirtual?.id}.${this.data.moneda?.id}`;
   }
 
-  private cargarDenominaciones() {
-    const monedaId = this.data.moneda?.id;
-    if (!monedaId) { this.cargando = false; return; }
-    this.monedaBilletesService.onGetByMonedaId(monedaId)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: MonedaBillete[]) => {
-        this.cargando = false;
-        const guardado = this.leerGuardado();
-        const activos = (res || []).filter(b => b?.activo !== false && b?.valor != null);
-        // Mayor a menor: es el orden en que se cuenta plata en la mano.
-        activos.sort((a, b) => b.valor - a.valor);
-        this.filas = activos.map(b => {
-          const cantidad = guardado?.cantidades?.[String(b.valor)] || 0;
-          return { valor: b.valor, cantidad, subtotal: cantidad * b.valor };
-        });
-        this.repartirEnColumnas();
-        this.actualizadoEn = guardado?.actualizadoEn || null;
-        this.recalcular();
-      });
+  /** Cantidades con las que arranca la grilla, recuperadas de localStorage. */
+  cantidadesGuardadas: { [valor: string]: number } = {};
+
+  /** La grilla avisa cuánto sumó; acá se compara contra el saldo del sistema. */
+  onTotalChange(total: number) {
+    this.total = total;
+    this.recalcular();
   }
 
-  private repartirEnColumnas() {
-    this.columnas = [];
-    for (let i = 0; i < this.filas.length; i += FILAS_POR_COLUMNA) {
-      this.columnas.push(this.filas.slice(i, i + FILAS_POR_COLUMNA));
-    }
+  /** La grilla avisa qué cantidades hay cargadas; acá se persisten. */
+  onCantidadesChange(cantidades: { [valor: string]: number }) {
+    this.cantidadesGuardadas = cantidades;
+    this.guardarLocal();
   }
 
   private leerGuardado(): ConteoGuardado {
@@ -130,28 +108,21 @@ export class ConteoCajaDialogComponent implements OnInit {
   }
 
   /** Persiste el conteo en cada cambio: cerrar el diálogo (o la app) no debe perderlo. */
+  /** Persiste el conteo en cada cambio: cerrar el diálogo no debe perderlo. */
   private guardarLocal() {
-    const cantidades: { [valor: string]: number } = {};
-    this.filas.forEach(f => { if (f.cantidad) cantidades[String(f.valor)] = f.cantidad; });
-    const payload: ConteoGuardado = { cantidades, actualizadoEn: new Date().toISOString() };
+    const payload: ConteoGuardado = {
+      cantidades: this.cantidadesGuardadas,
+      actualizadoEn: new Date().toISOString(),
+    };
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(payload));
       this.actualizadoEn = payload.actualizadoEn;
     } catch {
-      // Cuota llena / modo privado: el conteo sigue usable en memoria, solo no sobrevive al cierre.
+      // Cuota llena / modo privado: el conteo sigue usable en memoria, solo no sobrevive.
     }
   }
 
-  onCantidadChange(fila: FilaConteo, valor: any) {
-    const n = Number(valor);
-    fila.cantidad = isNaN(n) || n < 0 ? 0 : Math.floor(n);
-    fila.subtotal = fila.cantidad * fila.valor;
-    this.recalcular();
-    this.guardarLocal();
-  }
-
   private recalcular() {
-    this.total = this.filas.reduce((acc, f) => acc + f.subtotal, 0);
     const sistema = this.data.saldoSistema || 0;
     // Redondear a los decimales de la moneda: restar dos doubles deja basura binaria
     // (3339.78 - 3300 = 39.780000000000002) que terminaría posteada como cantidad del AJUSTE.
@@ -175,9 +146,7 @@ export class ConteoCajaDialogComponent implements OnInit {
       'Limpiar conteo', '¿Borrar todas las cantidades cargadas?', null, null, true, 'Sí, limpiar', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      this.filas.forEach(f => { f.cantidad = 0; f.subtotal = 0; });
-      this.recalcular();
-      this.guardarLocal();
+      this.grilla?.limpiar();
     });
   }
 

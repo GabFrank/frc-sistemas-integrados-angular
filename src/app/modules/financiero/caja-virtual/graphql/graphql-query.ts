@@ -173,6 +173,8 @@ const movimientoFields = `
   }
   referenciaId
   origenTipo
+  origenId
+  origenSucursalId
   esPagoConsolidado
   descripcion
   usuario {

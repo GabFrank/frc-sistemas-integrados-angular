@@ -72,7 +72,7 @@ import { ProductoService } from "../../../productos/producto/producto.service";
 import { MatSelect } from "@angular/material/select";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Observable, Subscription, of } from "rxjs";
-import { map, switchMap } from "rxjs/operators";
+import { finalize, map, switchMap } from "rxjs/operators";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { PresentacionService } from "../../../productos/presentacion/presentacion.service";
@@ -811,8 +811,10 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onSaveTransferenciaItem(input, precioCosto)
       .pipe(untilDestroyed(this))
+      // El openDialog de arriba es el overlay bloqueante de TODA la app: si el backend
+      // rechaza el item y nadie lo cierra, la pantalla queda tapada y hay que recargar.
+      .pipe(finalize(() => this.cargandoService.closeDialog()))
       .subscribe((res) => {
-        this.cargandoService.closeDialog();
         if (res != null) {
           if (!isNew) {
             this.dataSource.data = updateDataSourceWithId(
@@ -1006,8 +1008,9 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService
       .onSaveTransferenciaItem(input)
       .pipe(untilDestroyed(this))
+      // Idem: el overlay se cierra pase lo que pase, no solo cuando el guardado sale bien.
+      .pipe(finalize(() => this.cargandoService.closeDialog()))
       .subscribe((res) => {
-        this.cargandoService.closeDialog();
         if (res != null) {
           this.dataSource.data = updateDataSourceWithId(
             this.dataSource.data,

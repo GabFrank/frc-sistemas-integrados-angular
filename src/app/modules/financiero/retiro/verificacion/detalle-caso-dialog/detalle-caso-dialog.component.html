@@ -1,0 +1,148 @@
+<div class="detalle-dialog">
+
+  <div class="det-header">
+    <h2 mat-dialog-title>Retiro #{{ data.caso?.retiroId }}</h2>
+    <div class="subtitulo">
+      Sucursal {{ data.caso?.sucursalId }} · caso {{ estadoLabel }}
+    </div>
+  </div>
+
+  <mat-dialog-content class="det-content">
+
+    <!-- Los dos lados de la discrepancia, uno al lado del otro: el que entrega y el que recibe.
+         Ver solo el conteo de tesorería es ver media historia. -->
+    <div class="dos-lados">
+      <div class="lado">
+        <span class="et">Entregó · cajero</span>
+        <strong>{{ cajero }}</strong>
+        <span class="sub" *ngIf="cajaSalidaId">
+          Caja {{ cajaSalidaId }} · {{ fechaRetiro | date:'dd/MM/yy HH:mm' }}
+        </span>
+      </div>
+      <mat-icon class="flecha">east</mat-icon>
+      <div class="lado">
+        <span class="et">Recibió y contó</span>
+        <strong>{{ contadoPor }}</strong>
+        <span class="sub">{{ data.caso?.verificacion?.creadoEn | date:'dd/MM/yy HH:mm' }}</span>
+      </div>
+      <div class="aviso-rapida" *ngIf="rapida">
+        <mat-icon>bolt</mat-icon>
+        <span>Verificación rápida: se aceptó lo declarado sin contar por denominación.</span>
+      </div>
+    </div>
+
+    <table class="tabla-detalle">
+      <thead>
+        <tr>
+          <th class="izq">Moneda</th>
+          <th class="der">Declarado</th>
+          <th class="der">Contado</th>
+          <th class="der">Diferencia</th>
+          <th class="izq">Motivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of filas" [class.cierra]="f.cierra">
+          <td class="izq">{{ f.moneda }}</td>
+          <td class="der">{{ f.declarado | number:f.formato }} {{ f.simbolo }}</td>
+          <td class="der">{{ f.contado | number:f.formato }} {{ f.simbolo }}</td>
+          <td class="der" [style.color]="f.color">{{ f.diferencia | number:f.formato }}</td>
+          <td class="izq motivo">{{ f.categoria }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="obs" *ngIf="observacionTesoreria">
+      <span class="et">Observación de tesorería</span>
+      <p>{{ observacionTesoreria }}</p>
+    </div>
+
+    <!-- La jornada del PDV: si la caja ya cerraba mal antes del retiro, el faltante no nació
+         en el traslado. Es el mismo balance que ve el cajero en su pantalla de ventas. -->
+    <div class="jornada">
+      <span class="et">Jornada de la caja del PDV</span>
+
+      <div class="cargando" *ngIf="cargandoJornada">Cargando el balance de la caja…</div>
+      <div class="cargando" *ngIf="jornadaNoDisponible">
+        No se pudo traer el balance de la caja de origen.
+      </div>
+
+      <table class="tabla-detalle" *ngIf="jornada.length">
+        <thead>
+          <tr>
+            <th class="izq">Concepto</th>
+            <th class="der">Gs.</th>
+            <th class="der">R$</th>
+            <th class="der">US$</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let j of jornada" [class.destacada]="j.destacada">
+            <td class="izq">{{ j.concepto }}</td>
+            <td class="der">{{ j.gs | number:'1.0-0' }}</td>
+            <td class="der">{{ j.rs | number:'1.2-2' }}</td>
+            <td class="der">{{ j.ds | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cierre del caso -->
+    <div class="cierre" *ngIf="!esResuelto && data.puedeResolver">
+      <span class="et">Veredicto</span>
+      <div class="opciones">
+        <button mat-stroked-button *ngFor="let o of opciones"
+                [class.elegida]="veredicto === o.valor"
+                [matTooltip]="o.ayuda"
+                (click)="onVeredicto(o.valor)">
+          {{ o.label }}
+        </button>
+      </div>
+
+      <div class="extra" *ngIf="exigeResponsable">
+        <span class="et">Se le atribuye a</span>
+        <strong>{{ responsableNombre || '—' }}</strong>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-reintegro"
+                      *ngIf="esReintegro">
+        <mat-label>Retiro por el que se repuso</mat-label>
+        <input matInput type="number" [(ngModel)]="reintegroRetiroId" />
+      </mat-form-field>
+
+      <mat-checkbox *ngIf="esErrorDeConteo" [(ngModel)]="anularVerificacion">
+        Anular la verificación y devolver el retiro a pendiente
+      </mat-checkbox>
+      <div class="nota" *ngIf="esErrorDeConteo && anularVerificacion">
+        Se revierte lo acreditado en la caja mayor. El retiro vuelve a quedar disponible para
+        contarlo de nuevo.
+      </div>
+    </div>
+
+    <!-- Solo se escribe si se puede cerrar. En un caso que nadie tomó, un textarea habilitado
+         sin botón que lo guarde invita a redactar y perder lo escrito. -->
+    <div class="informe" *ngIf="data.puedeResolver || resolucion">
+      <span class="et">Informe de la investigación</span>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <textarea matInput rows="4" [(ngModel)]="resolucion"
+                  [disabled]="esResuelto || !data.puedeResolver"
+                  placeholder="Qué se encontró, con quién se habló, qué se hizo."></textarea>
+      </mat-form-field>
+      <div class="resuelto-info" *ngIf="esResuelto">
+        <span class="chip-veredicto" *ngIf="veredictoLabel">{{ veredictoLabel }}</span>
+        <span *ngIf="responsableNombre">· {{ responsableNombre }} </span>
+        · Resuelto por {{ data.caso?.resueltoPor?.persona?.nombre || '—' }}
+        el {{ data.caso?.resueltoEn | date:'dd/MM/yy HH:mm' }}
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="det-actions">
+    <button mat-button (click)="onCerrar()">Cerrar</button>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" *ngIf="!esResuelto && data.puedeResolver"
+            (click)="onResolver()" [disabled]="guardando">
+      <mat-icon>task_alt</mat-icon> Resolver caso
+    </button>
+  </mat-dialog-actions>
+</div>

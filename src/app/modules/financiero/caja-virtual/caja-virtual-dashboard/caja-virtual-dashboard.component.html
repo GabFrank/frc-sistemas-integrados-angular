@@ -16,6 +16,11 @@
       <button mat-raised-button color="warn" (click)="onEgreso()">
         <mat-icon>remove_circle</mat-icon> Egreso
       </button>
+      <!-- Acción ocasional: va como icon-button para no competir con Ingreso/Egreso, que son
+           de uso diario. -->
+      <button mat-icon-button (click)="onEscanear()" matTooltip="Escanear documentos">
+        <mat-icon>qr_code_scanner</mat-icon>
+      </button>
       <button mat-stroked-button (click)="onOperacionFinanciera()">
         <mat-icon>account_balance</mat-icon> Operaciones Financieras
       </button>

@@ -63,6 +63,9 @@ import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movi
 import { TransferenciaCajaVirtualDialogComponent } from './caja-virtual/transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
 import { CajaVirtualDashboardComponent } from './caja-virtual/caja-virtual-dashboard/caja-virtual-dashboard.component';
 import { ConteoCajaDialogComponent } from './caja-virtual/conteo-caja-dialog/conteo-caja-dialog.component';
+import { VerificarRetiroDialogComponent } from './retiro/verificacion/verificar-retiro-dialog/verificar-retiro-dialog.component';
+import { ListRetiroCasosComponent } from './retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
+import { DetalleCasoDialogComponent } from './retiro/verificacion/detalle-caso-dialog/detalle-caso-dialog.component';
 import { ConfigurarCajaVirtualDialogComponent } from './caja-virtual/configurar-caja-virtual-dialog/configurar-caja-virtual-dialog.component';
 import { RegistrarIngresoDialogComponent } from './caja-virtual/registrar-ingreso-dialog/registrar-ingreso-dialog.component';
 import { IngresarRetiroCajaMayorDialogComponent } from './caja-virtual/ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
@@ -144,6 +147,9 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     TransferenciaCajaVirtualDialogComponent,
     CajaVirtualDashboardComponent,
     ConteoCajaDialogComponent,
+    VerificarRetiroDialogComponent,
+    ListRetiroCasosComponent,
+    DetalleCasoDialogComponent,
     ConfigurarCajaVirtualDialogComponent,
     RegistrarIngresoDialogComponent,
     IngresarRetiroCajaMayorDialogComponent,

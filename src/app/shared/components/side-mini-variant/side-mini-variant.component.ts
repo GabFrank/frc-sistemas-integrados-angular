@@ -77,6 +77,7 @@ import { DevolucionComponent } from '../../../modules/operaciones/devolucion/dev
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
 import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
@@ -144,9 +145,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'add_shopping_cart',
       isExpanded: false,
       requiresServerMode: false,
+      // Sin visibilityRoles, checkItemVisibility devuelve true para todos: el grupo quedaba
+      // abierto a cualquier usuario autenticado, incluida Solicitud de pago, que muestra la
+      // deuda a proveedores con montos y estados.
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
       items: [
-        { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
-        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+        {
+          name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR]
+        },
+        {
+          name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR]
+        }
       ]
     },
     {
@@ -459,6 +473,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'savings',
               action: 'list-retiros',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Control de retiros',
+              icon: 'gavel',
+              action: 'list-retiro-casos',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
             }
           ]
         },
@@ -951,6 +971,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
+        break;
+      case "list-retiro-casos":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListRetiroCasosComponent, "Control de retiros", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-caja-virtual":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {

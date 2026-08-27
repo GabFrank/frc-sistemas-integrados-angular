@@ -213,6 +213,8 @@ export const filterRetirosQuery = gql`
         retiroGs
         retiroRs
         retiroDs
+        cajaVirtualId
+        movimientoCajaVirtualId
         sucursal {
           nombre
         }
@@ -249,6 +251,13 @@ export const retirosFlotantesQuery = gql`
         retiroGs
         retiroRs
         retiroDs
+        cajaVirtualId
+        movimientoCajaVirtualId
+        retiroDetalleList {
+          id
+          cantidad
+          moneda { id denominacion simbolo decimales }
+        }
         sucursal {
           nombre
         }

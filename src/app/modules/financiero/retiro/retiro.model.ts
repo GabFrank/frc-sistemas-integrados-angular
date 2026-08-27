@@ -17,6 +17,19 @@ export class Retiro {
   retiroRs: number;
   retiroDs: number;
   sucursalId: number;
+  /**
+   * La query ya lo trae; estaba sin declarar y cada consumidor extendia el tipo.
+   * Opcional: no todas las queries de retiro lo piden.
+   */
+  sucursal?: { nombre?: string };
+  /** Caja mayor destino. Si esta seteada, el retiro ya fue enviado a tesoreria. */
+  cajaVirtualId: number;
+  /**
+   * Marcador de que el poller de tesoreria ya lo acredito. Entre que se setea
+   * cajaVirtualId y que se setea esto hay una ventana: el retiro esta enviado pero
+   * todavia no impacto la caja.
+   */
+  movimientoCajaVirtualId: number;
 
   toInput(): RetiroInput {
     let input = new RetiroInput();

@@ -316,10 +316,14 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
         tamanoBytes: file.size,
         vencimiento: null,
         observacion: null
-      }).pipe(untilDestroyed(this)).subscribe((doc: FuncionarioDocumento) => {
-        this.subiendoFoto = false;
-        if (doc == null) { return; }
-        this.cargarFoto();
+      }).pipe(untilDestroyed(this)).subscribe({
+        // Sin el handler de error el botón se quedaba en "Subiendo…" para siempre.
+        error: () => { this.subiendoFoto = false; },
+        next: (doc: FuncionarioDocumento) => {
+          this.subiendoFoto = false;
+          if (doc == null) { return; }
+          this.cargarFoto();
+        },
       });
     };
     reader.readAsDataURL(file);
