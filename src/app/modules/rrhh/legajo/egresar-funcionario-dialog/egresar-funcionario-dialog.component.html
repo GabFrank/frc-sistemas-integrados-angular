@@ -2,6 +2,13 @@
   <h2 mat-dialog-title>Egresar funcionario</h2>
   <p class="aviso">Se marcará al funcionario <b>{{ data.nombre }}</b> como inactivo con la fecha y motivo indicados.</p>
 
+  <!-- Egresar hace más de lo que su nombre sugiere, y desde acá no se deshace. -->
+  <div class="consecuencias">
+    Además se le <b>quita el acceso al sistema</b>, se le pone el <b>crédito en cero</b> y su cliente
+    vuelve a <b>NORMAL</b>, también sin crédito. El crédito no queda guardado en ningún lado:
+    para restaurarlo hay que volver a cargarlo a mano.
+  </div>
+
   <mat-form-field style="width: 100%">
     <mat-label>Fecha de egreso</mat-label>
     <input matInput [matDatepicker]="picker" [formControl]="fechaControl" />
@@ -15,8 +22,21 @@
     <mat-error *ngIf="motivoControl.hasError('required')">Ingrese el motivo</mat-error>
   </mat-form-field>
 
+  <!-- Gate: escribir el nombre completo para habilitar el egreso. -->
+  <div class="gate" *ngIf="hayGate" fxLayout="column" fxLayoutGap="4px">
+    <span class="gate-instruccion">
+      Para confirmar, escribí el nombre completo del funcionario:
+    </span>
+    <span class="gate-nombre">{{ nombreEsperado }}</span>
+    <mat-form-field style="width: 100%">
+      <mat-label>Nombre completo</mat-label>
+      <input matInput [formControl]="confirmacionControl" autocomplete="off" />
+      <mat-icon matSuffix class="gate-ok" *ngIf="puedeEgresar">check_circle</mat-icon>
+    </mat-form-field>
+  </div>
+
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
     <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="warn" (click)="onEgresar()">Egresar</button>
+    <button mat-raised-button color="warn" [disabled]="!puedeEgresar" (click)="onEgresar()">Egresar</button>
   </div>
 </div>
