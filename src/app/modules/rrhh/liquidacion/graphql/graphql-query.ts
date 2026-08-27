@@ -20,8 +20,8 @@ export const liquidacionItemsQuery = gql`
   query ($liquidacionId: ID!) { data: liquidacionItems(liquidacionId: $liquidacionId) { ${ITEM_FIELDS} } }
 `;
 export const liquidacionesPageQuery = gql`
-  query ($page: Int, $size: Int, $funcionarioId: ID, $periodo: String, $estado: LiquidacionSueldoEstado) {
-    data: liquidacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, periodo: $periodo, estado: $estado) {
+  query ($page: Int, $size: Int, $funcionarioId: ID, $funcionarioNombre: String, $periodo: String, $estado: LiquidacionSueldoEstado) {
+    data: liquidacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, funcionarioNombre: $funcionarioNombre, periodo: $periodo, estado: $estado) {
       getTotalPages
       getTotalElements
       getNumberOfElements

@@ -16,6 +16,7 @@ import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { ReporteService } from '../../../reportes/reporte.service';
 import { ReportesComponent } from '../../../reportes/reportes/reportes.component';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { formatearPeriodo } from '../../../../commons/core/utils/dateUtils';
 
 
 @UntilDestroy({ checkProperties: true })
@@ -31,7 +32,7 @@ export class ListLiquidacionComponent implements OnInit {
   displayedColumns = ['periodo', 'funcionario', 'totalHaberes', 'totalDescuentos', 'totalNeto', 'estado', 'acciones'];
   dataSource = new MatTableDataSource<LiquidacionSueldo>([]);
 
-  funcionarioControl = new FormControl(null);
+  funcionarioNombreControl = new FormControl(null);
   periodoControl = new FormControl(null);
   estadoControl = new FormControl(null);
 
@@ -54,6 +55,13 @@ export class ListLiquidacionComponent implements OnInit {
   ngOnInit(): void {
     this.periodoControl.setValue(this.periodoActual());
     this.onFiltrar();
+
+    this.periodoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(valor => {
+      const formateado = formatearPeriodo(valor);
+      if (formateado !== valor) {
+        this.periodoControl.setValue(formateado, { emitEvent: false });
+      }
+    });
   }
 
   private periodoActual(): string {
@@ -65,7 +73,8 @@ export class ListLiquidacionComponent implements OnInit {
     this.liquidacionService.onGetPage(
       this.pageIndex,
       this.pageSize,
-      this.funcionarioControl.value,
+      null,
+      this.funcionarioNombreControl.value,
       this.periodoControl.value,
       this.estadoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
@@ -77,7 +86,7 @@ export class ListLiquidacionComponent implements OnInit {
   }
 
   onResetFiltro() {
-    this.funcionarioControl.setValue(null);
+    this.funcionarioNombreControl.setValue(null);
     this.periodoControl.setValue(this.periodoActual());
     this.estadoControl.setValue(null);
     this.pageIndex = 0;

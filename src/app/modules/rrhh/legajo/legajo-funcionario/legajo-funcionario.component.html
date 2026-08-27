@@ -15,6 +15,10 @@
           <span class="badge" [ngClass]="funcionario.activo ? 'activo' : 'inactivo'">
             {{ funcionario.activo ? 'ACTIVO' : 'INACTIVO' }}
           </span>
+          <!-- El egreso quedaba solo en la base: la pantalla no mostraba ni cuando ni por que. -->
+          <span class="egreso-info" *ngIf="!funcionario.activo && funcionario.fechaEgreso">
+            Egresado el {{ funcionario.fechaEgreso | date:'dd/MM/yyyy' }}<span *ngIf="funcionario.motivoEgreso"> — {{ funcionario.motivoEgreso }}</span>
+          </span>
         </div>
         <div class="basicos" fxLayout="row wrap" fxLayoutGap="18px">
           <span>Cargo: <b>{{ funcionario.cargo?.nombre || '—' }}</b></span>
@@ -46,6 +50,7 @@
       <dash-quick-action *ngIf="puedeCambiarSalario" icon="payments" title="Cambiar salario" color="#66bb6a" (action)="onCambiarSalario()"></dash-quick-action>
       <dash-quick-action icon="upload_file" title="Subir documento" color="#7e57c2" (action)="onSubirDocumento()"></dash-quick-action>
       <dash-quick-action *ngIf="funcionario.activo && puedeEgresar" icon="logout" title="Egresar" color="#ef5350" (action)="onEgresar()"></dash-quick-action>
+      <dash-quick-action *ngIf="!funcionario.activo && puedeEgresar" icon="undo" title="Revertir egreso" color="#26a69a" (action)="onRevertirEgreso()"></dash-quick-action>
       <dash-quick-action *ngIf="puedeLiquidar" icon="receipt_long" title="Liquidación final" color="#ffa726" (action)="onLiquidacionFinal()"></dash-quick-action>
     </div>
 

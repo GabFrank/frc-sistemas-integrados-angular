@@ -25,15 +25,10 @@
   }
 }
 
+// El campo de búsqueda aparece recién cuando llega la lista; sin alto fijo la fila salta.
 .modo {
   margin-bottom: 12px;
-  // El campo de búsqueda es más alto que los botones; sin esto la fila salta al aparecer.
   min-height: 56px;
-}
-
-.ayuda {
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0 0 8px;
 }
 
 .spinner {
@@ -47,8 +42,8 @@
   margin-bottom: 8px;
 }
 
-// Corto y en la misma fila que los botones de modo: es un filtro puntual por número, no un campo
-// de carga. A lo ancho competía visualmente con la tabla, que es lo que el cajero tiene que mirar.
+// Corto a propósito: es un filtro puntual por número, no un campo de carga. A lo ancho competía
+// visualmente con la tabla, que es lo que el cajero tiene que mirar.
 .campo-busqueda {
   width: 220px;
 
@@ -135,4 +130,11 @@
 .faltante {
   margin-top: 10px;
   color: #ffca28;
+}
+
+// Explica por qué los demás checkbox quedaron apagados: sin esto, "no me deja marcar" se lee como
+// que la pantalla se colgó.
+.cubierto {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.7);
 }

@@ -146,6 +146,8 @@ export const funcionarioQuery = gql`
       diarista
       sueldo
       fechaIngreso
+      fechaEgreso
+      motivoEgreso
       creadoEn
       fasePrueba
       activo
