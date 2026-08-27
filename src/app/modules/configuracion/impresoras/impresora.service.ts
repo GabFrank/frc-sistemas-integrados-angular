@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { DispositivoDetectado, Impresora, ImpresoraInput } from './impresora.model';
+import { ColaEstado, DispositivoDetectado, Impresora, ImpresoraInput } from './impresora.model';
 import { DispositivosParaInstalarGQL } from './graphql/dispositivosParaInstalar';
 import { InstalarImpresoraCupsGQL } from './graphql/instalarImpresoraCups';
 import { ImpresorasGQL } from './graphql/impresorasQuery';
@@ -13,6 +13,10 @@ import { SaveImpresoraGQL } from './graphql/saveImpresora';
 import { DeleteImpresoraGQL } from './graphql/deleteImpresora';
 import { ImpresorasDelSistemaGQL } from './graphql/impresorasDelSistema';
 import { ImprimirPruebaEnImpresoraGQL } from './graphql/imprimirPruebaEnImpresora';
+import { RecursosSmbGQL } from './graphql/recursosSmb';
+import { EstadoColasGQL } from './graphql/estadoColas';
+import { InstalarImpresoraSmbGQL } from './graphql/instalarImpresoraSmb';
+import { ReactivarColaGQL } from './graphql/reactivarCola';
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +35,10 @@ export class ImpresoraService {
     private dispositivosParaInstalarGQL: DispositivosParaInstalarGQL,
     private instalarImpresoraCupsGQL: InstalarImpresoraCupsGQL,
     private imprimirPruebaEnImpresoraGQL: ImprimirPruebaEnImpresoraGQL,
+    private recursosSmbGQL: RecursosSmbGQL,
+    private estadoColasGQL: EstadoColasGQL,
+    private instalarImpresoraSmbGQL: InstalarImpresoraSmbGQL,
+    private reactivarColaGQL: ReactivarColaGQL,
   ) { }
 
   /** Registro de impresoras. Vive en el servidor central (administrativo). */
@@ -104,6 +112,84 @@ export class ImpresoraService {
       { impresoraId },
       servidor
     );
+  }
+
+  /**
+   * Shares de impresora publicados por una PC Windows, vistos desde el host del backend
+   * consultado (`smbclient -L`). La contraseña autentica la consulta y se descarta: las URIs
+   * que vuelven no la incluyen.
+   */
+  recursosSmb(
+    host: string,
+    usuario?: string,
+    dominio?: string,
+    password?: string,
+    servidor = false,
+  ): Observable<DispositivoDetectado[]> {
+    // Fetch directo en vez de genericService.onCustomQuery: ante un error GraphQL ese helper
+    // muestra un snackbar pero NO completa ni emite error, y el diálogo se quedaría con el
+    // spinner girando. Acá propagamos el error para que el llamador lo muestre y lo apague.
+    return this.recursosSmbGQL
+      .fetch({ host, usuario, dominio, password }, {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all',
+        context: { clientName: servidor ? 'servidor' : null },
+      })
+      .pipe(
+        map((res) => {
+          if (res?.errors?.length) {
+            throw new Error(res.errors[0]?.message || 'Error GraphQL');
+          }
+          return res?.data?.data ?? [];
+        }),
+      );
+  }
+
+  /**
+   * Instala en el host del backend una cola CUPS que entrega a un share de Windows (backend smb
+   * de CUPS / smbspool). La contraseña viaja solo en esta mutation: el backend la usa para armar
+   * el device-uri y no la persiste en la BD (que se replica a todas las filiales).
+   */
+  instalarSmb(
+    nombreCola: string,
+    host: string,
+    recurso: string,
+    usuario?: string,
+    dominio?: string,
+    password?: string,
+    raw = true,
+    servidor = false,
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.instalarImpresoraSmbGQL,
+      { nombreCola, host, recurso, usuario, dominio, password, raw },
+      servidor,
+    );
+  }
+
+  /**
+   * Estado real de las colas CUPS del host consultado. La tarjeta mostraba `impresora.activo`
+   * (un flag de la BD) mientras CUPS podía tener la cola frenada hace días: CUPS deshabilita una
+   * cola ante un fallo del backend y no se recupera sola.
+   */
+  estadoColas(servidor = false): Observable<ColaEstado[]> {
+    // Lectura complementaria: si el host no responde o es una versión sin `estadoColas`, la
+    // pantalla debe seguir andando con el flag de la BD, sin snackbars de error.
+    return this.estadoColasGQL
+      .fetch({}, {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all',
+        context: { clientName: servidor ? 'servidor' : null },
+      })
+      .pipe(
+        map((res) => (res?.errors?.length ? [] : res?.data?.data ?? [])),
+        catchError(() => of([] as ColaEstado[])),
+      );
+  }
+
+  /** Rehabilita una cola frenada por CUPS, libera los jobs retenidos y le fija el reintento. */
+  reactivarCola(nombreCola: string, servidor = false): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.reactivarColaGQL, { nombreCola }, servidor);
   }
 
   /**

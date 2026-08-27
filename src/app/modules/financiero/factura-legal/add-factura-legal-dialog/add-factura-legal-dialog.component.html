@@ -166,14 +166,47 @@
     </div>
 
     <div class="section-card" fxLayout="column" fxFlex>
-      <div class="productos-header" fxLayout="row" fxLayoutAlign="space-between center">
+      <div
+        class="productos-header"
+        fxLayout="row"
+        fxLayout.lt-md="column"
+        fxLayoutAlign="space-between center"
+        fxLayoutAlign.lt-md="start stretch"
+        fxLayoutGap="12px"
+      >
         <h4 class="titulo-center">Lista de productos</h4>
-        <app-boton
-          nombre="+ Producto"
-          color="primary"
-          (clickEvent)="addItem(null, null)"
-          class="btn-agregar-producto"
-        ></app-boton>
+        <div
+          class="productos-header__acciones"
+          fxLayout="row"
+          fxLayoutAlign="end center"
+          fxLayoutGap="12px"
+        >
+          <app-boton
+            nombre="+ Producto"
+            color="primary"
+            (clickEvent)="addItem(null, null)"
+            class="btn-agregar-producto"
+          ></app-boton>
+          <app-boton
+            nombre="Cancelar"
+            color="primary"
+            (clickEvent)="onCancelar()"
+            class="btn-accion"
+          ></app-boton>
+          <app-boton
+            #imprimirBtb
+            (focusEvent)="guardarSub.asObservable()"
+            [nombre]="data?.ligarAVenta ? 'Finalizar venta' : 'Imprimir'"
+            color="accent"
+            [disableExpression]="
+              rucControl.invalid ||
+              clienteDescripcionControl.invalid ||
+              guardando
+            "
+            (clickEvent)="onGuardar()"
+            class="btn-accion"
+          ></app-boton>
+        </div>
       </div>
 
       <div class="productos-table-container" fxFlex>
@@ -331,27 +364,4 @@
     </div>
   </section>
 
-  <footer class="dialog-footer">
-    <div fxLayout="row" fxLayout.lt-md="column" fxLayoutAlign="center center" fxLayoutGap="16px">
-      <app-boton
-        nombre="Cancelar"
-        color="primary"
-        (clickEvent)="onCancelar()"
-        class="btn-accion"
-      ></app-boton>
-      <app-boton
-        #imprimirBtb
-        (focusEvent)="guardarSub.asObservable()"
-        [nombre]="data?.ligarAVenta ? 'Finalizar venta' : 'Imprimir'"
-        color="accent"
-        [disableExpression]="
-          rucControl.invalid ||
-          clienteDescripcionControl.invalid ||
-          guardando
-        "
-        (clickEvent)="onGuardar()"
-        class="btn-accion"
-      ></app-boton>
-    </div>
-  </footer>
 </div>

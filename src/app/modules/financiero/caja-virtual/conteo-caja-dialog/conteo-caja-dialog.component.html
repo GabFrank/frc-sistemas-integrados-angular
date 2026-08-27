@@ -1,0 +1,66 @@
+<div class="conteo-dialog">
+
+  <div class="conteo-header" [style.border-left-color]="data.color || '#607d8b'">
+    <h2 mat-dialog-title>Conteo de efectivo</h2>
+    <div class="subtitulo">{{ data.moneda?.denominacion }} · {{ data.cajaVirtual?.nombre }}</div>
+  </div>
+
+  <mat-dialog-content class="conteo-content">
+
+    <div class="cargando" *ngIf="cargando">Cargando denominaciones...</div>
+
+    <div class="sin-billetes" *ngIf="!cargando && filas.length === 0">
+      Esta moneda no tiene denominaciones cargadas. Configurarlas en Monedas → Billetes.
+    </div>
+
+    <!-- Columnas de 10 denominaciones: la grilla crece a lo ancho, nunca a lo alto. -->
+    <div class="conteo-columnas" *ngIf="!cargando && filas.length > 0">
+      <div class="conteo-col" *ngFor="let col of columnas">
+        <div class="conteo-col-head">
+          <span class="col-valor">Denominación</span>
+          <span class="col-cantidad">Cantidad</span>
+        </div>
+        <div class="conteo-fila" *ngFor="let f of col" [class.cargada]="f.cantidad">
+          <span class="col-valor">{{ f.valor | number:formato }} {{ data.moneda?.simbolo }}</span>
+          <input type="number" min="0" step="1" class="cantidad-input"
+                 [value]="f.cantidad"
+                 (input)="onCantidadChange(f, $any($event.target).value)" />
+        </div>
+      </div>
+    </div>
+
+    <div class="resumen" *ngIf="!cargando">
+      <div class="resumen-row">
+        <span>Saldo del sistema</span>
+        <strong>{{ data.saldoSistema | number:formato }} {{ data.moneda?.simbolo }}</strong>
+      </div>
+      <div class="resumen-row total">
+        <span>Total contado</span>
+        <strong [style.color]="data.color || '#fff'">{{ total | number:formato }} {{ data.moneda?.simbolo }}</strong>
+      </div>
+      <div class="resumen-row">
+        <span>{{ diferenciaLabel }}</span>
+        <strong [style.color]="diferenciaColor">{{ diferencia | number:formato }} {{ data.moneda?.simbolo }}</strong>
+      </div>
+      <div class="guardado-hint" *ngIf="actualizadoEn">
+        Guardado localmente el {{ actualizadoEn | date:'dd/MM/yy HH:mm' }}
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="conteo-actions">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <span class="spacer"></span>
+    <button mat-stroked-button (click)="onLimpiar()" [disabled]="cargando || !total">
+      <mat-icon>backspace</mat-icon> Limpiar conteo
+    </button>
+    <button mat-stroked-button (click)="onCopiarTotal()" [disabled]="cargando">
+      <mat-icon>content_copy</mat-icon> Copiar valor total
+    </button>
+    <button mat-raised-button color="primary" (click)="onCrearAjuste()"
+            [disabled]="!hayDiferencia || !puedeGestionar || guardando"
+            [matTooltip]="!puedeGestionar ? 'Requiere rol TESORERIA GESTIONAR' : (!hayDiferencia ? 'No hay diferencia para ajustar' : '')">
+      <mat-icon>tune</mat-icon> Crear ajuste
+    </button>
+  </mat-dialog-actions>
+</div>

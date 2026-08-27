@@ -67,8 +67,10 @@
           </div>
 
           <div class="card-estado">
-            <span class="chip-estado" [class.chip-activa]="imp.activo" [class.chip-inactiva]="!imp.activo">
-              {{ imp.activo ? 'Activa' : 'Inactiva' }}
+            <span class="chip-estado" [class.chip-activa]="imp.activo && !imp.estadoDetenida"
+              [class.chip-inactiva]="!imp.activo" [class.chip-detenida]="imp.estadoDetenida"
+              [title]="imp.razonDetencion">
+              {{ imp.estadoLabel }}
             </span>
           </div>
 
@@ -80,6 +82,10 @@
               Probar
             </button>
             <div>
+              <button *ngIf="imp.puedeReactivar" mat-icon-button color="accent" (click)="reactivar(imp.ref)"
+                aria-label="Reactivar cola" title="CUPS detuvo esta cola. Reactivar y liberar los trabajos pendientes.">
+                <mat-icon>restart_alt</mat-icon>
+              </button>
               <button mat-icon-button (click)="editarItem(imp.ref)" aria-label="Editar impresora" title="Editar">
                 <mat-icon>edit</mat-icon>
               </button>

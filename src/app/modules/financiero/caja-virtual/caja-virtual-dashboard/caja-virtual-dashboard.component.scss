@@ -54,12 +54,100 @@
   min-height: 0;
 }
 
-.section-card {
+/* Columna principal: cards de saldo arriba, tabla de movimientos abajo. */
+.main-panel {
   grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.section-card {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.saldo-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Card de saldo por moneda: clickeable (filtra la tabla) y con acceso al conteo. */
+.saldo-card {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 190px;
+  max-width: 320px;
+  padding: 14px 16px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-1px);
+  }
+
+  &.seleccionada {
+    background: rgba(255, 255, 255, 0.09);
+  }
+}
+
+/* Franja de color: identifica la moneda de un vistazo sin depender del texto. */
+.saldo-card-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.saldo-card-label {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.saldo-card-valor {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .saldo-card-simbolo {
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-left: 4px;
+  }
+}
+
+.saldo-card-conteo {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  opacity: 0.6;
+
+  &:hover { opacity: 1; }
+}
+
+.sin-saldos {
+  opacity: 0.55;
+  font-size: 13px;
+  padding: 4px 2px;
 }
 
 .sidebar-title {
@@ -102,6 +190,29 @@
   strong {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Cuenta bancaria: el saldo actual manda, reservado/futuro quedan como notas al pie. */
+.banco-card {
+  padding: 12px 14px;
+}
+
+.banco-saldo {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  margin: 2px 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .banco-simbolo {
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.7;
+    margin-left: 3px;
   }
 }
 
@@ -194,6 +305,9 @@
 }
 
 @media (max-width: 1100px) {
+  .saldo-card {
+    max-width: none;
+  }
   .content-section {
     grid-template-columns: 1fr;
     grid-template-areas: "sidebar" "main";
