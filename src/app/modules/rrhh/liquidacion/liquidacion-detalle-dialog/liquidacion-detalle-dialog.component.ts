@@ -129,8 +129,22 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   }
 
   onEliminarItem(it: LiquidacionItem) {
-    this.liquidacionService.onEliminarItem(it.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+    // Los items automaticos tambien se pueden eliminar (el backend nunca lo impidio,
+    // solo exige BORRADOR). Ojo: "Regenerar" los vuelve a crear, porque generarBorrador
+    // solo preserva los manuales — igual que ya pasa con la edicion de un automatico.
+    const aviso = it.manual
+      ? null
+      : 'Es un item automatico: si volvés a generar el borrador, se recalcula y reaparece.';
+    this.dialogosService.confirm(
+      'Eliminar item',
+      '¿Eliminar "' + (it.descripcion || '') + '" de la liquidación?',
+      aviso, null, true, 'Sí', 'No'
+    ).pipe(untilDestroyed(this)).subscribe(r => {
+      if (r === true) {
+        this.liquidacionService.onEliminarItem(it.id)
+          .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+      }
+    });
   }
 
   onAprobar() {

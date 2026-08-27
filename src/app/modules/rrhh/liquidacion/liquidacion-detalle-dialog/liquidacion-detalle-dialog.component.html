@@ -63,7 +63,7 @@
           <button mat-icon-button color="primary" *ngIf="liq.estado === 'BORRADOR'" (click)="onEditarItemInit(row)" matTooltip="Editar">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" *ngIf="row.manual && liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
+          <button mat-icon-button color="warn" *ngIf="liq.estado === 'BORRADOR'" (click)="onEliminarItem(row)" matTooltip="Eliminar">
             <mat-icon>delete</mat-icon>
           </button>
         </td>

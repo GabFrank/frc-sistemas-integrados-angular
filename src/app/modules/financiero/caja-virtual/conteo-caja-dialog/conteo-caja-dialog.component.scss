@@ -1,0 +1,136 @@
+.conteo-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+.conteo-header {
+  padding: 4px 0 10px 12px;
+  border-left: 4px solid #607d8b;
+
+  h2 {
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .subtitulo {
+    color: #ff9800;
+    font-size: 13px;
+  }
+}
+
+.conteo-content {
+  // Sin scroll propio: la grilla crece en columnas, no en alto.
+  overflow: visible;
+}
+
+.cargando,
+.sin-billetes {
+  opacity: 0.7;
+  padding: 24px 4px;
+  text-align: center;
+}
+
+/* Una columna por cada 10 denominaciones; el diálogo se ensancha en vez de scrollear. */
+.conteo-columnas {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.conteo-col {
+  flex: 0 0 auto;
+  min-width: 230px;
+}
+
+.conteo-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.55;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.conteo-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  .col-valor {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+  }
+
+  &.cargada .col-valor {
+    opacity: 1;
+    font-weight: 500;
+  }
+}
+
+.cantidad-input {
+  width: 86px;
+  padding: 5px 8px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 15px;
+
+  &:focus {
+    outline: none;
+    border-color: #ff9800;
+  }
+
+  // El spinner nativo roba ancho y no aporta nada al conteo rápido.
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+.resumen {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+
+  .resumen-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 32px;
+    padding: 4px 0;
+
+    span { opacity: 0.75; font-size: 13px; }
+
+    strong { font-variant-numeric: tabular-nums; }
+  }
+
+  .resumen-row.total strong {
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .guardado-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    opacity: 0.5;
+    text-align: right;
+  }
+}
+
+.conteo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+
+  .spacer { flex: 1; }
+}
