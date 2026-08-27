@@ -23,6 +23,15 @@ import { VentaItemLoteInput } from '../../../../operaciones/venta/venta-item.mod
 /** Tolerancia al comparar cantidades en punto flotante. */
 const EPSILON = 0.0001;
 
+/**
+ * Tamaño con el que se pide el universo de lotes: uno solo, grande, para traerlos todos.
+ *
+ * El backend arma la lista entera en memoria y recién después la corta, así que pedir todo no le
+ * cuesta más que pedir una página. Un producto con más lotes vendibles que esto no existe en el
+ * catálogo, y si apareciera el peor caso es que el diálogo crea que ya no queda de dónde elegir.
+ */
+const TAMANIO_UNIVERSO = 500;
+
 export interface SeleccionarLoteVentaDialogData {
   productoId: number;
   productoDescripcion: string;
@@ -76,6 +85,11 @@ interface LoteRow {
   cantidad: number;
   cantidadLabel: string;
   seleccionado: boolean;
+  /**
+   * Precalculado para el template: un lote que no puede llevar nada no se puede marcar. Es lo que
+   * impide tildar un segundo lote cuando lo pedido ya sale entero del primero.
+   */
+  deshabilitado: boolean;
   /** Precalculado para resaltar lo que hay que sacar antes, sin lógica en el template. */
   clase: string;
 }
@@ -83,9 +97,12 @@ interface LoteRow {
 /**
  * Selector de lote para la venta.
  *
- * Abre con FEFO preseleccionado: confirmar sin tocar nada es la venta normal y no cambia el ritmo
- * del POS. Elegir lotes a mano es la excepción deliberada, y aun así el backend recorta cada
- * elección al saldo real y completa el faltante por FEFO.
+ * Abre directo en la lista de lotes, con el buscador enfocado. El cajero marca de dónde sale la
+ * mercadería que tiene en la mano: mientras quede un lote sin marcar y falte cubrir, el confirmar
+ * espera. Lo que se marca es una preferencia, que el backend recorta al saldo real.
+ *
+ * FEFO queda como último recurso y no como camino normal: solo cubre lo que ya no tiene lote de
+ * dónde salir, y en ese caso la pantalla lo dice antes de dejar confirmar.
  *
  * La lista se busca y se pagina contra el backend, porque con el tiempo un producto acumula
  * muchos lotes y filtrar solo la página visible dejaría lotes invisibles sin que el cajero se
@@ -124,9 +141,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   lotesElegidos: LoteElegido[] = [];
   hayLotesElegidos = false;
 
-  /** Modo activo. Arranca en FEFO: es el camino de casi todas las ventas. */
-  modoFefo = true;
-
   /**
    * Solo la primera carga. Buscar y paginar recargan la lista, pero no deben esconder el buscador:
    * hacerlo le sacaría el foco al cajero en cada tecla.
@@ -153,6 +167,26 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   totalSeleccionadoLabel = '0';
   faltanteLabel = '';
   hayFaltante = false;
+  /** Unidades que todavía no tienen lote. Manda sobre qué filas se pueden marcar. */
+  pendiente = 0;
+  /** Lo pedido ya sale entero de lo marcado: no queda nada para darle a otro lote. */
+  todoCubierto = false;
+  /** El aviso de "ya está cubierto" solo tiene sentido después de marcar algo. */
+  mostrarCubierto = false;
+  /**
+   * Todos los lotes vendibles del producto, sin el filtro del buscador ni la página visible.
+   *
+   * La tabla muestra de a poco y filtra contra el backend, así que por sí sola no sabe si queda
+   * algún lote sin marcar. Sin ese dato no se puede distinguir "todavía hay de dónde sacarlo" de
+   * "el stock por lote no alcanza", que es lo único que decide si la venta puede salir sin cubrir.
+   */
+  private universo: { loteId: number; disponible: number }[] = [];
+  /** Sin universo no se bloquea nada: una consulta caída no puede trabar el mostrador. */
+  private universoCargado = false;
+  /** Queda al menos un lote vendible sin marcar, en cualquier página. */
+  hayLotesSinMarcar = false;
+  /** Por qué está bloqueado el confirmar. Vacío cuando se puede confirmar. */
+  motivoBloqueo = '';
   puedeConfirmar = true;
   mensajeSinLotes = '';
 
@@ -192,7 +226,47 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
         this.cargarLotes();
       });
 
+    this.cargarUniverso();
     this.cargarLotes();
+  }
+
+  /**
+   * El universo se pide una sola vez y sin filtro: es la foto de todo lo que se puede elegir.
+   *
+   * Va aparte de la consulta de la tabla porque esa se rearma en cada tecla y en cada página, y lo
+   * que se necesita acá es justo lo contrario: algo estable contra lo que comparar lo marcado.
+   *
+   * Si falla, el diálogo sigue andando sin bloquear nada. Es la misma decisión que el resto de la
+   * pantalla: ante datos de lote incompletos, la venta sale igual.
+   */
+  private cargarUniverso(): void {
+    this.loteService
+      .onGetStockPorLoteEnPresentacion(
+        this.data.productoId,
+        this.data.sucursalId,
+        this.data.presentacionId,
+        null,
+        0,
+        TAMANIO_UNIVERSO,
+        false,
+        true
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res: PageInfo<StockLotePresentacion>) => {
+          this.universo = (res?.getContent || []).map((lote) => ({
+            loteId: lote.loteId,
+            disponible: lote.cantidadDisponible || 0
+          }));
+          this.universoCargado = true;
+          this.recalcular();
+        },
+        error: () => {
+          this.universo = [];
+          this.universoCargado = false;
+          this.recalcular();
+        }
+      });
   }
 
   /**
@@ -218,6 +292,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: PageInfo<StockLotePresentacion>) => {
+          const primeraCarga = this.cargandoInicial;
           const contenido = res?.getContent || [];
           this.totalElementos = res?.getTotalElements || 0;
           this.filas = contenido.map((lote) => this.mapearFila(lote));
@@ -226,6 +301,12 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
           this.cargandoInicial = false;
           this.recalcular();
           this.resolverEnterPendiente();
+          // El buscador recién existe cuando Angular pinta la lista, así que el foco va acá y no
+          // en ngOnInit: es lo primero que el cajero necesita para tipear el lote que tiene en la
+          // mano.
+          if (primeraCarga && !this.sinLotes) {
+            this.enfocarBusqueda();
+          }
         },
         error: () => {
           this.manejarErrorDeCarga();
@@ -304,6 +385,8 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
       cantidad: elegido ? elegido.cantidad : 0,
       cantidadLabel: elegido ? `${elegido.cantidad}` : '—',
       seleccionado: elegido != null,
+      // La resuelve recalcular(), que corre siempre después de mapear la página.
+      deshabilitado: false,
       clase: this.claseSegunFecha(lote)
     };
   }
@@ -322,20 +405,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     return '';
   }
 
-  /** Vuelve a FEFO: se descarta lo elegido a mano. El filtro se conserva por si se vuelve atrás. */
-  activarFefo(): void {
-    this.modoFefo = true;
-    this.seleccion.clear();
-    this.filas.forEach((fila) => this.desmarcar(fila));
-    this.recalcular();
-  }
-
-  activarManual(): void {
-    this.modoFefo = false;
-    this.recalcular();
-    this.enfocarBusqueda();
-  }
-
   /**
    * Marcar un lote le asigna lo que falta cubrir, acotado a su saldo. La cantidad no se tipea: el
    * cajero elige DE QUÉ lote sale, y el reparto lo resuelve el sistema.
@@ -348,10 +417,14 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     if (fila.seleccionado) {
       this.desmarcar(fila);
     } else {
-      const pendiente = this.cantidadRequerida - this.totalSeleccionado;
-      const asignada = Math.max(0, Math.min(fila.disponible, pendiente));
-      // Con lo pedido ya cubierto no queda nada para este lote: marcarlo no diría nada.
+      // `pendiente` lo mantiene al día recalcular(), que corre al final de cada cambio.
+      const asignada = Math.max(0, Math.min(fila.disponible, this.pendiente));
+      // Con lo pedido ya cubierto no queda nada para este lote: marcarlo no diría nada. Con la
+      // fila deshabilitada esto casi no llega, pero si llega hay que repintar: el checkbox ya se
+      // tildó solo al hacer click y `seleccionado` no cambió de valor, así que el binding no lo
+      // vuelve atrás y el tilde queda mintiendo sobre de dónde sale el stock.
       if (asignada <= EPSILON) {
+        this.repintarFila(fila);
         return;
       }
       fila.seleccionado = true;
@@ -388,6 +461,36 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Fuerza a Angular a redibujar una fila reemplazando su objeto: con OnPush y `[checked]`, un
+   * valor que no cambió no repinta el checkbox, y el estado interno del mat-checkbox se queda con
+   * lo que pintó el click.
+   */
+  private repintarFila(fila: LoteRow): void {
+    const indice = this.filas.indexOf(fila);
+    if (indice < 0) {
+      return;
+    }
+    const copia = this.filas.slice();
+    copia[indice] = { ...fila };
+    this.filas = copia;
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Un lote se puede marcar solo si le queda algo para llevar. Sin unidades pendientes —o sin
+   * saldo— marcarlo no asignaría nada, y un tilde sin cantidad hace creer que la venta salió de
+   * dos lotes cuando salió de uno: es justo lo que después no coincide con el ticket.
+   *
+   * Lo ya marcado nunca se deshabilita: destildarlo es la forma de cambiar de dónde sale.
+   */
+  private actualizarHabilitacion(): void {
+    this.filas.forEach((fila) => {
+      fila.deshabilitado = !fila.seleccionado
+        && (this.todoCubierto || fila.disponible <= EPSILON);
+    });
+  }
+
   handlePageEvent(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
@@ -404,9 +507,6 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
    * pareciera no responder justo cuando el cajero va rápido.
    */
   onEnterBusqueda(): void {
-    if (this.modoFefo) {
-      return;
-    }
     if (this.hayUnSoloResultado()) {
       this.elegirUnicoResultado();
       return;
@@ -432,7 +532,7 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
   }
 
   private enfocarBusqueda(): void {
-    // El input recién existe después de que Angular pinta el modo manual.
+    // El input recién existe después de que Angular pinta la lista.
     setTimeout(() => this.inputBusqueda?.nativeElement?.focus());
   }
 
@@ -450,22 +550,50 @@ export class SeleccionarLoteVentaDialogComponent implements OnInit {
     );
     this.totalSeleccionadoLabel = `${this.totalSeleccionado}`;
 
-    const faltante = this.cantidadRequerida - this.totalSeleccionado;
-    this.hayFaltante = !this.modoFefo && faltante > EPSILON;
-    this.faltanteLabel = this.hayFaltante
-      ? `Faltan ${faltante} — el resto lo completa FEFO automáticamente.`
-      : '';
-    // Siempre se puede confirmar: en FEFO no hay nada que elegir, y en manual lo que falte lo
-    // resuelve el backend. Bloquear acá dejaría al cajero sin salida.
-    this.puedeConfirmar = true;
+    this.pendiente = Math.max(0, this.cantidadRequerida - this.totalSeleccionado);
+    this.hayFaltante = this.pendiente > EPSILON;
+    this.todoCubierto = !this.hayFaltante;
+    this.mostrarCubierto = this.todoCubierto && this.hayLotesElegidos;
+    // Bloquear exige las dos cosas: saber que queda un lote sin marcar Y que la tabla esté en
+    // condiciones de marcarlo. Con la lista caída o vacía, pedirle al cajero que elija otro lote
+    // sería trabarlo sin salida.
+    const sePuedeElegir = !this.cargandoInicial && !this.sinLotes && !this.mensajeError;
+    this.hayLotesSinMarcar = this.universoCargado && sePuedeElegir
+      && this.universo.some((lote) => !this.seleccion.has(lote.loteId));
+    this.actualizarFaltante();
+    this.actualizarHabilitacion();
     this.cdr.markForCheck();
   }
 
-  confirmar(): void {
-    if (this.modoFefo) {
-      this.dialogRef.close({ lotes: [] } as SeleccionarLoteVentaDialogResult);
+  /**
+   * Mientras quede un lote sin marcar, el faltante es una decisión pendiente y no un dato: hay de
+   * dónde sacarlo y el cajero es el único que sabe de qué lote está agarrando la mercadería. Por
+   * eso el confirmar espera.
+   *
+   * Cuando ya no queda ninguno, el faltante pasa a ser un hecho del stock: se avisa que esas
+   * unidades salen sin trazabilidad y la venta se completa igual, que es la regla de toda la
+   * pantalla.
+   */
+  private actualizarFaltante(): void {
+    if (!this.hayFaltante) {
+      this.faltanteLabel = '';
+      this.motivoBloqueo = '';
+      this.puedeConfirmar = true;
       return;
     }
+    if (this.hayLotesSinMarcar) {
+      this.faltanteLabel = `Faltan ${this.pendiente} unid. — elegí otro lote para cubrirlas.`;
+      this.motivoBloqueo = `Elegí de qué lote salen las ${this.pendiente} unid. que faltan.`;
+      this.puedeConfirmar = false;
+      return;
+    }
+    this.faltanteLabel = `Faltan ${this.pendiente} unid. y no hay más stock por lote: `
+      + 'esas unidades salen sin trazabilidad.';
+    this.motivoBloqueo = '';
+    this.puedeConfirmar = true;
+  }
+
+  confirmar(): void {
     const lotes: VentaItemLoteInput[] = this.lotesElegidos
       .filter((elegido) => elegido.cantidad > EPSILON)
       .map((elegido) => ({ loteId: elegido.loteId, cantidad: elegido.cantidad }));
