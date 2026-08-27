@@ -131,3 +131,10 @@
   margin-top: 10px;
   color: #ffca28;
 }
+
+// Explica por qué los demás checkbox quedaron apagados: sin esto, "no me deja marcar" se lee como
+// que la pantalla se colgó.
+.cubierto {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}

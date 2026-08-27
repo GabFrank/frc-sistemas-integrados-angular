@@ -75,6 +75,7 @@
           <td mat-cell *matCellDef="let fila" style="width: 8%">
             <mat-checkbox
               [checked]="fila.seleccionado"
+              [disabled]="fila.deshabilitado"
               [attr.aria-label]="'Usar lote ' + fila.numeroLote"
               (change)="alternarLote(fila)"
             ></mat-checkbox>
@@ -179,6 +180,10 @@
   <div class="faltante" *ngIf="hayFaltante">
     {{ faltanteLabel }}
   </div>
+
+  <div class="cubierto" *ngIf="mostrarCubierto" role="status" aria-live="polite">
+    Ya cubriste las {{ cantidadRequerida }} unid. Destildá un lote para cambiar de dónde sale.
+  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
@@ -189,15 +194,18 @@
   >
     Cancelar
   </button>
-  <button
-    mat-raised-button
-    color="primary"
-    type="button"
-    cdkFocusInitial
-    #botonConfirmar
-    [disabled]="!puedeConfirmar"
-    (click)="confirmar()"
-  >
-    Confirmar
-  </button>
+  <!-- El tooltip cuelga del span: un boton deshabilitado no emite los eventos que lo abren. -->
+  <span [matTooltip]="motivoBloqueo" [matTooltipDisabled]="puedeConfirmar">
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      cdkFocusInitial
+      #botonConfirmar
+      [disabled]="!puedeConfirmar"
+      (click)="confirmar()"
+    >
+      Confirmar
+    </button>
+  </span>
 </mat-dialog-actions>
