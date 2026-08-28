@@ -156,16 +156,16 @@
       </div>
 
       <mat-accordion multi="true" class="resumen-accordion">
-        <mat-expansion-panel [disabled]="!stockActualDesglose || stockActualDesglose.length <= 1"
-                             [hideToggle]="!stockActualDesglose || stockActualDesglose.length <= 1"
+        <mat-expansion-panel [disabled]="!desgloseHabilitado"
+                             [hideToggle]="!desgloseHabilitado"
                              style="background-color: transparent; box-shadow: none !important;">
           
           <mat-expansion-panel-header 
-              [class.sin-desplegable]="!stockActualDesglose || stockActualDesglose.length <= 1"
+              [class.sin-desplegable]="!desgloseHabilitado"
               style="padding: 0 5px; height: auto; min-height: 30px;">
             
             <div class="separator-horizontal-bottom" 
-                 [style.padding-right]="(!stockActualDesglose || stockActualDesglose.length <= 1) ? '0px' : ''"
+                 [style.padding-right]="!desgloseHabilitado ? '0px' : ''"
                  fxLayout="row" fxLayoutAlign="space-between center"
                  style="border-bottom: 1px solid; width: 100%; color: white;">
               <div>
@@ -193,14 +193,14 @@
       </div>
       <mat-accordion multi="true" class="resumen-accordion">
         <mat-expansion-panel *ngFor="let item of stockPorTipoMovimiento" 
-                             [disabled]="!item.expanded || item.expanded.length <= 1"
-                             [hideToggle]="!item.expanded || item.expanded.length <= 1"
+                             [disabled]="!desgloseHabilitado"
+                             [hideToggle]="!desgloseHabilitado"
                              style="background-color: transparent; box-shadow: none !important;">
           
-          <mat-expansion-panel-header [class.sin-desplegable]="!item.expanded || item.expanded.length <= 1"
+          <mat-expansion-panel-header [class.sin-desplegable]="!desgloseHabilitado"
           style="padding: 0 5px; height: auto; min-height: 30px;">
           <div class="separator-horizontal-bottom" 
-            [style.padding-right]="(!item.expanded || item.expanded.length <= 1) ? '0px' : ''"
+            [style.padding-right]="!desgloseHabilitado ? '0px' : ''"
             fxLayout="row" fxLayoutAlign="space-between center"
             style="border-bottom: 1px solid; width: 100%; color: white;">
               <div>
