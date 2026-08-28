@@ -122,6 +122,10 @@ export class ListMovimientoStockComponent implements OnInit {
   selectedPageInfo: PageInfo<MovimientoStock>;
   
   stockActualDesglose: { sucursal: string; stock: number }[] = [];
+  // Habilita el desglose por sucursal en el resumen. Depende de cuántas sucursales
+  // se filtraron, no de cuántas devolvieron datos: un tipo de movimiento que solo
+  // existe en una sucursal igual tiene que mostrar de cuál se trata.
+  desgloseHabilitado = false;
   stockTotal = 0;
   stockPorRangoFecha = 0;
   stockPorTipoMovimiento: StockResumenView[];
@@ -223,6 +227,7 @@ export class ListMovimientoStockComponent implements OnInit {
       this.stockPorRangoFecha = 0;
       this.stockPorTipoMovimiento = [];
       this.stockActualDesglose = [];
+      this.desgloseHabilitado = sucursalIdList.length > 1;
 
       if (this.selectedProducto?.id) {
         
