@@ -95,7 +95,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   // Estado interno de guardado
   private personaActual: Persona = null;
   private personaId: number = null;
-  private funcionarioActual: Funcionario = null;
 
   constructor(
     private personaService: PersonaService,
@@ -169,7 +168,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   }
 
   private precargar(f: Funcionario): void {
-    this.funcionarioActual = f;
     this.personaActual = f.persona;
     this.personaId = f.persona?.id;
 
@@ -204,7 +202,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   }
 
   private limpiarFormulario(): void {
-    this.funcionarioActual = null;
     this.personaActual = null;
     this.personaId = null;
 
@@ -384,14 +381,13 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefonoControl.value;
 
       // Este formulario no gestiona cargo/sueldo/credito/horario (tienen sus propias tabs en
-      // el legajo, vía CambioCargoDialogComponent/CambioSalarioDialogComponent). Si ya existe un
-      // funcionario cargado, preservamos esos valores para no pisarlos al guardar desde acá.
-      if (this.funcionarioActual != null) {
-        input.cargoId = this.funcionarioActual.cargo?.id;
-        input.credito = this.funcionarioActual.credito;
-        input.sueldo = this.funcionarioActual.sueldo;
-        input.horarioId = this.funcionarioActual.horario?.id;
-      }
+      // el legajo, vía CambioCargoDialogComponent/CambioSalarioDialogComponent), así que NO
+      // los manda: el backend preserva el valor guardado cuando el input viene sin ellos.
+      //
+      // Antes se reenviaban desde `funcionarioActual`, que es una foto tomada al abrir el
+      // legajo y no se refresca. Si en el medio se cambiaba el salario por su diálogo,
+      // guardar acá lo pisaba con el sueldo viejo — el síntoma era que el salario "volvía"
+      // solo al mínimo legal, que suele ser el valor anterior.
 
       this.funcionarioService.onSaveFuncionario(input).pipe(untilDestroyed(this)).subscribe((funcionarioGuardado: Funcionario) => {
         if (funcionarioGuardado == null) { return; }

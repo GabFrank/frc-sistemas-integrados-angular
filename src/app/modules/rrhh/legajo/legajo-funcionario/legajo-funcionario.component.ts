@@ -101,10 +101,7 @@ export class LegajoFuncionarioComponent implements OnInit {
   onSeleccionar() {
     if (this.funcionarioControl.value == null) { return; }
     this.funcionarioService.onGetFuncionarioById(this.funcionarioControl.value)
-      .pipe(untilDestroyed(this)).subscribe((f: Funcionario) => {
-        this.funcionario = f;
-        this.antiguedadTexto = this.calcularAntiguedad(f?.fechaIngreso);
-      });
+      .pipe(untilDestroyed(this)).subscribe((f: Funcionario) => this.setFuncionario(f));
     this.penalizacionService.onContarAdvertencias(this.funcionarioControl.value)
       .pipe(untilDestroyed(this)).subscribe(n => { this.advertencias = n ?? 0; });
     this.recargar();
@@ -119,6 +116,16 @@ export class LegajoFuncionarioComponent implements OnInit {
     if (funcionarioId == null) { return; }
     this.funcionarioControl.setValue(funcionarioId);
     this.onSeleccionar();
+  }
+
+  /**
+   * Único punto donde se reemplaza el funcionario de la cabecera. Los diálogos del
+   * legajo devuelven el funcionario ya actualizado y todos tienen que recalcular la
+   * antigüedad: hacerlo acá evita que uno se olvide y deje el dato viejo en pantalla.
+   */
+  private setFuncionario(f: Funcionario) {
+    this.funcionario = f;
+    this.antiguedadTexto = this.calcularAntiguedad(f?.fechaIngreso);
   }
 
   private calcularAntiguedad(fechaIngreso: any): string {
@@ -174,7 +181,7 @@ export class LegajoFuncionarioComponent implements OnInit {
         cargoActualNombre: this.funcionario.cargo?.nombre,
         salarioActual: this.funcionario.sueldo
       }, width: '460px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.funcionario = res; this.antiguedadTexto = this.calcularAntiguedad(res?.fechaIngreso); this.recargar(); } });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.setFuncionario(res); this.recargar(); } });
   }
 
   onCambiarSalario() {
@@ -184,7 +191,7 @@ export class LegajoFuncionarioComponent implements OnInit {
         salarioActual: this.funcionario.sueldo,
         cargoActual: this.funcionario.cargo?.nombre
       }, width: '520px', disableClose: true
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.funcionario = res; this.recargar(); } });
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.setFuncionario(res); this.recargar(); } });
   }
 
   onEgresar() {
@@ -192,7 +199,7 @@ export class LegajoFuncionarioComponent implements OnInit {
       data: { funcionarioId: this.funcionario.id, nombre: this.funcionario.persona?.nombre }, width: '440px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.funcionario = res;
+        this.setFuncionario(res);
         this.notificacion.notification$.next({ texto: 'Funcionario egresado', color: NotificacionColor.success, duracion: 3 });
       }
     });
@@ -221,7 +228,7 @@ export class LegajoFuncionarioComponent implements OnInit {
       }, width: '480px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        this.funcionario = res;
+        this.setFuncionario(res);
         this.notificacion.notification$.next({
           texto: 'Egreso revertido: el funcionario, su usuario y su cliente vuelven a estar activos',
           color: NotificacionColor.success, duracion: 4
