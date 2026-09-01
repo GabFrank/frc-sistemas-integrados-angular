@@ -8,7 +8,6 @@ import {
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { ConfirmDialogComponent } from "../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -342,8 +341,13 @@ export class ListFacturaLegalComponent implements OnInit {
       })
       .afterClosed()
       .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSource(this.dataSource.data, res);
+        // El dialogo no devuelve la factura creada sino un acuse
+        // ({facturado, cliente, facturaLegalId}), asi que no se puede insertar en la
+        // tabla como si fuera una FacturaLegal: entraba una fila con todas las columnas
+        // vacias y sin id, y al expandirla la consulta de items fallaba por id null.
+        // Se recarga la busqueda, que es de donde salen las filas bien formadas.
+        if (res?.facturado === true) {
+          this.onGetFacturas();
         }
       });
   }
@@ -396,6 +400,16 @@ export class ListFacturaLegalComponent implements OnInit {
   onToggleExpand(factura: FacturaLegal) {
     if (this.expandedElement === factura) {
       this.expandedElement = null;
+      return;
+    }
+
+    // Sin id no hay a quien pedirle los items: la consulta declara id como ID! y
+    // rechazaria la variable en null con un error que no le dice nada al cajero.
+    if (factura?.id == null) {
+      this.expandedElement = factura;
+      this.cargandoItems = false;
+      this.totalItemsFactura = 0;
+      this.facturaItemDataSource.data = [];
       return;
     }
 
