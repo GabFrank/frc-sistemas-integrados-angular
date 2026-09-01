@@ -86,6 +86,7 @@ export class FacturaLegalService {
     clienteId: number,
     totalFinal: number,
     items: FacturaLegalItemInput[],
+    sucursalId: number = null,
     servidor: boolean = false
   ): Observable<FacturaSimilar> {
     if (
@@ -102,7 +103,7 @@ export class FacturaLegalService {
     return this.genericService
       .onCustomQuery(
         this.facturaSimilarRecienteGQL,
-        { usuarioId, clienteId, totalFinal, items },
+        { usuarioId, clienteId, totalFinal, items, sucursalId },
         servidor,
         null,
         true

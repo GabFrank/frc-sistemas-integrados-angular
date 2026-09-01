@@ -160,6 +160,11 @@ export class GenericCrudService {
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
+              // Cerrar el observable igual: si no, el que llamo queda esperando para
+              // siempre una respuesta que ya no va a llegar. Con errorPolicy 'all' puede
+              // venir data parcial, asi que se emite lo que haya en vez de descartarla.
+              obs.next(res.data?.["data"] ?? null);
+              obs.complete();
             }
           },
           error: (error) => {

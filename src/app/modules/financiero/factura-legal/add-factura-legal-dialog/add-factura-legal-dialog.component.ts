@@ -722,7 +722,11 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.mainService?.usuarioActual?.id,
         this.selectedCliente?.id,
         totalFinal,
-        items
+        items,
+        // En modo servidor la factura va a la sucursal elegida a mano, y es contra esa
+        // sucursal que hay que buscar el duplicado; el central no la puede deducir solo.
+        this.isServidor ? this.selectedSucursal?.id : null,
+        this.isServidor
       )
       .pipe(
         switchMap((facturaSimilar) => {
