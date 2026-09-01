@@ -1996,11 +1996,29 @@ export class AddEditItemDialogComponent implements OnInit {
           }
         }, 0);
       } else {
-        // Si es el último, ir al botón guardar
-        if (this.canSaveComputed) {
-          this.guardarBtn?.focus();
-        }
+        // Si es el último, seguir con vencimiento y luego guardar
+        this.enfocarTrasCantidad();
       }
+    }
+  }
+
+  /**
+   * Destino del foco una vez cargada la cantidad: primero el vencimiento (si el
+   * producto lo maneja, el campo solo existe en ese caso) y recién después el
+   * botón de guardar.
+   */
+  private enfocarTrasCantidad(): void {
+    const vencimiento = this.vencimientoInput?.nativeElement;
+    if (vencimiento) {
+      setTimeout(() => {
+        vencimiento.focus();
+        vencimiento.select?.();
+      }, 0);
+      return;
+    }
+
+    if (this.canSaveComputed) {
+      this.guardarBtn?.focus();
     }
   }
 
@@ -2055,9 +2073,7 @@ export class AddEditItemDialogComponent implements OnInit {
       if (event.key === "Enter") {
         event.preventDefault();
       }
-      if (this.canSaveComputed) {
-        this.guardarBtn?.focus();
-      }
+      this.enfocarTrasCantidad();
     }
   }
 
