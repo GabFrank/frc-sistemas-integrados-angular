@@ -196,7 +196,12 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     } as ComprasSearchProductoResponse);
   }
 
-  ejecutarBusqueda(texto: string, page: number, append: boolean): void {
+  ejecutarBusqueda(
+    texto: string,
+    page: number,
+    append: boolean,
+    alObtenerResultados?: () => void
+  ): void {
     const termino = (texto ?? '').trim();
     this.terminoBusqueda = termino;
 
@@ -232,6 +237,7 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
           } else {
             this.dataSource.data = productos;
             this.intentarSeleccionPorCoincidenciaExacta(productos);
+            alObtenerResultados?.();
           }
 
           this.cdr.markForCheck();
@@ -357,18 +363,24 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
         this.resaltarFila(index - 1);
         this.expandedProducto = null;
         break;
-      case 'Enter':
-        if (!this.isProductoExpandido(this.dataSource.data[index])) {
-          this.expandirProducto(index);
+      case 'Enter': {
+        const producto = this.dataSource.data[index];
+        if (!producto) {
+          break;
+        }
+
+        // Si la fila ya está expandida y hay una presentación resaltada, se
+        // respeta esa elección. Si no, Enter lleva el producto directo: no
+        // tiene sentido que expanda y obligue a un segundo Enter.
+        const presentacion =
+          producto.presentaciones?.[this.selectedPresentacionRowIndex];
+        if (this.isProductoExpandido(producto) && presentacion) {
+          this.onPresentacionClick(presentacion, producto);
         } else {
-          const producto = this.dataSource.data[index];
-          const presentacion =
-            producto?.presentaciones?.[this.selectedPresentacionRowIndex];
-          if (presentacion) {
-            this.onPresentacionClick(presentacion, producto);
-          }
+          this.seleccionarProducto(producto);
         }
         break;
+      }
       case 'ArrowRight':
         if (this.selectedPresentacionRowIndex === -1) {
           this.resaltarPresentacion(0);
@@ -398,9 +410,56 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
         this.enfocarTabla();
       }
     } else if (tecla === 'Enter') {
-      const texto = this.formGroup.get('buscarControl')?.value;
-      this.ejecutarBusqueda(texto, 0, false);
+      this.onEnterEnBuscador();
     }
+  }
+
+  /**
+   * Enter en el campo de texto: resuelve la selección en lugar de limitarse a
+   * repetir la búsqueda. Con un único resultado lo devuelve directamente; con
+   * varios baja el foco a la tabla para que el usuario elija con las flechas.
+   */
+  private onEnterEnBuscador(): void {
+    const texto = (this.formGroup.get('buscarControl')?.value ?? '').trim();
+    if (!texto) {
+      return;
+    }
+
+    const resultadosVigentes =
+      !this.busquedaEnCurso &&
+      this.terminoBusqueda === texto &&
+      this.dataSource.data.length > 0;
+
+    if (resultadosVigentes) {
+      this.resolverSeleccionDesdeInput();
+      return;
+    }
+
+    this.ejecutarBusqueda(texto, 0, false, () => this.resolverSeleccionDesdeInput());
+  }
+
+  private resolverSeleccionDesdeInput(): void {
+    const filas = this.dataSource.data;
+    if (filas.length === 0) {
+      return;
+    }
+
+    // Enter siempre lleva un producto: el resaltado si el usuario ya navegó con
+    // las flechas, el primero de la lista si no.
+    const index =
+      this.selectedRowIndex >= 0 && this.selectedRowIndex < filas.length
+        ? this.selectedRowIndex
+        : 0;
+
+    this.seleccionarProducto(filas[index]);
+  }
+
+  /** Cierra devolviendo el producto sin presentación: la elige el diálogo del ítem. */
+  private seleccionarProducto(producto: Producto): void {
+    this.dialogRef.close({
+      producto,
+      searchText: this.formGroup.get('buscarControl')?.value ?? '',
+    } as ComprasSearchProductoResponse);
   }
 
   enfocarTabla(): void {
