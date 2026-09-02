@@ -160,6 +160,11 @@ export class GenericCrudService {
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
+              // Cerrar el observable igual: si no, el que llamo queda esperando para
+              // siempre una respuesta que ya no va a llegar. Con errorPolicy 'all' puede
+              // venir data parcial, asi que se emite lo que haya en vez de descartarla.
+              obs.next(res.data?.["data"] ?? null);
+              obs.complete();
             }
           },
           error: (error) => {
@@ -537,13 +542,16 @@ export class GenericCrudService {
               });
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto:
-                  "Ups! Algo salió mal en operacion: " +
-                  res.errors[0].message +
-                  res,
+                texto: "Ups! Algo salió mal en operacion: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
+              // Ademas del snackbar hay que CERRAR el observable: sin esto el llamador se queda
+              // esperando para siempre y cualquier bandera de "guardando" nunca se apaga, con lo
+              // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el
+              // formulario entero. Un error de negocio del backend es un error para el llamador,
+              // no un silencio.
+              obs.error({ graphQLErrors: res.errors, message: res.errors[0].message });
             }
           },
           error: (error) => {

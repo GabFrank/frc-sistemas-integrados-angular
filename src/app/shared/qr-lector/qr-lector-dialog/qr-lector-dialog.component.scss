@@ -1,0 +1,162 @@
+.qr-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.qr-header {
+  padding: 4px 0 10px 12px;
+  border-left: 4px solid #26a69a;
+
+  h2 {
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .subtitulo {
+    color: #ff9800;
+    font-size: 13px;
+  }
+}
+
+.qr-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* La caja del lector es lo único que el operador mira mientras escanea: grande y con
+   estado visible, porque trabaja de pie y sin tocar el mouse. */
+.lector-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px dashed rgba(38, 166, 154, 0.5);
+  border-radius: 8px;
+  background: rgba(38, 166, 154, 0.06);
+  transition: border-color 0.2s ease;
+
+  &.resolviendo {
+    border-style: solid;
+    border-color: #ffa726;
+  }
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    opacity: 0.7;
+  }
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 16px;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+  }
+}
+
+.contexto {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.75;
+
+  strong { color: #ffa726; }
+}
+
+.rechazos {
+  margin-top: 10px;
+}
+
+.rechazo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  background: rgba(244, 67, 54, 0.12);
+  color: #ff8a80;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+  }
+}
+
+.vacio {
+  padding: 28px 4px;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+.items {
+  margin-top: 14px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid #26a69a;
+
+  .item-texto { flex: 1; min-width: 0; }
+
+  .item-etiqueta {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-contraparte {
+    font-size: 12px;
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-monto {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+
+  span { opacity: 0.75; font-size: 13px; }
+
+  strong {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.qr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+
+  .spacer { flex: 1; }
+}

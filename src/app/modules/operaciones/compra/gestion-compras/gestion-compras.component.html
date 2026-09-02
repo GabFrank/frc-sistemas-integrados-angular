@@ -566,6 +566,7 @@
                       type="text"
                       [formControl]="codigoControl"
                       [disabled]="itemsTabState !== 'editable'"
+                      (keydown)="onCodigoKeydown($event)"
                       (keyup.enter)="onSearchPorCodigo()"
                       (keyup.tab)="onSearchPorCodigo()"
                       (focusin)="onCodigoFocus()"

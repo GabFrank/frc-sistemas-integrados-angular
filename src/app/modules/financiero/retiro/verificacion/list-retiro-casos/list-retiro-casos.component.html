@@ -1,0 +1,187 @@
+<div class="casos-container">
+
+  <div class="header-section">
+    <div class="titulos">
+      <h1>Control de retiros recibidos</h1>
+      <span class="subtitulo">Seguimiento de los retiros que no cerraron al contarlos en tesorería</span>
+    </div>
+    <span class="spacer"></span>
+    <button mat-icon-button (click)="cargar()" matTooltip="Refrescar">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="tabs">
+    <button mat-button *ngFor="let t of tabs; let i = index"
+            [class.activo]="tabActivo === i" (click)="onTab(i)">
+      {{ t.label }}
+    </button>
+  </div>
+
+  <div class="filtros">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-suc">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [formControl]="sucursalControl" (selectionChange)="aplicarFiltros()">
+        <mat-option [value]="null">— Todas —</mat-option>
+        <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-retiro">
+      <mat-label>N° de retiro</mat-label>
+      <input matInput type="number" [formControl]="retiroControl"
+             (keydown.enter)="aplicarFiltros()" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-fecha">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" (dateChange)="aplicarFiltros()" />
+      <mat-datepicker-toggle matSuffix [for]="dp1"></mat-datepicker-toggle>
+      <mat-datepicker #dp1></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="f-fecha">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="dp2" [formControl]="hastaControl" (dateChange)="aplicarFiltros()" />
+      <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
+      <mat-datepicker #dp2></mat-datepicker>
+    </mat-form-field>
+
+    <mat-checkbox [checked]="soloMios" (change)="onSoloMios()"
+                  matTooltip="En investigación: los asignados a mí. En resueltos: los que yo cerré.">
+      Solo los míos
+    </mat-checkbox>
+
+    <button mat-raised-button color="primary" (click)="aplicarFiltros()">Buscar</button>
+    <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
+      <mat-icon>filter_alt_off</mat-icon>
+    </button>
+
+    <span class="spacer"></span>
+    <span class="hint" *ngIf="!isLoading">{{ totalElements }} caso(s)</span>
+  </div>
+
+  <mat-card class="tabla-card">
+    <mat-card-content>
+      <div class="tabla-scroll">
+        <table mat-table [dataSource]="dataSource" style="width: 100%;">
+
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+            <td mat-cell *matCellDef="let row" style="text-align: center;">
+              <span class="chip"
+                    [style.background-color]="row._chipBg"
+                    [style.border-color]="row._chipColor"
+                    [style.color]="row._chipColor">
+                <span class="punto" [style.background-color]="row._chipColor"></span>
+                {{ row._chipLabel }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="retiro">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Retiro</th>
+            <td mat-cell *matCellDef="let row" style="text-align: center;">
+              #{{ row.retiroId }}
+              <mat-icon class="icono-rapida" *ngIf="row._rapida"
+                        matTooltip="Verificación rápida: no se contó por denominación">bolt</mat-icon>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="sucursal">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Sucursal</th>
+            <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row.sucursalId }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="diferencias">
+            <th mat-header-cell *matHeaderCellDef style="text-align: left;">Diferencia</th>
+            <td mat-cell *matCellDef="let row" style="text-align: left;" class="diferencias">
+              {{ row._diferencias }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="contadoPor">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Contó</th>
+            <td mat-cell *matCellDef="let row" style="text-align: center;">{{ row._contadoPor }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="creadoEn">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Fecha</th>
+            <td mat-cell *matCellDef="let row" style="text-align: center;">
+              {{ row.creadoEn | date:'dd/MM/yy HH:mm' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;"></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="acciones">
+                <!-- Los estados de un caso son pocos pero las acciones cambian con cada uno.
+                     En un menu entran todas sin llenar la fila de iconos que la mitad de las
+                     veces estan deshabilitados. -->
+                <span class="resuelto-por" *ngIf="row.estado === 'RESUELTO'">
+                  <span class="chip-veredicto" *ngIf="row._veredicto">{{ row._veredicto }}</span>
+                  <span class="chip-veredicto sin" *ngIf="!row._veredicto"
+                        matTooltip="Se cerró al anular la verificación, sin investigación">
+                    Sin veredicto
+                  </span>
+                  {{ row.resueltoPor?.persona?.nombre || '—' }}
+                </span>
+
+                <span class="resuelto-por"
+                      *ngIf="row.estado === 'EN_INVESTIGACION' && !row._puedoCerrar">
+                  {{ row.asignadoA?.persona?.nombre || 'sin asignar' }}
+                </span>
+
+                <button mat-icon-button [matMenuTriggerFor]="menuCaso">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menuCaso="matMenu">
+                  <button mat-menu-item (click)="onVerDetalle(row)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>Ver</span>
+                  </button>
+                  <button mat-menu-item *ngIf="row.estado === 'ABIERTO' && puedeGestionar"
+                          (click)="onTomar(row)">
+                    <mat-icon>how_to_reg</mat-icon>
+                    <span>Tomar</span>
+                  </button>
+                  <button mat-menu-item *ngIf="row._puedoCerrar" (click)="onVerDetalle(row, true)">
+                    <mat-icon>task_alt</mat-icon>
+                    <span>Resolver</span>
+                  </button>
+                  <button mat-menu-item *ngIf="row._puedoCerrar" (click)="onSoltar(row)">
+                    <mat-icon>undo</mat-icon>
+                    <span>Devolver a abiertos</span>
+                  </button>
+                  <button mat-menu-item (click)="onIrAVentas(row)"
+                          [disabled]="!row.retiro?.cajaSalida?.id">
+                    <mat-icon>point_of_sale</mat-icon>
+                    <span>Ir a ventas de la caja</span>
+                  </button>
+                </mat-menu>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+            [class.resaltada]="row._resaltada"></tr>
+        </table>
+
+        <div class="vacio" *ngIf="!isLoading && dataSource.data.length === 0">
+          No hay casos en este estado.
+        </div>
+      </div>
+
+      <mat-paginator
+        [length]="totalElements"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="onPage($event)"
+        showFirstLastButtons>
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>

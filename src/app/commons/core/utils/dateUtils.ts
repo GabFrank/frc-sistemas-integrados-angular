@@ -262,6 +262,13 @@ export function parseShortDate(dateString: string | null): Date | null {
 }
 
 
+/** Completa "202608" a "2026-08" (formato YYYY-MM usado en filtros de período). Idempotente. */
+export function formatearPeriodo(valor: string): string {
+  if (!valor) return valor;
+  const digitos = valor.replace(/\D/g, "").slice(0, 6);
+  return digitos.length <= 4 ? digitos : `${digitos.slice(0, 4)}-${digitos.slice(4)}`;
+}
+
 export function formatearFecha(event: any): any {
   let input = event.target.value.replace(/\D/g, ""); // Remove any non-digit characters
 

@@ -24,9 +24,23 @@
   color: #66bb6a;
 }
 
+// El alto tiene que dar para ver todas las filas sin scroll en el caso normal: el
+// checkbox de "seleccionar todos" del header sticky selecciona TAMBIEN lo que quedo
+// abajo del corte, y eso son cambios de sueldo con historico legal sobre gente que el
+// usuario nunca miro. El borde marca donde termina la lista cuando si hay scroll
+// (en Electron/macOS la scrollbar se auto-oculta y no queda ninguna pista).
 .tabla {
-  max-height: 45vh;
+  max-height: 62vh;
   overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.resumen-afectados {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffca28;
 }
 
 table {

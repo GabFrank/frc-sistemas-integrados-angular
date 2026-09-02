@@ -23,6 +23,10 @@ export class Funcionario {
   nickname: string;
   imagenPrincipal: string;
   horario: Horario;
+  // El egreso se escribia en la base pero no existia de este lado: por eso el legajo
+  // mostraba solo el badge INACTIVO, sin cuando ni por que.
+  fechaEgreso: Date;
+  motivoEgreso: string;
   // Campos agregados para InformacionGeneralComponent (legajo, tab "Información general").
   codigoInterno: string;
   ipsActivo: boolean;

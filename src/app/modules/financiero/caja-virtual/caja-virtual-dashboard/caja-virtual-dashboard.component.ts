@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -12,6 +13,7 @@ import { CajaVirtual, CajaVirtualTipoMovimiento, MovimientoCajaVirtual,
          CajaVirtualSaldoItem, CuentaBancariaResumen, CajaVirtualConfiguracion,
          labelMovimiento } from '../caja-virtual.model';
 import { CajaVirtualService } from '../caja-virtual.service';
+import { Moneda } from '../../moneda/moneda.model';
 import { PageInfo } from '../../../../app.component';
 import { AddMovimientoCajaVirtualDialogComponent, MovimientoDialogData } from '../add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
 import { TransferenciaCajaVirtualDialogComponent } from '../transferencia-caja-virtual-dialog/transferencia-caja-virtual-dialog.component';
@@ -24,10 +26,15 @@ import { AddEntradaVariaDialogComponent, EntradaVariaDialogData } from '../../en
 import { ListEntradasVariasDialogComponent } from '../../entrada-varia/list-entradas-varias-dialog/list-entradas-varias-dialog.component';
 import { AddOperacionFinancieraDialogComponent } from '../../operacion-financiera/add-operacion-financiera-dialog/add-operacion-financiera-dialog.component';
 import { DetallePagoDialogComponent, DetallePagoDialogData } from '../detalle-pago-dialog/detalle-pago-dialog.component';
+import { ConteoCajaDialogComponent, ConteoCajaDialogData } from '../conteo-caja-dialog/conteo-caja-dialog.component';
+import { QrLectorDialogComponent, QrLectorDialogData, QrLectorResultado } from '../../../../shared/qr-lector/qr-lector-dialog/qr-lector-dialog.component';
+import { QrTipoSoportado } from '../../../../shared/qr-lector/qr-lector.model';
+import { IngresarRetiroCajaMayorDialogComponent, IngresarRetiroCajaMayorDialogData } from '../ingresar-retiro-caja-mayor-dialog/ingresar-retiro-caja-mayor-dialog.component';
 import { OperacionFinancieraDetalleDialogComponent } from '../../operacion-financiera/operacion-financiera-detalle-dialog/operacion-financiera-detalle-dialog.component';
 import { OperacionFinancieraService } from '../../operacion-financiera/operacion-financiera.service';
 import { PagarComprasService } from '../pagar-compras-dialog/pagar-compras.service';
 import { MovimientoBancario } from '../../operacion-financiera/operacion-financiera.model';
+import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-verificacion.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
@@ -49,6 +56,32 @@ interface MovimientoRow extends MovimientoCajaVirtual {
   _esGrupoMulti?: boolean;    // el grupo tiene 2+ filas consecutivas (par de cambio/transferencia)
 }
 
+/** Card de saldo por moneda que se muestra sobre la tabla de movimientos. */
+interface SaldoCard {
+  saldo: CajaVirtualSaldoItem;
+  color: string;        // color de acento de la card (fondo del borde/valor)
+  seleccionada: boolean;
+  formato: string;      // digitsInfo del pipe number, según los decimales de la moneda
+}
+
+/** Card de cuenta bancaria del sidebar, con el formato de su moneda precalculado. */
+interface BancoCard {
+  resumen: CuentaBancariaResumen;
+  formato: string;
+}
+
+/**
+ * digitsInfo para el pipe number, según la moneda. El fallback por denominación es el mismo
+ * patrón que usa el resto del módulo (pagar-compras-dialog): el guaraní no lleva fracción,
+ * las demás sí. Ver migración V207.5, que pobló `decimales` — estaba en 0 para todas.
+ */
+function formatoDe(moneda: Moneda): string {
+  const d = moneda?.decimales != null
+    ? moneda.decimales
+    : ((moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
+  return `1.0-${d}`;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -61,9 +94,18 @@ export class CajaVirtualDashboardComponent implements OnInit {
 
   cajaVirtual: CajaVirtual;
 
-  // Sidebar
+  // Saldos por moneda: cards sobre la tabla (antes iban en el sidebar).
   saldos: CajaVirtualSaldoItem[] = [];
+  saldoCards: SaldoCard[] = [];
+  /** Moneda por la que se está filtrando la tabla (null = todas). La activa el click en la card. */
+  monedaSelId: number = null;
+
+  // Paleta estable de las cards: se indexa por id de moneda, así el color no baila entre recargas.
+  private monedaPaleta = ['#26a69a', '#5c6bc0', '#ffa726', '#ab47bc', '#ef5350', '#42a5f5', '#8d6e63'];
+
+  // Sidebar
   resumenBancario: CuentaBancariaResumen[] = [];
+  bancoCards: BancoCard[] = [];
   config: CajaVirtualConfiguracion;
 
   // Movimientos (tabla)
@@ -154,6 +196,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private tabService: TabService,
     private dialog: MatDialog,
     private dialogosService: DialogosService,
+    private retiroVerificacionService: RetiroVerificacionService,
     private notificacion: NotificacionSnackbarService,
     public mainService: MainService
   ) {}
@@ -174,8 +217,54 @@ export class CajaVirtualDashboardComponent implements OnInit {
     if (!this.cajaVirtual?.id) return;
     this.cajaVirtualService.onGetSaldos(this.cajaVirtual.id)
       .pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) this.saldos = res;
+        if (res) {
+          this.saldos = res;
+          this.construirCards();
+        }
       });
+  }
+
+  /** Arma las cards de saldo por moneda con su color estable y el estado de selección. */
+  private construirCards() {
+    this.saldoCards = this.saldos.map(s => ({
+      saldo: s,
+      color: this.monedaPaleta[(s.moneda?.id || 0) % this.monedaPaleta.length],
+      seleccionada: this.monedaSelId != null && this.monedaSelId === s.moneda?.id,
+      formato: formatoDe(s.moneda),
+    }));
+    // Si la moneda filtrada dejó de tener saldo, el filtro quedaría colgado sin card visible.
+    if (this.monedaSelId != null && !this.saldoCards.some(c => c.seleccionada)) {
+      this.monedaSelId = null;
+    }
+  }
+
+  /** Click en una card: filtra la tabla por esa moneda; volver a clickear la misma quita el filtro. */
+  onCardClick(card: SaldoCard) {
+    const id = card.saldo?.moneda?.id;
+    if (id == null) return;
+    this.monedaSelId = this.monedaSelId === id ? null : id;
+    this.saldoCards.forEach(c => c.seleccionada = c.saldo?.moneda?.id === this.monedaSelId);
+    this.pageIndex = 0;
+    this.cargarMovimientos();
+  }
+
+  /**
+   * Conteo de efectivo de una moneda. El conteo vive en localStorage (no en el backend):
+   * es una herramienta de arqueo, y tiene que sobrevivir a que se cierre el diálogo sin ajustar.
+   * Solo se persiste en la caja un AJUSTE, y únicamente si el usuario lo pide.
+   */
+  onConteo(card: SaldoCard, event: MouseEvent) {
+    event.stopPropagation();   // el click del botón no debe además togglear el filtro de la card
+    const data: ConteoCajaDialogData = {
+      cajaVirtual: this.cajaVirtual,
+      moneda: card.saldo?.moneda,
+      saldoSistema: card.saldo?.saldo || 0,
+      color: card.color,
+    };
+    this.dialog.open(ConteoCajaDialogComponent, {
+      // Sin ancho fijo: la grilla de denominaciones define el tamaño (1 columna o varias).
+      maxWidth: '96vw', maxHeight: '92vh', autoFocus: false, data,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res) this.recargar(); });
   }
 
   cargarConfigYBancos() {
@@ -186,6 +275,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
         this.cajaVirtualService.onGetResumenBancario(this.cajaVirtual.id)
           .pipe(untilDestroyed(this)).subscribe(res => {
             this.resumenBancario = res || [];
+            this.bancoCards = this.resumenBancario.map(r => ({
+              resumen: r,
+              formato: formatoDe(r.cuentaBancaria?.moneda),
+            }));
             this.construirFuentes();
           });
       });
@@ -220,6 +313,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
       desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
       fin: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
       tipo: this.tipoControl.value || null,
+      monedaId: this.monedaSelId,
       soloActivos: !this.verAnulaciones,
     }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
@@ -311,6 +405,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
     this.desdeControl.setValue(null);
     this.hastaControl.setValue(null);
     this.tipoControl.setValue(null);
+    this.monedaSelId = null;
+    this.saldoCards.forEach(c => c.seleccionada = false);
     this.pageIndex = 0;
     this.cargarMovimientos();
   }
@@ -331,6 +427,39 @@ export class CajaVirtualDashboardComponent implements OnInit {
   onEgreso() {
     this.dialog.open(RegistrarEgresoDialogComponent, { width: '720px', maxWidth: '95vw', data: { cajaVirtual: this.cajaVirtual } })
       .afterClosed().subscribe(res => { if (res) this.recargar(); });
+  }
+
+  /**
+   * Carrito de escaneo: el operador pasa uno o varios documentos por el lector y el diálogo
+   * devuelve los que resolvió. El ruteo al destino vive acá y no adentro del carrito, para
+   * que el mismo diálogo sirva después al PDV o a RRHH.
+   */
+  onEscanear() {
+    const data: QrLectorDialogData = { cajaVirtual: this.cajaVirtual };
+    this.dialog.open(QrLectorDialogComponent, {
+      width: '65vw', height: '70vh', maxWidth: '96vw', autoFocus: false, disableClose: true, data,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: QrLectorResultado) => {
+      if (!res?.items?.length) return;
+      this.rutearEscaneo(res);
+    });
+  }
+
+  /**
+   * Lleva lo escaneado a su destino. Cada tipo abre el diálogo que ya sabe operarlo, con
+   * los documentos preseleccionados: el carrito resuelve y valida, el destino ejecuta.
+   */
+  private rutearEscaneo(res: QrLectorResultado) {
+    if (res.tipo === QrTipoSoportado.RETIRO) {
+      const d: IngresarRetiroCajaMayorDialogData = {
+        cajaVirtual: this.cajaVirtual,
+        preseleccion: res.items.map(i => i.documento),
+      };
+      this.dialog.open(IngresarRetiroCajaMayorDialogComponent, {
+        width: '65vw', height: '70vh', maxWidth: '96vw', data: d,
+      }).afterClosed().pipe(untilDestroyed(this)).subscribe(r => { if (r) this.recargar(); });
+      return;
+    }
+    // F4 agrega SOLPAG -> pagar-compras-dialog con los documentos preseleccionados.
   }
 
   onTransferencia() {
@@ -429,9 +558,17 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // concepto real (gasto, vale, liquidación…), el origen ya no distingue un pago del motor de
     // un egreso directo del módulo — los de RRHH usan el mismo valor para las dos cosas.
     const esPagoCpp = !!mov.esPagoConsolidado && !!mov.referenciaId;
+    // La acreditación de un retiro no se revierte con un ajuste suelto: hay que deshacer la
+    // verificación entera (movimiento + estado del retiro + caso abierto), y para ubicarla
+    // hacen falta las dos mitades de la PK del retiro.
+    const esRetiro = mov.origenTipo === 'RETIRO_CAJA' && !!mov.origenId && !!mov.origenSucursalId;
 
     let titulo: string, mensaje: string, exito: string;
-    if (esPagoCpp) {
+    if (esRetiro) {
+      titulo = 'Anular verificación del retiro';
+      mensaje = `¿Deshacer la verificación del retiro #${mov.origenId}? Se revierte lo acreditado, el retiro vuelve a quedar pendiente y se cierra el caso abierto.`;
+      exito = 'Verificación anulada';
+    } else if (esPagoCpp) {
       titulo = 'Anular pago a proveedor';
       mensaje = '¿Anular todo el pago a proveedor? Se revertirán TODOS los movimientos consolidados (caja y banco) y se reabrirán las notas pagadas.';
       exito = 'Pago a proveedor anulado';
@@ -449,11 +586,16 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      const obs: Observable<any> = esPagoCpp
-        ? this.pagarComprasService.onAnularPago(mov.referenciaId)
-        : esOpFinanciera
-          ? this.operacionFinancieraService.onAnular(mov.referenciaId)
-          : this.cajaVirtualService.onAnularMovimiento(mov.id);
+      const obs: Observable<any> = esRetiro
+        ? this.retiroVerificacionService.onGetVerificacion(mov.origenId, mov.origenSucursalId).pipe(
+            switchMap(v => v?.id
+              ? this.retiroVerificacionService.onAnular(v.id)
+              : throwError(() => new Error('No se encontró la verificación de este retiro'))))
+        : esPagoCpp
+          ? this.pagarComprasService.onAnularPago(mov.referenciaId)
+          : esOpFinanciera
+            ? this.operacionFinancieraService.onAnular(mov.referenciaId)
+            : this.cajaVirtualService.onAnularMovimiento(mov.id);
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {

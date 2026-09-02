@@ -63,6 +63,7 @@ import { ListHoraExtraComponent } from '../../../modules/rrhh/hora-extra/list-ho
 import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/list-justificativo/list-justificativo.component';
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
+import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
@@ -76,6 +77,7 @@ import { DevolucionComponent } from '../../../modules/operaciones/devolucion/dev
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
+import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
 import { MonedaComponent } from '../../../modules/financiero/moneda/moneda.component';
 import { ListOperacionFinancieraComponent } from '../../../modules/financiero/operacion-financiera/list-operacion-financiera/list-operacion-financiera.component';
 import { BancoComponent } from '../../../modules/financiero/banco/banco.component';
@@ -143,9 +145,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'add_shopping_cart',
       isExpanded: false,
       requiresServerMode: false,
+      // Sin visibilityRoles, checkItemVisibility devuelve true para todos: el grupo quedaba
+      // abierto a cualquier usuario autenticado, incluida Solicitud de pago, que muestra la
+      // deuda a proveedores con montos y estados.
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
       items: [
-        { name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard' },
-        { name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago' }
+        {
+          name: 'Compras', icon: 'shopping_basket', action: 'compras-dashboard',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR]
+        },
+        {
+          name: 'Solicitud de pago', icon: 'payment', action: 'list-solicitud-pago',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_FINANCIERO, ROLES.ANALISIS_CONTABLE,
+        ROLES.VER_PRECIO_COSTO, ROLES.RECIBIR_PEDIDOS, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR]
+        }
       ]
     },
     {
@@ -315,6 +330,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
             },
             {
+              name: 'Cargos',
+              icon: 'work',
+              action: 'list-cargo',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            },
+            {
               name: 'Configuración RRHH',
               icon: 'tune',
               action: 'list-configuracion-rrhh',
@@ -430,6 +451,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
+              name: 'Tesorería',
+              icon: 'account_balance_wallet',
+              action: 'list-caja-virtual',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Operaciones Financieras',
+              icon: 'swap_horiz',
+              action: 'list-operacion-financiera',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN]
+            },
+            {
               name: 'Gastos',
               icon: 'money_off',
               action: 'gastos-dashboard',
@@ -440,6 +473,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'savings',
               action: 'list-retiros',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Control de retiros',
+              icon: 'gavel',
+              action: 'list-retiro-casos',
+              visibilityRoles: [ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
             }
           ]
         },
@@ -933,6 +972,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-pagos":
         // this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListSolicitudPagoComponent, "Lista de solicitudes de pago");
         break;
+      case "list-retiro-casos":
+        if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN])) {
+          this.tabService.addTab(new Tab(ListRetiroCasosComponent, "Control de retiros", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
+        break;
       case "list-caja-virtual":
         if (this.hasAnyRole([ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.ADMIN])) {
           this.tabService.addTab(new Tab(ListCajaVirtualComponent, "Tesorería", null, null));
@@ -1024,6 +1070,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-motivo-vale":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListMotivoValeComponent, "Motivos de vale");
+        break;
+      case "list-cargo":
+        this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");
         break;
       case "list-prestamo":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");

@@ -86,6 +86,7 @@ export class FacturaLegalService {
     clienteId: number,
     totalFinal: number,
     items: FacturaLegalItemInput[],
+    sucursalId: number = null,
     servidor: boolean = false
   ): Observable<FacturaSimilar> {
     if (
@@ -102,7 +103,7 @@ export class FacturaLegalService {
     return this.genericService
       .onCustomQuery(
         this.facturaSimilarRecienteGQL,
-        { usuarioId, clienteId, totalFinal, items },
+        { usuarioId, clienteId, totalFinal, items, sucursalId },
         servidor,
         null,
         true
@@ -206,8 +207,12 @@ export class FacturaLegalService {
     );
   }
 
-  onGetFacturaLegal(id, sucId, servidor: boolean = true): Observable<FacturaLegal> {
-    return this.genericService.onGetById(this.facturaLegalPorId, id, null, null, servidor, sucId);
+  // silentLoad evita el modal bloqueante de "Buscando...", para consultas que
+  // acompanan una interaccion liviana (ej. expandir una fila de la lista).
+  onGetFacturaLegal(id, sucId, servidor: boolean = true, silentLoad = false): Observable<FacturaLegal> {
+    return this.genericService.onGetById(
+      this.facturaLegalPorId, id, null, null, servidor, sucId, null, null, silentLoad
+    );
   }
 
   onGetFacturaLegalByCdc(cdc: string, servidor: boolean = true): Observable<FacturaLegal>{

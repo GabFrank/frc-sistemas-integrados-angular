@@ -657,7 +657,11 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
           moneda: this.selectedMoneda,
           tipoCambio: this.tipoCambioControl.value,
         },
-        width: "100%",
+        // Modal de ancho normal (como el resto de la app) en vez de ocupar el
+        // 100%: asi la tabla "Lista de productos" de atras sigue a la vista
+        // mientras se cargan items.
+        width: "620px",
+        maxWidth: "95vw",
       })
       .afterClosed()
       .subscribe((res) => {
@@ -718,7 +722,11 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.mainService?.usuarioActual?.id,
         this.selectedCliente?.id,
         totalFinal,
-        items
+        items,
+        // En modo servidor la factura va a la sucursal elegida a mano, y es contra esa
+        // sucursal que hay que buscar el duplicado; el central no la puede deducir solo.
+        this.isServidor ? this.selectedSucursal?.id : null,
+        this.isServidor
       )
       .pipe(
         switchMap((facturaSimilar) => {

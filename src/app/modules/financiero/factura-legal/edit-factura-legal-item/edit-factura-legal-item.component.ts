@@ -1,10 +1,15 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FacturaLegalItem } from '../factura-legal.model';
 import { Moneda } from '../../moneda/moneda.model';
 import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
+import {
+  PdvSearchProductoData,
+  PdvSearchProductoDialogComponent,
+  PdvSearchProductoResponseData,
+} from '../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
 
 export interface AdicionarFacturaLegalItemData {
   facturaItem: FacturaLegalItem;
@@ -57,6 +62,7 @@ export class EditFacturaLegalItemComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AdicionarFacturaLegalItemData,
     private dialogRef: MatDialogRef<EditFacturaLegalItemComponent>,
+    private matDialog: MatDialog,
   ) { }
 
   ngOnInit(): void {
@@ -165,6 +171,63 @@ export class EditFacturaLegalItemComponent implements OnInit {
   onEdit() {
     this.isEditting = true;
     this.formGroup.enable()
+  }
+
+  /**
+   * Abre el buscador generico de productos y autocompleta descripcion, iva y
+   * precio unitario. Los tres campos quedan editables: el buscador es un atajo
+   * para cargarlos, no un reemplazo. Si el usuario cancela, o si el producto no
+   * tiene iva/precio cargado, se conserva lo que ya estaba escrito — el item
+   * cargado a mano (servicios, conceptos libres) sigue funcionando igual.
+   */
+  /**
+   * Atajo: click sobre el campo vacio abre el buscador directo, sin pasar por
+   * la lupa. Una vez que hay texto, el click solo posiciona el cursor — asi la
+   * descripcion se sigue pudiendo corregir a mano; para volver a buscar esta
+   * la lupa o Enter.
+   */
+  buscarProductoSiVacio() {
+    const texto = this.descripcionControl.value;
+    if (texto == null || String(texto).trim() === '') {
+      this.buscarProducto();
+    }
+  }
+
+  buscarProducto() {
+    if (this.formGroup.disabled) return;
+
+    const texto = this.descripcionControl.value;
+    const data: PdvSearchProductoData = {
+      texto: texto != null ? String(texto).toUpperCase() : '',
+      mostrarStock: true,
+    };
+
+    this.matDialog
+      .open(PdvSearchProductoDialogComponent, {
+        data,
+        width: '100%',
+        height: '90%',
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PdvSearchProductoResponseData) => {
+        if (res?.producto == null) return;
+
+        const descripcion = res.producto.descripcionFactura || res.producto.descripcion;
+        if (descripcion != null) {
+          this.descripcionControl.setValue(descripcion);
+        }
+        // Solo si el iva del producto es una de las opciones del select; de lo
+        // contrario el mat-select quedaria en blanco con el form marcado valido.
+        if (this.ivaOptions.includes(res.producto.iva)) {
+          this.ivaControl.setValue(res.producto.iva);
+        }
+        // setValue dispara la suscripcion que ya convierte a moneda extranjera
+        // y recalcula los totales; no hace falta tocar nada mas aca.
+        if (res.precio?.precio != null) {
+          this.precioUnitario.setValue(res.precio.precio);
+        }
+      });
   }
 
   onCancel() {
