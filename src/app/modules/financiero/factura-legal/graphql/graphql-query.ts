@@ -267,12 +267,14 @@ export const facturaSimilarRecienteQuery = gql`
     $clienteId: ID
     $totalFinal: Float!
     $items: [FacturaLegalItemInput]
+    $sucursalId: ID
   ) {
     data: facturaSimilarReciente(
       usuarioId: $usuarioId
       clienteId: $clienteId
       totalFinal: $totalFinal
       items: $items
+      sucursalId: $sucursalId
     ) {
       facturaLegalId
       numeroFactura

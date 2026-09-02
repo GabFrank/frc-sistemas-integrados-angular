@@ -127,6 +127,16 @@
     </mat-form-field>
   </div>
   </div>
+
+  <div fxLayout="row" fxLayoutAlign="center center" style="text-align: center;">
+    <mat-checkbox [formControl]="tributaControl">Tributa (IVA)</mat-checkbox>
+    <mat-icon
+      class="icon"
+      style="margin-left: 6px; font-size: 18px; height: 18px; width: 18px; cursor: help;"
+      matTooltip="Marcar si el cliente es contribuyente activo ante la SET."
+      >info</mat-icon
+    >
+  </div>
   <br />
 
   <div

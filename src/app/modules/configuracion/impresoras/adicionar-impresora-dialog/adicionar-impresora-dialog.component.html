@@ -229,6 +229,88 @@
       </p>
     </div>
 
+    <!-- Impresora colgada de una PC Windows y compartida por SMB/Samba. El transporte lo hace
+         CUPS (backend smb -> smbspool); para el motor de impresion es una cola local mas. -->
+    <div class="instalar-panel">
+      <div class="deteccion-header" fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+          <mat-icon>desktop_windows</mat-icon>
+          <span>Impresora de una PC Windows (Samba)</span>
+        </div>
+        <button
+          mat-stroked-button
+          type="button"
+          color="primary"
+          (click)="buscarRecursosSmb()"
+          [disabled]="buscandoSmb"
+        >
+          <mat-icon>search</mat-icon>
+          Buscar compartidas
+        </button>
+      </div>
+
+      <div fxLayout="row" fxLayoutGap="12px">
+        <mat-form-field fxFlex="30%" appearance="outline">
+          <mat-label>PC Windows (IP o nombre)</mat-label>
+          <input matInput formControlName="smbHost" autocomplete="off" placeholder="100.64.0.10" />
+        </mat-form-field>
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <mat-label>Usuario de Windows</mat-label>
+          <input matInput formControlName="smbUsuario" autocomplete="off" />
+        </mat-form-field>
+        <mat-form-field fxFlex="20%" appearance="outline">
+          <mat-label>Dominio / grupo</mat-label>
+          <input matInput formControlName="smbDominio" autocomplete="off" placeholder="WORKGROUP" />
+        </mat-form-field>
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <mat-label>Contraseña</mat-label>
+          <input
+            matInput
+            type="password"
+            [formControl]="smbPasswordControl"
+            autocomplete="new-password"
+          />
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="buscandoSmb" class="deteccion-cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>Consultando la PC Windows…</span>
+      </div>
+
+      <div *ngIf="!buscandoSmb && recursosSmb.length > 0" class="deteccion-lista">
+        <div
+          *ngFor="let r of recursosSmb"
+          class="item-dispositivo"
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <span class="item-text">
+            <span class="item-nombre">{{ r.nombre }}</span>
+            <span class="item-desc">{{ r.detalle }}</span>
+          </span>
+          <button
+            mat-stroked-button
+            type="button"
+            color="primary"
+            (click)="instalarRecursoSmb(r)"
+            [disabled]="instalandoSmb"
+          >
+            Instalar
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="mensajeSmb" class="deteccion-vacia">{{ mensajeSmb }}</p>
+
+      <p class="deteccion-vacia">
+        Para una impresora conectada a una PC con Windows: cargá la IP de esa PC y las credenciales,
+        tocá <b>Buscar compartidas</b> e <b>Instalar</b>. Se crea una cola en el servidor elegido en
+        <b>Buscar en</b> (arriba) que entrega los tickets por Samba. La contraseña se usa solo para
+        crear la cola y no se guarda en la base.
+      </p>
+    </div>
+
     <!-- Datos generales -->
     <div fxLayout="row" fxLayoutGap="16px">
       <mat-form-field fxFlex="50%" appearance="outline">

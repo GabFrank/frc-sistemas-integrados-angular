@@ -1,5 +1,25 @@
 .dialog-container {
-  min-width: 400px;
+  min-width: 440px;
   padding: 8px;
   .aviso { font-size: 13px; opacity: 0.85; }
+
+  .consecuencias {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #ffb74d;
+    padding: 8px 10px;
+    border-left: 3px solid #ffb74d;
+  }
+
+  .gate {
+    .gate-instruccion { font-size: 12px; opacity: 0.75; }
+    .gate-nombre {
+      font-family: monospace;
+      font-size: 14px;
+      letter-spacing: 0.4px;
+      user-select: all;
+      padding: 4px 0;
+    }
+    .gate-ok { color: #66bb6a; }
+  }
 }

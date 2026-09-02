@@ -1,0 +1,83 @@
+<div class="verificar-dialog">
+
+  <div class="ver-header">
+    <h2 mat-dialog-title>Verificar retiro #{{ data.retiro?.id }}</h2>
+    <div class="subtitulo">
+      {{ data.retiro?.sucursal?.nombre || 'Sucursal ' + data.retiro?.sucursalId }}
+      · entra a {{ data.cajaVirtual?.nombre }}
+    </div>
+  </div>
+
+  <mat-dialog-content class="ver-content">
+
+    <div class="aviso-borrador" *ngIf="huboBorrador">
+      <mat-icon>history</mat-icon>
+      <span>Se recuperó un conteo que habías dejado a medias.</span>
+    </div>
+
+    <div class="moneda" *ngFor="let f of filas">
+      <div class="moneda-fila">
+        <div class="moneda-nombre">{{ f.moneda?.denominacion }}</div>
+
+        <div class="moneda-monto">
+          <span class="etiqueta">Declarado</span>
+          <strong>{{ f.declarado | number:f.formato }} {{ f.moneda?.simbolo }}</strong>
+        </div>
+
+        <div class="moneda-monto">
+          <span class="etiqueta">Contado</span>
+          <strong>{{ f.contado | number:f.formato }} {{ f.moneda?.simbolo }}</strong>
+        </div>
+
+        <div class="moneda-monto">
+          <span class="etiqueta">{{ f.etiqueta }}</span>
+          <strong [style.color]="f.color">{{ f.diferencia | number:f.formato }}</strong>
+        </div>
+
+        <div class="moneda-acciones">
+          <button mat-stroked-button (click)="usarDeclarado(f)"
+                  matTooltip="Aceptar lo declarado sin contar por denominación">
+            Usar declarado
+          </button>
+          <button mat-raised-button color="primary" (click)="abrirGrilla(f)">
+            <mat-icon>calculate</mat-icon>
+            {{ monedaAbierta?.id === f.moneda?.id ? 'Cerrar' : 'Contar' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Una grilla abierta a la vez: necesita ancho y con tres monedas no entrarían todas. -->
+      <div class="moneda-grilla" *ngIf="monedaAbierta?.id === f.moneda?.id">
+        <app-grilla-conteo [moneda]="f.moneda" [cantidades]="cantidadesDe(f.moneda.id)"
+                           (cantidadesChange)="onCantidadesChange(f, $event)"></app-grilla-conteo>
+      </div>
+
+      <div class="moneda-categoria" *ngIf="f.categoria">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Motivo de la diferencia</mat-label>
+          <mat-select [(ngModel)]="f.categoria">
+            <mat-option *ngFor="let c of categorias" [value]="c.value">{{ c.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <mat-form-field appearance="outline" class="observacion" subscriptSizing="dynamic">
+      <mat-label>Observación</mat-label>
+      <textarea matInput rows="2" [(ngModel)]="observacion" (blur)="onObservacionChange()"></textarea>
+    </mat-form-field>
+
+    <div class="aviso-diferencia" *ngIf="hayDiferencia">
+      <mat-icon>report_problem</mat-icon>
+      <span>Al confirmar se acredita lo contado y se abre un caso para investigar.</span>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="ver-actions">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" (click)="onConfirmar()" [disabled]="guardando">
+      <mat-icon>check</mat-icon> Confirmar e ingresar
+    </button>
+  </mat-dialog-actions>
+</div>

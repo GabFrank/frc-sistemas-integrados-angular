@@ -76,6 +76,9 @@ export class MovimientoCajaVirtual {
   moneda: Moneda;
   referenciaId: number;
   origenTipo: string;
+  /** Documento de origen. Con PK compuesta (Retiro) hacen falta los dos para ubicarlo. */
+  origenId: number;
+  origenSucursalId: number;
   /** true si el movimiento es el asiento de un evento de pago (lo resuelve el backend). */
   esPagoConsolidado: boolean;
   descripcion: string;

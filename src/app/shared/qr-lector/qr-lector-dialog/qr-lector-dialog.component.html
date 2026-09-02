@@ -1,0 +1,63 @@
+<div class="qr-dialog">
+
+  <div class="qr-header">
+    <h2 mat-dialog-title>Escanear documentos</h2>
+    <div class="subtitulo">{{ data.cajaVirtual?.nombre }}</div>
+  </div>
+
+  <mat-dialog-content class="qr-content">
+
+    <!-- El input siempre enfocado: el lector escribe como teclado y termina con Enter.
+         También sirve para tipear el código a mano cuando el QR está borroso. -->
+    <div class="lector-box" [class.resolviendo]="resolviendo">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <input #lectorInput type="text" autocomplete="off" spellcheck="false"
+             [placeholder]="resolviendo ? 'Buscando el documento...' : 'Pasá el documento por el lector'"
+             [readonly]="resolviendo"
+             (keydown.enter)="onEnter($any($event.target).value); $event.preventDefault(); $event.stopPropagation();"
+             (blur)="enfocar()" />
+    </div>
+
+    <div class="contexto" *ngIf="contraparteCarrito">
+      Sumando pagos de <strong>{{ contraparteCarrito }}</strong>
+    </div>
+
+    <div class="rechazos" *ngIf="rechazos.length > 0">
+      <div class="rechazo" *ngFor="let r of rechazos">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ r.motivo }}</span>
+      </div>
+    </div>
+
+    <div class="vacio" *ngIf="items.length === 0 && !resolviendo">
+      Todavía no escaneaste ningún documento.
+    </div>
+
+    <div class="items" *ngIf="items.length > 0">
+      <div class="item" *ngFor="let i of items">
+        <div class="item-texto">
+          <div class="item-etiqueta">{{ i.etiqueta }}</div>
+          <div class="item-contraparte">{{ i.contraparte }}</div>
+        </div>
+        <div class="item-monto">{{ i.monto | number:'1.0-2' }} {{ i.monedaSimbolo }}</div>
+        <button mat-icon-button (click)="quitar(i)" matTooltip="Quitar de la lista">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="resumen" *ngIf="items.length > 0">
+      <span>{{ items.length }} documento{{ items.length === 1 ? '' : 's' }}</span>
+      <strong>{{ total | number:'1.0-2' }} {{ monedaSimbolo }}</strong>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="qr-actions">
+    <button mat-button (click)="onCancelar()">Cancelar</button>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" (click)="onContinuar()" [disabled]="items.length === 0">
+      <mat-icon>arrow_forward</mat-icon>
+      Continuar con {{ items.length }}
+    </button>
+  </mat-dialog-actions>
+</div>

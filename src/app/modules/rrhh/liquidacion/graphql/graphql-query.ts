@@ -20,8 +20,8 @@ export const liquidacionItemsQuery = gql`
   query ($liquidacionId: ID!) { data: liquidacionItems(liquidacionId: $liquidacionId) { ${ITEM_FIELDS} } }
 `;
 export const liquidacionesPageQuery = gql`
-  query ($page: Int, $size: Int, $funcionarioId: ID, $periodo: String, $estado: LiquidacionSueldoEstado) {
-    data: liquidacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, periodo: $periodo, estado: $estado) {
+  query ($page: Int, $size: Int, $funcionarioId: ID, $funcionarioNombre: String, $periodo: String, $estado: LiquidacionSueldoEstado) {
+    data: liquidacionesPage(page: $page, size: $size, funcionarioId: $funcionarioId, funcionarioNombre: $funcionarioNombre, periodo: $periodo, estado: $estado) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -42,8 +42,15 @@ export const generarMesMutation = gql`
   mutation generarLiquidacionesMes($periodo: String!, $monedaId: ID) { data: generarLiquidacionesMes(periodo: $periodo, monedaId: $monedaId) }
 `;
 export const agregarItemMutation = gql`
-  mutation agregarItemLiquidacion($liquidacionId: ID!, $descripcion: String, $monto: Float, $tipo: LiquidacionItemTipo) {
-    data: agregarItemLiquidacion(liquidacionId: $liquidacionId, descripcion: $descripcion, monto: $monto, tipo: $tipo) { ${ITEM_FIELDS} }
+  mutation agregarItemLiquidacion($liquidacionId: ID!, $descripcion: String, $monto: Float, $tipo: LiquidacionItemTipo, $liquidacionConceptoId: ID) {
+    data: agregarItemLiquidacion(liquidacionId: $liquidacionId, descripcion: $descripcion, monto: $monto, tipo: $tipo, liquidacionConceptoId: $liquidacionConceptoId) { ${ITEM_FIELDS} }
+  }
+`;
+// Operaciones elegibles al cargar un item a mano. El backend deriva el signo de esHaber,
+// asi que la UI no pide tipo por separado.
+export const conceptosParaItemManualQuery = gql`
+  query liquidacionConceptosParaItemManual {
+    data: liquidacionConceptosParaItemManual { id codigo descripcion esHaber }
   }
 `;
 export const editarItemMutation = gql`

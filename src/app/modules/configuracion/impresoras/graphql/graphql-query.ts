@@ -15,6 +15,10 @@ const CAMPOS = `
   colaCups
   ip
   puerto
+  smbHost
+  smbRecurso
+  smbUsuario
+  smbDominio
   perfilPapel
   columnas
   anchoMm
@@ -95,5 +99,55 @@ export const instalarImpresoraCupsMutation = gql`
 export const imprimirPruebaEnImpresoraMutation = gql`
   mutation ($impresoraId: ID!) {
     data: imprimirPruebaEnImpresora(impresoraId: $impresoraId)
+  }
+`;
+
+export const recursosSmbQuery = gql`
+  query ($host: String!, $usuario: String, $dominio: String, $password: String) {
+    data: recursosSmb(host: $host, usuario: $usuario, dominio: $dominio, password: $password) {
+      clase
+      uri
+      nombre
+      descripcion
+    }
+  }
+`;
+
+export const estadoColasQuery = gql`
+  query {
+    data: estadoColas {
+      nombre
+      estado
+      razon
+      habilitada
+    }
+  }
+`;
+
+export const instalarImpresoraSmbMutation = gql`
+  mutation (
+    $nombreCola: String!
+    $host: String!
+    $recurso: String!
+    $usuario: String
+    $dominio: String
+    $password: String
+    $raw: Boolean
+  ) {
+    data: instalarImpresoraSmb(
+      nombreCola: $nombreCola
+      host: $host
+      recurso: $recurso
+      usuario: $usuario
+      dominio: $dominio
+      password: $password
+      raw: $raw
+    )
+  }
+`;
+
+export const reactivarColaMutation = gql`
+  mutation ($nombreCola: String!) {
+    data: reactivarCola(nombreCola: $nombreCola)
   }
 `;

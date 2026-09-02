@@ -171,6 +171,12 @@
   color: #bdbdbd;
 }
 
+// CUPS freno la cola tras un fallo del backend: los trabajos quedan encolados sin salir.
+.chip-detenida {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef9a9a;
+}
+
 .card-acciones {
   margin-top: 8px;
 }

@@ -1,0 +1,200 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.casos-container {
+  /* Menos aire arriba que a los costados: el título arranca cerca de la pestaña y el alto
+     que se gana va a la tabla, que es lo que se mira. */
+  padding: 10px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+
+  /* Apilados: el título manda y el subtítulo lo explica debajo. En línea, el h1 se
+     comprimía y se partía en dos renglones. */
+  .titulos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  h1 {
+    font-weight: 300;
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .subtitulo {
+    font-size: 13px;
+    opacity: 0.55;
+  }
+
+  .spacer { flex: 1; }
+}
+
+/* Tabs por estado, mismo criterio que la lista de pre-gastos. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+
+  button {
+    opacity: 0.6;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+  }
+
+  button.activo {
+    opacity: 1;
+    border-bottom-color: #26a69a;
+    font-weight: 500;
+  }
+}
+
+.tabla-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+::ng-deep .tabla-card .mat-mdc-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 0;
+}
+
+.tabla-scroll {
+  flex: 1;
+  overflow: auto;
+
+  th.mat-mdc-header-cell {
+    position: sticky;
+    top: 0;
+    background: #424242;
+    z-index: 2;
+  }
+}
+
+/* Mismo chip que el diálogo de ingreso: fondo tenue, borde y texto del color, punto de
+   acento. Que las dos pantallas del circuito se vean iguales no es cosmético — es lo que
+   hace que el operador reconozca el estado sin leer. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  .punto {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: 0 0 6px;
+  }
+}
+
+/* La diferencia es el dato por el que existe el caso: se lee sin esfuerzo. */
+.diferencias {
+  font-variant-numeric: tabular-nums;
+  color: #ff8a80;
+}
+
+.icono-rapida {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
+  color: #ffa726;
+}
+
+.resuelto-por {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.vacio {
+  padding: 32px;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .f-suc { width: 200px; }
+  .f-retiro { width: 130px; }
+  .f-fecha { width: 150px; }
+
+  .spacer { flex: 1; }
+
+  .hint {
+    font-size: 13px;
+    opacity: 0.6;
+  }
+}
+
+/* Resaltado momentaneo tras tomar un caso: al cambiar de tab, ubica la fila sin que haya
+   que filtrar la lista ni buscarla a ojo. */
+tr.resaltada td {
+  background: rgba(38, 166, 154, 0.16);
+  box-shadow: inset 3px 0 0 #26a69a;
+  transition: background 0.4s ease;
+}
+
+/* El veredicto es lo que se puede contar despues; en la lista va como chip para que se lea
+   sin entrar al caso. Sin veredicto = cerrado por anulacion, en gris para no confundirlo. */
+.chip-veredicto {
+  display: inline-block;
+  padding: 2px 9px;
+  margin-right: 6px;
+  border-radius: 11px;
+  border: 1px solid rgba(38, 166, 154, 0.5);
+  background: rgba(38, 166, 154, 0.14);
+  color: #4db6ac;
+  font-size: 11px;
+
+  &.sin {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Los mat-icon-button son mas altos que los stroked y con text-align se apoyan en la linea
+   base: el ojo quedaba unos pixeles arriba del resto. Con flex todos comparten eje. */
+.acciones {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+
+  .resuelto-por { display: inline-flex; align-items: center; }
+}

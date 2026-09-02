@@ -284,6 +284,8 @@ export class GestionComprasComponent
   // Último texto de búsqueda en el diálogo Añadir Item (persiste dentro de la misma sesión de gestión)
   private lastItemSearchText = '';
   codigoControl = new FormControl<string | null>(null, Validators.required);
+  /** true solo si el keydown de Enter/Tab se produjo sobre el buscador por código. */
+  private codigoKeydownPropio = false;
 
   // Pedido resumen from backend (for edit mode)
   pedidoResumen: PedidoResumen | null = null;
@@ -2342,9 +2344,35 @@ export class GestionComprasComponent
   }
 
   private focusAddItemInput(): void {
+    // Si hay un diálogo abierto encima, el foco le pertenece a él.
+    if (this.hayDialogoAbierto()) {
+      return;
+    }
     if (this.addItemInput?.nativeElement) {
       this.addItemInput.nativeElement.focus();
     }
+  }
+
+  /**
+   * Indica si hay algún diálogo modal abierto por encima de este componente.
+   * Mientras lo haya, el componente de fondo no debe robar el foco ni procesar
+   * atajos globales de teclado: el Enter pertenece al diálogo activo.
+   */
+  private hayDialogoAbierto(): boolean {
+    return this.dialog.openDialogs.length > 0;
+  }
+
+  /**
+   * Devuelve el foco al buscador por código, salvo que para cuando venza el
+   * timer ya se haya abierto un diálogo (p. ej. el de añadir ítem).
+   */
+  private seleccionarCodigoInputDiferido(): void {
+    setTimeout(() => {
+      if (this.hayDialogoAbierto()) {
+        return;
+      }
+      this.addItemInput?.nativeElement?.select();
+    }, 100);
   }
 
   /**
@@ -2424,7 +2452,32 @@ export class GestionComprasComponent
     this.tabService.addTab(new Tab(ProductoComponent, "Nuevo Producto", null, null));
   }
 
+  /**
+   * Registra que el Enter/Tab empezó en este input. El keyup que dispara la
+   * búsqueda solo es válido si su keydown ocurrió aquí.
+   */
+  onCodigoKeydown(event: KeyboardEvent): void {
+    if (event.key === "Enter" || event.key === "Tab") {
+      this.codigoKeydownPropio = true;
+    }
+  }
+
   onSearchPorCodigo(): void {
+    // Keyup huérfano: el keydown ocurrió en otro lado, típicamente el Enter que
+    // seleccionó un producto dentro del diálogo de búsqueda. Al cerrarse el
+    // diálogo MatDialog devuelve el foco a este input y el keyup cae acá,
+    // reabriendo el buscador. Ese Enter no es nuestro.
+    const keydownPropio = this.codigoKeydownPropio;
+    this.codigoKeydownPropio = false;
+    if (!keydownPropio) {
+      return;
+    }
+
+    // Con un diálogo abierto encima, este buscador tampoco debe actuar.
+    if (this.hayDialogoAbierto()) {
+      return;
+    }
+
     if (this.itemsTabState !== "editable") {
       return;
     }
@@ -2458,7 +2511,7 @@ export class GestionComprasComponent
       this.lastItemSearchText = "";
       this.openAddEditItemDialog(producto, undefined, undefined, true);
       this.codigoControl.setValue(null);
-      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+      this.seleccionarCodigoInputDiferido();
     };
 
     const procesarResultados = (productos: Producto[]) => {
@@ -2522,7 +2575,7 @@ export class GestionComprasComponent
       }
 
       this.codigoControl.setValue(null);
-      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+      this.seleccionarCodigoInputDiferido();
     });
   }
 
@@ -2673,7 +2726,7 @@ export class GestionComprasComponent
         }
       }
 
-      setTimeout(() => this.addItemInput?.nativeElement?.select(), 100);
+      this.seleccionarCodigoInputDiferido();
     });
   }
 
@@ -4722,6 +4775,13 @@ export class GestionComprasComponent
       return;
     }
 
+    // Con un diálogo modal abierto, las teclas son del diálogo, no de esta lista.
+    // No alcanza con mirar el target: el foco puede haber quedado en una fila de
+    // fondo (focusProductoProveedorRow) mientras el diálogo sigue visible.
+    if (this.hayDialogoAbierto()) {
+      return;
+    }
+
     // Solo procesar Arrow Up/Down/Enter si no estamos en un input o textarea
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
@@ -4883,6 +4943,12 @@ export class GestionComprasComponent
    * no retenga el foco y el Enter abra directamente el siguiente producto.
    */
   private focusProductoProveedorRow(index: number): void {
+    // Con un diálogo abierto el foco debe quedarse dentro de él; si lo traemos
+    // a la fila de fondo, el Enter del usuario termina abriendo ese producto.
+    if (this.hayDialogoAbierto()) {
+      return;
+    }
+
     const tableContainer = document.querySelector('.productos-proveedor-section .table-content-wrapper');
 
     if (!tableContainer) {

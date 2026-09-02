@@ -16,6 +16,11 @@
       <button mat-raised-button color="warn" (click)="onEgreso()">
         <mat-icon>remove_circle</mat-icon> Egreso
       </button>
+      <!-- Acción ocasional: va como icon-button para no competir con Ingreso/Egreso, que son
+           de uso diario. -->
+      <button mat-icon-button (click)="onEscanear()" matTooltip="Escanear documentos">
+        <mat-icon>qr_code_scanner</mat-icon>
+      </button>
       <button mat-stroked-button (click)="onOperacionFinanciera()">
         <mat-icon>account_balance</mat-icon> Operaciones Financieras
       </button>
@@ -30,36 +35,27 @@
 
     <!-- Sidebar de saldos -->
     <aside class="saldos-sidebar">
-      <!-- Saldo en caja -->
-      <div class="sidebar-title">Saldo en Caja</div>
-      <div class="mini-card">
-        <div class="mini-card-header"><mat-icon>account_balance_wallet</mat-icon> Efectivo</div>
-        <div class="mini-row" *ngFor="let s of saldos">
-          <span>{{ s.moneda?.simbolo }} {{ s.moneda?.denominacion }}</span>
-          <strong [style.color]="s.saldo < 0 ? '#f44336' : null">{{ s.saldo | number:'1.0-2' }}</strong>
-        </div>
-        <div class="mini-row" *ngIf="saldos.length === 0"><span style="opacity: 0.6;">Sin saldos</span></div>
-      </div>
-
+      <!-- El saldo de efectivo por moneda vive arriba de la tabla, en cards clickeables. -->
       <!-- Cuentas bancarias -->
-      <ng-container *ngIf="resumenBancario.length > 0">
+      <ng-container *ngIf="bancoCards.length > 0">
         <div class="sidebar-title">Cuentas bancarias</div>
-        <div class="mini-card" *ngFor="let cb of resumenBancario">
+        <div class="mini-card banco-card" *ngFor="let b of bancoCards">
           <div class="mini-card-header">
             <mat-icon>account_balance</mat-icon>
-            {{ cb.cuentaBancaria?.banco?.nombre }} · {{ cb.cuentaBancaria?.numero }}
+            {{ b.resumen.cuentaBancaria?.banco?.nombre }} · {{ b.resumen.cuentaBancaria?.numero }}
           </div>
-          <div class="mini-row">
-            <span>Actual</span>
-            <strong [style.color]="cb.saldo < 0 ? '#f44336' : null">{{ cb.saldo | number:'1.0-2' }}</strong>
+          <!-- Saldo actual en grande: el sidebar quedó libre al mover los saldos de caja a cards. -->
+          <div class="banco-saldo" [style.color]="b.resumen.saldo < 0 ? '#ff8a80' : null">
+            {{ b.resumen.saldo | number:b.formato }}
+            <span class="banco-simbolo">{{ b.resumen.cuentaBancaria?.moneda?.simbolo }}</span>
           </div>
-          <div class="mini-row" *ngIf="cb.saldoReservado">
+          <div class="mini-row" *ngIf="b.resumen.saldoReservado">
             <span matTooltip="Cheques diferidos emitidos pendientes de cobro">Reservado</span>
-            <strong style="color: #ff9800;">{{ cb.saldoReservado | number:'1.0-2' }}</strong>
+            <strong style="color: #ff9800;">{{ b.resumen.saldoReservado | number:b.formato }}</strong>
           </div>
-          <div class="mini-row" *ngIf="cb.saldoFuturo">
+          <div class="mini-row" *ngIf="b.resumen.saldoFuturo">
             <span matTooltip="Acreditaciones POS pendientes">Futuro</span>
-            <strong style="color: #2196f3;">{{ cb.saldoFuturo | number:'1.0-2' }}</strong>
+            <strong style="color: #2196f3;">{{ b.resumen.saldoFuturo | number:b.formato }}</strong>
           </div>
         </div>
       </ng-container>
@@ -75,7 +71,32 @@
       </ng-container>
     </aside>
 
-    <!-- Panel principal: movimientos -->
+    <!-- Panel principal: cards de saldo + movimientos -->
+    <div class="main-panel">
+
+      <!-- Saldos por moneda. Click = filtra la tabla por esa moneda; el boton de conteo abre el arqueo. -->
+      <div class="saldo-cards" *ngIf="!fuenteEsBanco && saldoCards.length > 0">
+        <div class="saldo-card" *ngFor="let c of saldoCards"
+             [class.seleccionada]="c.seleccionada"
+             [style.border-color]="c.seleccionada ? c.color : null"
+             [style.box-shadow]="c.seleccionada ? ('inset 0 0 0 1px ' + c.color) : null"
+             (click)="onCardClick(c)"
+             [matTooltip]="c.seleccionada ? 'Quitar filtro de moneda' : 'Ver solo movimientos de esta moneda'">
+          <div class="saldo-card-top" [style.background-color]="c.color"></div>
+          <div class="saldo-card-label">{{ c.saldo.moneda?.denominacion }}</div>
+          <div class="saldo-card-valor" [style.color]="c.saldo.saldo < 0 ? '#ff8a80' : c.color">
+            {{ c.saldo.saldo | number:c.formato }}
+            <span class="saldo-card-simbolo">{{ c.saldo.moneda?.simbolo }}</span>
+          </div>
+          <button mat-icon-button class="saldo-card-conteo" (click)="onConteo(c, $event)"
+                  matTooltip="Conteo de efectivo">
+            <mat-icon>calculate</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="sin-saldos" *ngIf="!fuenteEsBanco && saldoCards.length === 0">Sin saldos en caja</div>
+
     <mat-card class="section-card">
       <mat-card-header class="movimientos-header">
         <mat-card-title>Movimientos</mat-card-title>
@@ -259,5 +280,6 @@
         </mat-paginator>
       </mat-card-content>
     </mat-card>
+    </div>
   </div>
 </div>

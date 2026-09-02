@@ -54,6 +54,13 @@ interface DispositivoVista {
   puerto: number;
 }
 
+/** Share de impresora publicado por una PC Windows. */
+interface RecursoSmbVista {
+  ref: DispositivoDetectado;
+  nombre: string;
+  detalle: string;
+}
+
 interface RedVista {
   ref: NetworkPrinter;
   nombre: string;
@@ -98,6 +105,15 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   colaCupsControl = new FormControl(null);
   ipControl = new FormControl(null);
   puertoControl = new FormControl(9100);
+  smbHostControl = new FormControl(null);
+  smbRecursoControl = new FormControl(null);
+  smbUsuarioControl = new FormControl(null);
+  smbDominioControl = new FormControl(null);
+  /**
+   * Fuera del formGroup a proposito: la contrasena del share se manda solo en
+   * instalarImpresoraSmb y nunca se persiste (impresora se replica a todas las filiales).
+   */
+  smbPasswordControl = new FormControl(null);
   perfilPapelControl = new FormControl('MM_58');
   columnasControl = new FormControl(32);
   anchoMmControl = new FormControl(null);
@@ -122,6 +138,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     { value: 'CUPS', label: 'CUPS / cola del sistema' },
     { value: 'USB', label: 'USB (cola CUPS)' },
     { value: 'RED', label: 'Red / inalámbrica (IP)' },
+    { value: 'SMB', label: 'Windows compartida (Samba)' },
     { value: 'BLUETOOTH', label: 'Bluetooth (cola CUPS)' },
   ];
   perfiles: Opcion[] = [
@@ -151,6 +168,11 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   buscandoRed = false;
   instalando = false;
   esConexionRed = false;
+  esConexionSmb = false;
+  recursosSmb: RecursoSmbVista[] = [];
+  buscandoSmb = false;
+  instalandoSmb = false;
+  mensajeSmb: string = null;
   esPapelHoja = false;
   esWindows = false;
   etiquetaCola = 'Cola CUPS';
@@ -172,6 +194,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       colaCups: this.colaCupsControl,
       ip: this.ipControl,
       puerto: this.puertoControl,
+      smbHost: this.smbHostControl,
+      smbRecurso: this.smbRecursoControl,
+      smbUsuario: this.smbUsuarioControl,
+      smbDominio: this.smbDominioControl,
       perfilPapel: this.perfilPapelControl,
       columnas: this.columnasControl,
       anchoMm: this.anchoMmControl,
@@ -783,6 +809,88 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       });
   }
 
+  /**
+   * Lista los shares de impresora que publica una PC Windows. Lo hace el backend del host
+   * elegido en "Buscar en" (es el que despues va a hablar CIFS con Windows, no esta PC).
+   * Sin usuario/contrasena intenta login anonimo, que Windows suele rechazar.
+   */
+  buscarRecursosSmb(): void {
+    const host = (this.smbHostControl.value || '').trim();
+    if (!host) {
+      this.mensajeSmb = 'Cargá primero la IP o el nombre de la PC Windows.';
+      this.cdr.markForCheck();
+      return;
+    }
+    const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
+    this.buscandoSmb = true;
+    this.mensajeSmb = null;
+    this.cdr.markForCheck();
+    this.impresoraService
+      .recursosSmb(host, this.smbUsuarioControl.value, this.smbDominioControl.value,
+        this.smbPasswordControl.value, enCentral)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          this.recursosSmb = (res ?? []).map((d) => ({
+            ref: d,
+            nombre: d.nombre,
+            detalle: d.descripcion ? d.descripcion : d.uri,
+          }));
+          this.buscandoSmb = false;
+          this.mensajeSmb = this.recursosSmb.length === 0
+            ? 'No se encontraron impresoras compartidas. Revisá el usuario y la contraseña de Windows.'
+            : null;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.recursosSmb = [];
+          this.buscandoSmb = false;
+          this.mensajeSmb = 'No se pudo consultar la PC Windows (¿alcanzable? ¿smbclient instalado?).';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /**
+   * Instala en el host elegido una cola CUPS que entrega a este share via smbspool, y deja el
+   * formulario apuntando a esa cola. La contrasena solo viaja en esta mutation.
+   */
+  instalarRecursoSmb(v: RecursoSmbVista): void {
+    if (!this.exigirNombreParaInstalar()) { return; }
+    const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
+    const cola = this.sanearCola(this.nombreControl.value);
+    const esTermica = REGEX_TERMICA.test(`${v.nombre || ''} ${v.detalle || ''}`)
+      || this.tipoControl.value === 'TERMICA';
+    this.instalandoSmb = true;
+    this.mensajeSmb = null;
+    this.cdr.markForCheck();
+    this.impresoraService
+      .instalarSmb(cola, (this.smbHostControl.value || '').trim(), v.nombre,
+        this.smbUsuarioControl.value, this.smbDominioControl.value,
+        this.smbPasswordControl.value, esTermica, enCentral)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          this.instalandoSmb = false;
+          if (ok) {
+            this.conexionControl.setValue('SMB');
+            this.colaCupsControl.setValue(cola);
+            this.smbRecursoControl.setValue(v.nombre);
+            this.smbPasswordControl.setValue(null);
+            this.mensajeSmb = 'Cola instalada: ' + cola;
+          } else {
+            this.mensajeSmb = 'No se pudo instalar la cola (verificá permisos de CUPS del backend).';
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.instalandoSmb = false;
+          this.mensajeSmb = 'No se pudo instalar la cola.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
   private cargarDatos(i: Impresora): void {
     this.impresoraId = i.id;
     this.nombreControl.setValue(i.nombre);
@@ -795,6 +903,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     this.colaCupsControl.setValue(i.colaCups);
     this.ipControl.setValue(i.ip);
     this.puertoControl.setValue(i.puerto ?? 9100);
+    this.smbHostControl.setValue(i.smbHost);
+    this.smbRecursoControl.setValue(i.smbRecurso);
+    this.smbUsuarioControl.setValue(i.smbUsuario);
+    this.smbDominioControl.setValue(i.smbDominio);
     this.perfilPapelControl.setValue(i.perfilPapel ?? 'MM_58');
     this.columnasControl.setValue(i.columnas);
     this.anchoMmControl.setValue(i.anchoMm);
@@ -806,6 +918,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
 
   private actualizarVisibilidadConexion(conexion: string): void {
     this.esConexionRed = conexion === 'RED';
+    this.esConexionSmb = conexion === 'SMB';
     this.cdr.markForCheck();
   }
 
@@ -844,6 +957,10 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     modelo.colaCups = this.colaCupsControl.value;
     modelo.ip = this.ipControl.value;
     modelo.puerto = this.puertoControl.value;
+    modelo.smbHost = this.smbHostControl.value;
+    modelo.smbRecurso = this.smbRecursoControl.value;
+    modelo.smbUsuario = this.smbUsuarioControl.value;
+    modelo.smbDominio = this.smbDominioControl.value;
     modelo.perfilPapel = this.perfilPapelControl.value as PerfilPapel;
     modelo.columnas = this.columnasControl.value;
     modelo.anchoMm = this.anchoMmControl.value;

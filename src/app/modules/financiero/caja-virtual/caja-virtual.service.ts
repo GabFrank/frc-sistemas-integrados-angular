@@ -141,13 +141,14 @@ export class CajaVirtualService {
   }
 
   onGetMovimientosFilter(cajaVirtualId: number,
-                         filtros: { desde?: string; fin?: string; tipo?: CajaVirtualTipoMovimiento; soloActivos?: boolean },
+                         filtros: { desde?: string; fin?: string; tipo?: CajaVirtualTipoMovimiento; monedaId?: number; soloActivos?: boolean },
                          page = 0, size = 15): Observable<PageInfo<MovimientoCajaVirtual>> {
     return this.genericService.onCustomQuery(this.movimientosFilterGQL, {
       cajaVirtualId,
       desde: filtros.desde ?? null,
       fin: filtros.fin ?? null,
       tipo: filtros.tipo ?? null,
+      monedaId: filtros.monedaId ?? null,
       soloActivos: filtros.soloActivos ?? false,
       page, size
     });

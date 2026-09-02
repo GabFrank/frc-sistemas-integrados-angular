@@ -104,13 +104,19 @@ export class GenerarLiquidacionDialogComponent implements OnInit {
     this.generando = true;
     this.liquidacionService.onGenerarLote(ids, this.periodoControl.value, this.monedaControl.value)
       .pipe(untilDestroyed(this))
-      .subscribe((cant: number) => {
-        this.generando = false;
-        this.notificacion.notification$.next({
-          texto: 'Borradores generados: ' + (cant ?? 0),
-          color: NotificacionColor.success, duracion: 4
-        });
-        this.dialogRef.close(cant ?? 0);
+      .subscribe({
+        next: (cant: number) => {
+          this.generando = false;
+          this.notificacion.notification$.next({
+            texto: 'Borradores generados: ' + (cant ?? 0),
+            color: NotificacionColor.success, duracion: 4
+          });
+          this.dialogRef.close(cant ?? 0);
+        },
+        // Sin esto el diálogo queda sin salida: `generando` deshabilita Generar Y Cancelar,
+        // así que un rechazo del backend (un período ya liquidado, por ejemplo) dejaba al
+        // usuario encerrado. El mensaje lo muestra GenericCrudService.
+        error: () => { this.generando = false; },
       });
   }
 
