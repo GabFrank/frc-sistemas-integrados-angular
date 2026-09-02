@@ -160,7 +160,7 @@
                         <mat-icon>more_vert</mat-icon>
                     </button>
                     <mat-menu #menu="matMenu">
-                        <button mat-menu-item (click)="onAjustar8Horas(marcacion)" [disabled]="marcacion.estado !== estadoJornada.INCOMPLETO">
+                        <button mat-menu-item (click)="onAjustar8Horas(marcacion)" [disabled]="!puedeAjustarA8Horas(marcacion)">
                             <mat-icon>timer</mat-icon>
                             <span>Ajustar 8 Horas</span>
                         </button>
