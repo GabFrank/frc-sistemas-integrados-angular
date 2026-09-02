@@ -425,6 +425,18 @@ export class ListMarcacionComponent implements OnInit {
     this.marcacionService.onImprimirReporteMarcaciones(usuarioId, fechaInicio, fechaFin);
   }
 
+  /**
+   * Se puede ajustar a 8 horas una jornada que quedó incompleta, y también una que cerró
+   * mal: cuando alguien olvida marcar la salida, la entrada del día siguiente le cierra la
+   * jornada y le deja horas extras que no hizo. Esa queda en NORMAL, así que antes el ajuste
+   * aparecía deshabilitado justo en el caso donde hace falta.
+   */
+  puedeAjustarA8Horas(jornada: any): boolean {
+    if (!jornada) return false;
+    if (jornada.estado === this.estadoJornada.INCOMPLETO) return true;
+    return (jornada.minutosExtras || 0) > 0;
+  }
+
   onAjustar8Horas(marcacion: any): void {
     this.matDialog.open(ObservacionJornadaDialogComponent, {
       data: {
