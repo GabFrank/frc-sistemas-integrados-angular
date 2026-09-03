@@ -238,6 +238,53 @@ export class ImpresoraService {
   }
 
   /**
+   * Instala en un servidor apuntado por IP una cola CUPS que entrega a un share SMB de Windows
+   * (backend smbspool de CUPS). Es el equivalente de {@link instalarEnServidorPorIp} para cuando
+   * la PC que comparte la impresora es Windows: ahi no hay CUPS que compartir por IPP, el spooler
+   * publica la cola por SMB y el servidor la alcanza como `smb://<ip-de-la-pc>/<share>`.
+   *
+   * La contraseña viaja sólo en esta mutation (el backend la usa para el device-uri y no la
+   * persiste); si el share es accesible por la cuenta Invitado puede ir vacía.
+   */
+  instalarSmbEnServidorPorIp(
+    nombreCola: string,
+    host: string,
+    recurso: string,
+    usuario: string,
+    dominio: string,
+    password: string,
+    raw: boolean,
+    servidorIp: string,
+    servidorPort: string | number,
+    esCentral: boolean,
+  ): Observable<boolean> {
+    const url = `http://${servidorIp}:${servidorPort}/graphql`;
+    const token = (esCentral
+      ? localStorage.getItem('token_central') || localStorage.getItem('token')
+      : localStorage.getItem('token')) || '';
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: `Token ${token}`,
+    });
+    const body = {
+      query:
+        'mutation($nombreCola: String!, $host: String!, $recurso: String!, $usuario: String, '
+        + '$dominio: String, $password: String, $raw: Boolean) { '
+        + 'instalarImpresoraSmb(nombreCola: $nombreCola, host: $host, recurso: $recurso, '
+        + 'usuario: $usuario, dominio: $dominio, password: $password, raw: $raw) }',
+      variables: { nombreCola, host, recurso, usuario, dominio, password, raw },
+    };
+    return this.http.post<any>(url, body, { headers }).pipe(
+      map((res) => {
+        if (res?.errors?.length) {
+          throw new Error(res.errors[0]?.message || 'Error GraphQL en el servidor');
+        }
+        return res?.data?.instalarImpresoraSmb === true;
+      }),
+    );
+  }
+
+  /**
    * Lista las colas CUPS ya instaladas en una SUCURSAL elegida, consultando directo por IP (no los
    * dos Apollo clients fijos de central/local). Se usa para "Agregar desde sucursal": el backend
    * filial de esa sucursal ya expone `impresorasDelSistema` con el mismo login del usuario (sin
