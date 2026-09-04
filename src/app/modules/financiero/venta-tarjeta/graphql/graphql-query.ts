@@ -38,9 +38,11 @@ export const filtrarVentasTarjetaQuery = gql`
       getContent {
         id
         sucursalId
+        caja { id }
         sucursal { id nombre }
         venta { id totalGs }
-        terminalPos { id codigo descripcion moneda { id simbolo } }
+        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } }
+        moneda { id simbolo decimales }
         monto
         montoEscaneado
         estado
@@ -108,5 +110,47 @@ export const ventaTarjetaPorIdQuery = gql`
 export const marcarVentasTarjetaNoCompletadasMutation = gql`
   mutation marcarVentasTarjetaNoCompletadas($cajaId: ID!, $sucId: ID!) {
     data: marcarVentasTarjetaNoCompletadas(cajaId: $cajaId, sucId: $sucId)
+  }
+`;
+
+export const completarVentaTarjetaMutation = gql`
+  mutation completarVentaTarjeta($input: CompletarVentaTarjetaInput!) {
+    data: completarVentaTarjeta(input: $input) {
+      id
+      sucursalId
+      estado
+      codigoAutorizacion
+      numeroBoleta
+      montoEscaneado
+      qrCrudo
+    }
+  }
+`;
+
+/**
+ * Cobros con tarjeta de una venta ya cerrada, para poder vincular el cupón a la línea correcta.
+ *
+ * Va contra el FILIAL (servidor=false), que es donde vive la venta y donde corre la mutation de
+ * completar. Se pide `identificadorTransaccion` porque una línea ya vinculada no puede volver a
+ * ofrecerse: dos cupones sobre el mismo cobro es exactamente lo que hay que impedir.
+ */
+export const cobrosTarjetaDeVentaQuery = gql`
+  query venta($id: ID!, $sucId: ID) {
+    data: venta(id: $id, sucId: $sucId) {
+      id
+      cobro {
+        id
+        cobroDetalleList {
+          id
+          valor
+          pago
+          vuelto
+          descuento
+          identificadorTransaccion
+          formaPago { id descripcion }
+          moneda { id simbolo }
+        }
+      }
+    }
   }
 `;

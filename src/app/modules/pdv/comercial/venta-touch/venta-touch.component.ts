@@ -119,9 +119,9 @@ import {
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
-import { QrCodeComponent, QrData } from "../../../../shared/qr-code/qr-code.component";
-import { TipoEntidad } from "../../../../generics/tipo-entidad.enum";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
+import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
+import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -170,6 +170,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   modoConsulta = false;
   isDialogOpen = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
+  /**
+   * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
+   * vale depende de la moneda (9455 son 94,55 reales o 9.455 guaraníes), así que el parser
+   * necesita este mapa para escalarlo bien.
+   */
+  decimalesPorMoneda: DecimalesPorMoneda = {};
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
@@ -204,8 +210,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
-    this.filteredPrecios = this.configService.getConfig().precios.split(',');
-    this.modoPrecio = this.configService.getConfig().modo;
+    // Sin el `?.` una configuración incompleta (por ejemplo, una que sólo trae los campos de
+    // servidor) revienta el constructor y la pestaña del PDV queda en blanco. Antes eso no dejaba
+    // ni un log; ahora TabContentComponent avisa, pero el PDV igual tiene que abrir: se cae a los
+    // precios por defecto en vez de no abrir.
+    const config = this.configService.getConfig();
+    this.filteredPrecios = (config?.precios || 'EXPO, EXPO-DEPOSITO').split(',');
+    this.modoPrecio = config?.modo;
   }
 
   ngOnInit(): void {
@@ -498,6 +509,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((res) => {
         if (res != null) {
           this.monedas = res;
+          this.decimalesPorMoneda = (res || []).reduce((acc, m) => {
+            if (m?.id != null) acc[m.id] = m.decimales ?? 0;
+            return acc;
+          }, {} as DecimalesPorMoneda);
           this.cambioRs = this.monedas.find(
             (m) => m.denominacion == "REAL"
           )?.cambio;
@@ -1056,7 +1071,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                   ventaCredito != null ? ventaCreditoCuotaInputList : null,
                   false
                 )
+                .pipe(untilDestroyed(this))
                 .subscribe((ventaDeliveryRes) => {
+                  this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
                   this.resetForm();
                   this.calcularTotales();
                   this.isDelivery = false;
@@ -1096,6 +1113,76 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.buscadorFocusSub.next();
         });
     }
+  }
+
+  /**
+   * Crea el registro PENDIENTE de cada tarjeta cobrada y, si ya había un cupón leído en
+   * pago-touch (antes de que la venta existiera), lo completa al toque con una segunda
+   * mutation — sin diálogos ni polling. Compartido entre venta normal y delivery: antes de
+   * hoy, delivery nunca invocaba este bloque (llama a onSaveVentaDelivery, un camino de
+   * guardado separado que no pasaba por acá), así que una venta delivery cobrada con tarjeta
+   * jamás generaba el registro venta_tarjeta — el pago se guardaba bien, pero el reemplazo del
+   * OCR quedaba sin efecto en silencio. Bug preexistente, no introducido por el rediseño de
+   * hoy; se corrige acá enganchando el mismo bloque desde los dos lugares.
+   */
+  private registrarPagosConTarjeta(tarjetaPagos: TarjetaPago[], ventaId: number): void {
+    if (!tarjetaPagos?.length || !ventaId) return;
+
+    const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+    const cajaIdQr = this.cajaService.selectedCaja?.id;
+    const usuarioId = this.mainService.usuarioActual?.id;
+
+    forkJoin(tarjetaPagos.map(pago =>
+      this.ventaTarjetaService.onSavePendiente({
+        sucursalId: sucursalIdQr,
+        ventaId,
+        cajaId: cajaIdQr,
+        monto: pago.monto,
+        estado: 'PENDIENTE',
+        terminalPosId: pago.terminalPosId || undefined,
+          monedaId: pago.monedaId ?? undefined,
+        usuarioId
+      })
+    )).pipe(untilDestroyed(this)).subscribe({
+      next: (resultados) => {
+        resultados.forEach((vt, index) => {
+          if (!vt?.id) return;
+          const pago = tarjetaPagos[index];
+          const datos = pago.datosCupon;
+          if (!datos) return; // pospuesto: queda PENDIENTE, el cierre de caja lo va a reclamar
+
+          this.ventaTarjetaService.onCompletar({
+            id: vt.id,
+            sucursalId: sucursalIdQr,
+            codigoAutorizacion: datos.codigoAutorizacion,
+            numeroBoleta: datos.numeroBoleta,
+            montoEscaneado: datos.monto,
+            monedaId: datos.monedaId,
+            identificadorTransaccion: datos.identificadorTransaccion,
+            qrCrudo: datos.qrCrudo,
+          }).pipe(untilDestroyed(this)).subscribe({
+            next: () => {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: `Venta con tarjeta registrada${pago.terminalDescripcion ? ' (' + pago.terminalDescripcion + ')' : ''}.`,
+                duracion: 3,
+              });
+            },
+            error: (err) => {
+              // El cupón ya se leyó bien en pago-touch; si esto falla es un problema del
+              // lado del servidor (por ejemplo, alguien más ya la completó). El registro
+              // queda PENDIENTE — no se pierde el cobro, solo el registro.
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.warn,
+                texto: `No se pudo registrar la venta con tarjeta${pago.terminalDescripcion ? ' de ' + pago.terminalDescripcion : ''}: ${mensajeDeError(err, 'error desconocido')}.`,
+                duracion: 6,
+              });
+            },
+          });
+        });
+      },
+      error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
+    });
   }
 
   resetForm() {
@@ -1312,71 +1399,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
             const tarjetaPagos = this._pendingTarjetaPagos;
             this._pendingTarjetaPagos = [];
-
-            if (tarjetaPagos.length > 0 && res.id) {
-              const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-              const cajaIdQr = this.cajaService.selectedCaja?.id;
-              const usuarioId = this.mainService.usuarioActual?.id;
-
-              forkJoin(tarjetaPagos.map(pago =>
-                this.ventaTarjetaService.onSavePendiente({
-                  sucursalId: sucursalIdQr,
-                  ventaId: res.id,
-                  cajaId: cajaIdQr,
-                  monto: pago.monto,
-                  estado: 'PENDIENTE',
-                  terminalPosId: pago.terminalPosId || undefined,
-                  usuarioId
-                })
-              )).subscribe({
-                next: (resultados) => {
-                  const mostrarQr = (index: number) => {
-                    if (index >= resultados.length) return;
-                    const vt = resultados[index];
-                    const qrPayload: QrData = {
-                      sucursalId: sucursalIdQr,
-                      tipoEntidad: TipoEntidad.VENTA_TARJETA,
-                      idOrigen: res.id,
-                      idCentral: res.id,
-                      componentToOpen: 'RegistroVentaTarjetaComponent',
-                      data: cajaIdQr + '|' + tarjetaPagos[index].monto + '|' + vt?.id,
-                      timestamp: Date.now()
-                    };
-                    const pago = tarjetaPagos[index];
-                    const montoFmt = pago.monto.toLocaleString('es-PY');
-                    const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
-                    const qrDialogRef = this.matDialog.open(QrCodeComponent, {
-                      data: {
-                        codigo: qrPayload,
-                        nombre: resultados.length > 1
-                          ? `Venta con Tarjeta (${index + 1}/${resultados.length})`
-                          : 'Venta con Tarjeta',
-                        subtitulo,
-                        segundos: 120
-                      },
-                      disableClose: false
-                    });
-                    const qrClosed$ = qrDialogRef.afterClosed();
-                    if (vt?.id) {
-                      interval(3000)
-                        .pipe(
-                          switchMap(() => this.ventaTarjetaService.onGetEstadoPorId(vt.id, sucursalIdQr)),
-                          takeUntil(qrClosed$),
-                          untilDestroyed(this)
-                        )
-                        .subscribe(estadoVt => {
-                          if (estadoVt && estadoVt.estado !== 'PENDIENTE') {
-                            qrDialogRef.close();
-                          }
-                        });
-                    }
-                    qrClosed$.subscribe(() => mostrarQr(index + 1));
-                  };
-                  mostrarQr(0);
-                },
-                error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
-              });
-            }
+            this.registrarPagosConTarjeta(tarjetaPagos, res.id);
 
             this.resetForm();
             obs.next(res);
