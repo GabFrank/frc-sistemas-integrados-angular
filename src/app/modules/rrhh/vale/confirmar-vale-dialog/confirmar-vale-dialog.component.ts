@@ -24,6 +24,9 @@ export class ConfirmarValeDialogComponent implements OnInit {
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null, [Validators.required]);
   puedeAprobar = false;
+  // Mientras la query no responde no se muestra el cartel de "no hay cajas":
+  // el select vacio inicial no significa que no existan cajas mayores activas.
+  cargandoCajas = true;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: ConfirmarValeDialogData,
@@ -41,6 +44,7 @@ export class ConfirmarValeDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res: CajaVirtual[]) => {
         this.cajas = (res || []).filter(c => c.tipo === 'CAJA_MAYOR');
+        this.cargandoCajas = false;
       });
   }
 
