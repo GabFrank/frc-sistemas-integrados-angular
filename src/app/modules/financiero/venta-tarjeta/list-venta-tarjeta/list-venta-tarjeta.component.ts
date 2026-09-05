@@ -144,7 +144,7 @@ export class ListVentaTarjetaComponent implements OnInit {
    * display revienta en dev.
    *
    * La moneda sale del REGISTRO. Se cae a la de la terminal solo para las filas anteriores a que
-   * la columna existiera (`V218.5` / `V92.5`), y a guaranies sin decimales como ultimo recurso,
+   * la columna existiera (`V219.5` / `V92.5`), y a guaranies sin decimales como ultimo recurso,
    * que es lo que esas filas venian mostrando.
    */
   private aFilaConMoneda(item: VentaTarjeta): VentaTarjeta {

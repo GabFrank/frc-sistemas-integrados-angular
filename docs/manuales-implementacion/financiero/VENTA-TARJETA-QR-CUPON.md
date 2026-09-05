@@ -64,7 +64,7 @@ llamarlo también.
   diferir: pegarle el símbolo de la terminal al monto del cobro mostraba `8.000 R$` para un cobro
   de 8.000 Gs. La moneda de la terminal se usa solo para avisar que difiere. Ver §8.1 del manual
   del central.
-- **La lista muestra la moneda del REGISTRO** (`venta_tarjeta.moneda_id`, `V218.5`/`V92.5`), no la
+- **La lista muestra la moneda del REGISTRO** (`venta_tarjeta.moneda_id`, `V219.5`/`V92.5`), no la
   de la terminal: esa última es configuración mutable y cambiarla reescribía el significado de
   todo el histórico de esa terminal. Se cae a la de la terminal solo para filas anteriores a la
   columna. Los decimales salen de `moneda.decimales` (0 en Gs., 2 en R$) y no de un `1.0-2` fijo,
@@ -79,7 +79,7 @@ llamarlo también.
 ## 4. El rol nuevo son 3 ediciones en el sidebar
 
 `VENTA_TARJETA_COMPLETAR` (enum `roles.enum.ts` ↔ fila `VENTA TARJETA COMPLETAR` de
-`personas.role`, migración `V217.5` del central). Como toda entrada de menú, son **tres** puntos en
+`personas.role`, migración `V218.5` del central). Como toda entrada de menú, son **tres** puntos en
 `side-mini-variant.component.ts` y falta uno deja el módulo inalcanzable:
 
 1. `visibilityRoles` del **grupo** "Reportes y Análisis"
