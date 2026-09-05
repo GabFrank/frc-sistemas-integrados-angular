@@ -117,13 +117,17 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   onAddUsuarioRole() {
     const openSearch = () => {
       this.onSearchRole().pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          const selectedRole: Role = res;
-          const input = new UsuarioRoleInput;
-          input.roleId = selectedRole.id;
-          input.userId = this.selectedUsuario.id;
-          this.roleService.onSaveUsuarioRole(input).pipe(untilDestroyed(this)).subscribe(saveRes => {
-            this.usuarioRoleList.data = updateDataSource(this.usuarioRoleList.data, saveRes)
+        if (res != null && res.length > 0) {
+          const inputList = res.map(role => {
+            const input = new UsuarioRoleInput;
+            input.roleId = role.id;
+            input.userId = this.selectedUsuario.id;
+            return input;
+          });
+          this.roleService.onSaveUsuarioRoleList(inputList).pipe(untilDestroyed(this)).subscribe(saveRes => {
+            if (saveRes != null) {
+              this.usuarioRoleList.data = [...saveRes, ...this.usuarioRoleList.data]
+            }
           })
         }
       })
@@ -139,9 +143,11 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     }
   }
 
-  onSearchRole(): Observable<Role> {
+  onSearchRole(): Observable<Role[]> {
     const data: SearchListtDialogData = {
-      titulo: "Seleccionar rol",
+      titulo: "Seleccionar roles",
+      multiple: true,
+      labelAceptar: "Agregar",
       query: null,
       tableData: [
         { id: "id", nombre: "Id", width: "20%" },

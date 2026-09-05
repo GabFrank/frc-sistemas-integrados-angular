@@ -8,11 +8,17 @@
 <mat-dialog-content class="dialog-content-modern">
   <div class="info-alert">
     <mat-icon class="info-icon">info</mat-icon>
-    <p class="detalle" *ngIf="!esLocal">
+    <p class="detalle" *ngIf="!esLocal && !esWindows">
       Se compartirá la impresora <strong>{{ data?.cola || 'local' }}</strong> en el CUPS local para ser instalada en el servidor destino. Requiere permisos de administrador de CUPS.
     </p>
-    <p class="detalle" *ngIf="esLocal">
+    <p class="detalle" *ngIf="!esLocal && esWindows">
+      Se compartirá la impresora <strong>{{ data?.cola || 'local' }}</strong> por Windows (Samba) para que el servidor destino le instale una cola. Requiere permisos de administrador de Windows, y la contraseña es la de la cuenta de esta PC con la que el servidor entra al recurso compartido.
+    </p>
+    <p class="detalle" *ngIf="esLocal && !esWindows">
       Se instalará la impresora <strong>{{ data?.cola || 'local' }}</strong> en esta PC (sin pasar por el servidor). Requiere permisos de administrador de CUPS.
+    </p>
+    <p class="detalle" *ngIf="esLocal && esWindows">
+      Se instalará la impresora <strong>{{ data?.cola || 'local' }}</strong> en esta PC (sin pasar por el servidor). Requiere permisos de administrador de Windows.
     </p>
   </div>
 
@@ -67,7 +73,7 @@
         <mat-label>Usuario administrador</mat-label>
         <mat-icon matPrefix>person</mat-icon>
         <input matInput [formControl]="usuarioControl" autocomplete="off" />
-        <mat-hint>Usuario (sudo) de esta PC</mat-hint>
+        <mat-hint>{{ esWindows ? 'Usuario de Windows de esta PC' : 'Usuario (sudo) de esta PC' }}</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="campo" fxFlex>
@@ -82,7 +88,9 @@
 
     <div class="hint-global">
       <mat-icon>help_outline</mat-icon>
-      <span>Dejá la contraseña vacía si tu PC no la requiere para administrar impresoras.</span>
+      <span>{{ esWindows
+        ? 'Dejá la contraseña vacía si el recurso compartido es accesible como Invitado.'
+        : 'Dejá la contraseña vacía si tu PC no la requiere para administrar impresoras.' }}</span>
     </div>
   </div>
 </mat-dialog-content>
