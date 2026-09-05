@@ -66,7 +66,6 @@ import { RecepcionMercaderiaVerificarItemDialogComponent } from './compra/gestio
 import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-rechazar-item-dialog/recepcion-mercaderia-rechazar-item-dialog.component';
 import { VerificacionRapidaSucursalesDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 import { SolicitudPagoCompraComponent } from './compra/gestion-compras/solicitud-pago-compra/solicitud-pago-compra.component';
-import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-compras/solicitud-pago-compra/create-edit-solicitud-pago-compra-dialog/create-edit-solicitud-pago-compra-dialog.component';
 import { SolicitudPagoDashboardComponent } from './solicitud-pago/solicitud-pago-dashboard/solicitud-pago-dashboard.component';
 import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
 import { CreateEditSolicitudPagoDialogComponent } from './solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
@@ -158,7 +157,6 @@ import { AcreditarRetiroDialogComponent } from './devolucion/acreditar-retiro-di
     RecepcionMercaderiaRechazarItemDialogComponent,
     VerificacionRapidaSucursalesDialogComponent,
     SolicitudPagoCompraComponent,
-    CreateEditSolicitudPagoCompraDialogComponent,
     SolicitudPagoDashboardComponent,
     ListSolicitudPagoComponent,
     CreateEditSolicitudPagoDialogComponent,
