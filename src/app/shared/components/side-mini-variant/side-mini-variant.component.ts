@@ -64,6 +64,7 @@ import { ListJustificativoComponent } from '../../../modules/rrhh/justificativo/
 import { ListTipoJustificativoComponent } from '../../../modules/rrhh/tipo-justificativo/list-tipo-justificativo/list-tipo-justificativo.component';
 import { ListMotivoValeComponent } from '../../../modules/rrhh/motivo-vale/list-motivo-vale/list-motivo-vale.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
+import { ListLiquidacionConceptoComponent } from '../../../modules/rrhh/liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { ListValeComponent } from '../../../modules/rrhh/vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prestamo/list-prestamo.component';
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
@@ -333,6 +334,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Cargos',
               icon: 'work',
               action: 'list-cargo',
+              visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
+            },
+            {
+              name: 'Conceptos de liquidación',
+              icon: 'playlist_add_check',
+              action: 'list-liquidacion-concepto',
               visibilityRoles: [ROLES.RRHH_GESTIONAR, ROLES.RRHH_CONFIG, ROLES.ADMIN]
             },
             {
@@ -1073,6 +1080,16 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-cargo":
         this.openTabIfAuthorized(ROLES.RRHH_GESTIONAR, ListCargoComponent, "Cargos");
+        break;
+      case "list-liquidacion-concepto":
+        // El backend acepta RRHH CONFIG o RRHH GESTIONAR (LiquidacionConceptoGraphQL), y
+        // openTabIfAuthorized solo compara contra un rol: si abriera solo por CONFIG, el
+        // item quedaria visible para GESTIONAR y le negaria la pantalla al abrirla.
+        if (this.hasAnyRole([ROLES.RRHH_CONFIG, ROLES.RRHH_GESTIONAR])) {
+          this.tabService.addTab(new Tab(ListLiquidacionConceptoComponent, "Conceptos de liquidación", null, null));
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "list-prestamo":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListPrestamoComponent, "Préstamos");
