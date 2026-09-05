@@ -1716,10 +1716,12 @@ export const notasDisponiblesParaPagoQuery = gql`
       fecha
       estado
       valorTotal
+      cotizacion
       moneda {
         id
         denominacion
         simbolo
+        cambio
       }
       pedido {
         id
@@ -1729,6 +1731,18 @@ export const notasDisponiblesParaPagoQuery = gql`
             nombre
           }
         }
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        plazoCredito
+        observacionFormaPago
       }
     }
   }

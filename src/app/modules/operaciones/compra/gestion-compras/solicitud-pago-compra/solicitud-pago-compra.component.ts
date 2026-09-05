@@ -7,7 +7,7 @@ import { SolicitudPagoService } from '../solicitud-pago.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { Pedido } from '../pedido.model';
-import { CreateEditSolicitudPagoCompraDialogComponent } from './create-edit-solicitud-pago-compra-dialog/create-edit-solicitud-pago-compra-dialog.component';
+import { CreateEditSolicitudPagoDialogComponent } from '../../../solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
 import { TabService } from '../../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
@@ -162,11 +162,12 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
   onCreateSolicitud(): void {
     if (!this.canCreateSolicitudComputed) return;
     
-    const dialogRef = this.dialog.open(CreateEditSolicitudPagoCompraDialogComponent, {
-      width: '800px',
+    const dialogRef = this.dialog.open(CreateEditSolicitudPagoDialogComponent, {
+      width: '80vw',
       maxHeight: '90vh',
       data: {
-        pedido: this.pedido
+        proveedor: this.pedido?.proveedor,
+        notasPrecargadas: this.notasDisponibles
       },
       disableClose: true
     });
