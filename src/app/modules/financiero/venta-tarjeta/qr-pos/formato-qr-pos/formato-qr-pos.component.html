@@ -1,0 +1,63 @@
+<div class="formato-qr-pos" fxLayout="column" fxLayoutGap="10px">
+
+  <div fxLayout="row" fxLayoutAlign="space-between center">
+    <div>
+      <h2 class="titulo">Formatos de QR de POS</h2>
+      <p class="subtitulo">
+        Cómo se lee el QR que imprime cada proveedor en el cupón. Un formato nuevo no necesita
+        actualizar el sistema: se carga acá y baja solo a todas las sucursales.
+      </p>
+    </div>
+    <button mat-raised-button class="btn-success" (click)="onNuevo()">Nuevo</button>
+  </div>
+
+  <table mat-table [dataSource]="formatos" class="tabla">
+
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>ID</th>
+      <td mat-cell *matCellDef="let f">{{ f.id }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef>Nombre</th>
+      <td mat-cell *matCellDef="let f">{{ f.nombre }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="proveedor">
+      <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+      <td mat-cell *matCellDef="let f">
+        {{ f.proveedorServicio?.persona?.nombre || 'Comodín (cualquier proveedor)' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="ejemplo">
+      <th mat-header-cell *matHeaderCellDef>Ejemplo</th>
+      <td mat-cell *matCellDef="let f" class="ejemplo">{{ f.ejemplo }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef>Activo</th>
+      <td mat-cell *matCellDef="let f">{{ f.activo ? 'Sí' : 'No' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+      <td mat-cell *matCellDef="let f">
+        <button mat-icon-button (click)="onEditar(f)" matTooltip="Editar">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button *ngIf="f.activo" (click)="onDesactivar(f)" matTooltip="Desactivar">
+          <mat-icon>block</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  <div class="vacio" *ngIf="!cargando && formatos.length === 0">
+    No hay formatos cargados. Sin al menos uno, el PDV no puede leer el QR del cupón.
+  </div>
+
+</div>

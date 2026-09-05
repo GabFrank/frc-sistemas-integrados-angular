@@ -2,8 +2,16 @@ import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { debounceTime, distinctUntilChanged, filter, map, tap } from "rxjs/operators";
 import { TerminalPos } from "../terminal-pos.model";
 import { TerminalPosService } from "../terminal-pos.service";
+
+/**
+ * Largo minimo antes de intentar la busqueda. El codigo mas corto en uso es del estilo
+ * TPOS-XXX-00; buscar con uno o dos caracteres consultaria por prefijos que matchean varias
+ * terminales (el filtro del backend usa LIKE) y podria confirmar la equivocada.
+ */
+const LARGO_MINIMO_CODIGO = 4;
 
 export class AddTerminalPosData {
   terminalPos?: TerminalPos;
@@ -44,17 +52,34 @@ export class ScanTerminalPosDialogComponent implements OnInit {
       codigo: this.codigoControl
     });
 
-    // Auto-buscar al cambiar el código (útil para lectores de código de barras)
+    // Auto-búsqueda real. Antes este subscribe SOLO limpiaba el estado pese al comentario que
+    // decía que auto-buscaba: lo único que confirmaba era el (ngSubmit) del form, o sea Enter.
+    // Como el HTML tampoco tenía botón de confirmar, un lector sin sufijo CR dejaba al cajero
+    // mirando el código en pantalla sin ninguna forma de seguir salvo cancelar. Funcionaba de
+    // casualidad, porque los lectores del PDV mandan Enter al final.
+    //
+    // El debounce evita disparar una consulta por cada carácter que escupe el lector; 350 ms es
+    // más que el tiempo entre teclas de un wedge y menos de lo que tarda una persona en notarlo.
     this.codigoControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe(() => {
-        this.selectedTerminalPos = null;
-        this.noEncontrado = false;
-      });
+      .pipe(
+        tap(() => {
+          this.selectedTerminalPos = null;
+          this.noEncontrado = false;
+        }),
+        map((valor: string) => (valor || '').trim()),
+        filter((valor: string) => valor.length >= LARGO_MINIMO_CODIGO),
+        debounceTime(350),
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
+      .subscribe(() => this.onConfirmar());
   }
 
   onConfirmar() {
     if (this.formGroup.invalid) return;
+    // La auto-busqueda y el boton (y el Enter del lector) llaman al mismo metodo: sin esta
+    // guarda, un lector que manda CR dispara dos consultas para el mismo codigo.
+    if (this.buscando) return;
 
     const codigo = this.codigoControl.value?.trim();
     this.buscando = true;

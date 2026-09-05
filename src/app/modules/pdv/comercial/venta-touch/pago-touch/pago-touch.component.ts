@@ -21,7 +21,7 @@ import { Subscription } from "rxjs";
 import { MainService } from "../../../../../main.service";
 import { MonedasGetAllGQL } from "../../../../../modules/financiero/moneda/graphql/monedasGetAll";
 import { Moneda } from "../../../../../modules/financiero/moneda/moneda.model";
-import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
+import { NotificacionColor, NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { TecladoNumericoComponent } from "../../../../../shared/components/teclado-numerico/teclado-numerico.component";
@@ -42,8 +42,17 @@ export interface PagoData {
 
 export interface TarjetaPago {
   terminalPosId: number | null;
+  /**
+   * Proveedor de la terminal escaneada. Define que formato de QR se prueba primero al leer el
+   * cupon: el cajero ya eligio la maquinita, asi que no hace falta adivinar.
+   */
+  proveedorServicioId?: number | null;
   monto: number;
+  /** Moneda del COBRO. Sin ella, el monto guardado en venta_tarjeta no tiene unidad. */
+  monedaId?: number | null;
   terminalDescripcion?: string;
+  /** Datos del cupón ya leídos (en memoria, antes de que la venta se guarde). undefined = pospuesto. */
+  datosCupon?: DatosCupon;
 }
 
 export interface PagoResponseData {
@@ -79,6 +88,10 @@ import { MonedaService } from "../../../../financiero/moneda/moneda.service";
 import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
 import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
+import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../../financiero/venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
+import { esCobroTarjetaRegistrable } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
+import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
+import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -126,6 +139,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   isCredito = false;
   finalizarConFacturaHabilitado = false;
   facturaLegalId: number;
+
+  /**
+   * Se consulta UNA vez al abrir el diálogo (contra el filial, para funcionar sin internet) y
+   * queda fijo durante todo el cobro. Si el flujo está deshabilitado, TARJETA funciona como
+   * cualquier otra forma de pago: sin escaneo de terminal ni de cupón.
+   */
+  ventaTarjetaHabilitada = false;
+  /** Decimales por moneda, para escalar el importe del cupón (viene en la menor unidad). */
+  decimalesPorMoneda: DecimalesPorMoneda = {};
 
   selectedCurrency: any;
 
@@ -196,6 +218,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       error: () => {
         this.finalizarConFacturaHabilitado = false;
       }
+    });
+    // Contra el filial (false = servidor local), para poder cobrar con tarjeta sin internet.
+    this.configuracionVentaTarjetaService.onGetConfiguracion(false).subscribe({
+      next: (config) => (this.ventaTarjetaHabilitada = config?.habilitado === true),
+      error: () => (this.ventaTarjetaHabilitada = false),
     });
     setTimeout(() => {
       this.setFocusToValorInput();
@@ -385,6 +412,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.monedas = res;
+        this.decimalesPorMoneda = (res || []).reduce((acc, m) => {
+          if (m?.id != null) acc[m.id] = m.decimales ?? 0;
+          return acc;
+        }, {} as DecimalesPorMoneda);
         this.cambioRs = this.monedas.find(
           (m) => m.denominacion == "REAL"
         )?.cambio;
@@ -562,6 +593,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         (f) => f.descripcion == "EFECTIVO"
       );
     }
+    // Si selectedItem ya trae id, esta llamada es un REPLAY de una línea ya persistida (por
+    // ejemplo, al reabrir un delivery: ngOnInit reconstruye cobroDetalleList reinvocando
+    // addCobroDetalle por cada línea que el cobro ya tenía guardada). El escaneo automático
+    // solo tiene sentido para una línea nueva que el cajero está cargando ahora — dispararlo en
+    // un replay abriría un diálogo modal por cada tarjeta ya cobrada en sesiones anteriores.
+    const esLineaNueva = selectedItem?.id == null;
     if (this.formGroup.valid && saldo != 0) {
       let item = new CobroDetalle();
       if (selectedItem != null) Object.assign(item, selectedItem);
@@ -588,14 +625,19 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         item.cobro = this.data?.delivery?.venta?.cobro;
         this.ventaService
           .onSaveCobroDetalle(item.toInput(), false)
+          .pipe(untilDestroyed(this))
           .subscribe((cbRes) => {
             if (cbRes != null) {
               item.id = cbRes.id;
+              item.requiereRegistroTarjeta = esLineaNueva;
               this.cobroDetalleList.push(item);
+              if (esLineaNueva) this.escanearSiEsTarjeta(item);
             }
           });
       } else {
+        item.requiereRegistroTarjeta = esLineaNueva;
         this.cobroDetalleList.push(item);
+        if (esLineaNueva) this.escanearSiEsTarjeta(item);
       }
     }
     this.isVuelto = false;
@@ -612,70 +654,113 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }, 100);
   }
 
+  /**
+   * El escaneo de cada tarjeta ya pasó (o se pospuso) al agregarla — ver
+   * {@link escanearSiEsTarjeta}. Acá solo se junta lo que cada línea ya tiene en memoria y se
+   * cierra: nada de diálogos ni de llamadas al backend en este punto. La venta todavía no
+   * existe, así que tampoco hay nada que podamos guardar del lado de tarjeta hasta que
+   * venta-touch confirme el saveVenta.
+   */
   onFinalizar(
     ventaCredito?: VentaCredito,
     itens?: VentaCreditoCuotaInput[],
     ticket?: boolean
   ) {
-    const tarjetaCobros = this.cobroDetalleList.filter(
-      cd => cd.formaPago?.descripcion === 'TARJETA' && cd.pago && !cd.vuelto && !cd.descuento
-    );
-
-    if (tarjetaCobros.length === 0) {
-      this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
-      return;
-    }
-
-    // Config replicada del central: se consulta al filial para funcionar sin internet
-    this.configuracionVentaTarjetaService.onGetConfiguracion(false).subscribe({
-      next: (config) => {
-        if (!config?.habilitado) {
-          // Flujo de registro de venta con tarjeta deshabilitado: el cobro con
-          // TARJETA sigue funcionando como un medio de pago normal, sin escaneo
-          // de terminal ni generación de QR.
-          this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
-          return;
-        }
-        this.iniciarEscaneoTarjetaCobros(tarjetaCobros, ventaCredito, itens, ticket);
-      },
-      error: () => {
-        // Ante un error de configuración, no bloqueamos el cobro: se comporta
-        // como si el flujo estuviera deshabilitado.
-        this.cerrarConRespuesta(ventaCredito, itens, ticket, []);
-      }
-    });
+    const tarjetaPagos: TarjetaPago[] = this.ventaTarjetaHabilitada
+      ? this.cobroDetalleList
+          // `requiereRegistroTarjeta` y no solo el predicado: al reabrir un delivery, sus líneas
+          // ya cobradas vuelven a la lista y su venta_tarjeta YA existe. Registrarlas otra vez
+          // crearía pendientes duplicados que después traban el cierre de caja.
+          .filter(cd => esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta)
+          .map(cd => ({
+            terminalPosId: cd.terminalPos?.id ?? null,
+            proveedorServicioId: cd.terminalPos?.proveedorServicio?.id ?? null,
+            monto: cd.valor,
+            monedaId: cd.moneda?.id ?? null,
+            terminalDescripcion: cd.terminalPos
+              ? [cd.terminalPos.descripcion, cd.terminalPos.codigo].filter(Boolean).join(' - ')
+              : undefined,
+            datosCupon: cd.datosCupon,
+          }))
+      : [];
+    this.cerrarConRespuesta(ventaCredito, itens, ticket, tarjetaPagos);
   }
 
-  private iniciarEscaneoTarjetaCobros(
-    tarjetaCobros: CobroDetalle[],
-    ventaCredito?: VentaCredito,
-    itens?: VentaCreditoCuotaInput[],
-    ticket?: boolean
-  ) {
-    const tarjetaPagos: TarjetaPago[] = [];
+  /**
+   * Dispara el escaneo apenas se agrega una línea TARJETA — no al finalizar. Es lo que permite
+   * mostrar el estado por línea (pendiente / registrada) en la tabla y ofrecer el ícono de QR
+   * para reabrir. Si el flujo está deshabilitado, TARJETA queda como forma de pago normal.
+   */
+  private escanearSiEsTarjeta(item: CobroDetalle): void {
+    if (!this.ventaTarjetaHabilitada) return;
+    if (!esCobroTarjetaRegistrable(item)) return;
+    this.escanearTarjeta(item);
+  }
 
-    const abrirDialogPara = (index: number) => {
-      if (index >= tarjetaCobros.length) {
-        this.cerrarConRespuesta(ventaCredito, itens, ticket, tarjetaPagos);
-        return;
-      }
-      this.matDialog.open(ScanTerminalPosDialogComponent, {
-        width: '380px',
-        disableClose: true,
-        data: {}
-      }).afterClosed().subscribe((result: ScanTerminalPosResult) => {
-        if (!result?.terminalPos) return; // cancelado — abortar todo el flujo
-        const tp = result.terminalPos;
-        tarjetaPagos.push({
-          terminalPosId: tp.id,
-          monto: tarjetaCobros[index].valor,
-          terminalDescripcion: [tp.descripcion, tp.codigo].filter(Boolean).join(' - ')
+  /**
+   * Elegir la terminal y, opcionalmente, leer el cupón — todo en memoria, sin tocar el backend.
+   * Se puede volver a llamar para la misma línea (ícono QR de la tabla) tantas veces como haga
+   * falta antes de Finalizar: siempre reemplaza lo que la línea ya tenía.
+   */
+  escanearTarjeta(item: CobroDetalle): void {
+    this.matDialog.open(ScanTerminalPosDialogComponent, {
+      width: '380px',
+      disableClose: true,
+      data: { terminalPos: item.terminalPos }
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: ScanTerminalPosResult) => {
+      if (!result?.terminalPos) return; // canceló la selección de terminal: la línea queda como estaba
+      item.terminalPos = result.terminalPos;
+
+      const data: EscanearCuponDialogData = {
+        terminalDescripcion: [result.terminalPos.descripcion, result.terminalPos.codigo].filter(Boolean).join(' - '),
+        proveedorServicioId: result.terminalPos.proveedorServicio?.id,
+        monto: item.valor,
+        // La moneda del COBRO, no la de la terminal: el monto que se muestra es el de esta línea.
+        monedaCobroId: item.moneda?.id,
+        monedaSimbolo: item.moneda?.simbolo,
+        monedaTerminalId: result.terminalPos.moneda?.id,
+        monedaTerminalSimbolo: result.terminalPos.moneda?.simbolo,
+        decimalesPorMoneda: this.decimalesPorMoneda,
+      };
+      this.matDialog.open(EscanearCuponDialogComponent, { data, disableClose: false })
+        .afterClosed()
+        .pipe(untilDestroyed(this))
+        .subscribe((datosCupon) => {
+          if (!datosCupon) {
+            // Pospuesto al reabrir: si la línea YA tenía un cupón bueno de un escaneo anterior,
+            // no se pisa. "Más tarde" significa "no tengo nada nuevo que darte ahora", no
+            // "olvidate lo que ya habías leído".
+            this.notificacionSnackbar.notification$.next({
+              color: NotificacionColor.warn,
+              texto: 'Queda pendiente de registrar. Podés volver a escanearlo desde el ícono de QR en la lista.',
+              duracion: 5,
+            });
+            return;
+          }
+          item.datosCupon = datosCupon;
+
+          // El identificador viaja en el propio CobroDetalleInput de ESTA línea (toInput() ya lo
+          // manda), así que el vínculo cobro↔cupón queda grabado con el saveVenta, exacto y sin
+          // que nadie tenga que adivinarlo después.
+          //
+          // Esto es lo que cierra el caso de dos tarjetas del MISMO monto en una venta: el
+          // backend no puede desempatarlas por monto, pero acá sabemos con certeza sobre qué
+          // línea se escaneó, porque el diálogo se abrió parado en ella.
+          item.identificadorTransaccion = datosCupon.identificadorTransaccion;
+
+          const avisos: string[] = [];
+          if (datosCupon.monto != null && datosCupon.monto !== item.valor) {
+            avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${item.valor.toLocaleString('es-PY')}`);
+          }
+          if (cuponVencido(datosCupon.fecha)) {
+            avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
+          }
+          this.notificacionSnackbar.notification$.next(avisos.length
+            ? { color: NotificacionColor.warn, texto: `Cupón leído, pero ${avisos.join(' y ')}.`, duracion: 6 }
+            : { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
+          );
         });
-        abrirDialogPara(index + 1);
-      });
-    };
-
-    abrirDialogPara(0);
+    });
   }
 
   private cerrarConRespuesta(

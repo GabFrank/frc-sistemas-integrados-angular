@@ -13,6 +13,7 @@ import { FlexLayoutModule } from "ngx-flexible-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
 import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
+import { NgxQRCodeModule } from "@techiediaries/ngx-qrcode";
 import { ListMaletinComponent } from './maletin/list-maletin/list-maletin.component';
 import { AdicionarMaletinDialogComponent } from './maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component';
 import { AdicionarCajaDialogComponent } from './pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
@@ -54,6 +55,10 @@ import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-p
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
 import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
+import { RegistrarVentaTarjetaDialogComponent } from "./venta-tarjeta/qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component";
+import { FormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component";
+import { EditFormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/edit-formato-qr-pos/edit-formato-qr-pos.component";
+import { EscanearCuponDialogComponent } from "./venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
@@ -139,6 +144,10 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     ScanTerminalPosDialogComponent,
     TerminalPosDashboard,
     ListVentaTarjetaComponent,
+    RegistrarVentaTarjetaDialogComponent,
+    FormatoQrPosComponent,
+    EditFormatoQrPosComponent,
+    EscanearCuponDialogComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
     FacturaLegalDashboard,
@@ -185,6 +194,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     FormsModule,
     MaterialModule,
     SharedModule,
+    NgxQRCodeModule,
     FinancieroRoutingModule,
     BootstrapModule,
     NgxExtendedPdfViewerModule

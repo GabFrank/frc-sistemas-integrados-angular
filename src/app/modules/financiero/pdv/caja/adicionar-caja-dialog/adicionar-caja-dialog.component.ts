@@ -625,11 +625,34 @@ export class AdicionarCajaDialogComponent implements OnInit {
             .subscribe({
               next: (pendientes) => {
                 if (pendientes > 0) {
+                  // El pendiente de tarjeta BLOQUEA el cierre. Antes era una advertencia con
+                  // "Cerrar igualmente" a mano del cajero, y ese escape convertía cada venta sin
+                  // registrar en un NO COMPLETADO: plata cobrada con tarjeta que después no se
+                  // puede conciliar contra la liquidación del proveedor.
+                  //
+                  // El cajero ahora vuelve y registra: tiene el cupón, y con el QR del POS es
+                  // cuestión de pasarlo por el lector. Sólo un supervisor (ADMIN) puede forzar el
+                  // cierre, porque el caso real existe — un cupón que no se imprimió, un POS que
+                  // falló — y dejar la caja trabada de noche sin nadie que la destrabe sería peor.
+                  const esSupervisor = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN);
+                  if (!esSupervisor) {
+                    this.matDialog.open(ConfirmDialogComponent, {
+                      width: "480px",
+                      data: {
+                        title: "Ventas con tarjeta sin registrar",
+                        message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
+                          `Registralas escaneando el QR del cupón desde el PDV, o desde el celular, ` +
+                          `antes de cerrar la caja. Si no tenés el cupón, pedile a un supervisor que cierre la caja.`,
+                        confirmText: "Entendido",
+                      },
+                    });
+                    return;
+                  }
                   this.matDialog.open(ConfirmDialogComponent, {
                     width: "480px",
                     data: {
-                      title: "Ventas con tarjeta sin registrar",
-                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar en la app móvil. ` +
+                      title: "Cerrar con ventas de tarjeta sin registrar",
+                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
                         `Si cierra la caja, quedarán marcadas como NO COMPLETADAS y ya no podrán registrarse. ¿Desea cerrar igualmente?`,
                       confirmText: "Cerrar igualmente",
                       cancelText: "Volver",

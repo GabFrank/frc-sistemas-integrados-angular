@@ -75,6 +75,7 @@ import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboar
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
+import { FormatoQrPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
@@ -544,7 +545,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Reportes y Análisis',
           icon: 'analytics',
           isExpanded: false,
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR],
           items: [
             {
               name: 'Análisis de diferencias',
@@ -568,6 +569,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Terminales POS',
               icon: 'contactless',
               action: 'terminal-pos-dashboard',
+              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
+            },
+            {
+              name: 'Formatos de QR de POS',
+              icon: 'qr_code_scanner',
+              action: 'formato-qr-pos',
               visibilityRoles: [ROLES.ADMIN]
             },
             {
@@ -1030,7 +1037,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
       case "terminal-pos-dashboard":
-        this.openTabIfAuthorized(ROLES.ADMIN, TerminalPosDashboard, "Terminal Dashboard");
+        this.openTabIfAuthorized(ROLES.VENTA_TARJETA_COMPLETAR, TerminalPosDashboard, "Terminal Dashboard");
+        break;
+      case "formato-qr-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, FormatoQrPosComponent, "Formatos de QR");
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));

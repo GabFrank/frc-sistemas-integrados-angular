@@ -136,16 +136,20 @@
         <ng-container matColumnDef="monto">
           <th mat-header-cell *matHeaderCellDef style="width: 12%;">Monto</th>
           <td mat-cell *matCellDef="let item" style="width: 12%;">
-            {{ item.monto | number:'1.0-2' }}
-            <span>{{ item.terminalPos?.moneda?.simbolo || 'Gs.' }}</span>
+            <!-- simboloMoneda / digitosMoneda salen de la moneda del REGISTRO y se precalculan
+                 en el componente (ver aFilaConMoneda): la de la terminal es configuración mutable
+                 y usarla hacía que cambiarla reescribiera el histórico. Los decimales van con la
+                 moneda porque Gs. no lleva y R$ lleva dos. -->
+            {{ item.monto | number:item.digitosMoneda }}
+            <span>{{ item.simboloMoneda }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="montoEscaneado">
           <th mat-header-cell *matHeaderCellDef style="width: 12%;">Monto escaneado</th>
           <td mat-cell *matCellDef="let item" style="width: 12%;">
-            <span *ngIf="item.montoEscaneado != null">{{ item.montoEscaneado | number:'1.0-2' }}
-              <span>{{ item.terminalPos?.moneda?.simbolo || 'Gs.' }}</span>
+            <span *ngIf="item.montoEscaneado != null">{{ item.montoEscaneado | number:item.digitosMoneda }}
+              <span>{{ item.simboloMoneda }}</span>
             </span>
            
             <span *ngIf="item.montoEscaneado == null">—</span>
@@ -167,6 +171,20 @@
         <ng-container matColumnDef="creadoEn">
           <th mat-header-cell *matHeaderCellDef style="width: 12%;">Fecha</th>
           <td mat-cell *matCellDef="let item" style="width: 12%;">{{ item.creadoEn | date:'dd/MM/yyyy HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 6%;"></th>
+          <td mat-cell *matCellDef="let item" style="width: 6%;">
+            <!-- Solo para PENDIENTE de la sucursal donde se está parado: completarla desde otra
+                 sucursal no puede funcionar, así que ni se ofrece. -->
+            <mat-icon
+              *ngIf="puedeCompletarDesdeAqui(item)"
+              style="color: white; cursor: pointer;"
+              matTooltip="Completar escaneando el cupón"
+              (click)="onCompletarPendiente(item)"
+            >qr_code_scanner</mat-icon>
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

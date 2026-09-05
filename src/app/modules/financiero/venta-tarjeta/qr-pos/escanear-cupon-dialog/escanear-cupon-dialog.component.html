@@ -1,0 +1,47 @@
+<div class="escanear-cupon" fxLayout="column">
+
+  <div class="cabecera">
+    <div class="titulo-center">Cupón de tarjeta</div>
+    <div class="subtitulo-dialog" *ngIf="data.terminalDescripcion">{{ data.terminalDescripcion }}</div>
+  </div>
+
+  <div class="monto-caja">
+    <span class="monto-label">A cobrar</span>
+    <span class="monto">{{ data.monto | number: '1.0-2' }} {{ data.monedaSimbolo || 'Gs.' }}</span>
+    <!-- Dato útil ANTES de escanear: si la terminal está en otra moneda, el cupón va a venir en
+         esa y no va a servir para este cobro. -->
+    <span class="aviso-moneda" *ngIf="avisoMonedaTerminal">{{ avisoMonedaTerminal }}</span>
+  </div>
+
+  <!-- El lector es keyboard-wedge: escribe solo en el campo enfocado y manda Enter. El cajero
+       no tiene que tocar nada, así que el estado por defecto tiene que decir eso de entrada. -->
+  <div class="zona-lectura" [class.con-error]="errorLectura">
+    <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
+
+    <mat-form-field appearance="outline" class="campo-cupon">
+      <mat-label>Escaneá el QR del cupón</mat-label>
+      <input
+        matInput
+        [formControl]="cuponControl"
+        autofocus
+        cdkFocusInitial
+        [maxlength]="maxLongitud"
+        autocomplete="off"
+      />
+    </mat-form-field>
+
+    <div class="ayuda" *ngIf="!errorLectura">
+      Apuntá el lector al QR impreso en el ticket. Se registra solo.
+    </div>
+    <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center" class="acciones">
+    <!-- Salida secundaria, no la acción principal: la venta se cierra igual y el cobro queda
+         PENDIENTE para completarlo después. -->
+    <button mat-button class="btn-mas-tarde" (click)="onMasTarde()">
+      Registrar más tarde
+    </button>
+  </div>
+
+</div>
