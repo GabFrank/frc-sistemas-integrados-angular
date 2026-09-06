@@ -59,6 +59,13 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   formaPagoList: FormaPago[] = [];
   /** Notas con display de proveedor y datos de pedido para la tabla (sin usar funciones en template). */
   notasAgregadas: NotaRecepcionConDisplay[] = [];
+  /**
+   * DataSource de la tabla de notas. Es obligatorio: un array pelado como [dataSource]
+   * se renderiza una sola vez y el CDK no ve los push/splice sobre la misma referencia,
+   * así que al quitar o agregar una nota la tabla quedaba desactualizada.
+   */
+  notasTableDataSource = new MatTableDataSource<NotaRecepcionConDisplay>([]);
+
   /** Detalles (formas de pago) con display para la tabla. */
   detallesAgregados: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] = [];
   /** DataSource de la tabla de formas de pago para que mat-table detecte cambios al agregar/editar. */
@@ -331,6 +338,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.solicitudPagoService.onRemoverNotaDeSolicitudPago(this.solicitudPagoId, nota.id).subscribe({
             next: () => {
               this.notasAgregadas.splice(index, 1);
+              this.refrescarTablaNotas();
               this.updateMontoTotal();
               this.updatePuedeEditarProveedor();
               this.saving = false;
@@ -342,6 +350,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           });
         } else {
           this.notasAgregadas.splice(index, 1);
+          this.refrescarTablaNotas();
           this.updateMontoTotal();
           this.updatePuedeEditarProveedor();
         }
@@ -613,6 +622,11 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.totalFormasPagoComputed = this.detallesAgregados.reduce((sum, d) => sum + (d.valor ?? 0), 0);
   }
 
+  /** Vuelca notasAgregadas en la tabla. Llamar tras cada alta o baja de notas. */
+  private refrescarTablaNotas(): void {
+    this.notasTableDataSource.data = this.notasAgregadas;
+  }
+
   /** Marca la nota con el nombre del proveedor que muestra la tabla. El resto de los display los completa updateNotasDisplay(). */
   private withProveedorDisplay(nota: NotaRecepcion): NotaRecepcionConDisplay {
     const notaConDisplay = nota as NotaRecepcionConDisplay;
@@ -717,6 +731,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       map[nota.id] = !!(n.pedidoObservacionDisplay && n.pedidoObservacionDisplay.length > 0);
     });
     this.notaTieneObservacionMap = map;
+    this.refrescarTablaNotas();
   }
 
   onNotaRowClick(nota: NotaRecepcion): void {
