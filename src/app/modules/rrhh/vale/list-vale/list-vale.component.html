@@ -1,4 +1,4 @@
-<app-generic-list titulo="Vales" style="height: 100%" [isAdicionar]="true" (adicionar)="onNuevo()"
+<app-generic-list titulo="Vales" style="height: 100%" [isAdicionar]="puedeGestionar" (adicionar)="onNuevo()"
   (filtrar)="onFiltrar()" (resetFiltro)="onResetFiltro()">
 
   <div filtros fxLayout="row wrap" fxLayoutGap="10px" style="width: 100%">
@@ -71,10 +71,11 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onConfirmar(row)" [disabled]="row.estado !== 'SOLICITADO'">
+            <button mat-menu-item *ngIf="puedeAprobar" (click)="onConfirmar(row)"
+              [disabled]="row.estado !== 'SOLICITADO'">
               <mat-icon>check_circle</mat-icon><span>Confirmar</span>
             </button>
-            <button mat-menu-item (click)="onAnular(row)"
+            <button mat-menu-item *ngIf="puedeGestionar" (click)="onAnular(row)"
               [disabled]="row.estado !== 'SOLICITADO' && row.estado !== 'CONFIRMADO'">
               <mat-icon>block</mat-icon><span>Anular</span>
             </button>
