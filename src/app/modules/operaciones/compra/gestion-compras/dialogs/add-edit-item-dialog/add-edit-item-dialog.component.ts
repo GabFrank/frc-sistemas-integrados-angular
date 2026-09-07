@@ -872,24 +872,25 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null;
 
+    // `ultimoPrecioCompra` se persiste SIEMPRE en guaraníes, igual que `costoMedio`
+    // (ver CostosPorProductoService.aplicarCostoCompra). La moneda/cotización del costo son
+    // solo REFERENCIA de la compra original, no describen en qué moneda está el importe:
+    // el contrato lo fija <app-costo-display>, que reconstruye el original dividiendo.
+    // Por eso acá solo se convierte Gs -> moneda del pedido. Multiplicar por costo.cotizacion
+    // inflaba el precio sugerido por la cotización, y como ese precio inflado terminaba siendo
+    // el costo de la compra siguiente, el error se componía en cada compra.
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
-    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
-    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
-    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
-    const costo = producto?.costo;
-    const costoMonedaId = costo?.moneda?.id;
-    const pedidoMonedaId = this.data.pedido?.moneda?.id;
-    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
-      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
-      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
-      if (pedidoCotizacion > 1) {
-        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
-      } else {
-        precioInicial = Math.round(costoEnGs);
-      }
+    // Pedido en moneda extranjera: se prioriza pedido.cotizacion (fijada al guardar el pedido)
+    // y se cae a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    // cotizacion > 1 identifica a la moneda extranjera (el guaraní cotiza 1), misma convención
+    // que CostoMedioCalculator.aGuaranies y <app-costo-display>.
+    const pedidoCotizacion =
+      this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+    if (precioInicial > 0 && pedidoCotizacion > 1) {
+      precioInicial = Math.round((precioInicial / pedidoCotizacion) * 100) / 100;
     }
-    
+
     this.itemForm.patchValue(
       {
         productoSearch: coincidenciaExacta ? "" : producto.descripcion,
