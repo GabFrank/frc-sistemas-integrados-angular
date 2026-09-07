@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
@@ -8,6 +9,8 @@ import { FiltrarVentasTarjetaGQL } from './graphql/filtrarVentasTarjeta';
 import { ImprimirReporteVentaTarjetaGQL } from './graphql/imprimirReporteVentaTarjeta';
 import { MarcarVentasTarjetaNoCompletadasGQL } from './graphql/marcarVentasTarjetaNoCompletadas';
 import { VentaTarjetaPorIdGQL } from './graphql/ventaTarjetaPorId';
+import { CompletarVentaTarjetaGQL } from './graphql/completarVentaTarjeta';
+import { CobroDetalleDeVenta, CobrosTarjetaDeVentaGQL } from './graphql/cobrosTarjetaDeVenta';
 import { PageInfo } from '../../../app.component';
 import { VentaTarjeta } from './venta-tarjeta.model';
 import { MainService } from '../../../main.service';
@@ -17,6 +20,24 @@ import { Tab } from '../../../layouts/tab/tab.model';
 import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 import { ListVentaTarjetaComponent } from './list-venta-tarjeta/list-venta-tarjeta.component';
 
+/** Datos que aporta el QR impreso por el POS. Ver CompletarVentaTarjetaInput del filial. */
+export interface CompletarVentaTarjetaInput {
+  id: number;
+  sucursalId: number;
+  codigoAutorizacion?: string;
+  numeroBoleta?: string;
+  montoEscaneado?: number;
+  identificadorTransaccion?: string;
+  qrCrudo?: string;
+  /**
+   * Cobro elegido por el usuario. Cuando va, el backend NO infiere: es el único camino
+   * cuando la venta tiene dos cobros con tarjeta del mismo monto.
+   */
+  cobroDetalleId?: number;
+  /** Moneda que declara el cupón. El backend bloquea si no es la del cobro. */
+  monedaId?: number;
+}
+
 export interface VentaTarjetaInput {
   sucursalId: number;
   ventaId: number;
@@ -24,6 +45,8 @@ export interface VentaTarjetaInput {
   monto: number;
   estado: string;
   terminalPosId?: number;
+  /** Moneda del cobro que respalda. Sin ella el monto queda sin unidad. */
+  monedaId?: number;
   usuarioId?: number;
 }
 
@@ -39,6 +62,8 @@ export class VentaTarjetaService {
     private imprimirReporteVentaTarjetaGQL: ImprimirReporteVentaTarjetaGQL,
     private marcarVentasTarjetaNoCompletadasGQL: MarcarVentasTarjetaNoCompletadasGQL,
     private ventaTarjetaPorIdGQL: VentaTarjetaPorIdGQL,
+    private completarVentaTarjetaGQL: CompletarVentaTarjetaGQL,
+    private cobrosTarjetaDeVentaGQL: CobrosTarjetaDeVentaGQL,
     private mainService: MainService,
     private reporteService: ReporteService,
     private tabService: TabService
@@ -46,6 +71,32 @@ export class VentaTarjetaService {
 
   onSavePendiente(input: VentaTarjetaInput): Observable<VentaTarjetaResult> {
     return this.genericService.onCustomMutation(this.saveVentaTarjetaGQL, { entity: input }, false);
+  }
+
+  /**
+   * Completa un PENDIENTE con lo leido del cupon. Va contra el FILIAL (servidor=false): el PDV
+   * tiene que poder registrar sin internet, igual que cobra sin internet.
+   */
+  onCompletar(input: CompletarVentaTarjetaInput): Observable<VentaTarjeta> {
+    return this.genericService.onCustomMutation(this.completarVentaTarjetaGQL, { input }, false);
+  }
+
+  /**
+   * Cobros con TARJETA de una venta, para elegir a cuál pertenece el cupón.
+   *
+   * servidor=false a propósito: la venta y sus cobros viven en el FILIAL, que es el mismo
+   * backend contra el que corre onCompletar. Pedirlos al central traería ids que la mutation
+   * no podría resolver.
+   */
+  onGetCobrosTarjetaDeVenta(ventaId: number, sucId: number): Observable<CobroDetalleDeVenta[]> {
+    return this.genericService
+      .onCustomQuery(this.cobrosTarjetaDeVentaGQL, { id: ventaId, sucId }, false, null, true)
+      .pipe(
+        map((venta: any) => (venta?.cobro?.cobroDetalleList ?? []).filter(
+          (cd: CobroDetalleDeVenta) =>
+            cd?.formaPago?.descripcion === 'TARJETA' && cd.pago && !cd.vuelto && !cd.descuento
+        ))
+      );
   }
 
   onCountSinRegistrar(cajaId: number, sucId: number): Observable<number> {
