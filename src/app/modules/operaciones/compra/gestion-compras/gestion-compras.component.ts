@@ -4053,60 +4053,52 @@ export class GestionComprasComponent
    * Maneja el evento cuando se finaliza la recepción física
    */
   onRecepcionFinalizada(): void {
-    
-    // 1. Recargar datos del pedido para obtener el estado actualizado
-    this.loadPedidoResumen();
-    
-    // 2. Actualizar header con nuevos datos
-    this.updateHeaderData();
-    
-    // 3. Actualizar propiedades computadas
-    this.updateComputedProperties();
-    
-    // 4. Verificar si la etapa RECEPCION_MERCADERIA está completada
-    // Solo navegar automáticamente si todas las recepciones están finalizadas
-    setTimeout(() => {
-      // Verificar estado de la etapa después de recargar datos
-      if (this.pedidoResumen?.etapaActual) {
-        const etapaActual = this.pedidoResumen.etapaActual;
-        const tipoEtapa = typeof etapaActual === 'string' ? etapaActual : etapaActual?.tipoEtapa;
-        const estadoEtapa = typeof etapaActual === 'object' ? etapaActual?.estadoEtapa : null;
-        
-        // Si la etapa RECEPCION_MERCADERIA está completada, navegar a Solicitud de Pago
-        if (tipoEtapa === ProcesoEtapaTipo.SOLICITUD_PAGO || 
-            (tipoEtapa === ProcesoEtapaTipo.RECEPCION_MERCADERIA && estadoEtapa === ProcesoEtapaEstado.COMPLETADA)) {
-          // Actualizar estados de tabs
-          this.updateTabStates(ProcesoEtapaTipo.SOLICITUD_PAGO);
-          
-          // Navegar automáticamente al tab de Solicitud de Pago
-          this.selectedTabIndex = 4; // Tab de Solicitud de Pago
-          this.loadTabDataIfNeeded(4);
-          
-          // Mostrar notificación de éxito
-          this.notificacionService.openSucess('Recepción física completada. Navegando a Solicitud de Pago.');
-        } else {
-          // Aún hay recepciones pendientes, solo actualizar estados de tabs
-          // Obtener etapa actual del pedido para actualizar tabs correctamente
-          const etapaActual = this.pedidoResumen?.etapaActual 
-            ? (typeof this.pedidoResumen.etapaActual === 'string' 
-                ? this.pedidoResumen.etapaActual 
-                : this.pedidoResumen.etapaActual?.tipoEtapa)
+    if (!this.pedidoId) return;
+
+    // Recargar el pedido completo Y el resumen antes de recalcular los tabs.
+    // Hace falta el pedido y no solo el resumen: syncTabStatesWithCurrentEtapa()
+    // (que dispara el cambio de tab de más abajo) lee currentPedido.procesoEtapas,
+    // y con las etapas viejas volvía a dejar el tab de Solicitud de Pago deshabilitado.
+    forkJoin({
+      pedido: this.pedidoService.onGetPedidoById(this.pedidoId),
+      resumen: this.pedidoService.onGetPedidoResumen(this.pedidoId)
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.currentPedido = result.pedido;
+          this.pedidoResumen = result.resumen;
+
+          this.updateHeaderData();
+          this.updateComputedProperties();
+
+          const etapaActual = typeof result.resumen?.etapaActual === 'string'
+            ? result.resumen.etapaActual
+            : result.resumen?.etapaActual?.tipoEtapa;
+          const estadoEtapa = typeof result.resumen?.etapaActual === 'object'
+            ? result.resumen?.etapaActual?.estadoEtapa
             : null;
-          this.updateTabStates(etapaActual as ProcesoEtapaTipo | null);
-          this.notificacionService.openSucess('Recepción física parcial completada. Puede continuar verificando otras sucursales.');
+
+          const recepcionCompletada = etapaActual === ProcesoEtapaTipo.SOLICITUD_PAGO ||
+            (etapaActual === ProcesoEtapaTipo.RECEPCION_MERCADERIA && estadoEtapa === ProcesoEtapaEstado.COMPLETADA);
+
+          if (recepcionCompletada) {
+            // Navegar a Solicitud de Pago. updateTabStates con preserveTabIndex=true
+            // deja los estados listos sin programar el salto de tab por timer.
+            this.updateTabStates(ProcesoEtapaTipo.SOLICITUD_PAGO, true);
+            this.selectedTabIndex = 4;
+            this.loadTabDataIfNeeded(4);
+            this.notificacionService.openSucess('Recepción física completada. Navegando a Solicitud de Pago.');
+          } else {
+            this.updateTabStates((etapaActual as ProcesoEtapaTipo) ?? null, true);
+            this.notificacionService.openSucess('Recepción física parcial completada. Puede continuar verificando otras sucursales.');
+          }
+        },
+        error: (error) => {
+          console.error('Error recargando el pedido tras finalizar la recepción física:', error);
+          this.notificacionService.openAlgoSalioMal('Error al actualizar el pedido tras finalizar la recepción física');
         }
-      } else {
-        // Fallback: actualizar estados de tabs sin navegar
-        // Obtener etapa actual del pedido para actualizar tabs correctamente
-        const etapaActual = this.pedidoResumen?.etapaActual 
-          ? (typeof this.pedidoResumen.etapaActual === 'string' 
-              ? this.pedidoResumen.etapaActual 
-              : this.pedidoResumen.etapaActual?.tipoEtapa)
-          : null;
-        this.updateTabStates(etapaActual as ProcesoEtapaTipo | null);
-      }
-    }, 500); // Delay para asegurar que los datos se hayan recargado
-    
+      });
   }
 
   /**

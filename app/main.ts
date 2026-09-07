@@ -585,6 +585,358 @@ function ipLocalHaciaDestino(destIp?: string): Promise<string | null> {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Soporte de impresoras locales en WINDOWS (spooler), equivalente a lo que en
+// Linux resuelve CUPS. Tres piezas, todas via PowerShell (sin modulos nativos):
+//   - detectar los dispositivos USB de ESTA PC (Get-Printer / Get-PnpDevice),
+//   - instalar una cola sobre el puerto USB (Add-Printer),
+//   - mandar ESC/POS CRUDO al spooler (P/Invoke a winspool.drv).
+// ---------------------------------------------------------------------------
+
+/** Esquema propio para un puerto USB del spooler de Windows: usbwin://<PUERTO>. */
+const ESQUEMA_USB_WIN = 'usbwin://';
+
+/**
+ * Corre un script PowerShell y devuelve su salida. Se usa -NoProfile/-NonInteractive para que
+ * no dependa del perfil del usuario ni se quede esperando input, y se pasa el script por
+ * -EncodedCommand (base64 UTF-16LE) para no pelear con el escapeo de comillas de cmd.
+ */
+function correrPowerShell(script: string, timeoutMs = 20000): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded]);
+    let stdout = '';
+    let stderr = '';
+    let terminado = false;
+    const finish = (r: { code: number; stdout: string; stderr: string }) => {
+      if (terminado) return;
+      terminado = true;
+      resolve(r);
+    };
+    const timer = setTimeout(() => {
+      try { proc.kill(); } catch { /* noop */ }
+      finish({ code: 1, stdout, stderr: stderr || 'powershell no respondio a tiempo' });
+    }, timeoutMs);
+    proc.stdout.on('data', (d: any) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d: any) => { stderr += d.toString(); });
+    proc.on('error', (e: any) => {
+      clearTimeout(timer);
+      finish({ code: 1, stdout, stderr: stderr || (e && e.message ? e.message : 'no se pudo ejecutar powershell') });
+    });
+    proc.on('close', (code: number) => {
+      clearTimeout(timer);
+      finish({ code: code == null ? 1 : code, stdout, stderr });
+    });
+  });
+}
+
+/** Parsea la salida JSON de PowerShell, que devuelve un objeto suelto cuando hay una sola fila. */
+function filasDeJson(salida: string): any[] {
+  const texto = (salida || '').trim();
+  if (!texto) { return []; }
+  try {
+    const parsed = JSON.parse(texto);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+interface DispositivoLocal {
+  clase: string;
+  uri: string;
+  nombre: string;
+  descripcion: string;
+}
+
+/**
+ * Dispositivos de impresion conectados a ESTA PC Windows. Tres fuentes, de la mas util a la menos:
+ *  1) `Get-Printer` con PortName USB o DOT4: la impresora que Windows ya instalo sola por PnP.
+ *     Es el caso normal: en Windows enchufar la USB alcanza para tener una cola utilizable.
+ *  2) `Get-PrinterPort` USB* sin cola asociada: un puerto libre donde Add-Printer puede crear una
+ *     cola RAW (tipico de las termicas ESC/POS genericas, que Windows reconoce pero no instala).
+ *  3) `Get-PnpDevice` de impresion sin cola: se listan para que se vea que el cable esta bien.
+ * Se devuelven con la misma forma que los dispositivos de `lpinfo -v` del backend, asi el
+ * frontend los consume igual venga de donde venga.
+ */
+async function detectarDispositivosWindows(): Promise<DispositivoLocal[]> {
+  const lista: DispositivoLocal[] = [];
+  const puertosConCola = new Set<string>();
+
+  // 1) Colas ya instaladas sobre un puerto USB/DOT4. En Windows este es el caso normal: al
+  //    enchufar la impresora el spooler la instala solo por PnP, asi que ya hay cola utilizable.
+  const psColas =
+    "$ErrorActionPreference='SilentlyContinue';"
+    + "Get-Printer | Where-Object { $_.PortName -like 'USB*' -or $_.PortName -like 'DOT4*' } |"
+    + "Select-Object Name, PortName, DriverName | ConvertTo-Json -Compress";
+  const colas = await correrPowerShell(psColas);
+  filasDeJson(colas.stdout).forEach((c: any) => {
+    const puerto = String(c && c.PortName ? c.PortName : '').trim();
+    const nombre = String(c && c.Name ? c.Name : '').trim();
+    if (!puerto || !nombre) { return; }
+    puertosConCola.add(puerto.toUpperCase());
+    lista.push({
+      clase: 'direct',
+      uri: ESQUEMA_USB_WIN + puerto,
+      nombre,
+      descripcion: puerto + ' · cola ya instalada "' + nombre + '"'
+        + (c && c.DriverName ? ' · ' + c.DriverName : ''),
+    });
+  });
+
+  // 2) Puertos USB del spooler que quedaron LIBRES (sin cola): son los que puede tomar Add-Printer
+  //    para crear una cola RAW sobre una termica que Windows reconocio pero no instalo.
+  const psPuertos =
+    "$ErrorActionPreference='SilentlyContinue';"
+    + "Get-PrinterPort | Where-Object { $_.Name -like 'USB*' } | Select-Object Name | ConvertTo-Json -Compress";
+  const puertos = await correrPowerShell(psPuertos);
+  const libres: string[] = [];
+  filasDeJson(puertos.stdout).forEach((pp: any) => {
+    const nombre = String(pp && pp.Name ? pp.Name : '').trim();
+    if (!nombre || puertosConCola.has(nombre.toUpperCase())) { return; }
+    libres.push(nombre);
+    lista.push({
+      clase: 'direct',
+      uri: ESQUEMA_USB_WIN + nombre,
+      nombre: 'Puerto ' + nombre,
+      descripcion: nombre + ' · puerto USB libre (se le puede crear una cola)',
+    });
+  });
+
+  // 3) Dispositivos USB de impresion que Windows ve pero que no tienen cola. Se listan para que
+  //    se note que el cable esta bien; si ademas hay un puerto libre, se puede instalar ahi.
+  const psPnp =
+    "$ErrorActionPreference='SilentlyContinue';"
+    + "Get-PnpDevice -PresentOnly |"
+    + "Where-Object { $_.Class -eq 'USBPrint' -or $_.Class -eq 'Printer' -or $_.Service -eq 'usbprint' } |"
+    + "Select-Object FriendlyName, InstanceId, Status | ConvertTo-Json -Compress";
+  const pnp = await correrPowerShell(psPnp);
+  filasDeJson(pnp.stdout).forEach((d: any) => {
+    const nombre = String(d && d.FriendlyName ? d.FriendlyName : '').trim();
+    if (!nombre) { return; }
+    // Si ya aparece como cola instalada, no lo repetimos.
+    if (lista.some((x) => x.nombre.toLowerCase() === nombre.toLowerCase())) { return; }
+    const puerto = libres.length > 0 ? libres[0] : '';
+    lista.push({
+      clase: 'direct',
+      // Sin puerto libre no hay donde crear la cola: se deja la URI sin puerto para que la
+      // instalacion falle con un motivo claro en vez de apuntar a un USB001 inventado.
+      uri: ESQUEMA_USB_WIN + puerto,
+      nombre,
+      descripcion: puerto
+        ? 'USB conectada sin cola · se instalaria en ' + puerto
+        : 'USB conectada sin cola ni puerto libre · instalala primero desde Windows',
+    });
+  });
+
+  return lista;
+}
+
+/** Dispositivos conectables a ESTA PC via `lpinfo -v` local (mismo comando que corre el backend). */
+function detectarDispositivosLinux(): Promise<DispositivoLocal[]> {
+  return new Promise((resolve) => {
+    const proc = spawn('lpinfo', ['-v']);
+    let stdout = '';
+    proc.stdout.on('data', (d: any) => { stdout += d.toString(); });
+    proc.on('error', () => resolve([]));
+    proc.on('close', () => {
+      const lista: DispositivoLocal[] = [];
+      stdout.split(/\r?\n/).forEach((linea) => {
+        const l = linea.trim();
+        const sp = l.indexOf(' ');
+        if (sp < 0) { return; }
+        const clase = l.substring(0, sp).trim();
+        const uri = l.substring(sp + 1).trim();
+        if (!uri || uri.indexOf('://') < 0) { return; }
+        let nombre = uri;
+        if (uri.startsWith('usb://')) {
+          let resto = uri.substring('usb://'.length);
+          const q = resto.indexOf('?');
+          if (q >= 0) { resto = resto.substring(0, q); }
+          try { nombre = decodeURIComponent(resto.replace(/\//g, ' ')).trim(); } catch { nombre = resto; }
+        }
+        lista.push({ clase, uri, nombre, descripcion: uri });
+      });
+      resolve(lista);
+    });
+  });
+}
+
+/** Dispositivos conectados a ESTA PC, sea Windows (spooler) o Linux (CUPS). */
+async function detectarDispositivosLocales(): Promise<DispositivoLocal[]> {
+  if (process.platform === 'win32') {
+    return detectarDispositivosWindows();
+  }
+  if (process.platform === 'linux') {
+    return detectarDispositivosLinux();
+  }
+  return [];
+}
+
+/**
+ * Instala una cola en el spooler de Windows sobre un puerto USB. Si el puerto ya tiene una cola
+ * (Windows la instalo por PnP al enchufar la impresora) la reusamos en vez de fallar: al usuario
+ * le da igual como se llame, lo que necesita es una cola utilizable.
+ * Driver "Generic / Text Only": entrega los bytes al puerto sin renderizar, que es lo que
+ * necesita una termica ESC/POS.
+ */
+async function instalarImpresoraWindowsUsb(cola: string, puerto: string): Promise<ResultadoInstalacionLocal> {
+  const puertoSeguro = (puerto || '').replace(/[^A-Za-z0-9_.-]/g, '');
+  if (!puertoSeguro) {
+    // Lo detectamos como dispositivo USB presente pero sin ningun puerto del spooler libre donde
+    // colgar la cola: Windows tiene que reconocerla primero (Configuracion > Impresoras > Agregar).
+    return {
+      success: false,
+      error: 'Windows no expone un puerto USB libre para esta impresora. Instalala primero desde '
+        + 'Configuracion > Impresoras y escaneres, y despues volve a tocar Detectar.',
+    };
+  }
+  const ps =
+    "$ErrorActionPreference='Stop';"
+    + "$existente = Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.PortName -eq '" + puertoSeguro + "' } | Select-Object -First 1;"
+    + "if ($existente) { Write-Output ('REUSADA:' + $existente.Name); exit 0 };\n"
+    + "Add-Printer -Name '" + cola + "' -DriverName 'Generic / Text Only' -PortName '" + puertoSeguro + "';"
+    + "Write-Output ('CREADA:" + cola + "')";
+  const r = await correrPowerShell(ps, 40000);
+  const salida = (r.stdout || '').trim();
+  if (r.code !== 0) {
+    return { success: false, cola, error: (r.stderr || '').trim() || 'Add-Printer fallo' };
+  }
+  const m = salida.match(/^(REUSADA|CREADA):(.+)$/m);
+  const colaFinal = m ? m[2].trim() : cola;
+  return { success: true, cola: colaFinal, uri: ESQUEMA_USB_WIN + puertoSeguro };
+}
+
+/**
+ * Manda un buffer ESC/POS CRUDO a una cola del spooler de Windows. El spooler no tiene un
+ * equivalente a `lp -o raw`, asi que se llama a la API winspool.drv (OpenPrinter /
+ * StartDocPrinter con datatype RAW / WritePrinter) desde PowerShell via Add-Type. El payload
+ * viaja por un archivo temporal binario para no pasarlo por la linea de comandos.
+ */
+async function imprimirRawWindows(cola: string, buffer: Buffer): Promise<{ success: boolean; error?: string }> {
+  const colaLimpia = (cola || '').replace(/'/g, "''");
+  const tmp = path.join(os.tmpdir(), 'frc-raw-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.bin');
+  try {
+    fs.writeFileSync(tmp, buffer);
+  } catch (e: any) {
+    return { success: false, error: 'No se pudo escribir el temporal: ' + (e && e.message ? e.message : 'error') };
+  }
+  const rutaPs = tmp.replace(/'/g, "''");
+  // Here-string LITERAL (@' ... '@): PowerShell no expande nada adentro, asi que el C# viaja tal
+  // cual. El cierre '@ tiene que ir al principio de la linea, por eso se arma linea por linea.
+  const ps = [
+    "$ErrorActionPreference='Stop';",
+    "$fuente = @'",
+    "using System;",
+    "using System.IO;",
+    "using System.Runtime.InteropServices;",
+    "public class FrcRawPrinter {",
+    "  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]",
+    "  public struct DOCINFO {",
+    "    [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;",
+    "    [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;",
+    "    [MarshalAs(UnmanagedType.LPWStr)] public string pDataType; }",
+    "  [DllImport(\"winspool.drv\", CharSet=CharSet.Unicode, SetLastError=true)]",
+    "  public static extern bool OpenPrinter(string src, out IntPtr hPrinter, IntPtr pd);",
+    "  [DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool ClosePrinter(IntPtr hPrinter);",
+    "  [DllImport(\"winspool.drv\", CharSet=CharSet.Unicode, SetLastError=true)]",
+    "  public static extern bool StartDocPrinter(IntPtr hPrinter, int level, ref DOCINFO di);",
+    "  [DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndDocPrinter(IntPtr hPrinter);",
+    "  [DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool StartPagePrinter(IntPtr hPrinter);",
+    "  [DllImport(\"winspool.drv\", SetLastError=true)] public static extern bool EndPagePrinter(IntPtr hPrinter);",
+    "  [DllImport(\"winspool.drv\", SetLastError=true)]",
+    "  public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);",
+    "  public static void SendFile(string printer, string file) {",
+    "    byte[] bytes = File.ReadAllBytes(file);",
+    "    IntPtr h;",
+    "    if (!OpenPrinter(printer, out h, IntPtr.Zero)) throw new Exception(\"OpenPrinter fallo para \" + printer);",
+    "    try {",
+    "      DOCINFO di = new DOCINFO();",
+    "      di.pDocName = \"FRC ticket\";",
+    "      di.pDataType = \"RAW\";",
+    "      if (!StartDocPrinter(h, 1, ref di)) throw new Exception(\"StartDocPrinter fallo\");",
+    "      try {",
+    "        if (!StartPagePrinter(h)) throw new Exception(\"StartPagePrinter fallo\");",
+    "        IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);",
+    "        try {",
+    "          Marshal.Copy(bytes, 0, p, bytes.Length);",
+    "          int w;",
+    "          if (!WritePrinter(h, p, bytes.Length, out w)) throw new Exception(\"WritePrinter fallo\");",
+    "        } finally { Marshal.FreeCoTaskMem(p); }",
+    "        EndPagePrinter(h);",
+    "      } finally { EndDocPrinter(h); }",
+    "    } finally { ClosePrinter(h); }",
+    "  }",
+    "}",
+    "'@",
+    "Add-Type -TypeDefinition $fuente;",
+    "[FrcRawPrinter]::SendFile('" + colaLimpia + "', '" + rutaPs + "');",
+    "Write-Output 'FRC_RAW_OK'",
+  ].join('\n');
+
+  const r = await correrPowerShell(ps, 30000);
+  try { fs.unlinkSync(tmp); } catch { /* noop */ }
+  if (r.code !== 0 || !/FRC_RAW_OK/.test(r.stdout || '')) {
+    const detalle = (r.stderr || '').trim() || (r.stdout || '').trim() || 'no se pudo escribir en el spooler';
+    return { success: false, error: detalle };
+  }
+  return { success: true };
+}
+
+/** Resultado de compartir la impresora local: `recurso` sólo viene en el camino SMB (Windows). */
+interface ResultadoCompartir {
+  success: boolean;
+  ip: string | null;
+  uri: string | null;
+  recurso?: string;
+  error?: string;
+  aviso?: string;
+}
+
+/**
+ * Comparte una cola del spooler de Windows por SMB/CIFS y devuelve la URI smb:// lista para que
+ * el servidor (central o filial) le instale una cola CUPS con backend smbspool. Es el equivalente
+ * Windows de compartir por IPP en Linux: el server no habla con el USB, habla con el share.
+ */
+async function compartirImpresoraWindows(
+  queue: string,
+  centralIp?: string,
+): Promise<ResultadoCompartir> {
+  const ipPc = await ipLocalHaciaDestino(centralIp);
+  const cola = (queue || '').trim();
+  if (!cola) {
+    return { success: false, ip: ipPc, uri: null, error: 'Nombre de cola invalido' };
+  }
+  // El nombre del share va sin espacios ni simbolos: viaja dentro de un device-uri smb:// de CUPS.
+  const share = cola.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+  if (!share) {
+    return { success: false, ip: ipPc, uri: null, error: 'No se pudo derivar un nombre de recurso compartido' };
+  }
+  const colaPs = cola.replace(/'/g, "''");
+  const ps =
+    "$ErrorActionPreference='Stop';"
+    + "Set-Printer -Name '" + colaPs + "' -Shared $true -ShareName '" + share + "';"
+    + "Write-Output 'FRC_SHARE_OK'";
+  const r = await correrPowerShell(ps, 30000);
+  if (r.code !== 0 || !/FRC_SHARE_OK/.test(r.stdout || '')) {
+    const detalle = (r.stderr || '').trim() || 'Set-Printer no pudo compartir la cola';
+    // Compartir el spooler requiere permisos de administrador en la PC Windows.
+    return { success: false, ip: ipPc, uri: null, error: detalle };
+  }
+  if (!ipPc) {
+    // Sin IP no podemos armar la URI, pero `recurso` le dice al frontend que esto es SMB para que
+    // la arme con la IP que el usuario haya cargado a mano (y no caiga al ipp:// de Linux).
+    return {
+      success: true,
+      ip: null,
+      uri: null,
+      recurso: share,
+      aviso: 'La impresora quedo compartida como "' + share + '", pero no se pudo determinar la IP de esta PC: cargala a mano.',
+    };
+  }
+  return { success: true, ip: ipPc, uri: 'smb://' + ipPc + '/' + share, recurso: share };
+}
+
 /**
  * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
  * servidor central. Habilita el compartir en cupsd (cupsctl --share-printers --remote-any) y
@@ -595,16 +947,20 @@ async function compartirImpresoraLocal(
   queue: string,
   password?: string,
   centralIp?: string,
-): Promise<{ success: boolean; ip: string | null; uri: string | null; error?: string; aviso?: string }> {
+): Promise<ResultadoCompartir> {
   // IP de esta PC que el servidor destino puede rutear: se DERIVA de la ruta real hacia el
   // centralIp que el usuario indicó (nunca se adivina por prefijo). Si no hay destino o no se
   // pudo resolver, ipPc queda null y el frontend pedirá la IP manual antes de instalar.
+  // En Windows no hay CUPS: la cola se comparte por SMB y el server la alcanza con smbspool.
+  if (process.platform === 'win32') {
+    return compartirImpresoraWindows(queue, centralIp);
+  }
   const ipPc = await ipLocalHaciaDestino(centralIp);
   return new Promise((resolve) => {
     const colaSegura = (queue || '').replace(/[^A-Za-z0-9_-]/g, '');
     const uri = ipPc && colaSegura ? `ipp://${ipPc}:631/printers/${colaSegura}` : null;
     if (process.platform !== 'linux') {
-      resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir CUPS solo disponible en Linux' });
+      resolve({ success: false, ip: ipPc, uri: null, error: 'Compartir solo disponible en Linux (CUPS) y Windows (SMB)' });
       return;
     }
     if (!colaSegura) {
@@ -719,7 +1075,9 @@ interface ResultadoInstalacionLocal {
  *  - Linux: `lpadmin -p <cola> -E -v <uri> -m raw` (térmica ESC/POS crudo) o `-m everywhere`
  *    (driverless IPP). Requiere permisos de admin de CUPS: se intenta sin sudo y, si CUPS lo
  *    rechaza, se devuelve needsPassword para reintentar con la contraseña.
- *  - Windows: `Add-PrinterPort` (TCP/IP raw) + `Add-Printer` (driver "Generic / Text Only").
+ *  - Windows (red): `Add-PrinterPort` (TCP/IP raw) + `Add-Printer` (driver "Generic / Text Only").
+ *  - Windows (USB): `Add-Printer` sobre el puerto USB del spooler que trae la URI usbwin://USB001.
+ *    Si ese puerto ya tiene cola (Windows la instalo por PnP al enchufar), se reusa esa.
  */
 function instalarImpresoraLocal(
   cola: string,
@@ -758,6 +1116,11 @@ function instalarImpresoraLocal(
     (async () => {
       try {
         if (process.platform === 'win32') {
+          // USB: la URI trae el puerto del spooler (usbwin://USB001) → Add-Printer sobre ese puerto.
+          if (uri.toLowerCase().startsWith(ESQUEMA_USB_WIN)) {
+            resolve(await instalarImpresoraWindowsUsb(colaSegura, uri.substring(ESQUEMA_USB_WIN.length)));
+            return;
+          }
           // Windows: crea el puerto TCP/IP raw y agrega la impresora con driver de texto genérico.
           const m = (uri || '').match(/^(socket|ipp|ipps|lpd):\/\/([^:/]+)(?::(\d+))?/i);
           const host = m ? m[2] : null;
@@ -1079,14 +1442,16 @@ function imprimirLocalRaw(arg: any): Promise<{ success: boolean; error?: string 
       return;
     }
 
-    // CUPS / USB / BLUETOOTH: cola local via `lp -d <cola> -o raw`.
+    // CUPS / USB / BLUETOOTH: cola local. Linux/mac via `lp -d <cola> -o raw`; Windows escribiendo
+    // el job como RAW en el spooler (ver imprimirRawWindows).
     const cola = String(arg?.cola || '').trim();
     if (!cola) {
       resolve({ success: false, error: 'Cola CUPS vacía' });
       return;
     }
     if (process.platform === 'win32') {
-      resolve({ success: false, error: 'Impresión CUPS local aún no soportada en Windows' });
+      // Windows no tiene `lp -o raw`: se escribe el ESC/POS crudo en el spooler via winspool.drv.
+      imprimirRawWindows(cola, buffer).then(resolve);
       return;
     }
     try {
@@ -1190,6 +1555,18 @@ function registerPrinterIpcHandlers() {
   ipcMain.handle('print-test-local', async (_event: any, arg: any) => {
     const payload = construirTicketPruebaEscPos(arg);
     return imprimirLocalRaw({ ...arg, payloadBase64: payload.toString('base64') });
+  });
+
+  // Dispositivos de impresion conectados a ESTA PC (no al servidor): en Windows los puertos USB
+  // del spooler, en Linux `lpinfo -v` local. Es el equivalente local de `dispositivosParaInstalar`
+  // del backend, que solo ve el hardware del host donde corre.
+  ipcMain.handle('detect-local-devices', async () => {
+    try {
+      return await detectarDispositivosLocales();
+    } catch (error) {
+      console.error('Error detectando dispositivos locales:', error);
+      return [];
+    }
   });
 
   ipcMain.handle('get-system-printers', async () => {

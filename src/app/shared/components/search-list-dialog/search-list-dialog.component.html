@@ -114,7 +114,7 @@
         [disabled]="cantidadSeleccionados() === 0"
         class="apply-btn">
         <mat-icon>check</mat-icon>
-        Aplicar filtro ({{ cantidadSeleccionados() }})
+        {{ data?.labelAceptar || 'Aplicar filtro' }} ({{ cantidadSeleccionados() }})
       </button>
 
       <button *ngIf="!data?.multiple" mat-raised-button color="primary" (click)="onAceptar()" [disabled]="selectedItem == null">

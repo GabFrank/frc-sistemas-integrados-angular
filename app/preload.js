@@ -40,8 +40,11 @@ contextBridge.exposeInMainWorld(
         'test-printer',
         'print-receipt',
         'get-system-printers',
+        'detect-local-devices',
         'detect-network-printers',
         'print-with-pos-printer',
+        'print-local',
+        'print-test-local',
         'get-local-ip',
         'share-local-printer',
         'install-local-printer'

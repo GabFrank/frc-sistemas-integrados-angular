@@ -18,6 +18,26 @@ import { MainService } from '../../../../main.service';
 import { AdicionarNotaDialogComponent } from '../adicionar-nota-dialog/adicionar-nota-dialog.component';
 import { AdicionarFormaPagoDialogComponent } from '../adicionar-forma-pago-dialog/adicionar-forma-pago-dialog.component';
 
+/** Nota de recepción con los campos de display que consume la tabla del diálogo. */
+export type NotaRecepcionConDisplay = NotaRecepcion & {
+  proveedorNombreDisplay?: string;
+  pedidoMonedaDisplay?: string;
+  pedidoFormaPagoDisplay?: string;
+  pedidoPlazoDisplay?: string;
+  pedidoObservacionDisplay?: string;
+};
+
+export interface CreateEditSolicitudPagoDialogData {
+  /** Proveedor completo (preferido): se usa su nombre real en el campo Proveedor. */
+  proveedor?: Proveedor;
+  /** Alternativa cuando solo se conoce el id del proveedor. */
+  proveedorId?: number;
+  /** Notas de recepción que ya vienen elegidas al abrir (ej.: desde el tab del pedido). */
+  notasPrecargadas?: NotaRecepcion[];
+  /** Solicitud existente para ver/editar. */
+  solicitudPago?: SolicitudPago;
+}
+
 @Component({
   selector: 'app-create-edit-solicitud-pago-dialog',
   templateUrl: './create-edit-solicitud-pago-dialog.component.html',
@@ -38,13 +58,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   monedaList: Moneda[] = [];
   formaPagoList: FormaPago[] = [];
   /** Notas con display de proveedor y datos de pedido para la tabla (sin usar funciones en template). */
-  notasAgregadas: (NotaRecepcion & {
-    proveedorNombreDisplay?: string;
-    pedidoMonedaDisplay?: string;
-    pedidoFormaPagoDisplay?: string;
-    pedidoPlazoDisplay?: string;
-    pedidoObservacionDisplay?: string;
-  })[] = [];
+  notasAgregadas: NotaRecepcionConDisplay[] = [];
+  /**
+   * DataSource de la tabla de notas. Es obligatorio: un array pelado como [dataSource]
+   * se renderiza una sola vez y el CDK no ve los push/splice sobre la misma referencia,
+   * así que al quitar o agregar una nota la tabla quedaba desactualizada.
+   */
+  notasTableDataSource = new MatTableDataSource<NotaRecepcionConDisplay>([]);
+
   /** Detalles (formas de pago) con display para la tabla. */
   detallesAgregados: (SolicitudPagoDetalleInput & { monedaDenominacion?: string; formaPagoDescripcion?: string })[] = [];
   /** DataSource de la tabla de formas de pago para que mat-table detecte cambios al agregar/editar. */
@@ -106,7 +127,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CreateEditSolicitudPagoDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { proveedorId?: number; solicitudPago?: SolicitudPago },
+    @Inject(MAT_DIALOG_DATA) public data: CreateEditSolicitudPagoDialogData,
     private solicitudPagoService: SolicitudPagoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
@@ -133,10 +154,14 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     } else {
       this.isEditable = true;
       this.puedeEditarFormaPagoComputed = true;
-      if (this.data?.proveedorId) {
+      if (this.data?.proveedor?.id) {
+        this.selectedProveedor = this.data.proveedor;
+        this.proveedorNombreDisplay = (this.data.proveedor?.persona?.nombre || '').toString().toUpperCase();
+      } else if (this.data?.proveedorId) {
         this.selectedProveedor = { id: this.data.proveedorId, persona: { nombre: '' } } as Proveedor;
         this.proveedorNombreDisplay = 'Proveedor preseleccionado';
       }
+      this.precargarNotas(this.data?.notasPrecargadas);
       this.updatePuedeEditarProveedor();
     }
     this.loadMonedas();
@@ -153,19 +178,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           observaciones: sp.observaciones || ''
         });
         if (sp.notasRecepcion?.length) {
-          this.notasAgregadas = sp.notasRecepcion.map((nr) => {
-            const nota = nr.notaRecepcion;
-            const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-            const n = nota as NotaRecepcion & {
-              proveedorNombreDisplay?: string;
-              pedidoMonedaDisplay?: string;
-              pedidoFormaPagoDisplay?: string;
-              pedidoPlazoDisplay?: string;
-              pedidoObservacionDisplay?: string;
-            };
-            n.proveedorNombreDisplay = display;
-            return n;
-          });
+          this.notasAgregadas = sp.notasRecepcion.map((nr) => this.withProveedorDisplay(nr.notaRecepcion));
           this.updateNotasDisplay();
           this.updateMontoTotal();
         }
@@ -271,24 +284,10 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     });
     ref.afterClosed().subscribe((notas: NotaRecepcion[] | null) => {
       if (!notas?.length) return;
-      const newNotas: (NotaRecepcion & {
-        proveedorNombreDisplay?: string;
-        pedidoMonedaDisplay?: string;
-        pedidoFormaPagoDisplay?: string;
-        pedidoPlazoDisplay?: string;
-        pedidoObservacionDisplay?: string;
-      })[] = [];
+      const newNotas: NotaRecepcionConDisplay[] = [];
       notas.forEach((nota) => {
         if (!idsAntes.has(nota.id)) {
-          const display = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
-          const notaWithDisplay = nota as NotaRecepcion & {
-            proveedorNombreDisplay?: string;
-            pedidoMonedaDisplay?: string;
-            pedidoFormaPagoDisplay?: string;
-            pedidoPlazoDisplay?: string;
-            pedidoObservacionDisplay?: string;
-          };
-          notaWithDisplay.proveedorNombreDisplay = display;
+          const notaWithDisplay = this.withProveedorDisplay(nota);
           this.notasAgregadas.push(notaWithDisplay);
           newNotas.push(notaWithDisplay);
         }
@@ -339,6 +338,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           this.solicitudPagoService.onRemoverNotaDeSolicitudPago(this.solicitudPagoId, nota.id).subscribe({
             next: () => {
               this.notasAgregadas.splice(index, 1);
+              this.refrescarTablaNotas();
               this.updateMontoTotal();
               this.updatePuedeEditarProveedor();
               this.saving = false;
@@ -350,6 +350,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
           });
         } else {
           this.notasAgregadas.splice(index, 1);
+          this.refrescarTablaNotas();
           this.updateMontoTotal();
           this.updatePuedeEditarProveedor();
         }
@@ -621,6 +622,34 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.totalFormasPagoComputed = this.detallesAgregados.reduce((sum, d) => sum + (d.valor ?? 0), 0);
   }
 
+  /** Vuelca notasAgregadas en la tabla. Llamar tras cada alta o baja de notas. */
+  private refrescarTablaNotas(): void {
+    this.notasTableDataSource.data = this.notasAgregadas;
+  }
+
+  /** Marca la nota con el nombre del proveedor que muestra la tabla. El resto de los display los completa updateNotasDisplay(). */
+  private withProveedorDisplay(nota: NotaRecepcion): NotaRecepcionConDisplay {
+    const notaConDisplay = nota as NotaRecepcionConDisplay;
+    notaConDisplay.proveedorNombreDisplay = (nota?.pedido?.proveedor?.persona?.nombre ?? '').toString().toUpperCase();
+    return notaConDisplay;
+  }
+
+  /**
+   * Carga notas ya elegidas al abrir el diálogo (ej.: las del pedido desde el tab Solicitud de Pago).
+   * No persiste nada: la solicitud recién se crea al agregar una forma de pago o al Guardar.
+   */
+  private precargarNotas(notas: NotaRecepcion[] | undefined): void {
+    if (!notas?.length) return;
+    const yaAgregadas = new Set(this.notasAgregadas.map((n) => n.id));
+    notas.forEach((nota) => {
+      if (nota?.id == null || yaAgregadas.has(nota.id)) return;
+      yaAgregadas.add(nota.id);
+      this.notasAgregadas.push(this.withProveedorDisplay(nota));
+    });
+    this.updateNotasDisplay();
+    this.updateMontoTotal();
+  }
+
   private updateMontoTotal(): void {
     const mapByMoneda: Record<string, { simbolo: string; total: number; totalEnGs: number; format: string }> = {};
     let totalGs = 0;
@@ -702,6 +731,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       map[nota.id] = !!(n.pedidoObservacionDisplay && n.pedidoObservacionDisplay.length > 0);
     });
     this.notaTieneObservacionMap = map;
+    this.refrescarTablaNotas();
   }
 
   onNotaRowClick(nota: NotaRecepcion): void {

@@ -49,6 +49,8 @@ export class SearchListtDialogData {
   searchFieldName?: string;
   textHint?: string;
   fallbackToLocal?: boolean = false;
+  /** Texto del boton de confirmacion en modo multiple. Default: 'Aplicar filtro' */
+  labelAceptar?: string;
 }
 
 @UntilDestroy({ checkProperties: true })

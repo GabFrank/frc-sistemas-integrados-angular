@@ -496,9 +496,10 @@ input {
   }
 }
 
-// Historial de edicion de un conteo: sin padding, para que la banda de color
-// llegue hasta los bordes del dialogo.
-.historial-conteo-panel {
+// Dialogos con banda de color a sangre (historial de edicion de un conteo, ABM de
+// conceptos de liquidacion): sin padding, para que la banda llegue hasta los bordes.
+.historial-conteo-panel,
+.liquidacion-concepto-panel {
   .mat-mdc-dialog-container {
     padding: 0;
     overflow: hidden;
