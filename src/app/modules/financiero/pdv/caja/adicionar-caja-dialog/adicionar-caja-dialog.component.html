@@ -1,9 +1,9 @@
-<div fxLayout="column" fxLayoutAlign="start" style="height: 90%; padding: 20px;">
+<div class="caja-dialog__contenido" fxLayout="column" fxLayoutAlign="start" style="padding: 20px;">
   <div fxFlex="5" style="width: 100%; text-align: center; font-size: large;">
     <h3 *ngIf="selectedCaja?.id != null">Editar Caja</h3>
     <h3 *ngIf="selectedCaja?.id == null">Nueva Caja</h3>
   </div>
-  <div fxFlex="95" fxLayout="row" style="width: 100%; height: 100%">
+  <div class="caja-dialog__cuerpo" fxFlex="95" fxLayout="row" style="width: 100%; height: 100%">
     <mat-card
       appearance="outlined"
       fxFlex="30%"
@@ -189,7 +189,7 @@
         </div>
       </div> -->
     </mat-card>
-    <div fxFlex="70%" fxLayout="column">
+    <div class="caja-dialog__stepper" fxFlex="70%" fxLayout="column">
       <div fxFlex="100">
         <mat-stepper linear #stepper>
           <!-- <mat-step>
