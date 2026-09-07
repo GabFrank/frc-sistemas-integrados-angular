@@ -1,0 +1,71 @@
+.edit-formato {
+  width: 65vw;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.titulo {
+  color: #ffffff;
+  margin: 0;
+}
+
+.subtitulo {
+  color: #ff9800;
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.fila-accion {
+  margin-top: -8px;
+}
+
+// styles.scss global fija `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`
+// (decisión del repo, no de este componente). El mat-hint sigue siendo VISIBLE pero el elemento
+// que lo contiene no aporta altura al layout, así que su texto flota fuera del box del campo y
+// se dibuja encima de lo que venga después. Sin este margen manual, cualquier campo con
+// mat-hint tapa al siguiente. Verificado con getBoundingClientRect(): el hint mide ~22px de alto
+// y el label flotante del campo siguiente "muerde" ~7px hacia arriba de su propio box (el notch
+// típico del appearance="outline"); 34px cubre ambos con margen de sobra.
+//
+// !important porque fxLayoutGap="10px" del contenedor pone el margin-bottom como estilo INLINE
+// en cada hijo — un margin-bottom de clase normal, con cualquier especificidad, pierde contra
+// eso. Verificado leyendo el atributo style del elemento: "margin-bottom: 10px" puesto por
+// Angular Flex Layout, no por esta hoja de estilos.
+::ng-deep .campo-con-hint-largo {
+  margin-bottom: 34px !important;
+}
+
+.preview {
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 8px 12px;
+
+  .preview-titulo {
+    color: #ff9800;
+    margin-bottom: 6px;
+  }
+
+  .preview-error {
+    color: #f44336;
+  }
+
+  table {
+    width: 100%;
+  }
+
+  .campo {
+    color: #9e9e9e;
+    padding: 2px 8px 2px 0;
+    white-space: nowrap;
+  }
+
+  .valor {
+    text-align: left;
+    font-family: monospace;
+  }
+}
+
+.acciones {
+  margin-top: 8px;
+}

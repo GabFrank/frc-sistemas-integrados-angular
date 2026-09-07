@@ -1,0 +1,97 @@
+<div class="registrar-vt" fxLayout="column">
+
+  <div class="cabecera">
+    <div class="titulo-center">{{ data.titulo || 'Venta con Tarjeta' }}</div>
+    <div class="subtitulo-dialog" *ngIf="data.terminalDescripcion">{{ data.terminalDescripcion }}</div>
+  </div>
+
+  <!-- El monto y la terminal son contra lo que el cajero contrasta el cupón que tiene en la mano:
+       van juntos y destacados, no como una línea más de texto. -->
+  <div class="monto-caja">
+    <span class="monto-label">A registrar</span>
+    <span class="monto">{{ data.monto | number: '1.0-2' }} {{ data.monedaSimbolo || 'Gs.' }}</span>
+  </div>
+
+  <!-- Cupón ya leído, pero la venta tiene más de un cobro con tarjeta libre: hay que decir a
+       cuál pertenece. Reemplaza TODO el resto para que no haya forma de seguir sin elegir. -->
+  <div class="elegir-cobro" *ngIf="candidatos.length">
+    <div class="elegir-titulo">¿A qué cobro corresponde este cupón?</div>
+    <div class="elegir-ayuda">
+      La venta tiene más de un cobro con tarjeta. Elegí cuál pagó este cupón para que quede
+      conciliado.
+    </div>
+
+    <mat-radio-group class="lista-cobros" [(ngModel)]="cobroElegidoId">
+      <mat-radio-button *ngFor="let c of candidatos; let i = index" [value]="c.id">
+        <span class="cobro-linea">
+          <span class="cobro-orden">Cobro {{ i + 1 }}</span>
+          <span class="cobro-monto">{{ c.valor | number: '1.0-2' }} {{ c.moneda?.simbolo || 'Gs.' }}</span>
+        </span>
+      </mat-radio-button>
+    </mat-radio-group>
+
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px" class="acciones">
+      <button mat-button class="btn-descartar" [disabled]="procesando" (click)="descartarCuponLeido()">
+        Descartar cupón
+      </button>
+      <button
+        mat-raised-button
+        class="btn-success"
+        [disabled]="cobroElegidoId == null || procesando"
+        (click)="confirmarCobroElegido()"
+      >
+        Confirmar y registrar
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!candidatos.length">
+
+    <!-- Camino principal: el lector del PDV. Va con el mismo tratamiento que el diálogo de
+         escaneo del PDV para que los dos hermanos se vean igual. -->
+    <div class="zona-lectura" [class.con-error]="errorLectura">
+      <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
+
+      <mat-form-field appearance="outline" class="campo-cupon">
+        <mat-label>Escaneá el QR del cupón</mat-label>
+        <input
+          matInput
+          [formControl]="cuponControl"
+          autofocus
+          cdkFocusInitial
+          [maxlength]="maxLongitud"
+          autocomplete="off"
+        />
+      </mat-form-field>
+
+      <div class="ayuda" *ngIf="!errorLectura && !procesando">
+        Apuntá el lector al QR impreso en el ticket. Se registra solo.
+      </div>
+      <div class="procesando" *ngIf="procesando">Registrando…</div>
+      <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
+    </div>
+
+    <div class="separador">
+      <span>o registrá desde el celular</span>
+    </div>
+
+    <!-- Camino que ya existía, y el único para los proveedores que todavía no imprimen QR.
+         Es la alternativa, no la acción principal: va más chico que antes. -->
+    <div class="qr">
+      <ngx-qrcode [value]="valorQr" [scale]="3"></ngx-qrcode>
+      <div class="ayuda">Escaneá este código con la app para capturar la imagen del cupón</div>
+    </div>
+
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones">
+      <!-- Antes este botón decía sólo "Salir" y no explicaba nada. Cerrar el diálogo siempre dejó
+           la venta cerrada y el registro pendiente; ahora lo dice. -->
+      <button mat-button class="btn-mas-tarde" [disabled]="procesando" (click)="onMasTarde()">
+        Registrar más tarde
+      </button>
+      <!-- Un número suelto no dice nada: se cierra solo, y eso hay que decirlo. -->
+      <span class="countdown" *ngIf="countdown != null">se cierra en {{ countdown }} s</span>
+    </div>
+
+  </ng-container>
+
+</div>

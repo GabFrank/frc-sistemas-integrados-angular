@@ -1,0 +1,194 @@
+// La app es dark siempre: nada de fondos claros.
+.registrar-vt {
+  width: 560px;
+  max-width: 90vw;
+  // styles.scss deja el mat-dialog-container con padding 0.
+  padding: 20px 24px 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+// Clases de la convención de diálogos (styles.scss). NO usar .titulo: esa global es naranja,
+// alineada a la izquierda y con padding propio, y rompe el centrado.
+.titulo-center {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+// Naranja para el subtítulo, según la convención. El color va acá porque styles.scss nombra
+// .subtitulo-dialog en un comentario pero no tiene regla global para ella.
+.subtitulo-dialog {
+  font-size: 1.2rem;
+  color: #ff9800;
+}
+
+// Mismo tratamiento que el diálogo de escaneo del PDV: el monto es el dato que el cajero
+// contrasta contra el cupón en la mano, así que va en su propio recuadro.
+.cabecera {
+  margin-bottom: 14px;
+}
+
+.monto-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid #555;
+  border-radius: 6px;
+}
+
+.monto-label {
+  font-size: 0.95rem;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.monto {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.zona-lectura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 12px 10px;
+  border: 1px dashed #616161;
+  border-radius: 6px;
+
+  &.con-error {
+    border-color: #f44336;
+    border-style: solid;
+  }
+}
+
+.icono-lector {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  color: #9e9e9e;
+}
+
+.ayuda {
+  color: #9e9e9e;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.campo-cupon {
+  width: 100%;
+}
+
+.procesando {
+  color: #9e9e9e;
+}
+
+.error-lectura {
+  color: #f44336;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+}
+
+// Separador con el texto al medio, para que quede claro que son dos caminos alternativos.
+.separador {
+  margin: 18px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9e9e9e;
+  font-size: 1rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid #555;
+  }
+}
+
+// La alternativa, no la acción principal: el QR va contenido y más chico que antes, que ocupaba
+// media pantalla y empujaba los botones fuera de vista.
+.qr {
+  img,
+  canvas,
+  svg {
+    max-width: 190px;
+    height: auto;
+  }
+
+  .ayuda {
+    color: #9e9e9e;
+    font-size: 1rem;
+    margin-top: 4px;
+  }
+}
+
+// Acompaña al botón, en chico: un número suelto y grande parecía un dato del cobro.
+.countdown {
+  font-size: 0.95rem;
+  color: #9e9e9e;
+}
+
+.acciones {
+  margin-top: 14px;
+}
+
+// Salida secundaria: plana, para no competir con el escaneo, que es lo que se espera que pase.
+.btn-mas-tarde {
+  color: #bdbdbd;
+}
+
+
+// Selector de cobro: aparece cuando la venta tiene más de un cobro con tarjeta libre y el
+// backend no puede desempatarlos. Reemplaza al resto del diálogo a propósito.
+.elegir-cobro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px;
+  border: 1px solid #ff9800;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.elegir-titulo {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.elegir-ayuda {
+  font-size: 1rem;
+  color: #9e9e9e;
+  line-height: 1.3;
+}
+
+.lista-cobros {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cobro-linea {
+  display: inline-flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.cobro-orden {
+  color: #9e9e9e;
+}
+
+.cobro-monto {
+  font-weight: 600;
+}
+
+// Salida explícita del selector: plana y gris, para que no compita con "Confirmar y registrar".
+.btn-descartar {
+  color: #bdbdbd;
+}

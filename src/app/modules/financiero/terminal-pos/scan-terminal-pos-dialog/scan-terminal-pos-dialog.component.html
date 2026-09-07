@@ -23,24 +23,44 @@
       </div>
     </div>
 
+    <p *ngIf="buscando" style="margin: 0; color: gray; font-size: 1.4rem;">
+      Buscando la terminal…
+    </p>
+
     <mat-error *ngIf="noEncontrado" style="font-size: 0.9rem;">
       No se encontró ninguna terminal activa con ese código.
     </mat-error>
   </form>
 
-  <div 
-    fxLayout="row" 
-    fxLayoutAlign="center" 
-    fxLayoutGap="10px" 
-    style="margin-top: 10px;"
+  <div
+    class="acciones"
+    fxLayout="row"
+    fxLayoutAlign="stretch center"
+    fxLayoutGap="10px"
   >
-    <button 
-      mat-raised-button 
+    <!-- fxFlex sin valor (flex: 1 1 0) y no fxFlex="50": con el fxLayoutGap del contenedor,
+         dos mitades exactas suman 100% + gap y una de las dos se desborda. Así los dos botones
+         se reparten en partes iguales el ancho que queda después del gap. -->
+    <button
+      mat-raised-button
       class="btn-salir"
-      color="primary"  
+      fxFlex
+      color="primary"
       (click)="onCancel()"
     >
       Cancelar
+    </button>
+
+    <!-- El diálogo antes sólo tenía Cancelar: si el lector no mandaba Enter, no había forma
+         de confirmar el código ya tipeado. -->
+    <button
+      mat-raised-button
+      class="btn-success"
+      fxFlex
+      [disabled]="codigoControl.invalid || buscando"
+      (click)="onConfirmar()"
+    >
+      Confirmar
     </button>
   </div>
 </div>
