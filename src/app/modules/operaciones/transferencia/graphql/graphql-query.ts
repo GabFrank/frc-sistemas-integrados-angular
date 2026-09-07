@@ -51,6 +51,13 @@ export const transferenciaQuery = gql`
       hojaRuta {
         id
       }
+      solicitante {
+        id
+        nickname
+        persona {
+          nombre
+        }
+      }
       usuarioPreTransferencia {
         id
         nickname
@@ -228,6 +235,12 @@ export const saveTransferencia = gql`
       etapa
       observacion
       creadoEn
+      solicitante {
+        id
+        persona {
+          nombre
+        }
+      }
       usuarioPreTransferencia {
         id
         persona {

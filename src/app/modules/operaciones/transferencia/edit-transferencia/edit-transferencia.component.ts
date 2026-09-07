@@ -18,6 +18,7 @@ import { MainService } from "../../../../main.service";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SeleccionarSucursalDialogComponent } from "../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
+import { UsuarioHelperService } from "../../../administrativo/marcacion/service/usuario-helper.service";
 import { MatDialog } from "@angular/material/dialog";
 import {
   Component,
@@ -238,7 +239,8 @@ export class EditTransferenciaComponent implements OnInit {
     private presentacionService: PresentacionService,
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
-    private configuracionTransferenciaService: ConfiguracionTransferenciaService
+    private configuracionTransferenciaService: ConfiguracionTransferenciaService,
+    private usuarioHelperService: UsuarioHelperService
   ) { }
 
   ngOnInit(): void {
@@ -1173,6 +1175,17 @@ export class EditTransferenciaComponent implements OnInit {
 
   onAvanzarEtapa(etapa) {
     console.log('etapa', etapa);
+    // El central rechaza el avance sin solicitante; se corta antes para no mostrar el error crudo.
+    if (
+      this.isPreTransferenciaCreacion &&
+      etapa != EtapaTransferencia.PRE_TRANSFERENCIA_CREACION &&
+      this.selectedTransferencia?.solicitante == null
+    ) {
+      this.notificacionService.openWarn(
+        "Hay que indicar el solicitante antes de avanzar: quien pidio los productos en la sucursal destino."
+      );
+      return;
+    }
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
@@ -1194,6 +1207,42 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
 
+
+  /**
+   * El solicitante solo se puede tocar mientras la transferencia esta en creacion: despues de esa
+   * etapa el dato ya viajo con el pedido y cambiarlo seria reescribir quien lo pidio.
+   */
+  onSeleccionarSolicitante() {
+    if (!this.isPreTransferenciaCreacion) return;
+    if (this.selectedTransferencia?.id == null) {
+      this.notificacionService.openWarn(
+        "Primero hay que seleccionar las sucursales de origen y destino."
+      );
+      return;
+    }
+    this.usuarioHelperService
+      .abrirBuscador(this.matDialog, "Buscar solicitante")
+      .pipe(untilDestroyed(this))
+      .subscribe((usuario) => {
+        if (usuario == null) return;
+        // Se guarda sobre una copia y se copia de vuelta solo el solicitante, igual que en
+        // selectSucursales: onSaveTransferencia() pisa selectedTransferencia con el objeto plano
+        // de la respuesta y ahi se pierde toInput().
+        let auxTransf = new Transferencia();
+        Object.assign(auxTransf, this.selectedTransferencia);
+        auxTransf.solicitante = usuario;
+        this.cargandoService.openDialog();
+        this.transferenciaService
+          .onSaveTransferencia(auxTransf.toInput())
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            this.cargandoService.closeDialog();
+            if (res != null) {
+              this.selectedTransferencia.solicitante = res.solicitante;
+            }
+          });
+      });
+  }
 
   onSelectEstado(etapa: EtapaTransferencia) { }
 
