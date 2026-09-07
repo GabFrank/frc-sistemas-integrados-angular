@@ -19,6 +19,12 @@ import { Presentacion } from "../../../productos/presentacion/presentacion.model
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SeleccionarSucursalDialogComponent } from "../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
 import { UsuarioHelperService } from "../../../administrativo/marcacion/service/usuario-helper.service";
+import { CajaService } from "../../../financiero/pdv/caja/caja.service";
+import { Usuario } from "../../../personas/usuarios/usuario.model";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import {
   Component,
@@ -240,7 +246,8 @@ export class EditTransferenciaComponent implements OnInit {
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private configuracionTransferenciaService: ConfiguracionTransferenciaService,
-    private usuarioHelperService: UsuarioHelperService
+    private usuarioHelperService: UsuarioHelperService,
+    private cajaService: CajaService
   ) { }
 
   ngOnInit(): void {
@@ -1220,28 +1227,88 @@ export class EditTransferenciaComponent implements OnInit {
       );
       return;
     }
-    this.usuarioHelperService
-      .abrirBuscador(this.matDialog, "Buscar solicitante")
+    const sucursalDestinoId = this.selectedTransferencia?.sucursalDestino?.id;
+    if (sucursalDestinoId == null) {
+      this.abrirBuscadorDeSolicitante(null);
+      return;
+    }
+
+    // Los cajeros con caja abierta en el destino son los candidatos naturales, pero es solo una
+    // ayuda: si no hay ninguno se busca entre todos los usuarios para no trabar la transferencia.
+    this.cargandoService.openDialog();
+    this.cajaService
+      .onGetCajerosConCajaAbierta(sucursalDestinoId)
       .pipe(untilDestroyed(this))
-      .subscribe((usuario) => {
-        if (usuario == null) return;
-        // Se guarda sobre una copia y se copia de vuelta solo el solicitante, igual que en
-        // selectSucursales: onSaveTransferencia() pisa selectedTransferencia con el objeto plano
-        // de la respuesta y ahi se pierde toInput().
-        let auxTransf = new Transferencia();
-        Object.assign(auxTransf, this.selectedTransferencia);
-        auxTransf.solicitante = usuario;
-        this.cargandoService.openDialog();
-        this.transferenciaService
-          .onSaveTransferencia(auxTransf.toInput())
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            this.cargandoService.closeDialog();
-            if (res != null) {
-              this.selectedTransferencia.solicitante = res.solicitante;
-            }
-          });
+      .subscribe({
+        next: (cajeros) => {
+          this.cargandoService.closeDialog();
+          if (cajeros == null || cajeros.length == 0) {
+            this.notificacionService.openWarn(
+              "No hay cajas abiertas en " +
+                this.selectedTransferencia?.sucursalDestino?.nombre +
+                ": se muestran todos los usuarios."
+            );
+            this.abrirBuscadorDeSolicitante(null);
+          } else {
+            this.abrirBuscadorDeSolicitante(cajeros);
+          }
+        },
+        error: () => {
+          this.cargandoService.closeDialog();
+          this.abrirBuscadorDeSolicitante(null);
+        },
       });
+  }
+
+  /**
+   * Con `cajeros` abre el buscador sobre esa lista, que el dialogo filtra localmente. Con null cae
+   * al buscador de usuarios contra el servidor, que es el comportamiento de siempre.
+   *
+   * En los dos casos no se preselecciona nada: la lista llega acotada, elegir sigue siendo manual.
+   */
+  private abrirBuscadorDeSolicitante(cajeros: Usuario[] | null) {
+    const seleccion =
+      cajeros != null
+        ? this.matDialog
+            .open(SearchListDialogComponent, {
+              data: {
+                titulo: "Buscar solicitante (con caja abierta)",
+                tableData: [
+                  { id: "id", nombre: "Id", width: "20%" },
+                  { id: "persona.nombre", nombre: "Nombre", width: "80%" },
+                ],
+                query: null,
+                inicialData: cajeros,
+              } as SearchListtDialogData,
+              height: "80vh",
+              width: "70vw",
+              panelClass: "search-dialog-dark",
+            })
+            .afterClosed()
+        : this.usuarioHelperService.abrirBuscador(
+            this.matDialog,
+            "Buscar solicitante"
+          );
+
+    seleccion.pipe(untilDestroyed(this)).subscribe((usuario) => {
+      if (usuario == null) return;
+      // Se guarda sobre una copia y se copia de vuelta solo el solicitante, igual que en
+      // selectSucursales: onSaveTransferencia() pisa selectedTransferencia con el objeto plano
+      // de la respuesta y ahi se pierde toInput().
+      let auxTransf = new Transferencia();
+      Object.assign(auxTransf, this.selectedTransferencia);
+      auxTransf.solicitante = usuario;
+      this.cargandoService.openDialog();
+      this.transferenciaService
+        .onSaveTransferencia(auxTransf.toInput())
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoService.closeDialog();
+          if (res != null) {
+            this.selectedTransferencia.solicitante = res.solicitante;
+          }
+        });
+    });
   }
 
   onSelectEstado(etapa: EtapaTransferencia) { }

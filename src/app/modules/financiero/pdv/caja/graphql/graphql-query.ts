@@ -739,6 +739,27 @@ export const cajasAnalisisDiferencias = gql`
   }
 `;
 
+/**
+ * Los cajeros que hoy estan en caja en una sucursal, ya deduplicados por el central.
+ *
+ * Va aparte de cajaAbiertoPorSucursalQuery por dos razones: esa arrastra el balance completo de
+ * cada caja (~30 campos de totales) que aca no se usa, y sobre todo devuelve todo lo que tiene
+ * activo = true, que incluye cajas abandonadas de anios anteriores. El criterio estricto vive en
+ * el central.
+ */
+export const cajerosConCajaAbiertaQuery = gql`
+  query ($sucursalId: ID!) {
+    data: cajerosConCajaAbiertaPorSucursal(sucursalId: $sucursalId) {
+      id
+      nickname
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const cajaAbiertoPorSucursalQuery = gql`
   query ($sucursalId: ID!) {
     data: cajaAbiertoPorSucursal(sucursalId: $sucursalId) {
