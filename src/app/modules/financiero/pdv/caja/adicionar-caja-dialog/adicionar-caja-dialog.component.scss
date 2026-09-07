@@ -6,6 +6,21 @@ input {
   pointer-events: none !important;
 }
 
+// Scopeado con :host: un ::ng-deep suelto se emite sin el atributo del componente
+// y le pisaria el stepper a toda la app.
+:host ::ng-deep {
+  // El header es solo indicador de paso (no se clickea): no necesita los 72px por defecto.
+  .mat-horizontal-stepper-header {
+    height: 48px !important;
+    padding: 0 16px !important;
+  }
+
+  // El contenedor reserva 24px abajo que aca solo empujan las acciones del conteo.
+  .mat-horizontal-content-container {
+    padding-bottom: 8px !important;
+  }
+}
+
 .verificarMaletin:hover {
   color: #43a047;
 }
@@ -20,10 +35,43 @@ mat-step {
   height: 100%;
 }
 
+// El dialogo es una columna: el contenido scrollea y la barra de transferir queda
+// siempre anclada abajo. Antes el contenido tenia height: 90% fijo y desbordaba,
+// tapando el boton de transferir con las acciones del conteo (editar montos / ver historial).
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.caja-dialog__contenido {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+// El cuerpo no crece: si el conteo es mas alto que el dialogo, scrollea la columna
+// del stepper y el menu lateral queda siempre visible.
+.caja-dialog__cuerpo {
+  min-height: 0;
+}
+
+.caja-dialog__stepper {
+  min-height: 0;
+  overflow: auto;
+}
+
 .botonTransferir {
+  flex: 0 0 auto;
   justify-content: end;
   align-items: center;
   display: flex;
   gap: 10px;
-  padding-right: 20px
+  padding: 8px 20px 12px;
+  box-sizing: border-box;
 }
