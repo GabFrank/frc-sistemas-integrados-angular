@@ -217,25 +217,31 @@
               <div fxLayout="column" style="width: 90%">
                 <br />
                 <div fxLayout="row" style="width: 100%" class="responsables">
-                  <div fxFlex="25%" fxLayout="column">
+                  <div fxFlex="20%" fxLayout="column">
+                    <div class="titulo responsable-etapa">Solicitante</div>
+                    <div class="responsable-usuario">
+                      {{ transferencia?.solicitante?.nickname ? (transferencia?.solicitante?.nickname | uppercase) : "-" }}
+                    </div>
+                  </div>
+                  <div fxFlex="20%" fxLayout="column">
                     <div class="titulo responsable-etapa">Pre Transferencia</div>
                     <div class="responsable-usuario">
                       {{ transferencia?.usuarioPreTransferencia?.nickname ? (transferencia?.usuarioPreTransferencia?.nickname | uppercase) : "-" }}
                     </div>
                   </div>
-                  <div fxFlex="25%" fxLayout="column">
+                  <div fxFlex="20%" fxLayout="column">
                     <div class="titulo responsable-etapa">Preparación</div>
                     <div class="responsable-usuario">
                       {{ transferencia?.usuarioPreparacion?.nickname ? (transferencia?.usuarioPreparacion?.nickname | uppercase) : "-" }}
                     </div>
                   </div>
-                  <div fxFlex="25%" fxLayout="column">
+                  <div fxFlex="20%" fxLayout="column">
                     <div class="titulo responsable-etapa">Transporte</div>
                     <div class="responsable-usuario">
                       {{ transferencia?.usuarioTransporte?.nickname ? (transferencia?.usuarioTransporte?.nickname | uppercase) : "-" }}
                     </div>
                   </div>
-                  <div fxFlex="25%" fxLayout="column">
+                  <div fxFlex="20%" fxLayout="column">
                     <div class="titulo responsable-etapa">Recepción</div>
                     <div class="responsable-usuario">
                       {{ transferencia?.usuarioRecepcion?.nickname ? (transferencia?.usuarioRecepcion?.nickname | uppercase) : "-" }}

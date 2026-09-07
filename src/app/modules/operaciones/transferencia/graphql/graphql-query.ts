@@ -392,6 +392,10 @@ export const transferenciaWithFiltersQuery = gql`
         hojaRuta {
           id
         }
+        solicitante {
+          id
+          nickname
+        }
         usuarioPreTransferencia {
           id
           nickname
