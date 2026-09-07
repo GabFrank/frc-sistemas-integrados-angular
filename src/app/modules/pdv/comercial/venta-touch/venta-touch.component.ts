@@ -1302,115 +1302,132 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           false
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.id != null) {
-            this.notificacionSnackbar.notification$.next({
-              color: NotificacionColor.success,
-              texto: "Venta guardada con éxito",
-              duracion: 2,
-            });
-            if (facturaLegalId != null) {
-              // La factura se generó manualmente antes de que la venta existiera
-              // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
-              this.facturaLegalService
-                .onVincularFacturaAVenta(facturaLegalId, res.id, false)
-                .pipe(untilDestroyed(this))
-                .subscribe({
-                  error: (err) =>
-                    console.error("Error al vincular factura a la venta:", err),
-                });
-            }
-            if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
-              const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
-              const personaId = venta.cliente?.persona?.id;
-
-              if (personaId && sucursalId) {
-                this.notificationHttpService.sendCompraCreditoNotification(
-                  res.id,
-                  sucursalId,
-                  personaId,
-                  ventaCreditoInput.valorTotal,
-                  this.mainService.sucursalActual?.nombre
-                ).subscribe({
-                  next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
-                  error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
-                });
+        .subscribe({
+          next: (res) => {
+            if (res?.id != null) {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: "Venta guardada con éxito",
+                duracion: 2,
+              });
+              if (facturaLegalId != null) {
+                // La factura se generó manualmente antes de que la venta existiera
+                // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+                this.facturaLegalService
+                  .onVincularFacturaAVenta(facturaLegalId, res.id, false)
+                  .pipe(untilDestroyed(this))
+                  .subscribe({
+                    error: (err) =>
+                      console.error("Error al vincular factura a la venta:", err),
+                  });
               }
-            }
-            if (cobro?.cobroDetalleList?.length > 0) {
-              const pagoTransferencia = cobro.cobroDetalleList.find(
-                (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
-              );
-
-              if (pagoTransferencia) {
-                const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-
-                const totalTransferencia = cobro.cobroDetalleList
-                  .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
-                  .reduce((acc, curr) => acc + curr.valor, 0);
-
-                if (sucursalId && totalTransferencia > 0) {
-                  this.notificationHttpService.sendVentaTransferenciaNotification(
+              if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
+                const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
+                const personaId = venta.cliente?.persona?.id;
+  
+                if (personaId && sucursalId) {
+                  this.notificationHttpService.sendCompraCreditoNotification(
                     res.id,
                     sucursalId,
-                    totalTransferencia,
-                    this.mainService.usuarioActual?.persona?.nombre,
+                    personaId,
+                    ventaCreditoInput.valorTotal,
                     this.mainService.sucursalActual?.nombre
                   ).subscribe({
-                    next: () => console.log('Notificación de Transferencia enviada exitosamente'),
-                    error: (err) => console.error('Error al enviar notificación de transferencia:', err)
+                    next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                    error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                   });
                 }
               }
-            }
-
-            const sucursalId =
-              this.cajaService.selectedCaja?.sucursalId ||
-              this.mainService.sucursalActual?.id;
-            if (res.id && sucursalId) {
-              this.getStockCriticoItems$(sucursalId)
-                .pipe(untilDestroyed(this))
-                .subscribe((stockCriticoItems) => {
-                  if (stockCriticoItems.length === 0) {
-                    return;
-                  }
-                  this.notificationHttpService
-                    .sendVentaStockCriticoNotification({
-                      ventaId: res.id,
+              if (cobro?.cobroDetalleList?.length > 0) {
+                const pagoTransferencia = cobro.cobroDetalleList.find(
+                  (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
+                );
+  
+                if (pagoTransferencia) {
+                  const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+  
+                  const totalTransferencia = cobro.cobroDetalleList
+                    .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
+                    .reduce((acc, curr) => acc + curr.valor, 0);
+  
+                  if (sucursalId && totalTransferencia > 0) {
+                    this.notificationHttpService.sendVentaTransferenciaNotification(
+                      res.id,
                       sucursalId,
-                      usuarioNombre:
-                        this.mainService.usuarioActual?.persona?.nombre,
-                      sucursalNombre: this.mainService.sucursalActual?.nombre,
-                      items: stockCriticoItems,
-                    })
-                    .subscribe({
-                      next: () =>
-                        console.log(
-                          "Notificación de stock crítico enviada exitosamente"
-                        ),
-                      error: (err) =>
-                        console.error(
-                          "Error al enviar notificación de stock crítico:",
-                          err
-                        ),
+                      totalTransferencia,
+                      this.mainService.usuarioActual?.persona?.nombre,
+                      this.mainService.sucursalActual?.nombre
+                    ).subscribe({
+                      next: () => console.log('Notificación de Transferencia enviada exitosamente'),
+                      error: (err) => console.error('Error al enviar notificación de transferencia:', err)
                     });
-                });
+                  }
+                }
+              }
+  
+              const sucursalId =
+                this.cajaService.selectedCaja?.sucursalId ||
+                this.mainService.sucursalActual?.id;
+              if (res.id && sucursalId) {
+                this.getStockCriticoItems$(sucursalId)
+                  .pipe(untilDestroyed(this))
+                  .subscribe((stockCriticoItems) => {
+                    if (stockCriticoItems.length === 0) {
+                      return;
+                    }
+                    this.notificationHttpService
+                      .sendVentaStockCriticoNotification({
+                        ventaId: res.id,
+                        sucursalId,
+                        usuarioNombre:
+                          this.mainService.usuarioActual?.persona?.nombre,
+                        sucursalNombre: this.mainService.sucursalActual?.nombre,
+                        items: stockCriticoItems,
+                      })
+                      .subscribe({
+                        next: () =>
+                          console.log(
+                            "Notificación de stock crítico enviada exitosamente"
+                          ),
+                        error: (err) =>
+                          console.error(
+                            "Error al enviar notificación de stock crítico:",
+                            err
+                          ),
+                      });
+                  });
+              }
+  
+              const tarjetaPagos = this._pendingTarjetaPagos;
+              this._pendingTarjetaPagos = [];
+              this.registrarPagosConTarjeta(tarjetaPagos, res.id);
+  
+              this.resetForm();
+              obs.next(res);
+            } else {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: "Ups! Ocurrió un problema al guardar",
+                duracion: 3,
+              });
+              obs.next(null);
             }
-
-            const tarjetaPagos = this._pendingTarjetaPagos;
-            this._pendingTarjetaPagos = [];
-            this.registrarPagosConTarjeta(tarjetaPagos, res.id);
-
-            this.resetForm();
-            obs.next(res);
-          } else {
+          },
+          // Sin este handler el error quedaba sin manejar: la venta no se
+          // guardaba y el cajero no se enteraba. Cuando ya se emitió la
+          // factura eso deja una factura legal sin venta asociada, con el
+          // número de timbrado ya consumido y el stock sin descontar.
+          error: (err) => {
+            console.error("Error al guardar la venta:", err);
             this.notificacionSnackbar.notification$.next({
               color: NotificacionColor.danger,
-              texto: "Ups! Ocurrió un problema al guardar",
-              duracion: 3,
+              texto: facturaLegalId != null
+                ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+                : "No se pudo guardar la venta. Verifique antes de continuar.",
+              duracion: 10,
             });
             obs.next(null);
-          }
+          },
         });
     });
   }
