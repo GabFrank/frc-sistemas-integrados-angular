@@ -830,7 +830,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       height: '70%',
       data: {
         notaRecepcionId: this.data.nota.id,
-        isNewItem: true
+        isNewItem: true,
+        // Para sugerir el costo del producto en la moneda de la nota (el costo se guarda en Gs).
+        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value
       },
       disableClose: true
     });
@@ -860,7 +862,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       height: '70%',
       data: {
         item: item,
-        notaRecepcionId: this.data.nota?.id || 0
+        notaRecepcionId: this.data.nota?.id || 0,
+        // Para sugerir el costo del producto en la moneda de la nota (el costo se guarda en Gs).
+        cotizacion: this.notaRecepcionForm.get('cotizacion')?.value
       },
       disableClose: true
     });
