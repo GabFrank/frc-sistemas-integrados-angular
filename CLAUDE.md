@@ -25,6 +25,15 @@ npm run test:watch         # Karma watch
 npm run lint               # ng lint (ESLint)
 ```
 
+> ⚠️ **El CI de PR NO corre tests ni lint.** `ci.yml` solo hace `npm ci`, `npm run build:prod` y
+> `npm run electron:serve-tsc`, en una matriz `ubuntu-latest` + `windows-latest`. Los 260
+> `.spec.ts` de Karma y los specs de Playwright **no se ejecutan en ningún gate**: si querés esa
+> red, corrélos a mano. El único check requerido por la protección de rama es ese build.
+>
+> ⚠️ **`npx tsc --noEmit` no sirve como gate de tipos acá.** Con TypeScript 4.8.4, un error de
+> sintaxis en un `.d.ts` de `node_modules` hace que `tsc` omita el chequeo semántico completo y
+> reporte cero errores del código propio. El único gate real es `npm run check` (AOT).
+
 **`npm run check` es obligatorio antes de push**: Angular en modo `ng serve` (JIT) tolera errores que el build AOT de producción rechaza. Sin este check, hay riesgo concreto de pushear código que rompe el build de release. Existe `npm run remind` específicamente para nagearte sobre esto.
 
 `ng:serve` exporta `NODE_OPTIONS=--max_old_space_size=8192` — el build Angular es memory-hungry y sin esa flag falla por OOM en máquinas con poca RAM.
@@ -76,7 +85,7 @@ Hay varios `configuracion*.json` **versionados en git**:
 
 ## CI/CD
 
-Mismo modelo `semantic-release` que los backends. Ver guía consolidada [../../cicd-implementation/guia-desarrollo-cicd.md](../../cicd-implementation/guia-desarrollo-cicd.md) para el detalle completo.
+Mismo modelo `semantic-release` que los backends. Ver guía consolidada [../../frc-cicd/guia-desarrollo-cicd.md](../../frc-cicd/guia-desarrollo-cicd.md) para el detalle completo.
 
 ### Branches
 

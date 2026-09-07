@@ -1,0 +1,60 @@
+<div class="concepto">
+  <div class="concepto__banda">
+    <mat-icon>playlist_add_check</mat-icon>
+    <div class="concepto__titulo">
+      <h3>{{ selectedConcepto.id ? 'Editar concepto' : 'Nuevo concepto' }}</h3>
+      <span>{{ selectedConcepto.id ? selectedConcepto.codigo : 'Catálogo de liquidación' }}</span>
+    </div>
+  </div>
+
+  <form class="concepto__cuerpo" [formGroup]="formGroup">
+    <mat-form-field class="concepto__campo">
+      <mat-label>Código</mat-label>
+      <input matInput [formControl]="codigoControl" required />
+      <mat-error *ngIf="codigoControl.hasError('required')">Ingresá el código</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="concepto__campo">
+      <mat-label>Descripción</mat-label>
+      <input matInput [formControl]="descripcionControl" required />
+      <mat-error *ngIf="descripcionControl.hasError('required')">Ingresá la descripción</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="concepto__campo">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="esHaberControl" required>
+        <mat-option [value]="true">Haber (suma)</mat-option>
+        <mat-option [value]="false">Descuento (resta)</mat-option>
+      </mat-select>
+      <mat-error *ngIf="esHaberControl.hasError('required')">Elegí si suma o resta</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="concepto__campo">
+      <mat-label>¿Es remunerativo?</mat-label>
+      <mat-select [formControl]="esRemunerativoControl" required>
+        <mat-option [value]="true">Sí</mat-option>
+        <mat-option [value]="false">No</mat-option>
+      </mat-select>
+      <mat-error *ngIf="esRemunerativoControl.hasError('required')">Elegí una opción</mat-error>
+    </mat-form-field>
+
+    <p class="concepto__nota">Entra a la base del aguinaldo, del IPS del finiquito y de la indemnización.</p>
+
+    <div class="concepto__checks">
+      <mat-checkbox [formControl]="esCalculadoAutoControl">Lo calcula el sistema</mat-checkbox>
+      <mat-checkbox [formControl]="activoControl">Activo</mat-checkbox>
+    </div>
+  </form>
+
+  <div class="concepto__pie">
+    <div class="concepto__estado" *ngIf="!isEditting">
+      <mat-icon>lock</mat-icon>
+      <span>Solo lectura</span>
+    </div>
+    <div class="concepto__acciones">
+      <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+      <button *ngIf="!isEditting" mat-raised-button color="accent" (click)="onHabilitarEdicion()">Editar</button>
+      <button *ngIf="isEditting" mat-raised-button color="accent" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+    </div>
+  </div>
+</div>
