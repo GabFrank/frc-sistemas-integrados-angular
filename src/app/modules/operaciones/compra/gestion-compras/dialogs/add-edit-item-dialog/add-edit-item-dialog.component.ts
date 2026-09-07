@@ -1578,21 +1578,61 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
-    // Iniciar carga de stock y cantidad sugerida para cada distribución de forma asíncrona e independiente
+    // El stock de todas las distribuciones es una sola pregunta —el mismo producto en varias
+    // sucursales—, así que sale en un request y no en uno por fila.
+    this.loadStockActualDeTodasLasDistribuciones(producto.id);
+
+    // La cantidad sugerida sí es una consulta distinta por sucursal (movimientos del mismo mes
+    // del año pasado), y esa sigue escalonada para no mandarlas todas juntas.
     this.distribucionesItems.forEach((item, index) => {
-      // Usar setTimeout con delay mínimo para asegurar que cada carga sea independiente
-      // y no sature el servidor con múltiples peticiones simultáneas
-      // El delay incremental es muy pequeño (10ms) para no afectar la experiencia del usuario
       setTimeout(() => {
-        // Solo cargar si aún está en estado de carga (no se ha cargado manualmente)
-        if (item.stockActualLoading) {
-          this.loadStockActual(item);
-        }
-        // Cargar cantidad sugerida también de forma asíncrona
         if (item.cantidadSugeridaLoading) {
           this.calculateCantidadSugerida(item);
         }
-      }, index * 10); // Pequeño delay incremental para evitar saturación del servidor
+      }, index * 10);
+    });
+  }
+
+  /**
+   * Resuelve el stock de todas las distribuciones pendientes con un solo request.
+   *
+   * Las sucursales sin movimientos no vuelven en la respuesta del central —no hay filas que
+   * sumar— y quedan en cero, igual que devolvía la consulta por sucursal.
+   */
+  private loadStockActualDeTodasLasDistribuciones(productoId: number): void {
+    const enCarga = this.distribucionesItems.filter((item) => item.stockActualLoading);
+
+    // Una fila sin sucursal de influencia no tiene stock que pedir; se la saca del spinner acá
+    // mismo, que es lo que hacía loadStockActual() al entrar.
+    enCarga
+      .filter((item) => item.sucursalInfluencia?.id == null)
+      .forEach((item) => { item.stockActualLoading = false; });
+
+    const pendientes = enCarga.filter((item) => item.sucursalInfluencia?.id != null);
+    if (pendientes.length === 0) {
+      return;
+    }
+
+    this.productoService.onGetStockPorSucursales(productoId).subscribe({
+      next: (stockPorSucursal: Map<number, number>) => {
+        pendientes.forEach((item) => {
+          item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+      },
+      error: (error) => {
+        console.error('Error cargando el stock por sucursal del producto:', error);
+        pendientes.forEach((item) => {
+          item.stockActual = 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+      },
     });
   }
 
