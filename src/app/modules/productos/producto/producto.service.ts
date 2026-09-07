@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { SaveProductoGQL } from "./graphql/saveProducto";
 import { ProductoInput } from "./producto-input.model";
 import { BehaviorSubject, Observable } from "rxjs";
+import { map } from "rxjs/operators";
 import { Producto } from "./producto.model";
 import { ProductoPorProveedorGQL } from "./graphql/productoPorProveedor";
 import { ProductoPorIdGQL } from "./graphql/productoPorId";
@@ -40,6 +41,10 @@ import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { ImprimirCodigoBarraGQL } from "./graphql/imprimirCodigoBarra";
 import { Codigo } from "../codigo/codigo.model";
 import { ProductoStockGQL } from "./graphql/productoStock";
+import {
+  StockPorSucursalesGQL,
+  StockPorSucursalRaw,
+} from "./graphql/stockPorSucursales";
 import { ProductoDescripcionExistsGQL } from "./graphql/productoDescripcionExists";
 import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
@@ -79,6 +84,7 @@ export class ProductoService {
     private tabService: TabService,
     private imprimirCodigo: ImprimirCodigoBarraGQL,
     private productoPorSucursalStock: ProductoStockGQL,
+    private stockPorSucursalesGql: StockPorSucursalesGQL,
     private searchWithFilters: SearchProductoWithFiltersGQL,
     private productoDescripcionExistsGql: ProductoDescripcionExistsGQL,
     private lucroPorProductoList: LucroPorProductoListGQL
@@ -132,6 +138,41 @@ export class ProductoService {
 
   onGetStockPorProductoAndSucursal(proId, sucId, silentLoad = false, servidor = true){
     return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor, undefined, silentLoad);
+  }
+
+  /**
+   * Existencia del producto en todas las sucursales, en un solo request.
+   *
+   * Preferir esta sobre llamar `onGetStockPorProductoAndSucursal` una vez por
+   * sucursal: el central resuelve el desglose con un GROUP BY, y el navegador
+   * abre 6 conexiones por origen, asi que N llamadas salen en tandas y ocupan
+   * todo el pool mientras duran.
+   *
+   * Devuelve un Map por id de sucursal. Las sucursales sin movimientos no vienen
+   * en la respuesta —no hay filas que sumar— y por eso quedan fuera del Map: el
+   * llamador las muestra en cero. Eso permite distinguir "no hay stock aca" de
+   * "todavia no pregunte", que es lo que un cero por defecto pierde.
+   *
+   * `sucursalId` viaja como string (es `ID` en el schema); se convierte aca para
+   * que los consumidores puedan indexar con el `id` numerico de Sucursal.
+   */
+  onGetStockPorSucursales(
+    proId: number,
+    silentLoad = true,
+    servidor = true
+  ): Observable<Map<number, number>> {
+    return this.genericService
+      .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, undefined, silentLoad)
+      .pipe(
+        map((filas: StockPorSucursalRaw[]) => {
+          const porSucursal = new Map<number, number>();
+          (filas || []).forEach((fila) => {
+            if (fila?.sucursalId == null) return;
+            porSucursal.set(Number(fila.sucursalId), fila.cantidad ?? 0);
+          });
+          return porSucursal;
+        })
+      );
   }
 
   onProductoDescripcionExists(descripcion: string, servidor = true) {
