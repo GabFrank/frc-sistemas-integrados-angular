@@ -1,13 +1,13 @@
 <div fxLayout="row" style="width: 100%; height: 80%" fxLayoutAlign="center center">
   <div fxFlex="60" fxLayout="column">
     <div fxFlex fxLayout="row wrap" fxLayoutAlign="start start" fxLayoutGap="10px">
-      <div fxFlex="30%" style="height: 250px">
+      <div fxFlex="30%" style="height: 250px" *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)">
         <app-boton nombre="Nueva terminal" icon="move_up" [iconSize]="4" (clickEvent)="onNuevaTerminalPos()"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
         <app-boton nombre="Ventas con tarjeta" icon="tune" [iconSize]="4" (clickEvent)="onListVentaTarjeta()"></app-boton>
       </div>
-      <div fxFlex="30%" style="height: 250px">
+      <div fxFlex="30%" style="height: 250px" *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)">
         <app-boton nombre="Proveedores de servicios" icon="support_agent" [iconSize]="4" (clickEvent)="onListProveedorServicio()"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px" *ngIf="

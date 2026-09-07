@@ -1,0 +1,119 @@
+// La app es dark siempre: nada de fondos claros.
+//
+// Ancho fijo y no 65vw: esto es un prompt de un solo campo que el cajero mira de reojo mientras
+// pasa la tarjeta. A 65vw queda un vacío enorme alrededor de un input, que es peor que apretado.
+// Lo que sí se respeta de la convención es el resto: título blanco, subtítulo naranja.
+.escanear-cupon {
+  width: 520px;
+  max-width: 88vw;
+  // styles.scss deja el mat-dialog-container con padding 0: si este bloque no pone el suyo,
+  // el contenido queda pegado a los bordes del diálogo.
+  padding: 20px 24px 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.cabecera {
+  margin-bottom: 14px;
+}
+
+// .titulo-center / .subtitulo-dialog son las clases de la convención de diálogos (styles.scss):
+// dan título blanco centrado y subtítulo naranja. Acá solo se ajusta el tamaño.
+// OJO: NO usar .titulo — esa clase global es naranja, alineada a la izquierda y con padding
+// propio, y pisa el centrado del diálogo.
+.titulo-center {
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+// Naranja para el subtítulo, según la convención de diálogos del repo. El color se define acá
+// a propósito: styles.scss nombra .subtitulo-dialog en un comentario pero NO tiene regla global
+// para ella, así que cada componente pone su naranja.
+.subtitulo-dialog {
+  font-size: 1.15rem;
+  margin-top: 2px;
+  color: #ff9800;
+}
+
+// El monto es el dato que el cajero contrasta contra el visor del POS: va destacado y separado
+// del resto, no como una línea más de texto.
+.monto-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+  border: 1px solid #555;
+  border-radius: 6px;
+}
+
+.monto-label {
+  font-size: 0.95rem;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.monto {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.zona-lectura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px 12px;
+  border: 1px dashed #616161;
+  border-radius: 6px;
+
+  &.con-error {
+    border-color: #f44336;
+    border-style: solid;
+  }
+}
+
+// Señal de "estoy esperando que escanees": sin esto el diálogo no comunica su estado principal.
+.icono-lector {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: #9e9e9e;
+}
+
+.campo-cupon {
+  width: 100%;
+}
+
+.ayuda {
+  color: #9e9e9e;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.error-lectura {
+  color: #f44336;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.acciones {
+  margin-top: 14px;
+}
+
+// Escape hatch, no acción principal: sin relleno de color para no competir con el escaneo.
+.btn-mas-tarde {
+  color: #bdbdbd;
+}
+
+
+// Aviso de que la terminal está configurada en otra moneda que el cobro.
+.aviso-moneda {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: #ff9800;
+  line-height: 1.3;
+}
