@@ -13,6 +13,10 @@ export class Bono {
   esRecurrente: boolean;
   frecuencia: BonoFrecuencia;
   anulado: boolean;
+  bonoRecurrenteId: number;
+  liquidacionId: number;
+  editable: boolean;
+  motivoNoEditable: string;
 
   toInput(): any {
     return {
