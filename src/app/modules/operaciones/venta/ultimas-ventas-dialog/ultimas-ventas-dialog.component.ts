@@ -122,7 +122,7 @@ export class UltimasVentasDialogComponent implements OnInit {
       .confirm(
         "ATENCIÓN!!",
         "Realmente desea cancelar la venta " + venta.id + "?",
-        "Al cancelar una venta debe escribir el motivo de canceación en el ticket y enviar una foto de la nota"
+        "Al cancelar una venta debe escribir el motivo de cancelación en el ticket y enviar una foto de la nota"
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
