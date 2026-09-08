@@ -1,5 +1,6 @@
 import { Component, ComponentRef, Injectable, Type } from "@angular/core";
 import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -20,6 +21,28 @@ import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from
 import { SaveMovimientoStockGQL } from "./graphql/saveMovimientoStock";
 import { GetStockPrevioAjusteGQL } from "./graphql/getStockPrevioAjuste";
 import { GetStockAntesDeFechaGQL } from "./graphql/getStockAntesDeFecha";
+import {
+  CantidadSugeridaPorSucursalRaw,
+  GetCantidadSugeridaPorSucursalesGQL,
+} from "./graphql/getCantidadSugeridaPorSucursales";
+
+/**
+ * Lo que el diálogo de ítem de compra necesita saber de una sucursal para sugerir una cantidad.
+ * Ya normalizado: `sucursalId` afuera como clave del Map, y las fechas como `Date` o null.
+ */
+export interface CantidadSugeridaPorSucursal {
+  totalVentas: number;
+  cantidadCompras: number;
+  primeraCompra: Date | null;
+  ultimaCompra: Date | null;
+}
+
+/** Una fecha del central, o null si no vino o no es parseable. */
+function aFecha(valor: string): Date | null {
+  if (valor == null) return null;
+  const fecha = new Date(valor);
+  return isNaN(fecha.getTime()) ? null : fecha;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -36,7 +59,8 @@ export class MovimientoStockService {
     private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL,
     private saveMovimientoStockGQL: SaveMovimientoStockGQL,
     private getStockPrevioAjusteGQL: GetStockPrevioAjusteGQL,
-    private getStockAntesDeFechaGQL: GetStockAntesDeFechaGQL
+    private getStockAntesDeFechaGQL: GetStockAntesDeFechaGQL,
+    private getCantidadSugeridaPorSucursalesGQL: GetCantidadSugeridaPorSucursalesGQL
   ) { }
 
 
@@ -84,6 +108,51 @@ export class MovimientoStockService {
       page,
       size,
     }, servidor, undefined, silentLoad);
+  }
+
+  /**
+   * Insumos de la cantidad sugerida de un producto en varias sucursales, en UN request.
+   *
+   * Antes esto eran dos llamadas encadenadas a `onGetMovimientoStockPorFiltros` por cada sucursal
+   * —la de ventas recién salía cuando volvía la de compras—, cada una con `size: 1000`. El central
+   * ahora agrupa: vuelven cuatro números por sucursal en vez de hasta 1000 filas por sucursal y
+   * por tipo, y de paso desaparece el truncamiento silencioso que tenía esa paginación.
+   *
+   * Devuelve un `Map` indexado por `sucursalId`, igual que `ProductoService.onGetStockPorSucursales`.
+   * Las sucursales sin movimientos en el rango no vienen en la respuesta: no hay filas que agrupar,
+   * y el llamador las trata como cero.
+   */
+  onGetCantidadSugeridaPorSucursales(
+    productoId: number,
+    inicio: String,
+    fin: String,
+    sucursalList: number[],
+    servidor = true,
+    silentLoad = true
+  ): Observable<Map<number, CantidadSugeridaPorSucursal>> {
+    return this.genericService
+      .onCustomQuery(
+        this.getCantidadSugeridaPorSucursalesGQL,
+        { productoId, inicio, fin, sucursalList },
+        servidor,
+        undefined,
+        silentLoad
+      )
+      .pipe(
+        map((filas: CantidadSugeridaPorSucursalRaw[]) => {
+          const porSucursal = new Map<number, CantidadSugeridaPorSucursal>();
+          (filas || []).forEach((fila) => {
+            if (fila?.sucursalId == null) return;
+            porSucursal.set(Number(fila.sucursalId), {
+              totalVentas: fila.totalVentas ?? 0,
+              cantidadCompras: fila.cantidadCompras ?? 0,
+              primeraCompra: aFecha(fila.primeraCompra),
+              ultimaCompra: aFecha(fila.ultimaCompra),
+            });
+          });
+          return porSucursal;
+        })
+      );
   }
 
   onGetStockPorFiltros(
