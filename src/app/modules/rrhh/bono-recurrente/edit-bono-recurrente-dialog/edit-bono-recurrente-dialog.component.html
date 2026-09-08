@@ -1,0 +1,41 @@
+<div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
+  <h2 mat-dialog-title>{{ editandoId ? 'Editar' : 'Nuevo' }} bono recurrente</h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
+    <app-select-funcionario
+      [funcionarioId]="funcionarioControl.value"
+      (idSelected)="funcionarioControl.setValue($event)">
+    </app-select-funcionario>
+    <span class="error-funcionario" *ngIf="funcionarioControl.touched && funcionarioControl.hasError('required')">
+      Seleccione un funcionario
+    </span>
+
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="50%">
+        <mat-label>Tipo</mat-label>
+        <mat-select [formControl]="tipoControl" required>
+          <mat-option *ngFor="let t of tipoOptions" [value]="t">{{ t }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field fxFlex="50%">
+        <mat-label>Monto</mat-label>
+        <input matInput type="number" [formControl]="montoControl" required />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field style="width: 100%">
+      <mat-label>Motivo</mat-label>
+      <input matInput [formControl]="motivoControl" />
+    </mat-form-field>
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-slide-toggle [formControl]="activoControl">Activo</mat-slide-toggle>
+      <span class="hint-frecuencia">Se genera el día 1 de cada mes</span>
+    </div>
+  </form>
+
+  <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+    <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+  </div>
+</div>

@@ -70,6 +70,7 @@ import { ListPrestamoComponent } from '../../../modules/rrhh/prestamo/list-prest
 import { ListVacacionComponent } from '../../../modules/rrhh/vacacion/list-vacacion/list-vacacion.component';
 import { ListAguinaldoComponent } from '../../../modules/rrhh/aguinaldo/list-aguinaldo/list-aguinaldo.component';
 import { ListBonoComponent } from '../../../modules/rrhh/bono/list-bono/list-bono.component';
+import { ListBonoRecurrenteComponent } from '../../../modules/rrhh/bono-recurrente/list-bono-recurrente/list-bono-recurrente.component';
 import { ListLiquidacionComponent } from '../../../modules/rrhh/liquidacion/list-liquidacion/list-liquidacion.component';
 import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-funcionario/legajo-funcionario.component';
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
@@ -277,6 +278,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Bonos',
               icon: 'card_giftcard',
               action: 'list-bono',
+              visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
+            },
+            {
+              name: 'Bonos recurrentes',
+              icon: 'autorenew',
+              action: 'list-bono-recurrente',
               visibilityRoles: [ROLES.RRHH_VER, ROLES.RRHH_GESTIONAR, ROLES.ADMIN]
             }
           ]
@@ -1112,6 +1119,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-bono":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoComponent, "Bonos");
+        break;
+      case "list-bono-recurrente":
+        this.openTabIfAuthorized(ROLES.RRHH_VER, ListBonoRecurrenteComponent, "Bonos recurrentes");
         break;
       case "list-liquidacion":
         this.openTabIfAuthorized(ROLES.RRHH_VER, ListLiquidacionComponent, "Liquidaciones");

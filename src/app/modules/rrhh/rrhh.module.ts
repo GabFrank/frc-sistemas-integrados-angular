@@ -33,6 +33,8 @@ import { ListAguinaldoComponent } from './aguinaldo/list-aguinaldo/list-aguinald
 import { PagarAguinaldoDialogComponent } from './aguinaldo/pagar-aguinaldo-dialog/pagar-aguinaldo-dialog.component';
 import { ListBonoComponent } from './bono/list-bono/list-bono.component';
 import { EditBonoDialogComponent } from './bono/edit-bono-dialog/edit-bono-dialog.component';
+import { ListBonoRecurrenteComponent } from './bono-recurrente/list-bono-recurrente/list-bono-recurrente.component';
+import { EditBonoRecurrenteDialogComponent } from './bono-recurrente/edit-bono-recurrente-dialog/edit-bono-recurrente-dialog.component';
 import { ListLiquidacionComponent } from './liquidacion/list-liquidacion/list-liquidacion.component';
 import { ListLiquidacionConceptoComponent } from './liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { EditLiquidacionConceptoDialogComponent } from './liquidacion-concepto/edit-liquidacion-concepto-dialog/edit-liquidacion-concepto-dialog.component';
@@ -85,6 +87,8 @@ import { ManualRrhhComponent } from './manual/manual-rrhh.component';
     PagarAguinaldoDialogComponent,
     ListBonoComponent,
     EditBonoDialogComponent,
+    ListBonoRecurrenteComponent,
+    EditBonoRecurrenteDialogComponent,
     ListLiquidacionComponent,
     ListLiquidacionConceptoComponent,
     EditLiquidacionConceptoDialogComponent,
