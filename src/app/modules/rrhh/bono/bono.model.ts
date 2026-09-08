@@ -15,6 +15,8 @@ export class Bono {
   anulado: boolean;
   bonoRecurrenteId: number;
   liquidacionId: number;
+  editable: boolean;
+  motivoNoEditable: string;
 
   toInput(): any {
     return {

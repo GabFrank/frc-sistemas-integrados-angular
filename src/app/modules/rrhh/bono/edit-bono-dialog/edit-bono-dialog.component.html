@@ -1,8 +1,8 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
-  <h2 mat-dialog-title>{{ soloLectura ? 'Bono liquidado' : (editandoId ? 'Editar bono' : 'Nuevo bono') }}</h2>
+  <h2 mat-dialog-title>{{ soloLectura ? 'Bono no editable' : (editandoId ? 'Editar bono' : 'Nuevo bono') }}</h2>
 
   <div class="aviso-liquidado" *ngIf="soloLectura">
-    Este bono ya fue liquidado, por eso no se puede modificar.
+    {{ motivoNoEditable }}
   </div>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">

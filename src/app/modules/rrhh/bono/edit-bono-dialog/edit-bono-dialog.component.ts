@@ -40,6 +40,7 @@ export class EditBonoDialogComponent implements OnInit {
 
   editandoId: number = null;
   soloLectura = false;
+  motivoNoEditable: string = null;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: BonoDialogData,
@@ -69,9 +70,11 @@ export class EditBonoDialogComponent implements OnInit {
       this.motivoControl.setValue(edit.motivo);
       this.esRecurrenteControl.setValue(edit.esRecurrente ?? false);
       this.frecuenciaControl.setValue(edit.frecuencia ?? 'MENSUAL');
-      // Un bono ya liquidado es un pago hecho: se puede mirar, no editar.
-      if (edit.liquidacionId != null) {
+      // El backend es dueño de la decision de editabilidad (liquidado, planilla
+      // aprobada, periodo pasado). Explicito === false: undefined no debe bloquear.
+      if (edit.editable === false) {
         this.soloLectura = true;
+        this.motivoNoEditable = edit.motivoNoEditable;
         this.formGroup.disable();
       }
     } else if (this.data?.funcionarioId != null) {
