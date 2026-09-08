@@ -21,9 +21,7 @@ export class Bono {
       tipo: this.tipo,
       monto: this.monto,
       fecha: this.fecha,
-      motivo: this.motivo,
-      esRecurrente: this.esRecurrente,
-      frecuencia: this.frecuencia
+      motivo: this.motivo
     };
   }
 }

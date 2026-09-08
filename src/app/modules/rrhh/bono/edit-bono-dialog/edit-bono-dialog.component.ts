@@ -4,7 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
-import { Bono, BonoTipo, BonoFrecuencia } from '../bono.model';
+import { Bono, BonoTipo } from '../bono.model';
 import { BonoService } from '../bono.service';
 import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 
@@ -24,15 +24,12 @@ export class EditBonoDialogComponent implements OnInit {
   formGroup: FormGroup;
 
   tipoOptions: BonoTipo[] = ['CUMPLEANIOS', 'NAVIDAD', 'DESEMPENIO', 'PRODUCTIVIDAD', 'OTRO'];
-  frecuenciaOptions: BonoFrecuencia[] = ['SEMANAL', 'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'];
 
   funcionarioControl = new FormControl(null, [Validators.required]);
   tipoControl = new FormControl('OTRO', [Validators.required]);
   montoControl = new FormControl(0, [Validators.required, Validators.min(1)]);
   fechaControl = new FormControl(new Date(), [Validators.required]);
   motivoControl = new FormControl(null);
-  esRecurrenteControl = new FormControl(false);
-  frecuenciaControl = new FormControl(null);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: BonoDialogData,
@@ -48,9 +45,7 @@ export class EditBonoDialogComponent implements OnInit {
       tipo: this.tipoControl,
       monto: this.montoControl,
       fecha: this.fechaControl,
-      motivo: this.motivoControl,
-      esRecurrente: this.esRecurrenteControl,
-      frecuencia: this.frecuenciaControl
+      motivo: this.motivoControl
     });
     if (this.data?.funcionarioId != null) {
       this.funcionarioControl.setValue(this.data.funcionarioId);
@@ -71,8 +66,6 @@ export class EditBonoDialogComponent implements OnInit {
     b.monto = this.montoControl.value;
     b.fecha = dateToString(this.fechaControl.value);
     b.motivo = this.motivoControl.value ? this.motivoControl.value.toUpperCase() : null;
-    b.esRecurrente = this.esRecurrenteControl.value ?? false;
-    b.frecuencia = this.esRecurrenteControl.value ? (this.frecuenciaControl.value as BonoFrecuencia) : null;
 
     this.bonoService.onSave(b.toInput())
       .pipe(untilDestroyed(this))
