@@ -1,5 +1,9 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
-  <h2 mat-dialog-title>Nuevo bono</h2>
+  <h2 mat-dialog-title>{{ soloLectura ? 'Bono liquidado' : (editandoId ? 'Editar bono' : 'Nuevo bono') }}</h2>
+
+  <div class="aviso-liquidado" *ngIf="soloLectura">
+    Este bono ya fue liquidado, por eso no se puede modificar.
+  </div>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
@@ -30,7 +34,15 @@
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
       </mat-form-field>
+      <mat-slide-toggle [formControl]="esRecurrenteControl">Recurrente</mat-slide-toggle>
     </div>
+
+    <mat-form-field style="width: 100%" *ngIf="esRecurrenteControl.value">
+      <mat-label>Frecuencia</mat-label>
+      <mat-select [formControl]="frecuenciaControl">
+        <mat-option *ngFor="let fr of frecuenciaOptions" [value]="fr">{{ fr }}</mat-option>
+      </mat-select>
+    </mat-form-field>
 
     <mat-form-field style="width: 100%">
       <mat-label>Motivo</mat-label>
@@ -40,6 +52,6 @@
 
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
     <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid || soloLectura" (click)="onGuardar()">Guardar</button>
   </div>
 </div>

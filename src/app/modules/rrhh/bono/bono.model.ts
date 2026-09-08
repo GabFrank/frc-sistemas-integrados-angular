@@ -13,6 +13,8 @@ export class Bono {
   esRecurrente: boolean;
   frecuencia: BonoFrecuencia;
   anulado: boolean;
+  bonoRecurrenteId: number;
+  liquidacionId: number;
 
   toInput(): any {
     return {
@@ -21,7 +23,9 @@ export class Bono {
       tipo: this.tipo,
       monto: this.monto,
       fecha: this.fecha,
-      motivo: this.motivo
+      motivo: this.motivo,
+      esRecurrente: this.esRecurrente,
+      frecuencia: this.frecuencia
     };
   }
 }
