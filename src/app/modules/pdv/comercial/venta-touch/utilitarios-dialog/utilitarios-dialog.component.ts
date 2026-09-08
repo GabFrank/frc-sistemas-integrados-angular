@@ -14,6 +14,8 @@ import {
 import { UltimasVentasDialogComponent } from "../../../../operaciones/venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component";
 import { GarantiaDevolucionDialogComponent } from "../../../venta-touch/garantia-devolucion-dialog/garantia-devolucion-dialog.component";
 import { VentaTouchService } from "../venta-touch.service";
+import { VentasTarjetaCajaDialogComponent } from "../../../../financiero/venta-tarjeta/ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component";
+import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
 export class UtilitariosDialogData {
   caja: PdvCaja;
 }
@@ -41,17 +43,45 @@ export interface UtilitariosResponse {
 export class UtilitariosDialogComponent implements OnInit {
   selectedCaja: PdvCaja;
   opcionesList: OpcionesData[] = []
+
+  /**
+   * El aviso del cierre de caja manda al cajero a "registrarlas escaneando el QR desde el PDV",
+   * pero la lista colgaba de sidebar > Reportes > Terminales POS > Lista: cuatro pasos y saliendo
+   * del PDV. El rol VENTA TARJETA COMPLETAR abrio el permiso; esto abre el camino.
+   *
+   * Se precalcula (el template no puede llamar funciones) y exige las tres condiciones: sin caja
+   * no hay nada que registrar, sin el flujo habilitado la pantalla no aplica, y sin el rol el
+   * usuario no puede completar. Se gatea la VISIBILIDAD y no solo el click: un boton que siempre
+   * se ve y a veces rechaza le ensena al cajero a probar suerte.
+   */
+  puedeRegistrarCupones = false;
   constructor(
     private ventaTouchService: VentaTouchService,
     @Inject(MAT_DIALOG_DATA) public data: UtilitariosDialogData,
     public dialogRef: MatDialogRef<UtilitariosDialogComponent>,
     public matDialog: MatDialog,
-    private mainService: MainService
+    private mainService: MainService,
+    private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService
   ) {
     if (data?.caja != null) this.selectedCaja = data.caja;
   }
 
   ngOnInit(): void {
+    const roles = this.mainService.usuarioActual?.roles || [];
+    const tieneRol =
+      roles.includes(ROLES.VENTA_TARJETA_COMPLETAR) || roles.includes(ROLES.ADMIN);
+
+    if (this.selectedCaja != null && tieneRol) {
+      // Contra el filial (false), igual que pago-touch: la caja se opera sin internet.
+      this.configuracionVentaTarjetaService
+        .onGetConfiguracion(false)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (config) => (this.puedeRegistrarCupones = config?.habilitado === true),
+          error: () => (this.puedeRegistrarCupones = false),
+        });
+    }
+
     this.opcionesList = [
       {
         nombre: 'Test',
@@ -173,5 +203,30 @@ export class UtilitariosDialogComponent implements OnInit {
     this.matDialog.open(GarantiaDevolucionDialogComponent, {
       data: {},
     });
+  }
+
+  /**
+   * Se abre como dialogo y no como tab a proposito: el cajero llega aca en medio de una venta o
+   * justo antes de cerrar caja, y mandarlo a otra pestana lo saca del PDV.
+   *
+   * Muestra las de ESTA caja consultando al filial — no la lista del sidebar, que consulta al
+   * central: esa necesita internet y trae las ventas de todas las sucursales.
+   */
+  ventasTarjeta() {
+    this.matDialog
+      .open(VentasTarjetaCajaDialogComponent, {
+        data: { cajaId: this.selectedCaja?.id },
+        width: "85vw",
+        height: "80vh",
+        disableClose: false,
+        autoFocus: true,
+        restoreFocus: true,
+        panelClass: 'darkMode',
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.dialogRef.close(null);
+      });
   }
 }
