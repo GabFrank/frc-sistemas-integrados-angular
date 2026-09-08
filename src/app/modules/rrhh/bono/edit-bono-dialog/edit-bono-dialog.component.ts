@@ -2,7 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { Bono, BonoTipo, BonoFrecuencia } from '../bono.model';
 import { BonoService } from '../bono.service';
@@ -66,7 +66,10 @@ export class EditBonoDialogComponent implements OnInit {
       this.funcionarioControl.setValue(edit.funcionario?.id);
       this.tipoControl.setValue(edit.tipo);
       this.montoControl.setValue(edit.monto);
-      this.fechaControl.setValue(edit.fecha ? new Date(edit.fecha) : new Date());
+      // stringToLocalDate y no new Date(): 'yyyy-MM-dd' se parsea como medianoche
+      // UTC y en UTC-3 retrocede un dia. En un bono generado (fecha = dia 1) eso
+      // lo movia al mes anterior y la guarda de periodo rechazaba la edicion.
+      this.fechaControl.setValue(edit.fecha ? stringToLocalDate(edit.fecha) : new Date());
       this.motivoControl.setValue(edit.motivo);
       this.esRecurrenteControl.setValue(edit.esRecurrente ?? false);
       this.frecuenciaControl.setValue(edit.frecuencia ?? 'MENSUAL');
