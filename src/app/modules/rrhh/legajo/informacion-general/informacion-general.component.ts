@@ -4,6 +4,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { forkJoin } from 'rxjs';
 
 import { dateToString, stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
+import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 import { Persona } from '../../../personas/persona/persona.model';
@@ -60,6 +61,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   fasePruebaControl = new FormControl(true);
   diaristaControl = new FormControl(false);
   codigoInternoControl = new FormControl(null);
+  // Limite de venta a credito del funcionario. El backend replica este valor al Cliente
+  // vinculado a la persona (FuncionarioGraphQL.saveFuncionario), que es lo que el POS
+  // consulta al vender a credito.
+  creditoControl = new FormControl(0);
 
   // ---- IPS ----
   ipsActivoControl = new FormControl(false);
@@ -83,6 +88,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     { value: 'M', label: 'Masculino' },
     { value: 'F', label: 'Femenino' }
   ];
+
+  currencyMask = new CurrencyMask();
 
   sucursalList: Sucursal[] = [];
   ciudadList: Ciudad[] = [];
@@ -202,6 +209,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.fasePruebaControl.setValue(f.fasePrueba ?? true);
     this.diaristaControl.setValue(f.diarista ?? false);
     this.codigoInternoControl.setValue(f.codigoInterno);
+    this.creditoControl.setValue(f.credito ?? 0);
 
     this.ipsActivoControl.setValue(!!f.ipsActivo);
     this.aplicarEstadoIps(!!f.ipsActivo);
@@ -238,6 +246,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.fasePruebaControl.setValue(true);
     this.diaristaControl.setValue(false);
     this.codigoInternoControl.reset();
+    this.creditoControl.setValue(0);
 
     this.ipsActivoControl.setValue(false);
     this.numeroIpsControl.reset();
@@ -391,6 +400,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       input.fasePrueba = this.fasePruebaControl.value;
       input.diarista = this.diaristaControl.value;
       input.codigoInterno = this.up(this.codigoInternoControl.value);
+      // Vacio se manda como 0 (sin credito) y no como null: el backend interpreta null
+      // como "no gestiono este campo" y preserva el valor anterior, con lo que nunca se
+      // podria bajar el credito a cero desde el legajo.
+      input.credito = this.creditoControl.value != null ? Number(this.creditoControl.value) : 0;
       input.ipsActivo = this.ipsActivoControl.value;
       input.numeroIps = this.ipsActivoControl.value ? this.up(this.numeroIpsControl.value) : null;
       input.fechaIngresoIps = this.ipsActivoControl.value ? dateToString(this.fechaIngresoIpsControl.value, 'yyyy-MM-dd') : null;
@@ -399,9 +412,10 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       input.contactoEmergenciaNombre = this.up(this.contactoEmergenciaNombreControl.value);
       input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefonoControl.value;
 
-      // Este formulario no gestiona cargo/sueldo/credito/horario (tienen sus propias tabs en
+      // Este formulario no gestiona cargo/sueldo/horario (tienen sus propias tabs en
       // el legajo, vía CambioCargoDialogComponent/CambioSalarioDialogComponent), así que NO
       // los manda: el backend preserva el valor guardado cuando el input viene sin ellos.
+      // El credito sí se edita acá y por eso se envía siempre.
       //
       // Antes se reenviaban desde `funcionarioActual`, que es una foto tomada al abrir el
       // legajo y no se refresca. Si en el medio se cambiaba el salario por su diálogo,
