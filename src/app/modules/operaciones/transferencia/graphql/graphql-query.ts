@@ -1454,3 +1454,12 @@ export const alertasTransferenciaItemsQuery = gql`
   }
 `;
 
+
+export const transferenciaQrEscaneadoSubQuery = gql`
+  subscription transferenciaQrEscaneadoSub {
+    data: transferenciaQrEscaneadoSub {
+      transferenciaId
+      sucursalId
+    }
+  }
+`;
