@@ -22,6 +22,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GraficoService } from "../grafico.service";
 import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
+import { sucursalesConServidor } from "../../empresarial/sucursal/sucursal-servidor.util";
 import { VistaGraficoShell } from "../../../shared/models/grafico-vista.model";
 import {
   GRAFICO_COLORES,
@@ -93,8 +94,9 @@ export class GastoCategoriaComponent implements OnInit {
   readonly puedeExportar$ = this.hayDatosSubject.asObservable();
 
   ngOnInit(): void {
+    // Incluye SERVIDOR (sucursal 0): ahi se registran los gastos pagados desde la caja mayor.
     this.sucursales$ = this.sucursalService.onGetAllSucursales(true).pipe(
-      map((sucs) => (sucs || []).filter((s) => s.activo && s.id > 0 && s.id !== 999)),
+      map((sucs) => sucursalesConServidor(sucs)),
       tap((sucs) => (this.sucursalesLista = sucs))
     );
     this.filtroPeriodo.configurarLimitesRangoDias(
