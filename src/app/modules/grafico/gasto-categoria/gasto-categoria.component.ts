@@ -42,12 +42,19 @@ import {
   nombreArchivoGraficoExcel,
 } from "../utils/grafico-excel-export.util";
 
-const PALETA_GASTO_CATEGORIA = [
-  "#F44336", "#E91E63", "#9C27B0", "#673AB7",
-  "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
-  "#009688", "#4CAF50", "#8BC34A", "#CDDC39",
-  "#FFEB3B", "#FFC107", "#FF9800", "#FF5722",
-];
+/**
+ * Escala de calor del gasto: azul (menor) -> verde -> ámbar -> rojo (mayor).
+ *
+ * El color va atado al **monto**, no a la posición en la lista. Antes salía de
+ * `dataIndex % paleta.length`, o sea que seguía al *puesto* en el ranking: la categoría de arriba
+ * era roja siempre, aunque gastara la décima parte que el mes pasado, y una categoría cambiaba de
+ * color al cambiar el filtro sin haber cambiado en nada. Con `visualMap` sobre el valor, el rojo
+ * significa "es lo que más se gastó" y el degradé intermedio da el nivel de cada una.
+ *
+ * Los cuatro pasos despejan 3:1 sobre las dos superficies oscuras del tema (#303030 y #424242).
+ * El rojo es `#FF5252` y no el `warn` del tema (`#F44336`), que se queda en 2.73:1 sobre #424242.
+ */
+const ESCALA_GASTO = ["#2196F3", "#4CAF50", "#FFC107", "#FF5252"];
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -206,8 +213,26 @@ export class GastoCategoriaComponent implements OnInit {
       grid: {
         left: "3%",
         right: "4%",
-        bottom: "3%",
+        // Deja lugar abajo para la escala de color, que es la leyenda del degradé.
+        bottom: 48,
         containLabel: true,
+      },
+      visualMap: {
+        type: "continuous",
+        // dimension 0 es el valor de la barra: con el default, ECharts toma la categoría y
+        // pinta todo del mismo color.
+        dimension: 0,
+        min: 0,
+        max: Math.max(...valores, 0),
+        orient: "horizontal",
+        left: "center",
+        bottom: 4,
+        itemHeight: 160,
+        calculable: false,
+        // Escala de calor multi-color: sin esta leyenda el degradé no dice qué significa.
+        text: ["Mayor gasto", "Menor gasto"],
+        textStyle: { color: GRAFICO_COLORES.textSecondary, fontSize: 12 },
+        inRange: { color: ESCALA_GASTO },
       },
       xAxis: {
         type: "value",
@@ -243,10 +268,6 @@ export class GastoCategoriaComponent implements OnInit {
             fontWeight: "bold",
           },
           itemStyle: {
-            color: (params: { dataIndex: number }) =>
-              PALETA_GASTO_CATEGORIA[
-                params.dataIndex % PALETA_GASTO_CATEGORIA.length
-              ],
             borderRadius: [0, 4, 4, 0],
           },
           barWidth: "60%",
