@@ -66,8 +66,11 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   numeroIpsControl = new FormControl({ value: null, disabled: true });
   fechaIngresoIpsControl = new FormControl({ value: null, disabled: true });
 
-  // ---- Cuenta bancaria ----
-  cuentaBancariaControl = new FormControl(null);
+  // ---- Forma de cobro ----
+  // Mismo patron que IPS: el toggle es el que clasifica, y solo cuando esta en true
+  // se habilita (y se exige) el numero de cuenta.
+  cobraBancoControl = new FormControl(false);
+  cuentaBancariaControl = new FormControl({ value: null, disabled: true });
 
   // ---- Contacto de emergencia ----
   contactoEmergenciaNombreControl = new FormControl(null);
@@ -89,6 +92,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   puedeSubirFoto = false;
   subiendoFoto = false;
   ipsActivo = false;
+  cobraBanco = false;
   fotoPerfilSrc = AVATAR_DEFAULT;
   hoy = new Date();
 
@@ -113,6 +117,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     });
 
     this.ipsActivoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.aplicarEstadoIps(!!v));
+    this.cobraBancoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.aplicarEstadoCobraBanco(!!v));
 
     this.cargarCatalogos();
     this.cargarFuncionario();
@@ -141,6 +146,18 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       this.numeroIpsControl.disable({ emitEvent: false });
       this.fechaIngresoIpsControl.disable({ emitEvent: false });
     }
+  }
+
+  private aplicarEstadoCobraBanco(cobraBanco: boolean): void {
+    this.cobraBanco = cobraBanco;
+    if (cobraBanco) {
+      this.cuentaBancariaControl.enable({ emitEvent: false });
+      this.cuentaBancariaControl.setValidators(Validators.required);
+    } else {
+      this.cuentaBancariaControl.disable({ emitEvent: false });
+      this.cuentaBancariaControl.clearValidators();
+    }
+    this.cuentaBancariaControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private cargarCatalogos(): void {
@@ -193,6 +210,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.numeroIpsControl.setValue(f.numeroIps);
     this.fechaIngresoIpsControl.setValue(f.fechaIngresoIps ? stringToLocalDate(f.fechaIngresoIps as any) : null);
 
+    this.cobraBancoControl.setValue(!!f.cobraBanco);
+    this.aplicarEstadoCobraBanco(!!f.cobraBanco);
     this.cuentaBancariaControl.setValue(f.cuentaBancaria);
     this.contactoEmergenciaNombreControl.setValue(f.contactoEmergenciaNombre);
     this.contactoEmergenciaTelefonoControl.setValue(f.contactoEmergenciaTelefono);
@@ -226,6 +245,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.numeroIpsControl.reset();
     this.fechaIngresoIpsControl.reset();
 
+    this.cobraBancoControl.setValue(false);
     this.cuentaBancariaControl.reset();
     this.contactoEmergenciaNombreControl.reset();
     this.contactoEmergenciaTelefonoControl.reset();
@@ -340,6 +360,14 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       return;
     }
 
+    // Clasificar a alguien como "cobra por banco" sin numero de cuenta deja el dato
+    // inservible para la nomina, que es justo lo que este flag viene a resolver.
+    this.cuentaBancariaControl.markAsTouched();
+    if (this.cobraBancoControl.value && this.cuentaBancariaControl.invalid) {
+      this.notificacion.openWarn('Ingrese la cuenta bancaria o desmarque "Cobra por banco".');
+      return;
+    }
+
     const persona = new Persona();
     if (this.personaActual != null) {
       Object.assign(persona, this.personaActual);
@@ -376,7 +404,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       input.ipsActivo = this.ipsActivoControl.value;
       input.numeroIps = this.ipsActivoControl.value ? this.up(this.numeroIpsControl.value) : null;
       input.fechaIngresoIps = this.ipsActivoControl.value ? dateToString(this.fechaIngresoIpsControl.value, 'yyyy-MM-dd') : null;
-      input.cuentaBancaria = this.up(this.cuentaBancariaControl.value);
+      input.cobraBanco = this.cobraBancoControl.value;
+      input.cuentaBancaria = this.cobraBancoControl.value ? this.up(this.cuentaBancariaControl.value) : null;
       input.contactoEmergenciaNombre = this.up(this.contactoEmergenciaNombreControl.value);
       input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefonoControl.value;
 

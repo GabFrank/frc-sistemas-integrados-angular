@@ -137,12 +137,16 @@
     </div>
   </mat-card>
 
-  <!-- Cuenta bancaria -->
+  <!-- Forma de cobro -->
   <mat-card class="seccion-card">
-    <dash-section-header icon="account_balance" title="Cuenta bancaria"></dash-section-header>
-    <mat-form-field class="campo-ancho">
+    <dash-section-header icon="account_balance" title="Forma de cobro"></dash-section-header>
+
+    <mat-slide-toggle [formControl]="cobraBancoControl">Cobra por banco</mat-slide-toggle>
+
+    <mat-form-field *ngIf="cobraBanco" class="campo-ancho">
       <mat-label>Cuenta bancaria</mat-label>
       <input matInput [formControl]="cuentaBancariaControl" />
+      <mat-error *ngIf="cuentaBancariaControl.hasError('required')">La cuenta bancaria es obligatoria</mat-error>
     </mat-form-field>
   </mat-card>
 

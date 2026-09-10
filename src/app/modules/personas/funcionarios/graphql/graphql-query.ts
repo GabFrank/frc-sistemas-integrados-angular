@@ -156,6 +156,7 @@ export const funcionarioQuery = gql`
       ipsActivo
       numeroIps
       fechaIngresoIps
+      cobraBanco
       cuentaBancaria
       contactoEmergenciaNombre
       contactoEmergenciaTelefono
@@ -283,6 +284,7 @@ export const saveFuncionario = gql`
       ipsActivo
       numeroIps
       fechaIngresoIps
+      cobraBanco
       cuentaBancaria
       contactoEmergenciaNombre
       contactoEmergenciaTelefono
