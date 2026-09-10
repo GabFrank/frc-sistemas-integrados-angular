@@ -92,13 +92,20 @@
       [value]="liq.totalNeto | number:'1.0-0'" label="Neto a pagar"></dash-stat-chip>
   </div>
 
-  <div class="pago" *ngIf="liq.estado === 'APROBADA' && puedePagar" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+  <div class="pago" *ngIf="liq.estado === 'APROBADA' && puedePagar && !netoNegativo" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
     <mat-form-field fxFlex="280px">
       <mat-label>Caja Mayor (pago)</mat-label>
       <mat-select [formControl]="cajaControl">
         <mat-option *ngFor="let c of cajas" [value]="c.id">{{ c.nombre }}</mat-option>
       </mat-select>
     </mat-form-field>
+  </div>
+
+  <div class="aviso-neto-negativo" *ngIf="liq.estado === 'APROBADA' && netoNegativo"
+    fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <span>Los descuentos superan a los haberes: el funcionario le debe a la empresa, no hay nada que pagar.
+      Corrija los items o cobre la diferencia por separado.</span>
   </div>
 
   <div class="acciones-footer" fxLayout="row" fxLayoutAlign="space-between center">
@@ -112,7 +119,10 @@
       <button mat-stroked-button *ngIf="liq.estado === 'APROBADA' || liq.estado === 'PAGADA'" (click)="onImprimirRecibo()">
         <mat-icon>visibility</mat-icon> Ver Recibo
       </button>
-      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA' && puedePagar" (click)="onPagar()">Pagar</button>
+      <button mat-raised-button color="primary" *ngIf="liq.estado === 'APROBADA' && puedePagar"
+        [disabled]="netoNegativo"
+        matTooltip="Neto negativo: los descuentos superan a los haberes, no hay nada que pagar"
+        [matTooltipDisabled]="!netoNegativo" (click)="onPagar()">Pagar</button>
       <button mat-stroked-button color="warn" *ngIf="liq.estado === 'PAGADA' && puedePagar" (click)="onAnular()">Anular</button>
     </div>
   </div>
