@@ -15,7 +15,7 @@
 
   <!-- El lector es keyboard-wedge: escribe solo en el campo enfocado y manda Enter. El cajero
        no tiene que tocar nada, así que el estado por defecto tiene que decir eso de entrada. -->
-  <div class="zona-lectura" [class.con-error]="errorLectura">
+  <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="!capturaUrl">
     <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
 
     <mat-form-field appearance="outline" class="campo-cupon">
@@ -34,6 +34,53 @@
       Apuntá el lector al QR impreso en el ticket. Se registra solo.
     </div>
     <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
+  </div>
+
+  <!-- Camino para las maquinitas que NO imprimen QR: el cajero fotografía el cupón con
+       cualquier teléfono. La página la sirve este mismo filial por HTTP en la LAN, así que no
+       hace falta app instalada ni login: el token del QR es toda la credencial. -->
+  <div class="captura" *ngIf="capturaUrl">
+    <div class="captura-qr">
+      <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
+    </div>
+
+    <div class="ayuda" *ngIf="esperandoFoto && !errorCaptura">
+      Escaneá este código con el teléfono y sacale una foto al cupón.
+    </div>
+
+    <div class="esperando" *ngIf="esperandoFoto">
+      <mat-spinner diameter="18"></mat-spinner>
+      <span>Esperando la foto…</span>
+    </div>
+
+    <!-- Un error acá NO cierra nada: el código sigue sirviendo y la foto se repite desde el
+         mismo teléfono. -->
+    <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
+
+    <div class="texto-ocr" *ngIf="textoOcr">
+      <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+      <pre>{{ textoOcr }}</pre>
+      <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
+    </div>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones">
+    <!-- La foto es la alternativa, no la acción principal: el lector sigue siendo el camino
+         rápido cuando el POS imprime QR. -->
+    <button
+      mat-button
+      class="btn-foto"
+      *ngIf="!capturaUrl"
+      [disabled]="pidiendoCaptura"
+      (click)="onSacarFoto()"
+    >
+      <mat-icon>photo_camera</mat-icon>
+      Sacar foto del cupón
+    </button>
+
+    <button mat-button class="btn-foto" *ngIf="capturaUrl" (click)="onVolverAlLector()">
+      Volver al lector
+    </button>
   </div>
 
   <div fxLayout="row" fxLayoutAlign="center" class="acciones">

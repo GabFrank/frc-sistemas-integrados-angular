@@ -92,6 +92,7 @@ import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../
 import { esCobroTarjetaRegistrable } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
+import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
 import { ConfirmDialogComponent, ConfirmDialogData } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
@@ -196,7 +197,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoDialog: CargandoDialogService,
     private ventaService: VentaService,
     private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
-    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService
+    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
+    private cajaService: CajaService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -789,6 +791,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         monedaTerminalSimbolo: result.terminalPos.moneda?.simbolo,
         decimalesPorMoneda: this.decimalesPorMoneda,
         sucursalId: Number(this.mainService.sucursalActual?.id),
+        // Para la captura por foto: el token cuelga de la caja abierta, y el usuario queda
+        // registrado para saber quien la pidio.
+        cajaId: this.cajaService.selectedCaja?.id,
+        usuarioId: this.mainService.usuarioActual?.id,
       };
       this.matDialog.open(EscanearCuponDialogComponent, { data, disableClose: false })
         .afterClosed()

@@ -5,6 +5,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, filter, map } from 'rxjs/operators';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
+import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
@@ -32,6 +33,10 @@ export interface EscanearCuponDialogData {
   decimalesPorMoneda?: DecimalesPorMoneda;
   /** Necesaria para preguntarle al filial si el cupon ya fue usado. */
   sucursalId?: number;
+  /** Caja abierta. Sin ella no se puede abrir una captura de foto: el token cuelga de la caja. */
+  cajaId?: number;
+  /** Queda registrado en la captura, para saber quién pidió la foto. */
+  usuarioId?: number;
 }
 
 /**
@@ -41,8 +46,9 @@ export interface EscanearCuponDialogData {
  * venta_tarjeta.id todavía — recién existe después de que la venta se guarde. Por eso este
  * diálogo solo parsea la cadena en memoria y devuelve el resultado; la escritura real
  * (crear + completar) la hace venta-touch en un solo golpe cuando la venta se guarda con éxito.
- * Por la misma razón tampoco hay QR para el celular acá: el payload necesita el id de la venta,
- * que todavía no existe.
+ * El QR de foto SÍ funciona acá, y no depende de eso: el token de captura lo emite el filial y
+ * cuelga de la caja, no de la venta. Es el camino para los POS que no imprimen QR — el cajero
+ * fotografía el cupón con cualquier teléfono y el OCR corre dentro del filial. Ver fase 2.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -62,8 +68,32 @@ export class EscanearCuponDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<EscanearCuponDialogComponent>,
     private formatoQrPosService: FormatoQrPosService,
     private matDialog: MatDialog,
-    private ventaTarjetaService: VentaTarjetaService
+    private ventaTarjetaService: VentaTarjetaService,
+    private capturaCuponService: CapturaCuponService
   ) {}
+
+  /**
+   * Captura por foto: para las maquinitas que no imprimen QR.
+   *
+   * El desktop pide el token al filial, muestra la URL en un QR y espera. El teléfono no
+   * necesita app, ni login, ni estar dado de alta: la página la sirve el propio filial por HTTP
+   * en la LAN. Ver §2.7 y §2.8 de FASE-2-TICKET-FISICO.md.
+   */
+  capturaUrl: string = null;
+
+  /** El QR ya se mostró y todavía no llegó una lectura buena. */
+  esperandoFoto = false;
+
+  /** Mientras se pide el token. Corto, pero el botón tiene que quedar inerte. */
+  pidiendoCaptura = false;
+
+  /** Texto crudo del OCR. En esta etapa se muestra tal cual: los campos vienen en la 3. */
+  textoOcr: string = null;
+
+  /** Lo que salió mal con la foto. No cancela la espera: el token sigue vivo y se reintenta. */
+  errorCaptura: string = null;
+
+  msOcr: number = null;
 
   /**
    * La terminal está configurada en otra moneda que el cobro: se avisa, no bloquea el escaneo.
@@ -214,6 +244,74 @@ export class EscanearCuponDialogComponent implements OnInit {
   // El aviso de monto distinto / cupón vencido no se muestra acá: en cuanto el parseo da bien,
   // el diálogo cierra en el mismo tick (aceptar() de abajo), así que no alcanzaría a verse. Lo
   // muestra pago-touch como snackbar apenas este diálogo cierra — ver escanearTarjeta().
+
+  /**
+   * Abre una captura y muestra el QR.
+   *
+   * Se queda escuchando hasta que llegue una lectura buena. Un ERROR se muestra pero NO corta la
+   * espera: el token no se consume con una foto fallida, así que el cajero saca otra desde el
+   * mismo teléfono sin volver a la caja.
+   */
+  onSacarFoto(): void {
+    if (this.data.cajaId == null || this.data.sucursalId == null) {
+      this.errorCaptura = 'No se puede sacar la foto sin una caja abierta.';
+      return;
+    }
+
+    this.pidiendoCaptura = true;
+    this.errorCaptura = null;
+    this.textoOcr = null;
+
+    this.capturaCuponService
+      .onCrear(Number(this.data.cajaId), Number(this.data.sucursalId), this.data.usuarioId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (qr) => {
+          this.pidiendoCaptura = false;
+          if (!qr?.url) {
+            this.errorCaptura = 'El filial no pudo abrir la captura. Probá de nuevo.';
+            return;
+          }
+          this.capturaUrl = qr.url;
+          this.esperandoFoto = true;
+          this.escucharCaptura(qr.token);
+        },
+        error: () => {
+          this.pidiendoCaptura = false;
+          this.errorCaptura = 'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.';
+        },
+      });
+  }
+
+  private escucharCaptura(token: string): void {
+    this.capturaCuponService
+      .onEsperar(token)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (c) => {
+          if (c.estado === 'ERROR') {
+            // Se sigue esperando a propósito: la foto se reintenta desde el teléfono.
+            this.errorCaptura = c.error || 'No se pudo leer la foto. Sacá otra.';
+            return;
+          }
+          this.errorCaptura = null;
+          this.textoOcr = c.textoOcr;
+          this.msOcr = c.msOcr;
+          this.esperandoFoto = false;
+        },
+        error: () => {
+          this.errorCaptura = 'Se perdió la conexión con el servidor de la sucursal.';
+        },
+      });
+  }
+
+  /** Vuelve al lector. La captura abierta se deja vencer sola: no hay nada que limpiar. */
+  onVolverAlLector(): void {
+    this.capturaUrl = null;
+    this.esperandoFoto = false;
+    this.textoOcr = null;
+    this.errorCaptura = null;
+  }
 
   onMasTarde(): void {
     this.dialogRef.close(null);
