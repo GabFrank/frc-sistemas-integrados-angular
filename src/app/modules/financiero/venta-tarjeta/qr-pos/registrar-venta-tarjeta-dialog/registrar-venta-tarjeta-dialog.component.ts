@@ -11,6 +11,7 @@ import {
   NotificacionSnackbarService,
 } from '../../../../../notificacion-snackbar.service';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
+import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
 import { mensajeDeError } from '../mensaje-error';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
@@ -44,6 +45,10 @@ export interface RegistrarVentaTarjetaData {
   titulo?: string;
   /** Segundos hasta el cierre automático. */
   segundos?: number;
+  /** Caja del pendiente. Sin ella no se puede pedir una captura: el token cuelga de la caja. */
+  cajaId?: number;
+  /** Queda registrado en la captura, para saber quién pidió la foto. */
+  usuarioId?: number;
 }
 
 export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
@@ -53,8 +58,14 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
  *
  *   1. Escanear con el lector del PDV el QR que imprime el POS en el cupón. Es el camino nuevo y
  *      el rápido: no requiere celular ni OCR.
- *   2. Escanear con el celular el QR de la pantalla, que abre la captura de imagen. Es el camino
- *      que ya existía, y sigue siendo el único para los proveedores que todavía no imprimen QR.
+ *   2. Escanear con el celular el QR de la pantalla, que abre la captura de imagen en la app
+ *      móvil. Es el camino que ya existía.
+ *   3. Sacar la foto del cupón con cualquier teléfono, sin app: el QR abre una página que sirve
+ *      el propio filial por HTTP en la LAN y el OCR corre adentro suyo. Es el reemplazo del
+ *      camino 2 para los proveedores que no imprimen QR, y no necesita nada instalado.
+ *
+ * Los caminos 2 y 3 comparten el lugar del QR y se alternan: dos QR en pantalla al mismo tiempo
+ * no le dicen a nadie cuál escanear.
  *
  * Un solo diálogo con los dos, en vez de un flag por terminal: los proveedores van a ir
  * adoptando el QR de a uno, y así no hay que tocar la configuración de cada maquinita ni
@@ -83,6 +94,18 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
 
   private timer;
 
+  /**
+   * Captura por foto: mismo mecanismo que el diálogo del PDV. Ver §2.7 y §2.8 de
+   * FASE-2-TICKET-FISICO.md.
+   */
+  capturaUrl: string = null;
+  esperandoFoto = false;
+  pidiendoCaptura = false;
+  /** Texto crudo del OCR. En esta etapa se muestra tal cual: los campos vienen en la 3. */
+  textoOcr: string = null;
+  errorCaptura: string = null;
+  msOcr: number = null;
+
   readonly maxLongitud = MAX_LONGITUD_QR;
 
   constructor(
@@ -91,7 +114,8 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     private ventaTarjetaService: VentaTarjetaService,
     private formatoQrPosService: FormatoQrPosService,
     private notificacionSnackbar: NotificacionSnackbarService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private capturaCuponService: CapturaCuponService
   ) {
     this.valorQr = codificarQr(data.qrPayload);
     if (data.segundos != null) {
@@ -376,6 +400,84 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         duracion: 5,
       });
     }
+  }
+
+  /**
+   * Abre una captura y muestra el QR en el lugar del de la app móvil.
+   *
+   * <b>Frena el countdown.</b> El diálogo se cierra solo a los 120 segundos, que alcanzan para
+   * escanear un cupón con el lector pero no para desbloquear un teléfono, escanear, encuadrar y
+   * esperar el OCR. Sin esto la pantalla se cerraría con la foto en camino y el cajero
+   * pensaría que se perdió.
+   */
+  onSacarFoto(): void {
+    if (this.data.cajaId == null || this.data.sucursalId == null) {
+      this.errorCaptura = 'No se puede sacar la foto: este pendiente no tiene caja.';
+      return;
+    }
+
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+      this.countdown = null;
+    }
+
+    this.pidiendoCaptura = true;
+    this.errorCaptura = null;
+    this.textoOcr = null;
+
+    this.capturaCuponService
+      .onCrear(Number(this.data.cajaId), Number(this.data.sucursalId), this.data.usuarioId)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (qr) => {
+          this.pidiendoCaptura = false;
+          if (!qr?.url) {
+            this.errorCaptura = 'El filial no pudo abrir la captura. Probá de nuevo.';
+            return;
+          }
+          this.capturaUrl = qr.url;
+          this.esperandoFoto = true;
+          this.escucharCaptura(qr.token);
+        },
+        error: () => {
+          this.pidiendoCaptura = false;
+          this.errorCaptura = 'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.';
+        },
+      });
+  }
+
+  private escucharCaptura(token: string): void {
+    this.capturaCuponService
+      .onEsperar(token)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (c) => {
+          if (c.estado === 'ERROR') {
+            // Se sigue esperando: la foto se reintenta desde el mismo teléfono, el token vive.
+            this.errorCaptura = c.error || 'No se pudo leer la foto. Sacá otra.';
+            return;
+          }
+          this.errorCaptura = null;
+          this.textoOcr = c.textoOcr;
+          this.msOcr = c.msOcr;
+          this.esperandoFoto = false;
+        },
+        error: () => {
+          this.errorCaptura = 'Se perdió la conexión con el servidor de la sucursal.';
+        },
+      });
+  }
+
+  /**
+   * Vuelve al QR de la app. El countdown NO se reanuda: el cajero ya demostró que está
+   * trabajando en esto, y volver a arrancar un reloj que cierra la pantalla sería hostil.
+   */
+  onVolverAlQrApp(): void {
+    this.capturaUrl = null;
+    this.esperandoFoto = false;
+    this.textoOcr = null;
+    this.errorCaptura = null;
   }
 
   /** "Registrar más tarde": la venta ya está cerrada; el registro queda PENDIENTE. */

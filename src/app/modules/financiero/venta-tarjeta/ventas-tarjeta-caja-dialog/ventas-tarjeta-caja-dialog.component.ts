@@ -182,6 +182,10 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           decimalesPorMoneda: this.decimalesPorMoneda,
           titulo: 'Completar venta con tarjeta',
           segundos: 120,
+          // Para la captura por foto: la caja del pendiente, no la abierta ahora. Esta lista
+          // viene del FILIAL, que devuelve el escalar; el objeto es lo que devuelve el central.
+          cajaId: item.cajaId ?? item.caja?.id,
+          usuarioId: this.mainService.usuarioActual?.id,
         },
         disableClose: false,
       })

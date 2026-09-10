@@ -251,7 +251,13 @@ export class ListVentaTarjetaComponent implements OnInit {
         proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
         decimalesPorMoneda: this.decimalesPorMoneda,
         titulo: 'Completar venta con tarjeta',
-        segundos: 120
+        segundos: 120,
+        // Para la captura por foto: el token cuelga de la caja del pendiente, no de la caja
+        // abierta ahora --esta pantalla se usa tambien para pendientes de otro turno.
+        // Esta lista viene del CENTRAL, que devuelve `caja { id }`; el escalar `cajaId` es lo
+        // que devuelve el filial. Se aceptan los dos (ver el comentario de VentaTarjeta).
+        cajaId: item.caja?.id ?? item.cajaId,
+        usuarioId: this.mainService.usuarioActual?.id,
       },
       disableClose: false
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => this.onGetData());

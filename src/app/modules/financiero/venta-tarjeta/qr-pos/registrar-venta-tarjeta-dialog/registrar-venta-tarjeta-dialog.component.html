@@ -72,14 +72,53 @@
     </div>
 
     <div class="separador">
-      <span>o registrá desde el celular</span>
+      <span>{{ capturaUrl ? 'o sacale una foto al cupón' : 'o registrá desde el celular' }}</span>
     </div>
 
-    <!-- Camino que ya existía, y el único para los proveedores que todavía no imprimen QR.
-         Es la alternativa, no la acción principal: va más chico que antes. -->
-    <div class="qr">
+    <!-- Los dos caminos del celular comparten este lugar y se alternan: dos QR al mismo tiempo
+         no le dicen a nadie cuál escanear. -->
+
+    <!-- Camino de la app móvil. Es la alternativa, no la acción principal: va más chico. -->
+    <div class="qr" *ngIf="!capturaUrl">
       <ngx-qrcode [value]="valorQr" [scale]="3"></ngx-qrcode>
       <div class="ayuda">Escaneá este código con la app para capturar la imagen del cupón</div>
+
+      <!-- Para las maquinitas que no imprimen QR y cuando no hay app instalada: la página la
+           sirve el propio filial en la LAN, así que sirve cualquier teléfono. -->
+      <button mat-button class="btn-foto" [disabled]="pidiendoCaptura || procesando" (click)="onSacarFoto()">
+        <mat-icon>photo_camera</mat-icon>
+        Sacar foto sin la app
+      </button>
+      <div class="error-lectura" *ngIf="errorCaptura && !esperandoFoto">{{ errorCaptura }}</div>
+    </div>
+
+    <!-- Captura por foto. Mientras está activa el diálogo NO se cierra solo: ver onSacarFoto. -->
+    <div class="captura" *ngIf="capturaUrl">
+      <div class="captura-qr">
+        <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
+      </div>
+
+      <div class="ayuda" *ngIf="esperandoFoto && !errorCaptura">
+        Escaneá este código con el teléfono y sacale una foto al cupón.
+      </div>
+
+      <div class="esperando" *ngIf="esperandoFoto">
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Esperando la foto…</span>
+      </div>
+
+      <!-- Un error acá NO cierra nada: el código sigue sirviendo y la foto se repite. -->
+      <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
+
+      <div class="texto-ocr" *ngIf="textoOcr">
+        <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+        <pre>{{ textoOcr }}</pre>
+        <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
+      </div>
+
+      <button mat-button class="btn-foto" (click)="onVolverAlQrApp()">
+        Volver al código de la app
+      </button>
     </div>
 
     <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones">
