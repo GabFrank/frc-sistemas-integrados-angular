@@ -68,7 +68,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
 
   // ---- Forma de cobro ----
   // Mismo patron que IPS: el toggle es el que clasifica, y solo cuando esta en true
-  // se habilita (y se exige) el numero de cuenta.
+  // se habilita el numero de cuenta. La cuenta no se exige: se puede marcar que cobra
+  // por banco y cargar el numero despues.
   cobraBancoControl = new FormControl(false);
   cuentaBancariaControl = new FormControl({ value: null, disabled: true });
 
@@ -152,12 +153,9 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.cobraBanco = cobraBanco;
     if (cobraBanco) {
       this.cuentaBancariaControl.enable({ emitEvent: false });
-      this.cuentaBancariaControl.setValidators(Validators.required);
     } else {
       this.cuentaBancariaControl.disable({ emitEvent: false });
-      this.cuentaBancariaControl.clearValidators();
     }
-    this.cuentaBancariaControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private cargarCatalogos(): void {
@@ -357,14 +355,6 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
 
     if (this.documentoControl.invalid || this.nombreControl.invalid || this.sucursalControl.invalid) {
       this.notificacion.openWarn('Complete los campos obligatorios: documento, nombre y sucursal.');
-      return;
-    }
-
-    // Clasificar a alguien como "cobra por banco" sin numero de cuenta deja el dato
-    // inservible para la nomina, que es justo lo que este flag viene a resolver.
-    this.cuentaBancariaControl.markAsTouched();
-    if (this.cobraBancoControl.value && this.cuentaBancariaControl.invalid) {
-      this.notificacion.openWarn('Ingrese la cuenta bancaria o desmarque "Cobra por banco".');
       return;
     }
 

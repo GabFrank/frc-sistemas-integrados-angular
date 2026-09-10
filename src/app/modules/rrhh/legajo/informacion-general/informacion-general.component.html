@@ -146,7 +146,6 @@
     <mat-form-field *ngIf="cobraBanco" class="campo-ancho">
       <mat-label>Cuenta bancaria</mat-label>
       <input matInput [formControl]="cuentaBancariaControl" />
-      <mat-error *ngIf="cuentaBancariaControl.hasError('required')">La cuenta bancaria es obligatoria</mat-error>
     </mat-form-field>
   </mat-card>
 
