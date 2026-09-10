@@ -38,16 +38,22 @@ export const capturaCuponQuery = gql`
   }
 `;
 
-/** El aviso que sale cuando el OCR termina. Llega también en ERROR. */
+/**
+ * El aviso de que una captura terminó: un **timbre, no el contenido**.
+ *
+ * El texto del cupón no viaja por acá. Por WebSocket el filial no tiene sesión, así que esta
+ * subscription es anónima: cualquiera que abra un socket contra el filial en la LAN escucha lo
+ * que se emita. Al recibir el timbre de su token, el desktop pide el contenido con
+ * `capturaCupon(token)`, que sí pasa por login.
+ *
+ * Llega también en ERROR: el cajero mira la caja, no el teléfono.
+ */
 export const capturaCuponSubQuery = gql`
   subscription capturaCuponSub {
     data: capturaCuponSub {
       token
       cajaId
       estado
-      textoOcr
-      error
-      msOcr
     }
   }
 `;

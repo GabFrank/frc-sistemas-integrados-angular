@@ -46,6 +46,9 @@ export class CapturaCuponService {
    * estado cada tres segundos y si no el mensaje de error parpadearía.
    */
   onEsperar(token: string): Observable<CapturaCupon> {
+    // El timbre. No trae el texto del cupón: la subscription del filial es anónima, así que
+    // sólo dice "hay novedad con este token" y el contenido se pide aparte.
+    //
     // Se usa el GQL directo y no `genericService.onCustomSub`: ese helper completa el
     // observable con el PRIMER evento que llega. Acá el canal es de toda la sucursal, así que
     // el primer aviso puede ser el de otra caja; con onCustomSub se descartaría por token y el
@@ -57,16 +60,13 @@ export class CapturaCuponService {
         context: { clientName: null },   // null = filial
       })
       .pipe(
-        map((res: any) => res?.data?.data as CapturaCupon),
-        filter((c) => c != null && c.token === token)
+        map((res: any) => res?.data?.data as { token?: string }),
+        filter((t) => t != null && t.token === token),
+        switchMap(() => this.consultar(token))
       );
 
     const porSondeo = timer(CapturaCuponService.MS_SONDEO, CapturaCuponService.MS_SONDEO).pipe(
-      // silentLoad: el sondeo es de fondo. Sin esto el diálogo de "Buscando..." parpadea
-      // arriba del QR cada tres segundos.
-      switchMap(() => this.genericService.onCustomQuery(this.consultarGQL, { token }, false, null, true)),
-      map((res) => res as CapturaCupon),
-      filter((c) => c != null)
+      switchMap(() => this.consultar(token))
     );
 
     return merge(porAviso, porSondeo).pipe(
@@ -74,5 +74,21 @@ export class CapturaCuponService {
       distinctUntilChanged((a, b) => a.estado === b.estado && a.error === b.error && a.intentos === b.intentos),
       takeWhile((c) => c.estado !== 'LISTO', true)
     );
+  }
+
+  /**
+   * El estado completo de una captura. Es la **única** vía del texto leído: va por HTTP con la
+   * sesión del cajero, a diferencia de la subscription.
+   *
+   * `silentLoad` porque esto corre de fondo: sin eso el diálogo de "Buscando..." parpadearía
+   * arriba del QR cada tres segundos.
+   */
+  private consultar(token: string): Observable<CapturaCupon> {
+    return this.genericService
+      .onCustomQuery(this.consultarGQL, { token }, false, null, true)
+      .pipe(
+        map((res) => res as CapturaCupon),
+        filter((c) => c != null)
+      );
   }
 }
