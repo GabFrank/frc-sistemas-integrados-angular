@@ -18,7 +18,20 @@
         <mat-datepicker-toggle matSuffix [for]="dp2"></mat-datepicker-toggle>
         <mat-datepicker #dp2></mat-datepicker>
       </mat-form-field>
-      <button mat-raised-button color="primary" [disabled]="desdeControl.invalid || hastaControl.invalid" (click)="onSolicitar()">Solicitar</button>
+      <button mat-raised-button color="primary" [disabled]="desdeControl.invalid || hastaControl.invalid || diasADescontar < 1 || diasADescontar > disponibles" (click)="onSolicitar()">Solicitar</button>
+    </div>
+
+    <div class="preview-dias" *ngIf="desdeControl.value && hastaControl.value">
+      <ng-container *ngIf="diasADescontar > 0; else sinDiasHabiles">
+        Días a descontar: <b>{{ diasADescontar }}</b>
+        <span class="detalle">(no se cuentan los domingos)</span>
+        <span class="excedido" *ngIf="diasADescontar > disponibles">
+          — supera los {{ disponibles }} días disponibles
+        </span>
+      </ng-container>
+      <ng-template #sinDiasHabiles>
+        <span class="excedido">El rango no contiene ningún día laborable</span>
+      </ng-template>
     </div>
 
     <table mat-table [dataSource]="periodos" class="mat-elevation-z1 tabla">

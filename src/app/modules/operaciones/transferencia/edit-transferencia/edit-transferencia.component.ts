@@ -1211,24 +1211,41 @@ export class EditTransferenciaComponent implements OnInit {
       componentToOpen: "EditTransferenciaComponent",
     };
     this.isDialogOpen = true;
-    this.matDialog
-      .open(QrCodeComponent, {
-        data: {
-          codigo: codigo,
-          nombre: "Transferencia",
-          imprimir: true,
-        },
-      })
-      .afterClosed()
+    let transferenciaId = this.selectedTransferencia.id;
+    let qrDialogRef = this.matDialog.open(QrCodeComponent, {
+      data: {
+        codigo: codigo,
+        nombre: "Transferencia",
+        imprimir: true,
+      },
+    });
+
+    // Cierra el diálogo solo cuando el móvil escanea este QR. El aviso llega
+    // por subscription desde el central; se filtra por transferencia y
+    // sucursal porque el canal es único para todos los desktops conectados.
+    let escaneoSub = this.transferenciaService
+      .qrEscaneadoSub()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.isDialogOpen = false;
-        if (res == "imprimir") {
-          this.transferenciaService.onImprimirTransferencia(
-            this.selectedTransferencia.id,
-            true
-          );
+        if (
+          res != null &&
+          +res.transferenciaId == +transferenciaId &&
+          +res.sucursalId == +this.mainService.sucursalActual.id
+        ) {
+          qrDialogRef.close();
         }
       });
+
+    qrDialogRef.afterClosed().subscribe((res) => {
+      escaneoSub.unsubscribe();
+      this.isDialogOpen = false;
+      if (res == "imprimir") {
+        this.transferenciaService.onImprimirTransferencia(
+          transferenciaId,
+          true
+        );
+      }
+    });
   }
 
   onOpenTimeLine() {

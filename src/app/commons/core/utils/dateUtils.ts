@@ -292,3 +292,26 @@ export function formatearFecha(event: any): any {
 
   return input; // Update the form control without emitting an event
 }
+
+/**
+ * Cuenta los días del rango [desde, hasta] (ambos inclusive) salteando los domingos.
+ *
+ * Acá se trabaja de lunes a sábado y el domingo es día libre, así que un período de
+ * vacaciones de 12 días abarca 13 o 14 días de calendario según cuántos domingos
+ * caigan adentro. Espeja el conteo del backend (`VacacionPeriodoCalculator`), que es
+ * el que manda: esto es solo para previsualizar el descuento antes de enviar.
+ *
+ * Devuelve 0 si el rango es nulo o está invertido.
+ */
+export function contarDiasSinDomingo(desde: Date, hasta: Date): number {
+  if (!desde || !hasta) { return 0; }
+  const fin = fechaCalendarioLocal(hasta);
+  const cursor = fechaCalendarioLocal(desde);
+  if (fin < cursor) { return 0; }
+  let dias = 0;
+  while (cursor <= fin) {
+    if (cursor.getDay() !== 0) { dias++; }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dias;
+}
