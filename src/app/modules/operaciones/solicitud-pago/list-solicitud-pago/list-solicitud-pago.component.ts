@@ -83,6 +83,7 @@ export class ListSolicitudPagoComponent implements OnInit {
     { value: '', label: 'Todos' },
     { value: SolicitudPagoEstado.PENDIENTE, label: 'Pendiente' },
     { value: SolicitudPagoEstado.SOLICITADO, label: 'Solicitado' },
+    { value: SolicitudPagoEstado.DEVUELTO, label: 'Devuelto' },
     { value: SolicitudPagoEstado.PARCIAL, label: 'Parcial' },
     { value: SolicitudPagoEstado.CONCLUIDO, label: 'Concluido' },
     { value: SolicitudPagoEstado.CANCELADO, label: 'Cancelado' }
