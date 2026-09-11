@@ -58,7 +58,19 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
   @ViewChild('cancelButton', { static: false }) cancelButton!: MatButton;
   @ViewChild('salirButton', { static: false }) salirButton!: MatButton;
-  @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
+  private _paginator?: MatPaginator;
+  @ViewChild(MatPaginator, { static: false })
+  set paginator(value: MatPaginator | undefined) {
+    this._paginator = value;
+    // El paginador vive dentro de un *ngIf y los ítems llegan por HTTP, así que
+    // recién existe bastante después de ngAfterViewInit: hay que conectarlo acá.
+    if (value) {
+      this.itemsTableDataSource.paginator = value;
+    }
+  }
+  get paginator(): MatPaginator | undefined {
+    return this._paginator;
+  }
   
   // ViewChild para los campos del formulario
   @ViewChild('tipoBoletaSelect', { static: false }) tipoBoletaSelect!: any;
@@ -78,6 +90,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   // Propiedades para la tabla de ítems
   itemsDataSource = new MatTableDataSource<NotaRecepcionItem>([]);
+  /** Datos que realmente renderiza la tabla (computedItemsData) + paginación. */
+  itemsTableDataSource = new MatTableDataSource<any>([]);
   displayedColumns: string[] = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'distribucion', 'acciones'];
   /** Modo solo lectura: formulario y acciones deshabilitados. */
   readOnly = false;
@@ -316,11 +330,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   ngAfterViewInit(): void {
-    // Configurar paginador si está disponible
-    if (this.paginator) {
-      this.itemsDataSource.paginator = this.paginator;
-    }
-    
     // Si es una nueva nota, enfocar el input "Numero" directamente
     // Usar tabindex en el HTML para cambiar el orden, y aquí asegurar el foco
     if (!this.data.isEdit) {
@@ -691,6 +700,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         cantidadPendienteComputed: item.cantidadPendiente || 0
       };
     });
+    this.itemsTableDataSource.data = this.computedItemsData;
   }
 
   private updateAssignmentStatus(): void {
