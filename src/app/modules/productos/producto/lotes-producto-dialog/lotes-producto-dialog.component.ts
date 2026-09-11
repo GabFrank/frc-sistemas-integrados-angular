@@ -11,6 +11,7 @@ import {
   Lote
 } from '../../../operaciones/lote/lote.model';
 import { LoteService } from '../../../operaciones/lote/lote.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import { Producto } from '../producto.model';
 
 export interface LotesProductoDialogData {
@@ -44,6 +45,10 @@ export class LotesProductoDialogComponent implements OnInit {
 
   displayedColumns = ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'estado', 'acciones'];
 
+  /** Sin permiso la columna no tiene nada que mostrar: se saca entera, encabezado incluido. */
+  private static readonly COLUMNAS_SIN_ACCIONES =
+    ['numeroLote', 'fechaVencimiento', 'fechaRetiro', 'proveedor', 'estado'];
+
   lotes: LoteRow[] = [];
   cargando = false;
   sinLotes = false;
@@ -51,6 +56,13 @@ export class LotesProductoDialogComponent implements OnInit {
 
   readonly estados = [EstadoLote.LIBERADO, EstadoLote.CUARENTENA, EstadoLote.BLOQUEADO];
   readonly estadoLabels = ESTADO_LOTE_LABELS;
+
+  /**
+   * Mismo permiso que en la pantalla de stock por lotes: cambiar el estado saca mercadería de
+   * circulación en toda la red. Sin él el menú de acciones no se muestra, porque es lo único que
+   * tiene adentro.
+   */
+  puedeCambiarEstado = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: LotesProductoDialogData,
@@ -63,6 +75,15 @@ export class LotesProductoDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.puedeCambiarEstado =
+      this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) ||
+      this.mainService.usuarioActual?.roles?.includes(ROLES.EDITAR_PRODUCTOS) ||
+      false;
+
+    if (!this.puedeCambiarEstado) {
+      this.displayedColumns = LotesProductoDialogComponent.COLUMNAS_SIN_ACCIONES;
+    }
+
     this.descripcionProducto = this.data?.producto?.descripcion || '';
     this.cargarLotes();
   }
@@ -116,7 +137,7 @@ export class LotesProductoDialogComponent implements OnInit {
    * así que se confirma antes.
    */
   onCambiarEstado(fila: LoteRow, estado: EstadoLote): void {
-    if (fila.estado === estado) {
+    if (!this.puedeCambiarEstado || fila.estado === estado) {
       return;
     }
 
