@@ -392,7 +392,7 @@
     -->
     <mat-menu #menuEstado="matMenu">
       <ng-template matMenuContent let-fila="fila">
-        <button mat-menu-item (click)="onVerHistorial(fila)">
+        <button mat-menu-item *ngIf="puedeVerHistorial" (click)="onVerHistorial(fila)">
           <mat-icon>history</mat-icon>
           <span>Ver historial</span>
         </button>
@@ -406,18 +406,21 @@
           <span>Ajustar stock</span>
         </button>
 
-        <mat-divider></mat-divider>
+        <ng-container *ngIf="puedeCambiarEstado">
+          <!-- Sin items arriba el divisor quedaría como una raya suelta encabezando el menú. -->
+          <mat-divider *ngIf="puedeVerHistorial || puedeAjustarStock"></mat-divider>
 
-        <div class="menu-titulo">Cambiar estado</div>
-        <button
-          mat-menu-item
-          *ngFor="let est of opcionesEstado"
-          [disabled]="fila.estado === est.valor"
-          (click)="onCambiarEstado(fila, est.valor)"
-        >
-          <mat-icon [ngClass]="est.claseIcono">{{ est.icono }}</mat-icon>
-          <span>{{ est.label }}</span>
-        </button>
+          <div class="menu-titulo">Cambiar estado</div>
+          <button
+            mat-menu-item
+            *ngFor="let est of opcionesEstado"
+            [disabled]="fila.estado === est.valor"
+            (click)="onCambiarEstado(fila, est.valor)"
+          >
+            <mat-icon [ngClass]="est.claseIcono">{{ est.icono }}</mat-icon>
+            <span>{{ est.label }}</span>
+          </button>
+        </ng-container>
       </ng-template>
     </mat-menu>
 
