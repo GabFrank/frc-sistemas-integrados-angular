@@ -45,11 +45,22 @@
     </div>
   </div>
 
-  <ng-container *ngIf="!candidatos.length">
+  <!-- La terminal no tiene formato: no hay forma de leer su cupón, y decirlo es mejor que
+       ofrecer caminos que no van a funcionar. El mensaje dice qué falta y quién lo arregla. -->
+  <div class="zona-lectura con-error" *ngIf="bloqueo">
+    <mat-icon class="icono-lector">report_problem</mat-icon>
+    <div class="error-lectura">{{ bloqueo }}</div>
+    <div class="ayuda">
+      Mientras tanto podés registrarla más tarde: el cierre de caja la va a reclamar.
+    </div>
+  </div>
 
-    <!-- Camino principal: el lector del PDV. Va con el mismo tratamiento que el diálogo de
-         escaneo del PDV para que los dos hermanos se vean igual. -->
-    <div class="zona-lectura" [class.con-error]="errorLectura">
+  <ng-container *ngIf="!candidatos.length && !bloqueo">
+
+    <!-- Camino principal: el lector del PDV. Solo para los formatos cuyo ticket TRAE QR. En una
+         maquinita que no imprime QR, ofrecer el lector deja al cajero esperando frente a algo que
+         nunca va a leer nada. -->
+    <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="ofreceLector">
       <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
 
       <mat-form-field appearance="outline" class="campo-cupon">
@@ -71,7 +82,7 @@
       <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
     </div>
 
-    <div class="separador">
+    <div class="separador" *ngIf="ofreceLector && ofreceCamara">
       <span>{{ capturaUrl ? 'o sacale una foto al cupón' : 'o registrá desde el celular' }}</span>
     </div>
 
@@ -79,7 +90,7 @@
          no le dicen a nadie cuál escanear. -->
 
     <!-- Camino de la app móvil. Es la alternativa, no la acción principal: va más chico. -->
-    <div class="qr" *ngIf="!capturaUrl">
+    <div class="qr" *ngIf="!capturaUrl && ofreceCamara">
       <ngx-qrcode [value]="valorQr" [scale]="3"></ngx-qrcode>
       <div class="ayuda">Escaneá este código con la app para capturar la imagen del cupón</div>
 
@@ -93,7 +104,7 @@
     </div>
 
     <!-- Captura por foto. Mientras está activa el diálogo NO se cierra solo: ver onSacarFoto. -->
-    <div class="captura" *ngIf="capturaUrl">
+    <div class="captura" *ngIf="capturaUrl && ofreceCamara">
       <div class="captura-qr">
         <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
       </div>

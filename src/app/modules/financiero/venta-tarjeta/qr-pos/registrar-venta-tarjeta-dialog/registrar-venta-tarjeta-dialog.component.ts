@@ -12,6 +12,7 @@ import {
 } from '../../../../../notificacion-snackbar.service';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
+import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
 import { mensajeDeError } from '../mensaje-error';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
@@ -40,6 +41,14 @@ export interface RegistrarVentaTarjetaData {
   terminalDescripcion?: string;
   /** Proveedor de la terminal escaneada: define qué formato se prueba primero. */
   proveedorServicioId?: number;
+  /**
+   * Formato del modelo de aparato. De acá sale el tipo, que decide **qué camino se le ofrece al
+   * cajero y cuál se le cierra**.
+   *
+   * `null` = la terminal no tiene formato configurado. No es un caso raro: el día del corte lo
+   * están todas, porque no hay backfill. El diálogo bloquea y dice qué falta.
+   */
+  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string };
   /** Decimales por moneda, para escalar importes en la menor unidad. */
   decimalesPorMoneda?: DecimalesPorMoneda;
   titulo?: string;
@@ -98,6 +107,16 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    * Captura por foto: mismo mecanismo que el diálogo del PDV. Ver §2.7 y §2.8 de
    * FASE-2-TICKET-FISICO.md.
    */
+  /**
+   * Qué caminos ofrece este diálogo, decidido por el tipo del formato de la terminal.
+   *
+   * Se calcula UNA vez en el constructor y queda en campos: el repo prohíbe getters en bindings.
+   */
+  ofreceLector = false;
+  ofreceCamara = false;
+  /** Motivo por el que no se puede registrar acá. `null` = se puede. */
+  bloqueo: string = null;
+
   capturaUrl: string = null;
   esperandoFoto = false;
   pidiendoCaptura = false;
@@ -118,6 +137,7 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     private capturaCuponService: CapturaCuponService
   ) {
     this.valorQr = codificarQr(data.qrPayload);
+    this.decidirCaminos();
     if (data.segundos != null) {
       this.countdown = data.segundos;
       this.timer = setInterval(() => {
@@ -399,6 +419,49 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         texto: `La venta con tarjeta quedó en estado ${estado}.`,
         duracion: 5,
       });
+    }
+  }
+
+  /**
+   * Qué camino se le ofrece al cajero, y cuál se le CIERRA.
+   *
+   * Es la razón de ser del tipo de formato. Antes el diálogo ofrecía los dos caminos siempre, así
+   * que en una maquinita que no imprime QR el cajero podía quedarse esperando frente al lector, y
+   * en un POS web podía sacarle una foto a un cupón que ya traía los datos estructurados.
+   *
+   * <b>Cerrar un camino sólo es aceptable porque la carga a mano queda disponible para cualquier
+   * tipo, siempre.</b> Si esa condición se rompe, hay que reabrir los caminos.
+   */
+  private decidirCaminos(): void {
+    const tipo = this.data?.formatoTerminalPos?.tipo;
+
+    if (!this.data?.formatoTerminalPos) {
+      // El caso del día del corte: ninguna terminal tiene formato, porque no hay backfill. El
+      // mensaje dice qué falta y quién lo arregla — un bloqueo mudo en una caja con gente
+      // esperando es peor que el problema que evita.
+      this.ofreceLector = false;
+      this.ofreceCamara = false;
+      this.bloqueo =
+        'Esta terminal no tiene formato configurado, así que el sistema no sabe cómo leer su ' +
+        'cupón. Un administrador tiene que asignárselo en Financiero → Terminales POS.';
+      return;
+    }
+
+    this.bloqueo = null;
+    if (tipo === TIPO_WEB) {
+      // El ticket trae QR: se lee con el lector. La cámara no aporta nada y confunde.
+      this.ofreceLector = true;
+      this.ofreceCamara = false;
+    } else if (tipo === TIPO_MAQUINA) {
+      // El ticket no trae QR: no hay nada que escanear.
+      this.ofreceLector = false;
+      this.ofreceCamara = true;
+    } else {
+      // Un tipo que este desktop no conoce --API, o uno agregado después y llegado por
+      // replicación. Se cae a la cámara, que sirve para cualquier cupón de papel, en vez de
+      // dejar la pantalla en blanco.
+      this.ofreceLector = false;
+      this.ofreceCamara = true;
     }
   }
 

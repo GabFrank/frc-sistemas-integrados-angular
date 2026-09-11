@@ -6,6 +6,7 @@ import { debounceTime, filter, map } from 'rxjs/operators';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
+import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
@@ -19,6 +20,13 @@ import {
 export interface EscanearCuponDialogData {
   terminalDescripcion?: string;
   proveedorServicioId?: number;
+  /**
+   * Formato del modelo de aparato de la terminal elegida. De acá sale el tipo, que decide **qué
+   * camino se le ofrece al cajero y cuál se le cierra**.
+   *
+   * `null` = la terminal no tiene formato configurado, y entonces no hay forma de leer su cupón.
+   */
+  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string };
   monto: number;
   /**
    * Moneda del COBRO — la de la línea que se está pagando, no la de la terminal. El monto que se
@@ -63,6 +71,17 @@ export class EscanearCuponDialogComponent implements OnInit {
   errorLectura: string = null;
   readonly maxLongitud = MAX_LONGITUD_QR;
 
+  /**
+   * Qué caminos ofrece el diálogo, decidido por el tipo del formato de la terminal.
+   *
+   * Campos y no getters: el repo prohíbe getters en bindings. Se calculan una vez, en el
+   * constructor, porque la terminal ya viene elegida cuando este diálogo se abre.
+   */
+  ofreceLector = false;
+  ofreceCamara = false;
+  /** Motivo por el que no se puede leer el cupón acá. `null` = se puede. */
+  bloqueo: string = null;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: EscanearCuponDialogData,
     public dialogRef: MatDialogRef<EscanearCuponDialogComponent>,
@@ -70,7 +89,42 @@ export class EscanearCuponDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private ventaTarjetaService: VentaTarjetaService,
     private capturaCuponService: CapturaCuponService
-  ) {}
+  ) {
+    this.decidirCaminos();
+  }
+
+  /**
+   * Qué camino se le ofrece al cajero, y cuál se le CIERRA.
+   *
+   * Es la razón de ser del tipo de formato. Antes se ofrecían los dos siempre: en una maquinita
+   * que no imprime QR el cajero se quedaba esperando frente al lector, y en un POS web podía
+   * sacarle una foto a un cupón que ya traía los datos estructurados.
+   *
+   * <b>Cerrar un camino sólo es aceptable porque la carga a mano queda disponible para cualquier
+   * tipo, siempre.</b> Si esa condición se rompe, hay que reabrir los caminos.
+   */
+  private decidirCaminos(): void {
+    if (!this.data?.formatoTerminalPos) {
+      this.ofreceLector = false;
+      this.ofreceCamara = false;
+      this.bloqueo =
+        'Esta terminal no tiene formato configurado, así que el sistema no sabe cómo leer su ' +
+        'cupón. Un administrador tiene que asignárselo en Financiero → Terminales POS.';
+      return;
+    }
+
+    this.bloqueo = null;
+    const tipo = this.data.formatoTerminalPos.tipo;
+    if (tipo === TIPO_WEB) {
+      this.ofreceLector = true;
+      this.ofreceCamara = false;
+    } else {
+      // MAQUINA, y también cualquier tipo que este desktop no conozca: se cae a la cámara, que
+      // sirve para cualquier cupón de papel, en vez de dejar la pantalla sin ninguna salida.
+      this.ofreceLector = false;
+      this.ofreceCamara = true;
+    }
+  }
 
   /**
    * Captura por foto: para las maquinitas que no imprimen QR.

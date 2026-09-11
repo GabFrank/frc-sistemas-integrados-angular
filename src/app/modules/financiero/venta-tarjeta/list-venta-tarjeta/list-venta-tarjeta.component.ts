@@ -249,6 +249,8 @@ export class ListVentaTarjetaComponent implements OnInit {
         monedaSimbolo: item.simboloMoneda,
         terminalDescripcion: [item.terminalPos?.descripcion, item.terminalPos?.codigo].filter(Boolean).join(' - '),
         proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
+        // De acá sale qué camino se le ofrece al cajero y cuál se le cierra.
+        formatoTerminalPos: item.terminalPos?.formatoTerminalPos,
         decimalesPorMoneda: this.decimalesPorMoneda,
         titulo: 'Completar venta con tarjeta',
         segundos: 120,

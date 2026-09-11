@@ -179,6 +179,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
             .filter(Boolean)
             .join(' - '),
           proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
+          // De acá sale qué camino se le ofrece al cajero y cuál se le cierra. Si viene null, el
+          // diálogo bloquea con el motivo en vez de ofrecer caminos que no van a funcionar.
+          formatoTerminalPos: item.terminalPos?.formatoTerminalPos,
           decimalesPorMoneda: this.decimalesPorMoneda,
           titulo: 'Completar venta con tarjeta',
           segundos: 120,

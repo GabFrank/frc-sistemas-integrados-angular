@@ -783,6 +783,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       const data: EscanearCuponDialogData = {
         terminalDescripcion: [result.terminalPos.descripcion, result.terminalPos.codigo].filter(Boolean).join(' - '),
         proveedorServicioId: result.terminalPos.proveedorServicio?.id,
+        // De acá sale qué camino se le ofrece al cajero y cuál se le cierra. Si viene null, el
+        // diálogo bloquea con el motivo: sin formato no hay forma de leer el cupón.
+        formatoTerminalPos: result.terminalPos.formatoTerminalPos,
         monto: item.valor,
         // La moneda del COBRO, no la de la terminal: el monto que se muestra es el de esta línea.
         monedaCobroId: item.moneda?.id,

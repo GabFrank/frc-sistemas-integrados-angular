@@ -15,7 +15,14 @@
 
   <!-- El lector es keyboard-wedge: escribe solo en el campo enfocado y manda Enter. El cajero
        no tiene que tocar nada, así que el estado por defecto tiene que decir eso de entrada. -->
-  <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="!capturaUrl">
+  <!-- La terminal no tiene formato: no hay forma de leer su cupón. Se dice qué falta y quién lo
+       arregla, en vez de ofrecer caminos que no van a funcionar. La venta se cierra igual con
+       "Registrar más tarde". -->
+  <div class="zona-lectura con-error" *ngIf="bloqueo">
+    <div class="error-lectura">{{ bloqueo }}</div>
+  </div>
+
+  <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="!capturaUrl && ofreceLector">
     <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
 
     <mat-form-field appearance="outline" class="campo-cupon">
@@ -39,7 +46,7 @@
   <!-- Camino para las maquinitas que NO imprimen QR: el cajero fotografía el cupón con
        cualquier teléfono. La página la sirve este mismo filial por HTTP en la LAN, así que no
        hace falta app instalada ni login: el token del QR es toda la credencial. -->
-  <div class="captura" *ngIf="capturaUrl">
+  <div class="captura" *ngIf="capturaUrl && ofreceCamara">
     <div class="captura-qr">
       <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
     </div>
@@ -70,7 +77,7 @@
     <button
       mat-button
       class="btn-foto"
-      *ngIf="!capturaUrl"
+      *ngIf="!capturaUrl && ofreceCamara"
       [disabled]="pidiendoCaptura"
       (click)="onSacarFoto()"
     >
@@ -78,7 +85,9 @@
       Sacar foto del cupón
     </button>
 
-    <button mat-button class="btn-foto" *ngIf="capturaUrl" (click)="onVolverAlLector()">
+    <!-- Sólo si el lector es un camino válido para este formato: en una maquinita, "volver al
+         lector" sería volver a una pantalla que no puede leer nada. -->
+    <button mat-button class="btn-foto" *ngIf="capturaUrl && ofreceLector" (click)="onVolverAlLector()">
       Volver al lector
     </button>
   </div>
