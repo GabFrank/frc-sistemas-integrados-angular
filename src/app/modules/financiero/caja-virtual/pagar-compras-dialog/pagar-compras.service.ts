@@ -6,6 +6,7 @@ import { SolicitudesPagoPendientesGQL } from './graphql/solicitudesPagoPendiente
 import { PagarSolicitudesLoteCajaMayorGQL } from './graphql/pagarSolicitudesLote';
 import { PagarSolicitudesMixtoGQL } from './graphql/pagarSolicitudesMixto';
 import { AnularPagoCppGQL } from './graphql/anularPagoSolicitud';
+import { DevolverSolicitudPagoGQL } from './graphql/devolverSolicitudPago';
 import { ChequerasPorCuentaGQL } from './graphql/chequerasPorCuenta';
 import { GastosPendientesGQL } from './graphql/gastosPendientes';
 import { CrearGastoParaPagoGQL } from './graphql/crearGastoParaPago';
@@ -82,6 +83,7 @@ export class PagarComprasService {
     private pagarLoteGQL: PagarSolicitudesLoteCajaMayorGQL,
     private pagarMixtoGQL: PagarSolicitudesMixtoGQL,
     private anularGQL: AnularPagoCppGQL,
+    private devolverGQL: DevolverSolicitudPagoGQL,
     private chequerasPorCuentaGQL: ChequerasPorCuentaGQL,
     private gastosPendientesGQL: GastosPendientesGQL,
     private crearGastoGQL: CrearGastoParaPagoGQL,
@@ -176,6 +178,11 @@ export class PagarComprasService {
   /** Anula un evento de pago completo (todas sus notas y movimientos consolidados). */
   onAnularPago(pagoId: number, motivo?: string, servidor = true): Observable<any> {
     return this.mutar(this.anularGQL, { pagoId, motivo: motivo || null }, servidor);
+  }
+
+  /** Devuelve a compras una solicitud que tesorería no va a pagar: vuelve a borrador, con motivo. */
+  onDevolverSolicitud(id: number, motivo: string, servidor = true): Observable<any> {
+    return this.mutar(this.devolverGQL, { id, motivo }, servidor);
   }
 
   /** Ejecuta una mutation y emite `next` con el dato o `error` con un mensaje saneado. */

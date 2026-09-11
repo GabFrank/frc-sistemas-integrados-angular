@@ -168,10 +168,10 @@
                     </button>
                     <button 
                       mat-menu-item 
-                      (click)="onChangeEstado(solicitud, SolicitudPagoEstado.CANCELADO)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.PARCIAL">
+                      (click)="onCancelarSolicitud(solicitud)"
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.SOLICITADO">
                       <mat-icon>cancel</mat-icon>
-                      Cancelar
+                      Cancelar solicitud
                     </button>
                     
                     <!-- Eliminar -->

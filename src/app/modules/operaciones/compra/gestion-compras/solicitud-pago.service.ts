@@ -20,6 +20,7 @@ import { AgregarSolicitudPagoDetalleGQL } from './graphql/agregarSolicitudPagoDe
 import { AgregarNotaASolicitudPagoGQL } from './graphql/agregarNotaASolicitudPago';
 import { RemoverNotaDeSolicitudPagoGQL } from './graphql/removerNotaDeSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
+import { CancelarSolicitudPagoGQL } from './graphql/cancelarSolicitudPago';
 import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
@@ -48,6 +49,7 @@ export class SolicitudPagoService {
     private agregarNotaASolicitudPagoGQL: AgregarNotaASolicitudPagoGQL,
     private removerNotaDeSolicitudPagoGQL: RemoverNotaDeSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
+    private cancelarSolicitudPagoGQL: CancelarSolicitudPagoGQL,
     private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
@@ -290,6 +292,14 @@ export class SolicitudPagoService {
       { id, estado }
     ).pipe(
       map(result => this.processComputedProperty(result as SolicitudPago))
+    );
+  }
+
+  /** Cancela la solicitud con un motivo. Si ya tiene pagos, el central la rechaza con su mensaje. */
+  onCancelar(id: number, motivo: string): Observable<SolicitudPago> {
+    return this.genericCrudService.onCustomMutation(
+      this.cancelarSolicitudPagoGQL,
+      { id, motivo }
     );
   }
 

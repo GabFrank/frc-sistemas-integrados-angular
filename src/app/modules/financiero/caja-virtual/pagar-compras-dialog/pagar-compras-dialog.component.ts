@@ -2,7 +2,8 @@ import { Component, Inject, OnInit, ViewChild, AfterViewInit } from '@angular/co
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -64,6 +65,7 @@ interface SolicitudRow {
   _esAdelanto?: boolean;        // vale: adelanto de sueldo
   _bloqueado?: boolean;         // no se puede pagar (dato incompleto); nunca seleccionable
   _bloqueoMotivo?: string;
+  _devolvible?: boolean;        // compra en SOLICITADO: tesorería puede devolverla a compras
 }
 
 interface PagoLinea {
@@ -99,7 +101,7 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   dataSource = new MatTableDataSource<SolicitudRow>([]);
-  displayedColumns = ['sel', 'proveedor', 'numero', 'moneda', 'saldo', 'montoAPagar'];
+  displayedColumns = ['sel', 'proveedor', 'numero', 'moneda', 'saldo', 'montoAPagar', 'acciones'];
   filtroProveedorControl = new FormControl('');
 
   todas: SolicitudRow[] = [];
@@ -231,6 +233,7 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     private proveedorService: ProveedorService,
     private funcionarioService: FuncionarioService,
     private motivoValeService: MotivoValeService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -401,6 +404,8 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
       decimales: this.decimales(s.moneda), saldoPendiente: saldo,
       _sel: false, _disabled: false, _montoAPagar: saldo, _currencyOpts: this.currencyOpts(s.moneda),
       _planCheques: planCheques, _descripcion: s.observaciones, _categoria: s.tipoGasto?.descripcion || '',
+      // Solo una compra todavía sin pagos se devuelve; la regla la vuelve a chequear el central.
+      _devolvible: !this.esGasto && s.estado === 'SOLICITADO',
     };
   }
 
@@ -556,6 +561,31 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
         this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el vale');
       }
     });
+  }
+
+  // ── Devolver a compras: tesorería no cancela, devuelve lo que no va a pagar con un motivo ──
+  onDevolver(row: SolicitudRow) {
+    if (!row._devolvible || row._sel) return;
+    const data: MotivoDialogData = {
+      titulo: `Devolver ${row.numeroSolicitud} a compras`,
+      mensaje: `¿Por qué no se paga la solicitud de ${row.proveedorNombre}?`,
+      detalle: 'Sale de esta lista y vuelve a compras como borrador, para que la corrija o la cancele.',
+      botonConfirmar: 'Devolver a compras',
+    };
+    this.dialog.open(MotivoDialogComponent, { data }).afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((motivo: string | null) => {
+        if (!motivo) return;
+        this.pagarComprasService.onDevolverSolicitud(row.id, motivo).pipe(untilDestroyed(this)).subscribe({
+          next: () => {
+            this.notificacion.openSucess(`Solicitud ${row.numeroSolicitud} devuelta a compras`);
+            // La fila no estaba tildada (el botón se deshabilita), así que la selección no cambia.
+            this.todas = this.todas.filter(r => r.id !== row.id);
+            this.aplicarFiltro();
+          },
+          error: (err) => this.notificacion.openAlgoSalioMal(err?.message || 'No se pudo devolver la solicitud'),
+        });
+      });
   }
 
   // ── Paso 1: selección (mismo proveedor + misma moneda) ──
