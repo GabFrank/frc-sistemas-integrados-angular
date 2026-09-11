@@ -20,6 +20,7 @@ import { AgregarSolicitudPagoDetalleGQL } from './graphql/agregarSolicitudPagoDe
 import { AgregarNotaASolicitudPagoGQL } from './graphql/agregarNotaASolicitudPago';
 import { RemoverNotaDeSolicitudPagoGQL } from './graphql/removerNotaDeSolicitudPago';
 import { ActualizarEstadoSolicitudPagoGQL } from './graphql/actualizarEstadoSolicitudPago';
+import { CancelarSolicitudPagoGQL } from './graphql/cancelarSolicitudPago';
 import { ActualizarSolicitudPagoGQL } from './graphql/actualizarSolicitudPago';
 import { ImprimirSolicitudPagoPDFGQL } from './graphql/imprimirSolicitudPagoPDF';
 import { ImprimirSolicitudPagoTicketGQL } from './graphql/imprimirSolicitudPagoTicket';
@@ -48,6 +49,7 @@ export class SolicitudPagoService {
     private agregarNotaASolicitudPagoGQL: AgregarNotaASolicitudPagoGQL,
     private removerNotaDeSolicitudPagoGQL: RemoverNotaDeSolicitudPagoGQL,
     private actualizarEstadoSolicitudPagoGQL: ActualizarEstadoSolicitudPagoGQL,
+    private cancelarSolicitudPagoGQL: CancelarSolicitudPagoGQL,
     private actualizarSolicitudPagoGQL: ActualizarSolicitudPagoGQL,
     private imprimirSolicitudPagoPDFGQL: ImprimirSolicitudPagoPDFGQL,
     private imprimirSolicitudPagoTicketGQL: ImprimirSolicitudPagoTicketGQL,
@@ -293,6 +295,14 @@ export class SolicitudPagoService {
     );
   }
 
+  /** Cancela la solicitud con un motivo. Si ya tiene pagos, el central la rechaza con su mensaje. */
+  onCancelar(id: number, motivo: string): Observable<SolicitudPago> {
+    return this.genericCrudService.onCustomMutation(
+      this.cancelarSolicitudPagoGQL,
+      { id, motivo }
+    );
+  }
+
   /**
    * Imprime una solicitud de pago en PDF
    * @param solicitudPagoId ID de la solicitud de pago
@@ -368,6 +378,8 @@ export class SolicitudPagoService {
         return 'Pago Parcial';
       case SolicitudPagoEstado.CONCLUIDO:
         return 'Pagada';
+      case SolicitudPagoEstado.DEVUELTO:
+        return 'Devuelta';
       case SolicitudPagoEstado.CANCELADO:
         return 'Cancelada';
       default:
@@ -403,7 +415,8 @@ export class SolicitudPagoService {
    * @returns true si puede ser editada
    */
   canEdit(solicitud: SolicitudPago): boolean {
-    return solicitud.estado === SolicitudPagoEstado.PENDIENTE;
+    // Una devuelta por tesorería se corrige antes de reenviarla, igual que un borrador.
+    return solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.DEVUELTO;
   }
 
   /**
@@ -429,7 +442,10 @@ export class SolicitudPagoService {
       case SolicitudPagoEstado.PENDIENTE:
         return [SolicitudPagoEstado.SOLICITADO, SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
       case SolicitudPagoEstado.SOLICITADO:
-        return [SolicitudPagoEstado.PENDIENTE, SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
+        return [SolicitudPagoEstado.PENDIENTE, SolicitudPagoEstado.DEVUELTO, SolicitudPagoEstado.PARCIAL, SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
+      case SolicitudPagoEstado.DEVUELTO:
+        // Compras la corrige y la reenvía, o la cancela.
+        return [SolicitudPagoEstado.SOLICITADO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
       case SolicitudPagoEstado.PARCIAL:
         return [SolicitudPagoEstado.CONCLUIDO, SolicitudPagoEstado.CANCELADO].includes(nuevoEstado);
       case SolicitudPagoEstado.CONCLUIDO:

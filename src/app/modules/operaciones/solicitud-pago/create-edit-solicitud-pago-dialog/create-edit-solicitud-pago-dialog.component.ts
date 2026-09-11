@@ -147,7 +147,9 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
       this.isEditMode = true;
       this.solicitudPagoId = this.data.solicitudPago.id;
       this.solicitudPagoEstado = this.data.solicitudPago.estado ?? null;
-      this.isEditable = this.data.solicitudPago.estado === SolicitudPagoEstado.PENDIENTE;
+      // Una devuelta se corrige antes de reenviarla, igual que un borrador.
+      this.isEditable = this.data.solicitudPago.estado === SolicitudPagoEstado.PENDIENTE ||
+        this.data.solicitudPago.estado === SolicitudPagoEstado.DEVUELTO;
       this.tituloDialogo = this.isEditable ? 'Editar solicitud de pago' : 'Ver solicitud de pago';
       this.updatePuedeEditarFormaPago();
       this.loadSolicitudParaEdicion();
@@ -512,6 +514,7 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     }
     this.puedeEditarFormaPagoComputed =
       this.solicitudPagoEstado === SolicitudPagoEstado.PENDIENTE ||
+      this.solicitudPagoEstado === SolicitudPagoEstado.DEVUELTO ||
       this.solicitudPagoEstado === SolicitudPagoEstado.PARCIAL;
   }
 
@@ -529,7 +532,8 @@ export class CreateEditSolicitudPagoDialogComponent implements OnInit, AfterView
     this.esSolicitado = this.solicitudPagoEstado === SolicitudPagoEstado.SOLICITADO;
     this.puedeSolicitar =
       this.isEditMode &&
-      this.solicitudPagoEstado === SolicitudPagoEstado.PENDIENTE &&
+      (this.solicitudPagoEstado === SolicitudPagoEstado.PENDIENTE ||
+        this.solicitudPagoEstado === SolicitudPagoEstado.DEVUELTO) &&
       this.notasAgregadas.length >= 1;
   }
 

@@ -1899,6 +1899,16 @@ export const actualizarEstadoSolicitudPagoMutation = gql`
   }
 `;
 
+export const cancelarSolicitudPagoMutation = gql`
+  mutation ($id: ID!, $motivo: String!) {
+    data: cancelarSolicitudPago(id: $id, motivo: $motivo) {
+      id
+      estado
+      observaciones
+    }
+  }
+`;
+
 export const imprimirSolicitudPagoPDFMutation = gql`
   mutation ($solicitudPagoId: ID!) {
     data: imprimirSolicitudPagoPDF(solicitudPagoId: $solicitudPagoId)
