@@ -1,5 +1,9 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
-  <h2 mat-dialog-title>Nuevo bono</h2>
+  <h2 mat-dialog-title>{{ soloLectura ? 'Bono no editable' : (editandoId ? 'Editar bono' : 'Nuevo bono') }}</h2>
+
+  <div class="aviso-liquidado" *ngIf="soloLectura">
+    {{ motivoNoEditable }}
+  </div>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="12px">
     <app-select-funcionario
@@ -48,6 +52,6 @@
 
   <div mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
     <button mat-stroked-button (click)="onCancelar()">Cancelar</button>
-    <button mat-raised-button color="primary" [disabled]="formGroup.invalid" (click)="onGuardar()">Guardar</button>
+    <button mat-raised-button color="primary" [disabled]="formGroup.invalid || soloLectura" (click)="onGuardar()">Guardar</button>
   </div>
 </div>

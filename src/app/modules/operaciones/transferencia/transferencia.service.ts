@@ -40,6 +40,7 @@ import { Persona } from '../../personas/persona/persona.model';
 import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
 import { GetHojaRutaPorFechaPageGQL } from './graphql/getHojaRutaPorFechaPage';
 import { AlertasTransferenciaItemsGQL } from './graphql/alertasTransferenciaItems';
+import { TransferenciaQrEscaneadoSubGQL } from './graphql/transferenciaQrEscaneadoSub';
 import { DesconfirmarTransferenciaItemGQL } from './graphql/desconfirmarTransferenciaItem';
 
 @UntilDestroy({ checkProperties: true })
@@ -81,8 +82,20 @@ export class TransferenciaService {
     private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL,
     private getHojaRutaPorFechaPage: GetHojaRutaPorFechaPageGQL,
     private alertasTransferenciaItemsGQL: AlertasTransferenciaItemsGQL,
-    private desconfirmarTransferenciaItemGQL: DesconfirmarTransferenciaItemGQL
+    private desconfirmarTransferenciaItemGQL: DesconfirmarTransferenciaItemGQL,
+    private transferenciaQrEscaneadoSub: TransferenciaQrEscaneadoSubGQL
   ) { }
+
+  /**
+   * Avisa cuando alguien escaneó el QR de una transferencia desde el móvil.
+   *
+   * Emite una sola vez y completa —así resuelve `onCustomSub`—, que es
+   * justo lo que hace falta para cerrar el diálogo del QR: después del
+   * primer escaneo ya no hay nada que escuchar.
+   */
+  qrEscaneadoSub() {
+    return this.genericCrudService.onCustomSub(this.transferenciaQrEscaneadoSub, null, true, false);
+  }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
     this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {

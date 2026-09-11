@@ -3,7 +3,7 @@ import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { contarDiasSinDomingo, dateToString } from '../../../../commons/core/utils/dateUtils';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { Vacacion, VacacionPeriodo, VacacionVenta } from '../vacacion.model';
@@ -23,6 +23,8 @@ export class GestionVacacionDialogComponent implements OnInit {
 
   vacacion: Vacacion;
   disponibles = 0;
+  /** Dias que descuenta el rango elegido; se recalcula al cambiar los datepickers. */
+  diasADescontar = 0;
 
   periodosColumns = ['fechaDesde', 'fechaHasta', 'diasUsados', 'estado', 'acciones'];
   ventasColumns = ['dias', 'monto', 'fecha', 'estado', 'acciones'];
@@ -48,7 +50,21 @@ export class GestionVacacionDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
+    this.desdeControl.valueChanges.pipe(untilDestroyed(this))
+      .subscribe(() => this.recalcularDiasADescontar());
+    this.hastaControl.valueChanges.pipe(untilDestroyed(this))
+      .subscribe(() => this.recalcularDiasADescontar());
     this.cargar();
+  }
+
+  /**
+   * Previsualiza cuantos dias del saldo consume el rango elegido. Los domingos son dia
+   * libre y no descuentan, asi que 12 dias de vacaciones abarcan 13 o 14 de calendario:
+   * sin este numero a la vista, el usuario solo se enteraba al recibir el rechazo del
+   * server. El backend sigue siendo el que manda; esto es solo el preview.
+   */
+  private recalcularDiasADescontar() {
+    this.diasADescontar = contarDiasSinDomingo(this.desdeControl.value, this.hastaControl.value);
   }
 
   cargar() {
