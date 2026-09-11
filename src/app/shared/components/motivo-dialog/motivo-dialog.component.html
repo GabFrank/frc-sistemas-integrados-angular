@@ -17,7 +17,8 @@
   </div>
   <div matDialogActions align="end">
     <button mat-button type="button" (click)="onVolver()">Volver</button>
-    <button mat-flat-button color="warn" type="button" [disabled]="motivoControl.invalid" (click)="onConfirmar()">
+    <!-- raised + primary (rojo, texto blanco): el .mat-warn global pinta el texto de un flat button del mismo naranja que el fondo. -->
+    <button mat-raised-button color="primary" type="button" [disabled]="motivoControl.invalid" (click)="onConfirmar()">
       {{ data.botonConfirmar }}
     </button>
   </div>
