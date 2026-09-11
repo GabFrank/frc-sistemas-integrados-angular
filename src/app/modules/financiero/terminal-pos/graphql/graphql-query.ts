@@ -11,6 +11,14 @@ const terminalPosFields = `
     numeroContacto
     persona { id nombre documento }
   }
+  formatoTerminalPos {
+    id
+    nombre
+    tipo
+    patron
+    mapeo
+    activo
+  }
   activo
   creadoEn
   usuario {

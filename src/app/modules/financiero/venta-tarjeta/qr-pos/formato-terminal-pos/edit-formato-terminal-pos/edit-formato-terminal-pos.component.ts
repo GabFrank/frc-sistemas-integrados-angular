@@ -58,6 +58,13 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   readonly maxLongitud = MAX_LONGITUD_QR;
   readonly tipos = TIPOS_FORMATO_TERMINAL;
 
+  /**
+   * Campos, no getters: este repo prohibe getters en bindings porque se re-evaluan en cada ciclo
+   * de change detection. Se actualizan desde `valueChanges`, que es donde el valor cambia.
+   */
+  ayudaTipo: string = null;
+  esMaquina = false;
+
   proveedores: ProveedorServicio[] = [];
 
   /** Se ofrece como punto de partida: es el formato que ya está en producción. */
@@ -110,18 +117,22 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     // El preview se recalcula solo. Es la única forma de que quien carga el formato vea, antes de
     // guardar, que el patrón separa los campos donde corresponde: un grupo corrido deja el importe
     // en el lugar de la boleta y eso en producción se descubre cobrando.
-    this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
+    this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.refrescarTipo();
+      this.recalcular();
+    });
+    this.refrescarTipo();
     this.recalcular();
   }
 
-  /** La ayuda del tipo elegido: qué camino se abre y, sobre todo, cuál se cierra. */
-  get ayudaTipo(): string {
-    const v = this.formGroup?.get('tipo')?.value;
-    return this.tipos.find((t) => t.valor === v)?.ayuda || null;
-  }
-
-  get esMaquina(): boolean {
-    return this.formGroup?.get('tipo')?.value === TIPO_MAQUINA;
+  /**
+   * Qué camino se abre con el tipo elegido y, sobre todo, cuál se cierra. Es lo que el
+   * administrador necesita leer antes de guardar.
+   */
+  private refrescarTipo(): void {
+    const v = this.formGroup.get('tipo').value;
+    this.ayudaTipo = this.tipos.find((t) => t.valor === v)?.ayuda || null;
+    this.esMaquina = v === TIPO_MAQUINA;
   }
 
   private recalcular(): void {

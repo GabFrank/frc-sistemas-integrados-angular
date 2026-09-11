@@ -4,6 +4,14 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { FormatoTerminalPos, TIPOS_FORMATO_TERMINAL } from './formato-terminal-pos.model';
+
+/**
+ * La fila que se dibuja. La etiqueta del tipo viene calculada de antemano: este repo prohibe
+ * llamar funciones desde el HTML, porque se re-evaluan en cada ciclo de change detection.
+ */
+interface FilaFormato extends FormatoTerminalPos {
+  tipoEtiqueta: string;
+}
 import { FormatoTerminalPosService } from './formato-terminal-pos.service';
 import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edit-formato-terminal-pos.component';
 
@@ -22,7 +30,7 @@ import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edi
 export class FormatoTerminalPosComponent implements OnInit {
 
   displayedColumns = ['id', 'nombre', 'tipo', 'proveedor', 'ejemplo', 'activo', 'acciones'];
-  formatos: FormatoTerminalPos[] = [];
+  formatos: FilaFormato[] = [];
   cargando = false;
 
   constructor(
@@ -41,15 +49,14 @@ export class FormatoTerminalPosComponent implements OnInit {
     this.formatoService.onGetTodos().pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
         this.cargando = false;
-        this.formatos = res || [];
+        this.formatos = (res || []).map((f) => ({
+          ...f,
+          tipoEtiqueta:
+            TIPOS_FORMATO_TERMINAL.find((t) => t.valor === f.tipo)?.etiqueta || f.tipo || '—',
+        }));
       },
       error: () => (this.cargando = false),
     });
-  }
-
-  /** La etiqueta larga del tipo; si llega uno desconocido se muestra crudo en vez de vacio. */
-  etiquetaTipo(tipo: string): string {
-    return TIPOS_FORMATO_TERMINAL.find((t) => t.valor === tipo)?.etiqueta || tipo || '—';
   }
 
   onNuevo(): void {

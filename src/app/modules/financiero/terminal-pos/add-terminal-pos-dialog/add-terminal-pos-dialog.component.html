@@ -85,6 +85,21 @@
       </button>
     </div>
 
+    <!-- Formato del modelo de aparato. Sin esto la caja no puede vender con tarjeta en esta
+         terminal, asi que el hint lo dice en vez de dejarlo como un campo mas. -->
+    <mat-form-field appearance="outline" style="width: 100%">
+      <mat-label>Formato del aparato</mat-label>
+      <mat-select [formControl]="formatoControl">
+        <mat-option *ngFor="let f of formatos" [value]="f.id">
+          {{ f.nombre }} — {{ f.tipoEtiqueta }}
+        </mat-option>
+      </mat-select>
+      <mat-hint *ngIf="!formatoControl.value">
+        Sin formato, esta terminal no puede vender con tarjeta.
+      </mat-hint>
+      <mat-hint *ngIf="formatoControl.value">{{ ayudaFormato }}</mat-hint>
+    </mat-form-field>
+
     <!-- Checkbox -->
     <div fxLayout="column" fxLayoutGap="10px">
       <div fxLayout="row" fxLayoutGap="20px">
