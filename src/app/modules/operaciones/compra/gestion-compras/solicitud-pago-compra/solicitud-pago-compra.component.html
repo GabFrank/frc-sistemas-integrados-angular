@@ -147,7 +147,7 @@
                     <button
                       mat-menu-item
                       (click)="onChangeEstado(solicitud, SolicitudPagoEstado.SOLICITADO)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE">
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.DEVUELTO">
                       <mat-icon>send</mat-icon>
                       Solicitar (enviar a tesorería)
                     </button>
@@ -156,7 +156,7 @@
                     <button 
                       mat-menu-item 
                       (click)="onCancelarSolicitud(solicitud)"
-                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.SOLICITADO">
+                      *ngIf="solicitud.estado === SolicitudPagoEstado.PENDIENTE || solicitud.estado === SolicitudPagoEstado.SOLICITADO || solicitud.estado === SolicitudPagoEstado.DEVUELTO">
                       <mat-icon>cancel</mat-icon>
                       Cancelar solicitud
                     </button>

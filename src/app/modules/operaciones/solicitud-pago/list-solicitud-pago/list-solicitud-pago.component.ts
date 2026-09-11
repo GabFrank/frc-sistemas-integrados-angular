@@ -64,6 +64,7 @@ export class ListSolicitudPagoComponent implements OnInit {
   estadoToRowClass: Record<string, string> = {
     PENDIENTE: '',
     SOLICITADO: 'row-estado-solicitado',
+    DEVUELTO: 'row-estado-devuelto',
     PARCIAL: 'row-estado-parcial',
     CONCLUIDO: 'row-estado-concluido',
     CANCELADO: 'row-estado-cancelado'
