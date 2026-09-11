@@ -19,6 +19,39 @@ export const formatosTerminalPosActivosQuery = gql`
   }
 `;
 
+/**
+ * Los activos, pero pedidos al CENTRAL.
+ *
+ * Existe aparte de `formatosTerminalPosActivosQuery` porque el type `FormatoTerminalPos` esta
+ * declarado DISTINTO en los dos backends: central expone `proveedorServicio` (el objeto, que es
+ * lo que tiene para dar) y filial expone `proveedorServicioId` (el escalar, que es lo unico que
+ * baja por replicacion). Mandarle a central la seleccion del filial hace que GraphQL rechace la
+ * query ENTERA con "Cannot query field proveedorServicioId" --no degrada, no devuelve el resto:
+ * la lista queda vacia y el alta de terminal, que exige formato, se vuelve imposible.
+ *
+ * El nombre de la operacion es el mismo en los dos lados; lo unico que cambia es que se pide.
+ */
+export const formatosTerminalPosActivosCentralQuery = gql`
+  query formatosTerminalPosActivos {
+    data: formatosTerminalPosActivos {
+      id
+      nombre
+      tipo
+      patron
+      mapeo
+      ejemplo
+      activo
+      proveedorServicio {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+    }
+  }
+`;
+
 /** ABM: va contra el CENTRAL, que es donde se administran los formatos. */
 export const formatosTerminalPosQuery = gql`
   query formatosTerminalPos {

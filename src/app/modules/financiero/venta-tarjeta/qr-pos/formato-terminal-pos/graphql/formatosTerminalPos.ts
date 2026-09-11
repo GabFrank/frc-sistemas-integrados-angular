@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Mutation, Query } from 'apollo-angular';
 import {
   desactivarFormatoTerminalPosMutation,
+  formatosTerminalPosActivosCentralQuery,
   formatosTerminalPosActivosQuery,
   formatosTerminalPosQuery,
   saveFormatoTerminalPosMutation,
@@ -17,6 +18,12 @@ export class FormatosTerminalPosGQL extends Query<{ data: FormatoTerminalPos[] }
 @Injectable({ providedIn: 'root' })
 export class FormatosTerminalPosActivosGQL extends Query<{ data: FormatoTerminalPos[] }> {
   document = formatosTerminalPosActivosQuery;
+}
+
+/** La misma operacion, con la seleccion que entiende el CENTRAL. Ver la query. */
+@Injectable({ providedIn: 'root' })
+export class FormatosTerminalPosActivosCentralGQL extends Query<{ data: FormatoTerminalPos[] }> {
+  document = formatosTerminalPosActivosCentralQuery;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -45,9 +45,10 @@ export class CapturaCuponService {
    * Recién con LISTO termina. El `distinctUntilChanged` está porque el sondeo repite el mismo
    * estado cada tres segundos y si no el mensaje de error parpadearía.
    */
-  onEsperar(token: string): Observable<CapturaCupon> {
-    // El timbre. No trae el texto del cupón: la subscription del filial es anónima, así que
-    // sólo dice "hay novedad con este token" y el contenido se pide aparte.
+  onEsperar(token: string, cajaId: number): Observable<CapturaCupon> {
+    // El timbre. No trae el texto del cupón ni el token: la subscription del filial es anónima,
+    // así que sólo dice "hay novedad en esta caja" y el contenido se pide aparte, con el token
+    // que esta caja ya tiene de cuando pidió la captura.
     //
     // Se usa el GQL directo y no `genericService.onCustomSub`: ese helper completa el
     // observable con el PRIMER evento que llega. Acá el canal es de toda la sucursal, así que
@@ -60,8 +61,12 @@ export class CapturaCuponService {
         context: { clientName: null },   // null = filial
       })
       .pipe(
-        map((res: any) => res?.data?.data as { token?: string }),
-        filter((t) => t != null && t.token === token),
+        map((res: any) => res?.data?.data as { cajaId?: number }),
+        // Se comparaba por token, pero el token ya no viaja: difundirlo dejaba que cualquier
+        // sesión del filial leyera el cupón de otra caja. `==` y no `===` porque `cajaId` es un
+        // ID de GraphQL y llega como string.
+        // eslint-disable-next-line eqeqeq
+        filter((t) => t != null && t.cajaId != null && t.cajaId == cajaId),
         switchMap(() => this.consultar(token))
       );
 

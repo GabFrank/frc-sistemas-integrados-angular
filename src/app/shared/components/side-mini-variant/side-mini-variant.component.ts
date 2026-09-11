@@ -445,7 +445,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       icon: 'account_balance',
       isExpanded: false,
       requiresServerMode: false,
-      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR],
+      // VENTA_TARJETA_COMPLETAR entra aca porque el subgrupo 'Venta con tarjeta' cuelga de este
+      // grupo. checkItemVisibility exige el rol en CADA nivel --solo ADMIN hace bypass--, asi que
+      // sin esto la mudanza desde 'Reportes y Analisis' le escondia Terminales POS justo al rol
+      // que la usa todos los dias.
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION, ROLES.TESORERIA_VER, ROLES.TESORERIA_GESTIONAR, ROLES.VENTA_TARJETA_COMPLETAR],
       items: [
         {
           name: 'Dashboard',
@@ -518,6 +522,36 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           ]
         },
         {
+          // Las tres colgaban de 'Reportes y Análisis' y ninguna es un reporte: son el ABM del
+          // aparato con el que se cobra. Terminales POS ademas es la unica pantalla del grupo que
+          // ve un rol no-admin, asi que mezclada ahi le mostraba el encabezado de los reportes de
+          // lucro a quien no puede abrir ninguno.
+          name: 'Venta con tarjeta',
+          icon: 'credit_card',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR],
+          items: [
+            {
+              name: 'Terminales POS',
+              icon: 'contactless',
+              action: 'terminal-pos-dashboard',
+              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
+            },
+            {
+              name: 'Formatos de terminal POS',
+              icon: 'point_of_sale',
+              action: 'formato-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Formatos de QR de POS',
+              icon: 'qr_code_scanner',
+              action: 'formato-qr-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
+        },
+        {
           name: 'Configuración',
           icon: 'settings',
           isExpanded: false,
@@ -553,7 +587,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Reportes y Análisis',
           icon: 'analytics',
           isExpanded: false,
-          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR],
+          // Sin VENTA_TARJETA_COMPLETAR: estaba solo por 'Terminales POS', que se mudo a 'Venta
+          // con tarjeta'. Dejarlo le abriria a ese rol un grupo en el que no puede entrar a nada.
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN],
           items: [
             {
               name: 'Análisis de diferencias',
@@ -571,24 +607,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Lucro por producto',
               icon: 'trending_up',
               action: 'lucro-por-producto',
-              visibilityRoles: [ROLES.ADMIN]
-            },
-            {
-              name: 'Terminales POS',
-              icon: 'contactless',
-              action: 'terminal-pos-dashboard',
-              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
-            },
-            {
-              name: 'Formatos de terminal POS',
-              icon: 'point_of_sale',
-              action: 'formato-terminal-pos',
-              visibilityRoles: [ROLES.ADMIN]
-            },
-            {
-              name: 'Formatos de QR de POS',
-              icon: 'qr_code_scanner',
-              action: 'formato-qr-pos',
               visibilityRoles: [ROLES.ADMIN]
             },
             {

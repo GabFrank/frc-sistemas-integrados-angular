@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../../../generics/generic-crud.service';
 import {
   DesactivarFormatoTerminalPosGQL,
+  FormatosTerminalPosActivosCentralGQL,
   FormatosTerminalPosActivosGQL,
   FormatosTerminalPosGQL,
   SaveFormatoTerminalPosGQL,
@@ -31,6 +32,7 @@ export class FormatoTerminalPosService {
     private genericService: GenericCrudService,
     private formatosGQL: FormatosTerminalPosGQL,
     private formatosActivosGQL: FormatosTerminalPosActivosGQL,
+    private formatosActivosCentralGQL: FormatosTerminalPosActivosCentralGQL,
     private saveGQL: SaveFormatoTerminalPosGQL,
     private desactivarGQL: DesactivarFormatoTerminalPosGQL,
     private terminalesQueUsanGQL: TerminalesQueUsanFormatoGQL
@@ -50,9 +52,15 @@ export class FormatoTerminalPosService {
    *
    * Contra el FILIAL por default (`servidor = false`): es lo que lee el PDV, y tiene que funcionar
    * sin internet. El ABM pide `servidor = true`.
+   *
+   * **La query no es la misma de los dos lados.** El type `FormatoTerminalPos` esta declarado
+   * distinto en cada backend --central da `proveedorServicio`, filial da `proveedorServicioId`--
+   * y GraphQL rechaza la query entera si se le pide un campo que no declara. Elegir mal no
+   * degrada: devuelve la lista vacia, y el alta de terminal exige formato.
    */
   onGetActivos(servidor = false): Observable<FormatoTerminalPos[]> {
-    return this.genericService.onCustomQuery(this.formatosActivosGQL, {}, servidor);
+    const gql = servidor ? this.formatosActivosCentralGQL : this.formatosActivosGQL;
+    return this.genericService.onCustomQuery(gql, {}, servidor);
   }
 
   onSave(input: FormatoTerminalPosInput): Observable<FormatoTerminalPos> {

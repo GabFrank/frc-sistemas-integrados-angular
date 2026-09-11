@@ -369,7 +369,9 @@ export class EscanearCuponDialogComponent implements OnInit {
 
   private escucharCaptura(token: string): void {
     this.capturaCuponService
-      .onEsperar(token)
+      // La caja va como segundo argumento: el aviso ya no trae el token --difundirlo dejaba
+      // que otra sesion del filial leyera este cupon-- asi que el filtro es por caja.
+      .onEsperar(token, Number(this.data.cajaId))
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (c) => {
