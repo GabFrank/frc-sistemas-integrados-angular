@@ -16,15 +16,39 @@
           </div>
         </div>
         <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Creado En</div>
-          <div fxFlex="50">
-            {{ selectedTransferencia?.creadoEn | date : "short" }}
+          <div class="title" fxFlex="50">
+            Solicitante
+            <span *ngIf="isPreTransferenciaCreacion" class="solicitante-obligatorio">*</span>
+          </div>
+          <div class="item" fxFlex="50" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+            <span [class.solicitante-vacio]="selectedTransferencia?.solicitante == null">
+              {{
+              selectedTransferencia?.solicitante?.persona?.nombre
+              ? (selectedTransferencia?.solicitante?.persona?.nombre | uppercase)
+              : "SIN ASIGNAR"
+              }}
+            </span>
+            <mat-icon
+              *ngIf="isPreTransferenciaCreacion"
+              class="raised-button"
+              matTooltip="Buscar el funcionario que pidio los productos"
+              (click)="onSeleccionarSolicitante()"
+              >person_search</mat-icon
+            >
           </div>
         </div>
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Estado</div>
-          <div fxFlex="50">
-            {{ selectedTransferencia?.estado | enumToString | titlecase }}
+        <div fxFlex="25" fxLayout="row">
+          <div fxFlex="50" fxLayout="column">
+            <div class="title" fxFlex="50">Estado</div>
+            <div fxFlex="50">
+              {{ selectedTransferencia?.estado | enumToString | titlecase }}
+            </div>
+          </div>
+          <div fxFlex="50" fxLayout="column">
+            <div class="title" fxFlex="50">Creado En</div>
+            <div fxFlex="50">
+              {{ selectedTransferencia?.creadoEn | date : "short" }}
+            </div>
           </div>
         </div>
       </div>
