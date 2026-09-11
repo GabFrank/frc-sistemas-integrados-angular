@@ -271,7 +271,16 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
   let factor = screen.getPrimaryDisplay().scaleFactor;
 
   const w = new BrowserWindow({
-    icon: `file://${__dirname}/dist/assets/logo.ico`,
+    // El logo de Bodega Franco, desde `app/icons/` y no desde `dist/`: es la
+    // única carpeta que está junto a `main.js` tanto en `--serve` como dentro
+    // del asar, así que la misma ruta vale en los dos casos.
+    //
+    // Antes apuntaba a `file://${__dirname}/dist/assets/logo.ico`, que no
+    // existía por partida triple —`dist` cuelga de `../`, no de `./`; en
+    // `src/assets` nunca hubo un `logo.ico`; y `icon` espera una ruta del
+    // sistema de archivos, no una URL `file://`—. Electron no avisa: se queda
+    // con su ícono por defecto.
+    icon: path.join(__dirname, 'icons/logo.png'),
     x: 0,
     y: 0,
     width: size.width,
@@ -322,7 +331,9 @@ export async function createWindow(partition?: string): Promise<BrowserWindow> {
       const nativeNotification = new Notification({
         title: title,
         body: body,
-        icon: path.join(__dirname, 'dist/assets/logo.png'),
+        // Mismo caso que el ícono de la ventana: `dist/assets/logo.png` no
+        // existe y la notificación salía sin logo.
+        icon: path.join(__dirname, 'icons/logo.png'),
         silent: false,
         urgency: 'normal'
       });

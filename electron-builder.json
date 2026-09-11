@@ -5,6 +5,7 @@
     "repo": "frc-sistemas-integrados-angular"
   },
   "asar": true,
+  "asarUnpack": ["app/icons/**"],
   "directories": {
     "output": "release/"
   },
@@ -44,7 +45,7 @@
     "splashImage": "dist/assets/icons/electron.bmp"
   },
   "mac": {
-    "icon": "dist/assets/icons",
+    "icon": "./app/icons/logo.png",
     "target": ["dmg"]
   },
   "linux": {
