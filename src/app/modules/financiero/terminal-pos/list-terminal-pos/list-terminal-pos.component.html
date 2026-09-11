@@ -107,8 +107,17 @@
       </ng-container>
       <ng-container matColumnDef="creadoPor" style="width: 10%">
         <th mat-header-cell *matHeaderCellDef style="width: 10%;">Creado Por</th>
-        <td mat-cell *matCellDef="let terminalPos" style="width: 10%;"> 
-          {{terminalPos.usuario.nickname}} 
+        <td mat-cell *matCellDef="let terminalPos" style="width: 10%;">
+          <!-- Con guarda, como moneda y proveedorServicio. Sin ella, una terminal sin usuario
+               --las creadas por SQL, o las que llegaron por replicacion-- tira
+               "Cannot read properties of null" DENTRO del ciclo de change detection, y eso no
+               rompe solo esta celda: aborta el ciclo entero. Sintoma real: cualquier dialogo
+               abierto desde esta pantalla queda a medio construir, sin que su ngOnInit llegue a
+               correr. Visto el 2026-09-11 con la terminal VALIDAPIX CAJA 1. -->
+          <span *ngIf="terminalPos.usuario">
+            {{ terminalPos.usuario.nickname }}
+          </span>
+          <span *ngIf="!terminalPos.usuario" style="color: gray">-</span>
         </td>
       </ng-container>
       <ng-container matColumnDef="activo" style="width: 10%">
