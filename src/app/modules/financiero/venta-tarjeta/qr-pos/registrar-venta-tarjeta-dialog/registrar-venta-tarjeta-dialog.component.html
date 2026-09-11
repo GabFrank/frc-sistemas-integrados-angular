@@ -132,16 +132,31 @@
       </button>
     </div>
 
-    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones">
-      <!-- Antes este botón decía sólo "Salir" y no explicaba nada. Cerrar el diálogo siempre dejó
-           la venta cerrada y el registro pendiente; ahora lo dice. -->
-      <button mat-button class="btn-mas-tarde" [disabled]="procesando" (click)="onMasTarde()">
-        Registrar más tarde
-      </button>
-      <!-- Un número suelto no dice nada: se cierra solo, y eso hay que decirlo. -->
-      <span class="countdown" *ngIf="countdown != null">se cierra en {{ countdown }} s</span>
-    </div>
-
   </ng-container>
+
+  <!-- ⚠️ Las dos salidas van FUERA del ng-container de arriba, y es a proposito.
+       Ese contenedor se oculta cuando hay bloqueo por falta de formato, que es justo el momento en
+       que el cajero mas necesita una salida: si quedaran adentro, la pantalla bloqueada no
+       ofreceria ninguna. -->
+
+  <!-- La carga a mano es la salida universal: disponible para CUALQUIER tipo, y tambien bloqueado.
+       Es lo que hace aceptable que el tipo cierre el otro camino. -->
+  <div fxLayout="row" fxLayoutAlign="center center" class="acciones" *ngIf="!candidatos.length">
+    <button mat-button class="btn-foto" [disabled]="procesando" (click)="onCargarAMano()">
+      <mat-icon>keyboard</mat-icon>
+      Cargar el cupón a mano
+    </button>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones"
+       *ngIf="!candidatos.length">
+    <!-- Antes este botón decía sólo "Salir" y no explicaba nada. Cerrar el diálogo siempre dejó
+         la venta cerrada y el registro pendiente; ahora lo dice. -->
+    <button mat-button class="btn-mas-tarde" [disabled]="procesando" (click)="onMasTarde()">
+      Registrar más tarde
+    </button>
+    <!-- Un número suelto no dice nada: se cierra solo, y eso hay que decirlo. -->
+    <span class="countdown" *ngIf="countdown != null">se cierra en {{ countdown }} s</span>
+  </div>
 
 </div>

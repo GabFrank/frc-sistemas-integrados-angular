@@ -17,6 +17,14 @@ export interface VentaTarjeta {
     id: number; codigo: string; descripcion: string;
     proveedorServicio?: { id: number };
     moneda?: { id: number; simbolo: string; decimales?: number };
+    /**
+     * Formato del modelo de aparato. De acá sale el tipo, que decide qué camino se le ofrece al
+     * cajero y cuál se le cierra. `null` = sin configurar, y entonces el diálogo bloquea.
+     *
+     * Es un tipo propio y no `TerminalPos` del módulo de terminales: esta interfaz describe lo que
+     * la query de `venta_tarjeta` trae anidado, que es un subconjunto.
+     */
+    formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string; mapeo?: string };
   };
   /**
    * Moneda del cobro que este registro respalda. Es la que hay que usar para mostrar `monto` y

@@ -41,7 +41,7 @@ export const filtrarVentasTarjetaQuery = gql`
         caja { id }
         sucursal { id nombre }
         venta { id totalGs }
-        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo } }
+        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo mapeo } }
         moneda { id simbolo decimales }
         monto
         montoEscaneado
@@ -194,7 +194,7 @@ export const filtrarVentasTarjetaPorCajaQuery = gql`
         sucursalId
         ventaId
         cajaId
-        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo } }
+        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo mapeo } }
         moneda { id simbolo decimales }
         codigoAutorizacion
         numeroBoleta

@@ -7,6 +7,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
+import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
@@ -26,7 +27,7 @@ export interface EscanearCuponDialogData {
    *
    * `null` = la terminal no tiene formato configurado, y entonces no hay forma de leer su cupón.
    */
-  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string };
+  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string; mapeo?: string };
   monto: number;
   /**
    * Moneda del COBRO — la de la línea que se está pagando, no la de la terminal. El monto que se
@@ -103,6 +104,35 @@ export class EscanearCuponDialogComponent implements OnInit {
    * <b>Cerrar un camino sólo es aceptable porque la carga a mano queda disponible para cualquier
    * tipo, siempre.</b> Si esa condición se rompe, hay que reabrir los caminos.
    */
+  /**
+   * Carga a mano: la salida universal.
+   *
+   * Acá la venta todavía no existe, así que el diálogo de carga NO completa contra el filial: sólo
+   * devuelve los campos tipeados, y el PDV los guarda junto con la venta por el mismo camino por
+   * el que guarda lo que sale del lector.
+   */
+  onCargarAMano(): void {
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          // Sin ventaTarjetaId: modo "devolver datos". Ver CargaManualCuponData.
+          sucursalId: this.data.sucursalId,
+          monto: this.data.monto,
+          monedaId: this.data.monedaCobroId,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.dialogRef.close(res);
+      });
+  }
+
   private decidirCaminos(): void {
     if (!this.data?.formatoTerminalPos) {
       this.ofreceLector = false;

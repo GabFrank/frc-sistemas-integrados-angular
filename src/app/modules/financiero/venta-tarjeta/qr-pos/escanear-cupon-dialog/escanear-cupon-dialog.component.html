@@ -92,6 +92,16 @@
     </button>
   </div>
 
+  <!-- La salida universal: disponible para CUALQUIER tipo, y tambien cuando hay bloqueo por falta
+       de formato --que es donde mas hace falta. Es lo que hace aceptable que el tipo cierre el
+       otro camino. -->
+  <div fxLayout="row" fxLayoutAlign="center" class="acciones">
+    <button mat-button class="btn-foto" (click)="onCargarAMano()">
+      <mat-icon>keyboard</mat-icon>
+      Cargar el cupón a mano
+    </button>
+  </div>
+
   <div fxLayout="row" fxLayoutAlign="center" class="acciones">
     <!-- Salida secundaria, no la acción principal: la venta se cierra igual y el cobro queda
          PENDIENTE para completarlo después. -->

@@ -13,6 +13,7 @@ import {
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
+import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
 import { mensajeDeError } from '../mensaje-error';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
@@ -48,7 +49,7 @@ export interface RegistrarVentaTarjetaData {
    * `null` = la terminal no tiene formato configurado. No es un caso raro: el día del corte lo
    * están todas, porque no hay backfill. El diálogo bloquea y dice qué falta.
    */
-  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string };
+  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string; mapeo?: string };
   /** Decimales por moneda, para escalar importes en la menor unidad. */
   decimalesPorMoneda?: DecimalesPorMoneda;
   titulo?: string;
@@ -432,6 +433,39 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    * <b>Cerrar un camino sólo es aceptable porque la carga a mano queda disponible para cualquier
    * tipo, siempre.</b> Si esa condición se rompe, hay que reabrir los caminos.
    */
+  /**
+   * Carga a mano: la salida universal.
+   *
+   * Disponible para CUALQUIER tipo y también cuando el diálogo está bloqueado por falta de
+   * formato — es justamente el caso donde más hace falta. Es lo que hace aceptable que el tipo
+   * cierre el otro camino.
+   */
+  onCargarAMano(): void {
+    if (this.timer) {
+      // Mismo criterio que la foto: mientras el cajero está tipeando, el diálogo no se cierra solo.
+      clearInterval(this.timer);
+      this.countdown = null;
+    }
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          ventaTarjetaId: this.data.ventaTarjetaId,
+          sucursalId: this.data.sucursalId,
+          monto: this.data.monto,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cerrar('COMPLETADO');
+      });
+  }
+
   private decidirCaminos(): void {
     const tipo = this.data?.formatoTerminalPos?.tipo;
 
