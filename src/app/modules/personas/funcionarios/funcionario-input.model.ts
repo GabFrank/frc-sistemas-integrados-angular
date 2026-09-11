@@ -19,6 +19,7 @@ export class FuncionarioInput {
   ipsActivo: boolean;
   numeroIps: string;
   fechaIngresoIps: string;
+  cobraBanco: boolean;
   cuentaBancaria: string;
   contactoEmergenciaNombre: string;
   contactoEmergenciaTelefono: string;
