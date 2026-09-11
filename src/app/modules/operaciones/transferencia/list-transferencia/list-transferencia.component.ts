@@ -41,6 +41,11 @@ import {
   SearchListtDialogData,
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
+import { TipoEntidad } from "./../../../../generics/tipo-entidad.enum";
+import {
+  QrCodeComponent,
+  QrData,
+} from "./../../../../shared/qr-code/qr-code.component";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 
 @UntilDestroy()
@@ -372,6 +377,46 @@ export class ListTransferenciaComponent implements OnInit {
 
   onImprimir(id) {
     this.transferenciaService.onImprimirTransferencia(id);
+  }
+
+  onQrClick(transferencia: TransferenciaView) {
+    let codigo: QrData = {
+      sucursalId: this.mainService.sucursalActual.id,
+      tipoEntidad: TipoEntidad.TRANSFERENCIA,
+      idOrigen: transferencia.id,
+      idCentral: transferencia.id,
+      componentToOpen: "EditTransferenciaComponent",
+    };
+    let qrDialogRef = this.matDialog.open(QrCodeComponent, {
+      data: {
+        codigo: codigo,
+        nombre: "Transferencia",
+        imprimir: true,
+      },
+    });
+
+    // Cierra el diálogo solo cuando el móvil escanea este QR. El aviso llega
+    // por subscription desde el central; se filtra por transferencia y
+    // sucursal porque el canal es único para todos los desktops conectados.
+    let escaneoSub = this.transferenciaService
+      .qrEscaneadoSub()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (
+          res != null &&
+          +res.transferenciaId == +transferencia.id &&
+          +res.sucursalId == +this.mainService.sucursalActual.id
+        ) {
+          qrDialogRef.close();
+        }
+      });
+
+    qrDialogRef.afterClosed().subscribe((res) => {
+      escaneoSub.unsubscribe();
+      if (res == "imprimir") {
+        this.onImprimir(transferencia.id);
+      }
+    });
   }
 
   isAllSelected() {
