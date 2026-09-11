@@ -64,6 +64,13 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   puedeAprobar = false;
   puedePagar = false;
 
+  /**
+   * Neto negativo = los descuentos superan a los haberes, o sea que el funcionario le debe a
+   * la empresa: no hay nada que pagarle y el backend rechaza el pago. Se calcula al cargar la
+   * liquidacion y no en el HTML, por la regla de no llamar funciones desde el template.
+   */
+  netoNegativo = false;
+
   constructor(
     private tabService: TabService,
     private liquidacionService: LiquidacionService,
@@ -102,7 +109,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
     this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) { this.liq = res; }
+      if (res != null) { this.liq = res; this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0; }
     });
     this.cargarItems(liqId);
   }
@@ -117,6 +124,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   private aplicar(res: any) {
     if (res != null) {
       this.liq = res;
+      this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
       this.cargarItems();
     }
   }
