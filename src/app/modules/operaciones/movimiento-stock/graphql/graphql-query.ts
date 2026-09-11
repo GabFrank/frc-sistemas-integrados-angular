@@ -249,3 +249,31 @@ export const stockAntesDeFechaQuery = gql`
     data: stockByProductoIdAntesDeFecha(productoId: $productoId, sucursalId: $sucursalId, fecha: $fecha)
   }
 `;
+/**
+ * Insumos de la cantidad sugerida de un producto en varias sucursales, en una sola consulta.
+ *
+ * Reemplaza a `findMovimientoStockByFilters` con `size: 1000`, que el diálogo de ítem de compra
+ * llamaba dos veces encadenadas por cada distribución. El central agrupa y devuelve los cuatro
+ * números que la cuenta necesita; las filas nunca hacían falta.
+ */
+export const cantidadSugeridaPorSucursalesQuery = gql`
+  query (
+    $productoId: ID!
+    $inicio: String!
+    $fin: String!
+    $sucursalList: [ID]
+  ) {
+    data: cantidadSugeridaPorSucursales(
+      productoId: $productoId
+      inicio: $inicio
+      fin: $fin
+      sucursalList: $sucursalList
+    ) {
+      sucursalId
+      totalVentas
+      cantidadCompras
+      primeraCompra
+      ultimaCompra
+    }
+  }
+`;
