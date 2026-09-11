@@ -86,8 +86,19 @@
     </div>
 
     <!-- Formato del modelo de aparato. Sin esto la caja no puede vender con tarjeta en esta
-         terminal, asi que el hint lo dice en vez de dejarlo como un campo mas. -->
-    <mat-form-field appearance="outline" style="width: 100%">
+         terminal, asi que el hint lo dice en vez de dejarlo como un campo mas.
+
+         La clase reserva el alto del hint a mano. No es capricho: styles.scss global fija
+         `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`, asi que el hint se
+         VE pero su contenedor no aporta altura y el texto se dibuja encima de lo que siga. Aca
+         quedaba tapando el checkbox "Activo" --medido en el navegador el 2026-09-11:
+         hint.bottom 727 contra checkbox.top 700--.
+
+         `subscriptSizing="dynamic"` de Material es el mecanismo pensado para esto y se probo
+         primero: aplica bien (la clase mat-mdc-form-field-subscript-dynamic-size aparece y el
+         hint pasa a position static), pero pierde igual contra el `height: 0 !important` global.
+         Mismo criterio que edit-formato-terminal-pos, que ya cargaba con esto. -->
+    <mat-form-field appearance="outline" style="width: 100%" class="campo-con-hint-largo">
       <mat-label>Formato del aparato</mat-label>
       <mat-select [formControl]="formatoControl">
         <mat-option *ngFor="let f of formatos" [value]="f.id">
