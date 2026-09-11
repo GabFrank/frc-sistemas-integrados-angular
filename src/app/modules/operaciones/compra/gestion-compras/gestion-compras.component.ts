@@ -4267,7 +4267,13 @@ export class GestionComprasComponent
 
   /**
    * Inicia la carga asíncrona de stock para todos los productos del proveedor en la tabla actual.
-   * Usa staggered setTimeout para no saturar el servidor (mismo patrón que add-edit-item-dialog).
+   *
+   * Un request por producto, no uno por (producto × sucursal). Antes cada celda de stock era su
+   * propia consulta y se las espaciaba con setTimeout para no saturar el servidor: con la página
+   * de 10 productos y "Todos" en sucursales de influencia eran 310 requests, que el navegador
+   * mandaba igual en tandas de 6 y que mientras duraban ocupaban todo el pool de conexiones del
+   * origen —cualquier otra cosa que la app quisiera hacer en ese rato quedaba esperando detrás—.
+   * El stagger repartía el costo en el tiempo, no lo bajaba.
    */
   private loadStockForProductosProveedor(): void {
     const sucursales = this.getSucursalesDeInfluenciaEfectivas();
@@ -4282,7 +4288,7 @@ export class GestionComprasComponent
       return;
     }
 
-    productos.forEach((producto, productoIndex) => {
+    productos.forEach((producto) => {
       producto.stockTotalLoading = true;
       producto.stockTotal = null;
       producto.stockPorSucursal = sucursales.map(suc => ({
@@ -4291,48 +4297,40 @@ export class GestionComprasComponent
         loading: true
       }));
 
-      sucursales.forEach((sucursal, sucIndex) => {
-        const delayMs = (productoIndex * sucursales.length + sucIndex) * 10;
-        setTimeout(() => {
-          this.loadStockForProductoSucursal(producto, sucursal);
-        }, delayMs);
-      });
+      this.loadStockPorSucursalesDeProducto(producto);
     });
   }
 
   /**
-   * Carga el stock de un producto en una sucursal específica y actualiza la entrada correspondiente
+   * Carga el stock de un producto en todas sus sucursales y actualiza las entradas de una vez.
+   *
+   * Las sucursales sin movimientos no vienen en la respuesta del central —no hay filas que sumar—
+   * y quedan en cero, que es lo mismo que devolvía la consulta por sucursal.
    */
-  private loadStockForProductoSucursal(
-    producto: ProductoProveedorItem,
-    sucursal: Sucursal
-  ): void {
+  private loadStockPorSucursalesDeProducto(producto: ProductoProveedorItem): void {
     const productoId = producto.producto?.id;
     if (!productoId) {
-      const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-      if (entry) { entry.loading = false; }
+      producto.stockPorSucursal.forEach(entry => { entry.loading = false; });
       this.recalcularStockTotal(producto);
       return;
     }
 
     this.productoService
-      .onGetStockPorProductoAndSucursal(productoId, sucursal.id, true)
+      .onGetStockPorSucursales(productoId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (stock: number) => {
-          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-          if (entry) {
-            entry.stock = stock ?? 0;
+        next: (stockPorSucursal: Map<number, number>) => {
+          producto.stockPorSucursal.forEach(entry => {
+            entry.stock = stockPorSucursal.get(entry.sucursal.id) ?? 0;
             entry.loading = false;
-          }
+          });
           this.recalcularStockTotal(producto);
         },
         error: () => {
-          const entry = producto.stockPorSucursal.find(e => e.sucursal.id === sucursal.id);
-          if (entry) {
+          producto.stockPorSucursal.forEach(entry => {
             entry.stock = 0;
             entry.loading = false;
-          }
+          });
           this.recalcularStockTotal(producto);
         }
       });

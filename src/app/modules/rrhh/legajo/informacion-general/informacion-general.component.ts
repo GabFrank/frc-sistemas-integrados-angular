@@ -66,8 +66,12 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   numeroIpsControl = new FormControl({ value: null, disabled: true });
   fechaIngresoIpsControl = new FormControl({ value: null, disabled: true });
 
-  // ---- Cuenta bancaria ----
-  cuentaBancariaControl = new FormControl(null);
+  // ---- Forma de cobro ----
+  // Mismo patron que IPS: el toggle es el que clasifica, y solo cuando esta en true
+  // se habilita el numero de cuenta. La cuenta no se exige: se puede marcar que cobra
+  // por banco y cargar el numero despues.
+  cobraBancoControl = new FormControl(false);
+  cuentaBancariaControl = new FormControl({ value: null, disabled: true });
 
   // ---- Contacto de emergencia ----
   contactoEmergenciaNombreControl = new FormControl(null);
@@ -89,6 +93,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
   puedeSubirFoto = false;
   subiendoFoto = false;
   ipsActivo = false;
+  cobraBanco = false;
   fotoPerfilSrc = AVATAR_DEFAULT;
   hoy = new Date();
 
@@ -113,6 +118,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     });
 
     this.ipsActivoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.aplicarEstadoIps(!!v));
+    this.cobraBancoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(v => this.aplicarEstadoCobraBanco(!!v));
 
     this.cargarCatalogos();
     this.cargarFuncionario();
@@ -140,6 +146,15 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     } else {
       this.numeroIpsControl.disable({ emitEvent: false });
       this.fechaIngresoIpsControl.disable({ emitEvent: false });
+    }
+  }
+
+  private aplicarEstadoCobraBanco(cobraBanco: boolean): void {
+    this.cobraBanco = cobraBanco;
+    if (cobraBanco) {
+      this.cuentaBancariaControl.enable({ emitEvent: false });
+    } else {
+      this.cuentaBancariaControl.disable({ emitEvent: false });
     }
   }
 
@@ -193,6 +208,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.numeroIpsControl.setValue(f.numeroIps);
     this.fechaIngresoIpsControl.setValue(f.fechaIngresoIps ? stringToLocalDate(f.fechaIngresoIps as any) : null);
 
+    this.cobraBancoControl.setValue(!!f.cobraBanco);
+    this.aplicarEstadoCobraBanco(!!f.cobraBanco);
     this.cuentaBancariaControl.setValue(f.cuentaBancaria);
     this.contactoEmergenciaNombreControl.setValue(f.contactoEmergenciaNombre);
     this.contactoEmergenciaTelefonoControl.setValue(f.contactoEmergenciaTelefono);
@@ -226,6 +243,7 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
     this.numeroIpsControl.reset();
     this.fechaIngresoIpsControl.reset();
 
+    this.cobraBancoControl.setValue(false);
     this.cuentaBancariaControl.reset();
     this.contactoEmergenciaNombreControl.reset();
     this.contactoEmergenciaTelefonoControl.reset();
@@ -376,7 +394,8 @@ export class InformacionGeneralComponent implements OnInit, OnChanges {
       input.ipsActivo = this.ipsActivoControl.value;
       input.numeroIps = this.ipsActivoControl.value ? this.up(this.numeroIpsControl.value) : null;
       input.fechaIngresoIps = this.ipsActivoControl.value ? dateToString(this.fechaIngresoIpsControl.value, 'yyyy-MM-dd') : null;
-      input.cuentaBancaria = this.up(this.cuentaBancariaControl.value);
+      input.cobraBanco = this.cobraBancoControl.value;
+      input.cuentaBancaria = this.cobraBancoControl.value ? this.up(this.cuentaBancariaControl.value) : null;
       input.contactoEmergenciaNombre = this.up(this.contactoEmergenciaNombreControl.value);
       input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefonoControl.value;
 

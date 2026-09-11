@@ -1286,7 +1286,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     facturaLegalId?: number
   ): Observable<Venta> {
     if (facturar == null) {
-      facturar = ticket == true;
+      // Solo el Cobro Rapido + Ticket (F11) pide factura explicita. Para el Cobro
+      // Rapido a secas (F8) hay que mandar null, NO false: el filial interpreta
+      // facturar=false como "el frontend ya emitio una factura manual" y saltea la
+      // facturacion silenciosa, dejando la venta sin comprobante. Con null cae en la
+      // rama de facturaCountDown y factura como corresponde.
+      facturar = ticket == true ? true : null;
     }
     if (this.isDelivery) venta.delivery = this.selectedDelivery;
     if (this.modoConsulta) return;

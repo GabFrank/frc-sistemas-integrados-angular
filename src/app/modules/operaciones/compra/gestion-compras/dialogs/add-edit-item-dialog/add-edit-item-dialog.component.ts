@@ -872,24 +872,25 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null;
 
+    // `ultimoPrecioCompra` se persiste SIEMPRE en guaraníes, igual que `costoMedio`
+    // (ver CostosPorProductoService.aplicarCostoCompra). La moneda/cotización del costo son
+    // solo REFERENCIA de la compra original, no describen en qué moneda está el importe:
+    // el contrato lo fija <app-costo-display>, que reconstruye el original dividiendo.
+    // Por eso acá solo se convierte Gs -> moneda del pedido. Multiplicar por costo.cotizacion
+    // inflaba el precio sugerido por la cotización, y como ese precio inflado terminaba siendo
+    // el costo de la compra siguiente, el error se componía en cada compra.
     let precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
 
-    // Convertir cross-currency si la moneda del costo difiere de la del pedido.
-    // Para la tasa del pedido se prioriza pedido.cotizacion (fijada al guardar el pedido).
-    // Fallback a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
-    const costo = producto?.costo;
-    const costoMonedaId = costo?.moneda?.id;
-    const pedidoMonedaId = this.data.pedido?.moneda?.id;
-    if (precioInicial > 0 && costoMonedaId && pedidoMonedaId && costoMonedaId !== pedidoMonedaId) {
-      const costoEnGs = precioInicial * (costo.cotizacion || costo.moneda?.cambio || 1);
-      const pedidoCotizacion = this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
-      if (pedidoCotizacion > 1) {
-        precioInicial = Math.round((costoEnGs / pedidoCotizacion) * 100) / 100;
-      } else {
-        precioInicial = Math.round(costoEnGs);
-      }
+    // Pedido en moneda extranjera: se prioriza pedido.cotizacion (fijada al guardar el pedido)
+    // y se cae a moneda.cambio cuando el pedido es viejo y no tiene cotización guardada.
+    // cotizacion > 1 identifica a la moneda extranjera (el guaraní cotiza 1), misma convención
+    // que CostoMedioCalculator.aGuaranies y <app-costo-display>.
+    const pedidoCotizacion =
+      this.data.pedido?.cotizacion ?? this.data.pedido?.moneda?.cambio ?? 1;
+    if (precioInicial > 0 && pedidoCotizacion > 1) {
+      precioInicial = Math.round((precioInicial / pedidoCotizacion) * 100) / 100;
     }
-    
+
     this.itemForm.patchValue(
       {
         productoSearch: coincidenciaExacta ? "" : producto.descripcion,
@@ -1578,21 +1579,61 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
-    // Iniciar carga de stock y cantidad sugerida para cada distribución de forma asíncrona e independiente
+    // El stock de todas las distribuciones es una sola pregunta —el mismo producto en varias
+    // sucursales—, así que sale en un request y no en uno por fila.
+    this.loadStockActualDeTodasLasDistribuciones(producto.id);
+
+    // La cantidad sugerida sí es una consulta distinta por sucursal (movimientos del mismo mes
+    // del año pasado), y esa sigue escalonada para no mandarlas todas juntas.
     this.distribucionesItems.forEach((item, index) => {
-      // Usar setTimeout con delay mínimo para asegurar que cada carga sea independiente
-      // y no sature el servidor con múltiples peticiones simultáneas
-      // El delay incremental es muy pequeño (10ms) para no afectar la experiencia del usuario
       setTimeout(() => {
-        // Solo cargar si aún está en estado de carga (no se ha cargado manualmente)
-        if (item.stockActualLoading) {
-          this.loadStockActual(item);
-        }
-        // Cargar cantidad sugerida también de forma asíncrona
         if (item.cantidadSugeridaLoading) {
           this.calculateCantidadSugerida(item);
         }
-      }, index * 10); // Pequeño delay incremental para evitar saturación del servidor
+      }, index * 10);
+    });
+  }
+
+  /**
+   * Resuelve el stock de todas las distribuciones pendientes con un solo request.
+   *
+   * Las sucursales sin movimientos no vuelven en la respuesta del central —no hay filas que
+   * sumar— y quedan en cero, igual que devolvía la consulta por sucursal.
+   */
+  private loadStockActualDeTodasLasDistribuciones(productoId: number): void {
+    const enCarga = this.distribucionesItems.filter((item) => item.stockActualLoading);
+
+    // Una fila sin sucursal de influencia no tiene stock que pedir; se la saca del spinner acá
+    // mismo, que es lo que hacía loadStockActual() al entrar.
+    enCarga
+      .filter((item) => item.sucursalInfluencia?.id == null)
+      .forEach((item) => { item.stockActualLoading = false; });
+
+    const pendientes = enCarga.filter((item) => item.sucursalInfluencia?.id != null);
+    if (pendientes.length === 0) {
+      return;
+    }
+
+    this.productoService.onGetStockPorSucursales(productoId).subscribe({
+      next: (stockPorSucursal: Map<number, number>) => {
+        pendientes.forEach((item) => {
+          item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+      },
+      error: (error) => {
+        console.error('Error cargando el stock por sucursal del producto:', error);
+        pendientes.forEach((item) => {
+          item.stockActual = 0;
+          item.stockActualLoading = false;
+        });
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+      },
     });
   }
 

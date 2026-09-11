@@ -61,6 +61,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   cargoControl = new FormControl(null)     // cargoId
   diaristaControl = new FormControl(null)
   fasePruebaControl = new FormControl(null)
+  cobraBancoControl = new FormControl(null)
   cargoList: any[] = [];
 
   length = 25;
@@ -146,7 +147,8 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.estadoControl.value,
       this.cargoControl.value,
       this.diaristaControl.value,
-      this.fasePruebaControl.value
+      this.fasePruebaControl.value,
+      this.cobraBancoControl.value
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
@@ -163,6 +165,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     this.cargoControl.setValue(null)
     this.diaristaControl.setValue(null)
     this.fasePruebaControl.setValue(null)
+    this.cobraBancoControl.setValue(null)
     this.onFiltrar()
   }
 

@@ -1,11 +1,11 @@
-<div class="container-fluid" style="padding: 16px;" fxLayout="column" style="height: 100%; width: 100%;">
-    <div class="row" fxFlex="10">
+<div class="container-fluid ultimas-ventas" fxLayout="column">
+    <div class="row ultimas-ventas__fija">
         <div class="col-12 mb-3">
             <h2 class="titulo-center">{{titulo}}</h2>
         </div>
     </div>
 
-    <div class="row mb-3" fxFlex="10" style="height: 100%; width: 100%;">
+    <div class="row mb-3 ultimas-ventas__fija">
         <div class="col-md-8 offset-md-2">
             <mat-card>
                 <mat-card-content>
@@ -28,14 +28,15 @@
         </div>
     </div>
 
-    <div class="row" fxFlex="70" style="height: 100%; width: 100%;">
+    <div class="row ultimas-ventas__tabla">
         <div class="col-12">
             <div *ngIf="isLoading" class="text-center p-3">
                 <mat-spinner diameter="40" class="mx-auto"></mat-spinner>
                 <p class="mt-2">Cargando datos...</p>
             </div>
 
-            <div class="mat-elevation-z2" *ngIf="!isLoading">
+            <div class="mat-elevation-z2 ultimas-ventas__grilla" *ngIf="!isLoading">
+                <div class="ultimas-ventas__scroll">
                 <table mat-table [dataSource]="dataSource" matSort class="w-100">
                     <!-- ID Column -->
                     <ng-container matColumnDef="id">
@@ -77,13 +78,7 @@
                     <ng-container matColumnDef="estado">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header> Estado </th>
                         <td mat-cell *matCellDef="let venta">
-                            <span [ngClass]="{
-                                        'badge bg-success': venta.estado === 'CONCLUIDA',
-                                        'badge bg-danger': venta.estado === 'CANCELADA',
-                                        'badge bg-warning': venta.estado !== 'CONCLUIDA' && venta.estado !== 'CANCELADA'
-                                    }">
-                                {{venta.estado}}
-                            </span>
+                            <span class="estado-chip" [ngClass]="'estado-' + venta.estado">{{venta.estado}}</span>
                         </td>
                     </ng-container>
 
@@ -97,15 +92,17 @@
                     <!-- Acciones Column -->
                     <ng-container matColumnDef="acciones">
                         <th mat-header-cell *matHeaderCellDef> Acciones </th>
-                        <td mat-cell *matCellDef="let venta; let i = index" class="action-buttons">
-                            <button *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'" mat-mini-fab
-                                color="warn" matTooltip="Cancelar venta" (click)="cancelarVenta(venta, i)">
-                                <mat-icon>cancel</mat-icon>
-                            </button>
-                            <button *ngIf="data?.reimpresion == true" mat-mini-fab color="primary"
-                                matTooltip="Reimprimir venta" (click)="reimpresionVenta(venta.id)">
-                                <mat-icon>print</mat-icon>
-                            </button>
+                        <td mat-cell *matCellDef="let venta; let i = index">
+                            <div class="action-buttons">
+                                <button *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'" mat-mini-fab
+                                    color="warn" matTooltip="Cancelar venta" (click)="cancelarVenta(venta, i)">
+                                    <mat-icon>cancel</mat-icon>
+                                </button>
+                                <button *ngIf="data?.reimpresion == true" mat-mini-fab color="primary"
+                                    matTooltip="Reimprimir venta" (click)="reimpresionVenta(venta.id)">
+                                    <mat-icon>print</mat-icon>
+                                </button>
+                            </div>
                         </td>
                     </ng-container>
 
@@ -119,6 +116,7 @@
                         </td>
                     </tr>
                 </table>
+                </div>
 
                 <mat-paginator #paginator itemsPerPageLabel="Itens por página" [pageSizeOptions]="pageSizeOptions"
                     [pageSize]="pageSize" [length]="selectedPageInfo?.getTotalElements" (page)="handlePageEvent($event)"
@@ -129,7 +127,7 @@
     </div>
 
     <!-- add here a salir button on the right side of the page -->
-    <div class="row" fxFlex="10">
+    <div class="row ultimas-ventas__acciones">
         <div style="text-align: right; width: 100%; padding-right: 50px;">
             <button mat-raised-button color="primary" style="width: 120px;" (click)="salir()">Salir</button>
         </div>
