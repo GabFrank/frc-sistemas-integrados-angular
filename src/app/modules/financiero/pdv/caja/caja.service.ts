@@ -1,6 +1,7 @@
 import { MainService } from "./../../../../main.service";
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
 import {
   CajaBalance,
@@ -26,6 +27,7 @@ import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndS
 import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
 import { VerificarCajaGQL } from "./graphql/verificarCaja";
 import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
+import { CajerosConCajaAbiertaGQL } from "./graphql/cajerosConCajaAbierta";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 import { TransferirCajaGQL } from "./graphql/transferirCaja";
 
@@ -53,6 +55,7 @@ export class CajaService {
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
     private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
+    private cajerosConCajaAbierta: CajerosConCajaAbiertaGQL,
     private configService: ConfiguracionService,
     private transferirCaja: TransferirCajaGQL
   ) { }
@@ -234,6 +237,20 @@ export class CajaService {
   onGetCajasAbiertasPorSucursal(sucursalId: number, servidor: boolean = true): Observable<PdvCaja[]> {
     return this.genericService.onCustomQuery(
       this.cajaAbiertoPorSucursal,
+      { sucursalId },
+      servidor,
+      null,
+      true
+    );
+  }
+
+  /**
+   * Los cajeros que hoy estan en caja en la sucursal. El filtro y la deduplicacion los hace el
+   * central: no alcanza con activo = true, que incluye cajas que quedaron abiertas hace anios.
+   */
+  onGetCajerosConCajaAbierta(sucursalId: number, servidor: boolean = true): Observable<Usuario[]> {
+    return this.genericService.onCustomQuery(
+      this.cajerosConCajaAbierta,
       { sucursalId },
       servidor,
       null,
