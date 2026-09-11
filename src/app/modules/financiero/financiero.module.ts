@@ -59,6 +59,8 @@ import { VentasTarjetaCajaDialogComponent } from "./venta-tarjeta/ventas-tarjeta
 import { RegistrarVentaTarjetaDialogComponent } from "./venta-tarjeta/qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component";
 import { FormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component";
 import { EditFormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/edit-formato-qr-pos/edit-formato-qr-pos.component";
+import { FormatoTerminalPosComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component";
+import { EditFormatoTerminalPosComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/edit-formato-terminal-pos/edit-formato-terminal-pos.component";
 import { EscanearCuponDialogComponent } from "./venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
@@ -149,6 +151,8 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     RegistrarVentaTarjetaDialogComponent,
     FormatoQrPosComponent,
     EditFormatoQrPosComponent,
+    FormatoTerminalPosComponent,
+    EditFormatoTerminalPosComponent,
     EscanearCuponDialogComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,

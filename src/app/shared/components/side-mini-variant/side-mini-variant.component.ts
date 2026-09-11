@@ -77,6 +77,7 @@ import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.co
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FormatoQrPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component';
+import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
@@ -579,6 +580,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
             },
             {
+              name: 'Formatos de terminal POS',
+              icon: 'point_of_sale',
+              action: 'formato-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
               name: 'Formatos de QR de POS',
               icon: 'qr_code_scanner',
               action: 'formato-qr-pos',
@@ -1048,6 +1055,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "formato-qr-pos":
         this.openTabIfAuthorized(ROLES.ADMIN, FormatoQrPosComponent, "Formatos de QR");
+        break;
+      case "formato-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, FormatoTerminalPosComponent, "Formatos de terminal");
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));

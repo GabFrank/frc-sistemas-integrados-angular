@@ -1,0 +1,91 @@
+<div class="edit-formato" [formGroup]="formGroup" fxLayout="column" fxLayoutGap="10px">
+
+  <h2 class="titulo">{{ data?.formato ? 'Editar formato de terminal' : 'Nuevo formato de terminal' }}</h2>
+  <p class="subtitulo">
+    El patrón se aplica en la caja de cada sucursal. Probalo contra la cadena de ejemplo antes de guardar.
+  </p>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Nombre del modelo</mat-label>
+    <input matInput formControlName="nombre" placeholder="Ej: Bancard firmware v5.5" />
+    <mat-hint>
+      Es lo que distingue un modelo de otro del mismo proveedor. No se puede repetir dentro del proveedor.
+    </mat-hint>
+  </mat-form-field>
+
+  <!-- El tipo decide qué camino se le ofrece al cajero y, sobre todo, cuál se le CIERRA. Por eso
+       no tiene default: elegirlo es una decisión. -->
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Cómo se lee el ticket</mat-label>
+    <mat-select formControlName="tipo">
+      <mat-option *ngFor="let t of tipos" [value]="t.valor">{{ t.etiqueta }}</mat-option>
+    </mat-select>
+    <mat-hint>{{ ayudaTipo || 'Decide si la caja ofrece el lector o la cámara.' }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Proveedor</mat-label>
+    <mat-select formControlName="proveedorServicioId">
+      <mat-option [value]="null">Cualquiera (comodín)</mat-option>
+      <mat-option *ngFor="let p of proveedores" [value]="p.id">
+        {{ p.persona?.nombre || p.nombreContacto || ('Proveedor ' + p.id) }}
+      </mat-option>
+    </mat-select>
+    <mat-hint>
+      Un proveedor puede tener varios formatos: uno por modelo de aparato.
+    </mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Patrón (regex con grupos nombrados)</mat-label>
+    <textarea matInput formControlName="patron" rows="3"
+      placeholder="^FRCP1\*(?<auth>[A-Z0-9]{0,20})\*..."></textarea>
+    <mat-hint>Los grupos se declaran (?&lt;nombre&gt;...). Debe empezar con ^ y terminar con $.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Mapeo (JSON)</mat-label>
+    <textarea matInput formControlName="mapeo" rows="8"></textarea>
+    <mat-hint>
+      Marcá con "obligatorio": true los campos sin los cuales la operación no sirve. Deciden qué
+      tiene que encontrar el OCR y qué pide el formulario de carga a mano.
+    </mat-hint>
+  </mat-form-field>
+
+  <div class="fila-accion">
+    <button mat-button type="button" (click)="usarMapeoEjemplo()">Usar el mapeo de ValidaPix como base</button>
+  </div>
+
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
+    <mat-label>Cadena de ejemplo (un cupón real)</mat-label>
+    <input matInput formControlName="ejemplo" [maxlength]="maxLongitud" />
+    <mat-hint *ngIf="!esMaquina">Máximo {{ maxLongitud }} caracteres: es lo que el lector puede entregar.</mat-hint>
+    <mat-hint *ngIf="esMaquina">
+      Una línea del ticket tal como la devuelve el OCR. El OCR entrega texto igual que el lector.
+    </mat-hint>
+  </mat-form-field>
+
+  <mat-slide-toggle formControlName="activo">Elegible para terminales nuevas</mat-slide-toggle>
+
+  <div class="preview">
+    <div class="preview-titulo">Vista previa — esto es lo que el PDV va a leer</div>
+
+    <div class="preview-error" *ngIf="errorPreview">{{ errorPreview }}</div>
+
+    <table *ngIf="!errorPreview && preview.length">
+      <tr *ngFor="let fila of preview">
+        <td class="campo">{{ fila.campo }}</td>
+        <td class="valor">{{ fila.valor }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-success"
+      [disabled]="formGroup.invalid || guardando" (click)="onGuardar()">
+      Guardar
+    </button>
+  </div>
+
+</div>
