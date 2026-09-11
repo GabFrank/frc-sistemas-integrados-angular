@@ -8,6 +8,7 @@ import { Tab } from '../../../../../layouts/tab/tab.model';
 import { TabService, TabData } from '../../../../../layouts/tab/tab.service';
 import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
+import { sucursalesConServidor } from '../../../../empresarial/sucursal/sucursal-servidor.util';
 import { ListVentaComponent } from '../../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../../pdv/caja/caja.model';
 import { PageEvent } from '@angular/material/paginator';
@@ -49,7 +50,9 @@ export class ListGastosComponent implements OnInit {
     'retiroGs', 'retiroRs', 'retiroDs', 'creadoEn', 'acciones'
   ];
 
-  sucursalList$ = this.sucursalService.onGetAllSucursales(true).pipe(map(s => s.filter(x => x.id !== 0)));
+  // Incluye SERVIDOR (sucursal 0): ahi quedan los gastos pagados desde la caja mayor, que no
+  // pertenecen a ninguna sucursal fisica.
+  sucursalList$ = this.sucursalService.onGetAllSucursales(true).pipe(map(s => sucursalesConServidor(s)));
 
   sucOrigenControl = new FormControl();
   idCajaControl = new FormControl();

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -95,10 +95,22 @@ interface PagoLinea {
   templateUrl: './pagar-compras-dialog.component.html',
   styleUrls: ['./pagar-compras-dialog.component.scss']
 })
-export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
+export class PagarComprasDialogComponent implements OnInit {
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
   dataSource = new MatTableDataSource<SolicitudRow>([]);
+
+  /**
+   * El paginador vive dentro del `*ngIf="!vistaNuevoGasto"`, asi que ir a "Nuevo gasto" y volver
+   * lo destruye y crea otro. Vinculandolo una sola vez tras la primera vista, el dataSource quedaba
+   * apuntando al paginador muerto: el de la pantalla mostraba "0 of 0" y el recorte se hacia
+   * contra el viejo, que con mas de una pagina escondia documentos que si estaban en la lista.
+   * Por eso se re-vincula cada vez que Angular crea uno.
+   */
+  @ViewChild(MatPaginator) set paginator(p: MatPaginator | undefined) {
+    if (p) {
+      this.dataSource.paginator = p;
+    }
+  }
   displayedColumns = ['sel', 'proveedor', 'numero', 'moneda', 'saldo', 'montoAPagar'];
   filtroProveedorControl = new FormControl('');
 
@@ -308,10 +320,6 @@ export class PagarComprasDialogComponent implements OnInit, AfterViewInit {
     });
     this.cargar();
     this.filtroProveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.aplicarFiltro());
-  }
-
-  ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
   }
 
   cargar() {

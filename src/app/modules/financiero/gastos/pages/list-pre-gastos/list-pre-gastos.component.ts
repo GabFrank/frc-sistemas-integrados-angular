@@ -45,7 +45,15 @@ export class ListPreGastosComponent implements OnInit, DoCheck {
     'monto', 'moneda', 'sucursal', 'estado', 'fecha', 'acciones'
   ];
 
-  private tabActivaSubject = new BehaviorSubject<number>(6); // Todos por defecto
+  /**
+   * "Todos" es la pestaña sin estado: el `null` de `tabEstados`. Se resuelve por su contenido y
+   * no con el índice a mano, que es como se rompió antes: el default decía 6 con el comentario
+   * "Todos por defecto", pero al agregar un estado el 6 pasó a ser COMPLETADO y la pantalla
+   * abría filtrada en completados —vacía, casi siempre—.
+   */
+  private readonly tabTodos = this.tabEstados.indexOf(null);
+
+  private tabActivaSubject = new BehaviorSubject<number>(this.tabTodos);
   public tabActiva$ = this.tabActivaSubject.asObservable();
 
   private paginationSubject = new BehaviorSubject<{ pageIndex: number, pageSize: number }>({ pageIndex: 0, pageSize: 15 });
