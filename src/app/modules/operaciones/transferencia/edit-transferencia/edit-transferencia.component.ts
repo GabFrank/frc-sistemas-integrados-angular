@@ -189,6 +189,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   isOrigen = false;
   isDestino = false;
+  // Conectado al central la sucursal actual es la "SERVIDOR" (id 0), que nunca es el origen.
+  puedePrepararEnvio = false;
   isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
@@ -432,6 +434,10 @@ export class EditTransferenciaComponent implements OnInit {
             this.isDestino =
               this.selectedTransferencia?.sucursalDestino?.id ==
               this.mainService?.sucursalActual?.id;
+            this.puedePrepararEnvio =
+              this.isOrigen ||
+              this.mainService?.isServidor ||
+              this.mainService?.sucursalActual?.id == 0;
             this.onVerificarConfirmados();
             this.verificarEtapa();
           }

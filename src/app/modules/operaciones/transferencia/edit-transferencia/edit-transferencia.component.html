@@ -145,7 +145,7 @@
             Finalizar
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="isPreTransferenciaOrigen && isOrigen">
+        <div fxFlex="15%" *ngIf="isPreTransferenciaOrigen && puedePrepararEnvio">
           <button style="width: 100%" mat-raised-button color="accent"
             (click)="onAvanzarEtapa('PREPARACION_MERCADERIA')" [disabled]="dataSource.data.length == 0">
             Preparar para envio
