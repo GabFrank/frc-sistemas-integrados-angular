@@ -49,6 +49,11 @@ export class SearchListtDialogData {
   searchFieldName?: string;
   textHint?: string;
   fallbackToLocal?: boolean = false;
+  /**
+   * Predicado opcional para descartar filas que no se deben poder elegir en esta pantalla
+   * (ej. funcionarios inactivos al cargar un bono). Sin filtro, la lista no cambia.
+   */
+  filtro?: (item: any) => boolean;
   /** Texto del boton de confirmacion en modo multiple. Default: 'Aplicar filtro' */
   labelAceptar?: string;
 }
@@ -302,11 +307,12 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
 
   private procesarResultados(res: any): void {
     if (res != null) {
+      const filtrar = (filas: any[]) => this.data?.filtro ? (filas || []).filter(this.data.filtro) : (filas || []);
       if (this.data?.paginator == true) {
         this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent || [];
+        this.dataSource.data = filtrar(this.selectedPageInfo?.getContent);
       } else {
-        this.dataSource.data = res || [];
+        this.dataSource.data = filtrar(res);
       }
       if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
         (this.dataSource as any)._updateChangeSubscription();

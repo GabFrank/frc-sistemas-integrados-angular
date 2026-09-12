@@ -35,6 +35,11 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
   @Input() titulo = 'Funcionario';
   @Input() funcionarioId: number;
   @Input() disabled = false;
+  /**
+   * Deja fuera del buscador a los funcionarios dados de baja. Por default siguen apareciendo:
+   * hay pantallas (liquidacion final, legajo) que justamente trabajan sobre egresados.
+   */
+  @Input() soloActivos = false;
 
   @Output() idSelected = new EventEmitter<number>();
   @Output() funcionarioSelected = new EventEmitter<Funcionario>();
@@ -81,7 +86,8 @@ export class SelectFuncionarioComponent implements OnInit, OnChanges {
         { id: 'nickname', nombre: 'Usuario', width: '20%' }
       ],
       query: this.searchFuncionario,
-      fallbackToLocal: true
+      fallbackToLocal: true,
+      filtro: this.soloActivos ? (f: Funcionario) => f?.activo !== false : undefined
     };
     this.dialog.open(SearchListDialogComponent, {
       data: data,
