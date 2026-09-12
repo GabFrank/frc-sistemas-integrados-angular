@@ -51,6 +51,7 @@ export class ListClientesComponent implements OnInit {
     "select",
     "id",
     "tipo",
+    "nroConvenio",
     "nombre",
     "credito",
     "saldo",
