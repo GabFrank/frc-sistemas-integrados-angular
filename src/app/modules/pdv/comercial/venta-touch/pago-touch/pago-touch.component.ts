@@ -775,10 +775,23 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.matDialog.open(ScanTerminalPosDialogComponent, {
       width: '380px',
       disableClose: true,
-      data: { terminalPos: item.terminalPos }
+      data: {
+        terminalPos: item.terminalPos,
+        // Para poder reconocer un cupón en el mismo input: el formato del proveedor de esta línea
+        // se prueba primero, y los importes se escalan con los decimales de cada moneda.
+        proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
+        decimalesPorMoneda: this.decimalesPorMoneda,
+      }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: ScanTerminalPosResult) => {
       if (!result?.terminalPos) return; // canceló la selección de terminal: la línea queda como estaba
       item.terminalPos = result.terminalPos;
+
+      // El cajero escaneó directamente el cupón y la terminal se resolvió sola --por la serie que
+      // el propio cupón imprime--. El segundo diálogo no tiene nada que preguntar.
+      if (result.datosCupon) {
+        this.procesarCupon(item, result.datosCupon);
+        return;
+      }
 
       const data: EscanearCuponDialogData = {
         terminalDescripcion: [result.terminalPos.descripcion, result.terminalPos.codigo].filter(Boolean).join(' - '),
@@ -817,38 +830,50 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             });
             return;
           }
-          const avisos: string[] = [];
-          // `item.valor` esta tipado como number pero viene del formulario, donde es un string
-          // ("50.00"). Un `!==` entre 50 y "50.00" es siempre verdadero, asi que el aviso saltaba
-          // en TODOS los escaneos, incluso con montos identicos — y un aviso que sale siempre deja
-          // de leerse, que es peor que no tenerlo: cuando el cupon difiera de verdad, el cajero ya
-          // lo va a estar ignorando. Se compara el numero, no la representacion.
-          const valorCobrado = Number(item.valor);
-          if (datosCupon.monto != null && Number.isFinite(valorCobrado) && datosCupon.monto !== valorCobrado) {
-            avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${valorCobrado.toLocaleString('es-PY')}`);
-          }
-          if (cuponVencido(datosCupon.fecha)) {
-            avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
-          }
-
-          // Una diferencia se CONFIRMA, no se avisa. Es lo que ya hace el completar desde la
-          // lista (RegistrarVentaTarjetaDialogComponent) y lo que pide el manual §8.3: el caso
-          // mas comun es que el cajero tenga dos cupones parecidos en la mano y haya escaneado el
-          // que no era. Un snackbar de 6 segundos no lo hace mirar; un dialogo si.
-          //
-          // Aca es mas barato que en la lista: el cupon todavia vive en memoria y la venta no
-          // existe, asi que "Escanear otro" no tiene nada que deshacer.
-          if (avisos.length) {
-            this.confirmarDiferenciaCupon(item, datosCupon, avisos);
-            return;
-          }
-
-          this.aplicarCupon(item, datosCupon);
-          this.notificacionSnackbar.notification$.next(
-            { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
-          );
+          this.procesarCupon(item, datosCupon);
         });
     });
+  }
+
+  /**
+   * Aplica un cupón ya leído a la línea, avisando si no coincide con el cobro.
+   *
+   * Está aparte porque ahora hay DOS puertas: el diálogo de lectura de siempre, y el input único
+   * del primer diálogo cuando el cajero escanea el cupón directamente y la terminal se resuelve
+   * sola por la serie. Las dos tienen que comportarse igual — una diferencia acá sería que la
+   * misma regla valga o no según por dónde entró el cupón.
+   */
+  private procesarCupon(item: CobroDetalle, datosCupon: DatosCupon): void {
+    const avisos: string[] = [];
+    // `item.valor` esta tipado como number pero viene del formulario, donde es un string
+    // ("50.00"). Un `!==` entre 50 y "50.00" es siempre verdadero, asi que el aviso saltaba
+    // en TODOS los escaneos, incluso con montos identicos — y un aviso que sale siempre deja
+    // de leerse, que es peor que no tenerlo: cuando el cupon difiera de verdad, el cajero ya
+    // lo va a estar ignorando. Se compara el numero, no la representacion.
+    const valorCobrado = Number(item.valor);
+    if (datosCupon.monto != null && Number.isFinite(valorCobrado) && datosCupon.monto !== valorCobrado) {
+      avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${valorCobrado.toLocaleString('es-PY')}`);
+    }
+    if (cuponVencido(datosCupon.fecha)) {
+      avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
+    }
+
+    // Una diferencia se CONFIRMA, no se avisa. Es lo que ya hace el completar desde la
+    // lista (RegistrarVentaTarjetaDialogComponent) y lo que pide el manual §8.3: el caso
+    // mas comun es que el cajero tenga dos cupones parecidos en la mano y haya escaneado el
+    // que no era. Un snackbar de 6 segundos no lo hace mirar; un dialogo si.
+    //
+    // Aca es mas barato que en la lista: el cupon todavia vive en memoria y la venta no
+    // existe, asi que "Escanear otro" no tiene nada que deshacer.
+    if (avisos.length) {
+      this.confirmarDiferenciaCupon(item, datosCupon, avisos);
+      return;
+    }
+
+    this.aplicarCupon(item, datosCupon);
+    this.notificacionSnackbar.notification$.next(
+      { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
+    );
   }
 
   private cerrarConRespuesta(

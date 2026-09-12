@@ -50,6 +50,15 @@ export interface MapeoQrPos {
   monto?: ReglaCampo;
   identificadorTransaccion?: ReglaCampo;
   fecha?: ReglaCampo;
+  /**
+   * El identificador del aparato, tal como el cupón lo imprime (`Terminal:52287864` en Dinelco,
+   * `STONEID:` en Stone).
+   *
+   * Con esto mapeado y la `serie` cargada en el ABM, **el cupón dice solo de qué máquina salió** y
+   * el cajero no tiene que escanear el aparato. Es configuración, no release: alcanza con agregarlo
+   * al mapeo del formato.
+   */
+  terminal?: ReglaCampo;
 }
 
 /** Resultado de leer un cupon. */
@@ -59,6 +68,8 @@ export interface DatosCupon {
   monedaId?: number;
   monto?: number;
   identificadorTransaccion?: string;
+  /** El identificador del aparato que imprimió el cupón. Se coteja contra `terminal_pos.serie`. */
+  terminal?: string;
   fecha?: Date;
   /** La cadena tal cual entro por el lector, sin normalizar. */
   qrCrudo: string;
