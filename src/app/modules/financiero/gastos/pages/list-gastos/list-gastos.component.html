@@ -118,6 +118,20 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="vuelto">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vuelto
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let gasto"
+          [matTooltip]="gasto?.vueltoLabel"
+          style="text-align: center; white-space: nowrap"
+        >
+          {{ gasto?.vueltoLabel }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="caja">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Caja
