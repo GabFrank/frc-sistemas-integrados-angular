@@ -49,6 +49,14 @@ export interface CompletarVentaTarjetaInput {
    * que después impide que la purga se lleve puesta la evidencia de un cobro.
    */
   capturaToken?: string;
+  /**
+   * Los campos que el cupón trae y que NO tienen columna propia, como JSON.
+   *
+   * Es lo que `venta_tarjeta.datos_extra` existe para guardar: un proveedor que imprime un segundo
+   * monto en otra moneda, un `STONEID`, un código de comercio. El OCR ya los separa — sin esto se
+   * descartaban y la columna quedaba vacía para siempre.
+   */
+  datosExtra?: string;
 }
 
 export interface VentaTarjetaInput {

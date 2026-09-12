@@ -479,6 +479,10 @@ export class EscanearCuponDialogComponent implements OnInit {
           confianzas,
           capturaToken: this.capturaToken,
           origen: 'OCR',
+          // Se sacaron del formulario porque no son valores que el cajero tipee, pero NO se
+          // descartan: viajan hasta `venta_tarjeta.datos_extra`, que existe justamente para los
+          // campos propios del proveedor.
+          datosExtra: datosExtra ? JSON.stringify(datosExtra) : undefined,
         },
       })
       .afterClosed()

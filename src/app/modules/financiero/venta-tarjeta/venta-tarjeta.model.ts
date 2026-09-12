@@ -15,6 +15,15 @@ export interface VentaTarjeta {
   venta?: { id: number; totalGs: number; };
   terminalPos?: {
     id: number; codigo: string; descripcion: string;
+    /**
+     * Si en esta terminal se puede tipear el cupón a mano. `null` = hereda la configuración
+     * general.
+     *
+     * Se pide acá porque el diálogo de completar un pendiente tiene que respetarla igual que el
+     * del PDV: si no, apagar la perilla cierra la carga a mano durante la venta y la deja abierta
+     * al completar después — la misma configuración valiendo o no según por qué puerta entró.
+     */
+    cargaManualPermitida?: boolean;
     proveedorServicio?: { id: number };
     moneda?: { id: number; simbolo: string; decimales?: number };
     /**

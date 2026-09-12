@@ -142,7 +142,8 @@
   <!-- La carga a mano es la salida universal: disponible para CUALQUIER tipo, y tambien bloqueado.
        Es lo que hace aceptable que el tipo cierre el otro camino. -->
   <div fxLayout="row" fxLayoutAlign="center center" class="acciones" *ngIf="!candidatos.length">
-    <button mat-button class="btn-foto" [disabled]="procesando" (click)="onCargarAMano()">
+    <button mat-button class="btn-foto" *ngIf="ofreceCargaManual"
+            [disabled]="procesando" (click)="onCargarAMano()">
       <mat-icon>keyboard</mat-icon>
       Cargar el cupón a mano
     </button>

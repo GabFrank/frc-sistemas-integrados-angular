@@ -1166,6 +1166,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             // Ata la foto del cupon a la venta. Es lo que impide que la purga de imagenes borre la
             // evidencia de un cobro.
             capturaToken: datos.capturaToken,
+            // Los campos propios del proveedor, que no tienen columna: un segundo monto en otra
+            // moneda, un STONEID. Sin esto la columna datos_extra quedaba vacia para siempre.
+            datosExtra: datos.datosExtra,
           }).pipe(untilDestroyed(this)).subscribe({
             next: () => {
               this.notificacionSnackbar.notification$.next({

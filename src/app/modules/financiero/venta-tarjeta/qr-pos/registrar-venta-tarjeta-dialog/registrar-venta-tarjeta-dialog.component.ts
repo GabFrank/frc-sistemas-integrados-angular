@@ -67,6 +67,15 @@ export interface RegistrarVentaTarjetaData {
   terminalPosId?: number;
   /** Cobro al que pertenece el cupón, si ya se sabe. Se propaga a la confirmación. */
   cobroDetalleId?: number;
+  /**
+   * Si en ESTA terminal se puede tipear el cupón a mano. `null`/`undefined` = hereda la
+   * configuración general.
+   *
+   * Tiene que respetarse **también acá**, no sólo en el diálogo del PDV: si no, apagar la perilla
+   * cierra la carga a mano durante la venta pero la deja abierta al completar el pendiente después
+   * — la misma configuración valiendo o no según por qué puerta entró el cajero.
+   */
+  cargaManualPermitida?: boolean;
 }
 
 export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
@@ -123,6 +132,11 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    */
   ofreceLector = false;
   ofreceCamara = false;
+  /**
+   * Si se ofrece la carga a mano. Campo plano y no getter: el template lo bindea y el repo prohíbe
+   * getters en bindings.
+   */
+  ofreceCargaManual = true;
   /** Motivo por el que no se puede registrar acá. `null` = se puede. */
   bloqueo: string = null;
 
@@ -487,6 +501,11 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   }
 
   private decidirCaminos(): void {
+    // La configuración por aparato. `false` explícito es lo único que la apaga: `null` significa
+    // "hereda la general", que hoy es permitirla. Apagarla sólo es seguro porque el backend
+    // rechaza hacerlo cuando es el último camino que le queda a esa caja.
+    this.ofreceCargaManual = this.data?.cargaManualPermitida !== false;
+
     const tipo = this.data?.formatoTerminalPos?.tipo;
 
     if (!this.data?.formatoTerminalPos) {
@@ -635,6 +654,10 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
           confianzas,
           capturaToken: this.capturaToken,
           origen: 'OCR',
+          // Se sacaron del formulario porque no son valores que el cajero tipee, pero NO se
+          // descartan: viajan hasta `venta_tarjeta.datos_extra`, que existe justamente para los
+          // campos propios del proveedor.
+          datosExtra: datosExtra ? JSON.stringify(datosExtra) : undefined,
         },
       })
       .afterClosed()

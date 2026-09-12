@@ -185,6 +185,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           // La terminal va a la captura: con ella el filial aplica el formato y devuelve
           // los campos ya separados, en vez de texto crudo que el cajero transcribe igual.
           terminalPosId: item.terminalPos?.id,
+        // La configuracion por aparato tiene que valer por las DOS puertas: si no, apagar la carga
+        // a mano la cierra durante la venta y la deja abierta al completar el pendiente.
+        cargaManualPermitida: item.terminalPos?.cargaManualPermitida,
           decimalesPorMoneda: this.decimalesPorMoneda,
           titulo: 'Completar venta con tarjeta',
           segundos: 120,

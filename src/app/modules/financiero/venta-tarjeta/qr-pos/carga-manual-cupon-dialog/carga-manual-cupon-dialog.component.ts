@@ -57,6 +57,14 @@ export interface CargaManualCuponData {
 
   /** De dónde salieron los datos. Sin esto, `venta_tarjeta.origen` queda nulo. */
   origen?: 'QR' | 'OCR' | 'MANUAL';
+
+  /**
+   * Los campos que el cupón trae y que no tienen columna propia, como JSON.
+   *
+   * No se muestran en el formulario —no hay dónde— pero **sí se guardan**: son los campos propios
+   * del proveedor que `venta_tarjeta.datos_extra` existe para conservar.
+   */
+  datosExtra?: string;
 }
 
 interface CampoManual {
@@ -283,6 +291,7 @@ export class CargaManualCuponDialogComponent implements OnInit {
         // de una captura que quedó por el camino.
         capturaToken: this.data.capturaToken,
         origen: this.data.origen || 'MANUAL',
+        datosExtra: this.data.datosExtra,
         manual: this.data.origen !== 'OCR',
       });
       return;
@@ -307,6 +316,8 @@ export class CargaManualCuponDialogComponent implements OnInit {
         origen: this.data.origen || 'MANUAL',
         // La foto queda atada a la venta: es lo que impide que la purga se lleve la evidencia.
         capturaToken: this.data.capturaToken,
+        // Los campos propios del proveedor. No se muestran, pero se guardan.
+        datosExtra: this.data.datosExtra,
       })
       .pipe(untilDestroyed(this))
       .subscribe({
