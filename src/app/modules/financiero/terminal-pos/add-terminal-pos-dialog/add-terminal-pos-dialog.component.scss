@@ -20,3 +20,9 @@ h2 {
 ::ng-deep .campo-con-hint-largo {
   margin-bottom: 50px !important;
 }
+
+// Variante de una sola linea, para el hint de la serie. Mismo motivo y mismo !important que
+// arriba: el fxLayoutGap del <form> pone el margin-bottom inline y le gana a una clase normal.
+::ng-deep .campo-con-hint-corto {
+  margin-bottom: 34px !important;
+}

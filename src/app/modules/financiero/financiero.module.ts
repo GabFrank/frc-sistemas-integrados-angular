@@ -50,6 +50,7 @@ import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gest
 import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
 import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog/transferir-caja-dialog.component";
 import { ListTerminalPosComponent } from "./terminal-pos/list-terminal-pos/list-terminal-pos.component";
+import { ConfigurarTerminalPosDialogComponent } from "./terminal-pos/configurar-terminal-pos-dialog/configurar-terminal-pos-dialog.component";
 import { AddTerminalPosDialogComponent } from "./terminal-pos/add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
@@ -156,6 +157,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     EditFormatoTerminalPosComponent,
     CargaManualCuponDialogComponent,
     EscanearCuponDialogComponent,
+    ConfigurarTerminalPosDialogComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
     FacturaLegalDashboard,

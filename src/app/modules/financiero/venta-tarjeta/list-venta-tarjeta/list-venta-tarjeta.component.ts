@@ -85,7 +85,9 @@ export class ListVentaTarjetaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => this.sucursales = res ?? []);
 
-    this.terminalPosService.onFilter(null, null, true, 0, 200, true)
+    // Sin filtrar por serie ni sucursal: esto arma el combo de terminales de la pantalla, que
+    // ofrece todas las activas.
+    this.terminalPosService.onFilter(null, null, null, null, true, 0, 200, true)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.terminales = (res?.getContent ?? []).map((t: any) => ({ descripcion: t.descripcion, codigo: t.codigo }));

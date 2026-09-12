@@ -85,7 +85,9 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     this.buscando = true;
     this.noEncontrado = false;
 
-    this.terminalPosService.onFilter(null, codigo, true, 0, 1, false)
+    // Los nulls del medio son `serie` y `sucursalId`: acá se busca por el codigo que el cajero
+    // escanea, no por la serie del aparato ni por donde esté.
+    this.terminalPosService.onFilter(null, codigo, null, null, true, 0, 1, false)
       .pipe(untilDestroyed(this))
       .subscribe((page: any) => {
         this.buscando = false;

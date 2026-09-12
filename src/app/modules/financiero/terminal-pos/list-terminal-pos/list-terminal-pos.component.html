@@ -38,6 +38,30 @@
             >
           </mat-form-field>
         </div>
+        <div fxFlex="80%">
+          <mat-form-field style="width: 100%" appearance="outline">
+            <mat-label>Serie</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="serieControl"
+              (keyup.enter)="onFilter()"
+            >
+          </mat-form-field>
+        </div>
+        <!-- Responde el caso de uso que motivo la columna: un gerente quiere saber cuantas
+             maquinas deberia tener en su local. -->
+        <div fxFlex="80%">
+          <mat-form-field style="width: 100%" appearance="outline">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl" (selectionChange)="onFilter()">
+              <mat-option [value]="null">Todas</mat-option>
+              <mat-option *ngFor="let s of sucursales" [value]="s.id">
+                {{ s.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
         <div fxFlex="30%">
         <mat-label>Estado</mat-label>
         <mat-checkbox 
@@ -79,6 +103,33 @@
         <th mat-header-cell *matHeaderCellDef style="width: 15%">Código</th>
         <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
           {{terminalPos.codigo}}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="serie" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="width: 15%">Serie</th>
+        <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
+          <span *ngIf="terminalPos.serie">{{ terminalPos.serie }}</span>
+          <span *ngIf="!terminalPos.serie" style="color: gray">-</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="sucursal" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="width: 15%">Sucursal</th>
+        <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
+          <span *ngIf="terminalPos.sucursal">{{ terminalPos.sucursal.nombre }}</span>
+          <!-- "Sin asignar" y no un guion: es una tarea pendiente, no un dato que falta por
+               naturaleza. El dia del corte lo estan todas. -->
+          <span *ngIf="!terminalPos.sucursal" style="color: #ffb300">Sin asignar</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="formato" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="width: 15%">Formato</th>
+        <td mat-cell *matCellDef="let terminalPos" style="width: 15%">
+          <span *ngIf="terminalPos.formatoTerminalPos">
+            {{ terminalPos.formatoTerminalPos.nombre }}
+          </span>
+          <!-- Sin formato la caja NO puede vender con tarjeta en esta terminal. Se dice, no se
+               deja como un guion mas entre otros. -->
+          <span *ngIf="!terminalPos.formatoTerminalPos" style="color: #ff6b6b">No vende</span>
         </td>
       </ng-container>
       <ng-container matColumnDef="moneda" style="width: 15%">
@@ -136,6 +187,18 @@
             <button mat-menu-item (click)="onAddOrEdit(terminalPos, i)">
               <mat-icon>edit</mat-icon>
               Editar
+            </button>
+            <button mat-menu-item (click)="onConfigurar(terminalPos)">
+              <mat-icon>tune</mat-icon>
+              Configurar
+            </button>
+            <!-- Desasignar el formato le BLOQUEA la venta con tarjeta a esa caja, asi que es una
+                 accion aparte y con confirmacion: no puede ser el efecto de omitir un campo. -->
+            <button mat-menu-item
+                    [disabled]="!terminalPos.formatoTerminalPos"
+                    (click)="onDesasignarFormato(terminalPos)">
+              <mat-icon>link_off</mat-icon>
+              Quitar formato
             </button>
             <button mat-menu-item (click)="onPrintCode(terminalPos)">
               <mat-icon>print</mat-icon>
