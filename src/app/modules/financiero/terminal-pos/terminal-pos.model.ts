@@ -25,6 +25,13 @@ export class TerminalPos {
    */
   sucursal: Sucursal;
   /**
+   * El id pelado, que es lo que devuelve el FILIAL.
+   *
+   * Central devuelve el objeto `sucursal` porque ahí vive el ABM y la pantalla muestra el nombre;
+   * el filial devuelve sólo el id, porque ya sabe en qué sucursal está. Se aceptan los dos.
+   */
+  sucursalId: number;
+  /**
    * El identificador propio de la maquina, el que viene de fabrica y el que el cupon imprime.
    *
    * Con esto cargado, un cupon dice solo de que maquina salio — y si esa maquina esta registrada
@@ -68,7 +75,7 @@ export class TerminalPos {
     input.codigo = this?.codigo;
     // Misma regla que el formato: si no va, el backend conserva lo que tenia. Una edicion trivial
     // desde un desktop viejo no puede borrar la sucursal que alguien cargo a mano.
-    input.sucursalId = this?.sucursal?.id;
+    input.sucursalId = this?.sucursal?.id ?? this?.sucursalId;
     input.serie = this?.serie;
     input.cuentaBancariaId = this?.cuentaBancariaId;
     input.monedaId = this?.moneda?.id;

@@ -814,6 +814,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         // Con la terminal, el filial sabe que formato aplicar y devuelve los campos ya separados
         // en vez de texto crudo. Sin ella la captura sigue andando, solo que como lupa.
         terminalPosId: result.terminalPos.id,
+        // La configuracion por aparato: si en ESTA caja se puede tipear el cupon a mano. Sin esto
+        // la perilla del ABM no tendria ningun lector, que es el defecto que este mismo modulo ya
+        // arrastro con `datos_extra`.
+        cargaManualPermitida: result.terminalPos.cargaManualPermitida,
       };
       this.matDialog.open(EscanearCuponDialogComponent, { data, disableClose: false })
         .afterClosed()

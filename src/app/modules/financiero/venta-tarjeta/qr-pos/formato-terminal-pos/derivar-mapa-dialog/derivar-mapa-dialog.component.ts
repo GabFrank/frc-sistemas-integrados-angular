@@ -145,6 +145,15 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
     const archivo: File = evento?.target?.files?.[0];
     if (!archivo) return;
 
+    // Si habia un QR esperando, su sondeo se corta ACA. Si no, el token viejo puede resolver
+    // despues y pisar el texto que el operador esta revisando con el de la otra foto -- y
+    // derivaria sobre una y mostraria la otra.
+    this.detenerSondeo();
+    this.esperandoFoto = false;
+    if (this.qr?.token) {
+      this.service.onCerrarMuestra(this.qr.token).subscribe({ error: () => {} });
+    }
+
     this.cargando = true;
     this.error = null;
 

@@ -94,8 +94,12 @@
 
   <!-- La salida universal: disponible para CUALQUIER tipo, y tambien cuando hay bloqueo por falta
        de formato --que es donde mas hace falta. Es lo que hace aceptable que el tipo cierre el
-       otro camino. -->
-  <div fxLayout="row" fxLayoutAlign="center" class="acciones">
+       otro camino.
+
+       Se puede apagar POR APARATO, y eso solo es seguro porque el backend rechaza apagarla cuando
+       es el ultimo camino que le queda a esa caja: sin formato, o con un formato cuyo driver no
+       existe. Esa validacion es la que hace aceptable esconder el boton aca. -->
+  <div fxLayout="row" fxLayoutAlign="center" class="acciones" *ngIf="ofreceCargaManual">
     <button mat-button class="btn-foto" (click)="onCargarAMano()">
       <mat-icon>keyboard</mat-icon>
       Cargar el cupón a mano

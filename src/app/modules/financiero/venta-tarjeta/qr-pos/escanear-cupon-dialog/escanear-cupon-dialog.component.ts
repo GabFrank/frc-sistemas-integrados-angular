@@ -52,6 +52,15 @@ export interface EscanearCuponDialogData {
    * filial sabe qué formato aplicar y devuelve los campos separados en vez de texto crudo.
    */
   terminalPosId?: number;
+  /**
+   * Si en ESTA terminal se puede tipear el cupón a mano. `null`/`undefined` = hereda la
+   * configuración general, que hoy es permitirlo.
+   *
+   * Apagarlo sólo es seguro porque el backend **rechaza** hacerlo cuando es el último camino que
+   * le queda a esa caja: sin formato, o con un formato cuyo driver no existe. Esa validación es la
+   * que hace aceptable que acá se esconda el botón.
+   */
+  cargaManualPermitida?: boolean;
 }
 
 /**
@@ -130,6 +139,11 @@ export class EscanearCuponDialogComponent implements OnInit {
           monedaSimbolo: this.data.monedaSimbolo,
           terminalDescripcion: this.data.terminalDescripcion,
           mapeo: this.data.formatoTerminalPos?.mapeo,
+          origen: 'MANUAL',
+          // Si ya se saco una foto y el OCR no la pudo interpretar, la imagen igual queda atada a
+          // la venta: el cupon sigue siendo la evidencia aunque el motor no lo haya leido. Sin
+          // esto, la purga la trata como huerfana y borra la prueba de un cobro real.
+          capturaToken: this.capturaToken,
         },
       })
       .afterClosed()
@@ -140,6 +154,10 @@ export class EscanearCuponDialogComponent implements OnInit {
   }
 
   private decidirCaminos(): void {
+    // La configuración por aparato. `false` explícito es lo único que lo apaga: `null` significa
+    // "hereda la general", que hoy es permitirlo.
+    this.ofreceCargaManual = this.data?.cargaManualPermitida !== false;
+
     if (!this.data?.formatoTerminalPos) {
       this.ofreceLector = false;
       this.ofreceCamara = false;
@@ -170,6 +188,12 @@ export class EscanearCuponDialogComponent implements OnInit {
    * en la LAN. Ver §2.7 y §2.8 de FASE-2-TICKET-FISICO.md.
    */
   capturaUrl: string = null;
+
+  /**
+   * Si se ofrece la carga a mano en esta terminal. Campo plano y no getter: el template lo bindea
+   * y el repo prohíbe getters en bindings.
+   */
+  ofreceCargaManual = true;
 
   /** El QR ya se mostró y todavía no llegó una lectura buena. */
   esperandoFoto = false;

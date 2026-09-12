@@ -196,14 +196,19 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     }
 
     this.buscando = true;
-    // Se busca por SERIE, que es el identificador que el cupon imprime — distinto de `codigo`,
-    // que es la etiqueta interna que el cajero escanea.
-    this.terminalPosService.onFilter(null, null, String(serie), null, true, 0, 2, false)
+    // Busqueda EXACTA por serie --el identificador que el cupon imprime, distinto de `codigo`, que
+    // es la etiqueta interna que el cajero escanea--.
+    //
+    // Exacta y no el filtro de la pantalla, que usa LIKE: este valor viene del propio cupon, texto
+    // libre capturado por el regex, y se acepta SIN preguntarle nada al cajero cuando hay uno solo.
+    // Un `%` o un `_` ahi adentro serian comodines de SQL: ensancharian la busqueda en silencio y
+    // podrian resolver contra la maquina equivocada.
+    this.terminalPosService.onGetPorSerie(String(serie), false)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (page: any) => {
+        next: (res: any) => {
           this.buscando = false;
-          const resultados = page?.getContent ?? page?.data?.getContent ?? [];
+          const resultados = res ?? [];
           if (resultados.length === 1) {
             this.selectedTerminalPos = resultados[0];
             this.matDialogRef.close({
@@ -212,9 +217,9 @@ export class ScanTerminalPosDialogComponent implements OnInit {
             } as ScanTerminalPosResult);
             return;
           }
-          // Cero o mas de una: no se elige por el cajero. Con `LIKE` de por medio, dos coincidencias
-          // significan que la serie de una es prefijo de la otra, y adivinar ahi es cobrar contra la
-          // maquina equivocada.
+          // Cero o mas de una: no se elige por el cajero. Dos con la misma serie exacta significa
+          // que estan cargadas bajo proveedores distintos --el unico caso que los indices permiten--
+          // y adivinar ahi es cobrar contra la maquina equivocada.
           this.avisoCupon = resultados.length === 0
             ? `Leí el cupón, y dice que salió de la máquina "${serie}", que no está registrada. `
               + 'Escaneá el código de la terminal.'
