@@ -7,7 +7,7 @@
 
   <div class="monto-caja">
     <span class="monto-label">A cobrar</span>
-    <span class="monto">{{ data.monto | number: '1.0-2' }} {{ data.monedaSimbolo || 'Gs.' }}</span>
+    <span class="monto">{{ data.monto | number: digitosMonto }} {{ data.monedaSimbolo || 'Gs.' }}</span>
     <!-- Dato útil ANTES de escanear: si la terminal está en otra moneda, el cupón va a venir en
          esa y no va a servir para este cobro. -->
     <span class="aviso-moneda" *ngIf="avisoMonedaTerminal">{{ avisoMonedaTerminal }}</span>
@@ -15,7 +15,14 @@
 
   <!-- El lector es keyboard-wedge: escribe solo en el campo enfocado y manda Enter. El cajero
        no tiene que tocar nada, así que el estado por defecto tiene que decir eso de entrada. -->
-  <div class="zona-lectura" [class.con-error]="errorLectura">
+  <!-- La terminal no tiene formato: no hay forma de leer su cupón. Se dice qué falta y quién lo
+       arregla, en vez de ofrecer caminos que no van a funcionar. La venta se cierra igual con
+       "Registrar más tarde". -->
+  <div class="zona-lectura con-error" *ngIf="bloqueo">
+    <div class="error-lectura">{{ bloqueo }}</div>
+  </div>
+
+  <div class="zona-lectura" [class.con-error]="errorLectura" *ngIf="!capturaUrl && ofreceLector">
     <mat-icon class="icono-lector">qr_code_scanner</mat-icon>
 
     <mat-form-field appearance="outline" class="campo-cupon">
@@ -34,6 +41,69 @@
       Apuntá el lector al QR impreso en el ticket. Se registra solo.
     </div>
     <div class="error-lectura" *ngIf="errorLectura">{{ errorLectura }}</div>
+  </div>
+
+  <!-- Camino para las maquinitas que NO imprimen QR: el cajero fotografía el cupón con
+       cualquier teléfono. La página la sirve este mismo filial por HTTP en la LAN, así que no
+       hace falta app instalada ni login: el token del QR es toda la credencial. -->
+  <div class="captura" *ngIf="capturaUrl && ofreceCamara">
+    <div class="captura-qr">
+      <ngx-qrcode [value]="capturaUrl" [scale]="4"></ngx-qrcode>
+    </div>
+
+    <div class="ayuda" *ngIf="esperandoFoto && !errorCaptura">
+      Escaneá este código con el teléfono y sacale una foto al cupón.
+    </div>
+
+    <div class="esperando" *ngIf="esperandoFoto">
+      <mat-spinner diameter="18"></mat-spinner>
+      <span>Esperando la foto…</span>
+    </div>
+
+    <!-- Un error acá NO cierra nada: el código sigue sirviendo y la foto se repite desde el
+         mismo teléfono. -->
+    <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
+
+    <div class="texto-ocr" *ngIf="textoOcr">
+      <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+      <pre>{{ textoOcr }}</pre>
+      <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
+    </div>
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="12px" class="acciones">
+    <!-- La foto es la alternativa, no la acción principal: el lector sigue siendo el camino
+         rápido cuando el POS imprime QR. -->
+    <button
+      mat-button
+      class="btn-foto"
+      *ngIf="!capturaUrl && ofreceCamara"
+      [disabled]="pidiendoCaptura"
+      (click)="onSacarFoto()"
+    >
+      <mat-icon>photo_camera</mat-icon>
+      Sacar foto del cupón
+    </button>
+
+    <!-- Sólo si el lector es un camino válido para este formato: en una maquinita, "volver al
+         lector" sería volver a una pantalla que no puede leer nada. -->
+    <button mat-button class="btn-foto" *ngIf="capturaUrl && ofreceLector" (click)="onVolverAlLector()">
+      Volver al lector
+    </button>
+  </div>
+
+  <!-- La salida universal: disponible para CUALQUIER tipo, y tambien cuando hay bloqueo por falta
+       de formato --que es donde mas hace falta. Es lo que hace aceptable que el tipo cierre el
+       otro camino.
+
+       Se puede apagar POR APARATO, y eso solo es seguro porque el backend rechaza apagarla cuando
+       es el ultimo camino que le queda a esa caja: sin formato, o con un formato cuyo driver no
+       existe. Esa validacion es la que hace aceptable esconder el boton aca. -->
+  <div fxLayout="row" fxLayoutAlign="center" class="acciones" *ngIf="ofreceCargaManual">
+    <button mat-button class="btn-foto" (click)="onCargarAMano()">
+      <mat-icon>keyboard</mat-icon>
+      Cargar el cupón a mano
+    </button>
   </div>
 
   <div fxLayout="row" fxLayoutAlign="center" class="acciones">

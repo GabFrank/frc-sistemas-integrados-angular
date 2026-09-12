@@ -1,0 +1,49 @@
+<div class="carga-manual" [formGroup]="formGroup" fxLayout="column" fxLayoutGap="10px">
+
+  <div class="cabecera">
+    <h2 class="titulo-dialog">{{ titulo }}</h2>
+    <div class="subtitulo-dialog" *ngIf="data.terminalDescripcion">{{ data.terminalDescripcion }}</div>
+  </div>
+
+  <div class="monto-cobrado" *ngIf="data.monto != null">
+    Cobrado: <b>{{ data.monedaSimbolo }} {{ data.monto | number }}</b>
+  </div>
+
+  <p class="ayuda">{{ ayuda }}</p>
+
+  <div *ngFor="let c of campos" class="campo"
+       [class.campo-bueno]="c.bueno" [class.campo-dudoso]="c.dudoso">
+
+    <mat-form-field appearance="outline" class="campo-input">
+      <mat-label>{{ c.etiqueta }}{{ c.obligatorio ? ' *' : '' }}</mat-label>
+      <input matInput [formControlName]="c.clave" autocomplete="off" />
+    </mat-form-field>
+
+    <!-- El semáforo sólo aparece cuando hay una lectura que juzgar: en la carga a mano pura
+         no hay nada que confirmar y la fila queda como siempre. -->
+    <div class="semaforo" *ngIf="c.bueno || c.dudoso">
+      <span class="pista" [class.pista-dudosa]="c.dudoso">{{ c.pista }}</span>
+      <mat-checkbox *ngIf="c.dudoso" color="primary"
+                    [checked]="confirmado[c.clave]"
+                    (change)="onConfirmarCampo(c.clave, $event.checked)">
+        Coincide con el ticket
+      </mat-checkbox>
+    </div>
+  </div>
+
+  <div class="falta-confirmar" *ngIf="faltaConfirmar > 0">
+    Falta revisar {{ faltaConfirmar }} {{ faltaConfirmar === 1 ? 'campo' : 'campos' }}.
+    Corregilo contra el ticket o marcá que coincide.
+  </div>
+
+  <div class="error-lectura" *ngIf="error">{{ error }}</div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-success"
+      [disabled]="formGroup.invalid || guardando || faltaConfirmar > 0" (click)="onGuardar()">
+      {{ guardando ? 'Registrando…' : (esConfirmacion ? 'Confirmar' : 'Registrar') }}
+    </button>
+  </div>
+
+</div>

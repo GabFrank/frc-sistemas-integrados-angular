@@ -1,0 +1,143 @@
+<div class="derivar-mapa" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="cabecera">
+    <h2 class="titulo-dialog">Mapa del cupón</h2>
+    <div class="subtitulo-dialog">{{ titulo }}</div>
+  </div>
+
+  <p class="ayuda">
+    El mapa dice qué parte del cupón es cada campo. Se deriva solo a partir de una foto de muestra:
+    el lector devuelve la posición de cada línea y el patrón dice qué es cada valor.
+    <b>Acelera la lectura</b> en todas las cajas que usen este modelo de aparato.
+  </p>
+
+  <div class="aviso-lector" *ngIf="!lectorDisponible">
+    <mat-icon>report_problem</mat-icon>
+    <span>
+      El lector de cupones no está disponible en el servidor, así que no se puede derivar el mapa.
+      El resto de la configuración del formato funciona igual.
+    </span>
+  </div>
+
+  <!-- ── Lo que ya hay ──────────────────────────────────────────────────────────────────── -->
+  <div class="bloque" *ngIf="tieneMapa">
+    <div class="bloque-titulo">Este formato ya tiene mapa</div>
+    <div class="chips">
+      <span class="chip" *ngFor="let r of regionesActuales"
+            [class.chip-manual]="r.origen === 'MANUAL'">
+        {{ r.campo }}<span *ngIf="r.origen === 'MANUAL'"> · a mano</span>
+      </span>
+    </div>
+    <p class="ayuda" *ngIf="cuantasManuales > 0">
+      {{ cuantasManuales }} {{ cuantasManuales === 1 ? 'región fue corregida' : 'regiones fueron corregidas' }}
+      a mano. La derivación <b>no las toca</b>, ni siquiera al confirmar.
+    </p>
+  </div>
+
+  <!-- ── Paso 1: la foto ────────────────────────────────────────────────────────────────── -->
+  <div class="bloque" *ngIf="!textoOcr">
+    <div class="bloque-titulo">1 · Una foto de un cupón de este modelo</div>
+
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center" class="acciones-foto">
+      <button mat-raised-button class="btn-success"
+              [disabled]="!lectorDisponible || cargando || esperandoFoto"
+              (click)="onSacarFoto()">
+        <mat-icon>qr_code_2</mat-icon>
+        Sacar con el teléfono
+      </button>
+
+      <!-- El camino que no depende de la red: va por la misma conexión que este navegador ya
+           tiene con el servidor. -->
+      <button mat-stroked-button [disabled]="!lectorDisponible || cargando"
+              (click)="archivo.click()">
+        <mat-icon>upload_file</mat-icon>
+        Subir una foto
+      </button>
+      <input #archivo type="file" accept="image/jpeg,image/*" hidden (change)="onArchivo($event)" />
+    </div>
+
+    <div class="captura-qr" *ngIf="esperandoFoto && urlQr">
+      <ngx-qrcode [value]="urlQr" [scale]="4"></ngx-qrcode>
+      <p class="ayuda">
+        Escaneá este código con cualquier teléfono y sacale la foto al cupón.
+        Si sale borrosa, sacá otra: el código no se gasta.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Paso 2: lo que se leyó ─────────────────────────────────────────────────────────── -->
+  <div class="bloque" *ngIf="textoOcr">
+    <div class="bloque-titulo">
+      2 · Lo que se leyó
+      <span class="ms" *ngIf="msOcr">· {{ msOcr }} ms</span>
+    </div>
+    <pre class="texto-ocr">{{ textoOcr }}</pre>
+
+    <button mat-raised-button class="btn-success" *ngIf="!propuesta"
+            [disabled]="cargando" (click)="onProponer()">
+      Proponer el mapa
+    </button>
+  </div>
+
+  <!-- ── Paso 3: la propuesta ───────────────────────────────────────────────────────────── -->
+  <div class="bloque" *ngIf="propuesta">
+    <div class="bloque-titulo">
+      3 · El mapa propuesto
+      <span class="ms">· {{ derivadas }} de {{ propuesta.length }}</span>
+    </div>
+
+    <table class="tabla-propuesta">
+      <tr *ngFor="let r of propuesta" [class.fila-sin-region]="r.sinRegion">
+        <td class="campo">{{ r.campo }}</td>
+        <td class="valor">{{ r.valorLeido }}</td>
+        <td class="ancla">
+          <span *ngIf="!r.sinRegion">
+            <span *ngIf="r.etiqueta">«{{ r.etiqueta }}» {{ r.posicion | lowercase }}</span>
+            <span *ngIf="!r.etiqueta">sin etiqueta, sólo por posición</span>
+          </span>
+          <span *ngIf="r.sinRegion" class="motivo">{{ r.sinRegion }}</span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Un campo sin región NO es un fracaso: cae al patrón, que es como se resolvía antes. Se
+         dice explícitamente para que nadie lo lea como un error a corregir. -->
+    <p class="ayuda" *ngIf="sinRegion > 0">
+      {{ sinRegion }} {{ sinRegion === 1 ? 'campo queda' : 'campos quedan' }} sin región y se
+      {{ sinRegion === 1 ? 'resuelve' : 'resuelven' }} por patrón, como hasta ahora. Un mapa parcial
+      es válido, y es preferible a una región mal puesta.
+    </p>
+  </div>
+
+  <!-- ── La confirmación de sobrescritura ───────────────────────────────────────────────── -->
+  <div class="bloque bloque-confirmar" *ngIf="cambiosPendientes">
+    <div class="bloque-titulo">Este formato ya tiene un mapa. Esto es lo que cambiaría:</div>
+    <ul class="cambios">
+      <li *ngFor="let c of cambiosPendientes">{{ c }}</li>
+      <li *ngIf="!cambiosPendientes.length">Nada: el mapa propuesto es igual al que ya está.</li>
+    </ul>
+    <p class="ayuda" *ngIf="conservadasManuales.length">
+      No se tocan, por haber sido corregidas a mano: {{ conservadasManuales.join(', ') }}.
+    </p>
+    <p class="ayuda"><b>El mapa baja a todas las sucursales.</b></p>
+
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center">
+      <button mat-raised-button class="btn-salir" (click)="onCancelarSobrescritura()">Volver</button>
+      <button mat-raised-button class="btn-warn" [disabled]="guardando" (click)="onGuardar(true)">
+        Reemplazar el mapa
+      </button>
+    </div>
+  </div>
+
+  <div class="error-lectura" *ngIf="error">{{ error }}</div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones"
+       *ngIf="!cambiosPendientes">
+    <button mat-raised-button class="btn-salir" (click)="onCerrar()">Cerrar</button>
+    <button mat-raised-button class="btn-success" *ngIf="propuesta && derivadas > 0"
+            [disabled]="guardando" (click)="onGuardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar el mapa' }}
+    </button>
+  </div>
+
+</div>

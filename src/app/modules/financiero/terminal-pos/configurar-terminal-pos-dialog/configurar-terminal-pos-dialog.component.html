@@ -1,0 +1,69 @@
+<div class="configurar-terminal" fxLayout="column" fxLayoutGap="12px">
+
+  <div class="cabecera">
+    <h2 class="titulo-dialog">Configuración del aparato</h2>
+    <div class="subtitulo-dialog">{{ titulo }}</div>
+  </div>
+
+  <!-- ── Carga a mano ───────────────────────────────────────────────────────────────────── -->
+  <div class="bloque">
+    <div class="bloque-titulo">Carga del cupón a mano</div>
+    <p class="ayuda">
+      Es la salida universal: existe para que cerrar el camino equivocado —lector o cámara, según
+      el tipo de formato— no deje al cajero sin alternativa.
+    </p>
+
+    <mat-radio-group [value]="cargaManual" fxLayout="column" fxLayoutGap="6px">
+      <mat-radio-button [value]="null" (change)="onCambiarCarga(null)">
+        Según la configuración general
+      </mat-radio-button>
+      <mat-radio-button [value]="true" (change)="onCambiarCarga(true)">
+        Permitida en esta terminal
+      </mat-radio-button>
+      <mat-radio-button [value]="false"
+                        [disabled]="motivoNoSePuedeApagar != null"
+                        (change)="onCambiarCarga(false)">
+        No permitida en esta terminal
+      </mat-radio-button>
+    </mat-radio-group>
+
+    <div class="motivo" *ngIf="motivoNoSePuedeApagar">
+      <mat-icon>block</mat-icon>
+      <span>{{ motivoNoSePuedeApagar }}</span>
+    </div>
+  </div>
+
+  <!-- ── Campos obligatorios ────────────────────────────────────────────────────────────── -->
+  <div class="bloque">
+    <div class="bloque-titulo">Campos obligatorios</div>
+    <p class="ayuda">
+      Los que no se pueden dejar vacíos al registrar una venta de este aparato. Sólo se puede
+      exigir de más: los que el formato ya marca obligatorios no se pueden destildar acá.
+    </p>
+
+    <div fxLayout="column" fxLayoutGap="4px">
+      <mat-checkbox *ngFor="let c of campos"
+                    color="primary"
+                    [checked]="c.exigido"
+                    [disabled]="c.fijoPorFormato"
+                    (change)="onCambiarCampo(c.clave, $event.checked)">
+        {{ c.etiqueta }}
+        <span class="por-formato" *ngIf="c.fijoPorFormato">— lo exige el formato</span>
+      </mat-checkbox>
+    </div>
+
+    <p class="ayuda" *ngIf="!campos.length">
+      El formato de esta terminal no declara ningún campo, así que no hay nada que exigir.
+    </p>
+  </div>
+
+  <div class="error-lectura" *ngIf="error">{{ error }}</div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-success" [disabled]="guardando" (click)="onGuardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+
+</div>

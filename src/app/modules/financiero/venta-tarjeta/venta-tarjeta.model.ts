@@ -1,13 +1,39 @@
 export interface VentaTarjeta {
   id: number;
   sucursalId: number;
+
+  /**
+   * El CENTRAL devuelve los objetos `caja` / `venta`; el FILIAL devuelve los escalares
+   * `cajaId` / `ventaId`. Conviven porque las dos pantallas usan el mismo modelo: la lista del
+   * sidebar consulta al central y la del PDV al filial.
+   */
+  cajaId?: number;
+  ventaId?: number;
+
   caja?: { id: number };
   sucursal?: { id: number; nombre: string; };
   venta?: { id: number; totalGs: number; };
   terminalPos?: {
     id: number; codigo: string; descripcion: string;
+    /**
+     * Si en esta terminal se puede tipear el cupón a mano. `null` = hereda la configuración
+     * general.
+     *
+     * Se pide acá porque el diálogo de completar un pendiente tiene que respetarla igual que el
+     * del PDV: si no, apagar la perilla cierra la carga a mano durante la venta y la deja abierta
+     * al completar después — la misma configuración valiendo o no según por qué puerta entró.
+     */
+    cargaManualPermitida?: boolean;
     proveedorServicio?: { id: number };
     moneda?: { id: number; simbolo: string; decimales?: number };
+    /**
+     * Formato del modelo de aparato. De acá sale el tipo, que decide qué camino se le ofrece al
+     * cajero y cuál se le cierra. `null` = sin configurar, y entonces el diálogo bloquea.
+     *
+     * Es un tipo propio y no `TerminalPos` del módulo de terminales: esta interfaz describe lo que
+     * la query de `venta_tarjeta` trae anidado, que es un subconjunto.
+     */
+    formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string; mapeo?: string };
   };
   /**
    * Moneda del cobro que este registro respalda. Es la que hay que usar para mostrar `monto` y

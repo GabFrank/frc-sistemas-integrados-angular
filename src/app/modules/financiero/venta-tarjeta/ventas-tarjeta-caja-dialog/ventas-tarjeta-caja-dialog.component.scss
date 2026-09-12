@@ -1,0 +1,66 @@
+// styles.scss deja el mat-dialog-container con padding 0: si este bloque no pone el suyo, la
+// tabla y los filtros quedan pegados al borde del dialogo. Mismo valor que los otros dialogos
+// del modulo (escanear-cupon, registrar-venta-tarjeta) para que el conjunto se vea parejo.
+:host {
+  display: block;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px 24px 12px;
+}
+
+table {
+  width: 100%;
+
+  th,
+  td {
+    text-align: center;
+  }
+}
+
+.simbolo {
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.vacio {
+  opacity: 0.4;
+}
+
+/** El cupon no coincide con lo cobrado: se registro con diferencia y conviene que salte a la vista. */
+.diferencia {
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.chip {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.chip-pendiente {
+  background-color: #ff9800;
+  color: #000;
+}
+
+.chip-completado {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.chip-terminal {
+  background-color: #616161;
+  color: #fff;
+}
+
+.accion-registrar {
+  cursor: pointer;
+  color: #4caf50;
+}
+
+.estado-vacio {
+  text-align: center;
+  padding: 32px 0;
+  opacity: 0.6;
+}

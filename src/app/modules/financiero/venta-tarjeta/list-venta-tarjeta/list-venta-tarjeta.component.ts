@@ -85,7 +85,9 @@ export class ListVentaTarjetaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => this.sucursales = res ?? []);
 
-    this.terminalPosService.onFilter(null, null, true, 0, 200, true)
+    // Sin filtrar por serie ni sucursal: esto arma el combo de terminales de la pantalla, que
+    // ofrece todas las activas.
+    this.terminalPosService.onFilter(null, null, null, null, true, 0, 200, true)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.terminales = (res?.getContent ?? []).map((t: any) => ({ descripcion: t.descripcion, codigo: t.codigo }));
@@ -249,9 +251,23 @@ export class ListVentaTarjetaComponent implements OnInit {
         monedaSimbolo: item.simboloMoneda,
         terminalDescripcion: [item.terminalPos?.descripcion, item.terminalPos?.codigo].filter(Boolean).join(' - '),
         proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
+        // De acá sale qué camino se le ofrece al cajero y cuál se le cierra.
+        formatoTerminalPos: item.terminalPos?.formatoTerminalPos,
+        // La terminal va a la captura: con ella el filial aplica el formato y devuelve
+        // los campos ya separados, en vez de texto crudo que el cajero transcribe igual.
+        terminalPosId: item.terminalPos?.id,
+        // La configuracion por aparato tiene que valer por las DOS puertas: si no, apagar la carga
+        // a mano la cierra durante la venta y la deja abierta al completar el pendiente.
+        cargaManualPermitida: item.terminalPos?.cargaManualPermitida,
         decimalesPorMoneda: this.decimalesPorMoneda,
         titulo: 'Completar venta con tarjeta',
-        segundos: 120
+        segundos: 120,
+        // Para la captura por foto: el token cuelga de la caja del pendiente, no de la caja
+        // abierta ahora --esta pantalla se usa tambien para pendientes de otro turno.
+        // Esta lista viene del CENTRAL, que devuelve `caja { id }`; el escalar `cajaId` es lo
+        // que devuelve el filial. Se aceptan los dos (ver el comentario de VentaTarjeta).
+        cajaId: item.caja?.id ?? item.cajaId,
+        usuarioId: this.mainService.usuarioActual?.id,
       },
       disableClose: false
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => this.onGetData());

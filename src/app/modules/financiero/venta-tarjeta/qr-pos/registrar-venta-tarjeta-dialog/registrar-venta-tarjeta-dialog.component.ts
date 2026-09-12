@@ -11,6 +11,10 @@ import {
   NotificacionSnackbarService,
 } from '../../../../../notificacion-snackbar.service';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
+import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
+import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.model';
+import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
+import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
 import { mensajeDeError } from '../mensaje-error';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
@@ -39,11 +43,39 @@ export interface RegistrarVentaTarjetaData {
   terminalDescripcion?: string;
   /** Proveedor de la terminal escaneada: define qué formato se prueba primero. */
   proveedorServicioId?: number;
+  /**
+   * Formato del modelo de aparato. De acá sale el tipo, que decide **qué camino se le ofrece al
+   * cajero y cuál se le cierra**.
+   *
+   * `null` = la terminal no tiene formato configurado. No es un caso raro: el día del corte lo
+   * están todas, porque no hay backfill. El diálogo bloquea y dice qué falta.
+   */
+  formatoTerminalPos?: { id?: number; nombre?: string; tipo?: string; mapeo?: string };
   /** Decimales por moneda, para escalar importes en la menor unidad. */
   decimalesPorMoneda?: DecimalesPorMoneda;
   titulo?: string;
   /** Segundos hasta el cierre automático. */
   segundos?: number;
+  /** Caja del pendiente. Sin ella no se puede pedir una captura: el token cuelga de la caja. */
+  cajaId?: number;
+  /** Queda registrado en la captura, para saber quién pidió la foto. */
+  usuarioId?: number;
+  /**
+   * Terminal del pendiente. Va en la captura: es lo que le permite al filial aplicar el formato y
+   * devolver los campos separados en vez de texto crudo.
+   */
+  terminalPosId?: number;
+  /** Cobro al que pertenece el cupón, si ya se sabe. Se propaga a la confirmación. */
+  cobroDetalleId?: number;
+  /**
+   * Si en ESTA terminal se puede tipear el cupón a mano. `null`/`undefined` = hereda la
+   * configuración general.
+   *
+   * Tiene que respetarse **también acá**, no sólo en el diálogo del PDV: si no, apagar la perilla
+   * cierra la carga a mano durante la venta pero la deja abierta al completar el pendiente después
+   * — la misma configuración valiendo o no según por qué puerta entró el cajero.
+   */
+  cargaManualPermitida?: boolean;
 }
 
 export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
@@ -53,8 +85,14 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
  *
  *   1. Escanear con el lector del PDV el QR que imprime el POS en el cupón. Es el camino nuevo y
  *      el rápido: no requiere celular ni OCR.
- *   2. Escanear con el celular el QR de la pantalla, que abre la captura de imagen. Es el camino
- *      que ya existía, y sigue siendo el único para los proveedores que todavía no imprimen QR.
+ *   2. Escanear con el celular el QR de la pantalla, que abre la captura de imagen en la app
+ *      móvil. Es el camino que ya existía.
+ *   3. Sacar la foto del cupón con cualquier teléfono, sin app: el QR abre una página que sirve
+ *      el propio filial por HTTP en la LAN y el OCR corre adentro suyo. Es el reemplazo del
+ *      camino 2 para los proveedores que no imprimen QR, y no necesita nada instalado.
+ *
+ * Los caminos 2 y 3 comparten el lugar del QR y se alternan: dos QR en pantalla al mismo tiempo
+ * no le dicen a nadie cuál escanear.
  *
  * Un solo diálogo con los dos, en vez de un flag por terminal: los proveedores van a ir
  * adoptando el QR de a uno, y así no hay que tocar la configuración de cada maquinita ni
@@ -83,6 +121,40 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
 
   private timer;
 
+  /**
+   * Captura por foto: mismo mecanismo que el diálogo del PDV. Ver §2.7 y §2.8 de
+   * FASE-2-TICKET-FISICO.md.
+   */
+  /**
+   * Qué caminos ofrece este diálogo, decidido por el tipo del formato de la terminal.
+   *
+   * Se calcula UNA vez en el constructor y queda en campos: el repo prohíbe getters en bindings.
+   */
+  ofreceLector = false;
+  ofreceCamara = false;
+  /**
+   * Si se ofrece la carga a mano. Campo plano y no getter: el template lo bindea y el repo prohíbe
+   * getters en bindings.
+   */
+  ofreceCargaManual = true;
+  /** Motivo por el que no se puede registrar acá. `null` = se puede. */
+  bloqueo: string = null;
+
+  capturaUrl: string = null;
+  esperandoFoto = false;
+  pidiendoCaptura = false;
+  /**
+   * Texto crudo del OCR.
+   *
+   * Camino de respaldo: cuando el filial pudo separar los campos se abre la confirmación y esto
+   * queda de fondo. Se ve cuando la terminal no tiene formato o el patrón no reconoce el cupón.
+   */
+  textoOcr: string = null;
+  /** Token de la captura en curso. Viaja hasta `completar` para atar la foto a la venta. */
+  private capturaToken: string = null;
+  errorCaptura: string = null;
+  msOcr: number = null;
+
   readonly maxLongitud = MAX_LONGITUD_QR;
 
   constructor(
@@ -91,9 +163,11 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     private ventaTarjetaService: VentaTarjetaService,
     private formatoQrPosService: FormatoQrPosService,
     private notificacionSnackbar: NotificacionSnackbarService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private capturaCuponService: CapturaCuponService
   ) {
     this.valorQr = codificarQr(data.qrPayload);
+    this.decidirCaminos();
     if (data.segundos != null) {
       this.countdown = data.segundos;
       this.timer = setInterval(() => {
@@ -376,6 +450,232 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         duracion: 5,
       });
     }
+  }
+
+  /**
+   * Qué camino se le ofrece al cajero, y cuál se le CIERRA.
+   *
+   * Es la razón de ser del tipo de formato. Antes el diálogo ofrecía los dos caminos siempre, así
+   * que en una maquinita que no imprime QR el cajero podía quedarse esperando frente al lector, y
+   * en un POS web podía sacarle una foto a un cupón que ya traía los datos estructurados.
+   *
+   * <b>Cerrar un camino sólo es aceptable porque la carga a mano queda disponible para cualquier
+   * tipo, siempre.</b> Si esa condición se rompe, hay que reabrir los caminos.
+   */
+  /**
+   * Carga a mano: la salida universal.
+   *
+   * Disponible para CUALQUIER tipo y también cuando el diálogo está bloqueado por falta de
+   * formato — es justamente el caso donde más hace falta. Es lo que hace aceptable que el tipo
+   * cierre el otro camino.
+   */
+  onCargarAMano(): void {
+    if (this.timer) {
+      // Mismo criterio que la foto: mientras el cajero está tipeando, el diálogo no se cierra solo.
+      clearInterval(this.timer);
+      this.countdown = null;
+    }
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          ventaTarjetaId: this.data.ventaTarjetaId,
+          sucursalId: this.data.sucursalId,
+          cobroDetalleId: this.data.cobroDetalleId,
+          monto: this.data.monto,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+          origen: 'MANUAL',
+          // Si ya se sacó una foto y el OCR no la pudo interpretar, la imagen igual queda atada a
+          // la venta: el cupón sigue siendo la evidencia aunque el motor no lo haya leído.
+          capturaToken: this.capturaToken,
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cerrar('COMPLETADO');
+      });
+  }
+
+  private decidirCaminos(): void {
+    // La configuración por aparato. `false` explícito es lo único que la apaga: `null` significa
+    // "hereda la general", que hoy es permitirla. Apagarla sólo es seguro porque el backend
+    // rechaza hacerlo cuando es el último camino que le queda a esa caja.
+    this.ofreceCargaManual = this.data?.cargaManualPermitida !== false;
+
+    const tipo = this.data?.formatoTerminalPos?.tipo;
+
+    if (!this.data?.formatoTerminalPos) {
+      // El caso del día del corte: ninguna terminal tiene formato, porque no hay backfill. El
+      // mensaje dice qué falta y quién lo arregla — un bloqueo mudo en una caja con gente
+      // esperando es peor que el problema que evita.
+      this.ofreceLector = false;
+      this.ofreceCamara = false;
+      this.bloqueo =
+        'Esta terminal no tiene formato configurado, así que el sistema no sabe cómo leer su ' +
+        'cupón. Un administrador tiene que asignárselo en Financiero → Terminales POS.';
+      return;
+    }
+
+    this.bloqueo = null;
+    if (tipo === TIPO_WEB) {
+      // El ticket trae QR: se lee con el lector. La cámara no aporta nada y confunde.
+      this.ofreceLector = true;
+      this.ofreceCamara = false;
+    } else if (tipo === TIPO_MAQUINA) {
+      // El ticket no trae QR: no hay nada que escanear.
+      this.ofreceLector = false;
+      this.ofreceCamara = true;
+    } else {
+      // Un tipo que este desktop no conoce --API, o uno agregado después y llegado por
+      // replicación. Se cae a la cámara, que sirve para cualquier cupón de papel, en vez de
+      // dejar la pantalla en blanco.
+      this.ofreceLector = false;
+      this.ofreceCamara = true;
+    }
+  }
+
+  /**
+   * Abre una captura y muestra el QR en el lugar del de la app móvil.
+   *
+   * <b>Frena el countdown.</b> El diálogo se cierra solo a los 120 segundos, que alcanzan para
+   * escanear un cupón con el lector pero no para desbloquear un teléfono, escanear, encuadrar y
+   * esperar el OCR. Sin esto la pantalla se cerraría con la foto en camino y el cajero
+   * pensaría que se perdió.
+   */
+  onSacarFoto(): void {
+    if (this.data.cajaId == null || this.data.sucursalId == null) {
+      this.errorCaptura = 'No se puede sacar la foto: este pendiente no tiene caja.';
+      return;
+    }
+
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+      this.countdown = null;
+    }
+
+    this.pidiendoCaptura = true;
+    this.errorCaptura = null;
+    this.textoOcr = null;
+
+    this.capturaCuponService
+      .onCrear(
+        Number(this.data.cajaId),
+        Number(this.data.sucursalId),
+        this.data.usuarioId,
+        this.data.terminalPosId
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (qr) => {
+          this.pidiendoCaptura = false;
+          if (!qr?.url) {
+            this.errorCaptura = 'El filial no pudo abrir la captura. Probá de nuevo.';
+            return;
+          }
+          this.capturaUrl = qr.url;
+          this.esperandoFoto = true;
+          this.capturaToken = qr.token;
+          this.escucharCaptura(qr.token);
+        },
+        error: () => {
+          this.pidiendoCaptura = false;
+          this.errorCaptura = 'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.';
+        },
+      });
+  }
+
+  private escucharCaptura(token: string): void {
+    this.capturaCuponService
+      // La caja va como segundo argumento: el aviso ya no trae el token --difundirlo dejaba
+      // que otra sesion del filial leyera este cupon-- asi que el filtro es por caja.
+      .onEsperar(token, Number(this.data.cajaId))
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (c) => {
+          if (c.estado === 'ERROR') {
+            // Se sigue esperando: la foto se reintenta desde el mismo teléfono, el token vive.
+            this.errorCaptura = c.error || 'No se pudo leer la foto. Sacá otra.';
+            return;
+          }
+          this.errorCaptura = null;
+          this.textoOcr = c.textoOcr;
+          this.msOcr = c.msOcr;
+          this.esperandoFoto = false;
+          this.confirmarLectura(c);
+        },
+        error: () => {
+          this.errorCaptura = 'Se perdió la conexión con el servidor de la sucursal.';
+        },
+      });
+  }
+
+  /**
+   * El OCR separó los campos: se abre la confirmación en vez de dejar al cajero transcribiendo.
+   *
+   * Acá el pendiente YA existe, así que la confirmación completa contra el filial y este diálogo
+   * cierra como COMPLETADO. Es la diferencia con la misma pantalla en el PDV, donde la venta
+   * todavía no se guardó.
+   *
+   * Si no vinieron campos --terminal sin formato, patrón que no reconoce este cupón-- no se abre
+   * nada: queda el texto crudo y el botón de carga a mano, que es el comportamiento anterior.
+   */
+  private confirmarLectura(c: CapturaCupon): void {
+    const campos = parsearCampos(c.campos);
+    if (!campos) return;
+
+    const { datosExtra, confianzas, ...valores } = campos;
+    if (!Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '')) return;
+
+    if (this.timer) {
+      // El cajero está por revisar campos: el reloj que cierra la pantalla sola sobra.
+      clearInterval(this.timer);
+      this.timer = null;
+      this.countdown = null;
+    }
+
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          ventaTarjetaId: this.data.ventaTarjetaId,
+          sucursalId: this.data.sucursalId,
+          cobroDetalleId: this.data.cobroDetalleId,
+          monto: this.data.monto,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+          valores,
+          confianzas,
+          capturaToken: this.capturaToken,
+          origen: 'OCR',
+          // Se sacaron del formulario porque no son valores que el cajero tipee, pero NO se
+          // descartan: viajan hasta `venta_tarjeta.datos_extra`, que existe justamente para los
+          // campos propios del proveedor.
+          datosExtra: datosExtra ? JSON.stringify(datosExtra) : undefined,
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cerrar('COMPLETADO');
+      });
+  }
+
+  /**
+   * Vuelve al QR de la app. El countdown NO se reanuda: el cajero ya demostró que está
+   * trabajando en esto, y volver a arrancar un reloj que cierra la pantalla sería hostil.
+   */
+  onVolverAlQrApp(): void {
+    this.capturaUrl = null;
+    this.esperandoFoto = false;
+    this.textoOcr = null;
+    this.errorCaptura = null;
   }
 
   /** "Registrar más tarde": la venta ya está cerrada; el registro queda PENDIENTE. */

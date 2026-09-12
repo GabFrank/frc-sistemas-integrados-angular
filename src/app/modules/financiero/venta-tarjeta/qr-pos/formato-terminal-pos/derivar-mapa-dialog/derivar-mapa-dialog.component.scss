@@ -1,0 +1,107 @@
+.derivar-mapa {
+  padding: 16px;
+  max-width: 620px;
+
+  .cabecera { text-align: center; margin-bottom: 4px; }
+
+  .ayuda {
+    font-size: 12px;
+    opacity: 0.75;
+    margin: 4px 0 0;
+  }
+
+  .bloque {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .bloque-titulo {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .ms { opacity: 0.55; font-weight: 400; font-size: 12px; }
+
+  // El aviso de que el lector no cargó. Va arriba de todo: sin él no hay nada que hacer acá, y
+  // enterarse recién al apretar el botón sería descubrirlo tarde.
+  .aviso-lector {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: #ffb300;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  .acciones-foto mat-icon { margin-right: 6px; }
+
+  .captura-qr {
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  .texto-ocr {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 11px;
+    max-height: 160px;
+    overflow: auto;
+    white-space: pre-wrap;
+    margin: 0 0 10px;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  // Las corregidas a mano se distinguen porque son las que la derivación NO va a tocar: es lo que
+  // el administrador necesita saber antes de decidir.
+  .chip-manual {
+    background: rgba(255, 179, 0, 0.18);
+    color: #ffb300;
+  }
+
+  .tabla-propuesta {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+
+    td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: top;
+    }
+
+    .campo { font-weight: 500; white-space: nowrap; }
+    .valor { font-family: monospace; opacity: 0.85; }
+    .ancla { opacity: 0.7; }
+    .motivo { color: #ffb300; }
+  }
+
+  .fila-sin-region .campo { opacity: 0.6; }
+
+  .bloque-confirmar { border-color: rgba(255, 179, 0, 0.5); }
+
+  .cambios {
+    margin: 0 0 8px;
+    padding-left: 18px;
+    font-size: 12px;
+  }
+
+  .error-lectura {
+    color: #ff6b6b;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .acciones { margin-top: 8px; }
+}

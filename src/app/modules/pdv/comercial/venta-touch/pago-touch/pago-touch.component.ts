@@ -92,6 +92,8 @@ import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../
 import { esCobroTarjetaRegistrable } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
 import { cuponVencido, DecimalesPorMoneda, HORAS_ANTIGUEDAD_MAXIMA } from "../../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 import { DatosCupon } from "../../../../financiero/venta-tarjeta/qr-pos/formato-qr-pos.model";
+import { CajaService } from "../../../../financiero/pdv/caja/caja.service";
+import { ConfirmDialogComponent, ConfirmDialogData } from "../../../../../shared/components/confirm-dialog/confirm-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -195,7 +197,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoDialog: CargandoDialogService,
     private ventaService: VentaService,
     private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
-    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService
+    private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
+    private cajaService: CajaService
   ) {
     this.formaPagoList = [];
     if (data.delivery != null) {
@@ -502,7 +505,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   setMoneda(moneda, openDialog?) {
     this.selectedMoneda = this.monedas.find((m) => m.denominacion == moneda);
     this.formGroup.controls.moneda.setValue(this.selectedMoneda.id);
-    if (openDialog == null) openDialog = true;
+    // El dialogo de billetes es una calculadora de CONTEO de efectivo: con TARJETA seleccionada
+    // no tiene nada que contar y solo estorba. La moneda se sigue seleccionando siempre (arriba
+    // de este guard) — lo unico que se condiciona es abrir el dialogo.
+    //
+    // Los call sites que pasan `false` explicito (teclas F1/F2/F3 y el replay de delivery) no
+    // entran aca y no cambian.
+    if (openDialog == null) {
+      openDialog = this.selectedFormaPago?.descripcion === "EFECTIVO";
+    }
     this.setFocusToValorInput();
     if (openDialog == true) {
       this.isDialogOpen = true;
@@ -687,6 +698,64 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Pega el cupon a la linea. El identificador viaja en el propio CobroDetalleInput de ESTA linea
+   * (toInput() ya lo manda), asi que el vinculo cobro<->cupon queda grabado con el saveVenta,
+   * exacto y sin que nadie tenga que adivinarlo despues.
+   *
+   * Esto es lo que cierra el caso de dos tarjetas del MISMO monto en una venta: el backend no
+   * puede desempatarlas por monto, pero aca sabemos con certeza sobre que linea se escaneo,
+   * porque el dialogo se abrio parado en ella.
+   */
+  private aplicarCupon(item: CobroDetalle, datosCupon: DatosCupon): void {
+    item.datosCupon = datosCupon;
+    item.identificadorTransaccion = datosCupon.identificadorTransaccion;
+  }
+
+  /**
+   * Mismo dialogo y mismo texto que el completar desde la lista, para que la regla se comporte
+   * igual por las dos puertas.
+   *
+   * "Escanear otro" NO aplica el cupon y vuelve a abrir la lectura sobre la misma linea: el
+   * cajero rehace el escaneo sin perder la terminal ya elegida. Cancelar ahi deja la linea
+   * pendiente, que es el mismo camino que "Registrar mas tarde".
+   */
+  private confirmarDiferenciaCupon(
+    item: CobroDetalle,
+    datosCupon: DatosCupon,
+    avisos: string[]
+  ): void {
+    const data: ConfirmDialogData = {
+      title: 'El cupón no coincide con este cobro',
+      message:
+        `Este cobro es de ${Number(item.valor).toLocaleString('es-PY')} ` +
+        `${item.moneda?.simbolo || 'Gs.'} en ` +
+        `${[item.terminalPos?.descripcion, item.terminalPos?.codigo].filter(Boolean).join(' - ') || 'esta terminal'}, ` +
+        `pero ${avisos.join(' y ')}. ¿Es el cupón correcto?`,
+      confirmText: 'Registrar igual',
+      cancelText: 'Escanear otro',
+    };
+
+    this.isDialogOpen = true;
+    this.matDialog
+      .open(ConfirmDialogComponent, { data, width: '520px' })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        this.isDialogOpen = false;
+        if (!confirmado) {
+          this.escanearTarjeta(item);
+          return;
+        }
+        this.aplicarCupon(item, datosCupon);
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: `Registrado con diferencia: ${avisos.join(' y ')}.`,
+          duracion: 6,
+        });
+      });
+  }
+
+  /**
    * Dispara el escaneo apenas se agrega una línea TARJETA — no al finalizar. Es lo que permite
    * mostrar el estado por línea (pendiente / registrada) en la tabla y ofrecer el ícono de QR
    * para reabrir. Si el flujo está deshabilitado, TARJETA queda como forma de pago normal.
@@ -706,14 +775,30 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.matDialog.open(ScanTerminalPosDialogComponent, {
       width: '380px',
       disableClose: true,
-      data: { terminalPos: item.terminalPos }
+      data: {
+        terminalPos: item.terminalPos,
+        // Para poder reconocer un cupón en el mismo input: el formato del proveedor de esta línea
+        // se prueba primero, y los importes se escalan con los decimales de cada moneda.
+        proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
+        decimalesPorMoneda: this.decimalesPorMoneda,
+      }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: ScanTerminalPosResult) => {
       if (!result?.terminalPos) return; // canceló la selección de terminal: la línea queda como estaba
       item.terminalPos = result.terminalPos;
 
+      // El cajero escaneó directamente el cupón y la terminal se resolvió sola --por la serie que
+      // el propio cupón imprime--. El segundo diálogo no tiene nada que preguntar.
+      if (result.datosCupon) {
+        this.procesarCupon(item, result.datosCupon);
+        return;
+      }
+
       const data: EscanearCuponDialogData = {
         terminalDescripcion: [result.terminalPos.descripcion, result.terminalPos.codigo].filter(Boolean).join(' - '),
         proveedorServicioId: result.terminalPos.proveedorServicio?.id,
+        // De acá sale qué camino se le ofrece al cajero y cuál se le cierra. Si viene null, el
+        // diálogo bloquea con el motivo: sin formato no hay forma de leer el cupón.
+        formatoTerminalPos: result.terminalPos.formatoTerminalPos,
         monto: item.valor,
         // La moneda del COBRO, no la de la terminal: el monto que se muestra es el de esta línea.
         monedaCobroId: item.moneda?.id,
@@ -721,6 +806,18 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         monedaTerminalId: result.terminalPos.moneda?.id,
         monedaTerminalSimbolo: result.terminalPos.moneda?.simbolo,
         decimalesPorMoneda: this.decimalesPorMoneda,
+        sucursalId: Number(this.mainService.sucursalActual?.id),
+        // Para la captura por foto: el token cuelga de la caja abierta, y el usuario queda
+        // registrado para saber quien la pidio.
+        cajaId: this.cajaService.selectedCaja?.id,
+        usuarioId: this.mainService.usuarioActual?.id,
+        // Con la terminal, el filial sabe que formato aplicar y devuelve los campos ya separados
+        // en vez de texto crudo. Sin ella la captura sigue andando, solo que como lupa.
+        terminalPosId: result.terminalPos.id,
+        // La configuracion por aparato: si en ESTA caja se puede tipear el cupon a mano. Sin esto
+        // la perilla del ABM no tendria ningun lector, que es el defecto que este mismo modulo ya
+        // arrastro con `datos_extra`.
+        cargaManualPermitida: result.terminalPos.cargaManualPermitida,
       };
       this.matDialog.open(EscanearCuponDialogComponent, { data, disableClose: false })
         .afterClosed()
@@ -737,30 +834,50 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             });
             return;
           }
-          item.datosCupon = datosCupon;
-
-          // El identificador viaja en el propio CobroDetalleInput de ESTA línea (toInput() ya lo
-          // manda), así que el vínculo cobro↔cupón queda grabado con el saveVenta, exacto y sin
-          // que nadie tenga que adivinarlo después.
-          //
-          // Esto es lo que cierra el caso de dos tarjetas del MISMO monto en una venta: el
-          // backend no puede desempatarlas por monto, pero acá sabemos con certeza sobre qué
-          // línea se escaneó, porque el diálogo se abrió parado en ella.
-          item.identificadorTransaccion = datosCupon.identificadorTransaccion;
-
-          const avisos: string[] = [];
-          if (datosCupon.monto != null && datosCupon.monto !== item.valor) {
-            avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${item.valor.toLocaleString('es-PY')}`);
-          }
-          if (cuponVencido(datosCupon.fecha)) {
-            avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
-          }
-          this.notificacionSnackbar.notification$.next(avisos.length
-            ? { color: NotificacionColor.warn, texto: `Cupón leído, pero ${avisos.join(' y ')}.`, duracion: 6 }
-            : { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
-          );
+          this.procesarCupon(item, datosCupon);
         });
     });
+  }
+
+  /**
+   * Aplica un cupón ya leído a la línea, avisando si no coincide con el cobro.
+   *
+   * Está aparte porque ahora hay DOS puertas: el diálogo de lectura de siempre, y el input único
+   * del primer diálogo cuando el cajero escanea el cupón directamente y la terminal se resuelve
+   * sola por la serie. Las dos tienen que comportarse igual — una diferencia acá sería que la
+   * misma regla valga o no según por dónde entró el cupón.
+   */
+  private procesarCupon(item: CobroDetalle, datosCupon: DatosCupon): void {
+    const avisos: string[] = [];
+    // `item.valor` esta tipado como number pero viene del formulario, donde es un string
+    // ("50.00"). Un `!==` entre 50 y "50.00" es siempre verdadero, asi que el aviso saltaba
+    // en TODOS los escaneos, incluso con montos identicos — y un aviso que sale siempre deja
+    // de leerse, que es peor que no tenerlo: cuando el cupon difiera de verdad, el cajero ya
+    // lo va a estar ignorando. Se compara el numero, no la representacion.
+    const valorCobrado = Number(item.valor);
+    if (datosCupon.monto != null && Number.isFinite(valorCobrado) && datosCupon.monto !== valorCobrado) {
+      avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${valorCobrado.toLocaleString('es-PY')}`);
+    }
+    if (cuponVencido(datosCupon.fecha)) {
+      avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
+    }
+
+    // Una diferencia se CONFIRMA, no se avisa. Es lo que ya hace el completar desde la
+    // lista (RegistrarVentaTarjetaDialogComponent) y lo que pide el manual §8.3: el caso
+    // mas comun es que el cajero tenga dos cupones parecidos en la mano y haya escaneado el
+    // que no era. Un snackbar de 6 segundos no lo hace mirar; un dialogo si.
+    //
+    // Aca es mas barato que en la lista: el cupon todavia vive en memoria y la venta no
+    // existe, asi que "Escanear otro" no tiene nada que deshacer.
+    if (avisos.length) {
+      this.confirmarDiferenciaCupon(item, datosCupon, avisos);
+      return;
+    }
+
+    this.aplicarCupon(item, datosCupon);
+    this.notificacionSnackbar.notification$.next(
+      { color: NotificacionColor.success, texto: 'Cupón leído correctamente.', duracion: 2 }
+    );
   }
 
   private cerrarConRespuesta(
