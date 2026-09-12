@@ -5,8 +5,14 @@
   <!-- Egresar hace más de lo que su nombre sugiere, y desde acá no se deshace. -->
   <div class="consecuencias">
     Además se le <b>quita el acceso al sistema</b>, se le pone el <b>crédito en cero</b> y su cliente
-    vuelve a <b>NORMAL</b>, también sin crédito. El crédito no queda guardado en ningún lado:
-    para restaurarlo hay que volver a cargarlo a mano.
+    vuelve a <b>NORMAL</b>, también sin crédito.
+  </div>
+
+  <!-- El finiquito no paga bonos: lo pendiente se anula acá. Ver issue #276 del central. -->
+  <div class="consecuencias">
+    También se <b>anulan sus bonos pendientes</b> y se <b>apaga su bono recurrente</b>, si tiene:
+    el finiquito no paga bonos. Al revertir el egreso el crédito vuelve solo, pero
+    <b>los bonos no</b>: hay que volver a cargarlos a mano.
   </div>
 
   <mat-form-field style="width: 100%">

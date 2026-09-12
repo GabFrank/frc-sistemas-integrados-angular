@@ -21,6 +21,12 @@
     <b>{{ creditoActualTexto }}</b> y hay que volver a cargarlo a mano.
   </p>
 
+  <!-- La reversa no rehace lo que el egreso anuló en bonos: ver issue #276 del central. -->
+  <p class="alerta">
+    Los <b>bonos que el egreso anuló</b> y el <b>bono recurrente que apagó</b> no se restauran:
+    si corresponde que los vuelva a cobrar, hay que cargarlos de nuevo desde la pantalla de Bonos.
+  </p>
+
   <mat-form-field style="width: 100%">
     <mat-label>Crédito a restaurar</mat-label>
     <input matInput type="number" [formControl]="creditoControl" required />
