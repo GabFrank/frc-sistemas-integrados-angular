@@ -189,6 +189,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   isOrigen = false;
   isDestino = false;
+  // Conectado al central la sucursal actual es la "SERVIDOR" (id 0), que nunca es el origen.
+  puedePrepararEnvio = false;
   isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
@@ -382,6 +384,12 @@ export class EditTransferenciaComponent implements OnInit {
               this.selectedTransferencia.sucursalDestino =
                 saveTransferenciaRes.sucursalDestino;
               this.selectedTransferencia.id = saveTransferenciaRes.id;
+              // mat-tab recrea el componente al volver a la pestaña: con el id en tabData carga
+              // esta transferencia en vez de arrancar otra nueva.
+              if (this.data != null) {
+                this.data.tabData = { ...this.data.tabData, id: saveTransferenciaRes.id };
+              }
+              this.actualizarPermisosPorSucursal();
               this.tabService.changeCurrentTabName(
                 "Transferencia " + this.selectedTransferencia.id
               );
@@ -409,9 +417,8 @@ export class EditTransferenciaComponent implements OnInit {
       });
   }
 
-  cargarDatos() {
+  cargarDatos(id = this.data?.tabData?.["id"]) {
     // this.cargandoService.openDialog(false, "Cargando datos");
-    let id = this.data.tabData["id"];
     if (id != null) {
       this.transferenciaService
         .onGetTransferencia(id)
@@ -426,17 +433,29 @@ export class EditTransferenciaComponent implements OnInit {
               this.pageSize = this.paginator.pageSizeOptions[1];
             }, 0);
             this.getTransferenciaItemList();
-            this.isOrigen =
-              this.selectedTransferencia?.sucursalOrigen?.id ==
-              this.mainService?.sucursalActual?.id;
-            this.isDestino =
-              this.selectedTransferencia?.sucursalDestino?.id ==
-              this.mainService?.sucursalActual?.id;
+            this.actualizarPermisosPorSucursal();
             this.onVerificarConfirmados();
             this.verificarEtapa();
           }
         });
     }
+  }
+
+  /**
+   * Lo que depende de la sucursal actual. Una transferencia recien creada no pasa por cargarDatos,
+   * asi que tambien se recalcula al guardar las sucursales y al avanzar de etapa.
+   */
+  private actualizarPermisosPorSucursal(): void {
+    this.isOrigen =
+      this.selectedTransferencia?.sucursalOrigen?.id ==
+      this.mainService?.sucursalActual?.id;
+    this.isDestino =
+      this.selectedTransferencia?.sucursalDestino?.id ==
+      this.mainService?.sucursalActual?.id;
+    this.puedePrepararEnvio =
+      this.isOrigen ||
+      this.mainService?.isServidor ||
+      this.mainService?.sucursalActual?.id == 0;
   }
 
   getTransferenciaItemList() {
@@ -516,7 +535,12 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onRefresh() {
-    this.ngOnInit();
+    // Recien creada, la pestaña no trae id en tabData: ngOnInit la reiniciaria como transferencia nueva.
+    if (this.selectedTransferencia?.id != null) {
+      this.cargarDatos(this.selectedTransferencia.id);
+    } else {
+      this.ngOnInit();
+    }
   }
 
   verificarEtapa() {
@@ -1199,6 +1223,7 @@ export class EditTransferenciaComponent implements OnInit {
       .subscribe((res) => {
         if (res) {
           this.selectedTransferencia.etapa = etapa;
+          this.actualizarPermisosPorSucursal();
           this.verificarEtapa();
           if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
