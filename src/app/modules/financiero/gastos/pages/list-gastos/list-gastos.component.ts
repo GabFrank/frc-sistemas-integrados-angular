@@ -19,6 +19,9 @@ import { GastosDashboardComponent } from '../gastos-dashboard/gastos-dashboard.c
 import { MainService } from '../../../../../main.service';
 import { ROLES } from '../../../../personas/roles/roles.enum';
 
+/** Gasto de la grilla con el texto del vuelto ya resuelto (no se calcula desde el HTML). */
+export type GastoRow = Omit<Gasto, 'toInput' | 'toDetalleInputList'> & { vueltoLabel: string };
+
 @UntilDestroy()
 @Component({
   selector: 'app-list-gastos',
@@ -47,7 +50,7 @@ export class ListGastosComponent implements OnInit {
   
   displayedColumns = [
     'id', 'sucursal', 'caja', 'responsable', 'autorizadoPor', 'tipoGasto', 'estadoSolicitud', 'observacion',
-    'retiroGs', 'retiroRs', 'retiroDs', 'creadoEn', 'acciones'
+    'retiroGs', 'retiroRs', 'retiroDs', 'vuelto', 'creadoEn', 'acciones'
   ];
 
   // Incluye SERVIDOR (sucursal 0): ahi quedan los gastos pagados desde la caja mayor, que no
@@ -65,7 +68,7 @@ export class ListGastosComponent implements OnInit {
 
   public totalElements$ = new BehaviorSubject<number>(0);
 
-  public gastos$: Observable<Gasto[]> = combineLatest([
+  public gastos$: Observable<GastoRow[]> = combineLatest([
     this.refetchSubject,
     this.pagination$
   ]).pipe(
@@ -81,7 +84,7 @@ export class ListGastosComponent implements OnInit {
     tap(res => {
       if (res) this.totalElements$.next(res.getTotalElements);
     }),
-    map(res => res?.getContent || []),
+    map(res => (res?.getContent || []).map(g => this.toRow(g))),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -108,6 +111,13 @@ export class ListGastosComponent implements OnInit {
   }
 
   onFiltrar() {
+    const { pageIndex, pageSize } = this.paginationSubject.value;
+    // Filtrar desde una pagina > 1 dejaba la grilla parada en un indice que el
+    // nuevo resultado ya no tiene, y se veia vacia. Se vuelve a la primera.
+    if (pageIndex !== 0) {
+      this.paginationSubject.next({ pageIndex: 0, pageSize });
+      return;
+    }
     this.refetchSubject.next();
   }
 
@@ -214,6 +224,32 @@ export class ListGastosComponent implements OnInit {
       return 'CANCELADO';
     }
     return gasto?.preGasto?.estadoEtiqueta || gasto?.preGasto?.estado || '-';
+  }
+
+  private toRow(gasto: Gasto): GastoRow {
+    return { ...gasto, vueltoLabel: this.buildVueltoLabel(gasto) };
+  }
+
+  /**
+   * Arma el texto de la columna Vuelto. Devuelve '-' cuando el gasto no tuvo
+   * vuelto en ninguna moneda. El monto va antes del simbolo: "10.000 Gs".
+   */
+  private buildVueltoLabel(gasto: Gasto): string {
+    const vueltoGs = Number(gasto?.vueltoGs ?? 0);
+    const vueltoRs = Number(gasto?.vueltoRs ?? 0);
+    const vueltoDs = Number(gasto?.vueltoDs ?? 0);
+    const parts: string[] = [];
+    if (vueltoGs > 0) parts.push(`${this.formatMonto(vueltoGs, 0)} Gs`);
+    if (vueltoRs > 0) parts.push(`${this.formatMonto(vueltoRs, 2)} Rs`);
+    if (vueltoDs > 0) parts.push(`${this.formatMonto(vueltoDs, 2)} Ds`);
+    return parts.length > 0 ? parts.join(' | ') : '-';
+  }
+
+  private formatMonto(amount: number, fractionDigits: number): string {
+    return new Intl.NumberFormat('es-PY', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }).format(amount);
   }
 
   getAutorizadoPor(gasto: Gasto): string {
