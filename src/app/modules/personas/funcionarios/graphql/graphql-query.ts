@@ -138,6 +138,37 @@ export const funcionariosSearch = gql`
   }
 `;
 
+// Version liviana del buscador y del lookup por persona: solo lo que necesita un
+// autocomplete (id + persona). No pide horario ni datos de RRHH, por eso se puede
+// usar contra la filial, donde administrativo.horario no se replica.
+export const funcionariosSearchSimple = gql`
+  query ($texto: String) {
+    data: funcionariosSearch(texto: $texto) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const funcionarioPorPersonaSimpleQuery = gql`
+  query ($id: ID!) {
+    data: funcionarioPorPersona(id: $id) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const funcionarioQuery = gql`
   query ($id: ID!) {
     data: funcionario(id: $id) {
