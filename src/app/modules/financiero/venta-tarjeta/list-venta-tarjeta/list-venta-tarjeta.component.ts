@@ -251,6 +251,9 @@ export class ListVentaTarjetaComponent implements OnInit {
         proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
         // De acá sale qué camino se le ofrece al cajero y cuál se le cierra.
         formatoTerminalPos: item.terminalPos?.formatoTerminalPos,
+        // La terminal va a la captura: con ella el filial aplica el formato y devuelve
+        // los campos ya separados, en vez de texto crudo que el cajero transcribe igual.
+        terminalPosId: item.terminalPos?.id,
         decimalesPorMoneda: this.decimalesPorMoneda,
         titulo: 'Completar venta con tarjeta',
         segundos: 120,

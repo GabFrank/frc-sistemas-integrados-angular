@@ -62,6 +62,16 @@ export interface DatosCupon {
   fecha?: Date;
   /** La cadena tal cual entro por el lector, sin normalizar. */
   qrCrudo: string;
+  /**
+   * Token de la captura por foto que produjo estos datos.
+   *
+   * Solo viene por el camino de camara. Viaja hasta `completar` para que la foto quede atada a la
+   * venta: sin eso la purga de imagenes no puede distinguir la evidencia de un cobro de una
+   * captura que quedo por el camino.
+   */
+  capturaToken?: string;
+  /** QR | OCR | MANUAL. De donde salieron los datos, para `venta_tarjeta.origen`. */
+  origen?: string;
   /** Formato que la reconocio. */
   formato: FormatoQrPos;
 }

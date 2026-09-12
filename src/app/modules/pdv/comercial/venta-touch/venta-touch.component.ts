@@ -1160,6 +1160,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             monedaId: datos.monedaId,
             identificadorTransaccion: datos.identificadorTransaccion,
             qrCrudo: datos.qrCrudo,
+            // De donde salieron los datos. Sin esto la columna queda nula y no hay forma de saber
+            // que revisar: un codigo leido por OCR puede tener un caracter mal, uno del lector no.
+            origen: datos.origen || (datos.qrCrudo ? 'QR' : undefined),
+            // Ata la foto del cupon a la venta. Es lo que impide que la purga de imagenes borre la
+            // evidencia de un cobro.
+            capturaToken: datos.capturaToken,
           }).pipe(untilDestroyed(this)).subscribe({
             next: () => {
               this.notificacionSnackbar.notification$.next({

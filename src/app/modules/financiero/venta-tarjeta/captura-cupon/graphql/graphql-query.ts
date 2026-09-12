@@ -7,8 +7,8 @@ import gql from 'graphql-tag';
  * qué interfaz lo alcanza un teléfono conectado al wifi del local.
  */
 export const crearCapturaCuponMutation = gql`
-  mutation crearCapturaCupon($cajaId: ID!, $sucursalId: ID!, $usuarioId: ID) {
-    data: crearCapturaCupon(cajaId: $cajaId, sucursalId: $sucursalId, usuarioId: $usuarioId) {
+  mutation crearCapturaCupon($cajaId: ID!, $sucursalId: ID!, $usuarioId: ID, $terminalPosId: ID) {
+    data: crearCapturaCupon(cajaId: $cajaId, sucursalId: $sucursalId, usuarioId: $usuarioId, terminalPosId: $terminalPosId) {
       token
       url
       expiraEn
@@ -31,6 +31,7 @@ export const capturaCuponQuery = gql`
       cajaId
       estado
       textoOcr
+      campos
       error
       msOcr
       intentos

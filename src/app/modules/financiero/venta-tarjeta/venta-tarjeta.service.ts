@@ -38,6 +38,17 @@ export interface CompletarVentaTarjetaInput {
   cobroDetalleId?: number;
   /** Moneda que declara el cupón. El backend bloquea si no es la del cobro. */
   monedaId?: number;
+  /**
+   * De dónde salieron los datos: `QR` | `OCR` | `MANUAL`. No todos los orígenes merecen la misma
+   * confianza —un código leído por OCR puede tener un carácter mal— y sin esto la columna queda
+   * nula y no hay forma de saber qué revisar.
+   */
+  origen?: string;
+  /**
+   * Captura por foto que produjo estos datos. El filial copia su imagen a la venta, y eso es lo
+   * que después impide que la purga se lleve puesta la evidencia de un cobro.
+   */
+  capturaToken?: string;
 }
 
 export interface VentaTarjetaInput {

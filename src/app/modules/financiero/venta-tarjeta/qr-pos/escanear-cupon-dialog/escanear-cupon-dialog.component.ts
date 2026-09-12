@@ -6,6 +6,7 @@ import { debounceTime, filter, map } from 'rxjs/operators';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
+import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.model';
 import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
@@ -46,6 +47,11 @@ export interface EscanearCuponDialogData {
   cajaId?: number;
   /** Queda registrado en la captura, para saber quién pidió la foto. */
   usuarioId?: number;
+  /**
+   * Terminal elegida. Va en la captura y es lo que convierte al OCR en extractor: con ella el
+   * filial sabe qué formato aplicar y devuelve los campos separados en vez de texto crudo.
+   */
+  terminalPosId?: number;
 }
 
 /**
@@ -171,8 +177,18 @@ export class EscanearCuponDialogComponent implements OnInit {
   /** Mientras se pide el token. Corto, pero el botón tiene que quedar inerte. */
   pidiendoCaptura = false;
 
-  /** Texto crudo del OCR. En esta etapa se muestra tal cual: los campos vienen en la 3. */
+  /**
+   * Texto crudo del OCR.
+   *
+   * Sigue mostrándose, pero ahora es el **camino de respaldo**: cuando el filial pudo separar los
+   * campos se abre la confirmación y esto queda de fondo. Se ve cuando la terminal no tiene
+   * formato o el patrón no reconoció el cupón — que es exactamente como funcionaba el módulo antes
+   * de esta etapa, o sea un piso conocido y no una regresión.
+   */
   textoOcr: string = null;
+
+  /** El token de la captura en curso. Viaja hasta `completar` para atar la foto a la venta. */
+  private capturaToken: string = null;
 
   /** Lo que salió mal con la foto. No cancela la espera: el token sigue vivo y se reintenta. */
   errorCaptura: string = null;
@@ -347,7 +363,12 @@ export class EscanearCuponDialogComponent implements OnInit {
     this.textoOcr = null;
 
     this.capturaCuponService
-      .onCrear(Number(this.data.cajaId), Number(this.data.sucursalId), this.data.usuarioId)
+      .onCrear(
+        Number(this.data.cajaId),
+        Number(this.data.sucursalId),
+        this.data.usuarioId,
+        this.data.terminalPosId
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (qr) => {
@@ -358,6 +379,7 @@ export class EscanearCuponDialogComponent implements OnInit {
           }
           this.capturaUrl = qr.url;
           this.esperandoFoto = true;
+          this.capturaToken = qr.token;
           this.escucharCaptura(qr.token);
         },
         error: () => {
@@ -384,10 +406,63 @@ export class EscanearCuponDialogComponent implements OnInit {
           this.textoOcr = c.textoOcr;
           this.msOcr = c.msOcr;
           this.esperandoFoto = false;
+          this.confirmarLectura(c);
         },
         error: () => {
           this.errorCaptura = 'Se perdió la conexión con el servidor de la sucursal.';
         },
+      });
+  }
+
+  /**
+   * El OCR terminó: si separó los campos, se abre la confirmación en vez de dejar al cajero
+   * transcribiendo.
+   *
+   * <b>Es el punto de toda la etapa.</b> Hasta ahora la foto producía texto en pantalla y el
+   * cajero lo copiaba igual: el OCR era una lupa. Ahora los campos vienen llenos y el trabajo es
+   * confirmar los dudosos.
+   *
+   * Si no vinieron campos --terminal sin formato, patrón que no reconoce este cupón-- NO se abre
+   * nada y queda el texto crudo a la vista, con el botón de carga a mano al lado. Es el
+   * comportamiento anterior, o sea un piso conocido: degrada, no se rompe.
+   */
+  private confirmarLectura(c: CapturaCupon): void {
+    const campos = parsearCampos(c.campos);
+    if (!campos) return;
+
+    // `datosExtra` y `confianzas` no son valores del formulario. Se sacan antes para que el
+    // diálogo reciba sólo lo que puede precargar.
+    const { datosExtra, confianzas, ...valores } = campos;
+    if (!Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '')) {
+      // Matcheó pero no trajo ningún valor útil. Mejor el texto crudo que un formulario vacío
+      // que parece que algo salió bien.
+      return;
+    }
+
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          // Sin ventaTarjetaId: acá la venta todavía no existe. Ver CargaManualCuponData.
+          sucursalId: this.data.sucursalId,
+          monto: this.data.monto,
+          monedaId: this.data.monedaCobroId,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+          valores,
+          confianzas,
+          capturaToken: this.capturaToken,
+          origen: 'OCR',
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        // Cancelar no cierra este diálogo: el cajero vuelve a ver el texto leído y puede sacar
+        // otra foto o cargar a mano. El token sigue vivo.
+        if (res) this.dialogRef.close(res);
       });
   }
 

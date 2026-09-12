@@ -24,10 +24,17 @@ export class CapturaCuponService {
     private subGQL: CapturaCuponSubGQL
   ) {}
 
-  /** Abre una captura. Lo que vuelve es lo que se codifica en el QR. */
-  onCrear(cajaId: number, sucursalId: number, usuarioId?: number): Observable<CapturaCuponQr> {
+  /**
+   * Abre una captura. Lo que vuelve es lo que se codifica en el QR.
+   *
+   * `terminalPosId` es lo que convierte al OCR en extractor: con él el filial sabe qué formato
+   * aplicar y devuelve los campos ya separados. **Sin él la captura sigue funcionando** y guarda
+   * sólo el texto leído, que es como funcionaba antes de esta etapa. Es a propósito: así un
+   * desktop viejo degrada en vez de romperse.
+   */
+  onCrear(cajaId: number, sucursalId: number, usuarioId?: number, terminalPosId?: number): Observable<CapturaCuponQr> {
     return this.genericService
-      .onCustomMutation(this.crearGQL, { cajaId, sucursalId, usuarioId }, false)
+      .onCustomMutation(this.crearGQL, { cajaId, sucursalId, usuarioId, terminalPosId }, false)
       .pipe(map((res) => res as CapturaCuponQr));
   }
 

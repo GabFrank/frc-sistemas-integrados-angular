@@ -798,6 +798,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         // registrado para saber quien la pidio.
         cajaId: this.cajaService.selectedCaja?.id,
         usuarioId: this.mainService.usuarioActual?.id,
+        // Con la terminal, el filial sabe que formato aplicar y devuelve los campos ya separados
+        // en vez de texto crudo. Sin ella la captura sigue andando, solo que como lupa.
+        terminalPosId: result.terminalPos.id,
       };
       this.matDialog.open(EscanearCuponDialogComponent, { data, disableClose: false })
         .afterClosed()

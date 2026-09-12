@@ -12,6 +12,7 @@ import {
 } from '../../../../../notificacion-snackbar.service';
 import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
+import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.model';
 import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
@@ -59,6 +60,13 @@ export interface RegistrarVentaTarjetaData {
   cajaId?: number;
   /** Queda registrado en la captura, para saber quién pidió la foto. */
   usuarioId?: number;
+  /**
+   * Terminal del pendiente. Va en la captura: es lo que le permite al filial aplicar el formato y
+   * devolver los campos separados en vez de texto crudo.
+   */
+  terminalPosId?: number;
+  /** Cobro al que pertenece el cupón, si ya se sabe. Se propaga a la confirmación. */
+  cobroDetalleId?: number;
 }
 
 export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
@@ -121,8 +129,15 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   capturaUrl: string = null;
   esperandoFoto = false;
   pidiendoCaptura = false;
-  /** Texto crudo del OCR. En esta etapa se muestra tal cual: los campos vienen en la 3. */
+  /**
+   * Texto crudo del OCR.
+   *
+   * Camino de respaldo: cuando el filial pudo separar los campos se abre la confirmación y esto
+   * queda de fondo. Se ve cuando la terminal no tiene formato o el patrón no reconoce el cupón.
+   */
   textoOcr: string = null;
+  /** Token de la captura en curso. Viaja hasta `completar` para atar la foto a la venta. */
+  private capturaToken: string = null;
   errorCaptura: string = null;
   msOcr: number = null;
 
@@ -453,10 +468,15 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
         data: {
           ventaTarjetaId: this.data.ventaTarjetaId,
           sucursalId: this.data.sucursalId,
+          cobroDetalleId: this.data.cobroDetalleId,
           monto: this.data.monto,
           monedaSimbolo: this.data.monedaSimbolo,
           terminalDescripcion: this.data.terminalDescripcion,
           mapeo: this.data.formatoTerminalPos?.mapeo,
+          origen: 'MANUAL',
+          // Si ya se sacó una foto y el OCR no la pudo interpretar, la imagen igual queda atada a
+          // la venta: el cupón sigue siendo la evidencia aunque el motor no lo haya leído.
+          capturaToken: this.capturaToken,
         },
       })
       .afterClosed()
@@ -524,7 +544,12 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     this.textoOcr = null;
 
     this.capturaCuponService
-      .onCrear(Number(this.data.cajaId), Number(this.data.sucursalId), this.data.usuarioId)
+      .onCrear(
+        Number(this.data.cajaId),
+        Number(this.data.sucursalId),
+        this.data.usuarioId,
+        this.data.terminalPosId
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (qr) => {
@@ -535,6 +560,7 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
           }
           this.capturaUrl = qr.url;
           this.esperandoFoto = true;
+          this.capturaToken = qr.token;
           this.escucharCaptura(qr.token);
         },
         error: () => {
@@ -561,10 +587,60 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
           this.textoOcr = c.textoOcr;
           this.msOcr = c.msOcr;
           this.esperandoFoto = false;
+          this.confirmarLectura(c);
         },
         error: () => {
           this.errorCaptura = 'Se perdió la conexión con el servidor de la sucursal.';
         },
+      });
+  }
+
+  /**
+   * El OCR separó los campos: se abre la confirmación en vez de dejar al cajero transcribiendo.
+   *
+   * Acá el pendiente YA existe, así que la confirmación completa contra el filial y este diálogo
+   * cierra como COMPLETADO. Es la diferencia con la misma pantalla en el PDV, donde la venta
+   * todavía no se guardó.
+   *
+   * Si no vinieron campos --terminal sin formato, patrón que no reconoce este cupón-- no se abre
+   * nada: queda el texto crudo y el botón de carga a mano, que es el comportamiento anterior.
+   */
+  private confirmarLectura(c: CapturaCupon): void {
+    const campos = parsearCampos(c.campos);
+    if (!campos) return;
+
+    const { datosExtra, confianzas, ...valores } = campos;
+    if (!Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '')) return;
+
+    if (this.timer) {
+      // El cajero está por revisar campos: el reloj que cierra la pantalla sola sobra.
+      clearInterval(this.timer);
+      this.timer = null;
+      this.countdown = null;
+    }
+
+    this.matDialog
+      .open(CargaManualCuponDialogComponent, {
+        width: '520px',
+        disableClose: false,
+        data: {
+          ventaTarjetaId: this.data.ventaTarjetaId,
+          sucursalId: this.data.sucursalId,
+          cobroDetalleId: this.data.cobroDetalleId,
+          monto: this.data.monto,
+          monedaSimbolo: this.data.monedaSimbolo,
+          terminalDescripcion: this.data.terminalDescripcion,
+          mapeo: this.data.formatoTerminalPos?.mapeo,
+          valores,
+          confianzas,
+          capturaToken: this.capturaToken,
+          origen: 'OCR',
+        },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) this.cerrar('COMPLETADO');
       });
   }
 

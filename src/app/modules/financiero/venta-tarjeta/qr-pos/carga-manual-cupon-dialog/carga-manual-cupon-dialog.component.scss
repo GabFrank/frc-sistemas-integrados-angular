@@ -23,3 +23,39 @@
 
   .acciones { margin-top: 8px; }
 }
+
+// ── Semáforo por campo ────────────────────────────────────────────────────────────────────
+//
+// El color es la señal de "mirá acá", pero NO es la única: el texto de la pista dice lo mismo en
+// palabras y el tilde es lo que realmente bloquea. Un semáforo que sólo fuera color dejaría
+// afuera a quien no lo distingue, y esta pantalla decide si un cobro se registra bien.
+.carga-manual {
+  .campo {
+    border-left: 3px solid transparent;
+    padding-left: 8px;
+    margin-left: -11px;   // el borde no corre el input respecto de los campos sin semáforo
+  }
+
+  .campo-bueno { border-left-color: #4caf50; }
+  .campo-dudoso { border-left-color: #ffb300; }
+
+  .campo-input { width: 100%; }
+
+  .semaforo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: -14px 0 6px;   // pegado a su campo: el subscript de Material ya no ocupa alto
+    font-size: 12px;
+  }
+
+  .pista { opacity: 0.7; }
+  .pista-dudosa { color: #ffb300; opacity: 1; }
+
+  .falta-confirmar {
+    font-size: 13px;
+    color: #ffb300;
+    text-align: center;
+  }
+}

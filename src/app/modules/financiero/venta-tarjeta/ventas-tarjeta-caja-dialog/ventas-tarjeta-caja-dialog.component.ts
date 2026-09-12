@@ -182,6 +182,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           // De acá sale qué camino se le ofrece al cajero y cuál se le cierra. Si viene null, el
           // diálogo bloquea con el motivo en vez de ofrecer caminos que no van a funcionar.
           formatoTerminalPos: item.terminalPos?.formatoTerminalPos,
+          // La terminal va a la captura: con ella el filial aplica el formato y devuelve
+          // los campos ya separados, en vez de texto crudo que el cajero transcribe igual.
+          terminalPosId: item.terminalPos?.id,
           decimalesPorMoneda: this.decimalesPorMoneda,
           titulo: 'Completar venta con tarjeta',
           segundos: 120,
