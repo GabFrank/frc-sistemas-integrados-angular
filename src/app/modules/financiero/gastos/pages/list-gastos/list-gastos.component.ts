@@ -111,6 +111,13 @@ export class ListGastosComponent implements OnInit {
   }
 
   onFiltrar() {
+    const { pageIndex, pageSize } = this.paginationSubject.value;
+    // Filtrar desde una pagina > 1 dejaba la grilla parada en un indice que el
+    // nuevo resultado ya no tiene, y se veia vacia. Se vuelve a la primera.
+    if (pageIndex !== 0) {
+      this.paginationSubject.next({ pageIndex: 0, pageSize });
+      return;
+    }
     this.refetchSubject.next();
   }
 
