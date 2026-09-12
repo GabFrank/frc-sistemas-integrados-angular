@@ -5,7 +5,7 @@
     El patrón se aplica en la caja de cada sucursal. Probalo contra la cadena de ejemplo antes de guardar.
   </p>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
     <mat-label>Nombre del modelo</mat-label>
     <input matInput formControlName="nombre" placeholder="Ej: Bancard firmware v5.5" />
     <mat-hint>
@@ -43,7 +43,7 @@
     <mat-hint>Los grupos se declaran (?&lt;nombre&gt;...). Debe empezar con ^ y terminar con $.</mat-hint>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
+  <mat-form-field appearance="outline" class="campo-con-hint-largo">
     <mat-label>Mapeo (JSON)</mat-label>
     <textarea matInput formControlName="mapeo" rows="8"></textarea>
     <mat-hint>
