@@ -106,3 +106,116 @@ export const terminalesQueUsanFormatoQuery = gql`
     data: terminalesQueUsanFormato(id: $id)
   }
 `;
+
+// ── El mapa del formato: derivación y persistencia ─────────────────────────────────────────
+//
+// Todo contra el CENTRAL. El ABM de formatos vive ahí, y desde esta entrega la captura de muestra
+// y el motor OCR también: el ciclo entero (sacar la foto → leerla → proponer el mapa → guardarlo)
+// se resuelve sin pasar por ningún filial.
+
+/** Si el motor de OCR está disponible en central. Sin él no se puede derivar. */
+export const lectorDeCuponesDisponibleQuery = gql`
+  query {
+    data: lectorDeCuponesDisponible
+  }
+`;
+
+/** Abre una captura de muestra y devuelve lo necesario para dibujar el QR. */
+export const crearCapturaMuestraMutation = gql`
+  mutation crearCapturaMuestra($formatoTerminalPosId: ID!) {
+    data: crearCapturaMuestra(formatoTerminalPosId: $formatoTerminalPosId) {
+      token
+      ruta
+      url
+      expiraEn
+    }
+  }
+`;
+
+/**
+ * Estado de la muestra. Se sondea: acá no hay subscription, y no hace falta —el administrador
+ * está mirando la pantalla mientras saca la foto, no cobrando.
+ */
+export const capturaMuestraQuery = gql`
+  query capturaMuestra($token: String!) {
+    data: capturaMuestra(token: $token) {
+      token
+      estado
+      textoOcr
+      error
+      msOcr
+    }
+  }
+`;
+
+/** Propone el mapa. NO guarda nada. */
+export const derivarMapaDeMuestraMutation = gql`
+  mutation derivarMapaDeMuestra($token: String!, $formatoTerminalPosId: ID!) {
+    data: derivarMapaDeMuestra(token: $token, formatoTerminalPosId: $formatoTerminalPosId) {
+      campo
+      etiqueta
+      posicion
+      valorLeido
+      x1
+      y1
+      x2
+      y2
+      sinRegion
+    }
+  }
+`;
+
+export const cerrarCapturaMuestraMutation = gql`
+  mutation cerrarCapturaMuestra($token: String!) {
+    data: cerrarCapturaMuestra(token: $token)
+  }
+`;
+
+/** El mapa que el formato ya tiene guardado. */
+export const regionesDeFormatoQuery = gql`
+  query regionesDeFormatoTerminalPos($formatoTerminalPosId: ID!) {
+    data: regionesDeFormatoTerminalPos(formatoTerminalPosId: $formatoTerminalPosId) {
+      id
+      campo
+      etiqueta
+      posicion
+      tipo
+      obligatorio
+      x1
+      y1
+      x2
+      y2
+      origen
+      orden
+    }
+  }
+`;
+
+/**
+ * Persiste el mapa derivado.
+ *
+ * Sobre un formato que ya tiene mapa NO pisa: devuelve `aplicado: false` con el diff, y hay que
+ * volver a llamar con `confirmarSobrescritura`. Una región MANUAL no se toca nunca, ni con la
+ * confirmación: es una corrección que alguien hizo mirando un cupón.
+ */
+export const guardarRegionesDerivadasMutation = gql`
+  mutation guardarRegionesDerivadas(
+    $formatoTerminalPosId: ID!
+    $regiones: [FormatoTerminalPosRegionInput!]!
+    $confirmarSobrescritura: Boolean
+  ) {
+    data: guardarRegionesDerivadas(
+      formatoTerminalPosId: $formatoTerminalPosId
+      regiones: $regiones
+      confirmarSobrescritura: $confirmarSobrescritura
+    ) {
+      aplicado
+      creadas
+      actualizadas
+      eliminadas
+      conservadasManuales
+      cambios
+      mensaje
+    }
+  }
+`;

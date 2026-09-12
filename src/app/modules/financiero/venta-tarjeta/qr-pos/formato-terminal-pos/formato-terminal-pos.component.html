@@ -52,6 +52,12 @@
         <button mat-icon-button (click)="onEditar(f)" matTooltip="Editar">
           <mat-icon>edit</mat-icon>
         </button>
+        <!-- Solo para MAQUINA: un formato WEB es patron puro, no hay imagen sobre la cual ubicar
+             regiones, y ofrecerlo daria la falsa impresion de que hay algo que configurar. -->
+        <button mat-icon-button *ngIf="f.tipo === 'MAQUINA'" (click)="onMapa(f)"
+                matTooltip="Mapa del cupón: acelera la lectura en todas las cajas">
+          <mat-icon>grid_on</mat-icon>
+        </button>
         <button mat-icon-button *ngIf="f.activo" (click)="onDesactivar(f)"
                 matTooltip="Dejar de ofrecerlo para terminales nuevas">
           <mat-icon>block</mat-icon>

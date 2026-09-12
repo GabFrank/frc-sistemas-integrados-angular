@@ -14,6 +14,8 @@ interface FilaFormato extends FormatoTerminalPos {
 }
 import { FormatoTerminalPosService } from './formato-terminal-pos.service';
 import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edit-formato-terminal-pos.component';
+import { DerivarMapaDialogComponent } from './derivar-mapa-dialog/derivar-mapa-dialog.component';
+import { TIPO_MAQUINA } from './formato-terminal-pos.model';
 
 /**
  * Listado de formatos de terminal POS.
@@ -65,6 +67,21 @@ export class FormatoTerminalPosComponent implements OnInit {
 
   onEditar(formato: FormatoTerminalPos): void {
     this.abrir(formato);
+  }
+
+  /**
+   * El mapa del cupon: que parte del ticket es cada campo.
+   *
+   * Solo para los formatos MAQUINA. Un WEB es patron puro --la cadena entra por el lector del
+   * PDV-- asi que no hay imagen sobre la cual haya regiones que ubicar, y ofrecerlo daria la falsa
+   * impresion de que hay algo para configurar. El backend lo rechaza igual.
+   */
+  onMapa(formato: FormatoTerminalPos): void {
+    this.matDialog.open(DerivarMapaDialogComponent, {
+      data: { formato },
+      width: '660px',
+      disableClose: false,
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {});
   }
 
   private abrir(formato: FormatoTerminalPos): void {
