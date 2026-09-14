@@ -11,6 +11,10 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
+import {
+  limpiarErroresGraphQL,
+  limpiarMensajeGraphQL,
+} from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { Apollo } from "apollo-angular";
 export interface QueryError {
@@ -100,7 +104,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -156,7 +160,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -225,12 +229,12 @@ export class GenericCrudService {
             } else {
               if (silentLoad !== true) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                  texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                   color: NotificacionColor.danger,
                   duracion: 3,
                 });
               }
-              obs.error(res.errors);
+              obs.error(limpiarErroresGraphQL(res.errors));
             }
           },
           error: (error) => {
@@ -282,7 +286,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -348,7 +352,7 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -399,7 +403,7 @@ export class GenericCrudService {
               obs.next(res.data["data"]);
               obs.complete();
             } else {
-              const errorMessage = res.errors[0].message;
+              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
               if (errorConf?.graphError?.show !== false) {
                 this.notificacionSnackBar.notification$.next({
                   texto: "Ups! Algo salió mal: " + errorMessage,
@@ -408,7 +412,7 @@ export class GenericCrudService {
                 });
               }
               if (errorConf?.graphError?.propagate === true) {
-                obs.error({ message: errorMessage, errors: res.errors });
+                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
               }
             }
           },
@@ -481,14 +485,14 @@ export class GenericCrudService {
             } else {
               this.notificacionSnackBar.notification$.next({
                 texto:
-                  "Ups! Algo salió mal en operacion: " + res.errors[0].message,
+                  "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
               if (res?.data != null && res?.data["data"] != null) {
                 obs.next(res.data["data"]);
               } else {
-                obs.error(res.errors);
+                obs.error(limpiarErroresGraphQL(res.errors));
               }
             }
           },
@@ -542,7 +546,7 @@ export class GenericCrudService {
               });
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal en operacion: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
@@ -551,7 +555,7 @@ export class GenericCrudService {
               // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el
               // formulario entero. Un error de negocio del backend es un error para el llamador,
               // no un silencio.
-              obs.error({ graphQLErrors: res.errors, message: res.errors[0].message });
+              obs.error({ graphQLErrors: limpiarErroresGraphQL(res.errors), message: limpiarMensajeGraphQL(res.errors[0].message) });
             }
           },
           error: (error) => {
@@ -608,7 +612,7 @@ export class GenericCrudService {
                   this.notificacionSnackBar.notification$.next({
                     texto:
                       "Ups! Ocurrió algun problema al eliminar: " +
-                      res.errors[0].message,
+                      limpiarMensajeGraphQL(res.errors[0].message),
                     duracion: 3,
                     color: NotificacionColor.danger,
                   });
@@ -661,7 +665,7 @@ export class GenericCrudService {
                         this.notificacionSnackBar.notification$.next({
                           texto:
                             "Ups! Ocurrió algun problema al eliminar: " +
-                            res.errors[0].message,
+                            limpiarMensajeGraphQL(res.errors[0].message),
                           duracion: 3,
                           color: NotificacionColor.danger,
                         });
@@ -729,7 +733,7 @@ export class GenericCrudService {
                   this.notificacionSnackBar.notification$.next({
                     texto:
                       "Ups! Ocurrió algun problema al eliminar: " +
-                      res.errors[0].message,
+                      limpiarMensajeGraphQL(res.errors[0].message),
                     duracion: 3,
                     color: NotificacionColor.danger,
                   });
@@ -782,7 +786,7 @@ export class GenericCrudService {
                         this.notificacionSnackBar.notification$.next({
                           texto:
                             "Ups! Ocurrió algun problema al eliminar: " +
-                            res.errors[0].message,
+                            limpiarMensajeGraphQL(res.errors[0].message),
                           duracion: 3,
                           color: NotificacionColor.danger,
                         });
@@ -859,7 +863,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -922,7 +926,7 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionBar.notification$.next({
-                texto: "Ups!! Algo salio mal: " + res.errors[0].message,
+                texto: "Ups!! Algo salio mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
