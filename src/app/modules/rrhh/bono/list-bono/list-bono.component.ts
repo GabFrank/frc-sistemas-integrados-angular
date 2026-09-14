@@ -92,7 +92,14 @@ export class ListBonoComponent implements OnInit {
 
   onNuevo() {
     this.dialog.open(EditBonoDialogComponent, {
-      data: { funcionarioId: this.funcionarioControl.value },
+      data: { funcionarioId: this.funcionarioControl.value, bono: null },
+      width: '520px', disableClose: true
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+  }
+
+  onEditar(row: Bono) {
+    this.dialog.open(EditBonoDialogComponent, {
+      data: { funcionarioId: null, bono: row },
       width: '520px', disableClose: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
   }

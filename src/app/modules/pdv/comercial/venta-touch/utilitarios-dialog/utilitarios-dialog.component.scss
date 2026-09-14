@@ -1,6 +1,12 @@
+// El margin-bottom que traian las tarjetas dejaba 30px de aire abajo contra 20px arriba.
+// La separacion entre filas ahora la da el row-gap del contenedor, que no desbalancea.
 :host::ng-deep mat-card {
-    margin-bottom: 10px;
+    margin-bottom: 0;
   }
+
+.utilitarios {
+  row-gap: 20px;
+}
 
   p {
     font-size: medium;

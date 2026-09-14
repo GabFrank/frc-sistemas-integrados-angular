@@ -23,6 +23,8 @@ import { CajaVirtualResumenBancarioGQL } from './graphql/cajaVirtualResumenBanca
 import { MovimientosCajaVirtualFilterGQL } from './graphql/movimientosCajaVirtualFilter';
 import { CajaVirtualConfiguracionGQL } from './graphql/cajaVirtualConfiguracion';
 import { SaveCajaVirtualConfiguracionGQL } from './graphql/saveCajaVirtualConfiguracion';
+import { ImprimirReporteMovimientosCajaVirtualGQL } from './graphql/imprimirReporteMovimientosCajaVirtual';
+import { ImprimirReporteMovimientosBancariosGQL } from './graphql/imprimirReporteMovimientosBancarios';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +53,8 @@ export class CajaVirtualService {
     private otorgarAccesoGQL: OtorgarAccesoCajaGQL,
     private revocarAccesoGQL: RevocarAccesoCajaGQL,
     private transferirPropiedadGQL: TransferirPropiedadCajaGQL,
+    private imprimirReporteMovimientosGQL: ImprimirReporteMovimientosCajaVirtualGQL,
+    private imprimirReporteMovimientosBancariosGQL: ImprimirReporteMovimientosBancariosGQL,
   ) { }
 
   // ── Acceso por caja (ACL) ──
@@ -151,6 +155,32 @@ export class CajaVirtualService {
       monedaId: filtros.monedaId ?? null,
       soloActivos: filtros.soloActivos ?? false,
       page, size
+    });
+  }
+
+  /** PDF (base64) de los movimientos de caja mayor, con los mismos filtros que onGetMovimientosFilter. */
+  onImprimirReporteMovimientos(cajaVirtualId: number,
+                               filtros: { desde?: string; fin?: string; tipo?: CajaVirtualTipoMovimiento; monedaId?: number; soloActivos?: boolean }): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirReporteMovimientosGQL, {
+      cajaVirtualId,
+      desde: filtros.desde ?? null,
+      fin: filtros.fin ?? null,
+      tipo: filtros.tipo ?? null,
+      monedaId: filtros.monedaId ?? null,
+      soloActivos: filtros.soloActivos ?? false,
+    });
+  }
+
+  /** PDF (base64) de los movimientos de una cuenta bancaria vista desde esta caja. */
+  onImprimirReporteMovimientosBancarios(cajaVirtualId: number, cuentaBancariaId: number,
+                                        filtros: { desde?: string; fin?: string; tipo?: string; soloActivos?: boolean }): Observable<string> {
+    return this.genericService.onCustomQuery(this.imprimirReporteMovimientosBancariosGQL, {
+      cajaVirtualId,
+      cuentaBancariaId,
+      desde: filtros.desde ?? null,
+      fin: filtros.fin ?? null,
+      tipo: filtros.tipo ?? null,
+      soloActivos: filtros.soloActivos ?? false,
     });
   }
 

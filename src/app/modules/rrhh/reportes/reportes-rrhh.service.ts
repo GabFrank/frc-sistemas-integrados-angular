@@ -51,8 +51,9 @@ export class ReportesRrhhService {
     return this.genericService.onCustomQuery(this.reciboBonoGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  onNominaMes(periodo: string, servidor = true): Observable<any> {
-    return this.genericService.onCustomQuery(this.nominaGQL, { periodo }, servidor);
+  /** ciudadId: solo esa ciudad. sinCiudad: solo los funcionarios sin sucursal asignada. */
+  onNominaMes(periodo: string, ciudadId: number = null, sinCiudad = false, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(this.nominaGQL, { periodo, ciudadId, sinCiudad }, servidor);
   }
 
   onResumenIps(periodo: string, servidor = true): Observable<any> {

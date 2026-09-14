@@ -135,7 +135,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     if (this.responsableControl.valid) {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
-          .onGetFuncionarioPorPersona(this.responsableControl.value, false)
+          .onGetFuncionarioPorPersonaSimple(this.responsableControl.value, false)
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -151,7 +151,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
 
   onResponsableSearchByTexto() {
     this.funcionarioService
-      .onFuncionarioSearch(this.responsableControl.value, false)
+      .onFuncionarioSearchSimple(this.responsableControl.value, false)
       .pipe(untilDestroyed(this))
       .subscribe((response) => {
         this.funcionarioList = response;

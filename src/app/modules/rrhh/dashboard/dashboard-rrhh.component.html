@@ -61,13 +61,42 @@
       [matMenuTriggerFor]="reportesMenu"
     ></dash-quick-action>
     <mat-menu #reportesMenu="matMenu">
+      <ng-container *ngFor="let r of reportes">
+        <!-- La nómina abre submenú de ciudades; el resto dispara el reporte directo. -->
+        <button
+          mat-menu-item
+          *ngIf="r.accion === 'nomina'"
+          [matMenuTriggerFor]="nominaCiudadesMenu"
+        >
+          <mat-icon>{{ r.icon }}</mat-icon>
+          <span>{{ r.titulo }}</span>
+        </button>
+        <button
+          mat-menu-item
+          *ngIf="r.accion !== 'nomina'"
+          (click)="onReporte(r.accion)"
+        >
+          <mat-icon>{{ r.icon }}</mat-icon>
+          <span>{{ r.titulo }}</span>
+        </button>
+      </ng-container>
+    </mat-menu>
+    <mat-menu #nominaCiudadesMenu="matMenu">
+      <button mat-menu-item (click)="onReporteNomina(null, false, null)">
+        <mat-icon>public</mat-icon>
+        <span>Todas las ciudades</span>
+      </button>
       <button
         mat-menu-item
-        *ngFor="let r of reportes"
-        (click)="onReporte(r.accion)"
+        *ngFor="let c of ciudadesNomina"
+        (click)="onReporteNomina(c.id, false, c.descripcion)"
       >
-        <mat-icon>{{ r.icon }}</mat-icon>
-        <span>{{ r.titulo }}</span>
+        <mat-icon>location_city</mat-icon>
+        <span>{{ c.descripcion | titlecase }}</span>
+      </button>
+      <button mat-menu-item (click)="onReporteNomina(null, true, 'Sin ciudad asignada')">
+        <mat-icon>help_outline</mat-icon>
+        <span>Sin ciudad asignada</span>
       </button>
     </mat-menu>
   </div>

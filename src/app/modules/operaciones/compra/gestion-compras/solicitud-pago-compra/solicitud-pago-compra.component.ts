@@ -6,6 +6,7 @@ import { NotaRecepcion } from '../nota-recepcion.model';
 import { SolicitudPagoService } from '../solicitud-pago.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
+import { MotivoDialogComponent, MotivoDialogData } from '../../../../../shared/components/motivo-dialog/motivo-dialog.component';
 import { Pedido } from '../pedido.model';
 import { CreateEditSolicitudPagoDialogComponent } from '../../../solicitud-pago/create-edit-solicitud-pago-dialog/create-edit-solicitud-pago-dialog.component';
 import { TabService } from '../../../../../layouts/tab/tab.service';
@@ -237,6 +238,37 @@ export class SolicitudPagoCompraComponent implements OnInit, OnChanges {
           this.notificacionService.openAlgoSalioMal('Error al actualizar estado');
           this.loading = false;
         }
+      });
+  }
+
+  /**
+   * Cancela la solicitud con un motivo. La cancela compras, que la armó; las reglas (sin pagos,
+   * solo solicitudes de compra) las decide el central y su mensaje se muestra tal cual.
+   */
+  onCancelarSolicitud(solicitud: SolicitudPago): void {
+    const data: MotivoDialogData = {
+      titulo: `Cancelar solicitud ${solicitud.numeroSolicitud}`,
+      mensaje: '¿Por qué se cancela? Queda registrado en la solicitud.',
+      detalle: 'Las notas vuelven a quedar disponibles para otra solicitud.',
+      botonConfirmar: 'Cancelar solicitud',
+    };
+    this.dialog.open(MotivoDialogComponent, { data }).afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((motivo: string | null) => {
+        if (!motivo || !solicitud.id) return;
+        this.loading = true;
+        this.solicitudPagoService.onCancelar(solicitud.id, motivo)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: () => {
+              this.notificacionService.openSucess(`Solicitud ${solicitud.numeroSolicitud} cancelada`);
+              this.loadData();
+            },
+            // El servicio genérico ya mostró el mensaje del central.
+            error: () => {
+              this.loading = false;
+            }
+          });
       });
   }
 

@@ -32,6 +32,7 @@ export class Funcionario {
   ipsActivo: boolean;
   numeroIps: string;
   fechaIngresoIps: string;
+  cobraBanco: boolean;
   cuentaBancaria: string;
   contactoEmergenciaNombre: string;
   contactoEmergenciaTelefono: string;
@@ -55,6 +56,7 @@ export class Funcionario {
     input.ipsActivo = this.ipsActivo
     input.numeroIps = this.numeroIps
     input.fechaIngresoIps = dateToString(this.fechaIngresoIps ? new Date(this.fechaIngresoIps) : null, 'yyyy-MM-dd')
+    input.cobraBanco = this.cobraBanco
     input.cuentaBancaria = this.cuentaBancaria
     input.contactoEmergenciaNombre = this.contactoEmergenciaNombre
     input.contactoEmergenciaTelefono = this.contactoEmergenciaTelefono

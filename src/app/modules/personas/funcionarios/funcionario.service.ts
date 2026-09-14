@@ -23,6 +23,8 @@ import { FuncionariosWithPageGQL } from './graphql/funcionarios-with-page';
 import { PageInfo } from '../../../app.component';
 import { FuncionarioPorPersonaIdGQL } from './graphql/funcionarioPorPersonaId';
 import { FuncionarioByIdGQL } from './graphql/funcionarioById';
+import { FuncionarioSearchSimpleGQL } from './graphql/funcionarioSearchSimple';
+import { FuncionarioPorPersonaIdSimpleGQL } from './graphql/funcionarioPorPersonaIdSimple';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -43,7 +45,9 @@ export class FuncionarioService {
     private preRegistroFuncionarios: PreRegistroFuncionariosGQL,
     private funcionariosWithPage: FuncionariosWithPageGQL,
     private funcionarioPorPersona: FuncionarioPorPersonaIdGQL,
-    private funcionarioById: FuncionarioByIdGQL
+    private funcionarioById: FuncionarioByIdGQL,
+    private searchFuncionarioSimple: FuncionarioSearchSimpleGQL,
+    private funcionarioPorPersonaSimple: FuncionarioPorPersonaIdSimpleGQL
   ) { }
 
   onGetAllFuncionarios(page?, size?, servidor = true): Observable<Funcionario[]> {
@@ -113,11 +117,21 @@ export class FuncionarioService {
     return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page, size, servidor)
   }
 
-  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, servidor = true): Observable<PageInfo<Funcionario>> {
-    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba }, servidor);
+  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, cobraBanco?, servidor = true): Observable<PageInfo<Funcionario>> {
+    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba, cobraBanco }, servidor);
   }
 
   onGetFuncionarioPorPersona(id, servidor = true): Observable<Funcionario> {
     return this.genericCrud.onGetById(this.funcionarioPorPersona, id, null, null, servidor);
+  }
+
+  // Busquedas livianas para autocompletes (id + persona). Usarlas cuando la consulta
+  // va contra la filial: la version completa pide horario, que solo existe en el central.
+  onFuncionarioSearchSimple(texto: string, servidor = true): Observable<any> {
+    return this.genericCrud.onCustomQuery(this.searchFuncionarioSimple, { texto }, servidor);
+  }
+
+  onGetFuncionarioPorPersonaSimple(id, servidor = true): Observable<Funcionario> {
+    return this.genericCrud.onGetById(this.funcionarioPorPersonaSimple, id, null, null, servidor);
   }
 }
