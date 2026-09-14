@@ -80,6 +80,28 @@ Ninguno. No hay campo, columna ni clave nueva.
 Preexistente, no se toca: `onSave` ante error de red sin `errorConf.propagate` no emite ni `next`
 ni `error`, así que el logout ya hoy puede colgarse sin red.
 
+## Auditoría del diff (paso 8)
+
+- Fijo 1 (autorización): N/A para desktop porque el diff no agrega resolver, query ni entrada de menú.
+- Fijo 2 (esquema/migración): N/A porque no hay migración, `.graphqls` ni enum en el diff.
+- Condicionales A y B: no disparados (ningún archivo matchea sus globs).
+- Fijo 3 (contrato): sin riesgos. `sucursalId` es `Int` nullable en `InicioSesionInput` de central y
+  filial en `develop`, `release/beta` y `master`; el fallback de central es idéntico en los tres
+  canales; `id > 0` se comporta igual con id number (REST `/login`) o string (GraphQL `ID`);
+  `rxjs` 7.8 soporta `subscribe({next, error})`. Hallazgo descartado: «en filial null se guarda tal
+  cual» se apoya en la anotación `nullable=true` de la entidad; el catálogo de las bases dice
+  `NOT NULL` y la colisión ocurre al replicar `(id, 0)` hacia central (filial#77).
+
+## Verificación (pasos 7 y 9)
+
+- Karma (`npm test --include`): **inejecutable** en este repo — sin launcher Chrome, y con el launcher
+  Electron `src/test.ts:18` falla con `__webpack_require__(...).context is not a function`. El spec
+  queda versionado pero no corre en ningún gate.
+- Sustituto: script Node empaquetado con esbuild contra el modelo real, mismos 3 casos del spec.
+  Con el código viejo: `sucursal 0 → 0` (FAIL). Con el fix: 3/3 PASS.
+- Entorno de runtime: filial dev en 8082 con `--sucursalId=0` (la sucursal `0|SERVIDOR` existe en
+  `5551/general`; 0 sesiones con `sucursal_id = 0` antes de la prueba).
+
 ## Sin verificar
 
 - Bajo qué condición el `/login` del filial devuelve 0 (capa 3 de filial#77) — backend, fuera de alcance.
