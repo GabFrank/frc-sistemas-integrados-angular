@@ -59,7 +59,16 @@ export class OperacionFinancieraService {
     return this.genericService.onSaveCustom(this.anularGQL, { id: operacionId, motivo: motivo || null });
   }
 
-  onGetMovimientosBancarios(cuentaBancariaId: number, page = 0, size = 10): Observable<SimplePage<MovimientoBancario>> {
-    return this.genericService.onCustomQuery(this.movimientosBancariosGQL, { cuentaBancariaId, page, size });
+  /** Filtros opcionales: sin ellos trae todos los movimientos de la cuenta, como antes. */
+  onGetMovimientosBancarios(cuentaBancariaId: number, page = 0, size = 10,
+                            filtros: { desde?: string; fin?: string; tipo?: string; soloActivos?: boolean } = {}): Observable<SimplePage<MovimientoBancario>> {
+    return this.genericService.onCustomQuery(this.movimientosBancariosGQL, {
+      cuentaBancariaId,
+      desde: filtros.desde ?? null,
+      fin: filtros.fin ?? null,
+      tipo: filtros.tipo ?? null,
+      soloActivos: filtros.soloActivos ?? false,
+      page, size
+    });
   }
 }
