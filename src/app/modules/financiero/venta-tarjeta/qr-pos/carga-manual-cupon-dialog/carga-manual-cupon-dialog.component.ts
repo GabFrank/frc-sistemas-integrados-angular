@@ -65,6 +65,16 @@ export interface CargaManualCuponData {
    * del proveedor que `venta_tarjeta.datos_extra` existe para conservar.
    */
   datosExtra?: string;
+
+  /**
+   * Cuánto puede diferir el monto del cupón respecto de lo cobrado, en porcentaje, antes de pedir
+   * confirmación. Espejo de `configuracion_venta_tarjeta.tolerancia_diferencia_monto_pct`.
+   *
+   * **Ausente = 0 = cualquier diferencia se pregunta**, que es el lado seguro y además el valor
+   * configurado hoy. Queda opcional a propósito: los cuatro lugares que abren este diálogo no leen
+   * la configuración del módulo todavía, y hacer que la lean es un cambio aparte.
+   */
+  toleranciaPct?: number;
 }
 
 interface CampoManual {
@@ -175,9 +185,13 @@ export class CargaManualCuponDialogComponent implements OnInit {
     if (this.esConfirmacion) {
       this.prepararSemaforo();
       this.titulo = 'Confirmá los datos del cupón';
+      // El texto anterior decía "revisá los campos marcados en ámbar", y eso se leía como "los
+      // verdes no hace falta mirarlos". El 2026-09-14 quedó medido que un campo verde puede estar
+      // mal: confianza 0,9657 sobre un valor equivocado. El verde dice que el lector se vio
+      // seguro, no que el dato sea correcto.
       this.ayuda =
-        'El lector ya completó lo que pudo leer con seguridad. Revisá contra el ticket los campos ' +
-        'marcados en ámbar: son los que no se leyeron con claridad.';
+        'El lector completó lo que pudo leer. Los campos en ámbar no se leyeron con claridad y hay ' +
+        'que corregirlos; los verdes conviene confirmarlos contra el ticket antes de seguir.';
       // El botón se habilita cuando no queda nada dudoso sin confirmar, así que hay que
       // recalcular con cada tecla: corregir un valor cuenta como confirmarlo.
       this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());
@@ -207,11 +221,46 @@ export class CargaManualCuponDialogComponent implements OnInit {
       c.bueno = typeof conf === 'number' && conf >= CONFIANZA_MINIMA;
       c.dudoso = !c.bueno;
       c.pista = c.bueno
-        ? 'Leído con claridad'
+        ? 'El lector está seguro — confirmalo igual contra el ticket'
         : typeof conf === 'number'
           ? 'Lectura poco clara — verificá contra el ticket'
           : 'No se pudo medir la lectura — verificá contra el ticket';
     });
+
+    this.cruzarMontoConLoCobrado();
+  }
+
+  /**
+   * El monto que dice el cupón contra el que se está cobrando.
+   *
+   * <b>Por qué hace falta aunque la confianza sea alta.</b> Está medido: el 2026-09-14, sobre un
+   * cupón de prueba, el lector devolvió un código de autorización equivocado con confianza 0,9657
+   * --por encima del umbral-- y la pantalla lo pintó de verde. La confianza dice qué tan nítido se
+   * vio un carácter, no si el valor es el correcto. Para el monto sí hay con qué contrastarlo: lo
+   * que la caja está cobrando.
+   *
+   * <b>Es la única verificación objetiva de esta pantalla.</b> El código de autorización y el
+   * número de boleta no se pueden contrastar contra nada; el monto sí, y es el campo que decide
+   * plata.
+   */
+  private cruzarMontoConLoCobrado(): void {
+    const cobrado = aNumero(this.data?.monto);
+    if (cobrado == null || cobrado === 0) return;   // sin referencia, no hay con qué comparar
+
+    const campo = this.campos.find((c) => c.clave === 'montoEscaneado');
+    if (!campo || !campo.leido) return;
+
+    const leido = aNumero(campo.leido);
+    if (leido == null) return;
+
+    const tolerancia = this.data?.toleranciaPct ?? 0;
+    const difPct = (Math.abs(leido - cobrado) / cobrado) * 100;
+    if (difPct <= tolerancia) return;
+
+    // Gana sobre la confianza: que el lector esté seguro no lo hace correcto.
+    campo.bueno = false;
+    campo.dudoso = true;
+    campo.pista = 'No coincide con lo cobrado — verificá contra el ticket';
   }
 
   /**
