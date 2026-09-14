@@ -1267,8 +1267,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
-          .subscribe((res) => {
-            resolve(res);
+          .subscribe({
+            next: (res) => resolve(res),
+            // Un cierre rechazado (ej. sesion con sucursal invalida) no debe
+            // colgar el logout: onSave ya mostro el error.
+            error: () => resolve(null),
           });
       });
     }
