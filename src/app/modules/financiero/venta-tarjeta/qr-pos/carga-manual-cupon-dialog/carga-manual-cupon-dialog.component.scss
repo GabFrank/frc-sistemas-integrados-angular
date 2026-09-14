@@ -41,17 +41,21 @@
 
   .campo-input { width: 100%; }
 
+  // El tilde de confirmación, debajo de su campo. Sin margen negativo: el intento anterior
+  // subía este bloque -14px asumiendo que el subscript de Material no ocupaba alto, y con
+  // `appearance="outline"` sí lo ocupa — el texto terminaba pisando el borde del campo.
   .semaforo {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-    margin: -14px 0 6px;   // pegado a su campo: el subscript de Material ya no ocupa alto
+    margin: 0 0 6px;
     font-size: 12px;
   }
 
-  .pista { opacity: 0.7; }
-  .pista-dudosa { color: #ffb300; opacity: 1; }
+  // El hint ya vive dentro del form-field, así que hereda su tipografía y su posición; sólo
+  // cambia el color cuando hay que mirar el campo.
+  .pista-dudosa { color: #ffb300; }
 
   .falta-confirmar {
     font-size: 13px;

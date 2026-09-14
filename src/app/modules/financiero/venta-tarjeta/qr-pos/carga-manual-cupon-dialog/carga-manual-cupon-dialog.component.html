@@ -17,13 +17,15 @@
     <mat-form-field appearance="outline" class="campo-input">
       <mat-label>{{ c.etiqueta }}{{ c.obligatorio ? ' *' : '' }}</mat-label>
       <input matInput [formControlName]="c.clave" autocomplete="off" />
+      <!-- La pista va en el slot de hint de Material, no en un div propio con margen negativo:
+           el subscript de `appearance="outline"` SI reserva alto, y subir el texto a mano lo
+           aterrizaba encima del borde inferior del campo. -->
+      <mat-hint *ngIf="c.bueno || c.dudoso" [class.pista-dudosa]="c.dudoso">{{ c.pista }}</mat-hint>
     </mat-form-field>
 
-    <!-- El semáforo sólo aparece cuando hay una lectura que juzgar: en la carga a mano pura
-         no hay nada que confirmar y la fila queda como siempre. -->
-    <div class="semaforo" *ngIf="c.bueno || c.dudoso">
-      <span class="pista" [class.pista-dudosa]="c.dudoso">{{ c.pista }}</span>
-      <mat-checkbox *ngIf="c.dudoso" color="primary"
+    <!-- El tilde es lo que realmente bloquea, y solo aparece si hay algo que confirmar. -->
+    <div class="semaforo" *ngIf="c.dudoso">
+      <mat-checkbox color="primary"
                     [checked]="confirmado[c.clave]"
                     (change)="onConfirmarCampo(c.clave, $event.checked)">
         Coincide con el ticket
