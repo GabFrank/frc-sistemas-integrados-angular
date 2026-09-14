@@ -92,6 +92,14 @@ function formatoDe(moneda: Moneda): string {
   return `1.0-${d}`;
 }
 
+/** Fecha de hoy como "14-09-2026". Con guiones y no barras: termina en un nombre de archivo. */
+function fechaHoyArchivo(): string {
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2, '0');
+  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+  return `${dd}-${mm}-${hoy.getFullYear()}`;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-caja-virtual-dashboard',
@@ -398,7 +406,8 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const f = this.filtrosAplicados;
     const fuente = this.fuenteSel;
     if (!this.cajaVirtual?.id || !f) return;
-    const nombre = `Movimientos ${this.cajaVirtual.nombre || ''} - ${fuente.label}`;
+    // El nombre es también el del archivo al descargar: lleva la fecha de generación para distinguir un PDF de otro.
+    const nombre = `Movimientos ${this.cajaVirtual.nombre || ''} - ${fuente.label} - ${fechaHoyArchivo()}`;
     if (fuente.tipo === 'BANCO') {
       if (!fuente.cuentaId) return;
       this.impresionService.imprimir(nombre, () => this.cajaVirtualService.onImprimirReporteMovimientosBancarios(
