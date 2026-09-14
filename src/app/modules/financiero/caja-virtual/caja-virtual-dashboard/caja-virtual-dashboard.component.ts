@@ -38,6 +38,16 @@ import { RetiroVerificacionService } from '../../retiro/verificacion/retiro-veri
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+
+/** Filtros con los que se cargó la tabla: el reporte imprime exactamente lo mismo. */
+interface FiltrosMovimientos {
+  desde: string | null;
+  fin: string | null;
+  tipo: string | null;
+  soloActivos: boolean;
+  monedaId: number | null;   // solo caja mayor: una cuenta bancaria tiene una sola moneda
+}
 
 // Fila de la tabla de movimientos con campos de display precalculados.
 interface MovimientoRow extends MovimientoCajaVirtual {
@@ -80,6 +90,14 @@ function formatoDe(moneda: Moneda): string {
     ? moneda.decimales
     : ((moneda?.denominacion || '').toUpperCase().includes('GUARAN') ? 0 : 2);
   return `1.0-${d}`;
+}
+
+/** Fecha de hoy como "14-09-2026". Con guiones y no barras: termina en un nombre de archivo. */
+function fechaHoyArchivo(): string {
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2, '0');
+  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+  return `${dd}-${mm}-${hoy.getFullYear()}`;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -159,6 +177,19 @@ export class CajaVirtualDashboardComponent implements OnInit {
     { label: 'Ajuste', value: CajaVirtualTipoMovimiento.AJUSTE },
   ];
 
+  tipoMovimientoBancoList = [
+    { label: 'Entrada', value: 'ENTRADA_MANUAL' },
+    { label: 'Salida', value: 'SALIDA_MANUAL' },
+    { label: 'Ajuste +', value: 'AJUSTE_POSITIVO' },
+    { label: 'Ajuste −', value: 'AJUSTE_NEGATIVO' },
+    { label: 'Acreditación POS', value: 'ACREDITACION_POS' },
+  ];
+
+  /** Opciones del filtro de tipo según la fuente: caja y banco no comparten tipos. */
+  tipoOpciones: { label: string; value: string }[] = this.tipoMovimientoList;
+
+  private filtrosAplicados: FiltrosMovimientos = null;
+
   tipoMovimientoLabels: Record<string, string> = {
     INGRESO: 'Ingreso',
     EGRESO: 'Egreso',
@@ -198,6 +229,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
     private dialogosService: DialogosService,
     private retiroVerificacionService: RetiroVerificacionService,
     private notificacion: NotificacionSnackbarService,
+    private impresionService: ImpresionService,
     public mainService: MainService
   ) {}
 
@@ -295,26 +327,45 @@ export class CajaVirtualDashboardComponent implements OnInit {
     // Preserva la selección actual si la cuenta sigue visible; si no, vuelve a Caja Mayor.
     const sigue = this.fuentes.find(f => f.tipo === this.fuenteSel.tipo && f.cuentaId === this.fuenteSel.cuentaId);
     this.fuenteSel = sigue || this.fuentes[0];
-    this.fuenteEsBanco = this.fuenteSel.tipo === 'BANCO';
+    this.setFuenteEsBanco(this.fuenteSel.tipo === 'BANCO');
   }
 
   onFuenteChange(f: { label: string; tipo: 'CAJA' | 'BANCO'; cuentaId: number | null }) {
     this.fuenteSel = f;
-    this.fuenteEsBanco = f.tipo === 'BANCO';
+    this.setFuenteEsBanco(f.tipo === 'BANCO');
     this.pageIndex = 0;
     this.cargarMovimientos();
   }
 
-  cargarMovimientos() {
-    if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
-    if (!this.cajaVirtual?.id) return;
-    this.isLoading = true;
-    this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
+  /** Al pasar de caja a banco (o al revés) el tipo elegido deja de existir: se limpia. */
+  private setFuenteEsBanco(esBanco: boolean) {
+    if (esBanco !== this.fuenteEsBanco) this.tipoControl.setValue(null);
+    this.fuenteEsBanco = esBanco;
+    this.tipoOpciones = esBanco ? this.tipoMovimientoBancoList : this.tipoMovimientoList;
+  }
+
+  private leerFiltros(): FiltrosMovimientos {
+    return {
       desde: this.desdeControl.value ? dateToString(this.desdeControl.value) : null,
       fin: this.hastaControl.value ? dateToString(this.hastaControl.value) : null,
       tipo: this.tipoControl.value || null,
-      monedaId: this.monedaSelId,
       soloActivos: !this.verAnulaciones,
+      monedaId: this.fuenteEsBanco ? null : this.monedaSelId,
+    };
+  }
+
+  cargarMovimientos() {
+    this.filtrosAplicados = this.leerFiltros();
+    if (this.fuenteEsBanco) { this.cargarMovimientosBancarios(); return; }
+    if (!this.cajaVirtual?.id) return;
+    this.isLoading = true;
+    const f = this.filtrosAplicados;
+    this.cajaVirtualService.onGetMovimientosFilter(this.cajaVirtual.id, {
+      desde: f.desde,
+      fin: f.fin,
+      tipo: f.tipo as CajaVirtualTipoMovimiento,
+      monedaId: f.monedaId,
+      soloActivos: f.soloActivos,
     }, this.pageIndex, this.pageSize)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
@@ -333,7 +384,10 @@ export class CajaVirtualDashboardComponent implements OnInit {
     const cuentaId = this.fuenteSel.cuentaId;
     if (!cuentaId) { this.dataSourceBanco.data = []; return; }
     this.isLoading = true;
-    this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize)
+    const f = this.filtrosAplicados;
+    this.operacionFinancieraService.onGetMovimientosBancarios(cuentaId, this.pageIndex, this.pageSize, {
+      desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos,
+    })
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         this.isLoading = false;
@@ -342,6 +396,29 @@ export class CajaVirtualDashboardComponent implements OnInit {
           this.selectedPageInfo = { getTotalElements: res.getTotalElements };
         }
       });
+  }
+
+  /**
+   * Reporte PDF de la fuente seleccionada (caja mayor o la cuenta bancaria), con los filtros con los
+   * que se cargó la tabla: si el usuario tocó un filtro sin aplicarlo, el PDF no lo toma.
+   */
+  onGenerarReporte() {
+    const f = this.filtrosAplicados;
+    const fuente = this.fuenteSel;
+    if (!this.cajaVirtual?.id || !f) return;
+    // El nombre es también el del archivo al descargar: lleva la fecha de generación para distinguir un PDF de otro.
+    const nombre = `Movimientos ${this.cajaVirtual.nombre || ''} - ${fuente.label} - ${fechaHoyArchivo()}`;
+    if (fuente.tipo === 'BANCO') {
+      if (!fuente.cuentaId) return;
+      this.impresionService.imprimir(nombre, () => this.cajaVirtualService.onImprimirReporteMovimientosBancarios(
+        this.cajaVirtual.id, fuente.cuentaId, { desde: f.desde, fin: f.fin, tipo: f.tipo, soloActivos: f.soloActivos }), true);
+    } else {
+      this.impresionService.imprimir(nombre, () => this.cajaVirtualService.onImprimirReporteMovimientos(
+        this.cajaVirtual.id, {
+          desde: f.desde, fin: f.fin, tipo: f.tipo as CajaVirtualTipoMovimiento,
+          monedaId: f.monedaId, soloActivos: f.soloActivos,
+        }), true);
+    }
   }
 
   private toRow(m: MovimientoCajaVirtual): MovimientoRow {

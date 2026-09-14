@@ -107,13 +107,16 @@
               <mat-option *ngFor="let f of fuentes" [value]="f">{{ f.label }}</mat-option>
             </mat-select>
           </mat-form-field>
-          <button mat-icon-button *ngIf="!fuenteEsBanco" (click)="onToggleVerAnulaciones()"
+          <button mat-icon-button (click)="onToggleVerAnulaciones()"
                   [color]="verAnulaciones ? 'accent' : null"
                   [matTooltip]="verAnulaciones ? 'Ocultar anulaciones' : 'Ver anulaciones'">
             <mat-icon>{{ verAnulaciones ? 'visibility' : 'visibility_off' }}</mat-icon>
           </button>
-          <button mat-icon-button *ngIf="!fuenteEsBanco" (click)="toggleFiltros()" matTooltip="Filtros">
+          <button mat-icon-button (click)="toggleFiltros()" matTooltip="Filtros">
             <mat-icon>{{ showFiltros ? 'expand_less' : 'filter_list' }}</mat-icon>
+          </button>
+          <button mat-icon-button (click)="onGenerarReporte()" matTooltip="Generar reporte (PDF)">
+            <mat-icon>picture_as_pdf</mat-icon>
           </button>
           <button mat-icon-button (click)="cargarMovimientos()" matTooltip="Refrescar">
             <mat-icon>refresh</mat-icon>
@@ -121,8 +124,8 @@
         </div>
       </mat-card-header>
 
-      <!-- Filtros (solo caja mayor) -->
-      <div class="filtros-bar" *ngIf="showFiltros && !fuenteEsBanco" fxLayout="row wrap" fxLayoutGap="10px">
+      <!-- Filtros (caja mayor y cuentas bancarias; la moneda se filtra con las cards de saldo) -->
+      <div class="filtros-bar" *ngIf="showFiltros" fxLayout="row wrap" fxLayoutGap="10px">
         <mat-form-field appearance="outline" style="width: 140px;">
           <mat-label>Desde</mat-label>
           <input matInput [matDatepicker]="dp1" [formControl]="desdeControl" />
@@ -139,7 +142,7 @@
           <mat-label>Tipo</mat-label>
           <mat-select [formControl]="tipoControl">
             <mat-option [value]="null">Todos</mat-option>
-            <mat-option *ngFor="let t of tipoMovimientoList" [value]="t.value">{{ t.label }}</mat-option>
+            <mat-option *ngFor="let t of tipoOpciones" [value]="t.value">{{ t.label }}</mat-option>
           </mat-select>
         </mat-form-field>
         <button mat-raised-button color="primary" (click)="aplicarFiltros()">Aplicar</button>
