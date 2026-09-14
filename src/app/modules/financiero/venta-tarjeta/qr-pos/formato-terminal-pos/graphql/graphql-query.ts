@@ -161,6 +161,7 @@ export const derivarMapaDeMuestraMutation = gql`
       x2
       y2
       sinRegion
+      tipo
     }
   }
 `;

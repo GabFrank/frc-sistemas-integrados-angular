@@ -50,6 +50,12 @@ export interface RegionDerivada {
    * reconocimiento y hace desaparecer un campo que hoy se lee bien.
    */
   sinRegion?: string;
+  /**
+   * TEXTO | NUMERO | FECHA, deducido por el backend del valor de la muestra. Viaja sin tocarse
+   * hasta el guardado: el filial lo usa al leer un cupón para mandar a revisión un valor que no
+   * encaja con su tipo.
+   */
+  tipo?: string;
 }
 
 export interface CapturaMuestraQr {
