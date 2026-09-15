@@ -359,7 +359,9 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
       campo,
       etiqueta: null,
       valor: '—',
-      tipo: null,
+      // El tipo lo declara el mapeo, no el dibujo: una region a mano tiene que llevar el mismo que
+      // llevaria una derivada, o el filial deja de validar ese campo sin que nadie lo haya decidido.
+      tipo: this.tiposDelMapeo()[campo] ?? null,
       izq: 35,
       arriba: 45,
       ancho: 30,
@@ -513,6 +515,22 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         manual: r.origen === 'MANUAL',
       });
     }
+  }
+
+  /** campo del mapeo → TEXTO | NUMERO | FECHA, si lo declara. */
+  private tiposDelMapeo(): { [campo: string]: string } {
+    const out: { [campo: string]: string } = {};
+    if (!this.mapeo) return out;
+    try {
+      const o = JSON.parse(this.mapeo);
+      for (const campo of Object.keys(o || {})) {
+        const t = o[campo]?.tipo;
+        if (typeof t === 'string') out[campo] = t.toUpperCase();
+      }
+    } catch {
+      // Mapeo a medio escribir: la solapa del mapeo ya lo marca.
+    }
+    return out;
   }
 
   /** campo del mapeo → grupo del patrón. Mismo parseo que el backend, sin inventar. */

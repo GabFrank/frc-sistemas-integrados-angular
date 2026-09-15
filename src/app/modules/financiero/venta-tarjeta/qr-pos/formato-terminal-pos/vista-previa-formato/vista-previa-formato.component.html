@@ -119,6 +119,15 @@
 
         <div class="editor-campo" *ngFor="let c of campos" [hidden]="c.sinCaja">
           <span class="editor-nombre">{{ c.campo }}</span>
+
+          <!-- El ancla es lo que hace que el mapa sobreviva: si el proveedor agrega un renglón, el
+               valor sigue estando al lado de su etiqueta. Una región sólo por coordenadas se rompe
+               entera ese día, y sin aviso. -->
+          <input class="editor-ancla" type="text" [(ngModel)]="c.etiqueta"
+                 [ngModelOptions]="{ standalone: true }"
+                 placeholder="ancla, ej: C.AUT:"
+                 [class.sin-ancla]="!c.etiqueta" />
+
           <span class="editor-manual" *ngIf="c.manual" title="La derivación no la pisa">a mano</span>
           <button mat-button type="button" [disabled]="guardandoRegion" (click)="onGuardarRegion(c)">
             Guardar
