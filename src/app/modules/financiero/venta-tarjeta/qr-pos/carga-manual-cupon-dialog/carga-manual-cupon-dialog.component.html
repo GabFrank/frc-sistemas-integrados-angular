@@ -15,7 +15,9 @@
        [class.campo-bueno]="c.bueno" [class.campo-dudoso]="c.dudoso">
 
     <mat-form-field appearance="outline" class="campo-input">
-      <mat-label>{{ c.etiqueta }}{{ c.obligatorio ? ' *' : '' }}</mat-label>
+      <!-- Sin asterisco a mano: el campo obligatorio lleva `Validators.required` y Material ya
+           dibuja el suyo. Ponerlo acá también daba "Código de autorización **". -->
+      <mat-label>{{ c.etiqueta }}</mat-label>
       <input matInput [formControlName]="c.clave" autocomplete="off" />
     </mat-form-field>
 
