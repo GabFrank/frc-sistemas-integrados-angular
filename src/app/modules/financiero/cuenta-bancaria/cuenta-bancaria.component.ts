@@ -111,7 +111,7 @@ export class CuentaBancariaComponent implements OnInit {
     ).subscribe(confirmed => {
       if (confirmed === true) {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        this.cuentaBancariaService.onDelete(item.id)
+        this.cuentaBancariaService.onDelete(item.id, { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe({
             next: res => {

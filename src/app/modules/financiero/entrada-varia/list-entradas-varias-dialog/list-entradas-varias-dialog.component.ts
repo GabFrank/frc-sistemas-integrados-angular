@@ -74,7 +74,7 @@ export class ListEntradasVariasDialogComponent implements OnInit {
     ).subscribe(confirmed => {
       if (confirmed) {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        this.entradaVariaService.onAnular(item.id, 'ANULADO DESDE ESCRITORIO')
+        this.entradaVariaService.onAnular(item.id, 'ANULADO DESDE ESCRITORIO', { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe({
             next: res => {

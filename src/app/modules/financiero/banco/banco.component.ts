@@ -74,7 +74,7 @@ export class BancoComponent implements OnInit {
     ).subscribe(confirmed => {
       if (confirmed) {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        this.bancoService.onDelete(item.id)
+        this.bancoService.onDelete(item.id, { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe({
             next: res => {

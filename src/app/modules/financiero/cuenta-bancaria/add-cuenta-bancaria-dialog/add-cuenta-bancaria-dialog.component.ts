@@ -148,7 +148,8 @@ export class AddCuentaBancariaDialogComponent implements OnInit {
     cuentaBancaria.persona = this.selectedPersona;
 
     this.isSaving = true;
-    this.cuentaBancariaService.onSave(cuentaBancaria)
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.cuentaBancariaService.onSave(cuentaBancaria, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -160,7 +161,6 @@ export class AddCuentaBancariaDialogComponent implements OnInit {
         },
         error: () => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal('Error al guardar la cuenta bancaria');
         }
       });
   }

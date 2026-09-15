@@ -607,7 +607,7 @@ export class AddOperacionFinancieraDialogComponent implements OnInit {
     }
 
     this.isSaving = true;
-    this.operacionFinancieraService.onRegistrar(operacion)
+    this.operacionFinancieraService.onRegistrar(operacion, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {

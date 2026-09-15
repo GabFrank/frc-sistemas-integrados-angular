@@ -663,16 +663,21 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
+      // Tres ramas pasan por onSaveCustom (van sin su «Guardado con éxito»: el éxito lo avisa este
+      // componente, y el error ya lo avisa onSaveCustom). La de pago a proveedor llama Apollo
+      // directo, sin aviso genérico, y el error manual de la verificación tampoco lo avisa nadie:
+      // esos dos se avisan acá.
+      const sinExitoGenerico = { avisarExito: false };
       const obs: Observable<any> = esRetiro
         ? this.retiroVerificacionService.onGetVerificacion(mov.origenId, mov.origenSucursalId).pipe(
             switchMap(v => v?.id
-              ? this.retiroVerificacionService.onAnular(v.id)
-              : throwError(() => new Error('No se encontró la verificación de este retiro'))))
+              ? this.retiroVerificacionService.onAnular(v.id, undefined, sinExitoGenerico)
+              : throwError(() => Object.assign(new Error('No se encontró la verificación de este retiro'), { avisoLocal: true }))))
         : esPagoCpp
           ? this.pagarComprasService.onAnularPago(mov.referenciaId)
           : esOpFinanciera
-            ? this.operacionFinancieraService.onAnular(mov.referenciaId)
-            : this.cajaVirtualService.onAnularMovimiento(mov.id);
+            ? this.operacionFinancieraService.onAnular(mov.referenciaId, undefined, sinExitoGenerico)
+            : this.cajaVirtualService.onAnularMovimiento(mov.id, undefined, sinExitoGenerico);
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {
@@ -681,6 +686,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
           }
         },
         error: err => {
+          if (!esPagoCpp && !err?.avisoLocal) return;
           const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
           this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
         }
