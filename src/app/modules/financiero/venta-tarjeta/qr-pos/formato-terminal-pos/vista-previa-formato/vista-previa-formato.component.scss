@@ -132,17 +132,28 @@
   background: #f4f1ea;
 }
 
+// La caja de la region NO recorta el texto: lo POSICIONA.
+//
+// A esta escala --el cupon real mide 720px de ancho y el lienzo 138-- la caja de un campo queda de
+// unos 6px de alto, y ningun tamano de letra legible entra ahi dentro: recortando, los valores
+// salian cortados. Achicar la letra hasta que entre tampoco sirve, seria de 2px.
+//
+// Asi que la caja marca DONDE empieza el valor --que es lo que el mapa dice-- y el texto se
+// dibuja centrado sobre ella, desbordando lo que haga falta. Los campos de un cupon estan en
+// renglones distintos, asi que no se pisan entre si; y lo que se pase del cupon lo recorta el
+// lienzo, igual que en el papel.
 .campo-sintetico {
   position: absolute;
   display: flex;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
   border-bottom: 1px dashed rgba(0, 0, 0, 0.25);
 
   .valor {
     color: #1a1a1a;
     font-family: 'Roboto Mono', 'Courier New', monospace;
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1;
     white-space: nowrap;
   }
 }
