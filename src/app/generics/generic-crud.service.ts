@@ -516,6 +516,13 @@ export class GenericCrudService {
     });
   }
 
+  // Un lote (forkJoin de N onSaveCustom) que se cae por la red dispara N errores casi juntos:
+  // forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una avisaría.
+  // La cola de notificaciones es secuencial, así que N avisos iguales taparían N×3 s cualquier
+  // otro. Mismo texto dentro de la ventana = un solo aviso.
+  ventanaAvisoTransporteMs = 3000;
+  private ultimoAvisoTransporte: { texto: string; en: number } = null;
+
   onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
@@ -564,11 +571,18 @@ export class GenericCrudService {
             this.cargandoService.closeDialog(requestId);
             // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
             // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
-            this.notificacionSnackBar.notification$.next({
-              texto: mensajeErrorTransporte(error),
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
+            const texto = mensajeErrorTransporte(error);
+            const ahora = Date.now();
+            const repetido = this.ultimoAvisoTransporte?.texto === texto
+              && ahora - this.ultimoAvisoTransporte.en < this.ventanaAvisoTransporteMs;
+            if (!repetido) {
+              this.ultimoAvisoTransporte = { texto, en: ahora };
+              this.notificacionSnackBar.notification$.next({
+                texto,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
             obs.error(error);
           },
         });
