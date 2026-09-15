@@ -288,7 +288,10 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
             case "edit-info":
               this.onNuevoDelivery(this.selectedDelivery, index);
               break;
-            case "para-entrega":
+            case "para-entrega": {
+              // El estado se muestra antes de la respuesta, sobre la misma referencia que está en
+              // la grilla: si el guardado falla hay que volver al estado anterior.
+              const estadoAnterior = this.selectedDelivery.estado;
               this.selectedDelivery.estado = DeliveryEstado.PARA_ENTREGA;
               this.deliveryService
                 .onSaveDeliveryEstado(
@@ -296,18 +299,25 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
                   DeliveryEstado.PARA_ENTREGA,
                   false
                 )
-                .subscribe((res) => {
-                  if (res != null) {
-                    this.selectedDelivery.estado = res.estado;
-                    this.dataSource.data = updateDataSource(
-                      this.dataSource.data,
-                      this.selectedDelivery,
-                      index
-                    );
-                    this.calcularDuracion();
+                .subscribe({
+                  next: (res) => {
+                    if (res != null) {
+                      this.selectedDelivery.estado = res.estado;
+                      this.dataSource.data = updateDataSource(
+                        this.dataSource.data,
+                        this.selectedDelivery,
+                        index
+                      );
+                      this.calcularDuracion();
+                    }
+                  },
+                  // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+                  error: () => {
+                    this.selectedDelivery.estado = estadoAnterior;
                   }
                 });
               break;
+            }
             case "finalizar":
               this.matDialogRef.close({
                 role: "finalizar",
