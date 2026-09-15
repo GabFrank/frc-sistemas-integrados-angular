@@ -29,16 +29,16 @@ export class EntradaVariaService {
     return this.genericService.onCustomQuery(this.categoriasGQL, {});
   }
 
-  onRegistrar(entradaVaria: EntradaVaria): Observable<EntradaVaria> {
+  onRegistrar(entradaVaria: EntradaVaria, opciones?: { avisarExito?: boolean }): Observable<EntradaVaria> {
     let aux = entradaVaria;
     if (!(entradaVaria instanceof EntradaVaria)) {
       aux = new EntradaVaria();
       Object.assign(aux, entradaVaria);
     }
-    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() });
+    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() }, true, opciones);
   }
 
-  onAnular(id: number, motivo?: string): Observable<EntradaVaria> {
-    return this.genericService.onSaveCustom(this.anularGQL, { id, motivo: motivo?.toUpperCase() });
+  onAnular(id: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<EntradaVaria> {
+    return this.genericService.onSaveCustom(this.anularGQL, { id, motivo: motivo?.toUpperCase() }, true, opciones);
   }
 }
