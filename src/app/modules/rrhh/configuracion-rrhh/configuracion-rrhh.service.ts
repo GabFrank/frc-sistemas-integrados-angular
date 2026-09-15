@@ -37,9 +37,10 @@ export class ConfiguracionRrhhService {
 
   /** Ajusta solo los funcionarios elegidos por el usuario. Nunca automatico. */
   onAjustarSalariosAlMinimo(funcionarioIds: number[], minimo: number,
-                            usuarioId: number, servidor = true): Observable<any> {
+                            usuarioId: number, servidor = true,
+                            opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.ajustarSalariosAlMinimoGQL,
-      { funcionarioIds, minimo, usuarioId }, servidor);
+      { funcionarioIds, minimo, usuarioId }, servidor, opciones);
   }
 
   onGetHistorico(clave: string, servidor = true): Observable<any> {

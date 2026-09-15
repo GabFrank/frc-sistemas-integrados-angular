@@ -699,12 +699,10 @@ export class EditDevolucionComponent implements OnInit {
               this.ejecutarAvanzar(DevolucionEstado.CANJEADO);
             }
           },
+          // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
           () => {
             huboError = true;
             this.cargandoService.closeDialog();
-            this.notificacionService.openAlgoSalioMal(
-              "Error al guardar el reingreso de un item"
-            );
           }
         );
     });
