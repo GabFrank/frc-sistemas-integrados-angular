@@ -64,6 +64,18 @@ export interface EscanearCuponDialogData {
 }
 
 /**
+ * Lo que se le dice al cajero cuando la foto se leyó pero no salió ningún campo.
+ *
+ * Nombra las dos causas reales sin elegir una: la foto puede estar mal, o el formato asignado a
+ * esta terminal puede no corresponder a este cupón. Y termina en las dos acciones que tiene a
+ * mano, porque un aviso que no dice qué hacer es ruido.
+ */
+const SIN_CAMPOS =
+  'Leí la foto, pero no reconocí en ella los datos de un cupón de este modelo. Puede ser que la ' +
+  'foto no haya salido bien, o que el formato configurado para esta terminal no sea el de este ' +
+  'aparato. Sacá otra foto, o cargá el cupón a mano.';
+
+/**
  * Paso previo a Finalizar: leer el cupón que el POS imprimió, sin tocar el backend.
  *
  * A diferencia del registro post-venta (RegistrarVentaTarjetaDialogComponent), acá NO hay
@@ -75,6 +87,7 @@ export interface EscanearCuponDialogData {
  * fotografía el cupón con cualquier teléfono y el OCR corre dentro del filial. Ver fase 2.
  */
 @UntilDestroy({ checkProperties: true })
+
 @Component({
   selector: 'app-escanear-cupon-dialog',
   templateUrl: './escanear-cupon-dialog.component.html',
@@ -188,6 +201,21 @@ export class EscanearCuponDialogComponent implements OnInit {
    * en la LAN. Ver §2.7 y §2.8 de FASE-2-TICKET-FISICO.md.
    */
   capturaUrl: string = null;
+
+  /**
+   * Aviso de que la foto se leyó pero no se reconoció ningún cupón.
+   *
+   * <b>Antes esto no se decía.</b> El diálogo mostraba el texto crudo bajo el rótulo "Lo que se
+   * leyó del cupón" y se quedaba callado: el cajero veía cualquier cosa --en una prueba, el OCR
+   * devolvió el nombre del archivo de la barra de título de la ventana fotografiada-- presentado
+   * con el mismo formato que una lectura buena.
+   *
+   * <b>Y no se intenta adivinar la causa.</b> El filial mide la nitidez de la foto, pero está
+   * medido que no discrimina: una captura con nitidez 173 extrajo los cuatro campos y otra con
+   * 359 no extrajo ninguno. Un umbral ahí sería un número inventado que le echaría la culpa a la
+   * foto cuando el problema puede ser el formato.
+   */
+  avisoSinCampos: string = null;
 
   /**
    * Si se ofrece la carga a mano en esta terminal. Campo plano y no getter: el template lo bindea
@@ -462,7 +490,11 @@ export class EscanearCuponDialogComponent implements OnInit {
    */
   private confirmarLectura(c: CapturaCupon): void {
     const campos = parsearCampos(c.campos);
-    if (!campos) return;
+    if (!campos) {
+      this.avisoSinCampos = SIN_CAMPOS;
+      return;
+    }
+    this.avisoSinCampos = null;
 
     // `datosExtra` y `confianzas` no son valores del formulario. Se sacan antes para que el
     // diálogo reciba sólo lo que puede precargar.
@@ -470,6 +502,7 @@ export class EscanearCuponDialogComponent implements OnInit {
     if (!Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '')) {
       // Matcheó pero no trajo ningún valor útil. Mejor el texto crudo que un formulario vacío
       // que parece que algo salió bien.
+      this.avisoSinCampos = SIN_CAMPOS;
       return;
     }
 
@@ -518,6 +551,7 @@ export class EscanearCuponDialogComponent implements OnInit {
     this.esperandoFoto = false;
     this.textoOcr = null;
     this.errorCaptura = null;
+    this.avisoSinCampos = null;
     this.onSacarFoto();
   }
 

@@ -64,8 +64,14 @@
          mismo teléfono. -->
     <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
 
+    <!-- Se leyó algo, pero no era un cupón de este modelo. Va ARRIBA del texto crudo: es lo
+         primero que el cajero tiene que saber antes de mirar lo que salió. -->
+    <div class="error-lectura" *ngIf="avisoSinCampos">{{ avisoSinCampos }}</div>
+
     <div class="texto-ocr" *ngIf="textoOcr">
-      <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+      <div class="texto-ocr-label">
+        {{ avisoSinCampos ? 'Esto es lo que salió de la foto' : 'Lo que se leyó del cupón' }}
+      </div>
       <pre>{{ textoOcr }}</pre>
       <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
     </div>
