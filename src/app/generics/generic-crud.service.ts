@@ -516,6 +516,14 @@ export class GenericCrudService {
     });
   }
 
+  // Un lote (forkJoin de N onSaveCustom) que se cae por la red dispara N errores casi juntos:
+  // forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una avisaría.
+  // La cola de notificaciones es secuencial, así que N avisos iguales taparían N×3 s cualquier
+  // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
+  // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.
+  ventanaAvisoTransporteMs = 3000;
+  private ultimoAvisoTransporte: { gql: Mutation; texto: string; en: number } = null;
+
   onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
@@ -564,11 +572,21 @@ export class GenericCrudService {
             this.cargandoService.closeDialog(requestId);
             // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
             // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
-            this.notificacionSnackBar.notification$.next({
-              texto: mensajeErrorTransporte(error),
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
+            const texto = mensajeErrorTransporte(error);
+            // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
+            // resta negativa y silenciaría avisos mucho más de la ventana.
+            const ahora = performance.now();
+            const repetido = this.ultimoAvisoTransporte?.gql === gql
+              && this.ultimoAvisoTransporte.texto === texto
+              && ahora - this.ultimoAvisoTransporte.en < this.ventanaAvisoTransporteMs;
+            if (!repetido) {
+              this.ultimoAvisoTransporte = { gql, texto, en: ahora };
+              this.notificacionSnackBar.notification$.next({
+                texto,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
             obs.error(error);
           },
         });

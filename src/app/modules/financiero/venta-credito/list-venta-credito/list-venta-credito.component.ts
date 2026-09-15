@@ -475,9 +475,10 @@ export class ListVentaCreditoComponent implements OnInit {
           Object.assign(aux, cd);
           cobroDetalleInputList.push(aux.toInput());
         });
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.ventaCreditoService
           .onCobrarVentaCredito(ventaCreditoInputList, cobroDetalleInputList)
-          .subscribe((saveRes) => {});
+          .subscribe({ next: () => {}, error: () => {} });
       });
   }
 

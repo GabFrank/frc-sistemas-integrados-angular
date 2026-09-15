@@ -110,11 +110,15 @@ export class CuentaBancariaComponent implements OnInit {
       null, null, true, 'Sí, eliminar', 'No'
     ).subscribe(confirmed => {
       if (confirmed === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.cuentaBancariaService.onDelete(item.id)
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) { this.notificacion.openSucess('Cuenta bancaria eliminada correctamente'); this.cargar(); }
-            else this.notificacion.openAlgoSalioMal('No se pudo eliminar la cuenta bancaria');
+          .subscribe({
+            next: res => {
+              if (res) { this.notificacion.openSucess('Cuenta bancaria eliminada correctamente'); this.cargar(); }
+              else this.notificacion.openAlgoSalioMal('No se pudo eliminar la cuenta bancaria');
+            },
+            error: () => {}
           });
       }
     });

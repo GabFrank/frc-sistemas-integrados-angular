@@ -847,25 +847,30 @@ export class EditTransferenciaComponent implements OnInit {
       // El openDialog de arriba es el overlay bloqueante de TODA la app: si el backend
       // rechaza el item y nadie lo cierra, la pantalla queda tapada y hay que recargar.
       .pipe(finalize(() => this.cargandoService.closeDialog()))
-      .subscribe((res) => {
-        if (res != null) {
-          if (!isNew) {
-            this.dataSource.data = updateDataSourceWithId(
-              this.dataSource.data,
-              res,
-              res?.id
-            );
-          } else {
-            this.dataSource.data = updateDataSourceInsertFirst(
-              this.dataSource.data,
-              res
-            );
-            if (this.pageSize == this.dataSource.data?.length)
-              this.dataSource.data.pop();
-            this.paginator.length = this.paginator.length + 1;
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            if (!isNew) {
+              this.dataSource.data = updateDataSourceWithId(
+                this.dataSource.data,
+                res,
+                res?.id
+              );
+            } else {
+              this.dataSource.data = updateDataSourceInsertFirst(
+                this.dataSource.data,
+                res
+              );
+              if (this.pageSize == this.dataSource.data?.length)
+                this.dataSource.data.pop();
+              this.paginator.length = this.paginator.length + 1;
+            }
+            this.actualizarAlertasPaginaActual();
           }
-          this.actualizarAlertasPaginaActual();
-        }
+        },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom, y el
+        // overlay lo cierra el finalize: el error solo evita la excepción no capturada.
+        error: () => {}
       });
   }
 
@@ -1043,17 +1048,20 @@ export class EditTransferenciaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       // Idem: el overlay se cierra pase lo que pase, no solo cuando el guardado sale bien.
       .pipe(finalize(() => this.cargandoService.closeDialog()))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            res,
-            res?.id
-          );
-          // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
-          this.actualizarAlertasPaginaActual();
-          this.notificacionService.openSucess("Lotes asignados");
-        }
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              res,
+              res?.id
+            );
+            // Recalcula alertas y las propiedades derivadas de la grilla sobre la fila nueva.
+            this.actualizarAlertasPaginaActual();
+            this.notificacionService.openSucess("Lotes asignados");
+          }
+        },
+        error: () => {}
       });
   }
 
@@ -1076,19 +1084,23 @@ export class EditTransferenciaComponent implements OnInit {
     item.usuario = item.usuario ?? this.mainService.usuarioActual;
     aplicarConfirmacion(item, etapa);
 
+    // `item` es una copia de la fila (Object.assign de arriba): si falla, la grilla no cambió.
     this.transferenciaService
       .onSaveTransferenciaItem(item.toInput())
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(
-            this.dataSource.data,
-            item,
-            item.id
-          );
-        }
-        this.actualizarAlertasPaginaActual();
-        this.onVerificarConfirmados();
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            this.dataSource.data = updateDataSourceWithId(
+              this.dataSource.data,
+              item,
+              item.id
+            );
+          }
+          this.actualizarAlertasPaginaActual();
+          this.onVerificarConfirmados();
+        },
+        error: () => {}
       });
   }
 
@@ -1189,16 +1201,19 @@ export class EditTransferenciaComponent implements OnInit {
           this.transferenciaService
             .onSaveTransferenciaItem(res["item"].toInput())
             .pipe(untilDestroyed(this))
-            .subscribe((res2) => {
-              if (res2 != null) {
-                this.dataSource.data = updateDataSourceWithId(
-                  this.dataSource.data,
-                  res2,
-                  res2.id
-                );
-              }
-              this.actualizarAlertasPaginaActual();
-              this.onVerificarConfirmados();
+            .subscribe({
+              next: (res2) => {
+                if (res2 != null) {
+                  this.dataSource.data = updateDataSourceWithId(
+                    this.dataSource.data,
+                    res2,
+                    res2.id
+                  );
+                }
+                this.actualizarAlertasPaginaActual();
+                this.onVerificarConfirmados();
+              },
+              error: () => {}
             });
         }
       });

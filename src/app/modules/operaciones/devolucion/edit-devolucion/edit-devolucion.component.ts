@@ -433,24 +433,28 @@ export class EditDevolucionComponent implements OnInit {
     let aux = new DevolucionItem();
     Object.assign(aux, item);
     aux.devolucion = this.selectedDevolucion;
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.devolucionService
       .onSaveDevolucionItem(aux.toInput())
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          if (isNew) {
-            this.dataSource.data = updateDataSourceInsertFirst(
-              this.dataSource.data,
-              res
-            );
-          } else {
-            this.dataSource.data = updateDataSourceWithId(
-              this.dataSource.data,
-              res,
-              res.id
-            );
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            if (isNew) {
+              this.dataSource.data = updateDataSourceInsertFirst(
+                this.dataSource.data,
+                res
+              );
+            } else {
+              this.dataSource.data = updateDataSourceWithId(
+                this.dataSource.data,
+                res,
+                res.id
+              );
+            }
           }
-        }
+        },
+        error: () => {}
       });
   }
 

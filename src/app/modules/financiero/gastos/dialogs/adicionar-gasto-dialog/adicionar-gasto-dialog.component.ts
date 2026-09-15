@@ -642,10 +642,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 valorDs: this.dolarVueltoControl.value,
               }, false)
               .pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res != null) {
-                  this.ngOnInit();
-                }
+              .subscribe({
+                next: (res) => {
+                  if (res != null) {
+                    this.ngOnInit();
+                  }
+                },
+                // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+                error: () => {}
               });
           }
         });
