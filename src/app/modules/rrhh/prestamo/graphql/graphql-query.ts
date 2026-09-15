@@ -49,7 +49,7 @@ export const crearPrestamoMutation = gql`
 `;
 
 export const cobrarCuotaMutation = gql`
-  mutation cobrarCuota($cuotaId: ID!, $cajaVirtualId: ID!, $montoPago: Float) {
-    data: cobrarCuota(cuotaId: $cuotaId, cajaVirtualId: $cajaVirtualId, montoPago: $montoPago) { ${CUOTA_FIELDS} }
+  mutation cobrarCuota($cuotaId: ID!, $cajaVirtualId: ID!, $montoPago: Float, $montoPagadoEsperado: Float) {
+    data: cobrarCuota(cuotaId: $cuotaId, cajaVirtualId: $cajaVirtualId, montoPago: $montoPago, montoPagadoEsperado: $montoPagadoEsperado) { ${CUOTA_FIELDS} }
   }
 `;
