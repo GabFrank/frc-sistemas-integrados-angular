@@ -204,11 +204,13 @@ export const guardarRegionesDerivadasMutation = gql`
     $formatoTerminalPosId: ID!
     $regiones: [FormatoTerminalPosRegionInput!]!
     $confirmarSobrescritura: Boolean
+    $desdeCero: Boolean
   ) {
     data: guardarRegionesDerivadas(
       formatoTerminalPosId: $formatoTerminalPosId
       regiones: $regiones
       confirmarSobrescritura: $confirmarSobrescritura
+      desdeCero: $desdeCero
     ) {
       aplicado
       creadas

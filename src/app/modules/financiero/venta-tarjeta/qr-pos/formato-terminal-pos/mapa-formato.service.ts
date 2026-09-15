@@ -79,7 +79,10 @@ export class MapaFormatoService {
   onGuardarDerivadas(
     formatoTerminalPosId: number,
     regiones: RegionDerivada[],
-    confirmarSobrescritura = false
+    confirmarSobrescritura = false,
+    // Por defecto la derivación ACUMULA: una segunda foto ensancha la caja en vez de pisarla,
+    // porque un mismo modelo imprime más de un layout. `desdeCero` descarta lo acumulado.
+    desdeCero = false
   ): Observable<ResultadoDerivacion> {
     // Sólo las que se pudieron derivar. Una región sin coordenadas ni etiqueta no ancla a nada y
     // el backend la rechaza con razón: el campo se resuelve por patrón igual.
@@ -101,7 +104,7 @@ export class MapaFormatoService {
 
     return this.genericService.onCustomMutation(
       this.guardarGQL,
-      { formatoTerminalPosId, regiones: utiles, confirmarSobrescritura },
+      { formatoTerminalPosId, regiones: utiles, confirmarSobrescritura, desdeCero },
       true
     );
   }

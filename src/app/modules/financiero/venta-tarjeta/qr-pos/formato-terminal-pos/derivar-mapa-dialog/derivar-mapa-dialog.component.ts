@@ -254,12 +254,18 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  onGuardar(confirmar = false): void {
+  /**
+   * @param confirmar el formato ya tiene mapa y el operador leyó el diff
+   * @param desdeCero descarta lo acumulado. Por defecto la derivación **suma**: una segunda foto
+   *   ensancha la caja para cubrir también su posición, porque un mismo modelo imprime más de un
+   *   layout (en INFONET el ticket con QR tiene dos renglones menos y el monto queda más arriba).
+   */
+  onGuardar(confirmar = false, desdeCero = false): void {
     if (!this.propuesta?.length || this.guardando) return;
     this.guardando = true;
     this.error = null;
 
-    this.service.onGuardarDerivadas(this.data.formato.id, this.propuesta, confirmar)
+    this.service.onGuardarDerivadas(this.data.formato.id, this.propuesta, confirmar, desdeCero)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (r: ResultadoDerivacion) => {

@@ -123,8 +123,16 @@
 
     <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center">
       <button mat-raised-button class="btn-salir" (click)="onCancelarSobrescritura()">Volver</button>
-      <button mat-raised-button class="btn-warn" [disabled]="guardando" (click)="onGuardar(true)">
-        Reemplazar el mapa
+      <!-- El camino normal: suma esta foto a lo que ya había. Dos tickets del mismo modelo con
+           distinto largo necesitan que la caja cubra las dos posiciones. -->
+      <button mat-raised-button class="btn-success" [disabled]="guardando" (click)="onGuardar(true)">
+        Sumar esta foto al mapa
+      </button>
+
+      <!-- La salida para cuando se derivó con un ticket de otro modelo y la unión quedó
+           inservible. Descarta lo acumulado. -->
+      <button mat-raised-button class="btn-warn" [disabled]="guardando" (click)="onGuardar(true, true)">
+        Empezar de cero
       </button>
     </div>
   </div>
