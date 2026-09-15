@@ -48,20 +48,24 @@
 
     <ng-container matColumnDef="acciones">
       <th mat-header-cell *matHeaderCellDef>Acciones</th>
+      <!-- Un menu y no iconos sueltos: es el patron de listados del repo. Con iconos, cada accion
+           nueva agrega una columna de ancho variable y hay que adivinar que hace cada dibujo.
+
+           El mapa del cupon ya no esta aca: dejo de ser una ventana aparte y es una solapa del
+           mismo formato, asi que se llega editando. Tener las dos puertas dejaba una que abria
+           media pantalla. -->
       <td mat-cell *matCellDef="let f">
-        <button mat-icon-button (click)="onEditar(f)" matTooltip="Editar">
-          <mat-icon>edit</mat-icon>
+        <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+          <mat-icon>more_vert</mat-icon>
         </button>
-        <!-- Solo para MAQUINA: un formato WEB es patron puro, no hay imagen sobre la cual ubicar
-             regiones, y ofrecerlo daria la falsa impresion de que hay algo que configurar. -->
-        <button mat-icon-button *ngIf="f.tipo === 'MAQUINA'" (click)="onMapa(f)"
-                matTooltip="Mapa del cupón: acelera la lectura en todas las cajas">
-          <mat-icon>grid_on</mat-icon>
-        </button>
-        <button mat-icon-button *ngIf="f.activo" (click)="onDesactivar(f)"
-                matTooltip="Dejar de ofrecerlo para terminales nuevas">
-          <mat-icon>block</mat-icon>
-        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="onEditar(f)">
+            <mat-icon>edit</mat-icon><span>Editar</span>
+          </button>
+          <button mat-menu-item *ngIf="f.activo" (click)="onDesactivar(f)">
+            <mat-icon>block</mat-icon><span>Dejar de ofrecerlo</span>
+          </button>
+        </mat-menu>
       </td>
     </ng-container>
 

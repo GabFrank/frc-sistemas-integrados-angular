@@ -25,8 +25,6 @@ const TAB_VISTA_PREVIA = 4;
 
 export interface EditFormatoTerminalPosData {
   formato?: FormatoTerminalPos;
-  /** Con qué solapa abrir. La lista lo usa para entrar directo al mapa desde el menú de la fila. */
-  tabInicial?: number;
 }
 
 interface FilaPreview {
@@ -119,7 +117,6 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   ngOnInit(): void {
     const f = this.data?.formato;
     this.formatoGuardado = f?.id ? f : null;
-    this.tabActivo = this.data?.tabInicial ?? 0;
     this.formGroup = new FormGroup({
       nombre: new FormControl(f?.nombre || null, Validators.required),
       // El tipo no tiene default: elegirlo es una decisión, y un default silencioso deja

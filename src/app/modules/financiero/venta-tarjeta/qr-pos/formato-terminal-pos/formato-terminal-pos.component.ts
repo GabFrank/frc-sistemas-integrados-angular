@@ -16,9 +16,6 @@ import { FormatoTerminalPosService } from './formato-terminal-pos.service';
 import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edit-formato-terminal-pos.component';
 import { TIPO_MAQUINA } from './formato-terminal-pos.model';
 
-/** La solapa del mapa dentro del ABM del formato. */
-const TAB_MAPA = 3;
-
 /**
  * Listado de formatos de terminal POS.
  *
@@ -71,22 +68,10 @@ export class FormatoTerminalPosComponent implements OnInit {
     this.abrir(formato);
   }
 
-  /**
-   * El mapa del cupon: que parte del ticket es cada campo.
-   *
-   * Solo para los formatos MAQUINA. Un WEB es patron puro --la cadena entra por el lector del
-   * PDV-- asi que no hay imagen sobre la cual haya regiones que ubicar, y ofrecerlo daria la falsa
-   * impresion de que hay algo para configurar. El backend lo rechaza igual.
-   */
-  onMapa(formato: FormatoTerminalPos): void {
-    // Ya no es otro dialogo: el mapa es una solapa del mismo ABM. Esta accion entra directo a ella.
-    this.abrir(formato, TAB_MAPA);
-  }
-
-  private abrir(formato: FormatoTerminalPos, tabInicial = 0): void {
+  private abrir(formato: FormatoTerminalPos): void {
     this.matDialog
       .open(EditFormatoTerminalPosComponent, {
-        data: { formato, tabInicial },
+        data: { formato },
         width: '50vw',
         height: '70vh',
       })
