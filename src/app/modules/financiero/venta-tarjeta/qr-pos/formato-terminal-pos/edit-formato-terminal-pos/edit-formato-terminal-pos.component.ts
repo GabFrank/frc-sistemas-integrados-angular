@@ -189,7 +189,13 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     const formato: FormatoQrPos = { nombre: 'previsualización', patron, mapeo, ejemplo, activo: true };
     const r = parsearCupon(ejemplo, [formato], { 1: 0, 2: 2, 3: 2 });
     if (!r.ok) {
-      this.errorPreview = r.error;
+      // El motor devuelve el mensaje del CAJERO --"registralo desde el celular"--, que acá no
+      // significa nada: quien mira esta pantalla está escribiendo el patrón, no cobrando. El
+      // motivo real es siempre el mismo y es el único accionable.
+      this.errorPreview = 'El patrón se aplica sobre el texto que devuelve el OCR --con sus'
+        + ' rarezas: un cero donde el papel dice O, un paréntesis de otro ancho-- y no sobre lo que'
+        + ' dice el papel. Subí la foto en "El mapa del cupón" y tocá "Usar como cadena de ejemplo":'
+        + ' trae el texto exacto, que a mano es imposible de acertar.';
       return;
     }
     const d = r.datos;
