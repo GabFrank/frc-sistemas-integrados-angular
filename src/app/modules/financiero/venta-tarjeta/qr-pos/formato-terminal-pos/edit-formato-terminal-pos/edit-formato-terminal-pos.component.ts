@@ -65,6 +65,15 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   ayudaTipo: string = null;
   esMaquina = false;
 
+  tabActivo = 0;
+
+  /**
+   * Qué tab tiene algo sin completar. Con los campos repartidos en tabs, un requerido vacío puede
+   * quedar escondido detrás de otra solapa: sin esto el usuario ve un Guardar que no guarda y no
+   * tiene forma de saber por qué.
+   */
+  incompletos = { aparato: false, lectura: false, campos: false };
+
   proveedores: ProveedorServicio[] = [];
 
   /** Se ofrece como punto de partida: es el formato que ya está en producción. */
@@ -100,7 +109,10 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       // Obligatorios porque los DOS tipos que esta pantalla ofrece matchean texto. Si algún día se
       // ofrece API --que no parsea texto y puede no tener patrón-- estos dos pasan a condicionales.
       patron: new FormControl(f?.patron || null, Validators.required),
-      mapeo: new FormControl(f?.mapeo || null, Validators.required),
+      // Indentado al abrir: en la base se guarda como venga --a veces una sola linea de 200
+      // caracteres-- y asi no se lee ni se corrige. Si no es JSON valido se deja tal cual, que es
+      // justamente cuando hay que poder verlo para arreglarlo.
+      mapeo: new FormControl(indentar(f?.mapeo) || null, Validators.required),
       ejemplo: new FormControl(f?.ejemplo || null, Validators.required),
       activo: new FormControl(f?.activo !== false),
       // null = comodín: se prueba cuando la terminal no tiene un formato propio asignado.
@@ -119,9 +131,11 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     // en el lugar de la boleta y eso en producción se descubre cobrando.
     this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       this.refrescarTipo();
+      this.refrescarIncompletos();
       this.recalcular();
     });
     this.refrescarTipo();
+    this.refrescarIncompletos();
     this.recalcular();
   }
 
@@ -133,6 +147,15 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     const v = this.formGroup.get('tipo').value;
     this.ayudaTipo = this.tipos.find((t) => t.valor === v)?.ayuda || null;
     this.esMaquina = v === TIPO_MAQUINA;
+  }
+
+  private refrescarIncompletos(): void {
+    const falta = (c: string) => this.formGroup.get(c).invalid;
+    this.incompletos = {
+      aparato: falta('nombre') || falta('tipo'),
+      lectura: falta('patron') || falta('ejemplo'),
+      campos: falta('mapeo'),
+    };
   }
 
   private recalcular(): void {
@@ -165,9 +188,41 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     this.formGroup.get('mapeo').setValue(this.mapeoEjemplo);
   }
 
+  /** Para el JSON que se pega de un lado y viene en una sola linea. */
+  formatearMapeo(): void {
+    const actual = this.formGroup.get('mapeo').value;
+    const lindo = indentar(actual);
+    if (lindo === actual) {
+      this.notificacionSnackbar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: 'No se puede indentar: todavia no es un JSON valido.',
+        duracion: 4,
+      });
+      return;
+    }
+    this.formGroup.get('mapeo').setValue(lindo);
+  }
+
   onGuardar(): void {
-    if (this.formGroup.invalid || this.guardando) return;
+    if (this.guardando) return;
+
+    // El boton NO se deshabilita cuando el formulario esta incompleto: lo que falta puede estar en
+    // un tab que no se ve, y un boton muerto sin explicacion es peor que un aviso. Se avisa y se
+    // lleva al tab donde esta el hueco.
+    if (this.formGroup.invalid) {
+      const destino = this.incompletos.aparato ? 0 : this.incompletos.lectura ? 1 : 2;
+      const donde = ['"Qué aparato es"', '"Cómo se lee el cupón"', '"Qué campos produce"'][destino];
+      this.tabActivo = destino;
+      this.notificacionSnackbar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: 'Falta completar algo en ' + donde + '.',
+        duracion: 5,
+      });
+      return;
+    }
+
     if (this.errorPreview || this.preview.length === 0) {
+      this.tabActivo = 1;
       this.notificacionSnackbar.notification$.next({
         color: NotificacionColor.warn,
         texto: 'Corregí el patrón hasta que la vista previa muestre los campos.',
@@ -213,6 +268,18 @@ export class EditFormatoTerminalPosComponent implements OnInit {
 
   onCancelar(): void {
     this.dialogRef.close();
+  }
+}
+
+/** Devuelve el mismo texto si no es un objeto JSON valido: nunca pierde lo que el usuario escribio. */
+function indentar(json: string): string {
+  if (!json) return json;
+  try {
+    const o = JSON.parse(json);
+    if (o === null || typeof o !== 'object' || Array.isArray(o)) return json;
+    return JSON.stringify(o, null, 2);
+  } catch {
+    return json;
   }
 }
 
