@@ -225,6 +225,16 @@ Local (central 8081 `dev` + `ng serve -c web`, login del usuario): guardar/borra
 prueba (éxito con texto propio, un solo aviso) y un error con el parche de XHR (un solo «Error de red»).
 Casos concretos elegidos consultando la DB local.
 
+**Resultado PR A (2026-09-15, `fd57aea1`)**, avisos contados con un `MutationObserver` sobre el snackbar:
+
+| Caso | Avisos | Estado |
+|---|---|---|
+| Borrar banco de prueba | `["Banco eliminado correctamente"]` | OK, dato de prueba retirado |
+| Crear banco con `saveBanco` cortado por red (parche de XHR) | `["Error de red"]`; el diálogo sigue abierto y «Guardar» vuelve a habilitarse | OK, no se creó nada |
+
+Un primer intento dio `["Banco guardado correctamente","Guardado con éxito"]`: la pestaña tenía cargado el
+bundle de antes de levantar `ng serve` (`performance.timeOrigin` 13:43). Con recarga real, el caso de arriba.
+
 ## Qué queda sin verificar
 
 - `ChequeService` / `MarcacionService` (`onSave` / `onCustomMutation`) pueden tener el mismo patrón
