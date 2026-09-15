@@ -4,6 +4,8 @@ import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
 import { CountVentasTarjetaSinRegistrarDesktopGQL } from './graphql/countVentasTarjetaSinRegistrar';
+import { MotivoCuponNoUsableGQL } from './graphql/motivoCuponNoUsable';
+import { FiltrarVentasTarjetaPorCajaGQL } from './graphql/filtrarVentasTarjetaPorCaja';
 import { CancelarVentaTarjetaPorVentaIdGQL } from './graphql/cancelarVentaTarjetaPorVentaId';
 import { FiltrarVentasTarjetaGQL } from './graphql/filtrarVentasTarjeta';
 import { ImprimirReporteVentaTarjetaGQL } from './graphql/imprimirReporteVentaTarjeta';
@@ -36,6 +38,25 @@ export interface CompletarVentaTarjetaInput {
   cobroDetalleId?: number;
   /** Moneda que declara el cupón. El backend bloquea si no es la del cobro. */
   monedaId?: number;
+  /**
+   * De dónde salieron los datos: `QR` | `OCR` | `MANUAL`. No todos los orígenes merecen la misma
+   * confianza —un código leído por OCR puede tener un carácter mal— y sin esto la columna queda
+   * nula y no hay forma de saber qué revisar.
+   */
+  origen?: string;
+  /**
+   * Captura por foto que produjo estos datos. El filial copia su imagen a la venta, y eso es lo
+   * que después impide que la purga se lleve puesta la evidencia de un cobro.
+   */
+  capturaToken?: string;
+  /**
+   * Los campos que el cupón trae y que NO tienen columna propia, como JSON.
+   *
+   * Es lo que `venta_tarjeta.datos_extra` existe para guardar: un proveedor que imprime un segundo
+   * monto en otra moneda, un `STONEID`, un código de comercio. El OCR ya los separa — sin esto se
+   * descartaban y la columna quedaba vacía para siempre.
+   */
+  datosExtra?: string;
 }
 
 export interface VentaTarjetaInput {
@@ -57,6 +78,8 @@ export class VentaTarjetaService {
     private genericService: GenericCrudService,
     private saveVentaTarjetaGQL: SaveVentaTarjetaGQL,
     private countVentasTarjetaGQL: CountVentasTarjetaSinRegistrarDesktopGQL,
+    private motivoCuponNoUsableGQL: MotivoCuponNoUsableGQL,
+    private filtrarVentasTarjetaPorCajaGQL: FiltrarVentasTarjetaPorCajaGQL,
     private cancelarVentaTarjetaGQL: CancelarVentaTarjetaPorVentaIdGQL,
     private filtrarVentasTarjetaGQL: FiltrarVentasTarjetaGQL,
     private imprimirReporteVentaTarjetaGQL: ImprimirReporteVentaTarjetaGQL,
@@ -97,6 +120,49 @@ export class VentaTarjetaService {
             cd?.formaPago?.descripcion === 'TARJETA' && cd.pago && !cd.vuelto && !cd.descuento
         ))
       );
+  }
+
+  /**
+   * Ventas con tarjeta de una caja, contra el FILIAL (`servidor = false`, tercer argumento).
+   *
+   * Local a proposito: el PDV tiene que poder operar sin internet, y `completarVentaTarjeta`
+   * corre igual contra el filial. Listar contra el central para despues completar contra el
+   * filial era incoherente, y ademas exponia las ventas de las otras sucursales.
+   */
+  /**
+   * Ventas con tarjeta de una caja, paginadas y filtradas. Contra el FILIAL.
+   *
+   * `cajaId` y `sucId` los acota el servidor, no el cliente: la pantalla no puede ver otra caja
+   * ni otra sucursal aunque se manipulen los filtros.
+   */
+  onFiltrarPorCaja(params: {
+    cajaId: number; sucId: number; estado?: string; terminalPosId?: number; monedaId?: number;
+    montoDesde?: number; montoHasta?: number; page?: number; size?: number;
+  }): Observable<PageInfo<VentaTarjeta>> {
+    return this.genericService.onCustomQuery(
+      this.filtrarVentasTarjetaPorCajaGQL,
+      params,
+      false,
+      null,
+      true
+    );
+  }
+
+  /**
+   * Motivo por el que el cupon no se puede usar, o null si esta libre. Contra el FILIAL.
+   *
+   * Es un ADELANTO del aviso, no la validacion: el backend vuelve a chequear al guardar y esa es
+   * la que manda. Por eso el que llama tiene que tratar un error de red como "seguir": bloquear
+   * el escaneo porque no se pudo consultar seria peor que el problema que resuelve.
+   */
+  onMotivoCuponNoUsable(qrCrudo: string, identificadorTransaccion: string, sucId: number): Observable<string> {
+    return this.genericService.onCustomQuery(
+      this.motivoCuponNoUsableGQL,
+      { qrCrudo, identificadorTransaccion, sucId },
+      false,
+      null,
+      true
+    );
   }
 
   onCountSinRegistrar(cajaId: number, sucId: number): Observable<number> {

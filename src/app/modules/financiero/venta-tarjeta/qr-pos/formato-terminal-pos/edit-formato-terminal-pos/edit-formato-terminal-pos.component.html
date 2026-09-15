@@ -1,0 +1,179 @@
+<div class="edit-formato" [formGroup]="formGroup">
+
+  <h2 class="titulo">{{ data?.formato ? 'Editar formato de terminal' : 'Nuevo formato de terminal' }}</h2>
+  <p class="subtitulo">
+    El patrón se aplica en la caja de cada sucursal. Probalo contra la cadena de ejemplo antes de guardar.
+  </p>
+
+  <!-- Tres tabs, una por pregunta que el formato tiene que responder. El regex y el JSON quedan
+       cada uno con el ancho completo del diálogo, que es lo que necesitan y lo que no tenían.
+
+       El precio de los tabs es que un campo vacío puede quedar escondido: por eso cada tab avisa
+       si le falta algo (`incompletos`) y Guardar, en vez de quedar muerto sin explicación, dice
+       en qué tab está lo que falta. -->
+  <div class="cuerpo-scroll">
+
+  <mat-tab-group [(selectedIndex)]="tabActivo" class="tabs-formato"
+                 (selectedTabChange)="onCambioDeTab($event)">
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Qué aparato es
+        <span class="falta" *ngIf="incompletos.aparato" title="Falta completar algo acá">●</span>
+      </ng-template>
+
+      <div class="tab-cuerpo">
+        <mat-form-field appearance="outline" class="campo-con-hint-largo">
+          <mat-label>Nombre del modelo</mat-label>
+          <input matInput formControlName="nombre" placeholder="Ej: Bancard firmware v5.5" />
+          <mat-hint>
+            Es lo que distingue un modelo de otro del mismo proveedor. No se puede repetir dentro del proveedor.
+          </mat-hint>
+        </mat-form-field>
+
+        <!-- El tipo decide qué camino se le ofrece al cajero y, sobre todo, cuál se le CIERRA. Por
+             eso no tiene default: elegirlo es una decisión. -->
+        <mat-form-field appearance="outline" class="campo-con-hint-largo">
+          <mat-label>Cómo se lee el ticket</mat-label>
+          <mat-select formControlName="tipo">
+            <mat-option *ngFor="let t of tipos" [value]="t.valor">{{ t.etiqueta }}</mat-option>
+          </mat-select>
+          <mat-hint>{{ ayudaTipo || 'Decide si la caja ofrece el lector o la cámara.' }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-con-hint-largo">
+          <mat-label>Proveedor</mat-label>
+          <mat-select formControlName="proveedorServicioId">
+            <mat-option [value]="null">Cualquiera (comodín)</mat-option>
+            <mat-option *ngFor="let p of proveedores" [value]="p.id">
+              {{ p.persona?.nombre || p.nombreContacto || ('Proveedor ' + p.id) }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>
+            Un proveedor puede tener varios formatos: uno por modelo de aparato.
+          </mat-hint>
+        </mat-form-field>
+
+        <mat-slide-toggle formControlName="activo">Elegible para terminales nuevas</mat-slide-toggle>
+      </div>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Cómo se lee el cupón
+        <span class="falta" *ngIf="incompletos.lectura" title="Falta completar algo acá">●</span>
+      </ng-template>
+
+      <div class="tab-cuerpo">
+        <mat-form-field appearance="outline" class="campo-con-hint-largo campo-codigo">
+          <mat-label>Patrón (regex con grupos nombrados)</mat-label>
+          <textarea matInput formControlName="patron" class="ta-patron"
+            placeholder="^FRCP1\*(?<auth>[A-Z0-9]{0,20})\*..."></textarea>
+          <mat-hint>Los grupos se declaran (?&lt;nombre&gt;...). Debe empezar con ^ y terminar con $.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-con-hint-largo campo-codigo">
+          <mat-label>Cadena de ejemplo (un cupón real)</mat-label>
+          <textarea matInput formControlName="ejemplo" class="ta-ejemplo" [maxlength]="maxLongitud"></textarea>
+          <mat-hint *ngIf="!esMaquina">Máximo {{ maxLongitud }} caracteres: es lo que el lector puede entregar.</mat-hint>
+          <mat-hint *ngIf="esMaquina">
+            Una línea del ticket tal como la devuelve el OCR. El OCR entrega texto igual que el lector.
+          </mat-hint>
+        </mat-form-field>
+
+        <!-- El resultado de cruzar el patrón con el ejemplo, acá mismo. Es lo que decide si se
+             puede guardar, y sin esto a la vista el rechazo al guardar mandaba a mirar una vista
+             previa que ya no está abajo del diálogo. -->
+        <div class="resultado-patron" [class.mal]="errorPreview" [class.bien]="!errorPreview && preview.length">
+          <div class="resultado-titulo" *ngIf="errorPreview">El patrón no reconoce la cadena de ejemplo</div>
+          <div class="resultado-error" *ngIf="errorPreview">{{ errorPreview }}</div>
+
+          <div class="resultado-titulo" *ngIf="!errorPreview && preview.length">
+            Esto es lo que el PDV va a extraer
+          </div>
+          <table *ngIf="!errorPreview && preview.length">
+            <tr *ngFor="let fila of preview">
+              <td class="campo">{{ fila.campo }}</td>
+              <td class="valor">{{ fila.valor }}</td>
+            </tr>
+          </table>
+
+          <div class="resultado-vacio" *ngIf="!errorPreview && !preview.length">
+            Completá el patrón, el mapeo y la cadena de ejemplo para ver qué se extrae.
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Qué campos produce
+        <span class="falta" *ngIf="incompletos.campos" title="Falta completar algo acá">●</span>
+      </ng-template>
+
+      <div class="tab-cuerpo">
+        <mat-form-field appearance="outline" class="campo-con-hint-largo campo-codigo">
+          <mat-label>Mapeo (JSON)</mat-label>
+          <textarea matInput formControlName="mapeo" class="ta-mapeo"></textarea>
+          <mat-hint>
+            Marcá con "obligatorio": true los campos sin los cuales la operación no sirve, y con
+            "tipo" (TEXTO | NUMERO | FECHA) los que se puedan verificar al leer.
+          </mat-hint>
+        </mat-form-field>
+
+        <div class="fila-accion">
+          <button mat-button type="button" (click)="usarMapeoEjemplo()">Usar el mapeo de ValidaPix como base</button>
+          <button mat-button type="button" (click)="formatearMapeo()">Indentar</button>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- El mapa es una propiedad del formato como el patrón o el mapeo, así que vive acá y no en
+         otra ventana. Solo para MAQUINA: un formato WEB es patrón puro --la cadena entra por el
+         lector del PDV-- y no hay imagen sobre la cual ubicar regiones. -->
+    <mat-tab *ngIf="esMaquina" label="El mapa del cupón">
+      <div class="tab-cuerpo">
+        <app-mapa-formato-panel *ngIf="formatoGuardado" [formato]="formatoGuardado"
+                                (guardado)="onMapaGuardado()"
+                                (usarComoEjemplo)="onUsarComoEjemplo($event)"></app-mapa-formato-panel>
+
+        <!-- Un formato nuevo todavía no tiene id, y las regiones cuelgan de él. Se dice por qué en
+             vez de mostrar un panel que no va a poder guardar nada. -->
+        <div class="aviso-sin-guardar" *ngIf="!formatoGuardado">
+          <mat-icon>save</mat-icon>
+          <div>
+            <b>Guardá el formato primero.</b>
+            El mapa se deriva de una foto y se guarda contra este formato, así que necesita que ya
+            exista. Completá las otras solapas, guardá, y volvé a abrirlo para derivar el mapa.
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- La última porque es la conclusión: qué va a leer el PDV de un cupón de este formato, al
+         lado del cupón que lo produjo. -->
+    <mat-tab label="Vista previa">
+      <div class="tab-cuerpo">
+        <app-vista-previa-formato #vistaPrevia [formatoId]="formatoGuardado?.id"
+                                  [patron]="patronActual"
+                                  [mapeo]="mapeoActual"
+                                  [ejemplo]="ejemploActual">
+        </app-vista-previa-formato>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+
+  </div>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <!-- "Cancelar" después de haber guardado sería mentira: lo guardado ya está. -->
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">
+      {{ huboCambios ? 'Cerrar' : 'Cancelar' }}
+    </button>
+    <button mat-raised-button class="btn-success" [disabled]="guardando" (click)="onGuardar()">
+      Guardar
+    </button>
+  </div>
+
+</div>

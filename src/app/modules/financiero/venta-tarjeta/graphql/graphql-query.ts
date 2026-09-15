@@ -41,7 +41,7 @@ export const filtrarVentasTarjetaQuery = gql`
         caja { id }
         sucursal { id nombre }
         venta { id totalGs }
-        terminalPos { id codigo descripcion proveedorServicio { id } moneda { id simbolo decimales } }
+        terminalPos { id codigo descripcion cargaManualPermitida proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo mapeo } }
         moneda { id simbolo decimales }
         monto
         montoEscaneado
@@ -151,6 +151,59 @@ export const cobrosTarjetaDeVentaQuery = gql`
           moneda { id simbolo }
         }
       }
+    }
+  }
+`;
+
+
+/**
+ * Pre-chequeo de cupon ya usado, contra el FILIAL. Devuelve el motivo o null.
+ *
+ * La validacion de verdad corre igual al guardar; esto solo la adelanta. Detectarlo recien en el
+ * saveVenta dejaba al cajero enterandose cuando la venta ya estaba registrada y el dato escaneado
+ * ya se habia descartado.
+ */
+export const motivoCuponNoUsableQuery = gql`
+  query motivoCuponNoUsable($qrCrudo: String, $identificadorTransaccion: String, $sucId: ID!) {
+    data: motivoCuponNoUsable(
+      qrCrudo: $qrCrudo
+      identificadorTransaccion: $identificadorTransaccion
+      sucId: $sucId
+    )
+  }
+`;
+
+/**
+ * Ventas con tarjeta de UNA caja, paginadas y filtradas, contra el FILIAL.
+ *
+ * `cajaId` y `sucId` acotan el universo del lado del servidor, asi que la pantalla no puede ver
+ * otra caja ni otra sucursal aunque alguien manipule los filtros.
+ */
+export const filtrarVentasTarjetaPorCajaQuery = gql`
+  query filtrarVentasTarjetaPorCaja(
+    $cajaId: ID!, $sucId: ID!, $estado: String, $terminalPosId: ID, $monedaId: ID,
+    $montoDesde: Float, $montoHasta: Float, $page: Int, $size: Int
+  ) {
+    data: filtrarVentasTarjetaPorCaja(
+      cajaId: $cajaId, sucId: $sucId, estado: $estado, terminalPosId: $terminalPosId,
+      monedaId: $monedaId, montoDesde: $montoDesde, montoHasta: $montoHasta,
+      page: $page, size: $size
+    ) {
+      getContent {
+        id
+        sucursalId
+        ventaId
+        cajaId
+        terminalPos { id codigo descripcion cargaManualPermitida proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo mapeo } }
+        moneda { id simbolo decimales }
+        codigoAutorizacion
+        numeroBoleta
+        monto
+        montoEscaneado
+        estado
+        creadoEn
+      }
+      getTotalElements
     }
   }
 `;

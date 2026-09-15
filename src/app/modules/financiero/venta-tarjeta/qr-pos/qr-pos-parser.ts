@@ -108,6 +108,9 @@ function extraer(
   datos.codigoAutorizacion = texto(grupos, mapeo.codigoAutorizacion);
   datos.numeroBoleta = texto(grupos, mapeo.numeroBoleta);
   datos.identificadorTransaccion = texto(grupos, mapeo.identificadorTransaccion);
+  // El aparato que imprimió el cupón. Si el formato lo mapea, el cajero no necesita escanear la
+  // terminal: se resuelve cotejando contra `terminal_pos.serie`.
+  datos.terminal = texto(grupos, mapeo.terminal);
   datos.monedaId = numeroMapeado(grupos, mapeo.moneda);
   datos.monto = importe(grupos, mapeo.monto, datos.monedaId, decimalesPorMoneda);
   datos.fecha = fecha(grupos, mapeo.fecha);

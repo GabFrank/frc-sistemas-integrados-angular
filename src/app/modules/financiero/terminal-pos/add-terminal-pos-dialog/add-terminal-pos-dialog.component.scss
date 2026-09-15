@@ -11,3 +11,18 @@ h2 {
   margin-bottom: 10px;
   color: white;
 } 
+// El hint del formato ocupa DOS lineas ("El cupon trae un QR y lo lee el lector del PDV. No se
+// ofrece la camara."), 42px medidos con getBoundingClientRect. El hermano edit-formato-terminal-pos
+// usa 34px porque el suyo es de una sola linea.
+//
+// !important porque el fxLayoutGap="15px" del <form> pone el margin-bottom como estilo INLINE en
+// cada hijo, y un margin de clase normal pierde contra eso por especificidad.
+::ng-deep .campo-con-hint-largo {
+  margin-bottom: 50px !important;
+}
+
+// Variante de una sola linea, para el hint de la serie. Mismo motivo y mismo !important que
+// arriba: el fxLayoutGap del <form> pone el margin-bottom inline y le gana a una clase normal.
+::ng-deep .campo-con-hint-corto {
+  margin-bottom: 34px !important;
+}
