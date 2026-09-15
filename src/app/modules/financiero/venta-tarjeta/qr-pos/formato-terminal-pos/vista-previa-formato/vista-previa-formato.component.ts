@@ -418,7 +418,10 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         campo: c.campo,
         etiqueta: c.etiqueta,
         posicion: c.etiqueta ? 'DENTRO' : null,
-        tipo: c.tipo,
+        // Del MAPEO y no de lo que tenga la región. El tipo es una declaración del formato --misma
+        // regla que aplica `unirEn` en el servidor-- así que una región vieja sin tipo lo recupera
+        // al guardarse, y una que quedó con un tipo que el mapeo ya no declara lo pierde.
+        tipo: this.tiposDelMapeo()[c.campo] ?? null,
         x1: redondear(c.izq / 100),
         y1: redondear(c.arriba / 100),
         x2: redondear((c.izq + c.ancho) / 100),
@@ -429,6 +432,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         next: (guardada) => {
           this.guardandoRegion = false;
           if (guardada?.id) c.id = guardada.id;
+          c.tipo = guardada?.tipo ?? null;
           c.manual = true;
           this.notificacionSnackbar.openSucess(
             `Región de "${c.campo}" guardada a mano. La derivación ya no la va a pisar.`
