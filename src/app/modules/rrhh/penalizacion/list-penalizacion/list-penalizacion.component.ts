@@ -137,7 +137,8 @@ export class ListPenalizacionComponent implements OnInit {
       .afterClosed().pipe(untilDestroyed(this)).subscribe((rango: RangoPenalizaciones) => {
         if (rango == null) return;
         this.penalizacionService.onGenerarAutoRango(
-          dateToString(rango.desde, 'yyyy-MM-dd'), dateToString(rango.hasta, 'yyyy-MM-dd'))
+          dateToString(rango.desde, 'yyyy-MM-dd'), dateToString(rango.hasta, 'yyyy-MM-dd'),
+          true, { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe({
             next: (cant: number) => {

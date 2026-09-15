@@ -4,7 +4,7 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { BehaviorSubject, forkJoin, of } from "rxjs";
-import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, tap } from "rxjs/operators";
+import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap, tap } from "rxjs/operators";
 
 import {
   SearchListDialogComponent,
@@ -364,7 +364,12 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
             trItem.poseeVencimiento = !!it.vencimiento;
             trItem.activo = true;
             trItem.usuario = this.mainService?.usuarioActual;
-            return this.transferenciaService.onSaveTransferenciaItem(trItem.toInput());
+            // Resultado por ítem: forkJoin cortaría en el primer error sin decir cuántos entraron.
+            // Cada ítem va sin «Guardado con éxito» y su error lo avisa onSaveCustom.
+            return this.transferenciaService.onSaveTransferenciaItem(trItem.toInput(), undefined, true, { avisarExito: false }).pipe(
+              map(() => true),
+              catchError(() => of(false))
+            );
           });
 
           if (ops.length === 0) {
@@ -372,20 +377,24 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
             return;
           }
 
-          forkJoin(ops).pipe(untilDestroyed(this)).subscribe({
-            next: () => {
+          forkJoin(ops).pipe(untilDestroyed(this)).subscribe((resultados) => {
+            const agregados = resultados.filter((ok) => ok).length;
+            if (agregados > 0) {
               this.actualizarFiltrosDespuesRetiro(res.sucursalOrigen as Sucursal, res.sucursalDestino as Sucursal);
               this.forceRefresh = true;
               this.updateFilters();
-
+            }
+            if (agregados === ops.length) {
               this.notificacion.openSucess(`Transferencia ${t.id} creada exitosamente. Los productos han sido agregados.`);
-              this.abrirTransferenciaTab(t.id);
-            },
-            error: (error) => {
-              console.error('Error al agregar productos a la transferencia:', error);
-              this.notificacion.openAlgoSalioMal('Error al agregar algunos productos a la transferencia');
-              this.abrirTransferenciaTab(t.id);
-            },
+            } else if (agregados > 0) {
+              this.notificacion.openWarn(
+                `Transferencia ${t.id} creada: ${agregados} de ${ops.length} productos agregados; los demás dieron error.`, 8);
+            } else {
+              // El motivo ya lo dio onSaveCustom; esto dice lo que el error no dice: la cabecera quedó vacía.
+              this.notificacion.openWarn(`Transferencia ${t.id} creada sin productos: ninguno se pudo agregar.`, 8);
+            }
+            // La cabecera ya existe: se abre igual para completar o descartar a mano.
+            this.abrirTransferenciaTab(t.id);
           });
         });
     });

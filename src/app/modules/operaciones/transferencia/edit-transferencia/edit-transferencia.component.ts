@@ -1044,7 +1044,8 @@ export class EditTransferenciaComponent implements OnInit {
 
     this.cargandoService.openDialog();
     this.transferenciaService
-      .onSaveTransferenciaItem(input)
+      // Sin «Guardado con éxito»: el aviso es «Lotes asignados»; el error lo da onSaveCustom.
+      .onSaveTransferenciaItem(input, undefined, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       // Idem: el overlay se cierra pase lo que pase, no solo cuando el guardado sale bien.
       .pipe(finalize(() => this.cargandoService.closeDialog()))

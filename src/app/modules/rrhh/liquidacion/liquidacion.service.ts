@@ -75,8 +75,9 @@ export class LiquidacionService {
   }
 
   /** Genera borradores para una lista de funcionarios (null = todos los activos). */
-  onGenerarLote(funcionarioIds: number[], periodo: string, monedaId: number, servidor = true): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor);
+  onGenerarLote(funcionarioIds: number[], periodo: string, monedaId: number, servidor = true,
+                opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor, opciones);
   }
 
   onAgregarItem(liquidacionId: number, descripcion: string, monto: number, tipo: string,

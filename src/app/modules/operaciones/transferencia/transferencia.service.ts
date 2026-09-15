@@ -175,8 +175,9 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?");
   }
 
-  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor);
+  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true,
+                          opciones?: { avisarExito?: boolean }): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor, opciones);
   }
 
   /**

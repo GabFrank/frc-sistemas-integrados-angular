@@ -168,7 +168,7 @@ export class ListCajaVirtualComponent implements OnInit {
     ).subscribe(confirmed => {
       if (confirmed === true) {
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        this.cajaVirtualService.onDelete(item.id)
+        this.cajaVirtualService.onDelete(item.id, { avisarExito: false })
           .pipe(untilDestroyed(this))
           .subscribe({
             next: res => {

@@ -266,9 +266,9 @@ export class DetalleCasoDialogComponent implements OnInit {
         this.guardando = false;
         if (r != null) this.dialogRef.close(r);
       },
-      error: err => {
+      // El aviso de error lo da onSaveCustom.
+      error: () => {
         this.guardando = false;
-        this.avisar(err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo resolver');
       },
     });
   }

@@ -50,7 +50,8 @@ export class AddBancoDialogComponent implements OnInit {
     banco.codigo = this.codigoControl.value?.toUpperCase();
 
     this.isSaving = true;
-    this.bancoService.onSave(banco)
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.bancoService.onSave(banco, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -62,7 +63,6 @@ export class AddBancoDialogComponent implements OnInit {
         },
         error: () => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal('Error al guardar el banco');
         }
       });
   }

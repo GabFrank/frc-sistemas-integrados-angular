@@ -59,8 +59,9 @@ export class RetiroService {
     return this.crudService.onCustomMutation(this.cancelarRetiro, { id, sucId }, servidor);
   }
 
-  onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true): Observable<Retiro> {
-    return this.crudService.onSaveCustom(this.ingresarRetiroACajaMayorGQL, { retiroId, sucId, cajaVirtualId }, servidor);
+  onIngresarACajaMayor(retiroId: number, sucId: number, cajaVirtualId: number, servidor = true,
+                       opciones?: { avisarExito?: boolean }): Observable<Retiro> {
+    return this.crudService.onSaveCustom(this.ingresarRetiroACajaMayorGQL, { retiroId, sucId, cajaVirtualId }, servidor, opciones);
   }
 
   onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {
