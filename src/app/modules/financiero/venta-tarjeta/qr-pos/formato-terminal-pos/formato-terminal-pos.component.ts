@@ -14,8 +14,10 @@ interface FilaFormato extends FormatoTerminalPos {
 }
 import { FormatoTerminalPosService } from './formato-terminal-pos.service';
 import { EditFormatoTerminalPosComponent } from './edit-formato-terminal-pos/edit-formato-terminal-pos.component';
-import { DerivarMapaDialogComponent } from './derivar-mapa-dialog/derivar-mapa-dialog.component';
 import { TIPO_MAQUINA } from './formato-terminal-pos.model';
+
+/** La solapa del mapa dentro del ABM del formato. */
+const TAB_MAPA = 3;
 
 /**
  * Listado de formatos de terminal POS.
@@ -77,16 +79,17 @@ export class FormatoTerminalPosComponent implements OnInit {
    * impresion de que hay algo para configurar. El backend lo rechaza igual.
    */
   onMapa(formato: FormatoTerminalPos): void {
-    this.matDialog.open(DerivarMapaDialogComponent, {
-      data: { formato },
-      width: '660px',
-      disableClose: false,
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {});
+    // Ya no es otro dialogo: el mapa es una solapa del mismo ABM. Esta accion entra directo a ella.
+    this.abrir(formato, TAB_MAPA);
   }
 
-  private abrir(formato: FormatoTerminalPos): void {
+  private abrir(formato: FormatoTerminalPos, tabInicial = 0): void {
     this.matDialog
-      .open(EditFormatoTerminalPosComponent, { data: { formato }, width: '65vw', height: '70vh' })
+      .open(EditFormatoTerminalPosComponent, {
+        data: { formato, tabInicial },
+        width: '65vw',
+        height: '70vh',
+      })
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {

@@ -1,5 +1,4 @@
-import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Subscription, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -17,10 +16,6 @@ import {
   ResultadoDerivacion,
 } from '../mapa-formato.model';
 
-export interface DerivarMapaData {
-  formato: FormatoTerminalPos;
-}
-
 /**
  * Deriva el mapa de un formato a partir de un cupón de muestra.
  *
@@ -33,19 +28,28 @@ export interface DerivarMapaData {
  * El ciclo entero corre contra central: la captura, el OCR y la persistencia. No pasa por ningún
  * filial —y no podría, porque la venta con tarjeta se bloquea cuando la terminal no tiene formato,
  * así que antes de configurarlo no hay capturas de ese ticket.
+ *
+ * <b>Es un panel, no un diálogo.</b> Vive dentro del ABM del formato, en su propia solapa: el mapa
+ * es una propiedad del formato como el patrón o el mapeo, y tenerlo en otra ventana obligaba a
+ * cerrar una para abrir la otra cuando lo que se está haciendo es lo mismo.
  */
 @UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'app-derivar-mapa-dialog',
-  templateUrl: './derivar-mapa-dialog.component.html',
-  styleUrls: ['./derivar-mapa-dialog.component.scss'],
+  selector: 'app-mapa-formato-panel',
+  templateUrl: './mapa-formato-panel.component.html',
+  styleUrls: ['./mapa-formato-panel.component.scss'],
 })
-export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
+export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
+
+  /** El formato ya guardado. Sin id no hay dónde colgar las regiones. */
+  @Input() formato: FormatoTerminalPos;
+
+  /** Avisa que el mapa se guardó, para que quien lo contenga refresque lo que muestre. */
+  @Output() guardado = new EventEmitter<void>();
 
   /** Cada cuánto se le pregunta a central si ya llegó la foto. */
   private static readonly MS_SONDEO = 2500;
 
-  titulo = '';
   /** El mapa que el formato ya tiene. Vacío = se guarda sin preguntar. */
   regionesActuales: RegionFormato[] = [];
   tieneMapa = false;
@@ -73,15 +77,11 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
   private sondeo: Subscription = null;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: DerivarMapaData,
-    public dialogRef: MatDialogRef<DerivarMapaDialogComponent>,
     private service: MapaFormatoService,
     private notificacionSnackbar: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
-    this.titulo = this.data?.formato?.nombre ?? 'Formato';
-
     this.service.onLectorDisponible().pipe(untilDestroyed(this)).subscribe({
       next: (d) => (this.lectorDisponible = d !== false),
       // Que no se pueda consultar no bloquea: el intento real va a dar el motivo exacto.
@@ -101,7 +101,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
   }
 
   private cargarRegiones(): void {
-    this.service.onGetRegiones(this.data.formato.id).pipe(untilDestroyed(this)).subscribe({
+    this.service.onGetRegiones(this.formato.id).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
         this.regionesActuales = res ?? [];
         this.tieneMapa = this.regionesActuales.length > 0;
@@ -118,7 +118,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
     this.propuesta = null;
     this.textoOcr = null;
 
-    this.service.onCrearMuestra(this.data.formato.id).pipe(untilDestroyed(this)).subscribe({
+    this.service.onCrearMuestra(this.formato.id).pipe(untilDestroyed(this)).subscribe({
       next: (qr) => {
         this.cargando = false;
         this.qr = qr;
@@ -158,7 +158,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
     this.error = null;
 
     // Hace falta un token igual: es lo que identifica la muestra del lado de central.
-    this.service.onCrearMuestra(this.data.formato.id).pipe(
+    this.service.onCrearMuestra(this.formato.id).pipe(
       untilDestroyed(this),
       switchMap((qr) => {
         this.qr = qr;
@@ -180,7 +180,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
 
   private sondear(token: string): void {
     this.detenerSondeo();
-    this.sondeo = timer(DerivarMapaDialogComponent.MS_SONDEO, DerivarMapaDialogComponent.MS_SONDEO)
+    this.sondeo = timer(MapaFormatoPanelComponent.MS_SONDEO, MapaFormatoPanelComponent.MS_SONDEO)
       .pipe(switchMap(() => this.service.onEstadoMuestra(token)), untilDestroyed(this))
       .subscribe({
         next: (m) => {
@@ -238,7 +238,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
     this.cargando = true;
     this.error = null;
 
-    this.service.onDerivar(this.qr.token, this.data.formato.id)
+    this.service.onDerivar(this.qr.token, this.formato.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -265,7 +265,7 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
     this.guardando = true;
     this.error = null;
 
-    this.service.onGuardarDerivadas(this.data.formato.id, this.propuesta, confirmar, desdeCero)
+    this.service.onGuardarDerivadas(this.formato.id, this.propuesta, confirmar, desdeCero)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (r: ResultadoDerivacion) => {
@@ -285,7 +285,11 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
                   ? `. Se conservaron ${r.conservadasManuales.length} corregidas a mano.` : '.'),
             duracion: 7,
           });
-          this.dialogRef.close(true);
+          this.propuesta = null;
+          this.cambiosPendientes = null;
+          this.textoOcr = null;
+          this.cargarRegiones();
+          this.guardado.emit();
         },
         error: (err) => {
           this.guardando = false;
@@ -296,9 +300,5 @@ export class DerivarMapaDialogComponent implements OnInit, OnDestroy {
 
   onCancelarSobrescritura(): void {
     this.cambiosPendientes = null;
-  }
-
-  onCerrar(): void {
-    this.dialogRef.close();
   }
 }

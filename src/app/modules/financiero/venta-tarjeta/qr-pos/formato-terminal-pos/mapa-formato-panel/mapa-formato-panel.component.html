@@ -1,9 +1,4 @@
-<div class="derivar-mapa" fxLayout="column" fxLayoutGap="12px">
-
-  <div class="cabecera">
-    <h2 class="titulo-dialog">Mapa del cupón</h2>
-    <div class="subtitulo-dialog">{{ titulo }}</div>
-  </div>
+<div class="mapa-panel" fxLayout="column" fxLayoutGap="12px">
 
   <p class="ayuda">
     El mapa dice qué parte del cupón es cada campo. Se deriva solo a partir de una foto de muestra:
@@ -146,11 +141,9 @@
 
   <div class="error-lectura" *ngIf="error">{{ error }}</div>
 
-  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones"
-       *ngIf="!cambiosPendientes">
-    <button mat-raised-button class="btn-salir" (click)="onCerrar()">Cerrar</button>
-    <button mat-raised-button class="btn-success" *ngIf="propuesta && derivadas > 0"
-            [disabled]="guardando" (click)="onGuardar()">
+  <div fxLayout="row" fxLayoutAlign="center" class="acciones"
+       *ngIf="!cambiosPendientes && propuesta && derivadas > 0">
+    <button mat-raised-button class="btn-success" [disabled]="guardando" (click)="onGuardar()">
       {{ guardando ? 'Guardando…' : 'Guardar el mapa' }}
     </button>
   </div>

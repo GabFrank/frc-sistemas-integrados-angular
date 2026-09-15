@@ -1,8 +1,7 @@
-.derivar-mapa {
-  padding: 16px;
-  max-width: 620px;
-
-  .cabecera { text-align: center; margin-bottom: 4px; }
+.mapa-panel {
+  padding: 4px;
+  // Sin max-width: antes era un diálogo de 660px y ahora es una solapa del ABM del formato, que
+  // le da el ancho. La tabla de la propuesta es lo que más lo aprovecha.
 
   .ayuda {
     font-size: 12px;

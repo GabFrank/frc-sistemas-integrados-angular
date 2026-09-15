@@ -103,12 +103,33 @@
       </div>
     </mat-tab>
 
+    <!-- El mapa es una propiedad del formato como el patrón o el mapeo, así que vive acá y no en
+         otra ventana. Solo para MAQUINA: un formato WEB es patrón puro --la cadena entra por el
+         lector del PDV-- y no hay imagen sobre la cual ubicar regiones. -->
+    <mat-tab *ngIf="esMaquina" label="El mapa del cupón">
+      <div class="tab-cuerpo">
+        <app-mapa-formato-panel *ngIf="formatoGuardado" [formato]="formatoGuardado"
+                                (guardado)="onMapaGuardado()"></app-mapa-formato-panel>
+
+        <!-- Un formato nuevo todavía no tiene id, y las regiones cuelgan de él. Se dice por qué en
+             vez de mostrar un panel que no va a poder guardar nada. -->
+        <div class="aviso-sin-guardar" *ngIf="!formatoGuardado">
+          <mat-icon>save</mat-icon>
+          <div>
+            <b>Guardá el formato primero.</b>
+            El mapa se deriva de una foto y se guarda contra este formato, así que necesita que ya
+            exista. Completá las otras solapas, guardá, y volvé a abrirlo para derivar el mapa.
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
   </mat-tab-group>
 
   <!-- Fuera de los tabs a propósito: es el resultado de combinar el patrón, la cadena de ejemplo y
        el mapeo, que viven en dos tabs distintos. Escondida detrás de uno, se editaría el mapeo sin
        ver el efecto, que es justamente lo que esta vista existe para evitar. -->
-  <div class="preview">
+  <div class="preview" *ngIf="tabActivo !== TAB_MAPA">
     <div class="preview-titulo">Vista previa — esto es lo que el PDV va a leer</div>
 
     <div class="preview-error" *ngIf="errorPreview">{{ errorPreview }}</div>

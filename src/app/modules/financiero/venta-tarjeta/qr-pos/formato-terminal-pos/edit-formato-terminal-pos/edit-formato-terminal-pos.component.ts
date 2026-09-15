@@ -21,6 +21,8 @@ import { FormatoTerminalPosService } from '../formato-terminal-pos.service';
 
 export interface EditFormatoTerminalPosData {
   formato?: FormatoTerminalPos;
+  /** Con qué solapa abrir. La lista lo usa para entrar directo al mapa desde el menú de la fila. */
+  tabInicial?: number;
 }
 
 interface FilaPreview {
@@ -52,6 +54,9 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   formGroup: FormGroup;
   guardando = false;
 
+  /** Algo se guardó --el formato o su mapa--, así que la lista tiene que recargar al cerrar. */
+  private huboCambios = false;
+
   preview: FilaPreview[] = [];
   errorPreview: string = null;
 
@@ -66,6 +71,18 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   esMaquina = false;
 
   tabActivo = 0;
+
+  /**
+   * La solapa del mapa. La vista previa se oculta ahí: habla del patrón y el mapeo, y en esa
+   * solapa no se toca ninguno de los dos.
+   */
+  readonly TAB_MAPA = 3;
+
+  /**
+   * El formato tal como está guardado. El panel del mapa lo necesita con id: las regiones cuelgan
+   * de él, y un formato que todavía no se guardó no tiene dónde colgarlas.
+   */
+  formatoGuardado: FormatoTerminalPos = null;
 
   /**
    * Qué tab tiene algo sin completar. Con los campos repartidos en tabs, un requerido vacío puede
@@ -101,6 +118,8 @@ export class EditFormatoTerminalPosComponent implements OnInit {
 
   ngOnInit(): void {
     const f = this.data?.formato;
+    this.formatoGuardado = f?.id ? f : null;
+    this.tabActivo = this.data?.tabInicial ?? 0;
     this.formGroup = new FormGroup({
       nombre: new FormControl(f?.nombre || null, Validators.required),
       // El tipo no tiene default: elegirlo es una decisión, y un default silencioso deja
@@ -266,8 +285,16 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       });
   }
 
+  /**
+   * El mapa ya se guardó solo contra el backend. Lo único que hace falta acá es recordar que algo
+   * cambió, para que al cerrar la lista se refresque: la columna del mapa muestra si lo tiene.
+   */
+  onMapaGuardado(): void {
+    this.huboCambios = true;
+  }
+
   onCancelar(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(this.huboCambios ? this.formatoGuardado ?? true : undefined);
   }
 }
 
