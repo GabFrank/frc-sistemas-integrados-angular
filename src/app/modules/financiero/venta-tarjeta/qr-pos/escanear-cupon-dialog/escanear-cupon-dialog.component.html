@@ -85,6 +85,20 @@
       Sacar foto del cupón
     </button>
 
+    <!-- Repetir la lectura. Disponible SIEMPRE que haya una captura abierta, incluso después de
+         una lectura exitosa: si el OCR entendió otro cupón, o el cajero quiere releer con mejor
+         luz, antes la única salida era cancelar y rehacer el cobro. -->
+    <button
+      mat-button
+      class="btn-foto"
+      *ngIf="capturaUrl && ofreceCamara"
+      [disabled]="pidiendoCaptura"
+      (click)="onSacarOtraFoto()"
+    >
+      <mat-icon>refresh</mat-icon>
+      Sacar otra foto
+    </button>
+
     <!-- Sólo si el lector es un camino válido para este formato: en una maquinita, "volver al
          lector" sería volver a una pantalla que no puede leer nada. -->
     <button mat-button class="btn-foto" *ngIf="capturaUrl && ofreceLector" (click)="onVolverAlLector()">

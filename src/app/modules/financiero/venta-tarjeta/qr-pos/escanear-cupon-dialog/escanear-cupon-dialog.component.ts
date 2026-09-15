@@ -259,6 +259,16 @@ export class EscanearCuponDialogComponent implements OnInit {
       error: () => (this.formatos = []),
     });
 
+    // En una maquinita la foto es el ÚNICO camino --el tipo del formato ya cerró el lector-- así
+    // que pedirle además al cajero que apriete un botón para ver el QR es un peaje sin
+    // contrapartida: no hay otra cosa que pueda elegir. Se abre solo.
+    //
+    // No se hace cuando el lector también está disponible: ahí el QR sí es la alternativa, y
+    // abrirlo de entrada taparía el camino rápido.
+    if (this.ofreceCamara && !this.ofreceLector && !this.bloqueo) {
+      this.onSacarFoto();
+    }
+
     // Sin distinctUntilChanged a propósito: tras un cruce de proveedor, "Reintentar" limpia el
     // control con emitEvent:false (para no reprocesar el string vacío) — pero eso deja
     // "recordado" el último valor real que sí se emitió. Si el cajero vuelve a escanear
@@ -492,6 +502,23 @@ export class EscanearCuponDialogComponent implements OnInit {
         // otra foto o cargar a mano. El token sigue vivo.
         if (res) this.dialogRef.close(res);
       });
+  }
+
+  /**
+   * Otra foto, con un token nuevo.
+   *
+   * <b>Por qué hace falta aunque la lectura haya salido bien.</b> El token no se consume con una
+   * foto fallida, así que reintentar un cupón que no se leyó ya se podía hacer desde el mismo
+   * teléfono. Lo que no se podía era volver atrás después de una lectura <b>exitosa</b>: si el
+   * cajero ve que el OCR entendió otro cupón, o quiere releer el mismo con mejor luz, la pantalla
+   * no tenía salida más que cancelar y empezar el cobro de nuevo.
+   */
+  onSacarOtraFoto(): void {
+    this.capturaUrl = null;
+    this.esperandoFoto = false;
+    this.textoOcr = null;
+    this.errorCaptura = null;
+    this.onSacarFoto();
   }
 
   /** Vuelve al lector. La captura abierta se deja vencer sola: no hay nada que limpiar. */
