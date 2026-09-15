@@ -118,11 +118,16 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
     return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
-  onGuardar(campo: CampoVM) {
-    const valorAnterior = campo.config.valor;
-    const valor = campo.meta.widget === 'toggle'
+  /** El valor del control tal como se guarda en `configuracion_rrhh.valor`. */
+  private valorDelControl(campo: CampoVM): string {
+    return campo.meta.widget === 'toggle'
       ? (campo.control.value ? 'true' : 'false')
       : String(campo.control.value ?? '');
+  }
+
+  onGuardar(campo: CampoVM) {
+    const valorAnterior = campo.config.valor;
+    const valor = this.valorDelControl(campo);
     if (valor === valorAnterior) { return; }
 
     campo.guardando = true;
@@ -135,13 +140,32 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
       activo: campo.config.activo,
       usuarioId: this.mainService.usuarioActual?.id
     };
-    this.configuracionRrhhService.onSave(input).pipe(untilDestroyed(this)).subscribe((res: ConfiguracionRrhh) => {
-      campo.guardando = false;
-      if (res == null) { return; }
-      campo.config.valor = valor;
-      this.notificacion.openSucess('Configuración guardada');
-      this.revisarImpacto(campo.clave, valor, valorAnterior);
-    });
+    // El error de negocio ya lo avisa onSave; el de red se pide explícito para
+    // que llegue al error y se muestre, en vez de dejar el campo trabado.
+    this.configuracionRrhhService.onSave(input, true, { networkError: { show: true, propagate: true } })
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res: ConfiguracionRrhh) => {
+          campo.guardando = false;
+          if (res == null) {
+            this.revertir(campo, valor, valorAnterior);
+            return;
+          }
+          campo.config.valor = valor;
+          this.notificacion.openSucess('Configuración guardada');
+          this.revisarImpacto(campo.clave, valor, valorAnterior);
+        },
+        error: () => {
+          campo.guardando = false;
+          this.revertir(campo, valor, valorAnterior);
+        }
+      });
+  }
+
+  /** Vuelve el control al valor guardado, salvo si el usuario ya lo cambió de nuevo. */
+  private revertir(campo: CampoVM, valorIntentado: string, valorAnterior: string) {
+    if (this.valorDelControl(campo) !== valorIntentado) { return; }
+    campo.control.setValue(this.parseValor(valorAnterior, campo.meta), { emitEvent: false });
   }
 
   /** TODO-8: solo el salario mínimo requiere cascada guiada (ofrecida, nunca impuesta). */

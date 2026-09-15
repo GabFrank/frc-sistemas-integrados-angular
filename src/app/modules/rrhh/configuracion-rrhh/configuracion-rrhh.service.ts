@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { ConfiguracionesRrhhGQL } from './graphql/ConfiguracionesRrhh';
 import { ConfiguracionesRrhhSearchGQL } from './graphql/ConfiguracionesRrhhSearch';
 import { ConfiguracionesRrhhPageGQL } from './graphql/ConfiguracionesRrhhPage';
@@ -60,9 +60,9 @@ export class ConfiguracionRrhhService {
       { page, size, texto, tipo }, servidor);
   }
 
-  onSave(input: any, servidor = true): Observable<ConfiguracionRrhh> {
+  onSave(input: any, servidor = true, errorConf?: QueryError): Observable<ConfiguracionRrhh> {
     return this.genericService.onSave<ConfiguracionRrhh>(
-      this.saveConfiguracionRrhhGQL, input, null, null, servidor
+      this.saveConfiguracionRrhhGQL, input, null, null, servidor, errorConf
     );
   }
 
