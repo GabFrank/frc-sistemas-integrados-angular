@@ -931,7 +931,7 @@ export class GenericCrudService {
                 duracion: 5,
               });
               if (error) {
-                obs.next({ error: res.errors });
+                obs.next({ error: limpiarErroresGraphQL(res.errors) });
                 obs.complete();
               } else {
                 obs.next(null);
