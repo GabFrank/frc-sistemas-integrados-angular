@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { timeout } from 'rxjs';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ConfiguracionRrhh } from '../configuracion-rrhh.model';
@@ -43,9 +42,6 @@ interface SeccionVM {
   styleUrls: ['./panel-configuracion-rrhh.component.scss']
 })
 export class PanelConfiguracionRrhhComponent implements OnInit {
-
-  /** Más que los 60 s con los que CargandoDialogService aborta el guardado. */
-  static readonly ESPERA_GUARDADO_MS = 65000;
 
   secciones: SeccionVM[] = [];
   cargando = true;
@@ -146,10 +142,8 @@ export class PanelConfiguracionRrhhComponent implements OnInit {
     };
     // El error de negocio ya lo avisa onSave; el de red se pide explícito para
     // que llegue al error y se muestre, en vez de dejar el campo trabado.
-    // El timeout cubre el corte de CargandoDialogService a los 60 s: Apollo ignora
-    // ese abort sin emitir nada, y sin esto el observable no terminaría nunca.
     this.configuracionRrhhService.onSave(input, true, { networkError: { show: true, propagate: true } })
-      .pipe(timeout({ first: PanelConfiguracionRrhhComponent.ESPERA_GUARDADO_MS }), untilDestroyed(this))
+      .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: ConfiguracionRrhh) => {
           campo.guardando = false;
