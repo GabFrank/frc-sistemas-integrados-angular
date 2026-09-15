@@ -9,10 +9,12 @@ import { CrearCapturaMuestraGQL } from './graphql/crearCapturaMuestra';
 import { DerivarMapaDeMuestraGQL } from './graphql/derivarMapaDeMuestra';
 import { GuardarRegionesDerivadasGQL } from './graphql/guardarRegionesDerivadas';
 import { LectorDeCuponesDisponibleGQL } from './graphql/lectorDeCuponesDisponible';
+import { MuestrasDeFormatoGQL } from './graphql/muestrasDeFormato';
 import { RegionesDeFormatoGQL } from './graphql/regionesDeFormato';
 import {
   CapturaMuestraQr,
   MuestraEstado,
+  MuestraGuardada,
   RegionDerivada,
   RegionFormato,
   ResultadoDerivacion,
@@ -38,6 +40,7 @@ export class MapaFormatoService {
     private derivarGQL: DerivarMapaDeMuestraGQL,
     private cerrarGQL: CerrarCapturaMuestraGQL,
     private regionesGQL: RegionesDeFormatoGQL,
+    private muestrasGQL: MuestrasDeFormatoGQL,
     private guardarGQL: GuardarRegionesDerivadasGQL
   ) {}
 
@@ -62,6 +65,29 @@ export class MapaFormatoService {
 
   onCerrarMuestra(token: string): Observable<boolean> {
     return this.genericService.onCustomMutation(this.cerrarGQL, { token }, true);
+  }
+
+  /** Las fotos de cupón con las que se configuró este formato, la más nueva primero. */
+  onGetMuestras(formatoTerminalPosId: number): Observable<MuestraGuardada[]> {
+    return this.genericService
+      .onCustomQuery(this.muestrasGQL, { formatoTerminalPosId }, true, null, true)
+      .pipe(map((r) => (r ?? []) as MuestraGuardada[]));
+  }
+
+  /**
+   * La foto de una muestra, como blob.
+   *
+   * No se puede poner la URL directo en un `<img src>`: el endpoint va autenticado --son cupones
+   * reales, con importe, boleta y serie de terminal-- y una etiqueta `img` no manda el token. Se
+   * baja con el header y se convierte en object URL. Quien la use tiene que revocarla al
+   * descartarla, si no cada foto mirada queda ocupando memoria hasta recargar la app.
+   */
+  onGetImagenMuestra(id: number): Observable<Blob> {
+    const token = localStorage.getItem('token_central') || localStorage.getItem('token') || '';
+    return this.http.get(this.urlCentral(`/api/captura-muestra/imagen/${id}`), {
+      headers: { Authorization: `Token ${token}` },
+      responseType: 'blob',
+    });
   }
 
   onGetRegiones(formatoTerminalPosId: number): Observable<RegionFormato[]> {

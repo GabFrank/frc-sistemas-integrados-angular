@@ -93,3 +93,18 @@ export interface ResultadoDerivacion {
   cambios?: string[];
   mensaje?: string;
 }
+
+/**
+ * Una muestra ya guardada: la foto de un cupón real con la que se configuró el formato.
+ *
+ * `ancho` y `alto` no son decoración: las regiones están normalizadas 0..1, así que son lo que
+ * permite dibujarlas encima de la foto.
+ */
+export interface MuestraGuardada {
+  id?: number;
+  creadoEn?: string;
+  ancho?: number;
+  alto?: number;
+  msOcr?: number;
+  textoOcr?: string;
+}

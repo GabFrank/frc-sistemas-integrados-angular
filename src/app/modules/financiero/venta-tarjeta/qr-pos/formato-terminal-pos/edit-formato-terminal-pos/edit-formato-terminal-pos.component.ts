@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -18,6 +18,10 @@ import {
   TIPO_MAQUINA,
 } from '../formato-terminal-pos.model';
 import { FormatoTerminalPosService } from '../formato-terminal-pos.service';
+import { VistaPreviaFormatoComponent } from '../vista-previa-formato/vista-previa-formato.component';
+
+/** La última solapa. Al entrar hay que recargar lo que muestra. */
+const TAB_VISTA_PREVIA = 4;
 
 export interface EditFormatoTerminalPosData {
   formato?: FormatoTerminalPos;
@@ -73,16 +77,12 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   tabActivo = 0;
 
   /**
-   * La solapa del mapa. La vista previa se oculta ahí: habla del patrón y el mapeo, y en esa
-   * solapa no se toca ninguno de los dos.
-   */
-  readonly TAB_MAPA = 3;
-
-  /**
    * El formato tal como está guardado. El panel del mapa lo necesita con id: las regiones cuelgan
    * de él, y un formato que todavía no se guardó no tiene dónde colgarlas.
    */
   formatoGuardado: FormatoTerminalPos = null;
+
+  @ViewChild('vistaPrevia') vistaPrevia: VistaPreviaFormatoComponent;
 
   /**
    * Qué tab tiene algo sin completar. Con los campos repartidos en tabs, un requerido vacío puede
@@ -291,6 +291,16 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    */
   onMapaGuardado(): void {
     this.huboCambios = true;
+  }
+
+  /**
+   * Al entrar a la vista previa se recarga lo que muestra.
+   *
+   * <p>Sus `@Input` no cambian --el formato es el mismo-- así que sin esto una foto sacada en la
+   * solapa del mapa no aparecería hasta cerrar y volver a abrir el formato.
+   */
+  onCambioDeTab(evento: any): void {
+    if (evento?.index === TAB_VISTA_PREVIA) this.vistaPrevia?.recargar();
   }
 
   onCancelar(): void {

@@ -11,7 +11,8 @@
        El precio de los tabs es que un campo vacío puede quedar escondido: por eso cada tab avisa
        si le falta algo (`incompletos`) y Guardar, en vez de quedar muerto sin explicación, dice
        en qué tab está lo que falta. -->
-  <mat-tab-group [(selectedIndex)]="tabActivo" class="tabs-formato">
+  <mat-tab-group [(selectedIndex)]="tabActivo" class="tabs-formato"
+                 (selectedTabChange)="onCambioDeTab($event)">
 
     <mat-tab>
       <ng-template mat-tab-label>
@@ -124,27 +125,19 @@
       </div>
     </mat-tab>
 
+    <!-- La última porque es la conclusión: qué va a leer el PDV de un cupón de este formato, al
+         lado del cupón que lo produjo. -->
+    <mat-tab label="Vista previa">
+      <div class="tab-cuerpo">
+        <app-vista-previa-formato #vistaPrevia [formatoId]="formatoGuardado?.id"
+                                  [patron]="formGroup.get('patron').value"
+                                  [mapeo]="formGroup.get('mapeo').value"
+                                  [ejemplo]="formGroup.get('ejemplo').value">
+        </app-vista-previa-formato>
+      </div>
+    </mat-tab>
+
   </mat-tab-group>
-
-  <!-- Fuera de los tabs a propósito: es el resultado de combinar el patrón, la cadena de ejemplo y
-       el mapeo, que viven en dos tabs distintos. Escondida detrás de uno, se editaría el mapeo sin
-       ver el efecto, que es justamente lo que esta vista existe para evitar. -->
-  <div class="preview" *ngIf="tabActivo !== TAB_MAPA">
-    <div class="preview-titulo">Vista previa — esto es lo que el PDV va a leer</div>
-
-    <div class="preview-error" *ngIf="errorPreview">{{ errorPreview }}</div>
-
-    <div class="preview-vacio" *ngIf="!errorPreview && !preview.length">
-      Se llena sola cuando el patrón, la cadena de ejemplo y el mapeo estén cargados.
-    </div>
-
-    <table *ngIf="!errorPreview && preview.length">
-      <tr *ngFor="let fila of preview">
-        <td class="campo">{{ fila.campo }}</td>
-        <td class="valor">{{ fila.valor }}</td>
-      </tr>
-    </table>
-  </div>
 
   <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
     <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>

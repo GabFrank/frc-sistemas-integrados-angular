@@ -222,3 +222,23 @@ export const guardarRegionesDerivadasMutation = gql`
     }
   }
 `;
+
+/**
+ * Las muestras guardadas de un formato: las fotos de cupón con las que se lo configuró.
+ *
+ * La imagen NO viene acá — se pide a `GET /api/captura-muestra/imagen/{id}`, autenticado. Un JPEG
+ * en base64 dentro de la respuesta la hincharía un 33% y la dejaría sin cachear del lado del
+ * navegador, que es justo lo que una galería necesita.
+ */
+export const muestrasDeFormatoQuery = gql`
+  query muestrasDeFormato($formatoTerminalPosId: ID!) {
+    data: muestrasDeFormato(formatoTerminalPosId: $formatoTerminalPosId) {
+      id
+      creadoEn
+      ancho
+      alto
+      msOcr
+      textoOcr
+    }
+  }
+`;

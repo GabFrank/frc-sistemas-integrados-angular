@@ -1,5 +1,5 @@
 .edit-formato {
-  width: 65vw;
+  width: 50vw;
   max-height: 70vh;
   overflow-y: auto;
   padding: 4px;
@@ -76,11 +76,6 @@
   line-height: 1.5;
 
   mat-icon { flex: 0 0 auto; }
-}
-
-.preview-vacio {
-  color: #9e9e9e;
-  font-style: italic;
 }
 
 // El regex y el JSON se leen caracter por caracter: un `0` y una `O` tienen que distinguirse, y
@@ -163,36 +158,6 @@
 // línea del hint anterior. Medido en pantalla.
 .campo-con-hint-largo {
   margin-bottom: 12px;
-}
-
-.preview {
-  border: 1px solid #555;
-  border-radius: 4px;
-  padding: 8px 12px;
-
-  .preview-titulo {
-    color: #ff9800;
-    margin-bottom: 6px;
-  }
-
-  .preview-error {
-    color: #f44336;
-  }
-
-  table {
-    width: 100%;
-  }
-
-  .campo {
-    color: #9e9e9e;
-    padding: 2px 8px 2px 0;
-    white-space: nowrap;
-  }
-
-  .valor {
-    text-align: left;
-    font-family: monospace;
-  }
 }
 
 .acciones {

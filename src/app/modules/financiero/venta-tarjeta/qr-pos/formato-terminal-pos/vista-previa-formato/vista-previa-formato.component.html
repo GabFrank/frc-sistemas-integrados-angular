@@ -1,0 +1,90 @@
+<div class="vista-previa">
+
+  <div class="columnas">
+
+    <!-- ── Izquierda: los cupones reales ───────────────────────────────────────────────── -->
+    <div class="col col-fotos">
+      <div class="col-titulo">Cupones de este formato</div>
+
+      <div class="sin-muestras" *ngIf="!muestras.length">
+        Todavía no hay ninguna foto guardada. Se guarda sola cada vez que derivás el mapa desde la
+        solapa <b>«El mapa del cupón»</b>.
+      </div>
+
+      <div class="tiras" *ngIf="muestras.length">
+        <button type="button" class="tira" *ngFor="let m of muestras"
+                [class.elegida]="m.id === seleccionada?.id" (click)="onElegir(m)">
+          <span class="tira-fecha">{{ m.creadoEn | date: 'dd/MM/yy HH:mm' }}</span>
+          <span class="tira-ms" *ngIf="m.msOcr">{{ m.msOcr }} ms</span>
+        </button>
+      </div>
+
+      <!-- La foto con las regiones encima. Es lo que hace evaluable el mapa: si una región quedó
+           sobre el renglón equivocado, se ve sobre el renglón equivocado. -->
+      <div class="lienzo" *ngIf="seleccionada" [style.padding-top.%]="proporcion * 100">
+        <img class="foto" *ngIf="urlFoto" [src]="urlFoto" alt="Cupón de muestra" />
+        <div class="foto-vacia" *ngIf="!urlFoto">
+          <span *ngIf="cargandoFoto">Cargando la foto…</span>
+          <span *ngIf="!cargandoFoto">{{ errorFoto || 'Sin foto' }}</span>
+        </div>
+
+        <div class="region" *ngFor="let c of campos" [hidden]="c.sinCaja"
+             [style.left.%]="c.izq" [style.top.%]="c.arriba"
+             [style.width.%]="c.ancho" [style.height.%]="c.alto"
+             [title]="c.campo">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Derecha: el ticket sintético ────────────────────────────────────────────────── -->
+    <div class="col col-sintetico">
+      <div class="col-titulo">Así lo va a leer el PDV</div>
+
+      <div class="sin-mapa" *ngIf="!campos.length">
+        Sin mapa todavía. El ticket sintético se arma con las regiones: derivá el mapa en la solapa
+        <b>«El mapa del cupón»</b> y esta vista muestra dónde quedó cada campo.
+      </div>
+
+      <!-- Cada campo en SU región mapeada, con las mismas coordenadas normalizadas que el filial
+           usa para acotar el OCR. No es un dibujo libre: es el mapa, renderizado. -->
+      <div class="lienzo lienzo-sintetico" *ngIf="campos.length"
+           [style.padding-top.%]="proporcion * 100">
+        <div class="campo-sintetico" *ngFor="let c of campos" [hidden]="c.sinCaja"
+             [style.left.%]="c.izq" [style.top.%]="c.arriba"
+             [style.width.%]="c.ancho" [style.height.%]="c.alto">
+          <span class="valor">{{ c.valor }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Abajo: el detalle ───────────────────────────────────────────────────────────── -->
+  <table class="detalle" *ngIf="campos.length">
+    <tr>
+      <th>Campo</th>
+      <th>Ancla</th>
+      <th>Tipo</th>
+      <th>Lo que se leería</th>
+    </tr>
+    <tr *ngFor="let c of campos" [class.fila-sin-caja]="c.sinCaja">
+      <td class="campo">{{ c.campo }}</td>
+      <td class="ancla">
+        <span *ngIf="c.etiqueta">«{{ c.etiqueta }}»</span>
+        <span *ngIf="!c.etiqueta" class="apagado">sin etiqueta</span>
+      </td>
+      <td class="tipo">
+        <span *ngIf="c.tipo">{{ c.tipo | lowercase }}</span>
+        <span *ngIf="!c.tipo" class="apagado">sin tipo</span>
+      </td>
+      <td class="valor">{{ c.valor }}</td>
+    </tr>
+  </table>
+
+  <!-- Un campo sin región no es un fracaso: cae al patrón, que es como se resolvía antes. -->
+  <p class="ayuda" *ngIf="sinCaja > 0">
+    {{ sinCaja }} {{ sinCaja === 1 ? 'campo no tiene región' : 'campos no tienen región' }} y no
+    {{ sinCaja === 1 ? 'aparece' : 'aparecen' }} dibujado{{ sinCaja === 1 ? '' : 's' }}: se
+    {{ sinCaja === 1 ? 'resuelve' : 'resuelven' }} por patrón, sin restricción espacial.
+  </p>
+</div>

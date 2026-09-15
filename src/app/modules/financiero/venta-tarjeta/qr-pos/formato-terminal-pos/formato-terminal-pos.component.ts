@@ -87,7 +87,7 @@ export class FormatoTerminalPosComponent implements OnInit {
     this.matDialog
       .open(EditFormatoTerminalPosComponent, {
         data: { formato, tabInicial },
-        width: '65vw',
+        width: '50vw',
         height: '70vh',
       })
       .afterClosed()
