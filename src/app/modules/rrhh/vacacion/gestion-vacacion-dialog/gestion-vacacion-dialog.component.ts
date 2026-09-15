@@ -113,19 +113,26 @@ export class GestionVacacionDialogComponent implements OnInit {
       dateToString(this.hastaControl.value),
       'SOLICITADA',
       null
-    ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) { this.desdeControl.reset(); this.hastaControl.reset(); this.cargar(); }
+    ).pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res != null) { this.desdeControl.reset(); this.hastaControl.reset(); this.cargar(); }
+      },
+      // En todas las acciones de este diálogo, el aviso de error (negocio o red) ya lo muestra
+      // GenericCrudService.onSaveCustom: el `error` solo evita la excepción no capturada.
+      error: () => {}
     });
   }
 
   onAprobar(p: VacacionPeriodo) {
     this.vacacionService.onAprobarPeriodo(p.id, this.mainService.usuarioActual?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.cargar(); }, error: () => {} });
   }
 
   onMarcarGozada(p: VacacionPeriodo) {
     this.vacacionService.onMarcarGozada(p.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.cargar(); }, error: () => {} });
   }
 
   onVenderDias() {
@@ -136,17 +143,20 @@ export class GestionVacacionDialogComponent implements OnInit {
       return;
     }
     this.vacacionService.onVenderDias(this.vacacion.id, dias, null)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.cargar(); }, error: () => {} });
   }
 
   onAprobarVenta(v: any) {
     this.vacacionService.onAprobarVenta(v.id, this.mainService.usuarioActual?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.cargar(); }, error: () => {} });
   }
 
   onAnularVenta(v: any) {
     this.vacacionService.onAnularVenta(v.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.cargar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.cargar(); }, error: () => {} });
   }
 
   onCerrar() {

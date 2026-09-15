@@ -14,6 +14,7 @@ import { dateToString } from "../commons/core/utils/dateUtils";
 import {
   limpiarErroresGraphQL,
   limpiarMensajeGraphQL,
+  mensajeErrorTransporte,
 } from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 import { Apollo } from "apollo-angular";
@@ -561,6 +562,13 @@ export class GenericCrudService {
           error: (error) => {
             this.isLoading = false;
             this.cargandoService.closeDialog(requestId);
+            // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
+            // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
+            this.notificacionSnackBar.notification$.next({
+              texto: mensajeErrorTransporte(error),
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
             obs.error(error);
           },
         });

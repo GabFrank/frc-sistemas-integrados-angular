@@ -158,29 +158,35 @@ export class LiquidacionFinalDialogComponent implements OnInit {
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
       : this.liquidacionFinalService.onAgregarItem(this.liq.id, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value);
-    obs.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.editandoItemId = null;
-        this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
-        this.recargar();
-      }
+    // En todas las acciones de este diálogo, el aviso de error (negocio o red) ya lo muestra
+    // GenericCrudService.onSaveCustom: el `error` solo evita la excepción no capturada.
+    obs.pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res != null) {
+          this.editandoItemId = null;
+          this.descripcionControl.reset(); this.montoControl.setValue(0); this.mostrarAgregar = false;
+          this.recargar();
+        }
+      },
+      error: () => {}
     });
   }
 
   onEliminarItem(it: LiquidacionFinalItem) {
     this.liquidacionFinalService.onEliminarItem(it.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
   }
 
   // --- Estados ---
   onAprobar() {
     this.liquidacionFinalService.onAprobar(this.liq.id, this.mainService.usuarioActual?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onVolverBorrador() {
     this.liquidacionFinalService.onVolverBorrador(this.liq.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onPagar() {
@@ -195,7 +201,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionFinalService.onPagar(this.liq.id, this.cajaControl.value)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }
@@ -208,7 +214,7 @@ export class LiquidacionFinalDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionFinalService.onAnular(this.liq.id)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }

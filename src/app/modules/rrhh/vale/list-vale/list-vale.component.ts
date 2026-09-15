@@ -116,7 +116,9 @@ export class ListValeComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
-        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onFiltrar(); });
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this))
+          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
       }
     });
   }

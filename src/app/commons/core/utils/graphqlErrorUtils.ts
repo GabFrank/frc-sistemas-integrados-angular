@@ -24,3 +24,17 @@ export function limpiarErroresGraphQL(errors: any): any {
       : e
   );
 }
+
+/**
+ * Texto para un error que llegó por la rama `error` de Apollo (no por `res.errors`). Sin
+ * respuesta HTTP (status 0 o ausente: conexión caída, timeout del link) es un error de red.
+ * Con un status real (401, 403, 500…) el servidor sí respondió: decir «Error de red» mentiría.
+ * Apollo envuelve el `HttpErrorResponse` en `networkError`; se aceptan las dos formas.
+ */
+export function mensajeErrorTransporte(error: any): string {
+  const status = error?.networkError?.status ?? error?.status;
+  if (typeof status === "number" && status > 0) {
+    return `El servidor rechazó la operación (HTTP ${status})`;
+  }
+  return "Error de red";
+}

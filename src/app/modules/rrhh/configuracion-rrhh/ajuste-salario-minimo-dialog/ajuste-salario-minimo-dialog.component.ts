@@ -125,12 +125,16 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
       // estamparia la moneda del primer seleccionado en el historico de todos.
       this.configuracionService.onAjustarSalariosAlMinimo(
         ids, this.data.minimo, this.mainService.usuarioActual?.id
-      ).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res == null) return;
-        this.notificacion.notification$.next({
-          texto: res + ' salario/s ajustado/s', color: NotificacionColor.success, duracion: 4
-        });
-        this.dialogRef.close(res);
+      ).pipe(untilDestroyed(this)).subscribe({
+        next: res => {
+          if (res == null) return;
+          this.notificacion.notification$.next({
+            texto: res + ' salario/s ajustado/s', color: NotificacionColor.success, duracion: 4
+          });
+          this.dialogRef.close(res);
+        },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        error: () => {}
       });
     });
   }

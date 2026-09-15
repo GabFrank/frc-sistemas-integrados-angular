@@ -123,9 +123,10 @@ export class ListPenalizacionComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.penalizacionService.onAnular(p.id)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.onFiltrar(); });
+          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
       }
     });
   }
@@ -138,16 +139,19 @@ export class ListPenalizacionComponent implements OnInit {
         this.penalizacionService.onGenerarAutoRango(
           dateToString(rango.desde, 'yyyy-MM-dd'), dateToString(rango.hasta, 'yyyy-MM-dd'))
           .pipe(untilDestroyed(this))
-          .subscribe((cant: number) => {
-            const generadas = cant ?? 0;
-            this.notificacion.notification$.next({
-              texto: generadas > 0
-                ? 'Penalizaciones automáticas generadas: ' + generadas
-                : 'No se generó ninguna penalización para ese rango',
-              color: generadas > 0 ? NotificacionColor.success : NotificacionColor.warn,
-              duracion: 4
-            });
-            this.onFiltrar();
+          .subscribe({
+            next: (cant: number) => {
+              const generadas = cant ?? 0;
+              this.notificacion.notification$.next({
+                texto: generadas > 0
+                  ? 'Penalizaciones automáticas generadas: ' + generadas
+                  : 'No se generó ninguna penalización para ese rango',
+                color: generadas > 0 ? NotificacionColor.success : NotificacionColor.warn,
+                duracion: 4
+              });
+              this.onFiltrar();
+            },
+            error: () => {}
           });
       });
   }
