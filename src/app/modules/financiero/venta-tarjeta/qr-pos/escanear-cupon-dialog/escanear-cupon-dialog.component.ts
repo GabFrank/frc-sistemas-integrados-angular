@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dial
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, filter, map } from 'rxjs/operators';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { VentaTarjetaService } from '../../venta-tarjeta.service';
 import { FormatoQrPosService } from '../formato-qr-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
@@ -29,6 +30,8 @@ export interface EscanearCuponDialogData {
   monedaTerminalId?: number;
   monedaTerminalSimbolo?: string;
   decimalesPorMoneda?: DecimalesPorMoneda;
+  /** Necesaria para preguntarle al filial si el cupon ya fue usado. */
+  sucursalId?: number;
 }
 
 /**
@@ -58,7 +61,8 @@ export class EscanearCuponDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: EscanearCuponDialogData,
     public dialogRef: MatDialogRef<EscanearCuponDialogComponent>,
     private formatoQrPosService: FormatoQrPosService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private ventaTarjetaService: VentaTarjetaService
   ) {}
 
   /**
@@ -68,7 +72,24 @@ export class EscanearCuponDialogComponent implements OnInit {
    */
   avisoMonedaTerminal = '';
 
+  /** Mientras se consulta al filial si el cupon ya fue usado. */
+  verificando = false;
+
+  /**
+   * Formato de `data.monto`, calculado una sola vez. Con un `1.0-2` fijo un cobro de 50,00 R$ se
+   * mostraba como "50": el minimo de decimales es 0 y se comian los ceros. El cajero compara este
+   * numero contra el ticket del POS en una pantalla donde tambien hay guaranies, asi que perder
+   * los decimales invita a confundir la escala — justo el error que esta feature existe para
+   * evitar. Se precalcula porque el template no puede llamar funciones ni getters.
+   */
+  digitosMonto = '1.0-2';
+
   ngOnInit(): void {
+    const decimales = this.data.monedaCobroId != null
+      ? this.data.decimalesPorMoneda?.[this.data.monedaCobroId]
+      : undefined;
+    if (decimales != null) this.digitosMonto = `1.${decimales}-${decimales}`;
+
     if (
       this.data.monedaTerminalId != null &&
       this.data.monedaCobroId != null &&
@@ -127,6 +148,36 @@ export class EscanearCuponDialogComponent implements OnInit {
       return;
     }
 
+    // Cupon ya usado: bloqueo duro, y va ANTES del cruce porque los bloqueos preceden a las
+    // confirmaciones. Se pregunta al filial en vez de esperar al guardado: detectarlo alli dejaba
+    // al cajero enterandose con la venta ya registrada, el cupon descartado y el registro caido a
+    // PENDIENTE — habia que volver a cargarlo desde la lista. Aca todavia tiene el ticket en la
+    // mano.
+    this.verificando = true;
+    this.ventaTarjetaService
+      .onMotivoCuponNoUsable(datos.qrCrudo, datos.identificadorTransaccion, Number(this.data.sucursalId))
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (motivo) => {
+          this.verificando = false;
+          if (motivo) {
+            this.errorLectura = motivo;
+            this.cuponControl.setValue('', { emitEvent: false });
+            return;
+          }
+          this.continuarTrasChequeo(datos);
+        },
+        // Falla abierta a proposito: si no se pudo consultar (filial caido, red), NO se bloquea.
+        // La validacion de verdad corre igual al guardar; impedir el escaneo porque no se pudo
+        // preguntar seria peor que el problema que esto resuelve.
+        error: () => {
+          this.verificando = false;
+          this.continuarTrasChequeo(datos);
+        },
+      });
+  }
+
+  private continuarTrasChequeo(datos: DatosCupon): void {
     if (formatoCruzado(datos.formato, this.data.proveedorServicioId)) {
       this.confirmarCruce(datos);
       return;

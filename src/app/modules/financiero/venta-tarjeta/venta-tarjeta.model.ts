@@ -1,6 +1,15 @@
 export interface VentaTarjeta {
   id: number;
   sucursalId: number;
+
+  /**
+   * El CENTRAL devuelve los objetos `caja` / `venta`; el FILIAL devuelve los escalares
+   * `cajaId` / `ventaId`. Conviven porque las dos pantallas usan el mismo modelo: la lista del
+   * sidebar consulta al central y la del PDV al filial.
+   */
+  cajaId?: number;
+  ventaId?: number;
+
   caja?: { id: number };
   sucursal?: { id: number; nombre: string; };
   venta?: { id: number; totalGs: number; };
