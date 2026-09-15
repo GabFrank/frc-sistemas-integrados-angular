@@ -1,11 +1,23 @@
+// El diálogo entero es una columna de tres partes: cabecera y botones FIJOS, y sólo el medio
+// scrollea. Antes scrolleaba todo junto y los botones se iban de vista --medido el 2026-09-15: en
+// la solapa de vista previa quedaban 357px por debajo del borde--, así que para guardar había que
+// scrollear hasta abajo sin ninguna señal de que hubiera algo ahí.
 .edit-formato {
   width: 50vw;
-  max-height: 70vh;
-  overflow-y: auto;
-  padding: 4px;
+  height: 70vh;
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;                   // el scroll vive adentro, en .cuerpo-scroll
+}
+
+// Lo único que puede scrollear, y sólo si de verdad no entra.
+.cuerpo-scroll {
+  flex: 1 1 auto;
+  min-height: 0;                      // sin esto un hijo alto no deja encoger al flex y desborda
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .titulo {
@@ -30,8 +42,8 @@
 // encoge por debajo de su contenido y el contenido se dibuja por fuera, encima de la vista previa.
 // Medido el 2026-09-15: grupo de 419px con 486px adentro. El que scrollea tiene que ser el
 // diálogo, no el tab.
-.edit-formato > mat-tab-group {
-  flex: 0 0 auto;
+.cuerpo-scroll > mat-tab-group {
+  display: block;
 }
 
 // Y MDC recorta en tres capas, no en una: wrapper, body y content. Sin las tres, el hint del mapeo
@@ -160,6 +172,9 @@
   margin-bottom: 12px;
 }
 
+// Fijos abajo: no scrollean con el contenido.
 .acciones {
-  margin-top: 8px;
+  flex: 0 0 auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }

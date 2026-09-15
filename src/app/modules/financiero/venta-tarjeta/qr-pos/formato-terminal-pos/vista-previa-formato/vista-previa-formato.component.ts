@@ -62,6 +62,9 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
    * que haya que desconfiar.
    */
   urlFoto: SafeUrl = null;
+
+  /** id de muestra -> su miniatura. Es la misma imagen: el navegador la sirve de su cache. */
+  miniaturas: { [id: number]: SafeUrl } = {};
   cargandoFoto = false;
   errorFoto: string = null;
 
@@ -91,6 +94,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
   ngOnDestroy(): void {
     this.urlsCreadas.forEach((u) => URL.revokeObjectURL(u));
     this.urlsCreadas = [];
+    this.miniaturas = {};
   }
 
   /**
@@ -124,7 +128,10 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         this.seleccionada = null;
         this.urlFoto = null;
         this.errorFoto = null;
-        if (this.muestras.length) this.onElegir(this.muestras[0]);
+        if (this.muestras.length) {
+          this.onElegir(this.muestras[0]);
+          this.cargarMiniaturas();
+        }
       },
       error: () => (this.muestras = []),
     });
@@ -138,6 +145,28 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
       },
       error: () => (this.regiones = []),
     });
+  }
+
+  /**
+   * Baja las miniaturas de la fila.
+   *
+   * <p>Es la imagen completa, no una versión reducida: el servidor no genera thumbnails y
+   * fabricarlos costaría una segunda copia en disco. Con el ancho al que se muestran --56px-- y
+   * una foto de cupón de ~200 KB, bajar unas pocas no se nota; si algún formato junta decenas,
+   * el paso siguiente es generar la miniatura en el servidor, no cambiar esta pantalla.
+   */
+  private cargarMiniaturas(): void {
+    for (const m of this.muestras) {
+      if (this.miniaturas[m.id]) continue;
+      this.service.onGetImagenMuestra(m.id).pipe(untilDestroyed(this)).subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          this.urlsCreadas.push(url);
+          this.miniaturas[m.id] = this.sanitizer.bypassSecurityTrustUrl(url);
+        },
+        error: () => {},
+      });
+    }
   }
 
   private cargarFoto(m: MuestraGuardada): void {

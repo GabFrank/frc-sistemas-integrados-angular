@@ -1,27 +1,40 @@
 <div class="vista-previa">
 
+  <!-- La tira arriba y a todo el ancho: así los dos cupones de abajo arrancan a la misma altura
+       --si cuelga de la columna izquierda, la empuja y el sintético queda más arriba-- y la fila
+       tiene todo el diálogo para crecer al costado. -->
+  <div class="tira-fila">
+    <div class="col-titulo">Cupones de este formato</div>
+
+    <div class="sin-muestras" *ngIf="!muestras.length">
+      Todavía no hay ninguna foto guardada. Se guarda sola cada vez que derivás el mapa desde la
+      solapa <b>«El mapa del cupón»</b>.
+    </div>
+
+    <!-- Scrollea al costado y no crece hacia abajo: los cupones se acumulan con el uso --uno por
+         derivación-- y una grilla que crece haría que el diálogo dejara de entrar. -->
+    <div class="tiras" *ngIf="muestras.length">
+        <button type="button" class="tira" *ngFor="let m of muestras"
+                [class.elegida]="m.id === seleccionada?.id" (click)="onElegir(m)"
+                [title]="(m.creadoEn | date: 'dd/MM/yy HH:mm') + (m.msOcr ? ' · ' + m.msOcr + ' ms' : '')">
+          <img *ngIf="miniaturas[m.id]" [src]="miniaturas[m.id]" alt="" />
+          <span class="tira-fecha">{{ m.creadoEn | date: 'dd/MM' }}</span>
+        </button>
+    </div>
+  </div>
+
   <div class="columnas">
 
-    <!-- ── Izquierda: los cupones reales ───────────────────────────────────────────────── -->
     <div class="col col-fotos">
-      <div class="col-titulo">Cupones de este formato</div>
-
-      <div class="sin-muestras" *ngIf="!muestras.length">
-        Todavía no hay ninguna foto guardada. Se guarda sola cada vez que derivás el mapa desde la
-        solapa <b>«El mapa del cupón»</b>.
-      </div>
-
-      <div class="tiras" *ngIf="muestras.length">
-        <button type="button" class="tira" *ngFor="let m of muestras"
-                [class.elegida]="m.id === seleccionada?.id" (click)="onElegir(m)">
-          <span class="tira-fecha">{{ m.creadoEn | date: 'dd/MM/yy HH:mm' }}</span>
-          <span class="tira-ms" *ngIf="m.msOcr">{{ m.msOcr }} ms</span>
-        </button>
-      </div>
+      <div class="col-titulo">El cupón elegido</div>
 
       <!-- La foto con las regiones encima. Es lo que hace evaluable el mapa: si una región quedó
-           sobre el renglón equivocado, se ve sobre el renglón equivocado. -->
-      <div class="lienzo" *ngIf="seleccionada" [style.padding-top.%]="proporcion * 100">
+           sobre el renglón equivocado, se ve sobre el renglón equivocado.
+
+           Alto fijo y ancho por proporción --no al revés--: así las dos columnas miden lo mismo de
+           alto y el diálogo entra sin scroll. Las regiones van en %, así que siguen cayendo donde
+           corresponde sea cual sea el tamaño. -->
+      <div class="lienzo" *ngIf="seleccionada" [style.aspect-ratio]="1 / proporcion">
         <img class="foto" *ngIf="urlFoto" [src]="urlFoto" alt="Cupón de muestra" />
         <div class="foto-vacia" *ngIf="!urlFoto">
           <span *ngIf="cargandoFoto">Cargando la foto…</span>
@@ -48,7 +61,7 @@
       <!-- Cada campo en SU región mapeada, con las mismas coordenadas normalizadas que el filial
            usa para acotar el OCR. No es un dibujo libre: es el mapa, renderizado. -->
       <div class="lienzo lienzo-sintetico" *ngIf="campos.length"
-           [style.padding-top.%]="proporcion * 100">
+           [style.aspect-ratio]="1 / proporcion">
         <div class="campo-sintetico" *ngFor="let c of campos" [hidden]="c.sinCaja"
              [style.left.%]="c.izq" [style.top.%]="c.arriba"
              [style.width.%]="c.ancho" [style.height.%]="c.alto">

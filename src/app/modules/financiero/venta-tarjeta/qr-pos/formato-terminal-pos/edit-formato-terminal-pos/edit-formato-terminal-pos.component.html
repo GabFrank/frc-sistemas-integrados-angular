@@ -11,6 +11,8 @@
        El precio de los tabs es que un campo vacío puede quedar escondido: por eso cada tab avisa
        si le falta algo (`incompletos`) y Guardar, en vez de quedar muerto sin explicación, dice
        en qué tab está lo que falta. -->
+  <div class="cuerpo-scroll">
+
   <mat-tab-group [(selectedIndex)]="tabActivo" class="tabs-formato"
                  (selectedTabChange)="onCambioDeTab($event)">
 
@@ -138,6 +140,8 @@
     </mat-tab>
 
   </mat-tab-group>
+
+  </div>
 
   <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
     <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
