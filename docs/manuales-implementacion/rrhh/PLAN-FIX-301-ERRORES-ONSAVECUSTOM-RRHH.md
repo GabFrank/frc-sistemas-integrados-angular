@@ -159,6 +159,18 @@ N/A para central y filial porque el cambio es solo de manejo de errores en el cl
 
 Los ejes no se contradicen: nada para que arbitre el usuario.
 
+## Auditoría del diff (paso 8)
+
+3 fijos; ningún condicional (el diff no toca release ni migraciones). Diff total: 21 archivos,
++330/−81 (≈200 son este plan).
+
+| # | Eje | Hallazgo | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| F1 | Autorización | Sin hallazgos: ningún gate de rol cambia; «Error de red» es un literal sin URL ni stack; sin `console.*` nuevos | — | Sin cambio |
+| F2 | Esquema / estado | Sin hallazgos: los `next` quedaron textualmente iguales a `origin/develop`; en `cambio-cargo-dialog`, `dialogRef.close(res)` deja la pantalla alineada con la base (`legajo-funcionario.component.ts:176-184` hace `setFuncionario(res)` + `recargar()`) | comparado archivo por archivo | Sin cambio |
+| F3a | Contrato · media | Un HTTP no-2xx (401, 403, 500) también entra por la rama `error` y «Error de red» mentiría | Apollo envuelve el `HttpErrorResponse` en `ApolloError.networkError` (`@apollo/client/core/QueryManager.js:662-665`); no hay manejo global de 401 fuera de `login.service.ts` | **Aplicado**: helper `mensajeErrorTransporte` en `graphqlErrorUtils.ts` («Error de red» sin status; «El servidor rechazó la operación (HTTP n)» con status) + casos 5-7 del script 1 |
+| F3b | Contrato · baja | Doble aviso ante red fuera de RRHH: `conteo-caja-dialog.component.ts:217-221` y `detalle-caso-dialog.component.ts:269-272` (tesorería, no POS) | confirmado | Ya aceptado (PR 2 de #301 / #302) |
+
 ## Prueba de runtime (paso 9)
 
 Local, sin mergear: central 8081 perfil `dev` + `ng serve -c web`, login del usuario (yo no
