@@ -3,6 +3,9 @@
   max-height: 70vh;
   overflow-y: auto;
   padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .titulo {
@@ -20,20 +23,103 @@
   margin-top: -8px;
 }
 
-// styles.scss global fija `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`
-// (decisión del repo, no de este componente). El mat-hint sigue siendo VISIBLE pero el elemento
-// que lo contiene no aporta altura al layout, así que su texto flota fuera del box del campo y
-// se dibuja encima de lo que venga después. Sin este margen manual, cualquier campo con
-// mat-hint tapa al siguiente. Verificado con getBoundingClientRect(): el hint mide ~22px de alto
-// y el label flotante del campo siguiente "muerde" ~7px hacia arriba de su propio box (el notch
-// típico del appearance="outline"); 34px cubre ambos con margen de sobra.
+// Dos columnas: a la izquierda tres datos cortos, a la derecha el regex y el JSON. La proporción
+// no es 50/50 a propósito — un nombre de modelo no necesita el mismo ancho que un patrón de 120
+// caracteres, y eso era justamente lo que pasaba con una sola columna.
+.dos-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1.7fr;
+  gap: 0 24px;
+  align-items: start;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;                       // sin esto el textarea del JSON estira su columna
+}
+
+.col-titulo {
+  color: #9e9e9e;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+// El regex y el JSON se leen caracter por caracter: un `0` y una `O` tienen que distinguirse, y
+// la indentación del JSON tiene que alinear. Es el mismo motivo por el que la vista previa ya usa
+// monospace para los valores.
+::ng-deep .campo-codigo .mat-mdc-input-element {
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+// Alto explícito y no el atributo `rows`: con el textarea de MDC, `rows` no gobierna el alto del
+// infix --el campo queda de un renglón y el contenido se dibuja fuera del borde, encima del hint--.
+// Medido en la pantalla del 2026-09-15 con `rows="8"` puesto: el mapeo se veía de una línea.
+// El alto del textarea va acá y no en el atributo `rows`, que en MDC no lo gobierna.
 //
-// !important porque fxLayoutGap="10px" del contenedor pone el margin-bottom como estilo INLINE
-// en cada hijo — un margin-bottom de clase normal, con cualquier especificidad, pierde contra
-// eso. Verificado leyendo el atributo style del elemento: "margin-bottom: 10px" puesto por
-// Angular Flex Layout, no por esta hoja de estilos.
-::ng-deep .campo-con-hint-largo {
-  margin-bottom: 34px !important;
+// Y hay que soltar TRES contenedores, no uno. Medido el 2026-09-15 con el textarea en 190px:
+// el infix venía con `min-height: 56px`, y aunque se lo saques, el que dibuja el borde
+// --`.mat-mdc-form-field-flex`-- seguía midiendo 48px. El resultado era un recuadro de dos
+// renglones con el JSON dibujado por fuera, que es exactamente lo que se veía en la pantalla que
+// disparó este cambio.
+::ng-deep .campo-codigo .mat-mdc-form-field-infix {
+  min-height: unset !important;
+  height: auto !important;
+}
+
+::ng-deep .campo-codigo .mat-mdc-text-field-wrapper,
+::ng-deep .campo-codigo .mat-mdc-form-field-flex {
+  height: auto !important;
+}
+
+::ng-deep .campo-codigo textarea.ta-patron {
+  min-height: 72px;
+  resize: vertical;
+}
+
+::ng-deep .campo-codigo textarea.ta-mapeo {
+  min-height: 190px;
+  resize: vertical;
+}
+
+// styles.scss global fija `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`
+// (decisión del repo, no de este componente). El mat-hint sigue siendo VISIBLE pero su contenedor
+// no aporta altura, así que el texto flota fuera del box del campo y se dibuja encima de lo que
+// venga después.
+//
+// Acá se le devuelve el alto, acotado a este diálogo. Antes había un `margin-bottom: 34px` fijo
+// para compensarlo, y funcionaba mientras cada hint entrara en un renglón: al pasar a dos
+// columnas los hints pasaron a ocupar dos, y 34px dejó de alcanzar — se volvieron a pisar.
+// Medido el 2026-09-15: subscript real = 0px con hints de dos líneas. Un número fijo no puede
+// seguir al contenido; que el hint ocupe el alto que ocupa, sí.
+// Dos reglas, y el orden importa:
+//
+// 1. El wrapper recupera el alto. NO se le toca el `position: relative` --lo pone el propio MDC--
+//    porque adentro el hint va `position: absolute` y cuelga de él. Sacárselo (lo probé) manda
+//    todos los hints al primer ancestro posicionado: quedan apilados arriba del diálogo, encima
+//    de los labels.
+// 2. El hint pasa a estático, que es lo que lo devuelve al flujo y hace que el wrapper mida lo
+//    que el texto ocupa, una línea o tres.
+//
+// Medido después del cambio: cada campo termina exactamente donde termina su hint, y el de abajo
+// arranca 4px después. Sin números fijos que adivinen cuántas líneas va a ocupar el texto.
+::ng-deep .edit-formato .mat-mdc-form-field-subscript-wrapper {
+  height: auto !important;
+}
+
+::ng-deep .edit-formato .mat-mdc-form-field-hint-wrapper {
+  position: static !important;
+}
+
+// 12px y no 0: el label flotante del campo de abajo se dibuja por ENCIMA de su propio borde
+// --el notch del appearance="outline"-- así que muerde unos 7px hacia arriba y se comía la última
+// línea del hint anterior. Medido en pantalla.
+.campo-con-hint-largo {
+  margin-bottom: 12px;
 }
 
 .preview {
