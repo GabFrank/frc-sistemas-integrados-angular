@@ -45,6 +45,9 @@ Alcance elegido por el usuario: **«Limpiar mensaje»**.
      - `onCustomMutation` y `onSave`: `obs.error(res.errors)` → el mismo array, con copias de
        cada error y `message` limpio.
      - `onGetByTexto` (`propagate`): `{ message, errors }` → los dos limpios.
+     - `onSaveConDetalle` (`error = true`): `obs.next({ error: res.errors })` → `error` limpio.
+       **Agregado en el paso 8** (hallazgo F2.1): el chequeo de cableado solo miraba `obs.error`.
+       Hoy ningún llamador pasa `error = true`.
    - Sin cambios de flujo: no se agrega ni se quita ningún `next`/`error`/`complete`.
 3. **`pagar-compras.service.ts`**: el `limpiarError` privado usa el helper compartido (con su
    fallback `'Error al registrar el pago'`), y se corrige el comentario de `onPagarMixto`
@@ -87,6 +90,18 @@ los 15 sitios originales tiene que pasar por el helper — se verifica con `git 
 El paso del ciclo lo marca `N/A para desktop` (no hay batería en CI); se hace igual porque
 cuesta poco y es la única evidencia automatizada.
 
+## Documentación (paso 11)
+
+- **Lo que sobrevive al plan** va a `.cursor/rules/service.mdc`, la única regla del repo que habla
+  de manejo de errores (línea 22): `GenericCrudService` ya limpia el prefijo, y un service que llame
+  a Apollo directo usa `limpiarMensajeGraphQL` / `limpiarErroresGraphQL` en vez de su propio regex.
+- `docs/HOW_TO.md`, `docs/IMPRESION.md` y `CLAUDE.md`: N/A porque ninguno describe el manejo de
+  errores de `GenericCrudService` (`grep -iE 'GenericCrudService|onSaveCustom'` en `docs/` solo
+  encuentra manuales de módulos puntuales, y `CLAUDE.md` solo dice «CRUD via generic-crud.service.ts»).
+- Gotcha nuevo para `frc-cicd/gotchas.md`: ninguno propio de infraestructura. Queda sin subir porque
+  ese clon es de solo lectura en esta máquina.
+- El plan se borra en el commit final del PR (fase 3).
+
 ## Datos nuevos
 
 N/A: no nace ningún campo, columna, clave de configuración ni valor de enum. Solo cambia el
@@ -106,6 +121,21 @@ Provocar un error de negocio conocido y ver el snackbar sin prefijo:
 - un camino `onSaveCustom` de RRHH, p. ej. **revertir egreso con finiquito BORRADOR**
   (el mensaje literal del comentario de Gabriel), si la base local tiene el caso.
 Los datos concretos se eligen consultando la DB local antes de proponer la prueba.
+
+### Resultados
+
+Entorno: central local `:8081` (perfil `dev`, `bodega@5551`, Flyway sin migraciones) + `ng serve -c web`
+`:4200` desde la rama, sobre `057ee7f9` más el arreglo de F2.1 sin commitear. Rama al día con
+`origin/develop` (`HEAD..origin/develop` vacío).
+
+| Caso | Camino | Datos | Resultado |
+|---|---|---|---|
+| Egreso de 20.000.000 Gs en caja virtual «RRHH» (#1, saldo 13.900.000, sin saldo negativo) | `onSaveMovimiento` → `onSaveCustom` (snackbar genérico + `graphQLErrors` al diálogo) | Existentes | **OK — probado por el usuario (2026-09-15)**: mensaje sin el prefijo, botón habilitado |
+| Pagar 15.000.000 Gs de la solicitud `PRUEBA-207` (20.000.000) desde la caja «RRHH» | `PagarComprasService.mutar` (`pagarSolicitudesMixto`) | Cargada por SQL con autorización del usuario: `operaciones.solicitud_pago` #1 | **OK — probado por el usuario (2026-09-15)**: «Saldo insuficiente en la caja virtual» sin prefijo, botón habilitado |
+| Revertir egreso del funcionario #455 con finiquito `BORRADOR` | `onSaveCustom` (RRHH) — el caso del comentario de Gabriel | Cargada por SQL: `rrhh.liquidacion_final` #3 | **OK — probado por el usuario (2026-09-15)**: «…liquidacion final BORRADOR (#3)…» sin prefijo, botón habilitado |
+
+Datos de prueba: las dos tablas se verificaron fuera de toda publicación (`pg_publication_tables`)
+y sin triggers antes de escribir; se borran al terminar con un script con guarda de referencias.
 
 ## Qué queda sin verificar
 
@@ -153,4 +183,21 @@ la fase 2 migra. Hallazgos:
 |---|---|---|---|
 | A1 | Dos consumidores tratan el error de `onSave`/`onCustomMutation` como array: `mensaje-error.ts:16` y `edit-factura-legal-dialog.component.ts:242` (baja) | Verificado por `grep` | La copia devuelve un array nuevo (`Array.isArray` sigue `true`) con `.message`; caso 7 del test |
 | A2 | Cobertura incompleta silenciosa: un mensaje con otro formato no se limpia (media) | `GraphqlExceptionHandler.java:34-42` del central desenvuelve las excepciones que implementan `GraphQLError` (llegan **sin** prefijo): el helper es no-op ahí, correcto. No rompe, solo no limpia | Aceptado; ya consta en «Qué queda sin verificar» |
-| A3 | El regex coincide con lo que emite graphql-java (sin riesgo) | `unzip -p graphql-java-18.5.jar graphql/ExceptionWhileDataFetching.class \| strings` → `Exception while fetching data (%s) : %s` (versión del central). Filial usa 14.1 vía kickstart: **afirmado por el auditor, no re-verificado** | Regex del plan sin cambios |
+| A3 | El regex coincide con lo que emite graphql-java (sin riesgo) | `unzip -p graphql-java-18.5.jar graphql/ExceptionWhileDataFetching.class \| strings` → `Exception while fetching data (%s) : %s` (central). Mismo comando sobre `graphql-java-14.1.jar` (filial) → **idéntico** | Regex del plan sin cambios |
+
+## Auditoría del diff (paso 8)
+
+Diff: `origin/develop...057ee7f9` — el plan, `graphqlErrorUtils.ts`, `generic-crud.service.ts`,
+`pagar-compras.service.ts`. Ningún glob de los condicionales A (release) ni B (replicación):
+corren solo los 3 fijos.
+
+| # | Eje | Hallazgo (severidad del auditor) | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| F1.1 | Autorización | Sin resolvers, menús, roles, DTOs ni logging nuevos (N/A) | `git diff --stat`: 4 archivos, todos cliente | — |
+| F1.2 | Autorización | Regex más estricto que el viejo de pagar-compras: un formato distinto no se limpia (baja) | Formato confirmado en graphql-java 18.5 **y** 14.1 | Aceptado |
+| F2.1 | Esquema/espejo | `onSaveConDetalle` (`generic-crud.service.ts:934`) emitía `obs.next({ error: res.errors })` crudo (media) | **Confirmado**. Pero ningún llamador pasa `error = true` (`factura-legal.service.ts:135`, `venta-credito.service.ts:53`): hoy la rama no se alcanza → **baja** | Envuelto con `limpiarErroresGraphQL`. El chequeo de cableado del plan solo miraba `obs.error` y no vio este `obs.next` |
+| F2.2 | Esquema/espejo | Exports sin lector, código muerto (N/A) | 2 exports usados; `map` sigue en uso en pagar-compras | — |
+| F2.3 | Esquema/espejo | Deriva de `limpiarError`: mensaje que era solo el prefijo ahora cae al fallback (baja) | Correcto; ya consta en el commit `057ee7f9` | Aceptado (mejora) |
+| F3.1 | Contrato | Forma del payload idéntica por método; ningún consumidor usa identidad, `instanceof`, `originalError` ni muta el error; rama `onSave` con `errors` + `data` sin cambios (N/A) | Coincide con A1/B1 y con la lectura del diff | — |
+| F3.2 | Contrato | Regex más estricto; sugiere relajar a `\s*:\s*` (media) | Formato exacto verificado en el bytecode de graphql-java 18.5 y 14.1: relajarlo sería adivinar variantes que ninguna versión en uso emite | Aceptado sin cambios; la prueba de UI con un error real del central lo confirma |
+| F3.3 | Contrato | El auditor rotuló «[Alta]» un ítem cuyo texto dice «sin hallazgos bloqueantes» | Error de etiqueta del auditor, no un riesgo | — |
