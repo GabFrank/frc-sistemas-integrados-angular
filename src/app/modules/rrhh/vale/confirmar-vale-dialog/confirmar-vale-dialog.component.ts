@@ -54,8 +54,9 @@ export class ConfirmarValeDialogComponent implements OnInit {
 
   onConfirmar() {
     if (this.cajaControl.invalid) { return; }
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.valeService.onConfirmar(this.vale.id, this.cajaControl.value, this.mainService.usuarioActual?.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 }

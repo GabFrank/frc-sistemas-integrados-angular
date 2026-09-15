@@ -69,9 +69,10 @@ export class PrestamoCuotasDialogComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.prestamoService.onCobrarCuota(cuota.id, this.cajaControl.value, pendiente)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.cargarCuotas(); });
+          .subscribe({ next: ok => { if (ok) this.cargarCuotas(); }, error: () => {} });
       }
     });
   }

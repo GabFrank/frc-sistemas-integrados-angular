@@ -60,8 +60,9 @@ export class SubirDocumentoDialogComponent {
       vencimiento: this.vencimientoControl.value ? dateToString(this.vencimientoControl.value) : null,
       observacion: this.observacionControl.value ? this.observacionControl.value.toUpperCase() : null
     };
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.legajoService.onSaveDocumento(input).pipe(untilDestroyed(this))
-      .subscribe(res => { if (res != null) this.dialogRef.close(res); });
+      .subscribe({ next: res => { if (res != null) this.dialogRef.close(res); }, error: () => {} });
   }
 
   onCancelar() { this.dialogRef.close(); }

@@ -94,10 +94,14 @@ export class ListAguinaldoComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.aguinaldoService.onCalcular(this.anioControl.value)
-          .pipe(untilDestroyed(this)).subscribe((cant: number) => {
-            this.notificacion.notification$.next({ texto: 'Aguinaldos calculados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
-            this.onFiltrar();
+          .pipe(untilDestroyed(this)).subscribe({
+            next: (cant: number) => {
+              this.notificacion.notification$.next({ texto: 'Aguinaldos calculados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });
+              this.onFiltrar();
+            },
+            error: () => {}
           });
       }
     });
@@ -105,7 +109,8 @@ export class ListAguinaldoComponent implements OnInit {
 
   onAprobar(a: Aguinaldo) {
     this.aguinaldoService.onAprobar(a.id)
-      .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) this.onFiltrar(); });
+      .pipe(untilDestroyed(this))
+      .subscribe({ next: res => { if (res != null) this.onFiltrar(); }, error: () => {} });
   }
 
   /** Pago separado del aguinaldo: elige Caja Mayor y paga; luego ofrece el recibo. */
