@@ -53,7 +53,7 @@ Patrón: `subscribe({ next: <cuerpo idéntico>, error: () => {} })`, comentario 
 | 9 | `financiero/retiro/verificacion/list-retiro-casos.component.ts:251` | `onSoltarCaso` | |
 | 10 | `financiero/venta-credito/list-venta-credito.component.ts:478` | `onCobrarVentaCredito` | `next` vacío; sin `untilDestroyed` (no se agrega: fuera de alcance) |
 | 11 | `operaciones/devolucion/edit-devolucion.component.ts:436` | `onSaveDevolucionItem` | (la de `:687` ya tiene `error` posicional) |
-| 12-15 | `operaciones/transferencia/edit-transferencia.component.ts:844, 1041, 1079, 1189` | `onSaveTransferenciaItem` | 844 y 1041 ya cierran overlay con `finalize` |
+| 12-15 | `operaciones/transferencia/edit-transferencia.component.ts:844, 1041, 1079, 1189` | `onSaveTransferenciaItem` | 844 y 1041 ya cierran overlay con `finalize`. Verificado al implementar: 1079 (`onConfirm`) guarda una copia (`Object.assign(new TransferenciaItem(), item)`, `:1074-1075`) y 1189 recibe la copia que arma `ModificarItemDialogComponent` (`selectedItem = new TransferenciaItem`, `:40`; `close({ item: this.selectedItem })`, `:143`): la grilla no se toca antes de guardar, no hay nada que revertir |
 | 16 | `pdv/comercial/venta-touch/list-delivery.component.ts:293` | `onSaveDeliveryEstado` | **excepción** *(B1)*: el estado se muta **antes** de llamar (`:292`) sobre la misma referencia que está en `dataSource.data` (`:278` y `delivery-opciones-dialog` no clona). Se captura `const estadoAnterior = this.selectedDelivery.estado;` **antes** de mutar y el `error` restaura `this.selectedDelivery.estado = estadoAnterior` (al ser la misma referencia, la fila de la tabla vuelve también) |
 | 17 | `productos/producto-proveedor/gestion-productos-proveedor-dialog.component.ts:179` | `saveProductoProveedor` | ya es `subscribe({ next })` |
 
@@ -117,13 +117,25 @@ N/A para central y filial: solo manejo de errores en el cliente.
 | B1 | B · alta | `list-delivery`: el plan no decía de dónde sale el estado anterior; `selectedDelivery` es la referencia compartida con `dataSource.data` | `list-delivery.component.ts:278,292` | **Aplicado**: capturar `estadoAnterior` antes de mutar (fila 16) |
 | B2 | B · media, preexistente | `edit-transferencia:838-840` pierde los lotes pendientes si el guardado falla | confirmado | Anotado como deuda, fuera de alcance |
 | B3 | B · media/alta, preexistente | Transferencia/devolución/vuelto sin guarda de idempotencia en el central | según el auditor (central) | Anotado; no lo cambia este PR |
-| B4 | B · info | Los `onDelete` nunca reciben `next(false)`: la rama `else` es código muerto antes y después | `onSaveCustom` solo emite `error` | Sin cambio |
+| B4 | B · info | «Los `onDelete` nunca reciben `next(false)`: la rama `else` es código muerto» | **Falso**: `onSaveCustom` no inventa un `false`, pero el central sí lo devuelve como dato: `CrudService.deleteById` (`CrudService.java:63-70`) atrapa cualquier excepción (incluida la FK `cuenta_bancaria_fk_banco`) y devuelve `false`. El `else` («No se pudo eliminar…») sí se ejecuta | Sin cambio de código: el `error` nuevo cubre red y errores que el resolver deja pasar; el `else` sigue cubriendo el `false` |
 | A1 | A · media-alta | «El #305 ya está mergeado y su rama no se borró: un PR apilado no se reapunta solo» | se verifica el estado del #305 y si `c1b8ae5a` llegó a `develop` | ver «Base de la rama» (se decide con el usuario) |
 | A2 | A · media | `RetiroVerificacionService.onAnular` sí tiene llamador | `caja-virtual-dashboard.component.ts:669` | Corregido en «Estado» |
 | A3 | A · media | «Restaurar el estado de delivery sin `updateDataSource` no repinta la fila» | Contradice B1: la mutación in-place de `:292` ya se pinta antes de la respuesta (misma referencia, CD por defecto) | Sin `updateDataSource`; el test verifica también la fila de `dataSource.data` |
 | A4 | A · info | Los 4 `onDelete` son wrappers de `onSaveCustom`; `GenericCrudService.onDelete` (distinto) nunca emite `error` | leído | Fuera de #301/#302; deuda anotada acá |
 | B3b | B · pendiente | `onCobrarVentaCredito` usa la mutation `cobrarVentaCredito` (`venta-credito.service.ts:65`); no se verificó si el central la protege | — | **No verificado**, anotado |
 | B5 | B | «El test de `list-delivery` necesita TestBed/Karma» | **Falso**: el test usa esbuild + node con `Object.create(ListDeliveryComponent.prototype)`, sin DI, y ya corrió en rojo (4 fallos) | Sin cambio |
+
+## Auditoría del diff (paso 8)
+
+3 fijos; ningún condicional (no toca release ni migraciones). Código: 15 archivos, +209/−134.
+
+| # | Eje | Hallazgo | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| F1 / F2b / F3a | los tres · media | La ventana anti-ráfaga compara solo el texto en un singleton: dos acciones **distintas** que fallan igual (dos 403, dos 500) dentro de 3 s → la segunda no avisa | `generic-crud.service.ts` (`ultimoAvisoTransporte`) | **Aplicado**: la clave es operación (`gql`) + texto. Un lote comparte la instancia del GQL y se sigue deduplicando; otra operación avisa. Caso nuevo en el script 1 |
+| F3b | contrato · baja-media | `Date.now()` no es monotónico: si el reloj retrocede (NTP), la resta negativa silencia avisos mucho más de 3 s | confirmado | **Aplicado**: `performance.now()` |
+| F2a | estado · media | `list-delivery`: el `error` revertía `this.selectedDelivery`, que puede cambiar de referencia (otra fila, otro diálogo) antes de que llegue la respuesta | `selectedDelivery` se reasigna en varios flujos del componente | **Aplicado**: se captura `const delivery = this.selectedDelivery` junto con `estadoAnterior`; el `error` revierte ese objeto. El `next` queda como estaba (preexistente). Caso nuevo en el test |
+| F1 | autorización | Sin otros hallazgos: la validación «no podés investigar un retiro que vos mismo verificaste» no cambió (solo su comentario); sin logs nuevos | — | Sin cambio |
+| F2 / F3 | esquema / contrato | Los 17 `next` quedaron textualmente iguales a `origin/develop`; no quedan llamadores sin `error` salvo los 8 `forkJoin`/ternarios que ya lo manejan | chequeo estático + lectura | Sin cambio |
 
 ## Prueba de runtime (paso 9)
 
