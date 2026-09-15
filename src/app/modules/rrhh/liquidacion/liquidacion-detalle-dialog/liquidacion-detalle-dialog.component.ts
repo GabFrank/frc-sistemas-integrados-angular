@@ -129,9 +129,11 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     }
   }
 
+  // En todas las acciones de este diálogo, el aviso de error (negocio o red) ya lo muestra
+  // GenericCrudService.onSaveCustom: el `error` solo evita la excepción no capturada.
   onRegenerar() {
     this.liquidacionService.onGenerarBorrador(this.liq.funcionario?.id, this.liq.periodo, this.liq.moneda?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   /** Abre el panel en modo edición con los valores del item (todo es negociable). */
@@ -161,13 +163,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
       : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
-    obs.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.editandoItemId = null;
-        this.descripcionControl.reset(); this.montoControl.setValue(0);
-        this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
-        this.recargar();
-      }
+    obs.pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res != null) {
+          this.editandoItemId = null;
+          this.descripcionControl.reset(); this.montoControl.setValue(0);
+          this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
+          this.recargar();
+        }
+      },
+      error: () => {}
     });
   }
 
@@ -190,19 +195,20 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onEliminarItem(it.id)
-          .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+          .pipe(untilDestroyed(this))
+          .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
       }
     });
   }
 
   onAprobar() {
     this.liquidacionService.onAprobar(this.liq.id, this.mainService.usuarioActual?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onVolverBorrador() {
     this.liquidacionService.onVolverBorrador(this.liq.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onPagar() {
@@ -217,7 +223,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onPagar(this.liq.id, this.cajaControl.value)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }
@@ -230,7 +236,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onAnular(this.liq.id)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }
