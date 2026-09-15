@@ -99,6 +99,20 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
    */
   editando = false;
 
+  /**
+   * Cuanto se agranda el cupon en edicion.
+   *
+   * <p>La caja queda de visor y el contenido crece adentro, con scroll: agrandar el ancho no
+   * alcanza porque la foto de un ticket sacada con el telefono es mucho mas alta que ancha --el
+   * papel ocupa un tercio del cuadro y el resto es la mesa-- asi que al ancho lo limita el alto
+   * disponible, no el del dialogo.
+   *
+   * <p>Las regiones van en % del lienzo, asi que crecen con el: el zoom no cambia lo que se guarda.
+   */
+  zoom = 1;
+
+  private static readonly ZOOMS = [1, 1.5, 2, 3, 4];
+
   /** El campo que se está arrastrando, y desde dónde. */
   private arrastre: {
     campo: CampoDibujado;
@@ -315,9 +329,17 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     this.calcularCamposSinRegion();
   }
 
+  onZoom(hacia: 1 | -1): void {
+    const zs = VistaPreviaFormatoComponent.ZOOMS;
+    const i = zs.indexOf(this.zoom);
+    const siguiente = zs[Math.max(0, Math.min(zs.length - 1, (i < 0 ? 0 : i) + hacia))];
+    this.zoom = siguiente;
+  }
+
   onTerminarEdicion(): void {
     this.editando = false;
     this.arrastre = null;
+    this.zoom = 1;
   }
 
   private calcularCamposSinRegion(): void {

@@ -55,6 +55,16 @@
                 (click)="onEditar()">Editar el mapa</button>
         <button type="button" class="link-editar" *ngIf="editando"
                 (click)="onTerminarEdicion()">Terminar</button>
+
+        <span class="zoom" *ngIf="editando">
+          <button type="button" (click)="onZoom(-1)" [disabled]="zoom <= 1" title="Alejar">
+            <mat-icon>zoom_out</mat-icon>
+          </button>
+          <span class="zoom-nivel">{{ zoom }}×</span>
+          <button type="button" (click)="onZoom(1)" [disabled]="zoom >= 4" title="Acercar">
+            <mat-icon>zoom_in</mat-icon>
+          </button>
+        </span>
       </div>
 
 
@@ -66,7 +76,10 @@
            corresponde sea cual sea el tamaño. -->
       <!-- En edición el lienzo crece: arrastrar una caja de 3% de alto sobre 210px es imposible.
            Las coordenadas son las mismas --van en %-- así que agrandar no cambia lo que se guarda. -->
+      <!-- El visor recorta y scrollea; adentro el cupon crece con el zoom. -->
+      <div class="visor" [class.editando]="editando">
       <div #lienzo class="lienzo" *ngIf="seleccionada" [class.editando]="editando"
+           [style.height.px]="editando ? 430 * zoom : null"
            [style.aspect-ratio]="1 / proporcion"
            (pointermove)="onArrastreMueve($event, lienzo)"
            (pointerup)="onArrastreFin()" (pointerleave)="onArrastreFin()">
@@ -87,6 +100,7 @@
           <span class="region-tirador" *ngIf="editando"
                 (pointerdown)="onArrastreIni($event, c, 'redimensionar')"></span>
         </div>
+      </div>
       </div>
 
     </div>

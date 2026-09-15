@@ -204,8 +204,48 @@
 
 // En edicion el cupon crece: arrastrar una caja de 3% de alto sobre 210px es imposible. Las
 // coordenadas van en %, asi que agrandar no cambia lo que se guarda.
+// El visor: recorta y scrollea. En edicion mide 430px de alto --lo que entra sin empujar el
+// dialogo al scroll-- y adentro el cupon crece con el zoom.
+.visor.editando {
+  max-height: 430px;
+  overflow: auto;
+  border-radius: 4px;
+
+  &::-webkit-scrollbar { width: 8px; height: 8px; }
+  &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 4px; }
+}
+
 .lienzo.editando {
-  height: 430px;
+  // El alto lo pone el binding (430 * zoom); esto solo saca el tope de ancho para que el cupon
+  // pueda crecer mas que la columna y el visor lo recorte.
+  max-width: none;
+}
+
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 10px;
+  vertical-align: middle;
+
+  button {
+    background: none;
+    border: none;
+    color: #ff9800;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    &:disabled { opacity: 0.35; cursor: default; }
+  }
+}
+
+.zoom-nivel {
+  font-size: 10px;
+  opacity: 0.8;
+  min-width: 22px;
+  text-align: center;
 }
 
 .link-editar {
