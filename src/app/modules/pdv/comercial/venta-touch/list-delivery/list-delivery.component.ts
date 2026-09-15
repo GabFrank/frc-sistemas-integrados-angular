@@ -290,8 +290,10 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
               break;
             case "para-entrega": {
               // El estado se muestra antes de la respuesta, sobre la misma referencia que está en
-              // la grilla: si el guardado falla hay que volver al estado anterior.
-              const estadoAnterior = this.selectedDelivery.estado;
+              // la grilla: si el guardado falla hay que volver al estado anterior. Se guarda la
+              // referencia porque selectedDelivery puede cambiar antes de que llegue el error.
+              const delivery = this.selectedDelivery;
+              const estadoAnterior = delivery.estado;
               this.selectedDelivery.estado = DeliveryEstado.PARA_ENTREGA;
               this.deliveryService
                 .onSaveDeliveryEstado(
@@ -313,7 +315,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
                   },
                   // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
                   error: () => {
-                    this.selectedDelivery.estado = estadoAnterior;
+                    delivery.estado = estadoAnterior;
                   }
                 });
               break;
