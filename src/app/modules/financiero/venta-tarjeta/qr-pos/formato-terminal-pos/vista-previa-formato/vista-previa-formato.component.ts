@@ -125,7 +125,8 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     alto: number;
   } = null;
 
-  guardandoRegion = false;
+  /** Campo que se esta guardando. Uno solo para toda la lista bloqueaba guardar otro distinto. */
+  guardandoRegion: string = null;
 
   /** Campos del mapeo que todavía no tienen región: se les puede dibujar una. */
   camposSinRegion: string[] = [];
@@ -148,7 +149,10 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
   /** alto / ancho del ticket dibujado. Sale de la foto elegida; si no hay, del térmico típico. */
   proporcion = VistaPreviaFormatoComponent.PROPORCION_TERMICO;
 
-  /** Las object URL creadas, para revocarlas: si no, cada foto mirada queda en memoria. */
+  /** La object URL de la foto grande en pantalla. Se revoca al reemplazarla. */
+  private urlAnterior: string = null;
+
+  /** Las de las miniaturas, que viven mientras dure la galeria. */
   private urlsCreadas: string[] = [];
 
   constructor(
@@ -171,7 +175,9 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.urlsCreadas.forEach((u) => URL.revokeObjectURL(u));
+    this.soltar(this.urlAnterior);
+    this.urlAnterior = null;
+    this.urlsCreadas.forEach((u) => this.soltar(u));
     this.urlsCreadas = [];
     this.miniaturas = {};
   }
@@ -188,6 +194,9 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     if (!this.formatoId) return;
     this.cargarMuestras();
     this.cargarRegiones();
+    // Si se quedo en modo edicion y mientras tanto se derivo un campo nuevo, la lista de "sin
+    // region" quedaria vieja y seguiria ofreciendo agregar uno que ya tiene.
+    if (this.editando) this.calcularCamposSinRegion();
   }
 
   /**
@@ -228,6 +237,10 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
       });
   }
 
+  private soltar(url: string): void {
+    if (url) URL.revokeObjectURL(url);
+  }
+
   onElegir(m: MuestraGuardada): void {
     if (!m || m.id === this.seleccionada?.id) return;
     this.seleccionada = m;
@@ -244,8 +257,14 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         // muestra, asi que sin esto una recarga conserva lo que hubiera --incluido un error de
         // hace un rato-- y la foto no se vuelve a pedir nunca.
         this.seleccionada = null;
+        this.soltar(this.urlAnterior);
+        this.urlAnterior = null;
         this.urlFoto = null;
         this.errorFoto = null;
+        // Miniaturas de muestras que ya no estan --borradas desde acá o purgadas--.
+        for (const id of Object.keys(this.miniaturas)) {
+          if (!this.muestras.some((x) => String(x.id) === id)) delete this.miniaturas[id];
+        }
         if (this.muestras.length) {
           this.onElegir(this.muestras[0]);
           this.cargarMiniaturas();
@@ -293,8 +312,12 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     this.service.onGetImagenMuestra(m.id).pipe(untilDestroyed(this)).subscribe({
       next: (blob) => {
         this.cargandoFoto = false;
+        // La anterior se suelta ACA y no recien al destruir el componente. Entrar y salir de esta
+        // solapa vuelve a pedir la foto, y el flujo normal --derivar, mirar, volver, derivar-- lo
+        // hace varias veces: sin esto se acumulan blobs de ~200 KB mientras el dialogo este abierto.
+        this.soltar(this.urlAnterior);
         const url = URL.createObjectURL(blob);
-        this.urlsCreadas.push(url);
+        this.urlAnterior = url;
         this.urlFoto = this.sanitizer.bypassSecurityTrustUrl(url);
       },
       error: () => {
@@ -354,6 +377,12 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
    * el campo, y lo primero que se hace es arrastrarla al suyo.
    */
   onAgregarRegion(campo: string): void {
+    // Dos regiones para el mismo campo se guardarian como dos filas: `saveRegionTerminalPos` no
+    // valida unicidad por campo, a diferencia de la derivacion.
+    if (this.campos.some((c) => c.campo === campo)) {
+      this.calcularCamposSinRegion();
+      return;
+    }
     this.campos.push({
       id: null,
       campo,
@@ -409,15 +438,20 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
 
   /** Guarda una región tal como quedó dibujada. */
   onGuardarRegion(c: CampoDibujado): void {
-    if (this.guardandoRegion) return;
-    this.guardandoRegion = true;
+    if (this.guardandoRegion === c.campo) return;
+    this.guardandoRegion = c.campo;
     this.service
       .onGuardarRegion({
         id: c.id ?? undefined,
         formatoTerminalPosId: this.formatoId,
         campo: c.campo,
         etiqueta: c.etiqueta,
-        posicion: c.etiqueta ? 'DENTRO' : null,
+        // NO se manda. DENTRO significa "la etiqueta salio en la MISMA caja que el valor", y
+        // dibujando a mano no hay forma de saberlo: el input del ancla es texto libre. El backend
+        // tiene el default sensato --con etiqueta y sin posicion asume DERECHA-- y mandar DENTRO
+        // siempre lo pisaba con un dato falso que despues nadie corrige, porque una MANUAL no se
+        // vuelve a derivar nunca.
+        posicion: null,
         // Del MAPEO y no de lo que tenga la región. El tipo es una declaración del formato --misma
         // regla que aplica `unirEn` en el servidor-- así que una región vieja sin tipo lo recupera
         // al guardarse, y una que quedó con un tipo que el mapeo ya no declara lo pierde.
@@ -430,7 +464,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (guardada) => {
-          this.guardandoRegion = false;
+          this.guardandoRegion = null;
           if (guardada?.id) c.id = guardada.id;
           c.tipo = guardada?.tipo ?? null;
           c.manual = true;
@@ -439,7 +473,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
           );
         },
         error: (err) => {
-          this.guardandoRegion = false;
+          this.guardandoRegion = null;
           this.notificacionSnackbar.notification$.next({
             color: NotificacionColor.danger,
             texto: mensajeDeError(err, 'No se pudo guardar la región.'),

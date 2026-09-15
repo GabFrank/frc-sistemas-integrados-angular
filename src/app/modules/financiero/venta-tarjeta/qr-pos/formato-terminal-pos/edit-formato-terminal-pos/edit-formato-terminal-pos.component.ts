@@ -23,8 +23,14 @@ import { VistaPreviaFormatoComponent } from '../vista-previa-formato/vista-previ
 /** La solapa del patrón y la cadena de ejemplo. */
 const TAB_COMO_SE_LEE = 1;
 
-/** La última solapa. Al entrar hay que recargar lo que muestra. */
-const TAB_VISTA_PREVIA = 4;
+/**
+ * El título de la última solapa.
+ *
+ * Por título y no por índice: la solapa del mapa sólo existe para MAQUINA, así que en un formato
+ * WEB la vista previa es la 3 y no la 4, y comparar contra un número fijo hacía que nunca se
+ * recargara.
+ */
+const TITULO_VISTA_PREVIA = 'Vista previa';
 
 export interface EditFormatoTerminalPosData {
   formato?: FormatoTerminalPos;
@@ -59,8 +65,13 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   formGroup: FormGroup;
   guardando = false;
 
-  /** Algo se guardó --el formato o su mapa--, así que la lista tiene que recargar al cerrar. */
-  private huboCambios = false;
+  /**
+   * Algo se guardó --el formato o su mapa--, así que la lista tiene que recargar al cerrar.
+   *
+   * Público porque el template lo usa: el botón de salir dice «Cancelar» hasta el primer guardado
+   * y «Cerrar» después. (Un miembro privado en un binding lo rechaza el AOT, no `ng serve`.)
+   */
+  huboCambios = false;
 
   preview: FilaPreview[] = [];
   errorPreview: string = null;
@@ -74,6 +85,17 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    */
   ayudaTipo: string = null;
   esMaquina = false;
+
+  /**
+   * Lo que la solapa de vista previa necesita del formulario.
+   *
+   * Campos y no `formGroup.get('patron').value` en el template: el repo prohíbe llamar funciones
+   * desde un binding porque se re-evalúan en cada ciclo de change detection. Se actualizan donde
+   * el valor cambia, que es `valueChanges`.
+   */
+  patronActual: string = null;
+  mapeoActual: string = null;
+  ejemploActual: string = null;
 
   tabActivo = 0;
 
@@ -150,10 +172,12 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     // en el lugar de la boleta y eso en producción se descubre cobrando.
     this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
       this.refrescarTipo();
+      this.refrescarValores();
       this.refrescarIncompletos();
       this.recalcular();
     });
     this.refrescarTipo();
+    this.refrescarValores();
     this.refrescarIncompletos();
     this.recalcular();
   }
@@ -166,6 +190,13 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     const v = this.formGroup.get('tipo').value;
     this.ayudaTipo = this.tipos.find((t) => t.valor === v)?.ayuda || null;
     this.esMaquina = v === TIPO_MAQUINA;
+  }
+
+  private refrescarValores(): void {
+    const v = this.formGroup.value;
+    this.patronActual = v.patron;
+    this.mapeoActual = v.mapeo;
+    this.ejemploActual = v.ejemplo;
   }
 
   private refrescarIncompletos(): void {
@@ -262,7 +293,9 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     const v = this.formGroup.value;
     this.formatoService
       .onSave({
-        id: this.data?.formato?.id,
+        // El id de lo ya guardado manda: en un formato nuevo, el primer Guardar lo crea y el
+        // segundo tiene que actualizarlo, no crear otro.
+        id: this.formatoGuardado?.id ?? this.data?.formato?.id,
         nombre: v.nombre,
         tipo: v.tipo,
         patron: v.patron,
@@ -276,8 +309,19 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.guardando = false;
-          this.notificacionSnackbar.openSucess('Formato guardado');
-          this.dialogRef.close(res);
+          this.huboCambios = true;
+          // NO se cierra. Guardar el patrón y tener que volver a abrir el formato para seguir con
+          // el mapa es el camino normal de configurar uno --el orden obliga a guardar antes de
+          // derivar-- y cerrarse ahí convertía cada paso en un viaje de ida y vuelta.
+          //
+          // Y se recuerda lo guardado: sin esto, el segundo Guardar de un formato NUEVO iría sin
+          // id y crearía otro.
+          if (res?.id) this.formatoGuardado = res;
+          this.notificacionSnackbar.openSucess(
+            this.formatoGuardado
+              ? 'Formato guardado. Podés seguir editando.'
+              : 'Formato guardado.'
+          );
         },
         error: (err) => {
           this.guardando = false;
@@ -308,7 +352,7 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    * solapa del mapa no aparecería hasta cerrar y volver a abrir el formato.
    */
   onCambioDeTab(evento: any): void {
-    if (evento?.index === TAB_VISTA_PREVIA) this.vistaPrevia?.recargar();
+    if (evento?.tab?.textLabel === TITULO_VISTA_PREVIA) this.vistaPrevia?.recargar();
   }
 
   /**

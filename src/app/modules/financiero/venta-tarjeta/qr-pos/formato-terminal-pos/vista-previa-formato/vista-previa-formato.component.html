@@ -129,7 +129,7 @@
                  [class.sin-ancla]="!c.etiqueta" />
 
           <span class="editor-manual" *ngIf="c.manual" title="La derivación no la pisa">a mano</span>
-          <button mat-button type="button" [disabled]="guardandoRegion" (click)="onGuardarRegion(c)">
+          <button mat-button type="button" [disabled]="guardandoRegion === c.campo" (click)="onGuardarRegion(c)">
             Guardar
           </button>
           <button mat-button type="button" class="btn-borrar" (click)="onBorrarRegion(c)">

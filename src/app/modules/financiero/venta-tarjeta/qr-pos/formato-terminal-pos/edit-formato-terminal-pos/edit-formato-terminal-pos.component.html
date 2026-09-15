@@ -155,9 +155,9 @@
     <mat-tab label="Vista previa">
       <div class="tab-cuerpo">
         <app-vista-previa-formato #vistaPrevia [formatoId]="formatoGuardado?.id"
-                                  [patron]="formGroup.get('patron').value"
-                                  [mapeo]="formGroup.get('mapeo').value"
-                                  [ejemplo]="formGroup.get('ejemplo').value">
+                                  [patron]="patronActual"
+                                  [mapeo]="mapeoActual"
+                                  [ejemplo]="ejemploActual">
         </app-vista-previa-formato>
       </div>
     </mat-tab>
@@ -167,7 +167,10 @@
   </div>
 
   <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
-    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <!-- "Cancelar" después de haber guardado sería mentira: lo guardado ya está. -->
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">
+      {{ huboCambios ? 'Cerrar' : 'Cancelar' }}
+    </button>
     <button mat-raised-button class="btn-success" [disabled]="guardando" (click)="onGuardar()">
       Guardar
     </button>
