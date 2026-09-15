@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { catchError, switchMap } from 'rxjs/operators';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -663,21 +663,23 @@ export class CajaVirtualDashboardComponent implements OnInit {
       titulo, mensaje, mov.descripcion || null, null, true, 'Sí, anular', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      // Tres ramas pasan por onSaveCustom (van sin su «Guardado con éxito»: el éxito lo avisa este
-      // componente, y el error ya lo avisa onSaveCustom). La de pago a proveedor llama Apollo
-      // directo, sin aviso genérico, y el error manual de la verificación tampoco lo avisa nadie:
-      // esos dos se avisan acá.
+      // Tres ramas pasan por onSaveCustom: van sin su «Guardado con éxito» (el éxito lo avisa este
+      // componente) y su error ya lo avisó onSaveCustom, así que se marca para no repetirlo. Todo
+      // otro error —el pago a proveedor (Apollo directo, sin aviso genérico), la verificación que
+      // no aparece, o uno que nadie previó— se avisa acá: por defecto se avisa, no se calla.
       const sinExitoGenerico = { avisarExito: false };
+      const yaAvisado = (o: Observable<any>) => o.pipe(
+        catchError(e => throwError(() => Object.assign(e ?? {}, { avisadoPorOnSaveCustom: true }))));
       const obs: Observable<any> = esRetiro
         ? this.retiroVerificacionService.onGetVerificacion(mov.origenId, mov.origenSucursalId).pipe(
             switchMap(v => v?.id
-              ? this.retiroVerificacionService.onAnular(v.id, undefined, sinExitoGenerico)
-              : throwError(() => Object.assign(new Error('No se encontró la verificación de este retiro'), { avisoLocal: true }))))
+              ? yaAvisado(this.retiroVerificacionService.onAnular(v.id, undefined, sinExitoGenerico))
+              : throwError(() => new Error('No se encontró la verificación de este retiro'))))
         : esPagoCpp
           ? this.pagarComprasService.onAnularPago(mov.referenciaId)
           : esOpFinanciera
-            ? this.operacionFinancieraService.onAnular(mov.referenciaId, undefined, sinExitoGenerico)
-            : this.cajaVirtualService.onAnularMovimiento(mov.id, undefined, sinExitoGenerico);
+            ? yaAvisado(this.operacionFinancieraService.onAnular(mov.referenciaId, undefined, sinExitoGenerico))
+            : yaAvisado(this.cajaVirtualService.onAnularMovimiento(mov.id, undefined, sinExitoGenerico));
       obs.pipe(untilDestroyed(this)).subscribe({
         next: r => {
           if (r != null) {
@@ -686,7 +688,7 @@ export class CajaVirtualDashboardComponent implements OnInit {
           }
         },
         error: err => {
-          if (!esPagoCpp && !err?.avisoLocal) return;
+          if (err?.avisadoPorOnSaveCustom) return;
           const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo anular';
           this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
         }

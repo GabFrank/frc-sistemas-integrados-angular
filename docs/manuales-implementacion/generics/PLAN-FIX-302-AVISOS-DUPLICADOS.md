@@ -196,15 +196,25 @@ N/A: solo presentación de avisos en el cliente.
 | B1 | B · alta | Lote con varios errores de negocio → N avisos de 5 s en cola | **Exagerado**: hoy `onSaveCustom` ya muestra esos N **más** el aviso del componente; el fix no empeora. Igual la cola se tapa | **Aplicado**: ventana anti-ráfaga también en negocio |
 | B2 | B · alta | Sin `message` el aviso dice «…operacion: undefined»; lo tapaba el aviso propio que se quita | `limpiarMensajeGraphQL` devuelve tal cual lo que no es string | **Aplicado**: texto de respaldo |
 | B3 | B · alta | Lotes de dinero/stock: silenciar el éxito por ítem deja al usuario sin saber cuántos entraron antes del corte | `ingresar-retiro-caja-mayor-dialog.component.ts:242-259` | **Decide el usuario** (B3-a / B3-b) |
-| B4 | B · media | Rama de retiro del dashboard: el `throwError` manual no pasa por `onSaveCustom`; condicionar el aviso solo a CPP lo pierde | `caja-virtual-dashboard.component.ts:666-685` | **Aplicado**: `avisoLocal` en ese error |
+| B4 | B · media | Rama de retiro del dashboard: el `throwError` manual no pasa por `onSaveCustom`; condicionar el aviso solo a CPP lo pierde | `caja-virtual-dashboard.component.ts:666-685` | **Aplicado**: `avisoLocal` en ese error (reemplazado por D1) |
 | B4-nota | B · preexistente | Si `onGetVerificacion` (`onCustomQuery` sin `errorConf`) falla por red, no notifica ni completa | — | Anotado, fuera de alcance |
 | B5 | B · baja | `edit-devolucion` pierde «de un item»; estado parcial preexistente | — | Aceptado |
+
+## Auditoría del diff — PR A (paso 8)
+
+| # | Fijo | Hallazgo | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| D1 | 3 · media | El dashboard callaba por defecto: un error que no fuera CPP ni `avisoLocal` quedaba mudo | `caja-virtual-dashboard.component.ts` `onAnular` | **Aplicado**: por defecto avisa; solo calla lo que viene de las 3 ramas de `onSaveCustom`, marcado con `avisadoPorOnSaveCustom` en un `catchError`. Se retira `avisoLocal` |
+| D2 | 2 · media | La ventana de 3 s en errores de negocio calla un reintento manual rápido con el mismo error | `avisarErrorSinRepetir` | **Aceptado**: la ventana (3 s) es menor que la duración del aviso de negocio (5 s), así que solo se calla mientras el aviso idéntico sigue en pantalla |
+| D3 | 2 · baja | Retiro del dashboard: si `onGetVerificacion` falla por negocio, `onCustomQuery` avisa y devuelve `null`, y además sale «No se encontró la verificación» | Igual en `develop` | Preexistente, anotado en riesgos |
+| D4 | 2 | Esquema, migraciones, banderas de guardado y cierres de diálogo | Diff contra `develop`, suscripción por suscripción | Sin hallazgos |
+| D5 | 1 | Roles y alcance | — | Sin hallazgos; la nota de UX de la rama retiro es D3 |
 
 ## Riesgos conocidos
 
 - Wrappers con `servidor` al final: mitigado por tipos (A1).
 - **Preexistente**: `onGetVerificacion` sin `errorConf` puede dejar colgada la anulación de un retiro
-  si falla por red.
+  si falla por red; si falla por negocio, sale su aviso más «No se encontró la verificación» (D3).
 - **Preexistente**: en `edit-devolucion`, si falla 1 de N ítems del canje, los demás quedan guardados y
   `huboError` bloquea el avance sin decir cuáles entraron.
 - **Tamaño**: dos PRs para no pasar las 400 líneas netas.
