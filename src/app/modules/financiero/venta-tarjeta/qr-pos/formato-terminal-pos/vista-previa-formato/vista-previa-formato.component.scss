@@ -48,6 +48,44 @@
   &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); border-radius: 3px; }
 }
 
+.tira-caja {
+  position: relative;
+  flex: 0 0 auto;
+
+  &:hover .tira-borrar { opacity: 1; }
+}
+
+// Aparece al pasar por encima: la accion destructiva no compite por atencion con la de elegir,
+// que es la que se usa todo el tiempo. Va ADENTRO del recuadro: sobresaliendo, la fila --que
+// recorta en vertical para poder scrollear al costado-- se lo comia y ademas empujaba el alto.
+.tira-borrar {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #b71c1c;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    line-height: 13px;
+  }
+
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
 .tira {
   flex: 0 0 auto;
   display: flex;
@@ -88,7 +126,7 @@
 // cayendo donde corresponde sea cual sea el tamaño.
 .lienzo {
   position: relative;
-  height: 240px;
+  height: 210px;
   max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
@@ -156,6 +194,20 @@
     line-height: 1;
     white-space: nowrap;
   }
+}
+
+.aviso-otro-formato {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid rgba(255, 152, 0, 0.5);
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: #ffb74d;
+  font-size: 11px;
+  line-height: 1.45;
+
+  mat-icon { flex: 0 0 auto; font-size: 18px; width: 18px; height: 18px; }
 }
 
 .sin-muestras,

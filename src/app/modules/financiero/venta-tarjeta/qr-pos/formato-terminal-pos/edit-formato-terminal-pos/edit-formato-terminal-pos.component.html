@@ -80,6 +80,28 @@
             Una línea del ticket tal como la devuelve el OCR. El OCR entrega texto igual que el lector.
           </mat-hint>
         </mat-form-field>
+
+        <!-- El resultado de cruzar el patrón con el ejemplo, acá mismo. Es lo que decide si se
+             puede guardar, y sin esto a la vista el rechazo al guardar mandaba a mirar una vista
+             previa que ya no está abajo del diálogo. -->
+        <div class="resultado-patron" [class.mal]="errorPreview" [class.bien]="!errorPreview && preview.length">
+          <div class="resultado-titulo" *ngIf="errorPreview">El patrón no reconoce la cadena de ejemplo</div>
+          <div class="resultado-error" *ngIf="errorPreview">{{ errorPreview }}</div>
+
+          <div class="resultado-titulo" *ngIf="!errorPreview && preview.length">
+            Esto es lo que el PDV va a extraer
+          </div>
+          <table *ngIf="!errorPreview && preview.length">
+            <tr *ngFor="let fila of preview">
+              <td class="campo">{{ fila.campo }}</td>
+              <td class="valor">{{ fila.valor }}</td>
+            </tr>
+          </table>
+
+          <div class="resultado-vacio" *ngIf="!errorPreview && !preview.length">
+            Completá el patrón, el mapeo y la cadena de ejemplo para ver qué se extrae.
+          </div>
+        </div>
       </div>
     </mat-tab>
 

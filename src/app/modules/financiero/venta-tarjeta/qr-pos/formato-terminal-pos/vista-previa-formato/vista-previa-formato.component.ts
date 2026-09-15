@@ -6,6 +6,11 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from '../../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { MuestraGuardada, RegionFormato } from '../mapa-formato.model';
@@ -65,8 +70,20 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
 
   /** id de muestra -> su miniatura. Es la misma imagen: el navegador la sirve de su cache. */
   miniaturas: { [id: number]: SafeUrl } = {};
+
+  /** id de la muestra que se esta borrando, para no disparar dos veces. */
+  eliminando: number = null;
   cargandoFoto = false;
   errorFoto: string = null;
+
+  /**
+   * La foto elegida no es de este formato: su texto no lo reconoce el patron.
+   *
+   * <p>Sin esto, elegir un cupon de OTRO modelo de aparato dibuja las regiones de este formato
+   * sobre una foto que no tiene nada que ver, y parece que el mapa quedo torcido. No lo esta: es
+   * la foto la que no corresponde. Pasa apenas se prueban dos proveedores.
+   */
+  fotoDeOtroFormato = false;
 
   regiones: RegionFormato[] = [];
   campos: CampoDibujado[] = [];
@@ -78,7 +95,12 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
   /** Las object URL creadas, para revocarlas: si no, cada foto mirada queda en memoria. */
   private urlsCreadas: string[] = [];
 
-  constructor(private service: MapaFormatoService, private sanitizer: DomSanitizer) {}
+  constructor(
+    private service: MapaFormatoService,
+    private sanitizer: DomSanitizer,
+    private dialogosService: DialogosService,
+    private notificacionSnackbar: NotificacionSnackbarService
+  ) {}
 
   ngOnChanges(cambios: SimpleChanges): void {
     if (cambios.formatoId && this.formatoId) {
@@ -88,6 +110,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     // El patrón y el mapeo se editan en otras solapas y esta tiene que reflejarlo al volver.
     if (cambios.patron || cambios.mapeo || cambios.ejemplo || cambios.formatoId) {
       this.recalcular();
+      this.revisarSiEsDeEsteFormato();
     }
   }
 
@@ -111,10 +134,49 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     this.cargarRegiones();
   }
 
+  /**
+   * Borra una foto de muestra.
+   *
+   * <p>Se pregunta antes: la foto es la evidencia de con que cupon se configuro este formato, y no
+   * se puede recuperar --el archivo se borra del disco--.
+   */
+  onEliminar(m: MuestraGuardada): void {
+    if (!m?.id || this.eliminando) return;
+    this.dialogosService
+      .confirm(
+        'Atención',
+        '¿Borrar esta foto de cupón?',
+        'Se borra la imagen del servidor y no se puede recuperar. El mapa que se derivó de ella no'
+          + ' se toca: las regiones ya guardadas siguen como están.'
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        if (!confirmado) return;
+        this.eliminando = m.id;
+        this.service.onEliminarMuestra(m.id).pipe(untilDestroyed(this)).subscribe({
+          next: () => {
+            this.eliminando = null;
+            delete this.miniaturas[m.id];
+            this.cargarMuestras();
+            this.notificacionSnackbar.openSucess('Foto borrada');
+          },
+          error: () => {
+            this.eliminando = null;
+            this.notificacionSnackbar.notification$.next({
+              color: NotificacionColor.danger,
+              texto: 'No se pudo borrar la foto.',
+              duracion: 5,
+            });
+          },
+        });
+      });
+  }
+
   onElegir(m: MuestraGuardada): void {
     if (!m || m.id === this.seleccionada?.id) return;
     this.seleccionada = m;
     this.ajustarProporcion();
+    this.revisarSiEsDeEsteFormato();
     this.cargarFoto(m);
   }
 
@@ -187,6 +249,23 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         this.errorFoto = 'La foto ya no está en el disco del servidor.';
       },
     });
+  }
+
+  /**
+   * Prueba el patron del formato contra el texto que el OCR leyo de ESTA foto.
+   *
+   * <p>Es el mismo chequeo que hace la derivacion antes de proponer nada, y aca sirve para lo
+   * mismo: decir que la foto y el mapa no son del mismo mundo.
+   */
+  private revisarSiEsDeEsteFormato(): void {
+    this.fotoDeOtroFormato = false;
+    const texto = this.seleccionada?.textoOcr;
+    if (!texto || !this.patron) return;
+    try {
+      this.fotoDeOtroFormato = !new RegExp(this.patron).test(texto);
+    } catch {
+      // Patron invalido: ya lo dice la solapa del patron, aca no se agrega ruido.
+    }
   }
 
   private ajustarProporcion(): void {

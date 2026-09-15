@@ -9,6 +9,7 @@ import { CrearCapturaMuestraGQL } from './graphql/crearCapturaMuestra';
 import { DerivarMapaDeMuestraGQL } from './graphql/derivarMapaDeMuestra';
 import { GuardarRegionesDerivadasGQL } from './graphql/guardarRegionesDerivadas';
 import { LectorDeCuponesDisponibleGQL } from './graphql/lectorDeCuponesDisponible';
+import { EliminarMuestraGQL } from './graphql/eliminarMuestra';
 import { MuestrasDeFormatoGQL } from './graphql/muestrasDeFormato';
 import { RegionesDeFormatoGQL } from './graphql/regionesDeFormato';
 import {
@@ -41,6 +42,7 @@ export class MapaFormatoService {
     private cerrarGQL: CerrarCapturaMuestraGQL,
     private regionesGQL: RegionesDeFormatoGQL,
     private muestrasGQL: MuestrasDeFormatoGQL,
+    private eliminarMuestraGQL: EliminarMuestraGQL,
     private guardarGQL: GuardarRegionesDerivadasGQL
   ) {}
 
@@ -88,6 +90,11 @@ export class MapaFormatoService {
       headers: { Authorization: `Token ${token}` },
       responseType: 'blob',
     });
+  }
+
+  /** Borra una muestra guardada con su foto. */
+  onEliminarMuestra(id: number): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.eliminarMuestraGQL, { id }, true);
   }
 
   onGetRegiones(formatoTerminalPosId: number): Observable<RegionFormato[]> {

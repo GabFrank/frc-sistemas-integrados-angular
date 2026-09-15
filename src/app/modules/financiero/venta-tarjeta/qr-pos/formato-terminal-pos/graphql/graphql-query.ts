@@ -242,3 +242,10 @@ export const muestrasDeFormatoQuery = gql`
     }
   }
 `;
+
+/** Borra una muestra guardada con su foto. Pide rol de gestión. */
+export const eliminarMuestraMutation = gql`
+  mutation eliminarMuestra($id: ID!) {
+    data: eliminarMuestra(id: $id)
+  }
+`;

@@ -241,7 +241,9 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       this.tabActivo = 1;
       this.notificacionSnackbar.notification$.next({
         color: NotificacionColor.warn,
-        texto: 'Corregí el patrón hasta que la vista previa muestre los campos.',
+        texto: this.errorPreview
+          ? 'El patrón no reconoce la cadena de ejemplo. El motivo está en "Cómo se lee el cupón".'
+          : 'Completá el patrón, el mapeo y la cadena de ejemplo: todavía no se extrae ningún campo.',
         duracion: 5,
       });
       return;

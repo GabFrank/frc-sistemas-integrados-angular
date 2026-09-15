@@ -14,12 +14,35 @@
     <!-- Scrollea al costado y no crece hacia abajo: los cupones se acumulan con el uso --uno por
          derivación-- y una grilla que crece haría que el diálogo dejara de entrar. -->
     <div class="tiras" *ngIf="muestras.length">
-        <button type="button" class="tira" *ngFor="let m of muestras"
-                [class.elegida]="m.id === seleccionada?.id" (click)="onElegir(m)"
-                [title]="(m.creadoEn | date: 'dd/MM/yy HH:mm') + (m.msOcr ? ' · ' + m.msOcr + ' ms' : '')">
-          <img *ngIf="miniaturas[m.id]" [src]="miniaturas[m.id]" alt="" />
-          <span class="tira-fecha">{{ m.creadoEn | date: 'dd/MM' }}</span>
-        </button>
+        <div class="tira-caja" *ngFor="let m of muestras">
+          <button type="button" class="tira"
+                  [class.elegida]="m.id === seleccionada?.id" (click)="onElegir(m)"
+                  [title]="(m.creadoEn | date: 'dd/MM/yy HH:mm') + (m.msOcr ? ' · ' + m.msOcr + ' ms' : '')">
+            <img *ngIf="miniaturas[m.id]" [src]="miniaturas[m.id]" alt="" />
+            <span class="tira-fecha">{{ m.creadoEn | date: 'dd/MM' }}</span>
+          </button>
+
+          <!-- Una foto movida, o derivada con el cupon equivocado, no tiene por que quedarse seis
+               meses hasta que la purga se la lleve. -->
+          <button type="button" class="tira-borrar" (click)="onEliminar(m)"
+                  [disabled]="eliminando === m.id" matTooltip="Borrar esta foto">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+    </div>
+  </div>
+
+  <!-- A todo el ancho y no dentro de la columna: ahí entra en dos renglones en vez de cuatro, y no
+       empuja el diálogo al scroll. Sin este aviso, un cupón de otro modelo de aparato dibuja las
+       regiones de ESTE formato encima y parece que el mapa quedó torcido. No lo está: es la foto la
+       que no corresponde. -->
+  <div class="aviso-otro-formato" *ngIf="fotoDeOtroFormato">
+    <mat-icon>report_problem</mat-icon>
+    <div>
+      <b>Este cupón no es de este formato.</b>
+      El patrón de acá no reconoce lo que el lector leyó de esta foto, así que las regiones
+      dibujadas encima son las de otro modelo de aparato y no van a coincidir.
+      Cargá este cupón en su propio formato.
     </div>
   </div>
 
@@ -27,6 +50,7 @@
 
     <div class="col col-fotos">
       <div class="col-titulo">El cupón elegido</div>
+
 
       <!-- La foto con las regiones encima. Es lo que hace evaluable el mapa: si una región quedó
            sobre el renglón equivocado, se ve sobre el renglón equivocado.
