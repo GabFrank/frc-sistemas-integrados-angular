@@ -3,7 +3,7 @@
   <!-- La tira arriba y a todo el ancho: así los dos cupones de abajo arrancan a la misma altura
        --si cuelga de la columna izquierda, la empuja y el sintético queda más arriba-- y la fila
        tiene todo el diálogo para crecer al costado. -->
-  <div class="tira-fila">
+  <div class="tira-fila" *ngIf="!editando">
     <div class="col-titulo">Cupones de este formato</div>
 
     <div class="sin-muestras" *ngIf="!muestras.length">
@@ -49,7 +49,13 @@
   <div class="columnas">
 
     <div class="col col-fotos">
-      <div class="col-titulo">El cupón elegido</div>
+      <div class="col-titulo">
+        El cupón elegido
+        <button type="button" class="link-editar" *ngIf="seleccionada && !editando"
+                (click)="onEditar()">Editar el mapa</button>
+        <button type="button" class="link-editar" *ngIf="editando"
+                (click)="onTerminarEdicion()">Terminar</button>
+      </div>
 
 
       <!-- La foto con las regiones encima. Es lo que hace evaluable el mapa: si una región quedó
@@ -58,7 +64,12 @@
            Alto fijo y ancho por proporción --no al revés--: así las dos columnas miden lo mismo de
            alto y el diálogo entra sin scroll. Las regiones van en %, así que siguen cayendo donde
            corresponde sea cual sea el tamaño. -->
-      <div class="lienzo" *ngIf="seleccionada" [style.aspect-ratio]="1 / proporcion">
+      <!-- En edición el lienzo crece: arrastrar una caja de 3% de alto sobre 210px es imposible.
+           Las coordenadas son las mismas --van en %-- así que agrandar no cambia lo que se guarda. -->
+      <div #lienzo class="lienzo" *ngIf="seleccionada" [class.editando]="editando"
+           [style.aspect-ratio]="1 / proporcion"
+           (pointermove)="onArrastreMueve($event, lienzo)"
+           (pointerup)="onArrastreFin()" (pointerleave)="onArrastreFin()">
         <img class="foto" *ngIf="urlFoto" [src]="urlFoto" alt="Cupón de muestra" />
         <div class="foto-vacia" *ngIf="!urlFoto">
           <span *ngIf="cargandoFoto">Cargando la foto…</span>
@@ -66,15 +77,54 @@
         </div>
 
         <div class="region" *ngFor="let c of campos" [hidden]="c.sinCaja"
+             [class.manual]="c.manual" [class.arrastrable]="editando"
              [style.left.%]="c.izq" [style.top.%]="c.arriba"
              [style.width.%]="c.ancho" [style.height.%]="c.alto"
-             [title]="c.campo">
+             [title]="c.campo"
+             (pointerdown)="onArrastreIni($event, c, 'mover')">
+          <span class="region-nombre" *ngIf="editando">{{ c.campo }}</span>
+          <!-- Esquina inferior derecha, la convención de cualquier editor. -->
+          <span class="region-tirador" *ngIf="editando"
+                (pointerdown)="onArrastreIni($event, c, 'redimensionar')"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Derecha: el ticket sintético ────────────────────────────────────────────────── -->
+    <!-- Mientras se edita, la columna derecha son los controles y no el sintético: ubicando cajas
+         lo único que hace falta ver es el cupón, y así los botones quedan al lado sin empujar el
+         diálogo al scroll. -->
+    <div class="col col-editor" *ngIf="editando">
+      <div class="col-titulo">Las regiones</div>
+      <div class="editor">
+        <div class="editor-ayuda">
+          Arrastrá una caja para moverla, la esquina para cambiarle el tamaño. Lo que guardes acá
+          queda marcado <b>a mano</b> y la derivación no lo pisa nunca, ni al confirmar.
+        </div>
+
+        <div class="editor-campo" *ngFor="let c of campos" [hidden]="c.sinCaja">
+          <span class="editor-nombre">{{ c.campo }}</span>
+          <span class="editor-manual" *ngIf="c.manual" title="La derivación no la pisa">a mano</span>
+          <button mat-button type="button" [disabled]="guardandoRegion" (click)="onGuardarRegion(c)">
+            Guardar
+          </button>
+          <button mat-button type="button" class="btn-borrar" (click)="onBorrarRegion(c)">
+            Borrar
+          </button>
+        </div>
+
+        <div class="editor-agregar" *ngIf="camposSinRegion.length">
+          <span>Sin región:</span>
+          <button mat-stroked-button type="button" *ngFor="let campo of camposSinRegion"
+                  (click)="onAgregarRegion(campo)">
+            + {{ campo }}
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- ── Derecha: el ticket sintético ────────────────────────────────────────────────── -->
-    <div class="col col-sintetico">
+    <div class="col col-sintetico" *ngIf="!editando">
       <div class="col-titulo">Así lo va a leer el PDV</div>
 
       <div class="sin-mapa" *ngIf="!campos.length">
@@ -97,7 +147,7 @@
   </div>
 
   <!-- ── Abajo: el detalle ───────────────────────────────────────────────────────────── -->
-  <table class="detalle" *ngIf="campos.length">
+  <table class="detalle" *ngIf="campos.length && !editando">
     <tr>
       <th>Campo</th>
       <th>Ancla</th>
@@ -119,7 +169,7 @@
   </table>
 
   <!-- Un campo sin región no es un fracaso: cae al patrón, que es como se resolvía antes. -->
-  <p class="ayuda" *ngIf="sinCaja > 0">
+  <p class="ayuda" *ngIf="sinCaja > 0 && !editando">
     {{ sinCaja }} {{ sinCaja === 1 ? 'campo no tiene región' : 'campos no tienen región' }} y no
     {{ sinCaja === 1 ? 'aparece' : 'aparecen' }} dibujado{{ sinCaja === 1 ? '' : 's' }}: se
     {{ sinCaja === 1 ? 'resuelve' : 'resuelven' }} por patrón, sin restricción espacial.

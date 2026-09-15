@@ -9,7 +9,9 @@ import { CrearCapturaMuestraGQL } from './graphql/crearCapturaMuestra';
 import { DerivarMapaDeMuestraGQL } from './graphql/derivarMapaDeMuestra';
 import { GuardarRegionesDerivadasGQL } from './graphql/guardarRegionesDerivadas';
 import { LectorDeCuponesDisponibleGQL } from './graphql/lectorDeCuponesDisponible';
+import { DeleteRegionTerminalPosGQL } from './graphql/deleteRegionTerminalPos';
 import { EliminarMuestraGQL } from './graphql/eliminarMuestra';
+import { SaveRegionTerminalPosGQL } from './graphql/saveRegionTerminalPos';
 import { MuestrasDeFormatoGQL } from './graphql/muestrasDeFormato';
 import { RegionesDeFormatoGQL } from './graphql/regionesDeFormato';
 import {
@@ -43,6 +45,8 @@ export class MapaFormatoService {
     private regionesGQL: RegionesDeFormatoGQL,
     private muestrasGQL: MuestrasDeFormatoGQL,
     private eliminarMuestraGQL: EliminarMuestraGQL,
+    private saveRegionGQL: SaveRegionTerminalPosGQL,
+    private deleteRegionGQL: DeleteRegionTerminalPosGQL,
     private guardarGQL: GuardarRegionesDerivadasGQL
   ) {}
 
@@ -95,6 +99,20 @@ export class MapaFormatoService {
   /** Borra una muestra guardada con su foto. */
   onEliminarMuestra(id: number): Observable<boolean> {
     return this.genericService.onCustomMutation(this.eliminarMuestraGQL, { id }, true);
+  }
+
+  /**
+   * Guarda una región dibujada a mano.
+   *
+   * El backend le fuerza `origen = MANUAL`, y la derivación no pisa una MANUAL ni con la
+   * confirmación: lo corregido a mano sobrevive a las derivaciones que vengan.
+   */
+  onGuardarRegion(region: RegionFormato): Observable<RegionFormato> {
+    return this.genericService.onCustomMutation(this.saveRegionGQL, { region }, true);
+  }
+
+  onBorrarRegion(id: number): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.deleteRegionGQL, { id }, true);
   }
 
   onGetRegiones(formatoTerminalPosId: number): Observable<RegionFormato[]> {

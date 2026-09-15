@@ -249,3 +249,34 @@ export const eliminarMuestraMutation = gql`
     data: eliminarMuestra(id: $id)
   }
 `;
+
+/**
+ * Guarda una región a mano.
+ *
+ * El backend le fuerza `origen = MANUAL`, y una región MANUAL **la derivación no la pisa nunca**,
+ * ni siquiera con la confirmación. Es lo que hace que corregir el mapa a mano tenga sentido.
+ */
+export const saveRegionTerminalPosMutation = gql`
+  mutation saveRegionTerminalPos($region: FormatoTerminalPosRegionInput!) {
+    data: saveRegionTerminalPos(region: $region) {
+      id
+      campo
+      etiqueta
+      posicion
+      tipo
+      obligatorio
+      x1
+      y1
+      x2
+      y2
+      origen
+      orden
+    }
+  }
+`;
+
+export const deleteRegionTerminalPosMutation = gql`
+  mutation deleteRegionTerminalPos($id: ID!) {
+    data: deleteRegionTerminalPos(id: $id)
+  }
+`;

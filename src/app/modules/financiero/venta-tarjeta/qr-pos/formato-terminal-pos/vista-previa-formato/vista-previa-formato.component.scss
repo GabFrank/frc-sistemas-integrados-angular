@@ -162,6 +162,104 @@
   background: rgba(255, 152, 0, 0.14);
   border-radius: 2px;
   pointer-events: none;
+
+  // Verde: la corrigio una persona y la derivacion no la pisa. Se distingue de un vistazo cual es
+  // cual, que es lo que define si la proxima foto la puede mover.
+  &.manual {
+    border-color: #66bb6a;
+    background: rgba(102, 187, 106, 0.16);
+  }
+
+  &.arrastrable {
+    pointer-events: auto;
+    cursor: move;
+    border-width: 2px;
+  }
+}
+
+.region-nombre {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  font-size: 9px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffb74d;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.region-tirador {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #ff9800;
+  cursor: nwse-resize;
+}
+
+// En edicion el cupon crece: arrastrar una caja de 3% de alto sobre 210px es imposible. Las
+// coordenadas van en %, asi que agrandar no cambia lo que se guarda.
+.lienzo.editando {
+  height: 430px;
+}
+
+.link-editar {
+  background: none;
+  border: none;
+  color: #ff9800;
+  cursor: pointer;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0 0 0 10px;
+
+  &:hover { text-decoration: underline; }
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.editor-ayuda {
+  opacity: 0.75;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.editor-campo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .editor-nombre { min-width: 130px; }
+
+  .editor-manual {
+    color: #81c784;
+    border: 1px solid rgba(102, 187, 106, 0.5);
+    border-radius: 8px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .btn-borrar { color: #ef9a9a; }
+}
+
+.editor-agregar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  opacity: 0.9;
 }
 
 // El sintético imita un cupón térmico: papel claro, texto oscuro, monoespaciada. Que NO se parezca

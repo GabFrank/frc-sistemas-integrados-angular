@@ -12,11 +12,23 @@ import {
   NotificacionSnackbarService,
 } from '../../../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { mensajeDeError } from '../../mensaje-error';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { MuestraGuardada, RegionFormato } from '../mapa-formato.model';
 
+function acotar(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
+
+/** Tres decimales: es la precisión con la que se guardan las coordenadas normalizadas. */
+function redondear(v: number): number {
+  return Math.round(v * 1000) / 1000;
+}
+
 /** Un campo dibujado sobre el ticket, ya en porcentaje del alto y del ancho. */
 export interface CampoDibujado {
+  /** id de la región guardada. Null = el campo todavía no tiene región. */
+  id: number;
   campo: string;
   etiqueta: string;
   valor: string;
@@ -28,6 +40,8 @@ export interface CampoDibujado {
   alto: number;
   /** La región no tiene caja: el campo se resuelve por patrón, sin restricción espacial. */
   sinCaja: boolean;
+  /** La corrigió una persona. La derivación no la pisa nunca. */
+  manual: boolean;
 }
 
 /**
@@ -73,6 +87,34 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
 
   /** id de la muestra que se esta borrando, para no disparar dos veces. */
   eliminando: number = null;
+
+  // ---- Edición del mapa a mano ----------------------------------------------------------
+
+  /**
+   * Modo edición.
+   *
+   * <p>Lo que se guarda desde acá queda con {@code origen = MANUAL}, y <b>la derivación no pisa
+   * una MANUAL nunca</b>, ni con la confirmación. Por eso corregir a mano tiene sentido: no se lo
+   * lleva puesto la próxima foto.
+   */
+  editando = false;
+
+  /** El campo que se está arrastrando, y desde dónde. */
+  private arrastre: {
+    campo: CampoDibujado;
+    modo: 'mover' | 'redimensionar';
+    xIni: number;
+    yIni: number;
+    izq: number;
+    arriba: number;
+    ancho: number;
+    alto: number;
+  } = null;
+
+  guardandoRegion = false;
+
+  /** Campos del mapeo que todavía no tienen región: se les puede dibujar una. */
+  camposSinRegion: string[] = [];
   cargandoFoto = false;
   errorFoto: string = null;
 
@@ -268,6 +310,143 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
     }
   }
 
+  onEditar(): void {
+    this.editando = true;
+    this.calcularCamposSinRegion();
+  }
+
+  onTerminarEdicion(): void {
+    this.editando = false;
+    this.arrastre = null;
+  }
+
+  private calcularCamposSinRegion(): void {
+    const conRegion = new Set(this.campos.map((c) => c.campo));
+    this.camposSinRegion = Object.keys(this.camposDelMapeo()).filter((c) => !conRegion.has(c));
+  }
+
+  /**
+   * Dibuja una región nueva para un campo que no la tenía.
+   *
+   * <p>Aparece en el medio del cupón a propósito: es el único lugar que no depende de dónde esté
+   * el campo, y lo primero que se hace es arrastrarla al suyo.
+   */
+  onAgregarRegion(campo: string): void {
+    this.campos.push({
+      id: null,
+      campo,
+      etiqueta: null,
+      valor: '—',
+      tipo: null,
+      izq: 35,
+      arriba: 45,
+      ancho: 30,
+      alto: 4,
+      sinCaja: false,
+      manual: true,
+    });
+    this.calcularCamposSinRegion();
+  }
+
+  /** Empieza a mover o a redimensionar. El lienzo da la escala: todo se guarda en %. */
+  onArrastreIni(evento: PointerEvent, campo: CampoDibujado, modo: 'mover' | 'redimensionar'): void {
+    if (!this.editando) return;
+    evento.preventDefault();
+    evento.stopPropagation();
+    (evento.target as HTMLElement).setPointerCapture?.(evento.pointerId);
+    this.arrastre = {
+      campo, modo,
+      xIni: evento.clientX, yIni: evento.clientY,
+      izq: campo.izq, arriba: campo.arriba, ancho: campo.ancho, alto: campo.alto,
+    };
+  }
+
+  onArrastreMueve(evento: PointerEvent, lienzo: HTMLElement): void {
+    const a = this.arrastre;
+    if (!a || !lienzo) return;
+    const caja = lienzo.getBoundingClientRect();
+    // En % del lienzo, que es como se guardan las coordenadas: normalizadas 0..1 contra la foto.
+    const dx = ((evento.clientX - a.xIni) / caja.width) * 100;
+    const dy = ((evento.clientY - a.yIni) / caja.height) * 100;
+
+    if (a.modo === 'mover') {
+      a.campo.izq = acotar(a.izq + dx, 0, 100 - a.campo.ancho);
+      a.campo.arriba = acotar(a.arriba + dy, 0, 100 - a.campo.alto);
+    } else {
+      // Mínimo 1%: una caja de alto cero no acota nada y el backend la rechaza.
+      a.campo.ancho = acotar(a.ancho + dx, 1, 100 - a.campo.izq);
+      a.campo.alto = acotar(a.alto + dy, 1, 100 - a.campo.arriba);
+    }
+  }
+
+  onArrastreFin(): void {
+    this.arrastre = null;
+  }
+
+  /** Guarda una región tal como quedó dibujada. */
+  onGuardarRegion(c: CampoDibujado): void {
+    if (this.guardandoRegion) return;
+    this.guardandoRegion = true;
+    this.service
+      .onGuardarRegion({
+        id: c.id ?? undefined,
+        formatoTerminalPosId: this.formatoId,
+        campo: c.campo,
+        etiqueta: c.etiqueta,
+        posicion: c.etiqueta ? 'DENTRO' : null,
+        tipo: c.tipo,
+        x1: redondear(c.izq / 100),
+        y1: redondear(c.arriba / 100),
+        x2: redondear((c.izq + c.ancho) / 100),
+        y2: redondear((c.arriba + c.alto) / 100),
+      } as any)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (guardada) => {
+          this.guardandoRegion = false;
+          if (guardada?.id) c.id = guardada.id;
+          c.manual = true;
+          this.notificacionSnackbar.openSucess(
+            `Región de "${c.campo}" guardada a mano. La derivación ya no la va a pisar.`
+          );
+        },
+        error: (err) => {
+          this.guardandoRegion = false;
+          this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.danger,
+            texto: mensajeDeError(err, 'No se pudo guardar la región.'),
+            duracion: 8,
+          });
+        },
+      });
+  }
+
+  /** Borra la región de un campo. El campo pasa a resolverse por patrón, sin restricción espacial. */
+  onBorrarRegion(c: CampoDibujado): void {
+    if (!c.id) {                                  // nunca se guardó: alcanza con sacarla de la vista
+      this.campos = this.campos.filter((x) => x !== c);
+      this.calcularCamposSinRegion();
+      return;
+    }
+    this.dialogosService
+      .confirm('Atención', `¿Borrar la región de "${c.campo}"?`,
+        'El campo pasa a resolverse por patrón, sin restricción espacial. Se sigue leyendo.')
+      .pipe(untilDestroyed(this))
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.service.onBorrarRegion(c.id).pipe(untilDestroyed(this)).subscribe({
+          next: () => {
+            this.campos = this.campos.filter((x) => x !== c);
+            this.calcularCamposSinRegion();
+            this.notificacionSnackbar.openSucess('Región borrada');
+          },
+          error: () => this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.danger, texto: 'No se pudo borrar la región.', duracion: 5,
+          }),
+        });
+      });
+  }
+
   private ajustarProporcion(): void {
     const m = this.seleccionada;
     if (m?.ancho && m?.alto) this.proporcion = m.alto / m.ancho;
@@ -299,6 +478,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
       const tieneCaja = r.x1 != null && r.y1 != null && r.x2 != null && r.y2 != null;
       if (!tieneCaja) this.sinCaja++;
       this.campos.push({
+        id: r.id ?? null,
         campo: r.campo,
         etiqueta: r.etiqueta || null,
         valor: valor ?? '—',
@@ -308,6 +488,7 @@ export class VistaPreviaFormatoComponent implements OnChanges, OnDestroy {
         ancho: tieneCaja ? (r.x2 - r.x1) * 100 : 0,
         alto: tieneCaja ? (r.y2 - r.y1) * 100 : 0,
         sinCaja: !tieneCaja,
+        manual: r.origen === 'MANUAL',
       });
     }
   }
