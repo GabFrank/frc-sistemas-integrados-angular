@@ -61,9 +61,13 @@ export class MonedaComponent implements OnInit {
       null, null, true, 'Sí, eliminar', 'No'
     ).subscribe(res => {
       if (res === true) {
-        this.monedaService.onDelete(item.id).pipe(untilDestroyed(this)).subscribe(ok => {
-          if (ok) { this.notificacion.openSucess('Moneda eliminada'); this.cargar(); }
-          else this.notificacion.openAlgoSalioMal('No se pudo eliminar la moneda');
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.monedaService.onDelete(item.id).pipe(untilDestroyed(this)).subscribe({
+          next: ok => {
+            if (ok) { this.notificacion.openSucess('Moneda eliminada'); this.cargar(); }
+            else this.notificacion.openAlgoSalioMal('No se pudo eliminar la moneda');
+          },
+          error: () => {}
         });
       }
     });

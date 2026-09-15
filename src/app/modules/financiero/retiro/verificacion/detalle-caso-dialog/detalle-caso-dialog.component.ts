@@ -275,8 +275,8 @@ export class DetalleCasoDialogComponent implements OnInit {
 
   /**
    * El veredicto se mide desde el sobre; la caja del cajero muestra el mismo hecho invertido.
-   * Se avisa acá antes de mandar porque un error de negocio del backend deja el observable
-   * colgado (GenericCrudService.onSaveCustom) y el usuario nunca vería el motivo.
+   * Se avisa acá antes de mandar para explicar la contradicción con el conteo, algo que el
+   * mensaje genérico del backend no dice.
    */
   private veredictoContraElConteo(): string {
     const hayFaltante = this.filas.some(f => f.diferencia < -0.005);
