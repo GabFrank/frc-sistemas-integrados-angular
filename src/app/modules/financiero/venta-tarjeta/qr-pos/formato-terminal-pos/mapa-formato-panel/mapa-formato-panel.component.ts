@@ -61,6 +61,14 @@ export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
 
   qr: CapturaMuestraQr = null;
   urlQr: string = null;
+
+  /**
+   * El QR apunta a `localhost`, que desde el teléfono es el teléfono mismo.
+   *
+   * Sin avisarlo, el modo de falla es el peor posible: el QR se dibuja, se escanea, no abre nada,
+   * y la pantalla se queda esperando una foto que no va a llegar nunca sin un solo error.
+   */
+  qrInalcanzable = false;
   esperandoFoto = false;
   textoOcr: string = null;
   msOcr: number = null;
@@ -125,6 +133,7 @@ export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
         // Si el servidor no declaró su dirección pública, se compone con la misma con la que este
         // desktop habla con central: el teléfono debería llegar al mismo host.
         this.urlQr = qr?.url || this.service.urlCentral(qr?.ruta ?? '');
+        this.qrInalcanzable = !this.service.qrEsAlcanzable(this.urlQr);
         this.esperandoFoto = true;
         this.sondear(qr.token);
       },

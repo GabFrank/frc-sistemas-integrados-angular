@@ -53,10 +53,23 @@
 
     <div class="captura-qr" *ngIf="esperandoFoto && urlQr">
       <ngx-qrcode [value]="urlQr" [scale]="4"></ngx-qrcode>
-      <p class="ayuda">
+      <p class="ayuda" *ngIf="!qrInalcanzable">
         Escaneá este código con cualquier teléfono y sacale la foto al cupón.
         Si sale borrosa, sacá otra: el código no se gasta.
       </p>
+
+      <!-- Se dice ACA y no se descubre esperando: un QR a localhost se escanea igual, no abre
+           nada, y la pantalla quedaria esperando una foto que nunca va a llegar. -->
+      <div class="aviso-qr" *ngIf="qrInalcanzable">
+        <mat-icon>report_problem</mat-icon>
+        <div>
+          <b>Este código no va a funcionar desde un teléfono.</b>
+          Apunta a <code>{{ urlQr }}</code>, y <code>localhost</code> desde el teléfono es el
+          teléfono. Entrá a la app por la dirección de red de esta máquina, o configurá
+          <code>frc.captura-muestra.base-url</code> en el servidor.
+          Mientras tanto, <b>Subir una foto</b> funciona igual.
+        </div>
+      </div>
     </div>
   </div>
 

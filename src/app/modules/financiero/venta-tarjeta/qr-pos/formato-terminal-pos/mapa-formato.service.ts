@@ -160,11 +160,32 @@ export class MapaFormatoService {
    * correcto: el teléfono debería llegar al mismo host. Si en producción esa dirección no fuera
    * alcanzable desde afuera, el servidor puede devolver una URL propia (`frc.captura-muestra.base-url`)
    * y esta función no se usa.
+   *
+   * **El fallback NO puede ser `localhost`.** Esta URL termina adentro de un QR que escanea un
+   * teléfono: `localhost` ahí es el teléfono mismo, así que la página no abre nunca y no hay
+   * ningún error que lo explique —se queda esperando una foto que jamás va a llegar—. Verificado
+   * el 2026-09-15: el QR decía `http://localhost:8081/...`.
+   *
+   * Corriendo en el navegador (sin Electron) `window.environment` no existe, y ahí el mejor dato
+   * disponible es el host por el que este navegador llegó a la app: si entró por
+   * `192.168.0.106:4201`, el teléfono llega a `192.168.0.106:8081`. Abrir la app por `localhost`
+   * sigue sin servir para el QR, y por eso el aviso de abajo lo dice en la pantalla en vez de
+   * dejar que se descubra esperando.
    */
   urlCentral(ruta: string): string {
     const env: any = (window as any).environment ?? {};
-    const ip = env.centralIp ?? 'localhost';
+    const ip = env.centralIp ?? window.location.hostname ?? 'localhost';
     const port = env.centralPort ?? '8081';
     return `http://${ip}:${port}${ruta}`;
+  }
+
+  /**
+   * Si la URL del QR es alcanzable desde un teléfono.
+   *
+   * `localhost` y `127.0.0.1` apuntan al aparato que escanea, no a central.
+   */
+  qrEsAlcanzable(url: string): boolean {
+    if (!url) return true;
+    return !/^https?:\/\/(localhost|127\.0\.0\.1)[:/]/i.test(url);
   }
 }

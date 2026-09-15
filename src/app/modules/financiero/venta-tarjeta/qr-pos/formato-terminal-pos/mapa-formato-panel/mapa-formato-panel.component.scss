@@ -9,6 +9,25 @@
     margin: 4px 0 0;
   }
 
+  .aviso-qr {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 8px;
+    color: #ffb74d;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: left;
+
+    code {
+      font-family: 'Roboto Mono', monospace;
+      word-break: break-all;
+    }
+  }
+
   .bloque {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
@@ -42,11 +61,19 @@
     margin-top: 12px;
   }
 
+  // El color va explicito. `pre` no hereda el color del tema oscuro --toma el negro por defecto
+  // del agente de usuario-- asi que sobre este fondo quedaba texto negro sobre gris oscuro, casi
+  // ilegible. Es lo mismo que ya habia pasado con H10 el 2026-09-14: ponerle fondo oscuro a un
+  // bloque no le da color a su texto.
   .texto-ocr {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.35);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     padding: 8px;
+    font-family: 'Roboto Mono', 'Courier New', monospace;
     font-size: 11px;
+    line-height: 1.45;
     max-height: 160px;
     overflow: auto;
     white-space: pre-wrap;
