@@ -124,14 +124,16 @@ export class AjusteSalarioMinimoDialogComponent implements OnInit {
       // La moneda NO se manda: el backend usa la de cada funcionario. Mandar una sola
       // estamparia la moneda del primer seleccionado en el historico de todos.
       this.configuracionService.onAjustarSalariosAlMinimo(
-        ids, this.data.minimo, this.mainService.usuarioActual?.id
+        ids, this.data.minimo, this.mainService.usuarioActual?.id, true, { avisarExito: false }
       ).pipe(untilDestroyed(this)).subscribe({
+        // La mutación ya salió bien: un null (el Int es nullable) se lee como 0 y no deja el
+        // diálogo abierto sin aviso, ahora que no está «Guardado con éxito» de respaldo.
         next: res => {
-          if (res == null) return;
+          const ajustados = res ?? 0;
           this.notificacion.notification$.next({
-            texto: res + ' salario/s ajustado/s', color: NotificacionColor.success, duracion: 4
+            texto: ajustados + ' salario/s ajustado/s', color: NotificacionColor.success, duracion: 4
           });
-          this.dialogRef.close(res);
+          this.dialogRef.close(ajustados);
         },
         // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         error: () => {}

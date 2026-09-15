@@ -94,8 +94,8 @@ export class ListAguinaldoComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
-        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
-        this.aguinaldoService.onCalcular(this.anioControl.value)
+        // El éxito lo avisa este componente (con la cantidad); el error, GenericCrudService.onSaveCustom.
+        this.aguinaldoService.onCalcular(this.anioControl.value, true, { avisarExito: false })
           .pipe(untilDestroyed(this)).subscribe({
             next: (cant: number) => {
               this.notificacion.notification$.next({ texto: 'Aguinaldos calculados: ' + (cant ?? 0), color: NotificacionColor.success, duracion: 3 });

@@ -41,8 +41,8 @@ export class RetiroVerificacionService {
     });
   }
 
-  onAnular(verificacionId: number, motivo?: string): Observable<RetiroVerificacion> {
-    return this.genericService.onSaveCustom(this.anularVerificacionGQL, { verificacionId, motivo });
+  onAnular(verificacionId: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<RetiroVerificacion> {
+    return this.genericService.onSaveCustom(this.anularVerificacionGQL, { verificacionId, motivo }, true, opciones);
   }
 
   onGetCasos(filtros: {
@@ -60,8 +60,8 @@ export class RetiroVerificacionService {
     });
   }
 
-  onAsignarCaso(casoId: number, usuarioId: number): Observable<RetiroCaso> {
-    return this.genericService.onSaveCustom(this.asignarCasoGQL, { casoId, usuarioId });
+  onAsignarCaso(casoId: number, usuarioId: number, opciones?: { avisarExito?: boolean }): Observable<RetiroCaso> {
+    return this.genericService.onSaveCustom(this.asignarCasoGQL, { casoId, usuarioId }, true, opciones);
   }
 
   /** Devuelve el caso a ABIERTO: se tomó por error o no corresponde. */

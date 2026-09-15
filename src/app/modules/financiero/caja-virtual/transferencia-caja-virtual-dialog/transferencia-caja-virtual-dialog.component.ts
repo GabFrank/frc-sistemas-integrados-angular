@@ -109,13 +109,14 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
           this.notificacion.openSucess('Transferencia(s) realizada(s) correctamente');
           this.dialogRef.close(true);
         },
-        error: err => {
+        // El aviso de error lo da onSaveCustom (una vez por operación, aunque falle más de una moneda).
+        error: () => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al guardar transferencia');
         }
       });
   }
 
+  // Cada transferencia del lote va sin «Guardado con éxito»: el aviso agregado lo da onSave.
   createTransferObs(cantidad: number, monedaId: number, cajaDestinoId: number) {
     return this.cajaVirtualService.onRealizarTransferencia(
       this.cajaOrigen.id,
@@ -123,7 +124,8 @@ export class TransferenciaCajaVirtualDialogComponent implements OnInit {
       cantidad,
       monedaId,
       this.descripcionControl.value?.toUpperCase() || null,
-      this.mainService.usuarioActual?.id
+      this.mainService.usuarioActual?.id,
+      { avisarExito: false }
     );
   }
 

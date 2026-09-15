@@ -95,7 +95,8 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
       if (res !== true) return;
       this.isSaving = true;
       this.cuentaBancariaService
-        .onAjustarSaldo(this.data.cuentaBancaria.id, monto, this.positivo, this.motivoControl.value)
+        // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+        .onAjustarSaldo(this.data.cuentaBancaria.id, monto, this.positivo, this.motivoControl.value, { avisarExito: false })
         .pipe(untilDestroyed(this))
         .subscribe({
           next: r => {
@@ -107,9 +108,8 @@ export class AjustarSaldoCuentaDialogComponent implements OnInit {
               this.dialogRef.close(r);
             }
           },
-          error: e => {
+          error: () => {
             this.isSaving = false;
-            this.err(e?.graphQLErrors?.[0]?.message || e?.message || 'No se pudo ajustar el saldo');
           },
         });
     });

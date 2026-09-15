@@ -225,7 +225,7 @@ export class ListRetiroCasosComponent implements OnInit {
       return;
     }
 
-    this.service.onAsignarCaso(row.id, usuarioId).pipe(untilDestroyed(this)).subscribe({
+    this.service.onAsignarCaso(row.id, usuarioId, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
       next: r => {
         if (r == null) return;
         this.notificacion.notification$.next({

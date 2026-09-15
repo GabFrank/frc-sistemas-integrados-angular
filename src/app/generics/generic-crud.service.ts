@@ -516,15 +516,34 @@ export class GenericCrudService {
     });
   }
 
-  // Un lote (forkJoin de N onSaveCustom) que se cae por la red dispara N errores casi juntos:
-  // forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una avisaría.
-  // La cola de notificaciones es secuencial, así que N avisos iguales taparían N×3 s cualquier
+  // Un lote (forkJoin de N onSaveCustom) que falla dispara N errores casi juntos (de red o de
+  // negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
+  // avisaría. La cola de notificaciones es secuencial, así que N avisos iguales taparían cualquier
   // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
   // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.
-  ventanaAvisoTransporteMs = 3000;
-  private ultimoAvisoTransporte: { gql: Mutation; texto: string; en: number } = null;
+  ventanaAvisoErrorMs = 3000;
+  private ultimoAvisoError: { gql: Mutation; texto: string; en: number } = null;
 
-  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
+  private avisarErrorSinRepetir(gql: Mutation, texto: string, duracion: number): void {
+    // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
+    // resta negativa y silenciaría avisos mucho más de la ventana.
+    const ahora = performance.now();
+    const repetido = this.ultimoAvisoError?.gql === gql
+      && this.ultimoAvisoError.texto === texto
+      && ahora - this.ultimoAvisoError.en < this.ventanaAvisoErrorMs;
+    if (repetido) return;
+    this.ultimoAvisoError = { gql, texto, en: ahora };
+    this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.danger, duracion });
+  }
+
+  /**
+   * `opciones.avisarExito = false` apaga solo «Guardado con éxito», para el llamador que muestra su
+   * propio aviso de éxito (más específico). No toca el diálogo «Guardando...» ni los avisos de
+   * error: esos los da siempre este método, que tiene el mensaje real del backend.
+   * Es un objeto y no un booleano: varios wrappers terminan en `servidor: boolean`, y un `false`
+   * suelto caería ahí sin que el compilador lo note.
+   */
+  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<T> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -548,23 +567,24 @@ export class GenericCrudService {
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
-              this.notificacionSnackBar.notification$.next({
-                texto: "Guardado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
+              if (opciones?.avisarExito !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Guardado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
+                });
+              }
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
-                color: NotificacionColor.danger,
-                duracion: 5,
-              });
+              // Sin mensaje del backend (undefined o vacío) el aviso diría «…operacion: undefined».
+              const limpio = limpiarMensajeGraphQL(res.errors[0]?.message);
+              const mensaje = typeof limpio === "string" && limpio.trim() ? limpio : "el servidor no dio detalle";
+              this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
               // Ademas del snackbar hay que CERRAR el observable: sin esto el llamador se queda
               // esperando para siempre y cualquier bandera de "guardando" nunca se apaga, con lo
               // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el
               // formulario entero. Un error de negocio del backend es un error para el llamador,
               // no un silencio.
-              obs.error({ graphQLErrors: limpiarErroresGraphQL(res.errors), message: limpiarMensajeGraphQL(res.errors[0].message) });
+              obs.error({ graphQLErrors: limpiarErroresGraphQL(res.errors), message: mensaje });
             }
           },
           error: (error) => {
@@ -572,21 +592,7 @@ export class GenericCrudService {
             this.cargandoService.closeDialog(requestId);
             // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
             // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
-            const texto = mensajeErrorTransporte(error);
-            // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
-            // resta negativa y silenciaría avisos mucho más de la ventana.
-            const ahora = performance.now();
-            const repetido = this.ultimoAvisoTransporte?.gql === gql
-              && this.ultimoAvisoTransporte.texto === texto
-              && ahora - this.ultimoAvisoTransporte.en < this.ventanaAvisoTransporteMs;
-            if (!repetido) {
-              this.ultimoAvisoTransporte = { gql, texto, en: ahora };
-              this.notificacionSnackBar.notification$.next({
-                texto,
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
-            }
+            this.avisarErrorSinRepetir(gql, mensajeErrorTransporte(error), 3);
             obs.error(error);
           },
         });

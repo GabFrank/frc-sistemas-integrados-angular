@@ -76,7 +76,8 @@ export class AddMonedaDialogComponent implements OnInit {
     if (this.isEditing) { moneda.pais = this.data.pais; moneda.usuario = this.data.usuario; }
 
     this.isSaving = true;
-    this.monedaService.onSave(moneda).pipe(untilDestroyed(this)).subscribe({
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.monedaService.onSave(moneda, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
       next: res => {
         this.isSaving = false;
         if (res != null) {
@@ -84,10 +85,8 @@ export class AddMonedaDialogComponent implements OnInit {
           this.dialogRef.close(res);
         }
       },
-      error: err => {
+      error: () => {
         this.isSaving = false;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al guardar la moneda';
-        this.notificacion.openWarn(msg, 6);
       }
     });
   }
