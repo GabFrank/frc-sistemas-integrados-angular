@@ -50,6 +50,11 @@ Rojo verificado: el script de test (abajo) corrido contra `origin/develop` da **
      `setValue` no re-dispara `onGuardar`: el HTML escucha `(change)`/`(selectionChange)` de
      Material, no `valueChanges` (verificado por el eje B).
    - Sin snackbar propio en el `error`: el de negocio y el de red ya los muestra `onSave`.
+   - **`timeout({ first: 65 s })` antes de `untilDestroyed`** *(agregado en el paso 8, hallazgo
+     F3)*: `CargandoDialogService` aborta el fetch a los 60 s, y Apollo 3.7.14 **descarta el
+     `AbortError` sin emitir nada** (`@apollo/client/link/http/parseAndCheckHttpResponse.js:132`).
+     Sin el timeout ese camino queda trabado igual que antes. El aviso lo da el propio
+     `CargandoDialogService` («Tiempo de espera superado»); el `error` solo libera y revierte.
 3. Sin cambios en `GenericCrudService`, en el HTML ni en el backend.
 
 ## Fases
@@ -113,6 +118,20 @@ publicado a filiales) y no se escribe distinto. El eje A no encontró referencia
 
 Los dos ejes no se contradicen: no hay nada para que arbitre el usuario.
 
+## Auditoría del diff (paso 8)
+
+3 fijos; ningún condicional se dispara (el diff no toca maquinaria de release ni migraciones).
+
+| # | Eje | Hallazgo | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| F1 | Autorización | Sin hallazgos: no hay operación, botón ni dato nuevo; el gate `RRHH CONFIG` no se toca; el `error` no loguea nada | — | Sin cambio |
+| F2a | Esquema | Repite B1 (revertir tras un guardado con respuesta perdida) | Ya aceptado | Sin cambio. Un error de **negocio** no guarda (`requireAnyRole` es la primera línea), así que revertir ahí es correcto |
+| F2b | Esquema · baja | `parseValor('2.50')` → `2.5` y `''` → `0`: guardado espurio al primer `(change)` | Confirmado, **preexistente** (`armarCampo` ya lo hacía) | No aplicado, fuera de alcance |
+| F3 | Contrato · media | «Doble aviso en el timeout de 60 s (Tiempo de espera superado + Error de red)» | **Falso tal como está**: Apollo 3.7.14 descarta el `AbortError` sin emitir (`parseAndCheckHttpResponse.js:132`). Pero de ahí sale un defecto real: ese camino **seguía trabado** con el fix | Aplicado: `timeout({ first: 65 s })` en el panel + caso 9 del test |
+
+El abort silencioso afecta a **todos** los llamadores de `GenericCrudService` (cualquier operación
+que supere los 60 s queda sin emitir). Fuera del alcance de #300; se propone issue aparte.
+
 ## Prueba de runtime (paso 9)
 
 Local, sin mergear: central en 8081 con perfil `dev` + `npm run ng:serve` desde Chrome.
@@ -139,6 +158,12 @@ El usuario de prueba se elige consultando la DB local antes de proponer la prueb
   aunque en la base quedó el nuevo. Reabrir el panel muestra el valor real. Antes del fix el
   síntoma era peor (campo trabado y mostrando un valor sin confirmar).
 - **B3 — guardados concurrentes fuera de orden**: preexistente, no se toca.
+- **F2b — `parseValor` normaliza** (`'2.50'` → `2.5`, `''` → `0`): preexistente, no se toca.
+- **Abort silencioso de Apollo en `GenericCrudService`**: toda operación que supere los 60 s
+  de `CargandoDialogService` queda sin emitir, en cualquier pantalla. El panel se cubre con su
+  propio `timeout`; el arreglo general merece issue aparte.
+- **El caso timeout no se prueba en runtime** (exigiría un central que tarde >60 s); lo cubre el
+  caso 9 del script.
 - `edit-configuracion-rrhh-dialog` sigue sin handler de `error` en su `onSave` (el diálogo queda
   abierto y la excepción sin capturar). Fuera del alcance del issue; se deja anotado.
 - Doble snackbar en el camino feliz («Guardado con éxito» de `onSave` + «Configuración guardada»
