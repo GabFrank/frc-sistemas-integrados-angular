@@ -90,6 +90,13 @@
       <tr *ngFor="let r of propuesta" [class.fila-sin-region]="r.sinRegion">
         <td class="campo">{{ r.campo }}</td>
         <td class="valor">{{ r.valorLeido }}</td>
+        <!-- El tipo sale del mapeo, no de esta foto. Se muestra para que el administrador vea si
+             la declaración prendió: un campo sin tipo no se valida al leer, y eso es una decisión
+             que conviene que sea visible acá y no una sorpresa en la caja. -->
+        <td class="tipo">
+          <span *ngIf="r.tipo">{{ r.tipo | lowercase }}</span>
+          <span *ngIf="!r.tipo" class="motivo">sin tipo</span>
+        </td>
         <td class="ancla">
           <span *ngIf="!r.sinRegion">
             <span *ngIf="r.etiqueta">«{{ r.etiqueta }}» {{ r.posicion | lowercase }}</span>

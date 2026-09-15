@@ -51,9 +51,11 @@ export interface RegionDerivada {
    */
   sinRegion?: string;
   /**
-   * TEXTO | NUMERO | FECHA, deducido por el backend del valor de la muestra. Viaja sin tocarse
-   * hasta el guardado: el filial lo usa al leer un cupón para mandar a revisión un valor que no
-   * encaja con su tipo.
+   * TEXTO | NUMERO | FECHA, tomado del `mapeo` del formato — **no deducido de la muestra**: una
+   * sola foto no alcanza para afirmar el tipo de un campo (el código de autorización de INFONET
+   * sale alfanumérico con crédito y numérico con débito, por la misma terminal el mismo día).
+   * Viaja sin tocarse hasta el guardado: el filial lo usa al leer un cupón para mandar a revisión
+   * un valor que no encaja con su tipo.
    */
   tipo?: string;
 }

@@ -92,8 +92,8 @@ export class MapaFormatoService {
         campo: r.campo,
         etiqueta: r.etiqueta,
         posicion: r.posicion,
-        // Deducido por el backend al derivar. Si no viaja acá, la columna nace nula y el filial
-        // no tiene con qué comparar el valor leído.
+        // Lo declara el mapeo del formato y el backend lo adjunta al derivar. Si no viaja acá, la
+        // columna nace nula y el filial no tiene con qué comparar el valor leído.
         tipo: r.tipo,
         x1: r.x1,
         y1: r.y1,
