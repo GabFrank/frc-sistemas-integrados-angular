@@ -47,6 +47,16 @@ export class MapaFormatoPanelComponent implements OnInit, OnDestroy {
   /** Avisa que el mapa se guardó, para que quien lo contenga refresque lo que muestre. */
   @Output() guardado = new EventEmitter<void>();
 
+  /**
+   * Pide usar el texto leido como cadena de ejemplo del formato.
+   *
+   * <p>No es una comodidad. El OCR devuelve el ticket con SUS rarezas --un cero donde hay una O,
+   * un parentesis de ancho completo, una C donde hay un 0-- y el patron se aplica sobre ese texto,
+   * no sobre el papel. Escribir la cadena de ejemplo a mano es adivinar cual de esas rarezas salio
+   * esta vez, y el patron termina sin matchear por un caracter que nadie ve.
+   */
+  @Output() usarComoEjemplo = new EventEmitter<string>();
+
   /** Cada cuánto se le pregunta a central si ya llegó la foto. */
   private static readonly MS_SONDEO = 2500;
 

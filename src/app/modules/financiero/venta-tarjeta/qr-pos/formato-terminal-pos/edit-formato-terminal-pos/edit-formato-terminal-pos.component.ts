@@ -20,6 +20,9 @@ import {
 import { FormatoTerminalPosService } from '../formato-terminal-pos.service';
 import { VistaPreviaFormatoComponent } from '../vista-previa-formato/vista-previa-formato.component';
 
+/** La solapa del patrón y la cadena de ejemplo. */
+const TAB_COMO_SE_LEE = 1;
+
 /** La última solapa. Al entrar hay que recargar lo que muestra. */
 const TAB_VISTA_PREVIA = 4;
 
@@ -300,6 +303,19 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    */
   onCambioDeTab(evento: any): void {
     if (evento?.index === TAB_VISTA_PREVIA) this.vistaPrevia?.recargar();
+  }
+
+  /**
+   * Toma el texto que el OCR leyó como cadena de ejemplo y lleva a la solapa del patrón.
+   *
+   * <p>Es donde se ve al instante si el patrón lo reconoce, que es lo único que hace falta saber
+   * para poder guardar.
+   */
+  onUsarComoEjemplo(texto: string): void {
+    if (!texto) return;
+    this.formGroup.get('ejemplo').setValue(texto);
+    this.tabActivo = TAB_COMO_SE_LEE;
+    this.notificacionSnackbar.openSucess('Cadena de ejemplo tomada de la foto');
   }
 
   onCancelar(): void {

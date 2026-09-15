@@ -134,7 +134,8 @@
     <mat-tab *ngIf="esMaquina" label="El mapa del cupón">
       <div class="tab-cuerpo">
         <app-mapa-formato-panel *ngIf="formatoGuardado" [formato]="formatoGuardado"
-                                (guardado)="onMapaGuardado()"></app-mapa-formato-panel>
+                                (guardado)="onMapaGuardado()"
+                                (usarComoEjemplo)="onUsarComoEjemplo($event)"></app-mapa-formato-panel>
 
         <!-- Un formato nuevo todavía no tiene id, y las regiones cuelgan de él. Se dice por qué en
              vez de mostrar un panel que no va a poder guardar nada. -->

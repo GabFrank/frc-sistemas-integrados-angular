@@ -81,10 +81,18 @@
     </div>
     <pre class="texto-ocr">{{ textoOcr }}</pre>
 
-    <button mat-raised-button class="btn-success" *ngIf="!propuesta"
-            [disabled]="cargando" (click)="onProponer()">
-      Proponer el mapa
-    </button>
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <button mat-raised-button class="btn-success" *ngIf="!propuesta"
+              [disabled]="cargando" (click)="onProponer()">
+        Proponer el mapa
+      </button>
+
+      <!-- El patron se aplica sobre ESTE texto, no sobre el papel: con las rarezas del OCR
+           incluidas. Escribir la cadena de ejemplo a mano es adivinar cuales salieron. -->
+      <button mat-stroked-button type="button" (click)="usarComoEjemplo.emit(textoOcr)">
+        Usar como cadena de ejemplo
+      </button>
+    </div>
   </div>
 
   <!-- ── Paso 3: la propuesta ───────────────────────────────────────────────────────────── -->
