@@ -6,7 +6,8 @@ import { debounceTime, distinctUntilChanged, filter, map, tap } from "rxjs/opera
 import { TerminalPos } from "../terminal-pos.model";
 import { TerminalPosService } from "../terminal-pos.service";
 import { DatosCupon, FormatoQrPos } from "../../venta-tarjeta/qr-pos/formato-qr-pos.model";
-import { FormatoQrPosService } from "../../venta-tarjeta/qr-pos/formato-qr-pos.service";
+import { FormatoTerminalPosService } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.service";
+import { TIPO_WEB } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.model";
 import { DecimalesPorMoneda, ordenarPorProveedor, parsearCupon } from "../../venta-tarjeta/qr-pos/qr-pos-parser";
 
 /**
@@ -64,7 +65,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
     private matDialogRef: MatDialogRef<ScanTerminalPosDialogComponent>,
     private terminalPosService: TerminalPosService,
-    private formatoQrPosService: FormatoQrPosService
+    private formatoTerminalPosService: FormatoTerminalPosService
   ) {
     if (data?.terminalPos != null) {
       this.selectedTerminalPos = data.terminalPos;
@@ -87,10 +88,17 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     // más que el tiempo entre teclas de un wedge y menos de lo que tarda una persona en notarlo.
     // Los formatos se traen del FILIAL, que es contra quien corre el PDV. Si no llegan, el input
     // sigue funcionando como siempre: sólo pierde la capacidad de reconocer un cupón.
-    this.formatoQrPosService.onGetActivos()
+    //
+    // ⚠️ De `formato_terminal_pos`, el del ABM — NO de `formato_qr_pos`. Ver el comentario largo en
+    // `escanear-cupon-dialog`: hasta el 2026-09-16 esto leía la tabla legacy y el patrón que el
+    // administrador editaba no era el que el PDV usaba para leer. El filtro por tipo tampoco es
+    // cosmético: los patrones MAQUINA son de texto OCR, llenos de `[\s\S]*`, y en la misma bolsa
+    // podrían matchear una cadena de QR.
+    this.formatoTerminalPosService.onGetActivos(false)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (res) => (this.formatos = ordenarPorProveedor(res || [], this.data?.proveedorServicioId)),
+        next: (res) => (this.formatos = ordenarPorProveedor(
+          (res || []).filter((f: any) => f?.tipo === TIPO_WEB), this.data?.proveedorServicioId)),
         error: () => (this.formatos = []),
       });
 
@@ -190,8 +198,16 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   private resolverTerminalDelCupon(datos: DatosCupon): void {
     const serie = datos?.terminal;
     if (!serie) {
-      this.avisoCupon = 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué '
-        + 'aparato salió.';
+      // Si el formato DECLARA `terminal` en su mapeo y el cupón no la trae, el cupón no es el que
+      // el formato describe: una versión anterior del cupón, o el formato mal configurado. Eso es
+      // un error y se dice como tal, no un paso más del flujo.
+      //
+      // Si el formato NO la declara, no hay nada mal: ese proveedor simplemente no imprime de qué
+      // punto salió, y pedir la terminal es el camino normal.
+      this.avisoCupon = declaraTerminal(datos?.formato)
+        ? 'Este cupón no trae el identificador de la terminal que el formato declara. '
+          + 'Puede ser de una versión anterior del cupón.'
+        : 'Leí el cupón. Ahora escaneá el código de la terminal para saber de qué aparato salió.';
       return;
     }
 
@@ -231,5 +247,22 @@ export class ScanTerminalPosDialogComponent implements OnInit {
           this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
         },
       });
+  }
+
+}
+
+/**
+ * Si el formato dice que sus cupones traen el identificador de la terminal.
+ *
+ * Es lo que separa «este proveedor no lo imprime» --normal, se pide la terminal-- de «este cupón no
+ * es el que el formato describe» --error--. Sin esta distinción los dos casos se ven iguales en
+ * pantalla y un cupón desactualizado pasa por configuración faltante.
+ */
+function declaraTerminal(formato?: FormatoQrPos): boolean {
+  if (!formato?.mapeo) return false;
+  try {
+    return !!JSON.parse(formato.mapeo)?.terminal;
+  } catch {
+    return false;
   }
 }

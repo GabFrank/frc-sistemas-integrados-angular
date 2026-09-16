@@ -9,8 +9,8 @@ import { CapturaCuponService } from '../../captura-cupon/captura-cupon.service';
 import { CapturaCupon, parsearCampos } from '../../captura-cupon/captura-cupon.model';
 import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
-import { FormatoQrPosService } from '../formato-qr-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
+import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
 import {
   DecimalesPorMoneda,
   formatoCruzado,
@@ -114,7 +114,7 @@ export class EscanearCuponDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: EscanearCuponDialogData,
     public dialogRef: MatDialogRef<EscanearCuponDialogComponent>,
-    private formatoQrPosService: FormatoQrPosService,
+    private formatoTerminalPosService: FormatoTerminalPosService,
     private matDialog: MatDialog,
     private ventaTarjetaService: VentaTarjetaService,
     private capturaCuponService: CapturaCuponService
@@ -282,8 +282,18 @@ export class EscanearCuponDialogComponent implements OnInit {
         `y el cobro es en ${this.data.monedaSimbolo || 'Gs.'}.`;
     }
 
-    this.formatoQrPosService.onGetActivos().pipe(untilDestroyed(this)).subscribe({
-      next: (formatos) => (this.formatos = formatos || []),
+    // ⚠️ Los formatos salen de `formato_terminal_pos`, el del ABM — NO de `formato_qr_pos`.
+    //
+    // Hasta el 2026-09-16 este parseo leía la tabla legacy, así que para un formato WEB el ABM
+    // nuevo gobernaba qué camino se ofrecía y qué campos se pedían a mano, pero **no cómo se leía
+    // el cupón**: se podía cambiar el patrón ahí y el lector seguía usando el viejo, sin que nada
+    // lo avisara. Dos verdades para el mismo formato, divergiendo en silencio.
+    //
+    // El filtro por tipo NO es cosmético. Los patrones de los formatos MAQUINA son de texto OCR y
+    // empiezan con `^[\s\S]*`, o sea comodines por todos lados: metidos en la misma bolsa podrían
+    // matchear una cadena de QR y devolver campos de otro aparato.
+    this.formatoTerminalPosService.onGetActivos(false).pipe(untilDestroyed(this)).subscribe({
+      next: (formatos) => (this.formatos = (formatos || []).filter((f) => f?.tipo === TIPO_WEB)),
       error: () => (this.formatos = []),
     });
 

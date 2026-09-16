@@ -13,6 +13,15 @@ export interface FormatoQrPos {
    */
   proveedorServicioId?: number;
   proveedorServicio?: { id?: number; persona?: { nombre?: string } };
+  /**
+   * MAQUINA | WEB | API.
+   *
+   * Desde el 2026-09-16 estos objetos vienen de `formato_terminal_pos` --el del ABM-- y no de la
+   * tabla legacy, así que el tipo viaja. Es lo que permite quedarse sólo con los WEB al reconocer
+   * un cupón escaneado: los patrones MAQUINA son de texto OCR y están llenos de `[\s\S]*`, así que
+   * en la misma bolsa podrían matchear una cadena de QR y devolver campos de otro aparato.
+   */
+  tipo?: string;
   /** Regex con grupos nombrados, anclado con ^ y $. */
   patron?: string;
   /** JSON serializado; ver {@link MapeoQrPos}. */

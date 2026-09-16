@@ -17,7 +17,7 @@ import { TIPO_MAQUINA, TIPO_WEB } from '../formato-terminal-pos/formato-terminal
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { CobroDetalleDeVenta } from '../../graphql/cobrosTarjetaDeVenta';
 import { mensajeDeError } from '../mensaje-error';
-import { FormatoQrPosService } from '../formato-qr-pos.service';
+import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import {
   cuponVencido,
@@ -161,7 +161,7 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: RegistrarVentaTarjetaData,
     public dialogRef: MatDialogRef<RegistrarVentaTarjetaDialogComponent>,
     private ventaTarjetaService: VentaTarjetaService,
-    private formatoQrPosService: FormatoQrPosService,
+    private formatoTerminalPosService: FormatoTerminalPosService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private capturaCuponService: CapturaCuponService
@@ -183,8 +183,12 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.formatoQrPosService.onGetActivos().pipe(untilDestroyed(this)).subscribe({
-      next: (formatos) => (this.formatos = formatos || []),
+    // De `formato_terminal_pos`, el del ABM. Ver el comentario largo en `escanear-cupon-dialog`:
+    // esta era la tercera pantalla que leía la tabla legacy, y las tres tenían que moverse juntas
+    // --si no, completar un pendiente desde la lista habría leído con un patrón distinto del que
+    // usa el cobro, para el mismo cupón--.
+    this.formatoTerminalPosService.onGetActivos(false).pipe(untilDestroyed(this)).subscribe({
+      next: (formatos) => (this.formatos = (formatos || []).filter((f: any) => f?.tipo === TIPO_WEB)),
       // Sin formatos el input no sirve, pero el camino del celular sigue disponible: no se
       // bloquea el diálogo por esto.
       error: () => (this.formatos = []),

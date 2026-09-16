@@ -76,7 +76,6 @@ import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboar
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
 import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
-import { FormatoQrPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component';
 import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
@@ -542,13 +541,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'point_of_sale',
               action: 'formato-terminal-pos',
               visibilityRoles: [ROLES.ADMIN]
-            },
-            {
-              name: 'Formatos de QR de POS',
-              icon: 'qr_code_scanner',
-              action: 'formato-qr-pos',
-              visibilityRoles: [ROLES.ADMIN]
             }
+            // 'Formatos de QR de POS' (tabla legacy `formato_qr_pos`) se retiró del menú el
+            // 2026-09-16. Desde ese día NADA del flujo la lee --el parseo del cupón pasó a
+            // `formato_terminal_pos`, el del ABM de arriba-- y dejarla accesible sólo ofrecía dos
+            // pantallas para el mismo concepto, con la de abajo sin efecto sobre nada.
+            //
+            // El componente y la tabla siguen existiendo a propósito: borrarlos es otro PR, y
+            // mientras tanto las filas son el respaldo de cómo estaba configurado cada formato.
           ]
         },
         {
@@ -1070,9 +1070,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "terminal-pos-dashboard":
         this.openTabIfAuthorized(ROLES.VENTA_TARJETA_COMPLETAR, TerminalPosDashboard, "Terminal Dashboard");
-        break;
-      case "formato-qr-pos":
-        this.openTabIfAuthorized(ROLES.ADMIN, FormatoQrPosComponent, "Formatos de QR");
         break;
       case "formato-terminal-pos":
         this.openTabIfAuthorized(ROLES.ADMIN, FormatoTerminalPosComponent, "Formatos de terminal");
