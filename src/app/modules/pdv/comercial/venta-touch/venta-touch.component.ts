@@ -1487,6 +1487,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .afterClosed()
       .subscribe((res) => {
+        // Al inicio y no al final: "finalizar" abre el pago, que vuelve a marcar el diálogo
+        // como abierto y lo resetea al cerrarse (#314).
+        this.isDialogOpen = false;
         if (res != null) {
           if (res["delivery"] != null) {
             this.selectedDelivery = new Delivery();
@@ -1536,7 +1539,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.resetForm();
           this.calcularTotales();
         }
-        this.isDialogOpen = false;
       });
   }
 
