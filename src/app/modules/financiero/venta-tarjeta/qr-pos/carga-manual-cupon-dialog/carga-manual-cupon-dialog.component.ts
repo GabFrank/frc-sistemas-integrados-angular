@@ -91,6 +91,13 @@ interface CampoManual {
   bueno?: boolean;
   /** El OCR lo leyó mal, o no se sabe cuánto se le puede creer. Hay que confirmarlo. */
   dudoso?: boolean;
+  /**
+   * El lector no lo encontró. **No es lo mismo que dudoso** --no hay lectura que juzgar-- así que
+   * no va en ámbar: el ámbar significa "leí esto y no me convence". Pero tampoco puede quedar sin
+   * decir nada: un campo vacío y sin explicación, en un diálogo cuyo texto habla de verdes y
+   * ámbares, se lee como que el sistema se olvidó de algo.
+   */
+  noLeido?: boolean;
   /** Lo que el OCR leyó, tal cual. Sirve para detectar si el cajero lo corrigió. */
   leido?: string;
   /** Texto del semáforo, ya armado. */
@@ -110,16 +117,56 @@ interface CampoManual {
 const CONFIANZA_MINIMA = 0.9;
 
 /**
- * Los cuatro campos canónicos que el flujo necesita, con el nombre que el cajero entiende.
- * El orden es el de lectura de un cupón, no el del modelo.
+ * Los campos que el sistema ya conoce por nombre, con la etiqueta que el cajero entiende y el
+ * orden de lectura de un cupón.
+ *
+ * **No es la lista de lo que se muestra.** Eso lo decide el `mapeo` del formato: esto es sólo el
+ * diccionario para los que tienen nombre propio en el modelo. Un campo mapeado que no esté acá se
+ * arma solo, con el nombre del mapeo. Antes esta constante SÍ decidía qué se mostraba, y por eso
+ * un campo declarado obligatorio en el mapeo --`lote` de INFONET, medido el 2026-09-16-- no se
+ * dibujaba, no se validaba y no se podía exigir: la declaración del formato quedaba pisada por una
+ * lista fija de cuatro.
  */
-const CAMPOS: CampoManual[] = [
+const CAMPOS_CONOCIDOS: CampoManual[] = [
   { clave: 'codigoAutorizacion', etiqueta: 'Código de autorización', obligatorio: false, numerico: false, claveOcr: 'codigoAutorizacion' },
   { clave: 'numeroBoleta', etiqueta: 'Número de boleta', obligatorio: false, numerico: false, claveOcr: 'numeroBoleta' },
   // `monto` en el cupón es el mismo dato que `montoEscaneado` en la venta.
   { clave: 'montoEscaneado', etiqueta: 'Monto del cupón', obligatorio: false, numerico: true, claveOcr: 'monto' },
+  { clave: 'terminal', etiqueta: 'Terminal del cupón', obligatorio: false, numerico: false, claveOcr: 'terminal' },
   { clave: 'identificadorTransaccion', etiqueta: 'Referencia del proveedor', obligatorio: false, numerico: false, claveOcr: 'identificadorTransaccion' },
 ];
+
+/**
+ * Campos del mapeo que NO se le piden al cajero.
+ *
+ * `fecha` no es un dato que se transcriba: alimenta el control de antigüedad y viaja como
+ * metadato. `moneda` se resuelve como `monedaId` desde el cobro, no se tipea.
+ */
+const NO_SE_TIPEAN = ['fecha', 'moneda'];
+
+/**
+ * La clave del mapeo que corresponde a cada control del formulario.
+ * Sólo difiere en el monto, que en la venta se llama `montoEscaneado`.
+ */
+function claveDeMapeo(clave: string): string {
+  return clave === 'montoEscaneado' ? 'monto' : clave;
+}
+
+/**
+ * Las claves que `CompletarVentaTarjetaInput` nombra una por una. El resto viaja en `datosExtra`.
+ *
+ * Es un hecho del CONTRATO con el backend, no de presentación: decide dónde se guarda cada valor,
+ * no si se muestra. Ahora que el formulario sale del mapeo, el diálogo puede recibir campos que no
+ * tienen lugar propio --`lote`, `terminal`-- y lo correcto es que caigan en `datos_extra`, que
+ * existe exactamente para eso, en vez de perderse al guardar.
+ */
+const CON_LUGAR_PROPIO = ['codigoAutorizacion', 'numeroBoleta', 'montoEscaneado', 'identificadorTransaccion'];
+
+/** `lote` -> `Lote`, `codigoComercio` -> `Codigo comercio`. Para los campos sin nombre propio. */
+function etiquetaDe(clave: string): string {
+  const conEspacios = clave.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+  return conEspacios.charAt(0).toUpperCase() + conEspacios.slice(1).toLowerCase();
+}
 
 /**
  * Carga a mano del cupón.
@@ -212,9 +259,14 @@ export class CargaManualCuponDialogComponent implements OnInit {
       const leido = this.valorLeido(c);
       c.leido = leido == null ? null : String(leido);
       if (leido == null || leido === '') {
-        // El OCR no lo trajo. No es dudoso: es un campo vacío como en la carga a mano de siempre.
+        // El OCR no lo trajo. No es dudoso --no hay lectura que juzgar-- pero sí hay que decirlo:
+        // si además es obligatorio, es lo único que separa al cajero de poder confirmar.
         c.bueno = false;
         c.dudoso = false;
+        c.noLeido = true;
+        c.pista = c.obligatorio
+          ? 'El lector no lo encontró — copialo del ticket para poder seguir'
+          : 'El lector no lo encontró — copialo del ticket si está';
         return;
       }
       const conf = confianzas[c.claveOcr];
@@ -298,9 +350,17 @@ export class CargaManualCuponDialogComponent implements OnInit {
   /**
    * Qué campos pide el formulario y cuáles son obligatorios: sale del `mapeo` del formato, que es
    * la misma declaración que le dice al OCR qué tiene que encontrar. Una sola fuente de verdad, en
-   * vez de tres listas que se desincronizan.
+   * vez de listas fijas que se desincronizan.
    *
-   * Si el mapeo no se puede leer --formato viejo, JSON roto-- se piden los cuatro campos sin
+   * <b>Qué cambió el 2026-09-16.</b> Antes el mapeo sólo decidía cuáles de cuatro campos fijos
+   * eran obligatorios; ahora decide también **cuáles hay**. Un campo declarado en el mapeo y
+   * ausente de esta pantalla era un `"obligatorio": true` decorativo: no se mostraba, no se
+   * validaba y no se podía exigir. Medido con `lote` de INFONET.
+   *
+   * Los conocidos van primero, en su orden de lectura; los propios del proveedor se agregan
+   * después, en el orden en que el mapeo los declara.
+   *
+   * Si el mapeo no se puede leer --formato viejo, JSON roto-- se piden los conocidos sin
    * obligatorios. Es preferible a no ofrecer nada: la carga a mano es la salida de emergencia y no
    * puede depender de que la configuración esté impecable.
    */
@@ -311,13 +371,66 @@ export class CargaManualCuponDialogComponent implements OnInit {
     } catch {
       mapeo = null;
     }
-    if (!mapeo) return CAMPOS.map((c) => ({ ...c }));
+    if (!mapeo) return CAMPOS_CONOCIDOS.map((c) => ({ ...c }));
 
-    return CAMPOS.map((c) => ({
-      ...c,
-      // `monto` en el mapeo es el mismo dato que `montoEscaneado` en la venta.
-      obligatorio: mapeo[c.clave === 'montoEscaneado' ? 'monto' : c.clave]?.obligatorio === true,
-    }));
+    const declarado = (clave: string) => mapeo[claveDeMapeo(clave)];
+
+    // Los conocidos que este formato declara, y SOLO esos. `identificadorTransaccion` no es una
+    // excepción: es la referencia propia del proveedor --el EndToEndId de Pix-- y los formatos que
+    // no la imprimen (Infonet, Dinelco, Stone, BXX, PlugPay) no tienen por qué mostrar una casilla
+    // que nadie va a llenar. Dibujarla igual era ruido en la pantalla que existe para ir rápido.
+    const conocidos = CAMPOS_CONOCIDOS
+      .filter((c) => declarado(c.clave) != null)
+      .map((c) => ({ ...c, obligatorio: declarado(c.clave)?.obligatorio === true }));
+
+    // Los propios del proveedor: todo lo que el mapeo declara y el modelo no conoce por nombre.
+    const conocidas = CAMPOS_CONOCIDOS.map((c) => claveDeMapeo(c.clave));
+    const propios: CampoManual[] = Object.keys(mapeo)
+      .filter((k) => !conocidas.includes(k) && !NO_SE_TIPEAN.includes(k))
+      .map((k) => ({
+        clave: k,
+        etiqueta: etiquetaDe(k),
+        obligatorio: mapeo[k]?.obligatorio === true,
+        // El teclado numérico sale del `tipo` que el formato declara, no de adivinar por el valor:
+        // es la misma declaración con la que el filial valida la lectura.
+        numerico: String(mapeo[k]?.tipo || '').toUpperCase() === 'NUMERO',
+        claveOcr: k,
+      }));
+
+    return [...conocidos, ...propios];
+  }
+
+  /**
+   * Lo que va a `venta_tarjeta.datos_extra`: lo que ya venía del OCR, más los campos del
+   * formulario que no tienen lugar propio en el input.
+   *
+   * <b>Por qué se recalcula y no se reenvía tal cual.</b> `data.datosExtra` es lo que el extractor
+   * mandó al cajón; los campos mapeados ahora llegan como campos de verdad, editables, así que si
+   * el cajero corrigió el `lote` hay que guardar lo corregido y no lo leído. Reenviar el original
+   * descartaría la corrección en silencio, que es el modo de falla que esta pantalla existe para
+   * evitar.
+   */
+  private datosExtraAGuardar(): string | undefined {
+    let extra: { [k: string]: any } = {};
+    try {
+      extra = this.data?.datosExtra ? JSON.parse(this.data.datosExtra) : {};
+    } catch {
+      extra = {};
+    }
+
+    this.campos
+      .filter((c) => !CON_LUGAR_PROPIO.includes(c.clave))
+      .forEach((c) => {
+        const valor = limpiar(this.formGroup.get(c.clave)?.value);
+        if (valor !== undefined) extra[c.clave] = valor;
+      });
+
+    // La fecha no se tipea pero sí se guarda: es el único registro de CUÁNDO se hizo la operación
+    // en el aparato, distinto de cuándo se registró el cobro.
+    const fecha = this.data?.valores?.fecha;
+    if (fecha != null && fecha !== '') extra['fecha'] = String(fecha);
+
+    return Object.keys(extra).length ? JSON.stringify(extra) : undefined;
   }
 
   onGuardar(): void {
@@ -340,7 +453,11 @@ export class CargaManualCuponDialogComponent implements OnInit {
         // de una captura que quedó por el camino.
         capturaToken: this.data.capturaToken,
         origen: this.data.origen || 'MANUAL',
-        datosExtra: this.data.datosExtra,
+        datosExtra: this.datosExtraAGuardar(),
+        // La fecha del cupón, para que `cuponVencido` tenga con qué comparar. Por este camino
+        // llegaba siempre `undefined` y el control de 24 horas no podía dispararse nunca: andaba
+        // sólo para cupones con QR, que es justo donde menos falta hace.
+        fecha: aFecha(this.data?.valores?.fecha),
         manual: this.data.origen !== 'OCR',
       });
       return;
@@ -365,8 +482,8 @@ export class CargaManualCuponDialogComponent implements OnInit {
         origen: this.data.origen || 'MANUAL',
         // La foto queda atada a la venta: es lo que impide que la purga se lleve la evidencia.
         capturaToken: this.data.capturaToken,
-        // Los campos propios del proveedor. No se muestran, pero se guardan.
-        datosExtra: this.data.datosExtra,
+        // Los campos que no tienen lugar propio en el input, ya con las correcciones del cajero.
+        datosExtra: this.datosExtraAGuardar(),
       })
       .pipe(untilDestroyed(this))
       .subscribe({
@@ -398,6 +515,28 @@ export class CargaManualCuponDialogComponent implements OnInit {
 function limpiar(v: any): string {
   const s = v == null ? '' : String(v).trim();
   return s === '' ? undefined : s;
+}
+
+/**
+ * La fecha que el extractor normalizó a ISO local (`2026-09-02T22:51:34`).
+ *
+ * Se construye componente a componente y NO con `new Date(string)`: el parseo de strings varía
+ * entre motores y una fecha sin zona puede interpretarse como UTC, llegando corrida tres horas.
+ * Es el mismo criterio que `qr-pos-parser.ts` aplica al cupón con QR.
+ *
+ * Devuelve `undefined` ante cualquier cosa que no sea esa forma exacta --el extractor devuelve el
+ * valor crudo cuando no pudo normalizarlo-- y ahí el control de antigüedad simplemente no corre,
+ * que es como venía funcionando.
+ */
+function aFecha(v: any): Date | undefined {
+  if (v == null) return undefined;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(v).trim());
+  if (!m) return undefined;
+  const [anio, mes, dia, hora, minuto] = [+m[1], +m[2], +m[3], +m[4], +m[5]];
+  const d = new Date(anio, mes - 1, dia, hora, minuto, m[6] ? +m[6] : 0, 0);
+  // Rebota el 31 de febrero: Date lo desborda al mes siguiente en silencio.
+  if (d.getFullYear() !== anio || d.getMonth() !== mes - 1 || d.getDate() !== dia) return undefined;
+  return d;
 }
 
 /** Acepta coma o punto como decimal: el cajero tipea lo que ve en el papel. */

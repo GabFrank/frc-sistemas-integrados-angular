@@ -38,6 +38,9 @@
 
   .campo-bueno { border-left-color: #4caf50; }
   .campo-dudoso { border-left-color: #ffb300; }
+  // Ni verde ni ámbar: no hay lectura que calificar. Gris tenue, que dice "acá falta algo" sin
+  // competir con el ámbar, que es el que pide una decisión sobre algo ya leído.
+  .campo-no-leido { border-left-color: rgba(255, 255, 255, 0.28); }
 
   .campo-input { width: 100%; }
 

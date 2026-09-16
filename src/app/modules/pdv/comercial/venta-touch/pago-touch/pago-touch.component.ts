@@ -859,7 +859,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       avisos.push(`el cupón dice ${datosCupon.monto.toLocaleString('es-PY')} y se cobró ${valorCobrado.toLocaleString('es-PY')}`);
     }
     if (cuponVencido(datosCupon.fecha)) {
-      avisos.push(`tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
+      // "el cupón" explícito: el mensaje arranca con "Este cobro es de X en Y, pero ..." y sin
+      // sujeto se lee como que el COBRO tiene 24 horas. El otro aviso de la lista ya nombra al
+      // cupón ("el cupón dice X y se cobró Y"), así que los dos quedan parejos.
+      avisos.push(`el cupón tiene más de ${HORAS_ANTIGUEDAD_MAXIMA} horas`);
     }
 
     // Una diferencia se CONFIRMA, no se avisa. Es lo que ya hace el completar desde la
