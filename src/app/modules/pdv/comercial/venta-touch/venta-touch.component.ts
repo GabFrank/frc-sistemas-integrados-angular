@@ -395,13 +395,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.container.nativeElement.addEventListener("keydown", (e) => {
       if (!this.isDialogOpen) {
         switch (e.key) {
+          // Los guards miran el carrito activo (PDV 1, PDV 2 o delivery), igual que los botones.
           case "F12":
-            if (this.itemList.length > 0) {
+            if (this.selectedItemList?.length > 0) {
               this.onPagoClick();
             }
             break;
           case "F11":
-            if (this.itemList.length > 0 && !this.disableCobroRapido) {
+            if (
+              this.selectedItemList?.length > 0 &&
+              !this.disableCobroRapido &&
+              !this.isDelivery
+            ) {
               this.onTicketClick(true);
             }
             break;
@@ -1004,6 +1009,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onPagoClick() {
     if (this.modoConsulta) return;
+    // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
+    // marcarlo igual dejaba todos los atajos de teclado muertos.
+    if (!(this.selectedItemList?.length > 0)) return;
     this.isDialogOpen = true;
     this.mostrarPrecios = false;
     if (this.selectedItemList?.length > 0) {
