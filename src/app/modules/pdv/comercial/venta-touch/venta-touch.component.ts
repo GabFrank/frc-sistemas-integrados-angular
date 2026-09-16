@@ -1149,7 +1149,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           if (!vt?.id) return;
           const pago = tarjetaPagos[index];
           const datos = pago.datosCupon;
-          if (!datos) return; // pospuesto: queda PENDIENTE, el cierre de caja lo va a reclamar
+          if (!datos) {
+            // Pospuesto: queda PENDIENTE y el cierre de caja lo va a reclamar. La sena es lo que
+            // hace que ese reclamo sea resoluble: sin papel, dos cobros del mismo monto a la misma
+            // hora son indistinguibles en la pantalla de conciliacion.
+            this.imprimirSenaCupon(vt.id, pago, ventaId, sucursalIdQr, cajaIdQr);
+            return;
+          }
 
           this.ventaTarjetaService.onCompletar({
             id: vt.id,
@@ -1181,6 +1187,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               // El cupón ya se leyó bien en pago-touch; si esto falla es un problema del
               // lado del servidor (por ejemplo, alguien más ya la completó). El registro
               // queda PENDIENTE — no se pierde el cobro, solo el registro.
+              // Termina igual de pendiente que el pospuesto, asi que necesita el mismo papel: es
+              // el caso donde MENOS lo espera el cajero, que ya vio el cupon leido en pantalla.
+              this.imprimirSenaCupon(vt.id, pago, ventaId, sucursalIdQr, cajaIdQr);
               this.notificacionSnackbar.notification$.next({
                 color: NotificacionColor.warn,
                 texto: `No se pudo registrar la venta con tarjeta${pago.terminalDescripcion ? ' de ' + pago.terminalDescripcion : ''}: ${mensajeDeError(err, 'error desconocido')}.`,
@@ -1190,7 +1199,63 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           });
         });
       },
-      error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
+      error: err => {
+        // Aca NO se creo ninguna fila, asi que no hay `ventaTarjetaId` y no hay seña posible: un
+        // papel sin ese numero no sirve para conciliar nada. La unica salida es avisar en pantalla,
+        // porque este es el unico caso donde el cobro con tarjeta queda SIN registro de ningun tipo
+        // --ni siquiera PENDIENTE-- y el cierre de caja no lo va a reclamar.
+        console.error('[VentaTarjeta] Error al crear registros pendientes:', err);
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.danger,
+          texto: 'La venta se guardó, pero NO se registró el cobro con tarjeta. Anotá el cupón y '
+            + 'registralo a mano desde el cierre de caja.',
+          duracion: 12,
+        });
+      }
+    });
+  }
+
+  /**
+   * Imprime la seña de un cobro con tarjeta que quedó sin cupón.
+   *
+   * Nunca bloquea ni interrumpe: la venta ya se guardó y el cobro ya se cobró. Si el papel no sale,
+   * lo único que cambia es que ese cobro hay que buscarlo a mano al conciliar, y eso se avisa.
+   */
+  private imprimirSenaCupon(
+    ventaTarjetaId: number,
+    pago: TarjetaPago,
+    ventaId: number,
+    sucursalId: number,
+    cajaId: number,
+  ): void {
+    this.ventaTarjetaService.onImprimirSena({
+      ventaId,
+      ventaTarjetaId,
+      sucursalId,
+      cajaId,
+      cajero: this.mainService.usuarioActual?.nickname,
+      terminal: pago.terminalDescripcion,
+      monto: pago.monto,
+      monedaSimbolo: pago.monedaSimbolo,
+      decimales: pago.monedaDecimales,
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: (impreso) => {
+        if (impreso) return;
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: 'No se pudo imprimir el comprobante del cobro con tarjeta (venta ' + ventaId
+            + ', cobro ' + ventaTarjetaId + '). Anotá esos números en el cupón.',
+          duracion: 10,
+        });
+      },
+      error: () => {
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: 'No se pudo imprimir el comprobante del cobro con tarjeta (venta ' + ventaId
+            + ', cobro ' + ventaTarjetaId + '). Anotá esos números en el cupón.',
+          duracion: 10,
+        });
+      },
     });
   }
 

@@ -14,6 +14,8 @@ import { VentaTarjeta } from '../venta-tarjeta.model';
 import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
+import { descodificarQr } from '../../../../shared/qr-code/qr-code.component';
+import { debounceTime, filter, map } from 'rxjs/operators';
 
 export interface VentasTarjetaCajaDialogData {
   cajaId: number;
@@ -70,6 +72,18 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    */
   usuarioIdControl = new FormControl(null);
 
+  /**
+   * El QR de la seña impresa. Es un input de LECTOR, no una camara.
+   *
+   * Existe porque la tabla es ambigua por naturaleza: dos cobros del mismo monto, a la misma hora,
+   * en la misma terminal, son indistinguibles a ojo. El papel que el cajero grapo al cupon lleva el
+   * `ventaTarjetaId`, que es el unico dato que los separa.
+   */
+  qrControl = new FormControl(null);
+  /** Lo que se le dice al cajero cuando el QR no sirve. null = nada que avisar. */
+  avisoQr: string = null;
+  buscandoQr = false;
+
   estados = ['PENDIENTE', 'COMPLETADO', 'NO_COMPLETADO', 'CANCELADO'];
   terminales: TerminalPos[] = [];
   monedas: Moneda[] = [];
@@ -114,6 +128,139 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     this.terminalPosService.onGetAll(null, null, false).pipe(untilDestroyed(this)).subscribe({
       next: (res) => (this.terminales = res || []),
       error: () => (this.terminales = []),
+    });
+
+    // El lector dispara solo: manda la cadena y un Enter. El debounce es para que no salte a mitad
+    // de la cadena, y el largo minimo evita consultar por cualquier tecla suelta.
+    //
+    // ⚠️ SIN `distinctUntilChanged`, a diferencia de `scan-terminal-pos-dialog`. Alla el dialogo se
+    // cierra al acertar, asi que nunca se vuelve a escanear lo mismo. Aca el dialogo QUEDA ABIERTO:
+    // si el cajero escanea una seña, cancela el dialogo de completar y vuelve a escanear la misma,
+    // el operador la descartaria por repetida --el reset del input va con `emitEvent: false`, asi
+    // que el ultimo valor visto por el stream sigue siendo el anterior-- y el lector quedaria
+    // muerto sin ningun aviso. La guarda contra consultas dobles es `buscandoQr`, no esta.
+    this.qrControl.valueChanges
+      .pipe(
+        map((valor: string) => (valor || '').trim()),
+        filter((valor: string) => valor.length > 20),
+        debounceTime(350),
+        untilDestroyed(this)
+      )
+      .subscribe(() => this.onQrEscaneado());
+  }
+
+  /**
+   * Un QR de seña escaneado. Decide a qué fila corresponde, o por qué no corresponde a ninguna.
+   *
+   * El orden de las guardas importa: primero las que se resuelven con el QR en la mano (¿es una
+   * seña? ¿de esta sucursal? ¿de esta caja?) y recién después la consulta al servidor. Así un
+   * papel de otra caja se rechaza sin ir a buscar nada.
+   */
+  onQrEscaneado(): void {
+    // El lector manda CR al final: sin esta guarda, el Enter dispara una segunda vuelta.
+    if (this.buscandoQr) return;
+    const texto = (this.qrControl.value || '').trim();
+    if (!texto) return;
+
+    this.avisoQr = null;
+    const qr: any = descodificarQr(texto);
+
+    if (!texto.startsWith('frc-') || String(qr?.tipoEntidad) !== String(TipoEntidad.VENTA_TARJETA)) {
+      this.rechazarQr('Ese código no es la seña de un cobro con tarjeta.');
+      return;
+    }
+
+    // `data` es posicional: cajaId|monto|ventaTarjetaId. Lo arma `onImprimirSena`.
+    const partes = String(qr.data || '').split('|');
+    const cajaIdQr = Number(partes[0]);
+    const ventaTarjetaId = Number(partes[2]);
+
+    if (!ventaTarjetaId) {
+      this.rechazarQr('La seña no trae el número de cobro. Buscalo a mano en la lista.');
+      return;
+    }
+
+    if (Number(qr.sucursalId) !== Number(this.mainService.sucursalActual?.id)) {
+      this.rechazarQr('Esa seña es de otra sucursal, no de ésta.');
+      return;
+    }
+
+    // Tambien cubre la seña vieja: una de otro dia apunta a una caja que ya se cerro, asi que su
+    // numero de caja no es el de esta. Decirlo con el numero puesto le dice al cajero que paso.
+    if (cajaIdQr && cajaIdQr !== Number(this.data.cajaId)) {
+      this.rechazarQr('Esa seña es de la caja ' + cajaIdQr + ', no de esta caja (' + this.data.cajaId + ').');
+      return;
+    }
+
+    this.buscarFilaYAbrir(ventaTarjetaId);
+  }
+
+  /**
+   * Trae la fila del cobro y la abre si todavia se puede conciliar.
+   *
+   * Se consulta al SERVIDOR cuando no esta en pantalla: la tabla trae de a 15 y el filtro de cajero
+   * arranca puesto, asi que la fila que el QR nombra puede existir perfectamente y no estar en la
+   * pagina cargada. Buscarla solo en memoria diria "no existe" sobre un cobro que si existe.
+   */
+  private buscarFilaYAbrir(ventaTarjetaId: number): void {
+    const enPantalla = this.dataSource.data.find((f) => Number(f.id) === ventaTarjetaId);
+    if (enPantalla) {
+      this.abrirSiSePuedeConciliar(enPantalla);
+      return;
+    }
+
+    this.buscandoQr = true;
+    this.ventaTarjetaService
+      .onGetCompletaPorId(ventaTarjetaId, Number(this.mainService.sucursalActual?.id))
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (fila) => {
+          this.buscandoQr = false;
+          if (!fila?.id) {
+            this.rechazarQr('No se encontró el cobro ' + ventaTarjetaId + ' en esta sucursal.');
+            return;
+          }
+          // El QR podia no traer la caja (senas viejas, o un cobro guardado sin caja). Con la fila
+          // en la mano se verifica igual: esta pantalla concilia UNA caja.
+          if (fila.cajaId != null && Number(fila.cajaId) !== Number(this.data.cajaId)) {
+            this.rechazarQr('El cobro ' + ventaTarjetaId + ' es de la caja ' + fila.cajaId + ', no de esta.');
+            return;
+          }
+          this.abrirSiSePuedeConciliar(this.aFilaConMoneda(fila));
+        },
+        error: () => {
+          this.buscandoQr = false;
+          this.rechazarQr('No se pudo consultar el cobro ' + ventaTarjetaId + '. Buscalo a mano en la lista.');
+        },
+      });
+  }
+
+  /**
+   * Mismo gate que el boton manual de la fila (`*ngIf="item.estado === 'PENDIENTE'"`).
+   *
+   * Sin esto, escanear la seña de un cobro ya conciliado reabriria su registro — justo lo que el
+   * boton de la tabla no deja hacer.
+   */
+  private abrirSiSePuedeConciliar(fila: VentaTarjeta): void {
+    if (fila.estado !== 'PENDIENTE') {
+      this.rechazarQr('El cobro ' + fila.id + ' ya está ' + fila.estado + '. No hay nada que conciliar.');
+      return;
+    }
+    this.limpiarQr();
+    this.onCompletar(fila);
+  }
+
+  private rechazarQr(motivo: string): void {
+    this.avisoQr = motivo;
+    this.limpiarQr();
+  }
+
+  /** Vacia el input y le devuelve el foco: el cajero escanea el siguiente sin tocar el mouse. */
+  private limpiarQr(): void {
+    this.qrControl.reset(null, { emitEvent: false });
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('app-ventas-tarjeta-caja-dialog input.input-qr');
+      if (input) { input.focus(); }
     });
   }
 

@@ -7,6 +7,26 @@
   style="height: 100%"
 >
   <div filtros>
+    <!-- El escaneo va ARRIBA de los filtros y separado: no es un filtro mas, es el camino rapido.
+         El cajero llega con el cupon y la seña grapados en la mano; escanea y cae en la fila. Los
+         filtros de abajo son para cuando ese papel no esta. -->
+    <div class="banda-qr" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr">
+        <mat-label>Escaneá la seña del cobro</mat-label>
+        <input matInput class="input-qr" [formControl]="qrControl" autocomplete="off"
+               placeholder="Apuntá el lector al QR del comprobante"
+               (keyup.enter)="onQrEscaneado()" />
+      </mat-form-field>
+      <span class="ayuda-qr" *ngIf="!avisoQr && !buscandoQr">
+        Es el papelito que se imprime con la venta cuando el cupón queda pendiente.
+      </span>
+      <span class="ayuda-qr" *ngIf="buscandoQr">Buscando el cobro…</span>
+      <span class="aviso-qr" *ngIf="avisoQr">
+        <mat-icon>report_problem</mat-icon> {{ avisoQr }}
+      </span>
+    </div>
+
     <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
       <mat-form-field appearance="outline" fxFlex="14%">
         <mat-label>Estado</mat-label>

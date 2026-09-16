@@ -222,3 +222,47 @@ export const filtrarVentasTarjetaPorCajaQuery = gql`
     }
   }
 `;
+
+/**
+ * Imprime la seña de un cobro con tarjeta que quedó sin cupón.
+ *
+ * Va contra el FILIAL, como el ticket de la venta: la impresora está ahí y `saveVenta` ya manda por
+ * este mismo camino su `printerName` y su `local`.
+ */
+export const imprimirSenaCuponMutation = gql`
+  mutation imprimirSenaCupon($input: SenaCuponInput!, $printerName: String, $local: String) {
+    data: imprimirSenaCupon(input: $input, printerName: $printerName, local: $local)
+  }
+`;
+
+/**
+ * Un cobro con tarjeta completo, por id. Contra el FILIAL.
+ *
+ * Separado de `ventaTarjetaPorIdQuery` a propósito: esa trae sólo `id` y `estado` porque la usa un
+ * poller que pregunta cada pocos segundos si el cupón ya llegó, y engordarla haría que ese poller
+ * arrastre la terminal y su formato en cada vuelta. Ésta es para el caso contrario: una sola
+ * consulta que tiene que devolver todo lo que el diálogo de completar necesita.
+ *
+ * La usa el escaneo de la seña: el QR puede apuntar a una fila que no está en la página cargada
+ * --la tabla trae de a 15 y el filtro de cajero arranca puesto-- y buscarla sólo en memoria
+ * diría "no existe" sobre un cobro que sí existe.
+ */
+export const ventaTarjetaCompletaPorIdQuery = gql`
+  query ventaTarjetaPorId($id: ID!, $sucId: ID!) {
+    data: ventaTarjetaPorId(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      ventaId
+      cajaId
+      terminalPos { id codigo descripcion cargaManualPermitida proveedorServicio { id } moneda { id simbolo decimales } formatoTerminalPos { id nombre tipo mapeo } }
+      moneda { id simbolo decimales }
+      codigoAutorizacion
+      numeroBoleta
+      monto
+      montoEscaneado
+      estado
+      creadoEn
+      usuario { id nickname }
+    }
+  }
+`;

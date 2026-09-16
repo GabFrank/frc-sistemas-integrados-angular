@@ -13,6 +13,11 @@ import { MarcarVentasTarjetaNoCompletadasGQL } from './graphql/marcarVentasTarje
 import { VentaTarjetaPorIdGQL } from './graphql/ventaTarjetaPorId';
 import { CompletarVentaTarjetaGQL } from './graphql/completarVentaTarjeta';
 import { CobroDetalleDeVenta, CobrosTarjetaDeVentaGQL } from './graphql/cobrosTarjetaDeVenta';
+import { ImprimirSenaCuponGQL } from './graphql/imprimirSenaCupon';
+import { VentaTarjetaCompletaPorIdGQL } from './graphql/ventaTarjetaCompletaPorId';
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
+import { codificarQr } from '../../../shared/qr-code/qr-code.component';
+import { TipoEntidad } from '../../../generics/tipo-entidad.enum';
 import { PageInfo } from '../../../app.component';
 import { VentaTarjeta } from './venta-tarjeta.model';
 import { MainService } from '../../../main.service';
@@ -71,6 +76,25 @@ export interface VentaTarjetaInput {
   usuarioId?: number;
 }
 
+/**
+ * Lo que hace falta para imprimir la seña de un cobro con tarjeta que quedó sin cupón.
+ *
+ * Son los valores planos que tiene a mano quien cierra la venta. A propósito no recibe un
+ * `VentaTarjeta`: la mutation `saveVentaTarjeta` sólo devuelve `id, sucursalId, estado, monto,
+ * creadoEn`, así que el objeto con el que se arma la seña NO tiene ni la venta ni la caja.
+ */
+export interface SenaCuponData {
+  ventaId: number;
+  ventaTarjetaId: number;
+  sucursalId: number;
+  cajaId?: number;
+  cajero?: string;
+  terminal?: string;
+  monto?: number;
+  monedaSimbolo?: string;
+  decimales?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VentaTarjetaService {
 
@@ -87,6 +111,9 @@ export class VentaTarjetaService {
     private ventaTarjetaPorIdGQL: VentaTarjetaPorIdGQL,
     private completarVentaTarjetaGQL: CompletarVentaTarjetaGQL,
     private cobrosTarjetaDeVentaGQL: CobrosTarjetaDeVentaGQL,
+    private imprimirSenaCuponGQL: ImprimirSenaCuponGQL,
+    private ventaTarjetaCompletaPorIdGQL: VentaTarjetaCompletaPorIdGQL,
+    private configService: ConfiguracionService,
     private mainService: MainService,
     private reporteService: ReporteService,
     private tabService: TabService
@@ -191,6 +218,23 @@ export class VentaTarjetaService {
     );
   }
 
+  /**
+   * El cobro completo, por id. Contra el FILIAL.
+   *
+   * Distinta de `onGetEstadoPorId`, que trae sólo el estado para un poller. Ésta trae todo lo que el
+   * diálogo de completar necesita, y existe para el escaneo de la seña: el QR puede apuntar a una
+   * fila que no está en la página cargada de la tabla.
+   */
+  onGetCompletaPorId(id: number, sucId: number): Observable<VentaTarjeta> {
+    return this.genericService.onCustomQuery(
+      this.ventaTarjetaCompletaPorIdGQL,
+      { id, sucId },
+      false,
+      null,
+      true
+    );
+  }
+
   onCancelarPorVentaId(ventaId: number, sucId: number): Observable<boolean> {
     return this.genericService.onCustomMutation(
       this.cancelarVentaTarjetaGQL,
@@ -198,6 +242,51 @@ export class VentaTarjetaService {
       false,
       true
     );
+  }
+
+  /**
+   * Imprime la seña de un cobro con tarjeta que quedó sin cupón.
+   *
+   * Va contra el FILIAL, por la misma impresora y el mismo camino que el ticket de la venta
+   * (`venta.service.onSaveVenta` manda este mismo `printerName` y este mismo `local`). No hay un
+   * segundo mecanismo de impresión.
+   *
+   * El QR se arma **acá**, no en el backend: el contrato de esa cadena vive en `codificarQr()` y lo
+   * comparte el mobile. Y se arma **desde estos valores**, no con
+   * `construirQrPayloadVentaTarjeta()`: esa función lee `item.venta?.id` e `item.caja?.id`, que en
+   * este flujo no existen —el filial devuelve los escalares y `saveVentaTarjeta` ni siquiera los
+   * devuelve— así que produciría un QR con `idOrigen: undefined` sin lanzar ningún error.
+   *
+   * Nunca lanza: devuelve false si el papel no salió. Para cuando esto corre, la venta ya se guardó.
+   */
+  onImprimirSena(datos: SenaCuponData): Observable<boolean> {
+    // `data` es posicional: cajaId|monto|ventaTarjetaId. El mobile hace split('|') y lee por indice.
+    // El separador interno es '|' porque codificarQr une los campos con '-'.
+    const qr = codificarQr({
+      sucursalId: datos.sucursalId,
+      tipoEntidad: TipoEntidad.VENTA_TARJETA,
+      idOrigen: datos.ventaId,
+      idCentral: datos.ventaId,
+      componentToOpen: 'RegistroVentaTarjetaComponent',
+      data: (datos.cajaId ?? '') + '|' + datos.monto + '|' + datos.ventaTarjetaId,
+      timestamp: Date.now(),
+    });
+
+    return this.genericService.onCustomMutation(this.imprimirSenaCuponGQL, {
+      input: {
+        ventaId: datos.ventaId,
+        ventaTarjetaId: datos.ventaTarjetaId,
+        cajaId: datos.cajaId,
+        cajero: datos.cajero,
+        terminal: datos.terminal,
+        monto: datos.monto,
+        monedaSimbolo: datos.monedaSimbolo,
+        decimales: datos.decimales,
+        qr,
+      },
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
+    }, false);
   }
 
   onMarcarNoCompletadas(cajaId: number, sucId: number): Observable<number> {

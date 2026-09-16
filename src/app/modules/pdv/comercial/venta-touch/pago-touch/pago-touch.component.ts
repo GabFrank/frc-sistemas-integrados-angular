@@ -51,6 +51,15 @@ export interface TarjetaPago {
   /** Moneda del COBRO. Sin ella, el monto guardado en venta_tarjeta no tiene unidad. */
   monedaId?: number | null;
   terminalDescripcion?: string;
+  /**
+   * Simbolo y decimales de la moneda del cobro, para la sena impresa.
+   *
+   * Viajan resueltos desde aca porque aca esta el objeto `Moneda` completo del cobro. `venta-touch`
+   * solo recibe el `monedaId`, y buscarlo alla contra su lista de monedas seria repetir una
+   * resolucion que ya esta hecha --y que falla silenciosa si la lista no cargo.
+   */
+  monedaSimbolo?: string;
+  monedaDecimales?: number;
   /** Datos del cupón ya leídos (en memoria, antes de que la venta se guarde). undefined = pospuesto. */
   datosCupon?: DatosCupon;
 }
@@ -690,6 +699,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             proveedorServicioId: cd.terminalPos?.proveedorServicio?.id ?? null,
             monto: cd.valor,
             monedaId: cd.moneda?.id ?? null,
+            monedaSimbolo: cd.moneda?.simbolo ?? undefined,
+            monedaDecimales: cd.moneda?.decimales ?? undefined,
             terminalDescripcion: cd.terminalPos
               ? [cd.terminalPos.descripcion, cd.terminalPos.codigo].filter(Boolean).join(' - ')
               : undefined,
