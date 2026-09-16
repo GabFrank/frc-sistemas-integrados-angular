@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { PageInfo } from '../../../app.component';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { AllTerminalPosGQL } from './graphql/allTerminalPos';
+import { AllTerminalPosFilialGQL } from './graphql/allTerminalPosFilial';
 import { ConfigurarTerminalPosGQL } from './graphql/configurarTerminalPos';
 import { DesasignarFormatoTerminalPosGQL } from './graphql/desasignarFormatoTerminalPos';
 import { CountTerminalPosGQL } from './graphql/countTerminalPos';
@@ -30,7 +31,8 @@ export class TerminalPosService {
     private desasignarFormatoGQL: DesasignarFormatoTerminalPosGQL,
     private configurarTerminalPosGQL: ConfigurarTerminalPosGQL,
     private porSerieGQL: TerminalesPosPorSerieGQL,
-    private filterFilialGQL: FilterTerminalPosFilialGQL
+    private filterFilialGQL: FilterTerminalPosFilialGQL,
+    private getAllFilialGQL: AllTerminalPosFilialGQL
   ) { }
 
   /**
@@ -48,8 +50,15 @@ export class TerminalPosService {
     return this.genericCrud.onCustomQuery(this.countTerminalPosGQL, null, servidor);
   }
 
+  /**
+   * ⚠️ La query cambia segun el backend, igual que en `onFilter`: los dos tipos `TerminalPos` no
+   * son iguales y GraphQL valida el documento ENTERO, asi que pedirle al filial un campo que no
+   * declara rechaza la consulta completa. Es lo que dejaba sin terminales al selector del dialogo
+   * de ventas con tarjeta de la caja.
+   */
   onGetAll(page?, size?, servidor: boolean = true): Observable<any> {
-    return this.genericCrud.onGetAll(this.getAllTerminalPos, page, size, servidor);
+    return this.genericCrud.onGetAll(
+      servidor ? this.getAllTerminalPos : this.getAllFilialGQL, page, size, servidor);
   }
 
   onSearch(texto, servidor: boolean = true): Observable<any> {

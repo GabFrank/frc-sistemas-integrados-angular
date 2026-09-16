@@ -42,7 +42,10 @@ export interface VentasTarjetaCajaDialogData {
 })
 export class VentasTarjetaCajaDialogComponent implements OnInit {
   dataSource = new MatTableDataSource<VentaTarjeta>([]);
-  displayedColumns = ['id', 'terminal', 'monto', 'escaneado', 'estado', 'acciones'];
+  // `creadoEn` va segundo y no al final: una caja puede quedar abierta varios dias --la 654 de
+  // prueba lleva semanas-- asi que "de cuando es este cobro" es lo primero que se pregunta al
+  // mirar la lista, no un dato de cierre.
+  displayedColumns = ['id', 'creadoEn', 'terminal', 'monto', 'escaneado', 'estado', 'acciones'];
 
   estadoControl = new FormControl(null);
   terminalPosIdControl = new FormControl(null);

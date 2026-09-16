@@ -82,6 +82,22 @@ export const terminalesPosQuery = gql`
   }
 `;
 
+/**
+ * La misma lista, con la forma que el FILIAL puede servir. La usa el PDV.
+ *
+ * Sin esto, el diálogo de ventas con tarjeta de la caja le pedía `sucursal` al filial --que sólo
+ * declara `sucursalId`-- y GraphQL rechazaba la consulta ENTERA: el selector de terminal quedaba
+ * vacío y saltaba `Field 'sucursal' in type 'TerminalPos' is undefined`. Mismo criterio que
+ * `filterTerminalPosFilialQuery`; lo que faltaba era aplicarlo también acá.
+ */
+export const terminalesPosFilialQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: terminalesPos(page: $page, size: $size) {
+      ${terminalPosFieldsFilial}
+    }
+  }
+`;
+
 export const terminalPosQuery = gql`
   query ($id: ID!) {
     data: terminalPos(id: $id) {

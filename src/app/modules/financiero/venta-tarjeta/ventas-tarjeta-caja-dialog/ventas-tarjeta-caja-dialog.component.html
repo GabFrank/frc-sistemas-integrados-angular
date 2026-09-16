@@ -53,28 +53,38 @@
       <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
 
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef style="width: 8%">ID</th>
-          <td mat-cell *matCellDef="let item" style="width: 8%">{{ item.id }}</td>
+          <th mat-header-cell *matHeaderCellDef style="width: 6%">ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 6%">{{ item.id }}</td>
+        </ng-container>
+
+        <!-- Mismo formato que el listado del sidebar: dos pantallas que muestran lo mismo no
+             pueden fechar distinto. El anho va completo porque una caja puede quedar abierta
+             varios dias y "12/09" no alcanza para saber cual de los dos. -->
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef style="width: 15%">Fecha</th>
+          <td mat-cell *matCellDef="let item" style="width: 15%">
+            {{ item.creadoEn | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="terminal">
-          <th mat-header-cell *matHeaderCellDef style="width: 28%">Terminal</th>
-          <td mat-cell *matCellDef="let item" style="width: 28%">
+          <th mat-header-cell *matHeaderCellDef style="width: 22%">Terminal</th>
+          <td mat-cell *matCellDef="let item" style="width: 22%">
             {{ item.terminalPos?.descripcion }} - {{ item.terminalPos?.codigo }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="monto">
-          <th mat-header-cell *matHeaderCellDef style="width: 18%">Cobrado</th>
-          <td mat-cell *matCellDef="let item" style="width: 18%">
+          <th mat-header-cell *matHeaderCellDef style="width: 15%">Cobrado</th>
+          <td mat-cell *matCellDef="let item" style="width: 15%">
             {{ item.monto | number: item.digitosMoneda }}
             <span class="simbolo">{{ item.simboloMoneda }}</span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="escaneado">
-          <th mat-header-cell *matHeaderCellDef style="width: 18%">Cupón</th>
-          <td mat-cell *matCellDef="let item" style="width: 18%">
+          <th mat-header-cell *matHeaderCellDef style="width: 15%">Cupón</th>
+          <td mat-cell *matCellDef="let item" style="width: 15%">
             <ng-container *ngIf="item.montoEscaneado != null; else sinCupon">
               <span [class.diferencia]="item.montoEscaneado !== item.monto">
                 {{ item.montoEscaneado | number: item.digitosMoneda }}
@@ -86,8 +96,8 @@
         </ng-container>
 
         <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef style="width: 16%">Estado</th>
-          <td mat-cell *matCellDef="let item" style="width: 16%">
+          <th mat-header-cell *matHeaderCellDef style="width: 14%">Estado</th>
+          <td mat-cell *matCellDef="let item" style="width: 14%">
             <span
               class="chip"
               [class.chip-pendiente]="item.estado === 'PENDIENTE'"
@@ -98,8 +108,8 @@
         </ng-container>
 
         <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef style="width: 12%"></th>
-          <td mat-cell *matCellDef="let item" style="width: 12%">
+          <th mat-header-cell *matHeaderCellDef style="width: 13%"></th>
+          <td mat-cell *matCellDef="let item" style="width: 13%">
             <mat-icon
               *ngIf="item.estado === 'PENDIENTE'"
               class="accion-registrar"
