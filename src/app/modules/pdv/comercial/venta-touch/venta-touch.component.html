@@ -10,7 +10,7 @@
     fxLayout="column"
     style="width: 100%; height: 100%; padding: 10px;"
     [style.background-color]="isDelivery ? '#f57c00' : (isAuxiliar ? 'rgb(0, 155, 39)' : '')"
-    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
+    (click)="isDialogOpen || isCargando ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="20%">
       <app-totales
@@ -34,7 +34,7 @@
         [tiposPrecios]="tiposPrecios"
         (dialogEvent)="isDialogOpen = true"
         (addItemEvent)="agregarConLote($event)"
-        [focusEvent]="!isDialogOpen ? buscadorFocusSub.asObservable() : null"
+        [focusEvent]="!isDialogOpen && !isCargando ? buscadorFocusSub.asObservable() : null"
         [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"
         [mostrarPrecios]="mostrarPrecios"
@@ -69,7 +69,7 @@
     fxLayout="column"
     class="acciones-laterales-card"
     style="width: 100%; height: 100%; padding: 10px;"
-    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
+    (click)="isDialogOpen || isCargando ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="85%">
       <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>

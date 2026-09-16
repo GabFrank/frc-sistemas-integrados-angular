@@ -169,6 +169,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cantidadControl = new FormControl();
   modoConsulta = false;
   isDialogOpen = false;
+  // Spinner de carga visible. Separado de isDialogOpen: al ocultarse no debe marcar como
+  // cerrado un diálogo que sigue abierto. Los atajos se bloquean con cualquiera de los dos.
+  isCargando = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
   /**
    * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
@@ -245,7 +248,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .dialogState$()
       .pipe(untilDestroyed(this))
       .subscribe((isOpen) => {
-        this.isDialogOpen = isOpen;
+        this.isCargando = isOpen;
       });
 
     this.startSolicitudesProcesadasPolling();
@@ -393,7 +396,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.container.nativeElement.addEventListener("keydown", (e) => {
-      if (!this.isDialogOpen) {
+      if (!this.isDialogOpen && !this.isCargando) {
         switch (e.key) {
           // Los guards miran el carrito activo (PDV 1, PDV 2 o delivery), igual que los botones.
           case "F12":
@@ -478,15 +481,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.tabService.removeTab(this.tabService.currentIndex);
         } else if (res == "consulta") {
           this.modoConsulta = true;
-          this.isDialogOpen = false;
         } else {
+          // Cada diálogo que se abre desde acá marca el flag; no se resetea al final del else
+          // porque pisaría la selección de caja reabierta.
           if (this.cajaService.selectedCaja?.conteoApertura == null) {
+            this.isDialogOpen = true;
             this.dialogoService
               .confirm(
                 "Atención",
                 "Esta caja no posee conteo inicial. Desea realizar el conteo inicial?"
               )
               .subscribe((dialogRes) => {
+                this.isDialogOpen = false;
                 if (dialogRes) {
                   this.openSelectCajaDialog();
                 } else {
@@ -498,7 +504,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
-          this.isDialogOpen = false;
         }
       });
   }
@@ -553,7 +558,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onGridCardClick(grupo: PdvGrupo) {
-    this.isDialogOpen = true;
     this.mostrarPrecios = false;
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
@@ -561,6 +565,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     pdvGruposProductos.forEach((e) => {
       productos.push(e.producto);
     });
+    // Pegado al open: si lo anterior lanza, el diálogo no abre y el flag no debe quedar en true.
+    this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(SelectProductosDialogComponent, {
         data: {
@@ -1487,6 +1493,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .afterClosed()
       .subscribe((res) => {
+        // Al inicio y no al final: "finalizar" abre el pago, que vuelve a marcar el diálogo
+        // como abierto y lo resetea al cerrarse (#314).
+        this.isDialogOpen = false;
         if (res != null) {
           if (res["delivery"] != null) {
             this.selectedDelivery = new Delivery();
@@ -1536,7 +1545,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.resetForm();
           this.calcularTotales();
         }
-        this.isDialogOpen = false;
       });
   }
 
