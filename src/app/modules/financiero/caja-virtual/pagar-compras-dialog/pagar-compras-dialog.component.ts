@@ -25,6 +25,7 @@ import { Funcionario } from '../../../personas/funcionarios/funcionario.model';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { MotivoValeService } from '../../../rrhh/motivo-vale/motivo-vale.service';
 import { ConceptoRrhh, PagoRrhhConLineas } from './pagar-compras.service';
+import { esTimeoutDeLink } from '../../../../shared/services/timeout-link';
 
 export interface PagarComprasDialogData {
   cajaVirtual: CajaVirtual;
@@ -953,6 +954,8 @@ export class PagarComprasDialogComponent implements OnInit {
       },
       error: err => {
         this.isSaving = false;
+        // Un corte por timeout ya lo avisó el link (con la advertencia de que el pago pudo aplicarse).
+        if (esTimeoutDeLink(err)) return;
         const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al registrar el pago';
         this.notificacion.openWarn(msg, 6);
       }

@@ -1,6 +1,6 @@
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
-import { Observable, OperatorFunction, timeout } from "rxjs";
+import { Observable, OperatorFunction } from "rxjs";
 import { map } from "rxjs/operators";
 import { MainService } from "../main.service";
 import {
@@ -17,6 +17,7 @@ import {
   mensajeErrorTransporte,
 } from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { esTimeoutDeLink } from "../shared/services/timeout-link";
 import { Apollo } from "apollo-angular";
 export interface QueryError {
   graphError?: {
@@ -37,6 +38,11 @@ const RESPUESTA_VACIA = {
   data: null,
   errors: [{ message: "Respuesta vacía del servidor" }],
 };
+
+/** Tiempo máximo de onCustomQuery (reportes, vistas previas pesadas); lo aplica el timeout link. */
+const TIMEOUT_CUSTOM_QUERY_MS = 300000;
+/** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
+const MARGEN_DIALOGO_MS = 5000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -78,7 +84,7 @@ export class GenericCrudService {
 
   onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
     );
@@ -91,7 +97,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -130,9 +135,9 @@ export class GenericCrudService {
     this.isLoading = true;
     // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
     const shouldShowDialog = silentLoad !== true;
-    let { requestId = null, signal = null } =
+    let { requestId = null } =
       shouldShowDialog
-        ? this.cargandoService.openDialog(false, "Buscando...")
+        ? this.cargandoService.openDialog(false, "Buscando...", TIMEOUT_CUSTOM_QUERY_MS + MARGEN_DIALOGO_MS)
         : {};
     return new Observable((obs) => {
       this.apollo.query({
@@ -142,12 +147,12 @@ export class GenericCrudService {
         errorPolicy: 'all',
         context: {
           clientName: servidor == null || servidor ? "servidor" : null,
-          fetchOptions: { signal },
+          // Reportes y vistas previas pesadas: el timeout real lo aplica el link (issue #304).
+          timeoutMs: TIMEOUT_CUSTOM_QUERY_MS,
         },
       })
         .pipe(
           untilDestroyed(this),
-          timeout(300000), // Adjust as per your needs
           this.sinRespuestaVacia()
         )
         .subscribe({
@@ -177,7 +182,7 @@ export class GenericCrudService {
             if (shouldShowDialog) {
               this.cargandoService.closeDialog(requestId);
             }
-            if (errorConf?.networkError?.show == true) {
+            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -196,7 +201,6 @@ export class GenericCrudService {
   onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
-    let signal: AbortSignal | undefined;
     
     if (silentLoad !== true) {
       const result = this.cargandoService.openDialog(
@@ -204,7 +208,6 @@ export class GenericCrudService {
         "Guardando..."
       );
       requestId = result.requestId;
-      signal = result.signal;
     }
     
     return new Observable((obs) => {
@@ -214,7 +217,6 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -257,12 +259,10 @@ export class GenericCrudService {
   ): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
-    let signal: AbortSignal | undefined;
 
     if (cargando == true) {
       const result = this.cargandoService.openDialog(false, "Buscando...");
       requestId = result.requestId;
-      signal = result.signal;
     }
 
     return new Observable((obs) => {
@@ -272,7 +272,6 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -317,7 +316,7 @@ export class GenericCrudService {
     warningText?
   ): Observable<T> {
     this.isLoading = true;
-    let { requestId = null, signal = null } =
+    let { requestId = null } =
       silentLoad != true
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
@@ -330,7 +329,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -360,9 +358,11 @@ export class GenericCrudService {
             }
           },
           (err) => {
-            this.notificacionBar.openWarn(
-              warningText != null ? warningText : "Problema al realizar esta operación"
-            );
+            if (!esTimeoutDeLink(err)) {
+              this.notificacionBar.openWarn(
+                warningText != null ? warningText : "Problema al realizar esta operación"
+              );
+            }
             this.cargandoService.closeDialog(requestId);
           }
         );
@@ -377,7 +377,7 @@ export class GenericCrudService {
     errorConf?: QueryError
   ): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando...",
       duracion
@@ -391,7 +391,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -420,7 +419,7 @@ export class GenericCrudService {
           error: (error) => {
             this.cargandoService.closeDialog(requestId);
             this.isLoading = false;
-            if (errorConf?.networkError?.show === true) {
+            if (errorConf?.networkError?.show === true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -453,7 +452,7 @@ export class GenericCrudService {
       }
     }
 
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Guardando..."
     );
@@ -466,7 +465,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -500,7 +498,7 @@ export class GenericCrudService {
           error: (error) => {
             this.isLoading = false;
             this.cargandoService.closeDialog(requestId);
-            if (errorConf?.networkError?.show == true) {
+            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -543,11 +541,13 @@ export class GenericCrudService {
    * Es un objeto y no un booleano: varios wrappers terminan en `servidor: boolean`, y un `false`
    * suelto caería ahí sin que el compilador lo note.
    */
-  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true, opciones?: { avisarExito?: boolean }): Observable<T> {
+  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true,
+                  opciones?: { avisarExito?: boolean; timeoutMs?: number }): Observable<T> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
-      "Guardando..."
+      "Guardando...",
+      opciones?.timeoutMs != null ? opciones.timeoutMs + MARGEN_DIALOGO_MS : undefined
     );
     return new Observable((obs) => {
       gql
@@ -556,7 +556,7 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
+            timeoutMs: opciones?.timeoutMs,
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -592,7 +592,10 @@ export class GenericCrudService {
             this.cargandoService.closeDialog(requestId);
             // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
             // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
-            this.avisarErrorSinRepetir(gql, mensajeErrorTransporte(error), 3);
+            // Un corte por timeout ya lo avisó el link.
+            if (!esTimeoutDeLink(error)) {
+              this.avisarErrorSinRepetir(gql, mensajeErrorTransporte(error), 3);
+            }
             obs.error(error);
           },
         });
@@ -610,7 +613,7 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(
+        const { requestId } = this.cargandoService.openDialog(
           false,
           "Eliminando..."
         );
@@ -623,7 +626,6 @@ export class GenericCrudService {
               errorPolicy: "all",
               context: {
                 clientName: servidor == null || servidor ? "servidor" : null,
-                fetchOptions: { signal },
               },
             }
           )
@@ -662,7 +664,7 @@ export class GenericCrudService {
           .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(
+            const { requestId } = this.cargandoService.openDialog(
               false,
               "Eliminando..."
             );
@@ -676,7 +678,6 @@ export class GenericCrudService {
                     errorPolicy: "all",
                     context: {
                       clientName: servidor == null || servidor ? "servidor" : null,
-                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -730,7 +731,7 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(
+        const { requestId } = this.cargandoService.openDialog(
           false,
           "Eliminando..."
         );
@@ -744,7 +745,6 @@ export class GenericCrudService {
               errorPolicy: "all",
               context: {
                 clientName: servidor == null || servidor ? "servidor" : null,
-                fetchOptions: { signal },
               },
             }
           )
@@ -783,7 +783,7 @@ export class GenericCrudService {
           .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(
+            const { requestId } = this.cargandoService.openDialog(
               false,
               "Eliminando..."
             );
@@ -797,7 +797,6 @@ export class GenericCrudService {
                     errorPolicy: "all",
                     context: {
                       clientName: servidor == null || servidor ? "servidor" : null,
-                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -869,7 +868,7 @@ export class GenericCrudService {
         fin = hoy;
       }
     }
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Eliminando..."
     );
@@ -882,7 +881,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -919,7 +917,7 @@ export class GenericCrudService {
     servidor: boolean = true,
     error?: boolean
   ) {
-    const { requestId, signal } = this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     entity.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       gql
@@ -935,7 +933,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )

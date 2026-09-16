@@ -83,6 +83,18 @@ Karma no corre: script `esbuild` + `node` fuera del repo sobre `timeout-link.ts`
 
 `npm run check` (AOT) al final, leído del log.
 
+### Implementación (fase 1) — resultado
+
+- `timeout-link.ts` (timer creado antes del `subscribe` para no romper con respuestas síncronas), cableado al inicio de
+  `http` y `http2`; aviso con ventana de 5 s por tipo; `createAbortableLink` sin controller.
+- `GenericCrudService`: sin `signal` en 14 contextos; `onCustomQuery` con `timeoutMs` 300 s y diálogo de 305 s;
+  `onSaveCustom` con `opciones.timeoutMs`; avisos de red omitidos si `esTimeoutDeLink`. `onGenerarMes`/`onGenerarLote`
+  300 s. `pagar-compras-dialog` no repite el aviso. `CargandoDialogService` devuelve `{ requestId }` y cierra en silencio
+  a los 65 s.
+- Tests (esbuild + node, `@apollo/client/core`): **10/10**. Con el link neutralizado (pasa directo) **fallan los 6 casos de
+  corte**; siguen pasando respuesta a tiempo, override largo, respuesta síncrona y `esTimeoutDeLink`.
+- `npm run check` (AOT): exit 0, sin errores (solo warnings de CommonJS preexistentes).
+
 ## Prueba de runtime (paso 9) — gate antes del PR
 
 `npm run ng:serve` + central local, sesión del usuario:
