@@ -163,11 +163,22 @@ export const cobrosTarjetaDeVentaQuery = gql`
  * saveVenta dejaba al cajero enterandose cuando la venta ya estaba registrada y el dato escaneado
  * ya se habia descartado.
  */
+/**
+ * ⚠️ `codigoAutorizacion` y `terminalPosId` NO son opcionales en la práctica.
+ *
+ * El chequeo de duplicado por código de autorización sólo corre acotado por terminal --el código
+ * lo emite el aparato y sólo es único ahí--. Sin esos dos, el adelanto sólo detectaba el duplicado
+ * por `qrCrudo`, o sea únicamente los cupones que entraron por el lector: un cupón fotografiado o
+ * tipeado a mano pasaba el adelanto y recién reventaba al guardar, con la venta ya hecha.
+ */
 export const motivoCuponNoUsableQuery = gql`
-  query motivoCuponNoUsable($qrCrudo: String, $identificadorTransaccion: String, $sucId: ID!) {
+  query motivoCuponNoUsable($qrCrudo: String, $identificadorTransaccion: String,
+                            $codigoAutorizacion: String, $terminalPosId: ID, $sucId: ID!) {
     data: motivoCuponNoUsable(
       qrCrudo: $qrCrudo
       identificadorTransaccion: $identificadorTransaccion
+      codigoAutorizacion: $codigoAutorizacion
+      terminalPosId: $terminalPosId
       sucId: $sucId
     )
   }

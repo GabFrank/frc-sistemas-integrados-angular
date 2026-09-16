@@ -87,6 +87,7 @@ import { BotonComponent } from "../../../../../shared/components/boton/boton.com
 import { MonedaService } from "../../../../financiero/moneda/moneda.service";
 import { ScanTerminalPosDialogComponent, ScanTerminalPosResult } from "../../../../financiero/terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
 import { ConfiguracionVentaTarjetaService } from "../../../../financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta.service";
+import { VentaTarjetaService } from "../../../../financiero/venta-tarjeta/venta-tarjeta.service";
 import { ConfiguracionFacturaConVentaService } from "../../../../financiero/factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta.service";
 import { EscanearCuponDialogComponent, EscanearCuponDialogData } from "../../../../financiero/venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
 import { esCobroTarjetaRegistrable } from "../../../../financiero/venta-tarjeta/qr-pos/cobro-tarjeta";
@@ -197,6 +198,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoDialog: CargandoDialogService,
     private ventaService: VentaService,
     private configuracionVentaTarjetaService: ConfiguracionVentaTarjetaService,
+    private ventaTarjetaService: VentaTarjetaService,
     private configuracionFacturaConVentaService: ConfiguracionFacturaConVentaService,
     private cajaService: CajaService
   ) {
@@ -781,6 +783,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         // se prueba primero, y los importes se escalan con los decimales de cada moneda.
         proveedorServicioId: item.terminalPos?.proveedorServicio?.id,
         decimalesPorMoneda: this.decimalesPorMoneda,
+        // Para que el diálogo pueda rechazar ahí mismo un cupón ya usado, en vez de cerrarse y
+        // dejar una línea pendiente que el cajero no pidió.
+        sucursalId: Number(this.mainService.sucursalActual?.id),
       }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((result: ScanTerminalPosResult) => {
       if (!result?.terminalPos) return; // canceló la selección de terminal: la línea queda como estaba
@@ -848,6 +853,55 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
    * misma regla valga o no según por dónde entró el cupón.
    */
   private procesarCupon(item: CobroDetalle, datosCupon: DatosCupon): void {
+    // ⚠️ EL DUPLICADO SE PREGUNTA ACA, ANTES DE APLICAR EL CUPON A LA LINEA.
+    //
+    // El backend lo vuelve a chequear al guardar y esa es la validacion que manda, pero enterarse
+    // recien ahi es tarde: medido el 2026-09-16, la venta se guardaba CONCLUIDA igual, su
+    // venta_tarjeta quedaba PENDIENTE sin datos, y el cajero veia "Algo salio mal" con la pantalla
+    // vaciandose -- que se lee como "la venta no se hizo". Un cajero que rehace la venta ahi le
+    // cobra dos veces al cliente.
+    //
+    // Va en `procesarCupon` y no en el dialogo de lectura porque este es el unico punto por el que
+    // pasan las DOS puertas: el dialogo de siempre y el input del primer dialogo cuando la terminal
+    // se resuelve sola desde el cupon. Por esa segunda puerta el adelanto no corria.
+    // Si el diálogo ya preguntó, no se vuelve a preguntar: sería un viaje de ida y vuelta por
+    // cobro para confirmar lo mismo. El chequeo se queda igual para cualquier puerta que NO haya
+    // preguntado -- que es la garantía de que la regla no se puede saltear agregando una puerta
+    // nueva, justamente el hueco que este código tenía.
+    if (datosCupon.verificado) { this.evaluarCupon(item, datosCupon); return; }
+
+    this.ventaTarjetaService
+      .onMotivoCuponNoUsable(
+        datosCupon.qrCrudo,
+        datosCupon.identificadorTransaccion,
+        Number(this.mainService.sucursalActual?.id),
+        datosCupon.codigoAutorizacion,
+        item.terminalPos?.id != null ? Number(item.terminalPos.id) : undefined
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (motivo) => {
+          if (motivo) {
+            this.avisarCuponNoUsable(motivo);
+            return;   // la linea queda PENDIENTE: el cupon no se aplica
+          }
+          this.evaluarCupon(item, datosCupon);
+        },
+        // Un fallo de red no puede bloquear el cobro: el backend valida igual al guardar.
+        error: () => this.evaluarCupon(item, datosCupon),
+      });
+  }
+
+  /** El cupon no se puede usar. Es un diagnostico, no un "algo salio mal". */
+  private avisarCuponNoUsable(motivo: string): void {
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.danger,
+      texto: motivo + ' Escaneá el cupón que corresponde a este cobro.',
+      duracion: 10,
+    });
+  }
+
+  private evaluarCupon(item: CobroDetalle, datosCupon: DatosCupon): void {
     const avisos: string[] = [];
     // `item.valor` esta tipado como number pero viene del formulario, donde es un string
     // ("50.00"). Un `!==` entre 50 y "50.00" es siempre verdadero, asi que el aviso saltaba

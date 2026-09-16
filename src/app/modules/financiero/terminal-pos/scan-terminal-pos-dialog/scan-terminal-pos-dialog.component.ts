@@ -8,6 +8,7 @@ import { TerminalPosService } from "../terminal-pos.service";
 import { DatosCupon, FormatoQrPos } from "../../venta-tarjeta/qr-pos/formato-qr-pos.model";
 import { FormatoTerminalPosService } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.service";
 import { TIPO_WEB } from "../../venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.model";
+import { VentaTarjetaService } from "../../venta-tarjeta/venta-tarjeta.service";
 import { DecimalesPorMoneda, ordenarPorProveedor, parsearCupon } from "../../venta-tarjeta/qr-pos/qr-pos-parser";
 
 /**
@@ -23,6 +24,8 @@ export class AddTerminalPosData {
   proveedorServicioId?: number;
   /** Decimales por moneda, para escalar importes en la menor unidad. */
   decimalesPorMoneda?: DecimalesPorMoneda;
+  /** Sucursal del cobro. Acota el chequeo de cupon ya usado, que es por sucursal. */
+  sucursalId?: number;
 }
 
 export interface ScanTerminalPosResult {
@@ -65,7 +68,8 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: AddTerminalPosData,
     private matDialogRef: MatDialogRef<ScanTerminalPosDialogComponent>,
     private terminalPosService: TerminalPosService,
-    private formatoTerminalPosService: FormatoTerminalPosService
+    private formatoTerminalPosService: FormatoTerminalPosService,
+    private ventaTarjetaService: VentaTarjetaService
   ) {
     if (data?.terminalPos != null) {
       this.selectedTerminalPos = data.terminalPos;
@@ -227,10 +231,7 @@ export class ScanTerminalPosDialogComponent implements OnInit {
           const resultados = res ?? [];
           if (resultados.length === 1) {
             this.selectedTerminalPos = resultados[0];
-            this.matDialogRef.close({
-              terminalPos: this.selectedTerminalPos,
-              datosCupon: datos,
-            } as ScanTerminalPosResult);
+            this.cerrarSiElCuponSirve(datos);
             return;
           }
           // Cero o mas de una: no se elige por el cajero. Dos con la misma serie exacta significa
@@ -247,6 +248,64 @@ export class ScanTerminalPosDialogComponent implements OnInit {
           this.avisoCupon = 'Leí el cupón. Escaneá el código de la terminal para continuar.';
         },
       });
+  }
+
+  /**
+   * Cierra con el cupón aplicado, salvo que ese cupón ya se haya usado.
+   *
+   * <b>Por qué acá y no después de cerrar.</b> Preguntarlo más adelante --cuando la línea de cobro
+   * ya existe-- deja al cajero con el diálogo cerrado, un aviso suelto abajo, una línea pendiente
+   * que él no pidió, y este mismo input precargado con el código de la terminal cuando lo reabre.
+   * Cuatro pasos para deshacer algo que nunca debió pasar. Acá el cupón se rechaza donde se
+   * escaneó: el aviso queda en el diálogo, el input se limpia y el lector puede disparar de nuevo.
+   *
+   * Es el mismo comportamiento que ya tenía la otra puerta (`escanear-cupon-dialog`), que muestra
+   * el motivo en `errorLectura` y vacía su campo. Las dos puertas tienen que sentirse iguales.
+   *
+   * <b>Falla abierta</b>: si no se pudo preguntar --filial caído, red-- se sigue. La validación de
+   * verdad corre igual al guardar, y bloquear un cobro porque no se pudo consultar sería peor que
+   * el problema que esto resuelve.
+   */
+  private cerrarSiElCuponSirve(datos: DatosCupon): void {
+    const cerrar = () => this.matDialogRef.close({
+      terminalPos: this.selectedTerminalPos,
+      // Ya se preguntó acá: quien recibe esto no necesita volver a consultar.
+      datosCupon: { ...datos, verificado: true },
+    } as ScanTerminalPosResult);
+
+    this.buscando = true;
+    this.ventaTarjetaService
+      .onMotivoCuponNoUsable(
+        datos.qrCrudo,
+        datos.identificadorTransaccion,
+        Number(this.data?.sucursalId),
+        datos.codigoAutorizacion,
+        this.selectedTerminalPos?.id != null ? Number(this.selectedTerminalPos.id) : undefined
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (motivo) => {
+          this.buscando = false;
+          if (!motivo) { cerrar(); return; }
+          this.avisoCupon = motivo + ' Escaneá el cupón que corresponde a este cobro.';
+          this.cuponPendiente = null;
+          this.selectedTerminalPos = null;
+          // `reset` y no `setValue('')`: vaciar el campo lo deja invalido Y tocado, asi que Material
+          // apila "El codigo es obligatorio" encima del motivo real. Dos errores a la vez, y el
+          // segundo tapa al primero siendo el menos util. `reset` lo devuelve a pristine.
+          this.codigoControl.reset(null, { emitEvent: false });
+          this.enfocarInput();
+        },
+        error: () => { this.buscando = false; cerrar(); },
+      });
+  }
+
+  /** Devuelve el foco al input para que el lector pueda disparar de nuevo sin tocar el mouse. */
+  private enfocarInput(): void {
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('app-scan-terminal-pos-dialog input');
+      if (input) { input.focus(); }
+    });
   }
 
 }

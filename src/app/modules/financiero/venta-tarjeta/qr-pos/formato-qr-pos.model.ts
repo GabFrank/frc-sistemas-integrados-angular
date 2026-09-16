@@ -92,6 +92,13 @@ export interface DatosCupon {
   capturaToken?: string;
   /** QR | OCR | MANUAL. De donde salieron los datos, para `venta_tarjeta.origen`. */
   origen?: string;
+  /**
+   * Ya se preguntó si este cupón se puede usar, y se pudo.
+   *
+   * Lo pone el diálogo que hizo la consulta, para que el paso siguiente no la repita. No es una
+   * garantía: el backend valida igual al guardar, y ésa es la que manda.
+   */
+  verificado?: boolean;
   /** Los campos sin columna propia, como JSON. Van a `venta_tarjeta.datos_extra`. */
   datosExtra?: string;
   /** Formato que la reconocio. */

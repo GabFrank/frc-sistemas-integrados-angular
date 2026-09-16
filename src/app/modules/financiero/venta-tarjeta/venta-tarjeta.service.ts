@@ -155,10 +155,16 @@ export class VentaTarjetaService {
    * la que manda. Por eso el que llama tiene que tratar un error de red como "seguir": bloquear
    * el escaneo porque no se pudo consultar seria peor que el problema que resuelve.
    */
-  onMotivoCuponNoUsable(qrCrudo: string, identificadorTransaccion: string, sucId: number): Observable<string> {
+  onMotivoCuponNoUsable(
+    qrCrudo: string,
+    identificadorTransaccion: string,
+    sucId: number,
+    codigoAutorizacion?: string,
+    terminalPosId?: number
+  ): Observable<string> {
     return this.genericService.onCustomQuery(
       this.motivoCuponNoUsableGQL,
-      { qrCrudo, identificadorTransaccion, sucId },
+      { qrCrudo, identificadorTransaccion, sucId, codigoAutorizacion, terminalPosId },
       false,
       null,
       true

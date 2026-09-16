@@ -357,7 +357,15 @@ export class EscanearCuponDialogComponent implements OnInit {
     // mano.
     this.verificando = true;
     this.ventaTarjetaService
-      .onMotivoCuponNoUsable(datos.qrCrudo, datos.identificadorTransaccion, Number(this.data.sucursalId))
+      // Con codigoAutorizacion y terminal: sin ellos el adelanto solo veia los duplicados por
+      // `qrCrudo`, o sea los que entraron por el lector. Un cupon fotografiado o tipeado pasaba.
+      .onMotivoCuponNoUsable(
+        datos.qrCrudo,
+        datos.identificadorTransaccion,
+        Number(this.data.sucursalId),
+        datos.codigoAutorizacion,
+        this.data.terminalPosId != null ? Number(this.data.terminalPosId) : undefined
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (motivo) => {
@@ -367,7 +375,8 @@ export class EscanearCuponDialogComponent implements OnInit {
             this.cuponControl.setValue('', { emitEvent: false });
             return;
           }
-          this.continuarTrasChequeo(datos);
+          // `verificado`: ya se pregunto aca, el paso siguiente no repite la consulta.
+          this.continuarTrasChequeo({ ...datos, verificado: true });
         },
         // Falla abierta a proposito: si no se pudo consultar (filial caido, red), NO se bloquea.
         // La validacion de verdad corre igual al guardar; impedir el escaneo porque no se pudo
