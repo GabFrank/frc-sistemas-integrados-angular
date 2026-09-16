@@ -12,7 +12,7 @@
          filtros de abajo son para cuando ese papel no esta. -->
     <div class="banda-qr" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
       <mat-icon>qr_code_scanner</mat-icon>
-      <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr">
+      <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr" subscriptSizing="dynamic">
         <mat-label>Escaneá la seña del cobro</mat-label>
         <input matInput class="input-qr" [formControl]="qrControl" autocomplete="off"
                placeholder="Apuntá el lector al QR del comprobante"

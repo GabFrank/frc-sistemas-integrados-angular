@@ -68,18 +68,19 @@ table {
 // El escaneo de la seña. Separado de los filtros con un borde: es una accion, no un filtro, y
 // mezclarlo en la misma fila lo haria leer como "buscar por QR".
 .banda-qr {
-  padding: 10px 0 4px;
+  // El 10 de abajo no es simetria: sin el hueco del subscript, el campo quedaba a 4px de los
+  // selects y las dos filas se leian como una sola.
+  padding: 10px 0 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 
   > mat-icon {
     color: #ffb300;
   }
 
-  // Sin esto el form-field arrastra los 1.34em de padding inferior que Material reserva para el
-  // hint, y la banda queda con un hueco debajo que la despega de los filtros.
-  .campo-qr {
-    margin-bottom: -1.25em;
-  }
+  // El hueco que Material reserva debajo del campo para el hint se saca con
+  // `subscriptSizing="dynamic"` en el propio form-field, NO con un margen negativo: ese margen
+  // no achicaba la caja, la corria, y el campo terminaba montado sobre la fila de filtros de
+  // abajo --se veia el borde del outline cruzando los selects. Medido en pantalla el 2026-09-16.
 
   .ayuda-qr {
     font-size: 12px;
