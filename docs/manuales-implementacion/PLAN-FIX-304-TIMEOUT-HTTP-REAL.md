@@ -105,6 +105,21 @@ Karma no corre: script `esbuild` + `node` fuera del repo sobre `timeout-link.ts`
 3. Varias queries cortadas a la vez → un solo snackbar.
 4. Reporte de productos (`list-producto` → `onCustomQuery`, diálogo anidado): responde normal, sin aviso espurio.
 
+### Resultado (2026-09-16, `b4ff9557`, `ng serve` + central local contra `bodega`, sesión del usuario)
+
+Operaciones lanzadas desde la consola con el `Apollo` de la app (`ng.getComponent`). Para simular un central **online pero
+colgado** se pausó el proceso del central local con `SIGSTOP` (el de `target/classes` del worktree, no el alpha de `/opt`) y
+se reanudó con `SIGCONT`.
+
+| Paso | Resultado |
+|---|---|
+| Con `timeoutMs` de 1–30 ms contra el central activo | carrera: localhost responde en pocos ms y el hilo principal (con el debugger de la extensión) atrasa los timers; cuando el timer gana, corta con «El servidor no respondió a tiempo.» (instrumentado: `programado@0`, `disparo@6`, `error@10`). No sirve como prueba determinista |
+| Central pausado: query (recibo) y mutation (`savePago` con `CONCLUIDO`), `timeoutMs: 2000` | las dos cortan a los 2,3 s: query «El servidor no respondió a tiempo.», mutation «…la operación pudo haberse aplicado. Verificá antes de reintentar.»; snackbar visible |
+| Red | preflight `OPTIONS` pendiente y los dos `POST` fallidos: el XHR se abortó en el navegador |
+| Log del central tras `SIGCONT` | 0 rechazos de `savePago`: la mutation cortada nunca llegó a ejecutarse |
+| Central pausado: 3 queries distintas en paralelo, `timeoutMs: 1500` | las 3 cortan; **un solo aviso** emitido |
+| Central activo: query normal (default 60 s), recibo PDF y `GenericCrudService.onCustomQuery` (300 s) | responden; **ningún aviso** |
+
 ## Datos nuevos / persistencia / replicación
 
 N/A: solo cliente.
