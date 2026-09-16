@@ -417,7 +417,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.buscadorOpenSearch.next();
             break;
           case "F8":
-            this.onTicketClick(false);
+            if (this.selectedItemList?.length > 0 && !this.isDelivery) {
+              this.onTicketClick(false);
+            }
             break;
           case "F7":
             break;
@@ -1207,6 +1209,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onTicketClick(ticket?: boolean) {
     if (this.modoConsulta) return;
+    // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
+    // facturación silenciosa); en delivery se cobra con onPagoClick, no por acá (#312).
+    if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
+      this.buscadorFocusSub.next();
+      return;
+    }
     // Evita reentradas mientras se procesa un cobro rápido en curso.
     if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
