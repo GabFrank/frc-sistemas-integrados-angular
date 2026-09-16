@@ -193,12 +193,12 @@ export const motivoCuponNoUsableQuery = gql`
 export const filtrarVentasTarjetaPorCajaQuery = gql`
   query filtrarVentasTarjetaPorCaja(
     $cajaId: ID!, $sucId: ID!, $estado: String, $terminalPosId: ID, $monedaId: ID,
-    $montoDesde: Float, $montoHasta: Float, $page: Int, $size: Int
+    $montoDesde: Float, $montoHasta: Float, $usuarioId: ID, $page: Int, $size: Int
   ) {
     data: filtrarVentasTarjetaPorCaja(
       cajaId: $cajaId, sucId: $sucId, estado: $estado, terminalPosId: $terminalPosId,
       monedaId: $monedaId, montoDesde: $montoDesde, montoHasta: $montoHasta,
-      page: $page, size: $size
+      usuarioId: $usuarioId, page: $page, size: $size
     ) {
       getContent {
         id
@@ -213,6 +213,10 @@ export const filtrarVentasTarjetaPorCajaQuery = gql`
         montoEscaneado
         estado
         creadoEn
+        # De quien es el cobro. La consulta ya esta acotada a ESTA caja del lado del servidor, pero
+        # una caja cruza turnos --se cierra cuando se cierra, no cuando cambia la persona-- asi que
+        # sin esto dos cobros del mismo monto a horas parecidas son indistinguibles.
+        usuario { id nickname }
       }
       getTotalElements
     }

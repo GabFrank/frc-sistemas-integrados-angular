@@ -45,17 +45,36 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   // `creadoEn` va segundo y no al final: una caja puede quedar abierta varios dias --la 654 de
   // prueba lleva semanas-- asi que "de cuando es este cobro" es lo primero que se pregunta al
   // mirar la lista, no un dato de cierre.
-  displayedColumns = ['id', 'creadoEn', 'terminal', 'monto', 'escaneado', 'estado', 'acciones'];
+  // `venta` va junto a la fecha porque es EL identificador que el cajero tiene delante: el numero
+  // impreso en el ticket del cliente. El `id` de la tabla es el de venta_tarjeta, que no esta
+  // impreso en ninguna parte -- era la unica columna identificadora y la menos util de todas.
+  //
+  // Y `venta` sola NO alcanza: una venta con dos lineas de tarjeta da dos filas con el mismo
+  // numero (medido: las filas 24 y 25 de la base de prueba son las dos de la venta 35512). Lo que
+  // las separa ahi es el monto, la terminal y el cajero.
+  displayedColumns = ['id', 'creadoEn', 'venta', 'cajero', 'terminal', 'monto', 'escaneado', 'estado', 'acciones'];
 
   estadoControl = new FormControl(null);
   terminalPosIdControl = new FormControl(null);
   monedaIdControl = new FormControl(null);
   montoDesdeControl = new FormControl(null);
   montoHastaControl = new FormControl(null);
+  /**
+   * Cajero. Arranca en el usuario actual: lo primero que uno busca son sus propios cobros.
+   *
+   * <b>Se filtra del lado del SERVIDOR.</b> Esta pantalla pagina contra el filial, asi que filtrar
+   * sobre las filas ya traidas solo tocaria la pagina cargada y el total del paginador quedaria
+   * mintiendo. Es la misma razon por la que los otros cinco filtros son parametros y no `filter()`.
+   *
+   * Y arranca elegido pero se puede vaciar: un supervisor que cierra la caja necesita ver todas.
+   */
+  usuarioIdControl = new FormControl(null);
 
   estados = ['PENDIENTE', 'COMPLETADO', 'NO_COMPLETADO', 'CANCELADO'];
   terminales: TerminalPos[] = [];
   monedas: Moneda[] = [];
+  /** Los cajeros que aparecen en lo que ya se trajo. No hay consulta de usuarios de la caja. */
+  cajeros: { id: number; nickname: string }[] = [];
 
   decimalesPorMoneda: { [id: number]: number } = {};
   selectedPageInfo: PageInfo<VentaTarjeta>;
@@ -74,6 +93,14 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Arranca filtrando por el cajero actual: lo primero que uno busca son sus propios cobros.
+    // Se puede vaciar, y "Limpiar filtros" lo vacia.
+    const yo = this.mainService.usuarioActual;
+    if (yo?.id != null) {
+      this.usuarioIdControl.setValue(Number(yo.id));
+      this.recordarCajero(Number(yo.id), yo.nickname);
+    }
+
     // Todo contra el filial (`false`): esta pantalla tiene que funcionar sin internet.
     this.monedaService.onGetAll(false).pipe(untilDestroyed(this)).subscribe({
       next: (monedas) => {
@@ -107,6 +134,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     if (this.montoHastaControl.value != null && this.montoHastaControl.value !== '') {
       params.montoHasta = Number(this.montoHastaControl.value);
     }
+    if (this.usuarioIdControl.value) params.usuarioId = Number(this.usuarioIdControl.value);
 
     this.ventaTarjetaService
       .onFiltrarPorCaja(params)
@@ -114,7 +142,13 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.selectedPageInfo = res;
-          this.dataSource.data = (res?.getContent ?? []).map((item) => this.aFilaConMoneda(item));
+          const filas = res?.getContent ?? [];
+          // La lista de cajeros se arma con lo que aparece, y se ACUMULA: no hay consulta de
+          // "usuarios de esta caja". Arranca con el propio, y al poner "Todos" aparecen los demas
+          // y quedan disponibles. Acumular y no reemplazar evita que el filtro se vacie a si mismo
+          // -- filtrando por un cajero, la pagina solo trae ese.
+          filas.forEach((f: any) => this.recordarCajero(Number(f?.usuario?.id), f?.usuario?.nickname));
+          this.dataSource.data = filas.map((item) => this.aFilaConMoneda(item));
           this.cargando = false;
         },
         error: () => {
@@ -130,6 +164,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   }
 
   onLimpiarFiltros(): void {
+    // El cajero tambien se limpia: "limpiar" tiene que dejar ver todo, incluido lo de otros
+    // turnos. Dejarlo preseleccionado convertiria el default en un encierro invisible.
+    this.usuarioIdControl.setValue(null);
     this.estadoControl.setValue(null);
     this.terminalPosIdControl.setValue(null);
     this.monedaIdControl.setValue(null);
@@ -150,6 +187,13 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    * Los decimales dependen de la moneda: Gs. no lleva ninguno y R$ lleva dos, asi que un `1.0-2`
    * fijo mostraba "50 R$" en vez de "50,00 R$".
    */
+  /** Suma un cajero a la lista del filtro, sin repetir. */
+  private recordarCajero(id: number, nickname: string): void {
+    if (!id || this.cajeros.some((c) => c.id === id)) return;
+    this.cajeros = [...this.cajeros, { id, nickname: nickname || ('Usuario ' + id) }]
+      .sort((a, b) => a.nickname.localeCompare(b.nickname));
+  }
+
   private aFilaConMoneda(item: VentaTarjeta): VentaTarjeta {
     const moneda = item?.moneda ?? item?.terminalPos?.moneda;
     const decimales = moneda?.decimales ?? 0;

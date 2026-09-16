@@ -137,7 +137,7 @@ export class VentaTarjetaService {
    */
   onFiltrarPorCaja(params: {
     cajaId: number; sucId: number; estado?: string; terminalPosId?: number; monedaId?: number;
-    montoDesde?: number; montoHasta?: number; page?: number; size?: number;
+    montoDesde?: number; montoHasta?: number; usuarioId?: number; page?: number; size?: number;
   }): Observable<PageInfo<VentaTarjeta>> {
     return this.genericService.onCustomQuery(
       this.filtrarVentasTarjetaPorCajaGQL,
