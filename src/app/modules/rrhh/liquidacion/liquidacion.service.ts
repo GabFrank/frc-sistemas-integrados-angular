@@ -19,6 +19,9 @@ import { PagarLiquidacionGQL } from './graphql/PagarLiquidacion';
 import { AnularLiquidacionGQL } from './graphql/AnularLiquidacion';
 import { ImprimirReciboLiquidacionGQL } from './graphql/ImprimirReciboLiquidacion';
 
+/** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
+const TIMEOUT_GENERACION_MASIVA_MS = 300000;
+
 @Injectable({ providedIn: 'root' })
 export class LiquidacionService {
 
@@ -71,13 +74,15 @@ export class LiquidacionService {
   }
 
   onGenerarMes(periodo: string, monedaId: number, servidor = true): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.generarMesGQL, { periodo, monedaId }, servidor);
+    return this.genericService.onSaveCustom<any>(this.generarMesGQL, { periodo, monedaId }, servidor,
+      { timeoutMs: TIMEOUT_GENERACION_MASIVA_MS });
   }
 
   /** Genera borradores para una lista de funcionarios (null = todos los activos). */
   onGenerarLote(funcionarioIds: number[], periodo: string, monedaId: number, servidor = true,
                 opciones?: { avisarExito?: boolean }): Observable<any> {
-    return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor, opciones);
+    return this.genericService.onSaveCustom<any>(this.generarLoteGQL, { funcionarioIds, periodo, monedaId }, servidor,
+      { timeoutMs: TIMEOUT_GENERACION_MASIVA_MS, ...opciones });
   }
 
   onAgregarItem(liquidacionId: number, descripcion: string, monto: number, tipo: string,

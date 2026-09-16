@@ -202,7 +202,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   private loadProductosVencidos(filters: ProductosVencidosFilters) {
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
     );
@@ -216,7 +216,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         // "Query failed to validate". El central sí lo expone; así se comporta
         // igual que en modo solo-cloud.
         clientName: 'servidor',
-        fetchOptions: { signal },
       },
     }).pipe(
       tap(result => {
