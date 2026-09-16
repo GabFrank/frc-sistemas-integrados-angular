@@ -1,9 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
-
-/** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
-const TIMEOUT_GENERACION_MASIVA_MS = 300000;
 import { LiquidacionByIdGQL } from './graphql/LiquidacionById';
 import { LiquidacionesPorFuncionarioGQL } from './graphql/LiquidacionesPorFuncionario';
 import { LiquidacionesPorPeriodoGQL } from './graphql/LiquidacionesPorPeriodo';
@@ -21,6 +18,9 @@ import { VolverBorradorGQL } from './graphql/VolverBorrador';
 import { PagarLiquidacionGQL } from './graphql/PagarLiquidacion';
 import { AnularLiquidacionGQL } from './graphql/AnularLiquidacion';
 import { ImprimirReciboLiquidacionGQL } from './graphql/ImprimirReciboLiquidacion';
+
+/** Generar para todos los activos recorre la nómina entera en el central: puede pasar el minuto. */
+const TIMEOUT_GENERACION_MASIVA_MS = 300000;
 
 @Injectable({ providedIn: 'root' })
 export class LiquidacionService {

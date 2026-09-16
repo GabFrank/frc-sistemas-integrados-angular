@@ -153,3 +153,23 @@ Un PR (desktop). Independiente del central. Al mergear a `develop` sale una alph
 | B-5 | B · baja | Más llamadores leen `.requestId`; diálogo anidado del reporte de productos | Compatibles | Anotado + caso de runtime |
 | B-6 | B | Test esbuild+node: importar de `@apollo/client/core` y `/utilities` (la raíz trae React) | Confirmado | Se aplica |
 | B-7 | B | Sin `RetryLink`: el corte no duplica escrituras desde el cliente | Confirmado | Sin cambio |
+
+## Auditoría del diff (paso 8)
+
+| # | Fijo | Hallazgo | Verificación | Qué se hizo |
+|---|---|---|---|---|
+| D-1 | 1 | Sin carreras: timer antes del `subscribe`; respuesta tardía descartada; `createCentralTimeoutLink` (offline, 3 s) sigue ganando y su error no se marca `esTimeout`; subscriptions fuera; ningún `.signal`/`fetchOptions`/«Tiempo de espera superado» residual; `isSaving` se resetea también en el timeout | Confirmado | Sin cambio |
+| D-2 | 1 · baja | Teardown con `subscription.unsubscribe()` sin `?.` (asimetría con el timer) | Correcto | **Aplicado** |
+| D-3 | 1 · media | Los ~34 llamadores de `onCustomMutation` que muestran su propio «Error al…» duplican el aviso del link ante un timeout (solo `pagar-compras-dialog` lo evita) | Correcto; texto distinto para el mismo evento, sin impacto de datos | Deuda conocida (fuera de alcance: 34 archivos) |
+| D-4 | 1 · media | El límite se mide desde el inicio de la operación, no desde el último `next`: cortaría un stream `@defer`/multipart | No hay uso actual | Deuda anotada |
+| D-5 | 1 · baja | `createAbortableLink` y `createEmptyResultGuardLink` quedan con la misma normalización | Inocuo | Refactor aparte |
+| D-6 | 2 | Imports de `@apollo/client/core` (sin copias duplicadas de `ApolloLink`); `check` cubre `src/app`; sin `configuracion*.json`; commits pasan commitlint | Confirmado | Sin cambio |
+| D-7 | 2 · baja | Constante entre imports en `liquidacion.service.ts` | Correcto | **Aplicado**: debajo de los imports |
+| D-8 | 2 · baja | Sin `.spec.ts` del link (Karma no corre; hay specs vecinos) | El script esbuild+node es el test ejecutable | Sin cambio |
+| D-9 | 3 · **alta** | `onFinalizarInventario` (loop por producto; el central menciona ~8.700) y `onAvanzarEtapa` de transferencias (loop por ítem) van por `onCustomMutation` sin override: se cortarían con conteos o transferencias grandes | Confirmado en el central | **Aplicado**: `onCustomMutation(..., opciones.timeoutMs)` y 300 s en las dos |
+| D-10 | 3 · media | Tras un timeout de mutation el botón queda habilitado (pagos, venta del PDV): un reintento puede duplicar lo que el servidor sí aplicó | Antes una respuesta tardía se aplicaba sola; ahora el aviso «pudo haberse aplicado» es el resguardo | Riesgo conocido, dicho en el aviso |
+| D-11 | 3 · baja-media | `consultaRuc` depende del webservice de la SET sin timeout propio | 60 s es razonable para un tercero | Sin cambio |
+| D-12 | 3 · baja | `funcionario.service.ts` (`HttpClient` crudo) con diálogo: si cuelga, el spinner se cierra a los 65 s sin aviso | Único caso no-GraphQL | Deuda anotada |
+| D-13 | 3 | Sin cambio de contrato; SIFEN se envía por scheduler (no por la mutation); proxies central→filial de cajas no se encontraron en el desktop | Confirmado | Sin cambio |
+
+Tras D-2/D-7/D-9: tests del link 10/10; `npm run check` exit 0.

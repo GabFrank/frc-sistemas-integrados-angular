@@ -64,7 +64,7 @@ export function crearTimeoutLink(
 
       return () => {
         clearTimeout(timer);
-        subscription.unsubscribe();
+        subscription?.unsubscribe();
       };
     });
   });

@@ -198,14 +198,16 @@ export class GenericCrudService {
     });
   }
 
-  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false): Observable<any> {
+  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false,
+                   opciones?: { timeoutMs?: number }): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
     
     if (silentLoad !== true) {
       const result = this.cargandoService.openDialog(
         false,
-        "Guardando..."
+        "Guardando...",
+        opciones?.timeoutMs != null ? opciones.timeoutMs + MARGEN_DIALOGO_MS : undefined
       );
       requestId = result.requestId;
     }
@@ -217,6 +219,7 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
+            timeoutMs: opciones?.timeoutMs,
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
