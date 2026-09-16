@@ -481,15 +481,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.tabService.removeTab(this.tabService.currentIndex);
         } else if (res == "consulta") {
           this.modoConsulta = true;
-          this.isDialogOpen = false;
         } else {
+          // Cada diálogo que se abre desde acá marca el flag; no se resetea al final del else
+          // porque pisaría la selección de caja reabierta.
           if (this.cajaService.selectedCaja?.conteoApertura == null) {
+            this.isDialogOpen = true;
             this.dialogoService
               .confirm(
                 "Atención",
                 "Esta caja no posee conteo inicial. Desea realizar el conteo inicial?"
               )
               .subscribe((dialogRes) => {
+                this.isDialogOpen = false;
                 if (dialogRes) {
                   this.openSelectCajaDialog();
                 } else {
@@ -501,7 +504,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
-          this.isDialogOpen = false;
         }
       });
   }
