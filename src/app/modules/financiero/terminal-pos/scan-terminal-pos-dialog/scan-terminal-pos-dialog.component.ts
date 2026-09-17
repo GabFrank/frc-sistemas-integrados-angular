@@ -71,9 +71,21 @@ export class ScanTerminalPosDialogComponent implements OnInit {
     private formatoTerminalPosService: FormatoTerminalPosService,
     private ventaTarjetaService: VentaTarjetaService
   ) {
+    // La terminal que la linea ya tiene se RECUERDA, pero no se escribe en el input.
+    //
+    // Antes se precargaba `codigo` ahi, y ese texto era lo unico que le decia al cajero con que
+    // maquina estaba trabajando --el template no la mostraba en ningun lado--. El precio era alto:
+    // ese mismo campo es donde entra el proximo escaneo, el lector es keyboard-wedge y escribe
+    // donde esta el cursor, asi que al reabrir el dialogo por "Escanear otro" el cupon se
+    // CONCATENABA al codigo (`VP-CAJA1FRCP1*...`). Esa cadena no matchea ningun patron --estan
+    // anclados con ^-- ni encuentra terminal por codigo: el cajero escaneaba un cupon bueno y
+    // recibia un error ajeno, sin nada que le dijera que habia que borrar el campo a mano.
+    // Medido el 2026-09-17 en la app en vivo.
+    //
+    // Ahora la terminal se muestra como texto (ver el template) y el campo queda libre. Cancelar
+    // sigue dejando la linea como estaba, que es la forma de conservarla sin volver a escanear.
     if (data?.terminalPos != null) {
       this.selectedTerminalPos = data.terminalPos;
-      this.codigoControl.setValue(data.terminalPos.codigo);
     }
   }
 
@@ -301,10 +313,17 @@ export class ScanTerminalPosDialogComponent implements OnInit {
   }
 
   /** Devuelve el foco al input para que el lector pueda disparar de nuevo sin tocar el mouse. */
+  /**
+   * Deja el input listo para el proximo escaneo.
+   *
+   * `select()` ademas de `focus()`: si algun dia algo vuelve a dejar texto en el campo, el lector
+   * --keyboard-wedge, escribe donde esta el cursor-- lo reemplaza en vez de concatenarse atras.
+   * Sobre un campo vacio no hace nada.
+   */
   private enfocarInput(): void {
     setTimeout(() => {
       const input = document.querySelector<HTMLInputElement>('app-scan-terminal-pos-dialog input');
-      if (input) { input.focus(); }
+      if (input) { input.focus(); input.select(); }
     });
   }
 

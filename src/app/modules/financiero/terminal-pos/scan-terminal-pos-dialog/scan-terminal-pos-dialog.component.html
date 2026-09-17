@@ -9,6 +9,16 @@
     Escaneá el código de la terminal <b>o directamente el QR del cupón</b>.
   </p>
 
+  <!-- La terminal que la linea ya tiene. Antes esto no se mostraba en ningun lado y el unico
+       indicio era el input precargado con el `codigo`, que ademas ocupaba el campo donde entra el
+       proximo escaneo. Aca se dice con el nombre --que es lo que el cajero reconoce-- y el campo
+       queda libre. -->
+  <p *ngIf="data?.terminalPos" style="margin: 0 0 8px; color: #9ccc65; font-size: 1.4rem;">
+    Esta línea ya tiene la terminal <b>{{ data.terminalPos.descripcion }}</b>
+    <span *ngIf="data.terminalPos.codigo"> ({{ data.terminalPos.codigo }})</span>.
+    Escaneá para cambiarla, o cancelá para dejarla como está.
+  </p>
+
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="15px" (ngSubmit)="onConfirmar()">
     <div fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="100%">
