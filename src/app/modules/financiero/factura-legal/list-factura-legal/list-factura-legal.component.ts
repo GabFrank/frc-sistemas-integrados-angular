@@ -650,12 +650,12 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   private ejecutarCancelacion(factura: FacturaLegal, cancelarVenta: boolean) {
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
 
     this.facturaService.onCancelarFacturaLegal(factura.id, factura.sucursalId, cancelarVenta)
       .subscribe({
         next: (resultado: string) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
 
           if (resultado.startsWith('EXITO')) {
             this.notificacionService.openGuardadoConExito();
@@ -669,7 +669,7 @@ export class ListFacturaLegalComponent implements OnInit {
           }
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           console.error('Error al cancelar factura:', error);
           this.notificacionService.openAlgoSalioMal('Error al cancelar la factura');
         }
@@ -682,11 +682,11 @@ export class ListFacturaLegalComponent implements OnInit {
       return;
     }
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.facturaService.onDescargarXmlFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
         next: (base64String: string) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           if (!base64String) {
             this.notificacionService.openAlgoSalioMal('No se pudo descargar el XML');
             return;
@@ -713,7 +713,7 @@ export class ListFacturaLegalComponent implements OnInit {
           a.remove();
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           console.error('Error al descargar XML:', error);
           this.notificacionService.openAlgoSalioMal('Error al descargar el XML');
         }
@@ -721,11 +721,11 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onDescargarPdf(factura: FacturaLegal) {
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
         next: (base64String: string) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           if (!base64String) {
             this.notificacionService.openAlgoSalioMal('No se pudo descargar el PDF');
             return;
@@ -753,7 +753,7 @@ export class ListFacturaLegalComponent implements OnInit {
           a.remove();
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           console.error('Error al descargar PDF:', error);
           this.notificacionService.openAlgoSalioMal('Error al descargar el PDF');
         }
@@ -761,11 +761,11 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onAbrirPdf(factura: FacturaLegal) {
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
       .subscribe({
         next: (base64String: string) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           if (!base64String) {
             this.notificacionService.openAlgoSalioMal('No se pudo cargar el PDF');
             return;
@@ -781,7 +781,7 @@ export class ListFacturaLegalComponent implements OnInit {
           this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListFacturaLegalComponent));
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           console.error('Error al abrir PDF:', error);
           this.notificacionService.openAlgoSalioMal('Error al cargar el PDF');
         }
