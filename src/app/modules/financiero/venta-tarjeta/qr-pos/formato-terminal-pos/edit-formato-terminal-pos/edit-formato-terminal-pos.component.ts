@@ -21,6 +21,7 @@ import {
 } from '../formato-terminal-pos.model';
 import { FormatoTerminalPosService } from '../formato-terminal-pos.service';
 import { VistaPreviaFormatoComponent } from '../vista-previa-formato/vista-previa-formato.component';
+import { ERROR_FORMULARIO_INCOMPLETO } from '../probar-formato-panel/probar-formato-panel.component';
 
 /** La solapa del patrón y la cadena de ejemplo. */
 const TAB_COMO_SE_LEE = 1;
@@ -222,13 +223,18 @@ export class EditFormatoTerminalPosComponent implements OnInit {
     const formato: FormatoQrPos = { nombre: 'previsualización', patron, mapeo, ejemplo, activo: true };
     const r = parsearCupon(ejemplo, [formato], { 1: 0, 2: 2, 3: 2 });
     if (!r.ok) {
-      // El motor devuelve el mensaje del CAJERO --"registralo desde el celular"--, que acá no
-      // significa nada: quien mira esta pantalla está escribiendo el patrón, no cobrando. El
-      // motivo real es siempre el mismo y es el único accionable.
-      this.errorPreview = 'El patrón se aplica sobre el texto que devuelve el OCR --con sus'
-        + ' rarezas: un cero donde el papel dice O, un paréntesis de otro ancho-- y no sobre lo que'
-        + ' dice el papel. Subí la foto en "El mapa del cupón" y tocá "Usar como cadena de ejemplo":'
-        + ' trae el texto exacto, que a mano es imposible de acertar.';
+      // ⚠️ El motivo REAL va primero. Antes se descartaba `r.error` y se mostraba siempre el
+      // mismo texto sobre el patrón: cuando lo que fallaba era el mapeo --un formato de fecha que
+      // este motor no soportaba-- el aviso mandaba a revisar un patrón que estaba perfecto, y
+      // costó media hora de diagnóstico encontrarlo. El motor tiene UN mensaje que no sirve acá,
+      // el del cajero; ese sí se reemplaza.
+      const noMatcheo = r.error?.includes('no corresponde a ningún formato');
+      this.errorPreview = noMatcheo
+        ? 'El patrón no reconoce la cadena de ejemplo. Se aplica sobre el texto que devuelve el'
+          + ' OCR --con sus rarezas: un cero donde el papel dice O, un paréntesis de otro ancho-- y'
+          + ' no sobre lo que dice el papel. Subí la foto en "El mapa del cupón" y tocá "Usar como'
+          + ' cadena de ejemplo": trae el texto exacto, que a mano es imposible de acertar.'
+        : r.error;
       return;
     }
     const d = r.datos;
@@ -264,7 +270,7 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   onGuardar(): void {
     if (this.guardando) return;
     if (!this.validarAntesDeGuardar()) return;
-    this.persistir().pipe(untilDestroyed(this)).subscribe({
+    this.persistir().subscribe({
       next: () => {
         this.notificacionSnackbar.openSucess(
           this.formatoGuardado
@@ -297,10 +303,17 @@ export class EditFormatoTerminalPosComponent implements OnInit {
    * Si no hay nada que guardar, no llama al servidor.
    */
   asegurarGuardado = (): Observable<FormatoTerminalPos> => {
+    // ⚠️ Con un guardado en vuelo NO se arranca otro. Sin esto, apretar Guardar en un formato
+    // NUEVO y saltar a «Probar» antes de que vuelva la respuesta mandaba una segunda mutation
+    // --las dos sin id, porque `formatoGuardado` todavía no existía-- y el backend creaba DOS
+    // formatos. `onGuardar` ya se protegía así; este camino no.
+    if (this.guardando) {
+      return throwError(() => new Error('Se está guardando el formato. Probá de nuevo en un segundo.'));
+    }
     if (!this.formGroup.dirty && this.formatoGuardado?.id) return of(this.formatoGuardado);
     if (!this.validarAntesDeGuardar()) {
       // El aviso y el salto de solapa ya los hizo la validación; acá sólo se corta el flujo.
-      return throwError(() => new Error('Faltan datos del formato.'));
+      return throwError(() => new Error(ERROR_FORMULARIO_INCOMPLETO));
     }
     return this.persistir();
   };
@@ -330,7 +343,7 @@ export class EditFormatoTerminalPosComponent implements OnInit {
       this.notificacionSnackbar.notification$.next({
         color: NotificacionColor.warn,
         texto: this.errorPreview
-          ? 'El patrón no reconoce la cadena de ejemplo. El motivo está en "Cómo se lee el cupón".'
+          ? this.errorPreview
           : 'Completá el patrón, el mapeo y la cadena de ejemplo: todavía no se extrae ningún campo.',
         duracion: 5,
       });
@@ -344,6 +357,8 @@ export class EditFormatoTerminalPosComponent implements OnInit {
   private persistir(): Observable<FormatoTerminalPos> {
     this.guardando = true;
     const v = this.formGroup.value;
+    // Lo que se mandó, para poder saber al volver si el usuario siguió editando mientras tanto.
+    const enviado = JSON.stringify(v);
     return this.formatoService
       .onSave({
         // El id de lo ya guardado manda: en un formato nuevo, el primer Guardar lo crea y el
@@ -371,9 +386,13 @@ export class EditFormatoTerminalPosComponent implements OnInit {
             // Y se recuerda lo guardado: sin esto, el segundo Guardar de un formato NUEVO iría sin
             // id y crearía otro.
             if (res?.id) this.formatoGuardado = res;
-            // El formulario deja de estar sucio: es lo que hace que «Probar» dos veces seguidas no
-            // vuelva a guardar lo mismo.
-            this.formGroup.markAsPristine();
+            // El formulario deja de estar sucio SÓLO si sigue siendo lo que se mandó. Nada bloquea
+            // los campos mientras se guarda, así que si el usuario editó el patrón en el medio,
+            // marcarlo pristine haría que el próximo «Probar» diera por guardado algo que no lo
+            // está, y probaría la versión vieja creyendo que es la nueva.
+            if (JSON.stringify(this.formGroup.value) === enviado) {
+              this.formGroup.markAsPristine();
+            }
           },
           error: () => (this.guardando = false),
         })

@@ -45,8 +45,22 @@ export interface ReglaCampo {
   escala?: number;
   /** Divide por 10^decimales de la moneda resuelta. Para importes en la menor unidad. */
   escalaSegunMoneda?: boolean;
-  /** Formato de fecha, hoy solo `yyyyMMddHHmm`. */
+  /**
+   * Formato de fecha: `yyyyMMddHHmm`, `dd/MM/yyyy` o `yyyy-MM-dd`.
+   *
+   * Los mismos tres que acepta `ExtractorCupon.fechaIso()` del central, y no por casualidad: un
+   * cupón leído por el lector y uno fotografiado producen los mismos campos, así que no pueden
+   * necesitar vocabularios distintos.
+   */
   formato?: string;
+  /**
+   * Grupo del patrón que trae la HORA, cuando viene separada de la fecha.
+   *
+   * Va aparte porque los proveedores meten texto en el medio --INFONET imprime
+   * `F:02/09/2026H:22:51:34`-- y un solo grupo obligaría a capturar esa basura adentro del valor.
+   * Sin hora se asume medianoche.
+   */
+  deHora?: string;
   /** Zona horaria en que esta expresada la fecha del cupon. */
   zona?: string;
   mayusculas?: boolean;
