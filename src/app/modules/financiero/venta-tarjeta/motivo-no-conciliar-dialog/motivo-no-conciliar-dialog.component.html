@@ -1,10 +1,10 @@
 <div class="motivo-dialog" fxLayout="column" fxLayoutGap="10px">
 
-  <div class="titulo">Dejar sin conciliar</div>
-  <div class="subtitulo" *ngIf="data?.cuantos > 1">
+  <div class="titulo-center">Dejar sin conciliar</div>
+  <div class="subtitulo-dialog" *ngIf="data?.cuantos > 1">
     {{ data.cuantos }} cobros con tarjeta de esta caja
   </div>
-  <div class="subtitulo" *ngIf="!data?.cuantos || data.cuantos === 1">
+  <div class="subtitulo-dialog" *ngIf="!data?.cuantos || data.cuantos === 1">
     Este cobro con tarjeta
   </div>
 

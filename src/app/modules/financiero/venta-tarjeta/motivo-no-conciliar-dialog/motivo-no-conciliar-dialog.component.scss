@@ -1,15 +1,19 @@
 .motivo-dialog {
   padding: 18px 20px 14px;
+  // Los diálogos hermanos del módulo lo acotan igual: sin esto se desborda en pantallas angostas.
+  max-width: 88vw;
 }
 
-// Convención del módulo: título blanco, subtítulo naranja.
-.titulo {
+// ⚠️ .titulo-center y .subtitulo-dialog son las clases de la convención (styles.scss), NO `.titulo`:
+// esa clase global es NARANJA, alineada a la izquierda y con padding propio, así que el título
+// salía del mismo color que el subtítulo. Mismo comentario que llevan escanear-cupon-dialog y
+// registrar-venta-tarjeta-dialog.
+.titulo-center {
   font-size: 17px;
   font-weight: 500;
-  text-align: center;
 }
 
-.subtitulo {
+.subtitulo-dialog {
   font-size: 13px;
   color: #ff9800;
   text-align: center;

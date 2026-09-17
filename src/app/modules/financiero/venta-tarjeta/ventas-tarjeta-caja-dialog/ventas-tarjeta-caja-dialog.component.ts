@@ -104,6 +104,8 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   pageIndex = 0;
   pageSize = 15;
   cargando = true;
+  /** Una acción de fila en vuelo. Los iconos no se deshabilitan, así que la guarda vive acá. */
+  accionEnCurso = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VentasTarjetaCajaDialogData,
@@ -374,7 +376,10 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    * tiempo, que no se valida.
    */
   onReimprimirSena(item: VentaTarjeta): void {
-    if (item?.estado !== 'PENDIENTE') return;
+    // Los iconos de la fila no se deshabilitan solos, asi que la guarda es esta: sin ella un doble
+    // clic manda dos impresiones, o dos marcados.
+    if (item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
+    this.accionEnCurso = true;
     this.ventaTarjetaService
       .onImprimirSena({
         ventaId: Number(item.ventaId),
@@ -390,6 +395,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (impreso) => {
+          this.accionEnCurso = false;
           this.notificacionSnackbar.notification$.next({
             color: impreso ? NotificacionColor.success : NotificacionColor.warn,
             texto: impreso
@@ -399,6 +405,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           });
         },
         error: (err) => {
+          this.accionEnCurso = false;
           this.notificacionSnackbar.notification$.next({
             color: NotificacionColor.warn,
             texto: mensajeDeError(err, 'No se pudo reimprimir el comprobante.'),
@@ -418,7 +425,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    * No se puede deshacer, y por eso el diálogo lo dice antes.
    */
   onNoConciliar(item: VentaTarjeta): void {
-    if (item?.estado !== 'PENDIENTE') return;
+    if (item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
     this.matDialog
       .open(MotivoNoConciliarDialogComponent, {
         width: '460px',
@@ -429,6 +436,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res: MotivoNoConciliarResultado) => {
         if (!res?.motivo) return;
+        this.accionEnCurso = true;
         this.ventaTarjetaService
           .onMarcarNoCompletada(
             Number(item.id),
@@ -440,6 +448,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           .pipe(untilDestroyed(this))
           .subscribe({
             next: () => {
+              this.accionEnCurso = false;
               this.notificacionSnackbar.notification$.next({
                 color: NotificacionColor.success,
                 texto: 'El cobro ' + item.id + ' quedó sin conciliar, con tu usuario y el motivo.',
@@ -448,6 +457,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
               this.onGetData();
             },
             error: (err) => {
+              this.accionEnCurso = false;
               this.notificacionSnackbar.notification$.next({
                 color: NotificacionColor.danger,
                 texto: mensajeDeError(err, 'No se pudo marcar el cobro.'),

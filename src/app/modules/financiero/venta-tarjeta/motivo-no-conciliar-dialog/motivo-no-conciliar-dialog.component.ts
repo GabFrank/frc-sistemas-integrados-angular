@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MOTIVOS_NO_COMPLETADO } from '../venta-tarjeta.model';
 
@@ -46,8 +46,12 @@ export class MotivoNoConciliarDialogComponent {
     this.motivoControl.valueChanges.subscribe((v) => {
       this.exigeTexto = v === 'OTRO';
       // "Otro" sin texto no dice nada: es exactamente el caso que la lista no cubre.
+      //
+      // `Validators.required` NO alcanza: rechaza null/''/false pero da por bueno ' ', y entonces
+      // el diálogo cierra y `onConfirmar` lo convierte en null al trimear. Quedaba OTRO sin
+      // observación, que es justo lo que este campo existe para impedir.
       if (this.exigeTexto) {
-        this.observacionControl.setValidators(Validators.required);
+        this.observacionControl.setValidators(textoConAlgoQueLeer);
       } else {
         this.observacionControl.clearValidators();
       }
@@ -68,4 +72,9 @@ export class MotivoNoConciliarDialogComponent {
   onCancelar(): void {
     this.dialogRef.close(null);
   }
+}
+
+/** Rechaza lo que quede vacío después de recortar: un espacio no es un motivo. */
+function textoConAlgoQueLeer(control: AbstractControl): ValidationErrors | null {
+  return (control.value || '').trim().length > 0 ? null : { required: true };
 }
