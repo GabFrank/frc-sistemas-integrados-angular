@@ -118,13 +118,18 @@
 .texto-leido {
   margin-top: 10px;
 
+  // El color va explicito, como en los otros dos bloques de texto crudo (escanear-cupon-dialog,
+  // registrar-venta-tarjeta-dialog): el `pre` no hereda el color del tema y sale negro sobre el
+  // fondo oscuro, o sea ilegible justo donde hay que mirar por que no matcheo.
   pre {
     font-size: 11px;
     max-height: 220px;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.25);
+    background: #1e1e1e;
+    color: #e0e0e0;
     padding: 8px;
     border-radius: 4px;
     white-space: pre-wrap;
+    word-break: break-word;
   }
 }
