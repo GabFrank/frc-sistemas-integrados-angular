@@ -108,7 +108,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, map, startWith, switchMap, takeUntil } from "rxjs/operators";
+import { catchError, finalize, map, startWith, switchMap, takeUntil } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -158,6 +158,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   dialogReference;
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
+  // Guardado de una venta en curso, desde que se dispara la mutation hasta que responde. Se levanta
+  // de forma síncrona: isCargando llega ~140 ms tarde y en esa ventana F12 abría el pago de una venta
+  // que F8 ya estaba cobrando (#316).
+  guardandoVenta = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
   buscadorOpenSearch: Subject<void> = new Subject<void>();
   clearBuscadorSub: Subject<void> = new Subject<void>();
@@ -398,7 +402,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.container.nativeElement.addEventListener("keydown", (e) => {
-      if (!this.isDialogOpen && !this.isCargando) {
+      if (!this.isDialogOpen && !this.isCargando && !this.guardandoVenta) {
         switch (e.key) {
           // Los guards miran el carrito activo (PDV 1, PDV 2 o delivery), igual que los botones.
           case "F12":
@@ -977,6 +981,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedTipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
   }
 
+  private avisarErrorAlGuardar(err: any, texto: string): void {
+    console.error("Error al guardar la venta:", err);
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.danger,
+      texto,
+      duracion: 10,
+    });
+  }
+
   /** Carrito del PDV activo. Fuera de delivery, selectedItemList siempre apunta a este array. */
   private carritoActivo(): VentaItem[] {
     return this.isAuxiliar ? this.itemList2 : this.itemList;
@@ -1023,7 +1036,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPagoClick() {
-    if (this.modoConsulta) return;
+    if (this.modoConsulta || this.guardandoVenta) return;
     // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
     // marcarlo igual dejaba todos los atajos de teclado muertos.
     if (!(this.selectedItemList?.length > 0)) return;
@@ -1085,19 +1098,35 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               venta.cobro = cobro;
               venta.delivery = this.selectedDelivery;
 
-              this.ventaService
-                .onSaveVentaDelivery(
+              // Los toInput() corren antes de que exista el observable: si lanzan, el finalize no
+              // llega a conectarse y guardandoVenta quedaría en true para siempre (#316).
+              let guardadoDelivery$: Observable<any>;
+              this.guardandoVenta = true;
+              try {
+                guardadoDelivery$ = this.ventaService.onSaveVentaDelivery(
                   venta.toInput(),
                   this.selectedDelivery.toInput(),
                   cobro.toItemInputList(),
                   ventaCredito != null ? ventaCredito.toInput() : null,
                   ventaCredito != null ? ventaCreditoCuotaInputList : null,
                   false
+                );
+              } catch (err) {
+                this.guardandoVenta = false;
+                this.avisarErrorAlGuardar(err, "No se pudo guardar el delivery. Verifique antes de continuar.");
+              }
+              guardadoDelivery$
+                ?.pipe(
+                  untilDestroyed(this),
+                  finalize(() => (this.guardandoVenta = false))
                 )
-                .pipe(untilDestroyed(this))
-                .subscribe((ventaDeliveryRes) => {
-                  this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
-                  this.volverAlCarritoActivo();
+                .subscribe({
+                  next: (ventaDeliveryRes) => {
+                    this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
+                    this.volverAlCarritoActivo();
+                  },
+                  error: (err) =>
+                    this.avisarErrorAlGuardar(err, "No se pudo guardar el delivery. Verifique antes de continuar."),
                 });
 
               // this.onSaveVenta(
@@ -1215,7 +1244,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTicketClick(ticket?: boolean) {
-    if (this.modoConsulta) return;
+    if (this.modoConsulta || this.guardandoVenta) return;
     // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
     // facturación silenciosa); en delivery se cobra con onPagoClick, no por acá (#312).
     if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
@@ -1319,8 +1348,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.isDelivery) venta.delivery = this.selectedDelivery;
     if (this.modoConsulta) return;
     return new Observable((obs) => {
-      this.ventaTouchServive
-        .onSaveVenta(
+      // Se levanta acá, dentro del observable y después del chequeo de modoConsulta, y se baja en el
+      // finalize del pipe interno: onTicketClick hace .subscribe().unsubscribe() sobre este observable
+      // y un finalize externo lo bajaría en el mismo tick (#316).
+      this.guardandoVenta = true;
+      let guardado$: Observable<any>;
+      try {
+        // VentaService.onSaveVenta arma los toInput() antes de devolver el observable.
+        guardado$ = this.ventaTouchServive.onSaveVenta(
           venta,
           cobro,
           ticket || ventaCreditoInput != null,
@@ -1328,8 +1363,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           ventaCreditoCuotaInputList,
           facturar,
           false
+        );
+      } catch (err) {
+        this.guardandoVenta = false;
+        this.avisarErrorAlGuardar(
+          err,
+          facturaLegalId != null
+            ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+            : "No se pudo guardar la venta. Verifique antes de continuar."
+        );
+        obs.next(null);
+        return;
+      }
+      guardado$
+        .pipe(
+          untilDestroyed(this),
+          finalize(() => (this.guardandoVenta = false))
         )
-        .pipe(untilDestroyed(this))
         .subscribe({
           next: (res) => {
             if (res?.id != null) {
@@ -1338,98 +1388,104 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 texto: "Venta guardada con éxito",
                 duracion: 2,
               });
-              if (facturaLegalId != null) {
-                // La factura se generó manualmente antes de que la venta existiera
-                // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
-                this.facturaLegalService
-                  .onVincularFacturaAVenta(facturaLegalId, res.id, false)
-                  .pipe(untilDestroyed(this))
-                  .subscribe({
-                    error: (err) =>
-                      console.error("Error al vincular factura a la venta:", err),
-                  });
-              }
-              if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
-                const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
-                const personaId = venta.cliente?.persona?.id;
-  
-                if (personaId && sucursalId) {
-                  this.notificationHttpService.sendCompraCreditoNotification(
-                    res.id,
-                    sucursalId,
-                    personaId,
-                    ventaCreditoInput.valorTotal,
-                    this.mainService.sucursalActual?.nombre
-                  ).subscribe({
-                    next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
-                    error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
-                  });
+              // La venta ya está guardada: nada de lo que sigue puede impedir que se limpie el
+              // carrito, o se podría cobrar dos veces (#316).
+              try {
+                if (facturaLegalId != null) {
+                  // La factura se generó manualmente antes de que la venta existiera
+                  // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+                  this.facturaLegalService
+                    .onVincularFacturaAVenta(facturaLegalId, res.id, false)
+                    .pipe(untilDestroyed(this))
+                    .subscribe({
+                      error: (err) =>
+                        console.error("Error al vincular factura a la venta:", err),
+                    });
                 }
-              }
-              if (cobro?.cobroDetalleList?.length > 0) {
-                const pagoTransferencia = cobro.cobroDetalleList.find(
-                  (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
-                );
-  
-                if (pagoTransferencia) {
-                  const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-  
-                  const totalTransferencia = cobro.cobroDetalleList
-                    .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
-                    .reduce((acc, curr) => acc + curr.valor, 0);
-  
-                  if (sucursalId && totalTransferencia > 0) {
-                    this.notificationHttpService.sendVentaTransferenciaNotification(
+                if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
+                  const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
+                  const personaId = venta.cliente?.persona?.id;
+    
+                  if (personaId && sucursalId) {
+                    this.notificationHttpService.sendCompraCreditoNotification(
                       res.id,
                       sucursalId,
-                      totalTransferencia,
-                      this.mainService.usuarioActual?.persona?.nombre,
+                      personaId,
+                      ventaCreditoInput.valorTotal,
                       this.mainService.sucursalActual?.nombre
                     ).subscribe({
-                      next: () => console.log('Notificación de Transferencia enviada exitosamente'),
-                      error: (err) => console.error('Error al enviar notificación de transferencia:', err)
+                      next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                      error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                     });
                   }
                 }
-              }
-  
-              const sucursalId =
-                this.cajaService.selectedCaja?.sucursalId ||
-                this.mainService.sucursalActual?.id;
-              if (res.id && sucursalId) {
-                this.getStockCriticoItems$(sucursalId)
-                  .pipe(untilDestroyed(this))
-                  .subscribe((stockCriticoItems) => {
-                    if (stockCriticoItems.length === 0) {
-                      return;
-                    }
-                    this.notificationHttpService
-                      .sendVentaStockCriticoNotification({
-                        ventaId: res.id,
+                if (cobro?.cobroDetalleList?.length > 0) {
+                  const pagoTransferencia = cobro.cobroDetalleList.find(
+                    (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
+                  );
+    
+                  if (pagoTransferencia) {
+                    const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+    
+                    const totalTransferencia = cobro.cobroDetalleList
+                      .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
+                      .reduce((acc, curr) => acc + curr.valor, 0);
+    
+                    if (sucursalId && totalTransferencia > 0) {
+                      this.notificationHttpService.sendVentaTransferenciaNotification(
+                        res.id,
                         sucursalId,
-                        usuarioNombre:
-                          this.mainService.usuarioActual?.persona?.nombre,
-                        sucursalNombre: this.mainService.sucursalActual?.nombre,
-                        items: stockCriticoItems,
-                      })
-                      .subscribe({
-                        next: () =>
-                          console.log(
-                            "Notificación de stock crítico enviada exitosamente"
-                          ),
-                        error: (err) =>
-                          console.error(
-                            "Error al enviar notificación de stock crítico:",
-                            err
-                          ),
+                        totalTransferencia,
+                        this.mainService.usuarioActual?.persona?.nombre,
+                        this.mainService.sucursalActual?.nombre
+                      ).subscribe({
+                        next: () => console.log('Notificación de Transferencia enviada exitosamente'),
+                        error: (err) => console.error('Error al enviar notificación de transferencia:', err)
                       });
-                  });
+                    }
+                  }
+                }
+    
+                const sucursalId =
+                  this.cajaService.selectedCaja?.sucursalId ||
+                  this.mainService.sucursalActual?.id;
+                if (res.id && sucursalId) {
+                  this.getStockCriticoItems$(sucursalId)
+                    .pipe(untilDestroyed(this))
+                    .subscribe((stockCriticoItems) => {
+                      if (stockCriticoItems.length === 0) {
+                        return;
+                      }
+                      this.notificationHttpService
+                        .sendVentaStockCriticoNotification({
+                          ventaId: res.id,
+                          sucursalId,
+                          usuarioNombre:
+                            this.mainService.usuarioActual?.persona?.nombre,
+                          sucursalNombre: this.mainService.sucursalActual?.nombre,
+                          items: stockCriticoItems,
+                        })
+                        .subscribe({
+                          next: () =>
+                            console.log(
+                              "Notificación de stock crítico enviada exitosamente"
+                            ),
+                          error: (err) =>
+                            console.error(
+                              "Error al enviar notificación de stock crítico:",
+                              err
+                            ),
+                        });
+                    });
+                }
+    
+                const tarjetaPagos = this._pendingTarjetaPagos;
+                this._pendingTarjetaPagos = [];
+                this.registrarPagosConTarjeta(tarjetaPagos, res.id);
+              } catch (err) {
+                console.error("Error después de guardar la venta:", err);
               }
-  
-              const tarjetaPagos = this._pendingTarjetaPagos;
-              this._pendingTarjetaPagos = [];
-              this.registrarPagosConTarjeta(tarjetaPagos, res.id);
-  
+
               this.resetForm();
               obs.next(res);
             } else {
