@@ -333,18 +333,18 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     };
 
     this.guardando = true;
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.loteService.onAjustarStockLote(input)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (resultado) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.guardando = false;
           this.notificacionService.openGuardadoConExito();
           this.dialogRef.close(resultado);
         },
         error: () => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.guardando = false;
           this.notificacionService.openAlgoSalioMal('No se pudo guardar el ajuste.');
           this.cdr.markForCheck();
