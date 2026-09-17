@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, FormArray } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ConfiguracionSistema, ConfiguracionService, UpdateChannel } from '../../services/configuracion.service';
 
@@ -36,12 +36,16 @@ export class ConfiguracionDialogComponent implements OnInit {
   }
 
   onSave(): void {
+    // El recorte va ANTES de mirar `valid`: `Validators.required` da por bueno un campo con un
+    // solo espacio, asi que validar sobre el valor crudo dejaba pasar una IP en blanco, que
+    // termina en el mismo DOMException que este fix vino a matar.
+    this.normalizarEspacios();
     if (this.configForm.valid) {
       // Se recorta TODO antes de armar la config, no campo por campo. Un espacio pegado sin
       // querer en la IP --`' 100.64.0.2'`-- produce `ws:// 100.64.0.2:8080/...` y sale un
       // `DOMException: Failed to construct 'WebSocket': The URL is invalid` que no menciona la
       // configuracion por ningun lado. Costo un rato de diagnostico en el testeo del 2026-09-08.
-      const formValue = recortarStrings(this.configForm.value);
+      const formValue = this.configForm.value;
       
       // Convert form values to ConfiguracionSistema
       const config: ConfiguracionSistema = {
@@ -98,22 +102,23 @@ export class ConfiguracionDialogComponent implements OnInit {
     // Use the configuration service to create a backup
     this.configService.createConfigBackup();
   }
+
+  /**
+   * Deja el formulario sin espacios de sobra, control por control, ANTES de validar.
+   *
+   * Recortar el VALOR al guardar no alcanzaba: `Validators.required` sólo rechaza null/''/false,
+   * así que un campo con un espacio pasaba la validación y recién después quedaba vacío. Tocando
+   * los controles, lo que se valida es lo que se va a guardar.
+   */
+  private normalizarEspacios(control: AbstractControl = this.configForm): void {
+    if (control instanceof FormGroup || control instanceof FormArray) {
+      Object.values(control.controls).forEach((c) => this.normalizarEspacios(c as AbstractControl));
+      return;
+    }
+    const v = control.value;
+    if (typeof v === 'string' && v !== v.trim()) {
+      control.setValue(v.trim(), { emitEvent: false });
+    }
+  }
 }
 
-/**
- * Recorta los espacios de todos los strings de un objeto, en profundidad.
- *
- * En profundidad y no campo por campo a proposito: el bug lo produjo la IP, pero cualquier campo
- * de esta pantalla termina concatenado en una URL, en un nombre de impresora o en una lista de
- * precios, y un espacio invisible en cualquiera de ellos falla lejos de donde se escribio.
- */
-function recortarStrings<T>(valor: T): T {
-  if (typeof valor === 'string') return valor.trim() as unknown as T;
-  if (Array.isArray(valor)) return valor.map((v) => recortarStrings(v)) as unknown as T;
-  if (valor && typeof valor === 'object') {
-    const salida: any = {};
-    Object.keys(valor as any).forEach((k) => (salida[k] = recortarStrings((valor as any)[k])));
-    return salida as T;
-  }
-  return valor;
-}

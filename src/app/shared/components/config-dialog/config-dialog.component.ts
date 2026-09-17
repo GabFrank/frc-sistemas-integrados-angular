@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, Validators, AbstractControl } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AppConfig } from '../../services/config.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
@@ -105,12 +105,15 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   saveConfig(): void {
+    // El recorte va ANTES de mirar `valid`: `Validators.required` da por bueno un campo con un
+    // solo espacio, asi que validar sobre el valor crudo dejaba pasar una IP en blanco.
+    this.normalizarEspacios();
     if (this.configForm.valid) {
       // Se recorta TODO, no solo `server.ip` y `server.port` como hacian las dos suscripciones de
       // arriba: la IP y el puerto de CADA sucursal salen del mismo formulario y tienen el mismo
       // problema. Un espacio pegado sin querer arma `ws:// 100.64.0.2:8080/...` y falla con un
       // `DOMException: The URL is invalid` que no menciona la configuracion por ningun lado.
-      this.dialogRef.close(recortarStrings(this.configForm.value));
+      this.dialogRef.close(this.configForm.value);
     } else {
       this.notificationService.openWarn('Por favor corrija los errores en el formulario');
       this.markFormGroupTouched(this.configForm);
@@ -135,16 +138,23 @@ export class ConfigDialogComponent implements OnInit {
     }
     this.dialogRef.close();
   }
+
+  /**
+   * Deja el formulario sin espacios de sobra, control por control, ANTES de validar.
+   *
+   * Recortar el VALOR al guardar no alcanzaba: `Validators.required` sólo rechaza null/''/false,
+   * así que un campo con un espacio pasaba la validación y recién después quedaba vacío. Tocando
+   * los controles, lo que se valida es lo que se va a guardar.
+   */
+  private normalizarEspacios(control: AbstractControl = this.configForm): void {
+    if (control instanceof FormGroup || control instanceof FormArray) {
+      Object.values(control.controls).forEach((c) => this.normalizarEspacios(c as AbstractControl));
+      return;
+    }
+    const v = control.value;
+    if (typeof v === 'string' && v !== v.trim()) {
+      control.setValue(v.trim(), { emitEvent: false });
+    }
+  }
 }
 
-/** Recorta los espacios de todos los strings de un objeto, en profundidad. */
-function recortarStrings<T>(valor: T): T {
-  if (typeof valor === 'string') return valor.trim() as unknown as T;
-  if (Array.isArray(valor)) return valor.map((v) => recortarStrings(v)) as unknown as T;
-  if (valor && typeof valor === 'object') {
-    const salida: any = {};
-    Object.keys(valor as any).forEach((k) => (salida[k] = recortarStrings((valor as any)[k])));
-    return salida as T;
-  }
-  return valor;
-}
