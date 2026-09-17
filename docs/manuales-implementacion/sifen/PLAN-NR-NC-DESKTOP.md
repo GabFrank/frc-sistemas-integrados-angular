@@ -222,3 +222,12 @@ consultar, anular, XML.
   una segunda query.
 - Que `ReportesComponent` (visor del padrón de impresión) renderice un PDF A4 apaisado si el KuDE de
   NR lo requiere — la referencia usa vertical; se asume vertical.
+
+## 7 · Entrelazado con los otros repos
+
+Este plan no se ejecuta solo. El orden de entregas (filial → central → desktop, por fase y por
+canal) y el **prompt de arranque para el agente que implementa** están en el plan maestro de
+central, §12 (`docs/manuales-implementacion/sifen/PLAN-NOTA-REMISION-NOTA-CREDITO.md`, rama
+`feature/sifen-nota-remision-nota-credito`). Regla que aplica acá: **el PR del desktop se mergea y
+se promueve siempre después del de central del mismo canal**; el desktop de un canal nunca pide
+`notaRemisiones` a un central que todavía no la tiene.
