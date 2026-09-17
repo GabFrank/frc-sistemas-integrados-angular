@@ -18,7 +18,7 @@
       </button>
 
       <!-- El camino que no depende de que el teléfono alcance a central. -->
-      <button mat-stroked-button [disabled]="cargando" (click)="archivo.click()">
+      <button mat-stroked-button [disabled]="cargando || esperandoFoto" (click)="archivo.click()">
         <mat-icon>upload_file</mat-icon>
         Probar con una foto
       </button>
@@ -28,7 +28,7 @@
     <div *ngIf="!esMaquina" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
       <mat-form-field appearance="outline" fxFlex="60%" subscriptSizing="dynamic">
         <mat-label>Cadena del cupón</mat-label>
-        <input matInput [formControl]="cadenaControl" autocomplete="off"
+        <input matInput [formControl]="cadenaControl" autocomplete="off" [readonly]="cargando"
                placeholder="Apuntá el lector al QR del cupón"
                (keyup.enter)="onProbarCadena()" />
       </mat-form-field>

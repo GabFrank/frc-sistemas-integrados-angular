@@ -90,7 +90,11 @@ export class MapaFormatoService {
         texto: origen?.texto ?? null,
       },
       // Contra CENTRAL, como todo el ciclo del formato.
-      true
+      true,
+      // ⚠️ `propagate: true` NO es opcional acá. Sin él, `onCustomQuery` se traga el error de red y
+      // NO emite ni `next` ni `error` --verificado en generic-crud.service.ts:170-185-- así que el
+      // panel se queda en "Probando…" para siempre, sin spinner que termine ni mensaje que leer.
+      { networkError: { propagate: true } }
     );
   }
 

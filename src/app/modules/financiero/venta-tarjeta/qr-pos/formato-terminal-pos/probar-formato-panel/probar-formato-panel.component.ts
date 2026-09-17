@@ -8,6 +8,9 @@ import { FormatoTerminalPos } from '../formato-terminal-pos.model';
 import { MapaFormatoService } from '../mapa-formato.service';
 import { CapturaMuestraQr, ResultadoPruebaFormato } from '../mapa-formato.model';
 
+/** Marca el corte por formulario incompleto, que ya se avisó por snackbar y no se repite. */
+export const ERROR_FORMULARIO_INCOMPLETO = 'FORMULARIO_INCOMPLETO';
+
 /**
  * Prueba el formato contra un cupón real, sin cobrarle a nadie.
  *
@@ -33,9 +36,6 @@ import { CapturaMuestraQr, ResultadoPruebaFormato } from '../mapa-formato.model'
   styleUrls: ['./probar-formato-panel.component.scss'],
 })
 export class ProbarFormatoPanelComponent implements OnDestroy {
-
-  /** El formato guardado. `null` mientras el formato nunca se guardó. */
-  @Input() formato: FormatoTerminalPos;
 
   /** MAQUINA se prueba con una foto; los demás, con la cadena que escupe el lector. */
   @Input() esMaquina = false;
@@ -81,6 +81,7 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
 
   /** El camino de los formatos MAQUINA: QR en pantalla, foto desde el teléfono. */
   onProbarConFoto(): void {
+    if (this.ocupado()) return;
     this.preparar();
     this.guardarYSeguir((formato) => this.abrirCaptura(formato.id));
   }
@@ -89,7 +90,7 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
   onArchivo(evento: any): void {
     const archivo: File = evento?.target?.files?.[0];
     evento.target.value = '';
-    if (!archivo) return;
+    if (!archivo || this.ocupado()) return;
 
     this.preparar();
     this.guardarYSeguir((formato) => {
@@ -115,6 +116,10 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
 
   /** El camino de los formatos de lector: la cadena entra por el input. */
   onProbarCadena(): void {
+    // ⚠️ La guarda importa ACÁ más que en los botones: el input se dispara con `keyup.enter` y el
+    // lector manda su propio Enter --a veces más de uno-- así que sin esto salen dos pruebas en
+    // paralelo escribiendo el mismo `resultado`, con dos diálogos de "Buscando…" encimados.
+    if (this.ocupado()) return;
     const texto = (this.cadenaControl.value || '').trim();
     if (!texto) {
       this.error = 'Escaneá el cupón: el campo está vacío.';
@@ -124,8 +129,21 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
     this.guardarYSeguir((formato) => this.probar(formato.id, { texto }));
   }
 
+  /** Hay algo en vuelo: una prueba corriendo o un QR esperando su foto. */
+  private ocupado(): boolean {
+    return this.cargando || this.esperandoFoto;
+  }
+
   private preparar(): void {
     this.detenerSondeo();
+    // La muestra anterior se cierra en central en vez de quedar ocupando memoria hasta vencer.
+    // Pasa cada vez que se cambia de camino a mitad: QR esperando la foto y el operador decide
+    // subir un archivo.
+    if (this.qr?.token) {
+      this.service.onCerrarMuestra(this.qr.token).subscribe({ error: () => {} });
+      this.qr = null;
+      this.urlQr = null;
+    }
     this.esperandoFoto = false;
     this.error = null;
     this.resultado = null;
@@ -152,10 +170,17 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
           this.error = 'El formato no se guardó, así que no hay nada contra qué probar.';
           return;
         }
-        this.formato = formato;
         seguir(formato);
       },
-      error: () => (this.cargando = false),
+      error: (err) => {
+        this.cargando = false;
+        // El guardado incompleto ya avisó por snackbar y llevó a la solapa del hueco; ese caso
+        // llega con un Error propio y no se repite acá. Cualquier otro --nombre repetido, red
+        // caída-- sólo lo vería quien apretó Guardar a mano, y este camino se quedaba mudo.
+        if (err?.message !== ERROR_FORMULARIO_INCOMPLETO) {
+          this.error = mensajeDeError(err, 'No se pudo guardar el formato antes de probar.');
+        }
+      },
     });
   }
 
@@ -212,6 +237,12 @@ export class ProbarFormatoPanelComponent implements OnDestroy {
     this.service.onProbarFormato(formatoId, origen).pipe(untilDestroyed(this)).subscribe({
       next: (res) => {
         this.cargando = false;
+        // `onCustomQuery` convierte el error de GraphQL en `next(null)` --ya mostró su snackbar--
+        // así que sin esto la pantalla se quedaba sin resultado y sin explicación.
+        if (!res) {
+          this.error = 'El servidor no devolvió un resultado. Revisá el formato y probá de nuevo.';
+          return;
+        }
         this.resultado = res;
       },
       error: (err) => {
