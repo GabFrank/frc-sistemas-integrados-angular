@@ -101,3 +101,28 @@ table {
     }
   }
 }
+
+.accion-no-conciliar {
+  cursor: pointer;
+  color: #f57c00;
+  margin-left: 6px;
+}
+
+// Debajo del chip de estado, no en una columna propia: sólo tiene contenido en las filas
+// NO_COMPLETADO, y una columna entera vacía para el resto no paga su ancho.
+.motivo-no-conciliado {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+  line-height: 1.2;
+
+  .quien {
+    opacity: 0.8;
+  }
+}
+
+.accion-reimprimir {
+  cursor: pointer;
+  opacity: 0.8;
+  margin-left: 6px;
+}

@@ -115,8 +115,8 @@
         </ng-container>
 
         <ng-container matColumnDef="terminal">
-          <th mat-header-cell *matHeaderCellDef style="width: 16%">Terminal</th>
-          <td mat-cell *matCellDef="let item" style="width: 16%">
+          <th mat-header-cell *matHeaderCellDef style="width: 13%">Terminal</th>
+          <td mat-cell *matCellDef="let item" style="width: 13%">
             {{ item.terminalPos?.descripcion }} - {{ item.terminalPos?.codigo }}
           </td>
         </ng-container>
@@ -130,8 +130,8 @@
         </ng-container>
 
         <ng-container matColumnDef="escaneado">
-          <th mat-header-cell *matHeaderCellDef style="width: 13%">Cupón</th>
-          <td mat-cell *matCellDef="let item" style="width: 13%">
+          <th mat-header-cell *matHeaderCellDef style="width: 11%">Cupón</th>
+          <td mat-cell *matCellDef="let item" style="width: 11%">
             <ng-container *ngIf="item.montoEscaneado != null; else sinCupon">
               <span [class.diferencia]="item.montoEscaneado !== item.monto">
                 {{ item.montoEscaneado | number: item.digitosMoneda }}
@@ -151,18 +151,44 @@
               [class.chip-completado]="item.estado === 'COMPLETADO'"
               [class.chip-terminal]="item.estado === 'NO_COMPLETADO' || item.estado === 'CANCELADO'"
             >{{ item.estado }}</span>
+            <!-- El motivo va PEGADO al estado: un NO_COMPLETADO sin motivo no dice nada, y el que
+                 lo revisa necesita ver los dos juntos sin abrir nada. -->
+            <div class="motivo-no-conciliado" *ngIf="item.motivoTexto"
+                 [matTooltip]="item.noCompletadoObservacion">
+              {{ item.motivoTexto }}
+              <span class="quien" *ngIf="item.noCompletadoPor">
+                · {{ item.noCompletadoPor.nickname }}
+              </span>
+            </div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef style="width: 7%"></th>
-          <td mat-cell *matCellDef="let item" style="width: 7%">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%"></th>
+          <td mat-cell *matCellDef="let item" style="width: 12%">
             <mat-icon
               *ngIf="item.estado === 'PENDIENTE'"
               class="accion-registrar"
               matTooltip="Registrar cupón"
               (click)="onCompletar(item)"
             >qr_code_scanner</mat-icon>
+            <!-- Para cuando el papel no está: no salió, se mojó, se traspapeló. Sin esto la
+                 única salida era buscar la fila a ojo entre cobros del mismo monto. -->
+            <mat-icon
+              *ngIf="item.estado === 'PENDIENTE'"
+              class="accion-reimprimir"
+              matTooltip="Reimprimir la seña"
+              (click)="onReimprimirSena(item)"
+            >print</mat-icon>
+            <!-- La salida para el cobro cuyo cupón no existe. Pide motivo y queda registrado con
+                 el usuario y la hora: es lo que permite que el cajero cierre su caja sin que la
+                 decisión desaparezca. -->
+            <mat-icon
+              *ngIf="item.estado === 'PENDIENTE'"
+              class="accion-no-conciliar"
+              matTooltip="Dejar sin conciliar"
+              (click)="onNoConciliar(item)"
+            >block</mat-icon>
           </td>
         </ng-container>
 

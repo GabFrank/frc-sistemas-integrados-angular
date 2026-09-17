@@ -54,4 +54,32 @@ export interface VentaTarjeta {
    */
   simboloMoneda?: string;
   digitosMoneda?: string;
+  /**
+   * Por qué este cobro quedó sin conciliar: `CUPON_NO_IMPRESO` | `POS_FALLADO` | `CUPON_PERDIDO` |
+   * `OTRO`. `null` en todo lo que no sea NO_COMPLETADO, y también en los NO_COMPLETADO viejos:
+   * antes de esta entrega el estado no guardaba ni quién lo marcó ni por qué.
+   */
+  noCompletadoMotivo?: string;
+  /** Lo que el cajero escribió. Obligatorio cuando el motivo es `OTRO`. */
+  noCompletadoObservacion?: string;
+  /** Quién decidió cerrar sin conciliar. Es a quien hay que preguntarle al revisar. */
+  noCompletadoPor?: { id: number; nickname: string; };
+  noCompletadoEn?: string;
+  /** El motivo en palabras, calculado al recibir la fila: el template no puede llamar funciones. */
+  motivoTexto?: string;
+}
+
+/** Los motivos válidos, con el texto que ve el cajero. Espeja el CHECK de la columna (V102.5). */
+export const MOTIVOS_NO_COMPLETADO: { valor: string; texto: string }[] = [
+  { valor: 'CUPON_NO_IMPRESO', texto: 'El cupón no se imprimió' },
+  { valor: 'POS_FALLADO', texto: 'La terminal falló después de cobrar' },
+  { valor: 'CUPON_PERDIDO', texto: 'El cupón se perdió' },
+  { valor: 'OTRO', texto: 'Otro motivo' },
+];
+
+/** El texto de un motivo, o el código crudo si viniera uno que esta versión no conoce. */
+export function textoMotivoNoCompletado(motivo: string): string {
+  if (!motivo) return null;
+  const m = MOTIVOS_NO_COMPLETADO.find((x) => x.valor === motivo);
+  return m ? m.texto : motivo;
 }

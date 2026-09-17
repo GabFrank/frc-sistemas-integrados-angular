@@ -1,0 +1,37 @@
+<div class="motivo-dialog" fxLayout="column" fxLayoutGap="10px">
+
+  <div class="titulo">Dejar sin conciliar</div>
+  <div class="subtitulo" *ngIf="data?.cuantos > 1">
+    {{ data.cuantos }} cobros con tarjeta de esta caja
+  </div>
+  <div class="subtitulo" *ngIf="!data?.cuantos || data.cuantos === 1">
+    Este cobro con tarjeta
+  </div>
+
+  <p class="ayuda">
+    Queda registrado con tu usuario y la hora. <b>No se puede deshacer</b>: ese cobro ya no se va a
+    poder registrar, y su plata queda sin cupón contra el cual conciliar la liquidación.
+  </p>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Motivo</mat-label>
+    <mat-select [formControl]="motivoControl">
+      <mat-option *ngFor="let m of motivos" [value]="m.valor">{{ m.texto }}</mat-option>
+    </mat-select>
+    <mat-error *ngIf="motivoControl.hasError('required')">Elegí un motivo.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>{{ exigeTexto ? 'Qué pasó' : 'Detalle (opcional)' }}</mat-label>
+    <textarea matInput rows="3" [formControl]="observacionControl" maxlength="255"></textarea>
+    <mat-error *ngIf="observacionControl.hasError('required')">
+      Escribí qué pasó: "Otro motivo" sin detalle no dice nada.
+    </mat-error>
+  </mat-form-field>
+
+  <div fxLayout="row" fxLayoutAlign="center" fxLayoutGap="10px" class="acciones">
+    <button mat-raised-button class="btn-salir" (click)="onCancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-warn" (click)="onConfirmar()">Dejar sin conciliar</button>
+  </div>
+
+</div>

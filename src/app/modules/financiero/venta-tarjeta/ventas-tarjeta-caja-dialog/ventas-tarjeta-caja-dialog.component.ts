@@ -10,12 +10,21 @@ import { Moneda } from '../../moneda/moneda.model';
 import { MonedaService } from '../../moneda/moneda.service';
 import { TerminalPos } from '../../terminal-pos/terminal-pos.model';
 import { TerminalPosService } from '../../terminal-pos/terminal-pos.service';
-import { VentaTarjeta } from '../venta-tarjeta.model';
+import { textoMotivoNoCompletado, VentaTarjeta } from '../venta-tarjeta.model';
+import {
+  MotivoNoConciliarDialogComponent,
+  MotivoNoConciliarResultado,
+} from '../motivo-no-conciliar-dialog/motivo-no-conciliar-dialog.component';
 import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { descodificarQr } from '../../../../shared/qr-code/qr-code.component';
 import { debounceTime, filter, map } from 'rxjs/operators';
+import { mensajeDeError } from '../qr-pos/mensaje-error';
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from '../../../../notificacion-snackbar.service';
 
 export interface VentasTarjetaCajaDialogData {
   cajaId: number;
@@ -103,6 +112,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private terminalPosService: TerminalPosService,
     private matDialog: MatDialog,
+    private notificacionSnackbar: NotificacionSnackbarService,
     public mainService: MainService
   ) {}
 
@@ -348,7 +358,104 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       ...item,
       simboloMoneda: moneda?.simbolo ?? 'Gs.',
       digitosMoneda: `1.${decimales}-${decimales}`,
+      // El motivo en palabras se resuelve acá: el template no puede llamar funciones.
+      motivoTexto: textoMotivoNoCompletado(item?.noCompletadoMotivo),
     };
+  }
+
+  /**
+   * Vuelve a imprimir la seña de un cobro pendiente.
+   *
+   * <b>Para cuando el papel no está</b>: no salió porque la caja no tenía impresora configurada,
+   * se mojó, se traspapeló. Sin esto la única salida era buscar la fila a ojo entre cobros del
+   * mismo monto, que es justamente lo que la seña existe para evitar.
+   *
+   * Reimprime con los datos de la fila, así que el QR sale idéntico al original salvo el sello de
+   * tiempo, que no se valida.
+   */
+  onReimprimirSena(item: VentaTarjeta): void {
+    if (item?.estado !== 'PENDIENTE') return;
+    this.ventaTarjetaService
+      .onImprimirSena({
+        ventaId: Number(item.ventaId),
+        ventaTarjetaId: Number(item.id),
+        sucursalId: Number(item.sucursalId ?? this.mainService.sucursalActual?.id),
+        cajaId: Number(item.cajaId ?? this.data.cajaId),
+        cajero: item.usuario?.nickname,
+        terminal: item.terminalPos?.descripcion,
+        monto: item.monto,
+        monedaSimbolo: item.simboloMoneda,
+        decimales: (item.moneda ?? item.terminalPos?.moneda)?.decimales ?? 0,
+      })
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (impreso) => {
+          this.notificacionSnackbar.notification$.next({
+            color: impreso ? NotificacionColor.success : NotificacionColor.warn,
+            texto: impreso
+              ? 'Comprobante reimpreso.'
+              : 'La impresora no respondió. Anotá venta ' + item.ventaId + ' y cobro ' + item.id + '.',
+            duracion: impreso ? 3 : 8,
+          });
+        },
+        error: (err) => {
+          this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.warn,
+            texto: mensajeDeError(err, 'No se pudo reimprimir el comprobante.'),
+            duracion: 8,
+          });
+        },
+      });
+  }
+
+  /**
+   * Deja este cobro sin conciliar, con motivo.
+   *
+   * <b>Es la salida del cobro cuyo cupón no existe</b> —no se imprimió, la terminal falló, el
+   * papel se perdió— y la condición para que el cajero pueda cerrar su caja sin depender de un
+   * supervisor. Lo que la hace aceptable es el rastro: motivo, usuario y hora quedan en la fila.
+   *
+   * No se puede deshacer, y por eso el diálogo lo dice antes.
+   */
+  onNoConciliar(item: VentaTarjeta): void {
+    if (item?.estado !== 'PENDIENTE') return;
+    this.matDialog
+      .open(MotivoNoConciliarDialogComponent, {
+        width: '460px',
+        disableClose: true,
+        data: { cuantos: 1 },
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: MotivoNoConciliarResultado) => {
+        if (!res?.motivo) return;
+        this.ventaTarjetaService
+          .onMarcarNoCompletada(
+            Number(item.id),
+            Number(this.mainService.sucursalActual?.id),
+            res.motivo,
+            res.observacion,
+            this.mainService.usuarioActual?.id
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: () => {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: 'El cobro ' + item.id + ' quedó sin conciliar, con tu usuario y el motivo.',
+                duracion: 4,
+              });
+              this.onGetData();
+            },
+            error: (err) => {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: mensajeDeError(err, 'No se pudo marcar el cobro.'),
+                duracion: 6,
+              });
+            },
+          });
+      });
   }
 
   onCompletar(item: VentaTarjeta): void {

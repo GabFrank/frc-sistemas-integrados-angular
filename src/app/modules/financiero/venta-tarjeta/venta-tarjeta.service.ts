@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { SaveVentaTarjetaGQL, VentaTarjetaResult } from './graphql/saveVentaTarjeta';
@@ -10,6 +10,7 @@ import { CancelarVentaTarjetaPorVentaIdGQL } from './graphql/cancelarVentaTarjet
 import { FiltrarVentasTarjetaGQL } from './graphql/filtrarVentasTarjeta';
 import { ImprimirReporteVentaTarjetaGQL } from './graphql/imprimirReporteVentaTarjeta';
 import { MarcarVentasTarjetaNoCompletadasGQL } from './graphql/marcarVentasTarjetaNoCompletadas';
+import { MarcarVentaTarjetaNoCompletadaGQL } from './graphql/marcarVentaTarjetaNoCompletada';
 import { VentaTarjetaPorIdGQL } from './graphql/ventaTarjetaPorId';
 import { CompletarVentaTarjetaGQL } from './graphql/completarVentaTarjeta';
 import { CobroDetalleDeVenta, CobrosTarjetaDeVentaGQL } from './graphql/cobrosTarjetaDeVenta';
@@ -108,6 +109,7 @@ export class VentaTarjetaService {
     private filtrarVentasTarjetaGQL: FiltrarVentasTarjetaGQL,
     private imprimirReporteVentaTarjetaGQL: ImprimirReporteVentaTarjetaGQL,
     private marcarVentasTarjetaNoCompletadasGQL: MarcarVentasTarjetaNoCompletadasGQL,
+    private marcarVentaTarjetaNoCompletadaGQL: MarcarVentaTarjetaNoCompletadaGQL,
     private ventaTarjetaPorIdGQL: VentaTarjetaPorIdGQL,
     private completarVentaTarjetaGQL: CompletarVentaTarjetaGQL,
     private cobrosTarjetaDeVentaGQL: CobrosTarjetaDeVentaGQL,
@@ -260,6 +262,18 @@ export class VentaTarjetaService {
    * Nunca lanza: devuelve false si el papel no salió. Para cuando esto corre, la venta ya se guardó.
    */
   onImprimirSena(datos: SenaCuponData): Observable<boolean> {
+    // ⚠️ Sin impresora configurada NO se llama al filial. `printSenaCupon` devolvería `false` --su
+    // `getPrintService(null)` no encuentra nada-- y el cajero vería "no se pudo imprimir" sin
+    // ninguna pista de que el problema es la configuración de ESTA caja, no la impresora. Medido
+    // el 2026-09-16: la config guardada del perfil de prueba no tenía el bloque `printers`, porque
+    // se guardó antes de que existiera, y `getConfig()?.printers?.ticket` daba `undefined`.
+    const impresora = this.configService?.getConfig()?.printers?.ticket;
+    if (!impresora) {
+      return throwError(() => new Error(
+        'No hay impresora de tickets configurada en esta caja (Configuración → Impresora Ticket).'
+      ));
+    }
+
     // `data` es posicional: cajaId|monto|ventaTarjetaId. El mobile hace split('|') y lee por indice.
     // El separador interno es '|' porque codificarQr une los campos con '-'.
     const qr = codificarQr({
@@ -284,15 +298,48 @@ export class VentaTarjetaService {
         decimales: datos.decimales,
         qr,
       },
-      printerName: this.configService?.getConfig()?.printers?.ticket,
+      printerName: impresora,
       local: this.configService?.getConfig()?.local,
     }, false);
   }
 
-  onMarcarNoCompletadas(cajaId: number, sucId: number): Observable<number> {
+  /**
+   * Deja sin conciliar TODOS los pendientes de una caja, con su motivo.
+   *
+   * El motivo es lo único que va a existir cuando alguien revise esa caja después: `NO_COMPLETADO`
+   * es terminal y esa plata queda sin cupón contra el cual conciliar la liquidación del proveedor.
+   */
+  onMarcarNoCompletadas(
+    cajaId: number,
+    sucId: number,
+    motivo: string,
+    observacion: string,
+    usuarioId: number
+  ): Observable<number> {
     return this.genericService.onCustomMutation(
       this.marcarVentasTarjetaNoCompletadasGQL,
-      { cajaId, sucId },
+      { cajaId, sucId, motivo, observacion, usuarioId },
+      false
+    );
+  }
+
+  /**
+   * Deja UN cobro sin conciliar.
+   *
+   * El caso real es por cobro y no por caja: de tres pendientes, dos tienen su cupón y el tercero
+   * se perdió. Marcar los tres con el mismo motivo sería escribir dos mentiras para registrar una
+   * verdad.
+   */
+  onMarcarNoCompletada(
+    id: number,
+    sucId: number,
+    motivo: string,
+    observacion: string,
+    usuarioId: number
+  ): Observable<VentaTarjeta> {
+    return this.genericService.onCustomMutation(
+      this.marcarVentaTarjetaNoCompletadaGQL,
+      { id, sucId, motivo, observacion, usuarioId },
       false
     );
   }

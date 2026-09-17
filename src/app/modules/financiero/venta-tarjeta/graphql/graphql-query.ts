@@ -108,8 +108,36 @@ export const ventaTarjetaPorIdQuery = gql`
 `;
 
 export const marcarVentasTarjetaNoCompletadasMutation = gql`
-  mutation marcarVentasTarjetaNoCompletadas($cajaId: ID!, $sucId: ID!) {
-    data: marcarVentasTarjetaNoCompletadas(cajaId: $cajaId, sucId: $sucId)
+  mutation marcarVentasTarjetaNoCompletadas(
+    $cajaId: ID!, $sucId: ID!, $motivo: String, $observacion: String, $usuarioId: ID
+  ) {
+    data: marcarVentasTarjetaNoCompletadas(
+      cajaId: $cajaId, sucId: $sucId, motivo: $motivo, observacion: $observacion, usuarioId: $usuarioId
+    )
+  }
+`;
+
+/**
+ * Deja UN cobro sin conciliar, con su motivo.
+ *
+ * Separada de la de la caja entera porque el caso real es por cobro: de tres pendientes, dos
+ * tienen su cupón y el tercero se perdió. Marcar los tres con el mismo motivo sería escribir dos
+ * mentiras para registrar una verdad.
+ */
+export const marcarVentaTarjetaNoCompletadaMutation = gql`
+  mutation marcarVentaTarjetaNoCompletada(
+    $id: ID!, $sucId: ID!, $motivo: String!, $observacion: String, $usuarioId: ID
+  ) {
+    data: marcarVentaTarjetaNoCompletada(
+      id: $id, sucId: $sucId, motivo: $motivo, observacion: $observacion, usuarioId: $usuarioId
+    ) {
+      id
+      estado
+      noCompletadoMotivo
+      noCompletadoObservacion
+      noCompletadoEn
+      noCompletadoPor { id nickname }
+    }
   }
 `;
 
@@ -217,6 +245,12 @@ export const filtrarVentasTarjetaPorCajaQuery = gql`
         # una caja cruza turnos --se cierra cuando se cierra, no cuando cambia la persona-- asi que
         # sin esto dos cobros del mismo monto a horas parecidas son indistinguibles.
         usuario { id nickname }
+        # Quien dejo el cobro sin conciliar, cuando y por que. Un NO_COMPLETADO sin esto es una
+        # fila que dice que se perdio la conciliacion y no dice a quien preguntarle.
+        noCompletadoMotivo
+        noCompletadoObservacion
+        noCompletadoEn
+        noCompletadoPor { id nickname }
       }
       getTotalElements
     }
@@ -263,6 +297,10 @@ export const ventaTarjetaCompletaPorIdQuery = gql`
       estado
       creadoEn
       usuario { id nickname }
+      noCompletadoMotivo
+      noCompletadoObservacion
+      noCompletadoEn
+      noCompletadoPor { id nickname }
     }
   }
 `;
