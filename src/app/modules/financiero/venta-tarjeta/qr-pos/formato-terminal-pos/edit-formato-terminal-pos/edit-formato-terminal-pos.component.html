@@ -150,6 +150,17 @@
       </div>
     </mat-tab>
 
+    <!-- Antes de la vista previa: la vista previa corre contra la cadena de ejemplo --el pasado--
+         y esto corre contra un cupón que se acaba de escanear. -->
+    <mat-tab label="Probar">
+      <div class="tab-cuerpo">
+        <app-probar-formato-panel [formato]="formatoGuardado"
+                                  [esMaquina]="esMaquina"
+                                  [asegurarGuardado]="asegurarGuardado">
+        </app-probar-formato-panel>
+      </div>
+    </mat-tab>
+
     <!-- La última porque es la conclusión: qué va a leer el PDV de un cupón de este formato, al
          lado del cupón que lo produjo. -->
     <mat-tab label="Vista previa">

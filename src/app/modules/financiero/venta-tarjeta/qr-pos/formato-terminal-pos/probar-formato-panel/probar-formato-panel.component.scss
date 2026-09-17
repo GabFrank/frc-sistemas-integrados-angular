@@ -1,0 +1,130 @@
+.probar-panel {
+  padding: 4px 2px 12px;
+}
+
+.ayuda {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.bloque {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.bloque-titulo {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.captura-qr {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #ff6b6b;
+  margin-top: 8px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// El veredicto es lo único que se mira de lejos: o pasa o no pasa.
+.veredicto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+
+  &.pasa {
+    color: #4caf50;
+  }
+
+  &.no-pasa {
+    color: #ff6b6b;
+  }
+}
+
+.motivo {
+  font-size: 13px;
+  color: #ff9800;
+  margin: 0 0 10px;
+}
+
+.campos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  td {
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: top;
+  }
+
+  .campo {
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+
+  .valor {
+    font-family: monospace;
+  }
+
+  // Un campo obligatorio vacío es el motivo por el que la prueba falla: se marca la fila entera.
+  tr.falta .campo,
+  tr.falta .problema {
+    color: #ff6b6b;
+  }
+
+  .valor.vacio {
+    opacity: 0.4;
+  }
+
+  .problema {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+}
+
+.etiqueta {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background-color: #616161;
+  margin-left: 6px;
+
+  &.suelto {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    opacity: 0.7;
+  }
+}
+
+.texto-leido {
+  margin-top: 10px;
+
+  pre {
+    font-size: 11px;
+    max-height: 220px;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.25);
+    padding: 8px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+  }
+}

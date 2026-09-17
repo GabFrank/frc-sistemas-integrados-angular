@@ -280,3 +280,34 @@ export const deleteRegionTerminalPosMutation = gql`
     data: deleteRegionTerminalPos(id: $id)
   }
 `;
+
+/**
+ * Qué haría el formato guardado con un cupón real.
+ *
+ * Es una `query` porque no escribe nada, y por eso el mismo cupón se puede probar las veces que
+ * haga falta mientras se ajusta el patrón. El cupón llega por `token` —una foto ya leída, camino
+ * de los formatos MAQUINA— o por `texto`, la cadena que escupe el lector en los de QR.
+ */
+export const probarFormatoQuery = gql`
+  query probarFormato($formatoTerminalPosId: ID!, $token: String, $texto: String) {
+    data: probarFormato(formatoTerminalPosId: $formatoTerminalPosId, token: $token, texto: $texto) {
+      pasa
+      error
+      texto
+      campos {
+        campo
+        valor
+        declarado
+        obligatorio
+        problema
+      }
+      extras {
+        campo
+        valor
+        declarado
+        obligatorio
+        problema
+      }
+    }
+  }
+`;

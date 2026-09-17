@@ -2,6 +2,8 @@ import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Observable, of, throwError } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { mensajeDeError } from '../../mensaje-error';
 import {
   NotificacionColor,
@@ -261,10 +263,56 @@ export class EditFormatoTerminalPosComponent implements OnInit {
 
   onGuardar(): void {
     if (this.guardando) return;
+    if (!this.validarAntesDeGuardar()) return;
+    this.persistir().pipe(untilDestroyed(this)).subscribe({
+      next: () => {
+        this.notificacionSnackbar.openSucess(
+          this.formatoGuardado
+            ? 'Formato guardado. Podés seguir editando.'
+            : 'Formato guardado.'
+        );
+      },
+      error: (err) => {
+        // El backend valida lo mismo que la pantalla y devuelve el motivo exacto --nombre
+        // repetido en el proveedor, tipo invalido, patron sin anclar-- y mostrarlo tal cual es
+        // mas util que un "algo salio mal".
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.danger,
+          texto: mensajeDeError(err, 'No se pudo guardar el formato.'),
+          duracion: 8,
+        });
+      },
+    });
+  }
 
-    // El boton NO se deshabilita cuando el formulario esta incompleto: lo que falta puede estar en
-    // un tab que no se ve, y un boton muerto sin explicacion es peor que un aviso. Se avisa y se
-    // lleva al tab donde esta el hueco.
+  /**
+   * Deja guardado lo que hay en el formulario, y devuelve el formato persistido.
+   *
+   * <b>Es lo que el botón «Probar» necesita.</b> La prueba corre contra el formato GUARDADO —es lo
+   * que las 24 filiales van a recibir— así que probar un borrador diría algo que no es cierto de
+   * nada desplegado. En vez de prohibir la prueba mientras haya cambios sin guardar, se guarda: el
+   * ciclo real es tocar el patrón y volver a probar, y pedir un Guardar manual en el medio lo
+   * único que logra es que alguien lo saltee.
+   *
+   * Si no hay nada que guardar, no llama al servidor.
+   */
+  asegurarGuardado = (): Observable<FormatoTerminalPos> => {
+    if (!this.formGroup.dirty && this.formatoGuardado?.id) return of(this.formatoGuardado);
+    if (!this.validarAntesDeGuardar()) {
+      // El aviso y el salto de solapa ya los hizo la validación; acá sólo se corta el flujo.
+      return throwError(() => new Error('Faltan datos del formato.'));
+    }
+    return this.persistir();
+  };
+
+  /**
+   * Lo que tiene que estar bien antes de mandar nada al servidor.
+   *
+   * Avisa y lleva a la solapa donde está el hueco. El botón NO se deshabilita cuando el formulario
+   * está incompleto: lo que falta puede estar en un tab que no se ve, y un botón muerto sin
+   * explicación es peor que un aviso.
+   */
+  private validarAntesDeGuardar(): boolean {
     if (this.formGroup.invalid) {
       const destino = this.incompletos.aparato ? 0 : this.incompletos.lectura ? 1 : 2;
       const donde = ['"Qué aparato es"', '"Cómo se lee el cupón"', '"Qué campos produce"'][destino];
@@ -274,7 +322,7 @@ export class EditFormatoTerminalPosComponent implements OnInit {
         texto: 'Falta completar algo en ' + donde + '.',
         duracion: 5,
       });
-      return;
+      return false;
     }
 
     if (this.errorPreview || this.preview.length === 0) {
@@ -286,12 +334,17 @@ export class EditFormatoTerminalPosComponent implements OnInit {
           : 'Completá el patrón, el mapeo y la cadena de ejemplo: todavía no se extrae ningún campo.',
         duracion: 5,
       });
-      return;
+      return false;
     }
 
+    return true;
+  }
+
+  /** Manda el formulario al servidor. Quien llama decide qué avisar. */
+  private persistir(): Observable<FormatoTerminalPos> {
     this.guardando = true;
     const v = this.formGroup.value;
-    this.formatoService
+    return this.formatoService
       .onSave({
         // El id de lo ya guardado manda: en un formato nuevo, el primer Guardar lo crea y el
         // segundo tiene que actualizarlo, no crear otro.
@@ -305,36 +358,26 @@ export class EditFormatoTerminalPosComponent implements OnInit {
         proveedorServicioId: v.proveedorServicioId ?? null,
         usuarioId: this.mainService?.usuarioActual?.id,
       })
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res) => {
-          this.guardando = false;
-          this.huboCambios = true;
-          // NO se cierra. Guardar el patrón y tener que volver a abrir el formato para seguir con
-          // el mapa es el camino normal de configurar uno --el orden obliga a guardar antes de
-          // derivar-- y cerrarse ahí convertía cada paso en un viaje de ida y vuelta.
-          //
-          // Y se recuerda lo guardado: sin esto, el segundo Guardar de un formato NUEVO iría sin
-          // id y crearía otro.
-          if (res?.id) this.formatoGuardado = res;
-          this.notificacionSnackbar.openSucess(
-            this.formatoGuardado
-              ? 'Formato guardado. Podés seguir editando.'
-              : 'Formato guardado.'
-          );
-        },
-        error: (err) => {
-          this.guardando = false;
-          // El backend valida lo mismo que la pantalla y devuelve el motivo exacto --nombre
-          // repetido en el proveedor, tipo inválido, patrón sin anclar-- y mostrarlo tal cual es
-          // más útil que un "algo salió mal".
-          this.notificacionSnackbar.notification$.next({
-            color: NotificacionColor.danger,
-            texto: mensajeDeError(err, 'No se pudo guardar el formato.'),
-            duracion: 8,
-          });
-        },
-      });
+      .pipe(
+        untilDestroyed(this),
+        tap({
+          next: (res) => {
+            this.guardando = false;
+            this.huboCambios = true;
+            // NO se cierra. Guardar el patrón y tener que volver a abrir el formato para seguir
+            // con el mapa es el camino normal de configurar uno --el orden obliga a guardar antes
+            // de derivar-- y cerrarse ahí convertía cada paso en un viaje de ida y vuelta.
+            //
+            // Y se recuerda lo guardado: sin esto, el segundo Guardar de un formato NUEVO iría sin
+            // id y crearía otro.
+            if (res?.id) this.formatoGuardado = res;
+            // El formulario deja de estar sucio: es lo que hace que «Probar» dos veces seguidas no
+            // vuelva a guardar lo mismo.
+            this.formGroup.markAsPristine();
+          },
+          error: () => (this.guardando = false),
+        })
+      );
   }
 
   /**

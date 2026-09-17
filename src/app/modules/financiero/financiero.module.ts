@@ -50,6 +50,8 @@ import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gest
 import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
 import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog/transferir-caja-dialog.component";
 import { ListTerminalPosComponent } from "./terminal-pos/list-terminal-pos/list-terminal-pos.component";
+import { MotivoNoConciliarDialogComponent } from './venta-tarjeta/motivo-no-conciliar-dialog/motivo-no-conciliar-dialog.component';
+import { ProbarFormatoPanelComponent } from './venta-tarjeta/qr-pos/formato-terminal-pos/probar-formato-panel/probar-formato-panel.component';
 import { MapaFormatoPanelComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/mapa-formato-panel/mapa-formato-panel.component";
 import { VistaPreviaFormatoComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/vista-previa-formato/vista-previa-formato.component";
 import { ConfigurarTerminalPosDialogComponent } from "./terminal-pos/configurar-terminal-pos-dialog/configurar-terminal-pos-dialog.component";
@@ -161,6 +163,8 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     EscanearCuponDialogComponent,
     ConfigurarTerminalPosDialogComponent,
     MapaFormatoPanelComponent,
+    ProbarFormatoPanelComponent,
+    MotivoNoConciliarDialogComponent,
     VistaPreviaFormatoComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,

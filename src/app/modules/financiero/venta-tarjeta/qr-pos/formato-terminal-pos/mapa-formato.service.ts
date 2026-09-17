@@ -13,6 +13,7 @@ import { DeleteRegionTerminalPosGQL } from './graphql/deleteRegionTerminalPos';
 import { EliminarMuestraGQL } from './graphql/eliminarMuestra';
 import { SaveRegionTerminalPosGQL } from './graphql/saveRegionTerminalPos';
 import { MuestrasDeFormatoGQL } from './graphql/muestrasDeFormato';
+import { ProbarFormatoGQL } from './graphql/probarFormato';
 import { RegionesDeFormatoGQL } from './graphql/regionesDeFormato';
 import {
   CapturaMuestraQr,
@@ -21,6 +22,7 @@ import {
   RegionDerivada,
   RegionFormato,
   ResultadoDerivacion,
+  ResultadoPruebaFormato,
 } from './mapa-formato.model';
 
 /**
@@ -47,7 +49,8 @@ export class MapaFormatoService {
     private eliminarMuestraGQL: EliminarMuestraGQL,
     private saveRegionGQL: SaveRegionTerminalPosGQL,
     private deleteRegionGQL: DeleteRegionTerminalPosGQL,
-    private guardarGQL: GuardarRegionesDerivadasGQL
+    private guardarGQL: GuardarRegionesDerivadasGQL,
+    private probarGQL: ProbarFormatoGQL
   ) {}
 
   onLectorDisponible(): Observable<boolean> {
@@ -67,6 +70,28 @@ export class MapaFormatoService {
     return this.genericService
       .onCustomMutation(this.derivarGQL, { token, formatoTerminalPosId }, true)
       .pipe(map((r) => (r ?? []) as RegionDerivada[]));
+  }
+
+  /**
+   * Pasa un cupón real por el formato **guardado** y dice si lo lee bien.
+   *
+   * Corre contra lo persistido a propósito: es lo que las 24 filiales van a recibir. Quien llama
+   * se encarga de guardar antes, para que lo que se prueba y lo que se despliega sean lo mismo.
+   */
+  onProbarFormato(
+    formatoTerminalPosId: number,
+    origen: { token?: string; texto?: string }
+  ): Observable<ResultadoPruebaFormato> {
+    return this.genericService.onCustomQuery(
+      this.probarGQL,
+      {
+        formatoTerminalPosId,
+        token: origen?.token ?? null,
+        texto: origen?.texto ?? null,
+      },
+      // Contra CENTRAL, como todo el ciclo del formato.
+      true
+    );
   }
 
   onCerrarMuestra(token: string): Observable<boolean> {

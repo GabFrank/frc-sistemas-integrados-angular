@@ -108,3 +108,38 @@ export interface MuestraGuardada {
   msOcr?: number;
   textoOcr?: string;
 }
+
+/**
+ * Un campo tal como la prueba lo encontró en el cupón — o el motivo por el que no lo encontró.
+ *
+ * `valor` es lo que queda **después** del mapeo (escala, mapa, mayúsculas): es lo que vería el
+ * cajero. Mostrar el grupo crudo haría pasar por bueno un mapeo que escala mal.
+ */
+export interface CampoProbado {
+  campo?: string;
+  valor?: string;
+  /** El `mapeo` lo declara. `false` = grupo suelto del patrón, que iría a `datos_extra`. */
+  declarado?: boolean;
+  /** El `mapeo` lo marca obligatorio. Un obligatorio vacío es lo que hace fallar la prueba. */
+  obligatorio?: boolean;
+  /** `null` si el campo está bien; si no, qué le pasa. */
+  problema?: string;
+}
+
+/**
+ * Qué haría este formato con un cupón real, sin que haya una venta de por medio.
+ *
+ * Hasta acá, la única forma de probar un patrón era cobrar de verdad: se guardaba el formato y el
+ * siguiente cliente que pagaba con tarjeta era el ensayo. Un patrón frágil costaba una venta
+ * interrumpida con el cliente delante.
+ */
+export interface ResultadoPruebaFormato {
+  /** Pasa si el patrón reconoció el cupón y ningún campo obligatorio quedó vacío. */
+  pasa?: boolean;
+  /** Por qué no pasó, cuando el patrón ni siquiera reconoció el cupón. */
+  error?: string;
+  campos?: CampoProbado[];
+  extras?: CampoProbado[];
+  /** El texto sobre el que corrió el patrón. Es lo primero que hay que mirar cuando no matchea. */
+  texto?: string;
+}

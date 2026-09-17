@@ -1,0 +1,108 @@
+<div class="probar-panel" fxLayout="column" fxLayoutGap="12px">
+
+  <p class="ayuda">
+    Pasa un cupón de papel por el formato <b>tal como está guardado</b> y dice si lo lee bien, sin
+    que haya una venta de por medio. Si tenés cambios sin guardar, se guardan al probar: lo que se
+    prueba tiene que ser lo mismo que van a recibir las sucursales.
+  </p>
+
+  <!-- ── El cupón ───────────────────────────────────────────────────────────────────────── -->
+  <div class="bloque">
+    <div class="bloque-titulo">Escaneá un cupón real</div>
+
+    <div *ngIf="esMaquina" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <button mat-raised-button class="btn-success" [disabled]="cargando || esperandoFoto"
+              (click)="onProbarConFoto()">
+        <mat-icon>qr_code_2</mat-icon>
+        Probar con el teléfono
+      </button>
+
+      <!-- El camino que no depende de que el teléfono alcance a central. -->
+      <button mat-stroked-button [disabled]="cargando" (click)="archivo.click()">
+        <mat-icon>upload_file</mat-icon>
+        Probar con una foto
+      </button>
+      <input #archivo type="file" accept="image/jpeg,image/*" hidden (change)="onArchivo($event)" />
+    </div>
+
+    <div *ngIf="!esMaquina" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+      <mat-form-field appearance="outline" fxFlex="60%" subscriptSizing="dynamic">
+        <mat-label>Cadena del cupón</mat-label>
+        <input matInput [formControl]="cadenaControl" autocomplete="off"
+               placeholder="Apuntá el lector al QR del cupón"
+               (keyup.enter)="onProbarCadena()" />
+      </mat-form-field>
+      <button mat-raised-button class="btn-success" [disabled]="cargando" (click)="onProbarCadena()">
+        Probar
+      </button>
+    </div>
+
+    <div class="captura-qr" *ngIf="esperandoFoto && urlQr">
+      <ngx-qrcode [value]="urlQr" [scale]="4"></ngx-qrcode>
+      <p class="ayuda" *ngIf="!qrInalcanzable">
+        Escaneá este código con cualquier teléfono y sacale la foto al cupón.
+        Si sale borrosa, sacá otra: el código no se gasta.
+      </p>
+      <p class="aviso" *ngIf="qrInalcanzable">
+        <mat-icon>report_problem</mat-icon>
+        Este código apunta a <b>localhost</b>, que desde el teléfono es el teléfono mismo. Usá
+        «Probar con una foto», que no depende de la red.
+      </p>
+    </div>
+
+    <p class="ayuda" *ngIf="cargando">Probando…</p>
+
+    <div class="aviso" *ngIf="error">
+      <mat-icon>report_problem</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  </div>
+
+  <!-- ── El veredicto ───────────────────────────────────────────────────────────────────── -->
+  <div class="bloque" *ngIf="resultado">
+    <div class="veredicto" [class.pasa]="resultado.pasa" [class.no-pasa]="!resultado.pasa">
+      <mat-icon>{{ resultado.pasa ? 'check_circle' : 'cancel' }}</mat-icon>
+      <span>{{ resultado.pasa ? 'PASA' : 'NO PASA' }}</span>
+    </div>
+
+    <!-- El patrón ni siquiera reconoció el cupón: no hay campos que mostrar, sólo el motivo. -->
+    <p class="motivo" *ngIf="resultado.error">{{ resultado.error }}</p>
+
+    <table class="campos" *ngIf="resultado.campos?.length">
+      <tr *ngFor="let c of resultado.campos" [class.falta]="c.problema && c.obligatorio">
+        <td class="campo">
+          {{ c.campo }}
+          <span class="etiqueta" *ngIf="c.obligatorio">obligatorio</span>
+          <!-- Sin declarar: el patrón lo captura y se guarda igual, pero el mapeo no lo nombra. -->
+          <span class="etiqueta suelto" *ngIf="c.declarado === false">no declarado</span>
+        </td>
+        <td class="valor" [class.vacio]="!c.valor">{{ c.valor || '—' }}</td>
+        <td class="problema">{{ c.problema }}</td>
+      </tr>
+    </table>
+
+    <div *ngIf="resultado.extras?.length">
+      <div class="bloque-titulo">Campos propios del proveedor</div>
+      <p class="ayuda">
+        El patrón los captura y el mapeo no los nombra: se guardan en <b>datos_extra</b>.
+      </p>
+      <table class="campos">
+        <tr *ngFor="let e of resultado.extras">
+          <td class="campo">{{ e.campo }}</td>
+          <td class="valor">{{ e.valor }}</td>
+          <td class="problema"></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Lo primero que hay que mirar cuando no matchea: el patrón corre sobre ESTE texto, con las
+         rarezas que el lector haya metido, no sobre el papel. -->
+    <div class="texto-leido" *ngIf="resultado.texto">
+      <button mat-button type="button" (click)="verTexto = !verTexto">
+        {{ verTexto ? 'Ocultar' : 'Ver' }} lo que se leyó
+      </button>
+      <pre *ngIf="verTexto">{{ resultado.texto }}</pre>
+    </div>
+  </div>
+
+</div>
