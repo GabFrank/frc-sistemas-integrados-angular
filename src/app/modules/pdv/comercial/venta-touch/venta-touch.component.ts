@@ -241,7 +241,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.dialogData?.venta) {
       this.selectedVenta = this.dialogData?.venta;
       this.totalGs = this.selectedVenta?.totalGs;
-      this.selectedItemList = this.selectedVenta?.ventaItemList;
+      // Fuera de delivery selectedItemList tiene que ser el carrito activo (ver carritoActivo()).
+      this.itemList = this.selectedVenta?.ventaItemList;
+      this.selectedItemList = this.itemList;
     }
 
     this.cargandoService
@@ -843,56 +845,35 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .subscribe((res) => {
           if (res) {
             if (this.isDelivery) {
-              if (this.isAuxiliar) {
-                this.itemList2.forEach((itm, index2) => {
-                  this.ventaService
-                    .onDeleteVentaItem(itm.id, itm.sucursalId, false)
-                    .subscribe((res) => {
-                      if (res) {
-                        this.itemList2.splice(index, index2);
-                        this.calcularTotales();
-                        let venta = new Venta();
-                        Object.assign(venta, this.selectedDelivery.venta);
-                        venta.totalGs = this.totalGs;
-                        venta.totalRs = this.totalGs / this.cambioRs;
-                        venta.totalDs = this.totalGs / this.cambioDs;
-                        venta.delivery = this.selectedDelivery;
-                        this.ventaService
-                          .onSaveVenta2(venta.toInput(), false)
-                          .subscribe();
-                      }
-                    });
-                });
-              } else {
-                this.itemList.forEach((itm, index2) => {
-                  this.ventaService
-                    .onDeleteVentaItem(itm.id, itm.sucursalId, false)
-                    .subscribe((res) => {
-                      if (res) {
-                        this.itemList.splice(index, index2);
-                        this.calcularTotales();
-                        let venta = new Venta();
-                        Object.assign(venta, this.selectedDelivery.venta);
-                        venta.totalGs = this.totalGs;
-                        venta.totalRs = this.totalGs / this.cambioRs;
-                        venta.totalDs = this.totalGs / this.cambioDs;
-                        venta.delivery = this.selectedDelivery;
-                        this.ventaService
-                          .onSaveVenta2(venta.toInput(), false)
-                          .subscribe();
-                      }
-                    });
-                });
-              }
-              this.selectedItemList = [];
-              this.calcularTotales();
+              // En delivery se borran los ítems del delivery (selectedItemList), no el carrito
+              // del PDV, que se conserva para cuando se salga del delivery (#313).
+              [...this.selectedItemList].forEach((itm) => {
+                this.ventaService
+                  .onDeleteVentaItem(itm.id, itm.sucursalId, false)
+                  .subscribe((res) => {
+                    if (res) {
+                      const i = this.selectedItemList.indexOf(itm);
+                      if (i != -1) this.selectedItemList.splice(i, 1);
+                      this.calcularTotales();
+                      let venta = new Venta();
+                      Object.assign(venta, this.selectedDelivery.venta);
+                      venta.totalGs = this.totalGs;
+                      venta.totalRs = this.totalGs / this.cambioRs;
+                      venta.totalDs = this.totalGs / this.cambioDs;
+                      venta.delivery = this.selectedDelivery;
+                      this.ventaService
+                        .onSaveVenta2(venta.toInput(), false)
+                        .subscribe();
+                    }
+                  });
+              });
             } else {
               if (this.isAuxiliar) {
                 this.itemList2 = [];
               } else {
                 this.itemList = [];
               }
-              this.selectedItemList = [];
+              this.selectedItemList = this.carritoActivo();
               this.calcularTotales();
             }
           }
@@ -996,11 +977,37 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedTipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
   }
 
+  /** Carrito del PDV activo. Fuera de delivery, selectedItemList siempre apunta a este array. */
+  private carritoActivo(): VentaItem[] {
+    return this.isAuxiliar ? this.itemList2 : this.itemList;
+  }
+
+  /**
+   * Sale del modo delivery y vuelve a mostrar el carrito del PDV activo sin vaciarlo: si tenía ítems
+   * eran de otra venta en curso. Cuando un delivery se arma desde el carrito, ese carrito ya se vació
+   * al guardarlo (vaciarCarritoGuardadoEnDelivery) (#313).
+   */
+  private volverAlCarritoActivo(): void {
+    this.isDelivery = false;
+    this.selectedDelivery = null;
+    this.selectedItemList = this.carritoActivo();
+    this.selectedTipoPrecio = this.tiposPrecios[0];
+    this.calcularTotales();
+  }
+
+  /**
+   * El delivery nuevo se armó con el mismo array del carrito activo (onDeliveryClick) y ya se guardó
+   * con esos ítems. Se vacía en el lugar, no reasignando, para que el carrito y data.delivery de la
+   * lista queden vacíos a la vez y un segundo «Nuevo delivery» no reenvíe los ítems.
+   */
+  private vaciarCarritoGuardadoEnDelivery(): void {
+    this.selectedDelivery?.venta?.ventaItemList?.splice(0);
+    this.calcularTotales();
+  }
+
   pdvAuxiliarClick() {
     if (this.isDelivery) {
-      this.isDelivery = false;
-      this.selectedItemList = [];
-      this.calcularTotales();
+      this.volverAlCarritoActivo();
     } else {
       if (!this.isAuxiliar) {
         this.isAuxiliar = true;
@@ -1090,10 +1097,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 .pipe(untilDestroyed(this))
                 .subscribe((ventaDeliveryRes) => {
                   this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
-                  this.resetForm();
-                  this.calcularTotales();
-                  this.isDelivery = false;
-                  this.selectedDelivery = null;
+                  this.volverAlCarritoActivo();
                 });
 
               // this.onSaveVenta(
@@ -1121,10 +1125,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             }
             this.dialogReference = undefined;
           } else if (this.isDelivery) {
-            this.isDelivery = false;
-            this.selectedDelivery = null;
-            this.resetForm();
-            this.calcularTotales();
+            this.volverAlCarritoActivo();
           }
           this.buscadorFocusSub.next();
         });
@@ -1482,6 +1483,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       cambioDs: this.cambioDs,
       monedaList: this.monedas,
       formaPagoList: this.formaPagoList,
+      onCarritoGuardadoEnDelivery: () => this.vaciarCarritoGuardadoEnDelivery(),
     };
     this.matDialog
       .open(ListDeliveryComponent, {
@@ -1504,10 +1506,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }
           switch (res["role"]) {
             case "para-entrega":
-              this.isDelivery = false;
-              this.selectedDelivery = null;
-              this.resetForm();
-              this.calcularTotales();
+              this.volverAlCarritoActivo();
               break;
             case "edit":
               if (this.selectedDelivery != null) {
@@ -1533,17 +1532,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               this.onPagoClick();
               break;
             default:
-              this.isDelivery = false;
-              this.selectedDelivery = null;
-              this.resetForm();
-              this.calcularTotales();
+              this.volverAlCarritoActivo();
               break;
           }
         } else {
-          this.isDelivery = false;
-          this.selectedDelivery = null;
-          this.resetForm();
-          this.calcularTotales();
+          this.volverAlCarritoActivo();
         }
       });
   }

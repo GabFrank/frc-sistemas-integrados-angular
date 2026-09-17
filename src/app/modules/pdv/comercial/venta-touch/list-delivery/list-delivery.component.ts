@@ -38,6 +38,8 @@ export interface ListDeliveryData {
   cambioDs?: number;
   monedaList?: Moneda[];
   formaPagoList?: FormaPago[];
+  /** Se llama cuando se guarda un delivery nuevo armado con los ítems del carrito del PDV. */
+  onCarritoGuardadoEnDelivery?: () => void;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -355,6 +357,11 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
       .afterClosed()
       .subscribe((res) => {
         if (res != null && res["delivery"] != null) {
+          // Delivery nuevo armado desde el carrito: sus ítems ya son del delivery. Se mira el id del
+          // delivery y no el de la venta, que se pone en null al reabrir la lista (#313).
+          if (delivery == null && this.data?.delivery?.id == null) {
+            this.data?.onCarritoGuardadoEnDelivery?.();
+          }
           if (delivery != null) {
             this.dataSource.data = updateDataSource(
               this.dataSource.data,
