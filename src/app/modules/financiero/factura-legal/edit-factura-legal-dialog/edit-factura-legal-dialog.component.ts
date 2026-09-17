@@ -58,7 +58,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
   ngOnInit(): void {
     this.initForm(); // Inicializar el formulario de inmediato
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.facturaLegalService.onGetFacturaLegal(this.factura.id, this.factura.sucursalId)
       .pipe(untilDestroyed(this))
       .subscribe(facturaCompleta => {
@@ -79,9 +79,9 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           this.selectedCliente = this.factura.cliente;
           this.clienteControl.setValue(this.displayCliente(this.selectedCliente));
         }
-        this.cargandoService.closeDialog();
+        this.cargandoService.closeDialog(requestId);
       }, err => {
-        this.cargandoService.closeDialog();
+        this.cargandoService.closeDialog(requestId);
         this.notificacionSnackbar.openAlgoSalioMal('No se pudo cargar la información completa de la factura.');
         this.dialogRef.close();
       });
@@ -210,7 +210,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
       return;
     }
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
 
     try {
       // Solo enviar campos editables: enviar toInput() completo falla porque
@@ -229,15 +229,15 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           next: (updatedFactura) => {
             // If electronic and we assigned a cliente, nominate
             if (this.esElectronicaComputed && input.clienteId && !this.factura.cliente) {
-              this.nominarFactura(input.clienteId);
+              this.nominarFactura(input.clienteId, requestId);
             } else {
-              this.cargandoService.closeDialog();
+              this.cargandoService.closeDialog(requestId);
               this.notificacionSnackbar.openGuardadoConExito();
               this.dialogRef.close(updatedFactura);
             }
           },
           error: (err) => {
-            this.cargandoService.closeDialog();
+            this.cargandoService.closeDialog(requestId);
             console.error('Error updating factura:', err);
             const mensaje = Array.isArray(err)
               ? err[0]?.message
@@ -246,13 +246,13 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           }
         });
     } catch (err) {
-      this.cargandoService.closeDialog();
+      this.cargandoService.closeDialog(requestId);
       console.error('Error preparando actualización de factura:', err);
       this.notificacionSnackbar.openAlgoSalioMal('Error al preparar la actualización de la factura');
     }
   }
 
-  nominarFactura(clienteId: number): void {
+  nominarFactura(clienteId: number, requestId: number): void {
     this.facturaLegalService.onNominarFacturaElectronica(
       this.factura.id,
       this.factura.sucursalId,
@@ -261,7 +261,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (success) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           if (success) {
             this.notificacionSnackbar.openSucess('Factura actualizada y nominada correctamente');
           } else {
@@ -270,7 +270,7 @@ export class EditFacturaLegalDialogComponent implements OnInit {
           this.dialogRef.close(true);
         },
         error: (err) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           console.error('Error nominando factura:', err);
           this.notificacionSnackbar.openWarn('Factura actualizada pero error al nominar: ' + (err?.message || ''));
           this.dialogRef.close(true);

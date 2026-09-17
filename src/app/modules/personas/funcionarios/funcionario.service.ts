@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { finalize } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import {
   NotificacionSnackbarService
@@ -80,7 +81,7 @@ export class FuncionarioService {
   // }
 
   onSavePreRegistroFuncionario(input): Observable<boolean> {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     let httpOptions = {
       headers: new HttpHeaders({
         Accept: "application/json",
@@ -93,8 +94,9 @@ export class FuncionarioService {
         `http://${environment['serverIp']}:${environment['serverPort']}/config/pre-registro`,
         input,
         httpOptions
-      ).pipe(untilDestroyed(this)).subscribe(res => {
-        this.cargandoService.closeDialog()
+      // Si el POST falla no llega al next: el spinner se cierra igual (#319).
+      ).pipe(untilDestroyed(this), finalize(() => this.cargandoService.closeDialog(requestId))).subscribe(res => {
+        this.cargandoService.closeDialog(requestId)
         if (res?.id != null) {
           obs.next(true)
           this.notificacionBar.openGuardadoConExito()

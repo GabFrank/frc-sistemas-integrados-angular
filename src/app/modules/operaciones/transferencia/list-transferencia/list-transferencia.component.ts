@@ -315,14 +315,14 @@ export class ListTransferenciaComponent implements OnInit {
 
   onDelete(transferencia: Transferencia, index) {
     // Primero cargar los detalles completos de la transferencia para verificar si tiene productos
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
 
     this.transferenciaService
       .onGetTransferencia(transferencia.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (transferenciaCompleta) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
 
           // Verificar si la transferencia tiene productos
           if (transferenciaCompleta?.transferenciaItemList && transferenciaCompleta.transferenciaItemList.length > 0) {
@@ -354,7 +354,7 @@ export class ListTransferenciaComponent implements OnInit {
             });
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.notificacionService.notification$.next({
             texto: 'Error al verificar los detalles de la transferencia',
             color: NotificacionColor.danger,
@@ -442,7 +442,7 @@ export class ListTransferenciaComponent implements OnInit {
         panelClass: 'custom-dialog-container'
       }).afterClosed().subscribe(async (res) => {
         if (res) {
-          this.cargandoService.openDialog();
+          const { requestId } = this.cargandoService.openDialog();
           let count = 0;
           const fallidas: number[] = [];
           try {
@@ -490,7 +490,7 @@ export class ListTransferenciaComponent implements OnInit {
             console.error('Error en asignación de ruta:', error);
             this.notificacionService.openWarn('Ocurrió un error durante la asignación');
           } finally {
-            this.cargandoService.closeDialog();
+            this.cargandoService.closeDialog(requestId);
             this.selection.clear();
             this.onFilter();
           }
