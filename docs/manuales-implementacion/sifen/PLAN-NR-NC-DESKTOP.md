@@ -95,8 +95,10 @@ Todo lo marcado `[ev: ...]` se verificó el 2026-09-17 contra el código de este
 sucursal, origen, estado SIFEN, texto (número / receptor / matrícula); columnas número formateado
 (`est-pexp-0000001`), fecha, origen (con link a la transferencia o factura), receptor, vehículo
 (matrícula), chofer, estado DE (chip por `EstadoDE`), CDC abreviado; acciones por fila: ver, KuDE
-(`ImpresionService.imprimir('Nota de remisión', generar, true)`), enviar / reenviar (si `PENDIENTE` o
-`RECHAZADO`), consultar estado (`consultarLote` existente), anular (rol `FACTURACION_ANULAR`,
+(`ImpresionService.imprimir('Nota de remisión', generar, true)`), enviar / reenviar (visible si el DE
+está `PENDIENTE`, o `EN_LOTE` con lote en `ERROR_ENVIO`/`ERROR_RED`/`ERROR_PERMANENTE`, o `RECHAZADO`
+— hallazgo B2 de la auditoría: un envío fallido deja el DE en `EN_LOTE`, no en `PENDIENTE`; el
+backend consulta el CDC antes de reenviar), consultar estado (`consultarLote` existente), anular (rol `FACTURACION_ANULAR`,
 `DialogosService.confirm` + motivo), descargar XML. Polling opcional cada 5 min como transferencias.
 
 **1.3 `AddNotaRemisionDialogComponent`** (cabecera + ítems en un diálogo, guardado por
@@ -133,8 +135,12 @@ sucursal, origen, estado SIFEN, texto (número / receptor / matrícula); columna
   `list-nota-remision`, `visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_NR_EMITIR, ROLES.ADMIN]`).
 
 **1.5 Documento electrónico**
+- `documento-electronico.model.ts:10`: `facturaLegal?: FacturaLegal | null` (hoy está tipado como
+  obligatorio; con `strictNullChecks: false` no lo atrapa el compilador — hallazgo A6 de la
+  auditoría). Agregar `notaCredito?` y `notaRemision?` opcionales.
 - `list-lote-de`: columna "Tipo" desde `documentoElectronico.tipoDocumento` y número formateado; el
-  detalle deja de asumir `facturaLegal != null`.
+  detalle deja de asumir `facturaLegal != null` (hoy la lista de lotes no pide `facturaLegal` en su
+  query, así que el riesgo es solo del código nuevo `[ev: lote-de/graphql/graphql-query.ts]`).
 - `inutilizacion-numeros-tab`: selector "Tipo de documento" (Factura / Nota de crédito / Nota de
   remisión) que viaja en el nuevo parámetro `tipoDE`.
 
@@ -188,6 +194,15 @@ consultar, anular, XML.
   no promover a `beta` antes que el central de farmacia con NR/NC").
 - Este archivo se borra en el PR final; lo que sobrevive va a `docs/HOW_TO.md` / `docs/IMPRESION.md`
   ("Dónde ya está aplicado": NR y NC) y a la skill `frc-desktop` → `feature-modules.md`.
+
+## 4b · Hallazgos de la auditoría del plan que tocan al cliente
+
+| # | Hallazgo | Qué se hizo |
+|---|---|---|
+| A5 | `tipoDE` de `inutilizarNumeros` debe ser opcional en el schema (el desktop actual no lo envía) | Central lo declara sin `!`; acá 1.5 lo agrega como selector con default Factura |
+| A6 | `documento-electronico.model.ts` tipa `facturaLegal` como no opcional | 1.5 corrige el tipo |
+| B2 | Un envío fallido deja el DE en `EN_LOTE` con lote en error; "Reenviar" solo para `PENDIENTE`/`RECHAZADO` no lo mostraba | 1.2 y 2.3: condición del botón ampliada |
+| — | Verificado: `ejecutarCancelacion` trata cualquier `ERROR…` desconocido como error genérico (`list-factura-legal.component.ts:660-666`) → el desktop viejo no se rompe con `ERROR_PLAZO_NC:` | Sin cambio |
 
 ## 5 · Riesgos propios del cliente
 
