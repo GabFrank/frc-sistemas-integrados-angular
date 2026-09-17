@@ -2,7 +2,9 @@
 
 _Cliente de `central/docs/manuales-implementacion/sifen/PLAN-NOTA-REMISION-NOTA-CREDITO.md` (plan
 maestro: arquitectura, backend, migraciones, orden de despliegue). Este archivo cubre solo lo que
-cambia en el desktop. Fase 1 = Nota de Remisión (NR), Fase 2 = Nota de Crédito (NC)._
+cambia en el desktop. Fase 1 = Nota de Remisión (NR), Fase 2 = Nota de Crédito (NC). Decisiones
+confirmadas el 2026-09-17 (§11 del plan maestro): solo central emite, los tres orígenes de NR, solo
+NC total, roles nuevos `FACTURACION *`._
 
 Todo lo marcado `[ev: ...]` se verificó el 2026-09-17 contra el código de este repo.
 
@@ -162,8 +164,8 @@ descripción del PR.
 
 **2.2 `AddNotaCreditoDialogComponent`** (abierto desde la factura): cabecera de solo lectura de la
 factura (número, fecha, cliente, moneda, total, CDC), select de motivo, descripción libre (solo para
-el KuDE), tabla de ítems de la factura **de solo lectura** en el MVP (si se aprueba la NC parcial:
-cantidad editable ≤ facturada y checkbox por ítem; los totales los devuelve central), botón
+el KuDE), tabla de ítems de la factura **de solo lectura** (decidido el 2026-09-17: solo NC total en
+esta entrega; la NC parcial queda para después), botón
 "Emitir" → `crearNotaCreditoDesdeFactura` → confirmación "¿Enviar a SIFEN ahora?" →
 `generarYEnviarNotaCredito` → estado + CDC + imprimir.
 
