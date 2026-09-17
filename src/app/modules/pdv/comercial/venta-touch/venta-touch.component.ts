@@ -1248,11 +1248,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           duracion: 10,
         });
       },
-      error: () => {
+      error: (err) => {
+        // El motivo va en el aviso: el caso más común no es que la impresora falle sino que esta
+        // caja no tenga ninguna configurada, y "no se pudo imprimir" no lleva a nadie a
+        // Configuración.
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.warn,
-          texto: 'No se pudo imprimir el comprobante del cobro con tarjeta (venta ' + ventaId
-            + ', cobro ' + ventaTarjetaId + '). Anotá esos números en el cupón.',
+          texto: mensajeDeError(err, 'No se pudo imprimir el comprobante del cobro con tarjeta.')
+            + ' Anotá venta ' + ventaId + ' y cobro ' + ventaTarjetaId + ' en el cupón.',
           duracion: 10,
         });
       },

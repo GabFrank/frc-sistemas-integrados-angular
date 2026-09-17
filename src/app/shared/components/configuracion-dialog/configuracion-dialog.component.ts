@@ -37,7 +37,11 @@ export class ConfiguracionDialogComponent implements OnInit {
 
   onSave(): void {
     if (this.configForm.valid) {
-      const formValue = this.configForm.value;
+      // Se recorta TODO antes de armar la config, no campo por campo. Un espacio pegado sin
+      // querer en la IP --`' 100.64.0.2'`-- produce `ws:// 100.64.0.2:8080/...` y sale un
+      // `DOMException: Failed to construct 'WebSocket': The URL is invalid` que no menciona la
+      // configuracion por ningun lado. Costo un rato de diagnostico en el testeo del 2026-09-08.
+      const formValue = recortarStrings(this.configForm.value);
       
       // Convert form values to ConfiguracionSistema
       const config: ConfiguracionSistema = {
@@ -94,4 +98,22 @@ export class ConfiguracionDialogComponent implements OnInit {
     // Use the configuration service to create a backup
     this.configService.createConfigBackup();
   }
-} 
+}
+
+/**
+ * Recorta los espacios de todos los strings de un objeto, en profundidad.
+ *
+ * En profundidad y no campo por campo a proposito: el bug lo produjo la IP, pero cualquier campo
+ * de esta pantalla termina concatenado en una URL, en un nombre de impresora o en una lista de
+ * precios, y un espacio invisible en cualquiera de ellos falla lejos de donde se escribio.
+ */
+function recortarStrings<T>(valor: T): T {
+  if (typeof valor === 'string') return valor.trim() as unknown as T;
+  if (Array.isArray(valor)) return valor.map((v) => recortarStrings(v)) as unknown as T;
+  if (valor && typeof valor === 'object') {
+    const salida: any = {};
+    Object.keys(valor as any).forEach((k) => (salida[k] = recortarStrings((valor as any)[k])));
+    return salida as T;
+  }
+  return valor;
+}

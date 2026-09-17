@@ -106,8 +106,11 @@ export class ConfigDialogComponent implements OnInit {
 
   saveConfig(): void {
     if (this.configForm.valid) {
-      console.log('Saving config with form value:', this.configForm.value);
-      this.dialogRef.close(this.configForm.value);
+      // Se recorta TODO, no solo `server.ip` y `server.port` como hacian las dos suscripciones de
+      // arriba: la IP y el puerto de CADA sucursal salen del mismo formulario y tienen el mismo
+      // problema. Un espacio pegado sin querer arma `ws:// 100.64.0.2:8080/...` y falla con un
+      // `DOMException: The URL is invalid` que no menciona la configuracion por ningun lado.
+      this.dialogRef.close(recortarStrings(this.configForm.value));
     } else {
       this.notificationService.openWarn('Por favor corrija los errores en el formulario');
       this.markFormGroupTouched(this.configForm);
@@ -132,4 +135,16 @@ export class ConfigDialogComponent implements OnInit {
     }
     this.dialogRef.close();
   }
-} 
+}
+
+/** Recorta los espacios de todos los strings de un objeto, en profundidad. */
+function recortarStrings<T>(valor: T): T {
+  if (typeof valor === 'string') return valor.trim() as unknown as T;
+  if (Array.isArray(valor)) return valor.map((v) => recortarStrings(v)) as unknown as T;
+  if (valor && typeof valor === 'object') {
+    const salida: any = {};
+    Object.keys(valor as any).forEach((k) => (salida[k] = recortarStrings((valor as any)[k])));
+    return salida as T;
+  }
+  return valor;
+}
