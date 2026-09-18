@@ -18,6 +18,9 @@ import { FacturaLegalService } from "../factura-legal.service";
 import { AddFacturaLegalDialogComponent } from "../add-factura-legal-dialog/add-factura-legal-dialog.component";
 import { EditFacturaLegalDialogComponent } from "../edit-factura-legal-dialog/edit-factura-legal-dialog.component";
 import { EstadoDE } from "../../documento-electronico/documento-electronico.model";
+import { MainService } from "../../../../main.service";
+import { ROLES } from "../../../personas/roles/roles.enum";
+import { AddNotaCreditoDialogComponent } from "../../nota-credito/add-nota-credito-dialog/add-nota-credito-dialog.component";
 import {
   animate,
   state,
@@ -139,7 +142,8 @@ export class ListFacturaLegalComponent implements OnInit {
     private matDialog: MatDialog,
     public bdcWalkService: BdcWalkService,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private mainService: MainService
   ) {}
 
   iniciarTutorial() {
@@ -154,6 +158,8 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_NC_EMITIR, ROLES.ADMIN]);
+
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -567,6 +573,29 @@ export class ListFacturaLegalComponent implements OnInit {
     this.onGetFacturas();
   }
 
+  /** Rol para emitir notas de crédito; se calcula una vez, nunca desde el HTML. */
+  puedeEmitirNotaCredito = false;
+
+  /**
+   * Abre la nota de crédito de una factura. Es el camino cuando SIFEN ya no acepta la cancelación
+   * (más de 48 h desde la aprobación) y también para documentar una devolución.
+   */
+  onNotaCredito(factura: FacturaLegal): void {
+    this.matDialog.open(AddNotaCreditoDialogComponent, {
+      width: "520px",
+      data: {
+        facturaLegalId: factura.id,
+        sucursalId: factura.sucursalId,
+        numeroFactura: factura.numeroFactura,
+        cliente: factura.nombre,
+        totalFactura: factura.totalFinal,
+        moneda: factura.monedaExtranjera,
+      },
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res) this.onGetFacturas();
+    });
+  }
+
   // Computed property helpers
   esElectronica(factura: FacturaLegal): boolean {
     return !!(factura.cdc && factura.cdc.trim().length > 0);
@@ -660,6 +689,17 @@ export class ListFacturaLegalComponent implements OnInit {
           if (resultado.startsWith('EXITO')) {
             this.notificacionService.openGuardadoConExito();
             this.onGetFacturas(); // Recargar la lista
+          } else if (resultado.startsWith('ERROR_PLAZO_NC')) {
+            // El central corta antes de llamar a SIFEN: pasaron mas de 48 h desde la aprobacion.
+            const dialogRef = this.matDialog.open(ConfirmDialogComponent, {
+              data: {
+                titulo: 'La factura ya no se puede cancelar',
+                mensaje: 'Pasaron más de 48 horas desde que SIFEN la aprobó. ¿Emitir una nota de crédito?',
+              },
+            });
+            dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((confirmado) => {
+              if (confirmado) this.onNotaCredito(factura);
+            });
           } else if (resultado.startsWith('ERROR_SIFEN')) {
             this.notificacionService.openAlgoSalioMal('Error en SIFEN: ' + resultado.substring(11));
           } else if (resultado.startsWith('ERROR')) {

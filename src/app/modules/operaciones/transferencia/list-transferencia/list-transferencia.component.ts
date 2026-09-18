@@ -25,6 +25,10 @@ import {
   TransferenciaView,
 } from "../transferencia.model";
 import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { OrigenNotaRemision } from '../../../financiero/nota-remision/nota-remision.model';
+import { NotaRemisionService } from '../../../financiero/nota-remision/nota-remision.service';
+import { AddNotaRemisionDialogComponent } from '../../../financiero/nota-remision/add-nota-remision-dialog/add-nota-remision-dialog.component';
 import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { TransferenciaService } from "./../transferencia.service";
@@ -119,10 +123,16 @@ export class ListTransferenciaComponent implements OnInit {
     private sucursalService: SucursalService,
     private matDialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
-    private usuarioSearch: UsuarioSearchGQL
+    private usuarioSearch: UsuarioSearchGQL,
+    private notaRemisionService: NotaRemisionService
   ) { }
 
+  /** Rol para emitir la nota de remisión del traslado; se calcula una vez, no en el HTML. */
+  puedeEmitirNotaRemision = false;
+
   ngOnInit(): void {
+    this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol([ROLES.FACTURACION_NR_EMITIR, ROLES.ADMIN]);
+
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -505,5 +515,34 @@ export class ListTransferenciaComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFilter();
+  }
+
+  /**
+   * Abre la nota de remisión de esta transferencia. El borrador (receptor, salida, entrega,
+   * vehículo, chofer e ítems) lo arma el central; acá solo se pasa el origen y la referencia.
+   *
+   * Si la transferencia ya tiene una nota activa, se avisa en vez de emitir una segunda: SIFEN
+   * aceptaría las dos y quedaría un traslado amparado por duplicado.
+   */
+  onNotaRemision(transferencia: any): void {
+    this.notaRemisionService.onGetPorTransferencia(transferencia.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(notaExistente => {
+        if (notaExistente?.id) {
+          this.notificacionService.openWarn(
+            `La transferencia ya tiene la nota de remisión Nro. ${notaExistente.numeroNotaRemision}`
+          );
+          return;
+        }
+        this.matDialog.open(AddNotaRemisionDialogComponent, {
+          width: '95%',
+          maxWidth: '1200px',
+          data: {
+            origen: OrigenNotaRemision.TRANSFERENCIA,
+            referenciaId: transferencia.id,
+            sucursalId: transferencia.sucursalOrigen?.id ?? this.mainService.sucursalActual?.id
+          }
+        });
+      });
   }
 }
