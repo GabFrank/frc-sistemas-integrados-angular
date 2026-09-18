@@ -9,6 +9,7 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { ConfirmDialogComponent } from "../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
@@ -143,7 +144,8 @@ export class ListFacturaLegalComponent implements OnInit {
     public bdcWalkService: BdcWalkService,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private mainService: MainService
+    private mainService: MainService,
+    private dialogosService: DialogosService
   ) {}
 
   iniciarTutorial() {
@@ -691,13 +693,17 @@ export class ListFacturaLegalComponent implements OnInit {
             this.onGetFacturas(); // Recargar la lista
           } else if (resultado.startsWith('ERROR_PLAZO_NC')) {
             // El central corta antes de llamar a SIFEN: pasaron mas de 48 h desde la aprobacion.
-            const dialogRef = this.matDialog.open(ConfirmDialogComponent, {
-              data: {
-                titulo: 'La factura ya no se puede cancelar',
-                mensaje: 'Pasaron más de 48 horas desde que SIFEN la aprobó. ¿Emitir una nota de crédito?',
-              },
-            });
-            dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((confirmado) => {
+            // Va por DialogosService (padron del repo): ConfirmDialogComponent lee data.title /
+            // data.message y con las claves en castellano sale un dialogo sin texto.
+            this.dialogosService.confirm(
+              'La factura ya no se puede cancelar',
+              'Pasaron más de 48 horas desde que SIFEN la aprobó.',
+              '¿Emitir una nota de crédito?',
+              null,
+              true,
+              'Emitir nota de crédito',
+              'Cerrar'
+            ).pipe(untilDestroyed(this)).subscribe((confirmado) => {
               if (confirmado) this.onNotaCredito(factura);
             });
           } else if (resultado.startsWith('ERROR_SIFEN')) {
