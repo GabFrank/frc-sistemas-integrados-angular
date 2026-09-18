@@ -1,0 +1,37 @@
+.contenido {
+  max-height: 70vh;
+}
+
+h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.campo {
+  width: 200px;
+}
+
+.campo-ancho {
+  width: 320px;
+}
+
+.campo-chico {
+  width: 130px;
+}
+
+.tabla-items {
+  width: 100%;
+  margin-bottom: 8px;
+
+  td,
+  th {
+    text-align: center;
+  }
+}
+
+.cargando {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.8;
+}

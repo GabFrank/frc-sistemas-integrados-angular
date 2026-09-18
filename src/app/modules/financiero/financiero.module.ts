@@ -1,4 +1,6 @@
 import { NgModule } from "@angular/core";
+import { ListNotaRemisionComponent } from "./nota-remision/list-nota-remision/list-nota-remision.component";
+import { AddNotaRemisionDialogComponent } from "./nota-remision/add-nota-remision-dialog/add-nota-remision-dialog.component";
 import { CommonModule } from "@angular/common";
 import { BancoComponent } from "./banco/banco.component";
 import { CambioComponent } from "./cambio/cambio.component";
@@ -97,6 +99,8 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
 
 @NgModule({
   declarations: [
+    ListNotaRemisionComponent,
+    AddNotaRemisionDialogComponent,
     BancoComponent,
     CambioComponent,
     CuentaBancariaComponent,

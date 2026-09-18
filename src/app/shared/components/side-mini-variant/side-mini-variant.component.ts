@@ -24,6 +24,7 @@ import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
+import { ListNotaRemisionComponent } from '../../../modules/financiero/nota-remision/list-nota-remision/list-nota-remision.component';
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
@@ -589,6 +590,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'receipt',
               action: 'factura-dashboard',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Notas de remisión',
+              icon: 'local_shipping',
+              action: 'list-nota-remision',
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_NR_EMITIR, ROLES.ADMIN]
             }
           ]
         },
@@ -1140,6 +1147,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
+        break;
+      case "list-nota-remision":
+        this.openTabIfAuthorized(ROLES.FACTURACION_VER, ListNotaRemisionComponent, "Notas de remisión");
         break;
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");

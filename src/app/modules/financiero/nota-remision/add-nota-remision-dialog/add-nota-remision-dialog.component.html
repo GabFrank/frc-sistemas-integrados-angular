@@ -1,0 +1,168 @@
+<h2 mat-dialog-title>Nota de remisión electrónica</h2>
+
+<mat-dialog-content class="contenido">
+  <div *ngIf="cargando" class="cargando">Cargando datos del traslado…</div>
+
+  <ng-container *ngIf="!cargando">
+    <h3>Receptor</h3>
+    <div fxLayout="row wrap" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Nombre</mat-label>
+        <input matInput [(ngModel)]="nota.receptorNombre" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>RUC o documento</mat-label>
+        <input matInput [(ngModel)]="nota.receptorRuc" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Dirección</mat-label>
+        <input matInput [(ngModel)]="nota.receptorDireccion" />
+      </mat-form-field>
+    </div>
+
+    <h3>Traslado</h3>
+    <div fxLayout="row wrap" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Motivo</mat-label>
+        <mat-select [(ngModel)]="nota.motivoEmision">
+          <mat-option *ngFor="let m of motivos" [value]="m.valor">{{ m.texto }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Km estimados</mat-label>
+        <input matInput type="number" [(ngModel)]="nota.kmEstimado" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Inicio del traslado</mat-label>
+        <input matInput [matDatepicker]="ini" [(ngModel)]="nota.fechaInicioTraslado" />
+        <mat-datepicker-toggle matSuffix [for]="ini"></mat-datepicker-toggle>
+        <mat-datepicker #ini></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Fin del traslado</mat-label>
+        <input matInput [matDatepicker]="fin" [(ngModel)]="nota.fechaFinTraslado" />
+        <mat-datepicker-toggle matSuffix [for]="fin"></mat-datepicker-toggle>
+        <mat-datepicker #fin></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <h3>Salida y entrega</h3>
+    <div fxLayout="row wrap" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Dirección de salida</mat-label>
+        <input matInput [(ngModel)]="nota.salidaDireccion" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Ciudad de salida</mat-label>
+        <input matInput [(ngModel)]="nota.salidaCiudad" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-chico">
+        <mat-label>Código ciudad</mat-label>
+        <input matInput type="number" [(ngModel)]="nota.salidaCodigoCiudad" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Dirección de entrega</mat-label>
+        <input matInput [(ngModel)]="nota.entregaDireccion" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Ciudad de entrega</mat-label>
+        <input matInput [(ngModel)]="nota.entregaCiudad" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-chico">
+        <mat-label>Código ciudad</mat-label>
+        <input matInput type="number" [(ngModel)]="nota.entregaCodigoCiudad" />
+      </mat-form-field>
+    </div>
+
+    <h3>Transporte</h3>
+    <div fxLayout="row wrap" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Tipo</mat-label>
+        <mat-select [(ngModel)]="nota.tipoTransporte">
+          <mat-option *ngFor="let t of tiposTransporte" [value]="t">{{ t }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Modalidad</mat-label>
+        <mat-select [(ngModel)]="nota.modalidadTransporte">
+          <mat-option *ngFor="let m of modalidades" [value]="m.valor">{{ m.texto }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Transportista (si es de terceros)</mat-label>
+        <input matInput [(ngModel)]="nota.transportistaNombre" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>RUC del transportista</mat-label>
+        <input matInput [(ngModel)]="nota.transportistaRuc" />
+      </mat-form-field>
+    </div>
+
+    <h3>Vehículo y chofer</h3>
+    <div fxLayout="row wrap" fxLayoutGap="12px">
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Marca</mat-label>
+        <input matInput [(ngModel)]="nota.vehiculoMarca" />
+        <mat-hint>SIFEN acepta hasta 10 caracteres</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Matrícula</mat-label>
+        <input matInput [(ngModel)]="nota.vehiculoMatricula" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Chofer</mat-label>
+        <input matInput [(ngModel)]="nota.choferNombre" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Documento del chofer</mat-label>
+        <input matInput [(ngModel)]="nota.choferDocumento" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo-ancho">
+        <mat-label>Dirección del chofer</mat-label>
+        <input matInput [(ngModel)]="nota.choferDireccion" />
+        <mat-hint>SIFEN la exige cuando se informa el chofer</mat-hint>
+      </mat-form-field>
+    </div>
+
+    <h3>Ítems</h3>
+    <table mat-table [dataSource]="items" class="tabla-items">
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef>Descripción</th>
+        <td mat-cell *matCellDef="let item">
+          <input matInput [(ngModel)]="item.descripcion" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+        <td mat-cell *matCellDef="let item">
+          <input matInput type="number" [(ngModel)]="item.cantidad" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="unidadMedida">
+        <th mat-header-cell *matHeaderCellDef>Unidad</th>
+        <td mat-cell *matCellDef="let item">
+          <input matInput [(ngModel)]="item.unidadMedida" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let item; let i = index">
+          <button mat-icon-button color="warn" (click)="quitarItem(i)"><mat-icon>delete</mat-icon></button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="columnasItems"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnasItems"></tr>
+    </table>
+
+    <button mat-stroked-button (click)="agregarItem()">
+      <mat-icon>add</mat-icon> Agregar ítem
+    </button>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="guardando || cargando" (click)="guardar()">
+    Guardar
+  </button>
+</mat-dialog-actions>
