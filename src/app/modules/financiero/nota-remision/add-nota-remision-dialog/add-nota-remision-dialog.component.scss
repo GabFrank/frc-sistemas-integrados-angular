@@ -27,6 +27,14 @@ h3 {
   width: 130px;
 }
 
+/* El buscador de funcionario va en su propia fila: el nombre completo no entra en el ancho de
+   los campos de al lado y quedaba cortado a la mitad. */
+.fila-buscador {
+  width: 100%;
+  max-width: 660px;
+  margin-bottom: 4px;
+}
+
 .tabla-items {
   width: 100%;
   margin-bottom: 8px;

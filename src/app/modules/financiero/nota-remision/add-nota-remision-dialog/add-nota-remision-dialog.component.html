@@ -99,6 +99,15 @@
     </div>
 
     <h3>Vehículo y chofer</h3>
+    <!-- Atajo: elegir un funcionario completa nombre, documento y dirección de una. El chofer
+         puede no ser funcionario, así que los tres campos siguen editables a mano. -->
+    <div class="fila-buscador">
+      <app-select-funcionario
+        titulo="Buscar funcionario"
+        [funcionarioId]="choferFuncionarioId"
+        (funcionarioSelected)="onChoferFuncionarioSeleccionado($event)">
+      </app-select-funcionario>
+    </div>
     <div fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Marca</mat-label>

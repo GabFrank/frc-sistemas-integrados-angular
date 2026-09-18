@@ -16,6 +16,7 @@ import {
   TipoTransporteNr
 } from '../nota-remision.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 
 export interface AddNotaRemisionDialogData {
   origen: OrigenNotaRemision;
@@ -50,14 +51,46 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   /** Control del paso 0 cuando se entra sin referencia (origen manual o búsqueda). */
   referenciaControl = new FormControl(null);
 
+  /**
+   * Solo para el buscador de funcionarios: no se guarda en la nota, que referencia a la persona
+   * (`choferPersonaId`) porque el chofer puede ser un tercero que no es funcionario.
+   */
+  choferFuncionarioId: number = null;
+
   constructor(
     private service: NotaRemisionService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
+    private funcionarioService: FuncionarioService,
     private dialogRef: MatDialogRef<AddNotaRemisionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddNotaRemisionDialogData
   ) {}
+
+  /**
+   * Completa los tres campos del chofer con los datos del funcionario elegido.
+   *
+   * Se vuelve a pedir el funcionario por id porque `funcionariosSearch` —la query del buscador—
+   * trae de la persona solo id, nombre y teléfono: el documento y la dirección, que es lo que
+   * SIFEN exige, llegan recién con `funcionario(id)`.
+   */
+  onChoferFuncionarioSeleccionado(funcionario: any): void {
+    if (funcionario == null) {
+      this.choferFuncionarioId = null;
+      return;
+    }
+    this.choferFuncionarioId = funcionario.id;
+    this.funcionarioService.onGetFuncionarioById(funcionario.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(completo => {
+        const persona = completo?.persona ?? funcionario.persona;
+        if (persona == null) return;
+        this.nota.choferPersonaId = persona.id;
+        this.nota.choferNombre = persona.nombre;
+        this.nota.choferDocumento = persona.documento;
+        this.nota.choferDireccion = persona.direccion;
+      });
+  }
 
   ngOnInit(): void {
     this.referenciaControl.setValue(this.data?.referenciaId ?? null);
