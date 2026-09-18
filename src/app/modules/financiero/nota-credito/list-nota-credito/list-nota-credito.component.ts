@@ -99,11 +99,18 @@ export class ListNotaCreditoComponent implements OnInit {
   }
 
   onImprimir(nota: NotaCredito): void {
+    // El nombre es también el del archivo al descargar el PDF: «Nota de crédito» dejaba todos
+    // los KuDE con el mismo nombre en la carpeta de descargas. Con el número se distinguen.
     this.impresionService.imprimir(
-      'Nota de crédito',
+      this.nombreArchivo(nota),
       () => this.service.onImprimir(nota.id, nota.sucursalId),
       true
     );
+  }
+
+  private nombreArchivo(nota: NotaCredito): string {
+    const numero = this.numeroFormateado(nota);
+    return numero ? `KuDE-NC-${numero}` : 'KuDE-NC';
   }
 
   onAnular(nota: NotaCredito): void {

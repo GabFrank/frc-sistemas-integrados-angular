@@ -116,12 +116,19 @@ export class ListNotaRemisionComponent implements OnInit {
   }
 
   onImprimir(nota: NotaRemision): void {
+    // El nombre es también el del archivo al descargar el PDF: «Nota de remisión» dejaba todos
+    // los KuDE con el mismo nombre en la carpeta de descargas. Con el número se distinguen.
     // soloPdf: el ticket térmico de la nota no entra en esta entrega (el backend lo rechaza).
     this.impresionService.imprimir(
-      'Nota de remisión',
+      this.nombreArchivo(nota),
       () => this.service.onImprimir(nota.id, nota.sucursalId),
       true
     );
+  }
+
+  private nombreArchivo(nota: NotaRemision): string {
+    const numero = this.numeroFormateado(nota);
+    return numero ? `KuDE-NR-${numero}` : 'KuDE-NR';
   }
 
   onAnular(nota: NotaRemision): void {
