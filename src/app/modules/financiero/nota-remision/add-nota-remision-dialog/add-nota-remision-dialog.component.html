@@ -1,11 +1,15 @@
-<h2 mat-dialog-title>Nota de remisión electrónica</h2>
+<h2 mat-dialog-title class="titulo-center">
+  <mat-icon>local_shipping</mat-icon>
+  Nota de remisión electrónica
+</h2>
 
 <mat-dialog-content class="contenido">
   <div *ngIf="cargando" class="cargando">Cargando datos del traslado…</div>
 
   <ng-container *ngIf="!cargando">
-    <h3>Receptor</h3>
-    <div fxLayout="row wrap" fxLayoutGap="12px">
+    <div class="section-card">
+      <div class="section-title">Receptor</div>
+      <div class="fila-campos" fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Nombre</mat-label>
         <input matInput [(ngModel)]="nota.receptorNombre" />
@@ -18,10 +22,12 @@
         <mat-label>Dirección</mat-label>
         <input matInput [(ngModel)]="nota.receptorDireccion" />
       </mat-form-field>
+      </div>
     </div>
 
-    <h3>Traslado</h3>
-    <div fxLayout="row wrap" fxLayoutGap="12px">
+    <div class="section-card">
+      <div class="section-title">Traslado</div>
+      <div class="fila-campos" fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Motivo</mat-label>
         <mat-select [(ngModel)]="nota.motivoEmision">
@@ -44,10 +50,12 @@
         <mat-datepicker-toggle matSuffix [for]="fin"></mat-datepicker-toggle>
         <mat-datepicker #fin></mat-datepicker>
       </mat-form-field>
+      </div>
     </div>
 
-    <h3>Salida y entrega</h3>
-    <div fxLayout="row wrap" fxLayoutGap="12px">
+    <div class="section-card">
+      <div class="section-title">Salida y entrega</div>
+      <div class="fila-campos" fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de salida</mat-label>
         <input matInput [(ngModel)]="nota.salidaDireccion" />
@@ -72,10 +80,12 @@
         <mat-label>Código ciudad</mat-label>
         <input matInput type="number" [(ngModel)]="nota.entregaCodigoCiudad" />
       </mat-form-field>
+      </div>
     </div>
 
-    <h3>Transporte</h3>
-    <div fxLayout="row wrap" fxLayoutGap="12px">
+    <div class="section-card">
+      <div class="section-title">Transporte</div>
+      <div class="fila-campos" fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Tipo</mat-label>
         <mat-select [(ngModel)]="nota.tipoTransporte">
@@ -96,19 +106,12 @@
         <mat-label>RUC del transportista</mat-label>
         <input matInput [(ngModel)]="nota.transportistaRuc" />
       </mat-form-field>
+      </div>
     </div>
 
-    <h3>Vehículo y chofer</h3>
-    <!-- Atajo: elegir un funcionario completa nombre, documento y dirección de una. El chofer
-         puede no ser funcionario, así que los tres campos siguen editables a mano. -->
-    <div class="fila-buscador">
-      <app-select-funcionario
-        titulo="Buscar funcionario"
-        [funcionarioId]="choferFuncionarioId"
-        (funcionarioSelected)="onChoferFuncionarioSeleccionado($event)">
-      </app-select-funcionario>
-    </div>
-    <div fxLayout="row wrap" fxLayoutGap="12px">
+    <div class="section-card">
+      <div class="section-title">Vehículo y chofer</div>
+      <div class="fila-campos" fxLayout="row wrap" fxLayoutGap="12px">
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Marca</mat-label>
         <!-- Sin mat-hint: se superpone con la fila siguiente. El aviso sale al guardar. -->
@@ -121,6 +124,12 @@
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Chofer</mat-label>
         <input matInput [(ngModel)]="nota.choferNombre" />
+        <!-- La lupa trae al funcionario y completa documento y dirección de una. Se sigue
+             pudiendo escribir a mano: el chofer puede ser un tercero que no es funcionario. -->
+        <button mat-icon-button matSuffix type="button" (click)="buscarChofer()"
+                matTooltip="Buscar entre los funcionarios">
+          <mat-icon>search</mat-icon>
+        </button>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Documento del chofer</mat-label>
@@ -131,31 +140,33 @@
         <input matInput [(ngModel)]="nota.choferDireccion" />
         <mat-hint>SIFEN la exige cuando se informa el chofer</mat-hint>
       </mat-form-field>
+      </div>
     </div>
 
-    <h3>Ítems</h3>
+    <div class="section-card">
+      <div class="section-title">Ítems</div>
     <table mat-table [dataSource]="items" class="tabla-items">
       <ng-container matColumnDef="descripcion">
-        <th mat-header-cell *matHeaderCellDef>Descripción</th>
-        <td mat-cell *matCellDef="let item">
+        <th mat-header-cell *matHeaderCellDef class="col-descripcion">Descripción</th>
+        <td mat-cell *matCellDef="let item" class="col-descripcion">
           <input matInput [(ngModel)]="item.descripcion" />
         </td>
       </ng-container>
       <ng-container matColumnDef="cantidad">
-        <th mat-header-cell *matHeaderCellDef>Cantidad</th>
-        <td mat-cell *matCellDef="let item">
+        <th mat-header-cell *matHeaderCellDef class="col-numero">Cantidad</th>
+        <td mat-cell *matCellDef="let item" class="col-numero">
           <input matInput type="number" [(ngModel)]="item.cantidad" />
         </td>
       </ng-container>
       <ng-container matColumnDef="unidadMedida">
-        <th mat-header-cell *matHeaderCellDef>Unidad</th>
-        <td mat-cell *matCellDef="let item">
+        <th mat-header-cell *matHeaderCellDef class="col-numero">Unidad</th>
+        <td mat-cell *matCellDef="let item" class="col-numero">
           <input matInput [(ngModel)]="item.unidadMedida" />
         </td>
       </ng-container>
       <ng-container matColumnDef="acciones">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let item; let i = index">
+        <th mat-header-cell *matHeaderCellDef class="col-acciones"></th>
+        <td mat-cell *matCellDef="let item; let i = index" class="col-acciones">
           <button mat-icon-button color="warn" (click)="quitarItem(i)"><mat-icon>delete</mat-icon></button>
         </td>
       </ng-container>
@@ -163,15 +174,18 @@
       <tr mat-row *matRowDef="let row; columns: columnasItems"></tr>
     </table>
 
-    <button mat-stroked-button (click)="agregarItem()">
+    <button mat-stroked-button class="btn-agregar" (click)="agregarItem()">
       <mat-icon>add</mat-icon> Agregar ítem
     </button>
+    </div>
   </ng-container>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="cancelar()">Cancelar</button>
+<mat-dialog-actions align="end" class="acciones">
+  <button mat-stroked-button (click)="cancelar()">
+    <mat-icon>close</mat-icon> Cancelar
+  </button>
   <button mat-raised-button color="primary" [disabled]="guardando || cargando" (click)="guardar()">
-    Guardar
+    <mat-icon>save</mat-icon> Guardar
   </button>
 </mat-dialog-actions>

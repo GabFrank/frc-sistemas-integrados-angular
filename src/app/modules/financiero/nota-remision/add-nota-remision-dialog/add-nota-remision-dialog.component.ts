@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -17,6 +17,11 @@ import {
 } from '../nota-remision.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
+import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData
+} from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 
 export interface AddNotaRemisionDialogData {
   origen: OrigenNotaRemision;
@@ -51,35 +56,53 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   /** Control del paso 0 cuando se entra sin referencia (origen manual o búsqueda). */
   referenciaControl = new FormControl(null);
 
-  /**
-   * Solo para el buscador de funcionarios: no se guarda en la nota, que referencia a la persona
-   * (`choferPersonaId`) porque el chofer puede ser un tercero que no es funcionario.
-   */
-  choferFuncionarioId: number = null;
-
   constructor(
     private service: NotaRemisionService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
     private funcionarioService: FuncionarioService,
+    private searchFuncionario: FuncionarioSearchGQL,
+    private matDialog: MatDialog,
     private dialogRef: MatDialogRef<AddNotaRemisionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddNotaRemisionDialogData
   ) {}
 
   /**
-   * Completa los tres campos del chofer con los datos del funcionario elegido.
+   * Busca el chofer entre los funcionarios y completa nombre, documento y dirección de una.
    *
+   * Usa el buscador genérico del repo con las mismas columnas que `app-select-funcionario`: los
+   * homónimos son comunes, y con el nombre solo no alcanza para elegir.
+   */
+  buscarChofer(): void {
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Chofer',
+      tableData: [
+        { id: 'id', nombre: 'Id', width: '10%' },
+        { id: 'nombre', nombre: 'Nombre', nested: true, nestedId: 'persona', nestedColumnId: 'personaNombre', width: '45%' },
+        { id: 'nombre', nombre: 'Cargo', nested: true, nestedId: 'cargo', nestedColumnId: 'cargoNombre', width: '25%' },
+        { id: 'nickname', nombre: 'Usuario', width: '20%' }
+      ],
+      query: this.searchFuncionario,
+      fallbackToLocal: true
+    };
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((funcionario: any) => {
+      if (funcionario == null) return;
+      this.aplicarChofer(funcionario);
+    });
+  }
+
+  /**
    * Se vuelve a pedir el funcionario por id porque `funcionariosSearch` —la query del buscador—
    * trae de la persona solo id, nombre y teléfono: el documento y la dirección, que es lo que
    * SIFEN exige, llegan recién con `funcionario(id)`.
    */
-  onChoferFuncionarioSeleccionado(funcionario: any): void {
-    if (funcionario == null) {
-      this.choferFuncionarioId = null;
-      return;
-    }
-    this.choferFuncionarioId = funcionario.id;
+  private aplicarChofer(funcionario: any): void {
     this.funcionarioService.onGetFuncionarioById(funcionario.id)
       .pipe(untilDestroyed(this))
       .subscribe(completo => {
