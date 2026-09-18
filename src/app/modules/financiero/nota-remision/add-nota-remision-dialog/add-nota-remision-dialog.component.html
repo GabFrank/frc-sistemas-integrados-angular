@@ -1,4 +1,8 @@
 <h2 mat-dialog-title class="titulo-center">Nota de remisión electrónica</h2>
+<!-- Sin confirmación intermedia: el aviso reemplaza al «¿Enviarla ahora?» que se sacó. -->
+<div class="aviso-emision">
+  Al guardar se emite ante SIFEN, y una nota aprobada no siempre se puede cancelar.
+</div>
 
 <mat-dialog-content class="contenido">
   <div *ngIf="cargando" class="cargando">Cargando datos del traslado…</div>
@@ -56,6 +60,11 @@
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de salida</mat-label>
         <input matInput [(ngModel)]="nota.salidaDireccion" />
+        <!-- Elegir la sucursal completa dirección, ciudad, código y departamento de una. -->
+        <button mat-icon-button matSuffix type="button" (click)="buscarLocalDeSalida()"
+                matTooltip="Elegir la sucursal de salida">
+          <mat-icon>search</mat-icon>
+        </button>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Ciudad de salida</mat-label>

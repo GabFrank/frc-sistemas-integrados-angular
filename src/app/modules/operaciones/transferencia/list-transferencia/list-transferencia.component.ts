@@ -28,6 +28,7 @@ import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { OrigenNotaRemision } from '../../../financiero/nota-remision/nota-remision.model';
 import { NotaRemisionService } from '../../../financiero/nota-remision/nota-remision.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { AddNotaRemisionDialogComponent } from '../../../financiero/nota-remision/add-nota-remision-dialog/add-nota-remision-dialog.component';
 import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
@@ -124,11 +125,25 @@ export class ListTransferenciaComponent implements OnInit {
     private matDialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private usuarioSearch: UsuarioSearchGQL,
-    private notaRemisionService: NotaRemisionService
+    private notaRemisionService: NotaRemisionService,
+    private impresionService: ImpresionService
   ) { }
 
   /** Rol para emitir la nota de remisión del traslado; se calcula una vez, no en el HTML. */
   puedeEmitirNotaRemision = false;
+
+  /** Notas ya emitidas por transferencia: con una cargada, el menú dice «Imprimir». */
+  notaRemisionPorTransferencia: { [transferenciaId: number]: any } = {};
+
+  private imprimirNotaRemision(nota: any): void {
+    const numero = nota?.numeroNotaRemision
+      ? `001-001-${String(nota.numeroNotaRemision).padStart(7, '0')}` : '';
+    this.impresionService.imprimir(
+      numero ? `KuDE-NR-${numero}` : 'KuDE-NR',
+      () => this.notaRemisionService.onImprimir(nota.id, nota.sucursalId),
+      true
+    );
+  }
 
   ngOnInit(): void {
     this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
@@ -531,9 +546,9 @@ export class ListTransferenciaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(notaExistente => {
         if (notaExistente?.id) {
-          this.notificacionService.openWarn(
-            `La transferencia ya tiene la nota de remisión Nro. ${notaExistente.numeroNotaRemision}`
-          );
+          // Ya emitida: el ítem del menú dice «Imprimir», así que acá se imprime.
+          this.notaRemisionPorTransferencia[transferencia.id] = notaExistente;
+          this.imprimirNotaRemision(notaExistente);
           return;
         }
         this.matDialog.open(AddNotaRemisionDialogComponent, {

@@ -162,3 +162,20 @@ export const anularNotaRemisionMutation = gql`
     }
   }
 `;
+
+/**
+ * Sucursales habilitadas como local de salida. Los datos fiscales vienen del timbrado de cada
+ * una: `general.ciudad.codigo` guarda abreviaturas internas, no el código de SIFEN.
+ */
+export const localesDeSalidaQuery = gql`
+  query localesDeSalida($texto: String) {
+    data: localesDeSalida(texto: $texto) {
+      sucursalId
+      nombre
+      direccion
+      ciudad
+      codigoCiudad
+      departamento
+    }
+  }
+`;

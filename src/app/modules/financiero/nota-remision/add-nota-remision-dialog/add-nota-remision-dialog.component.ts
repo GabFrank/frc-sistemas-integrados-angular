@@ -16,9 +16,13 @@ import {
   TipoTransporteNr
 } from '../nota-remision.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+
+/** Las 18 sucursales de la empresa están en Canindeyú; el usuario puede cambiarlo. */
+const DEPARTAMENTO_POR_DEFECTO = 'CANINDEYU';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
 import { VehiculoSearchGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearch';
+import { LocalesDeSalidaGQL } from '../graphql/localesDeSalida';
 import {
   SearchListDialogComponent,
   SearchListtDialogData
@@ -65,6 +69,7 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     private funcionarioService: FuncionarioService,
     private searchFuncionario: FuncionarioSearchGQL,
     private searchVehiculo: VehiculoSearchGQL,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL,
     private matDialog: MatDialog,
     private dialogRef: MatDialogRef<AddNotaRemisionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddNotaRemisionDialogData
@@ -151,6 +156,35 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Elegir la sucursal de salida completa dirección, ciudad, código de ciudad y departamento.
+   * El nombre de la sucursal solo sirve para elegirla: lo que va al XML es la dirección.
+   */
+  buscarLocalDeSalida(): void {
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar local de salida',
+      tableData: [
+        { id: 'nombre', nombre: 'Sucursal', width: '40%' },
+        { id: 'direccion', nombre: 'Dirección', width: '40%' },
+        { id: 'ciudad', nombre: 'Ciudad', width: '20%' }
+      ],
+      query: this.localesDeSalidaGQL,
+      fallbackToLocal: true
+    };
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((local: any) => {
+      if (local == null) return;
+      this.nota.salidaDireccion = local.direccion;
+      this.nota.salidaCiudad = local.ciudad;
+      this.nota.salidaCodigoCiudad = local.codigoCiudad;
+      if (local.departamento) this.nota.salidaDepartamento = local.departamento;
+    });
+  }
+
   ngOnInit(): void {
     this.referenciaControl.setValue(this.data?.referenciaId ?? null);
     this.prellenar();
@@ -161,11 +195,27 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     this.cargando = true;
     this.service.onPrellenar(this.data.origen, this.referenciaControl.value, sucursalId)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.cargando = false;
-        if (!res?.notaRemision) return;
-        this.nota = res.notaRemision;
-        this.items = res.items ?? [];
+      .subscribe({
+        next: res => {
+          this.cargando = false;
+          // Sin rama de error, un rechazo del central dejaba el diálogo vacío y mudo: fue lo que
+          // pasó con la transferencia 51339, cuya sucursal no tenía timbrado electrónico.
+          if (!res?.notaRemision) {
+            this.notificacionService.openAlgoSalioMal('No se pudo preparar la nota de remisión');
+            this.dialogRef.close(null);
+            return;
+          }
+          this.nota = res.notaRemision;
+          this.items = res.items ?? [];
+          if (!this.nota.salidaDepartamento) this.nota.salidaDepartamento = DEPARTAMENTO_POR_DEFECTO;
+          if (!this.nota.entregaDepartamento) this.nota.entregaDepartamento = DEPARTAMENTO_POR_DEFECTO;
+        },
+        error: (e: any) => {
+          this.cargando = false;
+          this.notificacionService.openAlgoSalioMal(
+            e?.message ?? 'No se pudo preparar la nota de remisión');
+          this.dialogRef.close(null);
+        }
       });
   }
 
@@ -242,27 +292,38 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       unidadMedida: item.unidadMedida
     }));
 
-    this.service.onSave(input, itemsInput).pipe(untilDestroyed(this)).subscribe(guardada => {
-      this.guardando = false;
-      if (!guardada) return;
-      this.dialogosService.confirm(
-        'Nota de remisión creada',
-        `Quedó con el número ${guardada.numeroNotaRemision}.`,
-        '¿Enviarla a SIFEN ahora?'
-      ).pipe(untilDestroyed(this)).subscribe(confirmado => {
-        if (!confirmado) {
-          this.dialogRef.close(guardada);
+    // Guardar emite: ya no se pregunta «¿Enviarla ahora?». `guardando` NO se libera acá: cubre
+    // todo el ciclo guardar + enviar, si no el botón se reactiva mientras SIFEN todavía responde
+    // y un segundo click emite una nota más, con su número quemado.
+    this.service.onSave(input, itemsInput).pipe(untilDestroyed(this)).subscribe({
+      next: guardada => {
+        if (!guardada) {
+          this.guardando = false;
           return;
         }
         this.service.onGenerarYEnviar(guardada.id, guardada.sucursalId)
           .pipe(untilDestroyed(this))
-          .subscribe(de => {
-            if (de?.cdc) {
-              this.notificacionService.openSucess(`Enviada a SIFEN. CDC ${de.cdc}`, 5);
+          .subscribe({
+            next: de => {
+              this.guardando = false;
+              if (de?.cdc) {
+                this.notificacionService.openSucess(
+                  `Nota ${guardada.numeroNotaRemision} enviada a SIFEN. CDC ${de.cdc}`, 6);
+              }
+              this.dialogRef.close(guardada);
+            },
+            // La nota YA existe con su número: se cierra igual y se reintenta con «Reenviar»
+            // desde la lista. Volver a guardar crearía una segunda nota.
+            error: () => {
+              this.guardando = false;
+              this.notificacionService.openWarn(
+                `La nota ${guardada.numeroNotaRemision} se guardó pero SIFEN no la aceptó. `
+                + 'Reintentá con «Reenviar» desde la lista de notas de remisión.');
+              this.dialogRef.close(guardada);
             }
-            this.dialogRef.close(guardada);
           });
-      });
+      },
+      error: () => { this.guardando = false; }
     });
   }
 

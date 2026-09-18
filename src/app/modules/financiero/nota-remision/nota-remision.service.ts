@@ -21,6 +21,7 @@ import { SaveNotaRemisionGQL } from './graphql/saveNotaRemision';
 import { GenerarYEnviarNotaRemisionGQL } from './graphql/generarYEnviarNotaRemision';
 import { ReenviarNotaRemisionGQL } from './graphql/reenviarNotaRemision';
 import { AnularNotaRemisionGQL } from './graphql/anularNotaRemision';
+import { LocalesDeSalidaGQL } from './graphql/localesDeSalida';
 
 /**
  * Notas de remisión electrónicas.
@@ -43,8 +44,14 @@ export class NotaRemisionService {
     private saveGQL: SaveNotaRemisionGQL,
     private generarYEnviarGQL: GenerarYEnviarNotaRemisionGQL,
     private reenviarGQL: ReenviarNotaRemisionGQL,
-    private anularGQL: AnularNotaRemisionGQL
+    private anularGQL: AnularNotaRemisionGQL,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL
   ) {}
+
+  /** Sucursales que pueden ser local de salida, con sus datos fiscales. */
+  onGetLocalesDeSalida(texto: string): Observable<any[]> {
+    return this.genericService.onCustomQuery(this.localesDeSalidaGQL, { texto });
+  }
 
   onGetPorFiltro(sucursalId: number, fechaInicio: string, fechaFin: string,
                  page: number, size: number): Observable<PageInfo<NotaRemision>> {
