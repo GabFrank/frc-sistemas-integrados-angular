@@ -169,7 +169,8 @@ export class AddNotaRemisionDialogComponent implements OnInit {
         { id: 'ciudad', nombre: 'Ciudad', width: '20%' }
       ],
       query: this.localesDeSalidaGQL,
-      fallbackToLocal: true
+      // Solo existe en el central: reintentar contra el filial no aporta nada.
+      fallbackToLocal: false
     };
     this.matDialog.open(SearchListDialogComponent, {
       data,

@@ -72,7 +72,13 @@ export class ListNotaCreditoComponent implements OnInit {
       this.sucursales = res ?? [];
     });
 
-    this.sucursalIdControl.setValue(this.mainService.sucursalActual?.id ?? null);
+    // Sucursal en «Todas» (null) y rango de ayer a hoy, igual que la lista de remisiones.
+    this.sucursalIdControl.setValue(null);
+    const hoy = new Date();
+    const ayer = new Date();
+    ayer.setDate(hoy.getDate() - 1);
+    this.fechaDesdeControl.setValue(ayer);
+    this.fechaHastaControl.setValue(hoy);
     this.buscar();
   }
 
@@ -100,8 +106,9 @@ export class ListNotaCreditoComponent implements OnInit {
       queryData: { sucursalId, page: 0, size: 15 },
       searchFieldName: 'numero',
       search: true,
-      textHint: 'Buscar por número de factura…',
-      fallbackToLocal: true
+      textHint: 'Número exacto de la factura…',
+      // Sin fallbackToLocal: esta query solo existe en el central, el filial no la tiene.
+      fallbackToLocal: false
     };
     this.matDialog.open(SearchListDialogComponent, {
       data,
