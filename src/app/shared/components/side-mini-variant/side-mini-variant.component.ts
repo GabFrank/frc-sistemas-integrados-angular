@@ -596,13 +596,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               name: 'Notas de remisión',
               icon: 'local_shipping',
               action: 'list-nota-remision',
-              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_NR_EMITIR, ROLES.ADMIN]
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
             },
             {
               name: 'Notas de crédito',
               icon: 'request_quote',
               action: 'list-nota-credito',
-              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_NC_EMITIR, ROLES.ADMIN]
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
             }
           ]
         },
@@ -1156,10 +1156,10 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
         break;
       case "list-nota-credito":
-        this.openTabIfAuthorized(ROLES.FACTURACION_VER, ListNotaCreditoComponent, "Notas de crédito");
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaCreditoComponent, "Notas de crédito");
         break;
       case "list-nota-remision":
-        this.openTabIfAuthorized(ROLES.FACTURACION_VER, ListNotaRemisionComponent, "Notas de remisión");
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaRemisionComponent, "Notas de remisión");
         break;
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
@@ -1265,8 +1265,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
     }
   }
-  private openTabIfAuthorized(role: string, component: any, title: string): void {
-    if (this.mainService.usuarioActual?.roles.includes(role) || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+  /** `role` acepta una lista cuando la pantalla la habilita más de un rol (ej. ver o emitir). */
+  private openTabIfAuthorized(role: string | string[], component: any, title: string): void {
+    const roles = Array.isArray(role) ? role : [role];
+    if (roles.some(r => this.mainService.usuarioActual?.roles.includes(r))
+        || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
       this.tabService.addTab(new Tab(component, title, null, null));
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');

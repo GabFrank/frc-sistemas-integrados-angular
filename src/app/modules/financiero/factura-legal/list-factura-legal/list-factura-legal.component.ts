@@ -159,7 +159,7 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_NC_EMITIR, ROLES.ADMIN]);
+    this.puedeEmitirNotaCredito = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
 
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);

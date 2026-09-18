@@ -63,8 +63,10 @@ export class ListNotaRemisionComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.puedeEmitir = this.mainService.tieneAlgunRol([ROLES.FACTURACION_NR_EMITIR, ROLES.ADMIN]);
-    this.puedeAnular = this.mainService.tieneAlgunRol([ROLES.FACTURACION_ANULAR, ROLES.ADMIN]);
+    this.puedeEmitir = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+    // Mismo rol que emitir: quien emite puede anular lo que emitió. Se deja el flag aparte porque
+    // son botones distintos y la separación puede volver si algún día se parten los roles.
+    this.puedeAnular = this.puedeEmitir;
 
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       this.sucursales = res ?? [];
