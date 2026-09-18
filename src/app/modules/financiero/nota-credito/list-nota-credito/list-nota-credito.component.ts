@@ -13,6 +13,13 @@ import { SucursalService } from '../../../empresarial/sucursal/sucursal.service'
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { MatDialog } from '@angular/material/dialog';
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData
+} from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { FacturasParaNotaCreditoGQL } from '../graphql/facturasParaNotaCredito';
+import { AddNotaCreditoDialogComponent } from '../add-nota-credito-dialog/add-nota-credito-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 /** Lista de notas de crédito electrónicas. Permisos en flags de ngOnInit, nunca en el HTML. */
@@ -50,7 +57,9 @@ export class ListNotaCreditoComponent implements OnInit {
     private mainService: MainService,
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
-    private impresionService: ImpresionService
+    private impresionService: ImpresionService,
+    private matDialog: MatDialog,
+    private facturasParaNotaCreditoGQL: FacturasParaNotaCreditoGQL
   ) {}
 
   ngOnInit(): void {
@@ -65,6 +74,56 @@ export class ListNotaCreditoComponent implements OnInit {
 
     this.sucursalIdControl.setValue(this.mainService.sucursalActual?.id ?? null);
     this.buscar();
+  }
+
+  /**
+   * Alta desde la lista: se elige la factura con un buscador en vez de entrar por su menú.
+   * El central devuelve solo candidatas reales, y el buscador muestra cliente, RUC, fecha y
+   * total para que el operador confirme que eligió bien: una NC aprobada es irreversible.
+   */
+  onAdicionar(): void {
+    const sucursalId = this.sucursalIdControl.value ?? this.mainService.sucursalActual?.id;
+    if (!sucursalId) {
+      this.notificacionService.openWarn('Elegí primero la sucursal');
+      return;
+    }
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar factura para la nota de crédito',
+      tableData: [
+        { id: 'numeroFactura', nombre: 'Factura', width: '15%' },
+        { id: 'fecha', nombre: 'Fecha', width: '20%' },
+        { id: 'cliente', nombre: 'Cliente', width: '30%' },
+        { id: 'ruc', nombre: 'RUC', width: '15%' },
+        { id: 'total', nombre: 'Total', width: '20%' }
+      ],
+      query: this.facturasParaNotaCreditoGQL,
+      queryData: { sucursalId, page: 0, size: 15 },
+      searchFieldName: 'numero',
+      search: true,
+      textHint: 'Buscar por número de factura…',
+      fallbackToLocal: true
+    };
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((factura: any) => {
+      if (factura == null) return;
+      this.matDialog.open(AddNotaCreditoDialogComponent, {
+        width: '520px',
+        data: {
+          facturaLegalId: factura.facturaLegalId,
+          sucursalId: factura.sucursalId,
+          numeroFactura: factura.numeroFactura,
+          cliente: factura.cliente,
+          totalFactura: factura.total,
+          moneda: factura.moneda
+        }
+      }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        if (res) this.buscar();
+      });
+    });
   }
 
   buscar(): void {

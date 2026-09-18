@@ -25,6 +25,10 @@
     <button mat-stroked-button color="primary" (click)="buscar()">
       <mat-icon>search</mat-icon> Buscar
     </button>
+
+    <button mat-raised-button color="primary" *ngIf="puedeEmitir" (click)="onAdicionar()">
+      <mat-icon>add</mat-icon> Adicionar
+    </button>
   </div>
 
   <p class="aviso">
