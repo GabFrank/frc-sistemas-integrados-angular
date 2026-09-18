@@ -85,8 +85,8 @@ export const notaRemisionItemsQuery = gql`
 `;
 
 export const notaRemisionPorTransferenciaQuery = gql`
-  query notaRemisionPorTransferencia($transferenciaId: ID!) {
-    data: notaRemisionPorTransferencia(transferenciaId: $transferenciaId) {
+  query notaRemisionPorTransferencia($transferenciaId: ID!, $sucursalId: ID!) {
+    data: notaRemisionPorTransferencia(transferenciaId: $transferenciaId, sucursalId: $sucursalId) {
       id
       sucursalId
       numeroNotaRemision

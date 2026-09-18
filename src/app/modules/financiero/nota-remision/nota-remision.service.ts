@@ -61,9 +61,9 @@ export class NotaRemisionService {
   }
 
   /** Para deshabilitar el botón de la transferencia cuando ya tiene su nota. */
-  onGetPorTransferencia(transferenciaId: number): Observable<NotaRemision> {
+  onGetPorTransferencia(transferenciaId: number, sucursalId: number): Observable<NotaRemision> {
     return this.genericService.onCustomQuery(this.notaRemisionPorTransferenciaGQL,
-      { transferenciaId }, true, null, true);
+      { transferenciaId, sucursalId }, true, null, true);
   }
 
   onGetDocumentoElectronico(notaRemisionId: number, sucursalId: number): Observable<any> {

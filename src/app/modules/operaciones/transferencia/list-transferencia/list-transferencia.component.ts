@@ -525,7 +525,9 @@ export class ListTransferenciaComponent implements OnInit {
    * aceptaría las dos y quedaría un traslado amparado por duplicado.
    */
   onNotaRemision(transferencia: any): void {
-    this.notaRemisionService.onGetPorTransferencia(transferencia.id)
+    // La nota la emite la sucursal de origen: es la que despacha.
+    const sucursalId = transferencia.sucursalOrigen?.id ?? this.mainService.sucursalActual?.id;
+    this.notaRemisionService.onGetPorTransferencia(transferencia.id, sucursalId)
       .pipe(untilDestroyed(this))
       .subscribe(notaExistente => {
         if (notaExistente?.id) {
@@ -540,7 +542,7 @@ export class ListTransferenciaComponent implements OnInit {
           data: {
             origen: OrigenNotaRemision.TRANSFERENCIA,
             referenciaId: transferencia.id,
-            sucursalId: transferencia.sucursalOrigen?.id ?? this.mainService.sucursalActual?.id
+            sucursalId
           }
         });
       });
