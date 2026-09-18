@@ -12,6 +12,13 @@ h3 {
   width: 200px;
 }
 
+/* Las ayudas (mat-hint) ocupan alto propio: sin este margen se superponen con la fila siguiente. */
+.campo,
+.campo-ancho,
+.campo-chico {
+  margin-bottom: 14px;
+}
+
 .campo-ancho {
   width: 320px;
 }
@@ -34,4 +41,25 @@ h3 {
   padding: 24px;
   text-align: center;
   opacity: 0.8;
+}
+
+/* La tabla de ítems usa inputs pelados (sin mat-form-field): sin esto quedan blancos sobre el
+   fondo del tema oscuro, y la fila toma el color de acento del tema. */
+.tabla-items {
+  /* !important: un estilo global de tablas pinta la fila con el color de acento. */
+  tr,
+  td,
+  tr.mat-mdc-row,
+  td.mat-mdc-cell {
+    background: transparent !important;
+  }
+
+  input {
+    width: 90%;
+    padding: 4px 6px;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
 }

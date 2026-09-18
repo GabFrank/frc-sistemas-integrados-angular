@@ -93,25 +93,53 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     if (!this.validar()) return;
 
     this.guardando = true;
+    // Campo por campo, sin spread: lo que vuelve de la query trae __typename de Apollo y el input
+    // de GraphQL lo rechaza ("field name '__typename' that is not defined for input object type").
     const input: any = {
-      ...this.nota,
+      sucursalId: this.nota.sucursalId,
+      timbradoDetalleId: this.nota.timbradoDetalleId,
+      fecha: this.nota.fecha ? dateToString(new Date(this.nota.fecha)) : null,
       origen: this.nota.origen,
+      transferenciaId: this.nota.transferenciaId,
+      facturaLegalId: this.nota.facturaLegalId,
       motivoEmision: this.nota.motivoEmision,
       responsableEmision: this.nota.responsableEmision,
-      tipoTransporte: this.nota.tipoTransporte,
-      modalidadTransporte: this.nota.modalidadTransporte,
-      fecha: this.nota.fecha ? dateToString(new Date(this.nota.fecha)) : null,
+      kmEstimado: this.nota.kmEstimado,
       fechaInicioTraslado: this.nota.fechaInicioTraslado
         ? dateToString(new Date(this.nota.fechaInicioTraslado)) : null,
       fechaFinTraslado: this.nota.fechaFinTraslado
         ? dateToString(new Date(this.nota.fechaFinTraslado)) : null,
       fechaEstimadaFactura: this.nota.fechaEstimadaFactura
         ? dateToString(new Date(this.nota.fechaEstimadaFactura)) : null,
+      clienteId: this.nota.clienteId,
+      receptorNombre: this.nota.receptorNombre,
+      receptorRuc: this.nota.receptorRuc,
+      receptorDireccion: this.nota.receptorDireccion,
+      receptorDepartamento: this.nota.receptorDepartamento,
+      receptorCodigoCiudad: this.nota.receptorCodigoCiudad,
+      receptorCiudad: this.nota.receptorCiudad,
+      salidaDireccion: this.nota.salidaDireccion,
+      salidaDepartamento: this.nota.salidaDepartamento,
+      salidaCodigoCiudad: this.nota.salidaCodigoCiudad,
+      salidaCiudad: this.nota.salidaCiudad,
+      entregaDireccion: this.nota.entregaDireccion,
+      entregaDepartamento: this.nota.entregaDepartamento,
+      entregaCodigoCiudad: this.nota.entregaCodigoCiudad,
+      entregaCiudad: this.nota.entregaCiudad,
+      tipoTransporte: this.nota.tipoTransporte,
+      modalidadTransporte: this.nota.modalidadTransporte,
+      transportistaNombre: this.nota.transportistaNombre,
+      transportistaRuc: this.nota.transportistaRuc,
+      transportistaDireccion: this.nota.transportistaDireccion,
+      vehiculoId: this.nota.vehiculoId,
+      vehiculoMarca: this.nota.vehiculoMarca,
+      vehiculoMatricula: this.nota.vehiculoMatricula,
+      choferPersonaId: this.nota.choferPersonaId,
+      choferNombre: this.nota.choferNombre,
+      choferDocumento: this.nota.choferDocumento,
+      choferDireccion: this.nota.choferDireccion,
       usuarioId: this.mainService.usuarioActual?.id
     };
-    delete input.creadoEn;
-    delete input.activo;
-    delete input.numeroNotaRemision;
 
     const itemsInput: NotaRemisionItemInput[] = this.items.map(item => ({
       productoId: item.productoId,
