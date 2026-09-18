@@ -806,13 +806,13 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onSaveTransferencia(): Promise<any> {
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     return new Promise((resolve, reject) => {
       this.transferenciaService
         .onSaveTransferencia(this.selectedTransferencia.toInput())
         .pipe(untilDestroyed(this))
+        .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
           if (res != null) {
             this.selectedTransferencia = res;
             resolve(res);
@@ -840,13 +840,13 @@ export class EditTransferenciaComponent implements OnInit {
       this.presentacionDeLotesPendientes = null;
     }
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.transferenciaService
       .onSaveTransferenciaItem(input, precioCosto)
       .pipe(untilDestroyed(this))
       // El openDialog de arriba es el overlay bloqueante de TODA la app: si el backend
       // rechaza el item y nadie lo cierra, la pantalla queda tapada y hay que recargar.
-      .pipe(finalize(() => this.cargandoService.closeDialog()))
+      .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
       .subscribe({
         next: (res) => {
           if (res != null) {
@@ -1042,13 +1042,13 @@ export class EditTransferenciaComponent implements OnInit {
     input.lotesAsignados = seleccion.lotes;
     input.etapaAsignacionLote = seleccion.etapa;
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.transferenciaService
       // Sin «Guardado con éxito»: el aviso es «Lotes asignados»; el error lo da onSaveCustom.
       .onSaveTransferenciaItem(input, undefined, true, { avisarExito: false })
       .pipe(untilDestroyed(this))
       // Idem: el overlay se cierra pase lo que pase, no solo cuando el guardado sale bien.
-      .pipe(finalize(() => this.cargandoService.closeDialog()))
+      .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
       .subscribe({
         next: (res) => {
           if (res != null) {
@@ -1276,13 +1276,13 @@ export class EditTransferenciaComponent implements OnInit {
 
     // Los cajeros con caja abierta en el destino son los candidatos naturales, pero es solo una
     // ayuda: si no hay ninguno se busca entre todos los usuarios para no trabar la transferencia.
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     this.cajaService
       .onGetCajerosConCajaAbierta(sucursalDestinoId)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (cajeros) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           if (cajeros == null || cajeros.length == 0) {
             this.notificacionService.openWarn(
               "No hay cajas abiertas en " +
@@ -1295,7 +1295,7 @@ export class EditTransferenciaComponent implements OnInit {
           }
         },
         error: () => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.abrirBuscadorDeSolicitante(null);
         },
       });
@@ -1339,12 +1339,12 @@ export class EditTransferenciaComponent implements OnInit {
       let auxTransf = new Transferencia();
       Object.assign(auxTransf, this.selectedTransferencia);
       auxTransf.solicitante = usuario;
-      this.cargandoService.openDialog();
+      const { requestId } = this.cargandoService.openDialog();
       this.transferenciaService
         .onSaveTransferencia(auxTransf.toInput())
         .pipe(untilDestroyed(this))
+        .pipe(finalize(() => this.cargandoService.closeDialog(requestId)))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
           if (res != null) {
             this.selectedTransferencia.solicitante = res.solicitante;
           }
@@ -1815,14 +1815,14 @@ export class EditTransferenciaComponent implements OnInit {
     const productoId = this.selectedProducto?.id;
 
     if (productoId != null && sucursalOrigenId != null) {
-      this.cargandoService.openDialog(false, "Verificando stock...");
+      const { requestId } = this.cargandoService.openDialog(false, "Verificando stock...");
       this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
         .subscribe({
           next: (stock) => {
             if (stock != null && stock < 0) {
               this.configuracionTransferenciaService.onGetConfiguracion().subscribe({
                 next: (config) => {
-                  this.cargandoService.closeDialog();
+                  this.cargandoService.closeDialog(requestId);
                   if (!config?.permitirStockNegativo) {
                     this.notificacionService.openWarn(
                       `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
@@ -1833,7 +1833,7 @@ export class EditTransferenciaComponent implements OnInit {
                   this.procederConGuardadoItem();
                 },
                 error: () => {
-                  this.cargandoService.closeDialog();
+                  this.cargandoService.closeDialog(requestId);
                   this.notificacionService.openWarn(
                     `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
                   );
@@ -1841,12 +1841,12 @@ export class EditTransferenciaComponent implements OnInit {
                 }
               });
             } else {
-              this.cargandoService.closeDialog();
+              this.cargandoService.closeDialog(requestId);
               this.procederConGuardadoItem();
             }
           },
           error: (err) => {
-            this.cargandoService.closeDialog();
+            this.cargandoService.closeDialog(requestId);
             this.notificacionService.openAlgoSalioMal("Error al verificar el stock del producto");
           }
         });

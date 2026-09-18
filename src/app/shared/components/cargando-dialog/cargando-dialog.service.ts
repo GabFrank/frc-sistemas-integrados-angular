@@ -63,14 +63,13 @@ export class CargandoDialogService {
     return { requestId };
   }
 
-  closeDialog(requestId?: number) {
-    if (requestId === null || requestId === undefined) {
-      // Close the next open dialog
-      const nextRequestId = this.dialogRequests.keys().next().value;
-      if (nextRequestId !== undefined) {
-        requestId = nextRequestId;
-      }
-    }
+  /**
+   * Cierra el spinner de ese requestId (el que devolvió openDialog). Sin id no cierra nada: antes
+   * cerraba el primero pendiente, que podía ser el de otra request, y el propio quedaba abierto
+   * hasta el timer (#319). Con null/undefined (p. ej. silentLoad en GenericCrudService) es no-op.
+   */
+  closeDialog(requestId: number) {
+    if (requestId === null || requestId === undefined) return;
 
     const request = this.dialogRequests.get(requestId);
     if (request) {
