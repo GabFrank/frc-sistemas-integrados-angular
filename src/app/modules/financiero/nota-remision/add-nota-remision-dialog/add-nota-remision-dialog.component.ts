@@ -18,6 +18,7 @@ import {
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
+import { VehiculoSearchGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearch';
 import {
   SearchListDialogComponent,
   SearchListtDialogData
@@ -63,6 +64,7 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     private dialogosService: DialogosService,
     private funcionarioService: FuncionarioService,
     private searchFuncionario: FuncionarioSearchGQL,
+    private searchVehiculo: VehiculoSearchGQL,
     private matDialog: MatDialog,
     private dialogRef: MatDialogRef<AddNotaRemisionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddNotaRemisionDialogData
@@ -113,6 +115,40 @@ export class AddNotaRemisionDialogComponent implements OnInit {
         this.nota.choferDocumento = persona.documento;
         this.nota.choferDireccion = persona.direccion;
       });
+  }
+
+  /**
+   * Busca el vehículo por matrícula y completa marca y matrícula.
+   *
+   * La lupa va en Matrícula y no en Marca porque la matrícula identifica al vehículo sin
+   * ambigüedad; de una marca hay decenas. La marca está anidada dos niveles en el modelo
+   * (`modelo.marca.descripcion`), que el buscador resuelve con notación de puntos.
+   */
+  buscarVehiculo(): void {
+    const data: SearchListtDialogData = {
+      titulo: 'Buscar Vehículo',
+      tableData: [
+        { id: 'chapa', nombre: 'Matrícula', width: '25%' },
+        { id: 'modelo.marca.descripcion', nombre: 'Marca', width: '25%' },
+        { id: 'modelo.descripcion', nombre: 'Modelo', width: '25%' },
+        { id: 'tipoVehiculo.descripcion', nombre: 'Tipo', width: '25%' }
+      ],
+      query: this.searchVehiculo,
+      fallbackToLocal: true
+    };
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((vehiculo: any) => {
+      if (vehiculo == null) return;
+      this.nota.vehiculoId = vehiculo.id;
+      this.nota.vehiculoMatricula = vehiculo.chapa;
+      // SIFEN corta la marca en 10 caracteres: se recorta acá para que se vea lo que se va a enviar.
+      const marca = vehiculo.modelo?.marca?.descripcion;
+      this.nota.vehiculoMarca = marca != null ? marca.substring(0, 10) : this.nota.vehiculoMarca;
+    });
   }
 
   ngOnInit(): void {
