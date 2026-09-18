@@ -1,0 +1,144 @@
+/* Sigue el padrón de add-factura-legal-dialog: cada bloque de campos es una tarjeta con título,
+   en vez de un <h3> suelto sobre el fondo del diálogo. */
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.contenido {
+  max-height: 72vh;
+  padding-top: 8px;
+
+  /* El scrollbar nativo desentona con el tema oscuro. */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.45);
+    }
+  }
+}
+
+.section-card {
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  padding: 16px 20px 4px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.section-title {
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+/* Los campos crecen para repartirse el ancho real del diálogo. Con anchos fijos en px sobraba
+   espacio a la derecha en pantalla ancha y se apilaban de a uno en pantalla angosta. */
+.campo,
+.campo-ancho,
+.campo-chico {
+  margin-bottom: 12px;
+}
+
+/* El `max-width` es lo que evita que un campo que queda solo al final de una fila se estire a
+   todo el ancho del diálogo (pasaba con «Ciudad de entrega» y «Dirección del chofer»). */
+.campo {
+  flex: 1 1 200px;
+  max-width: 280px;
+}
+
+.campo-ancho {
+  flex: 2 1 320px;
+  max-width: 440px;
+}
+
+.campo-chico {
+  flex: 0 1 130px;
+  max-width: 150px;
+}
+
+.cargando {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.btn-agregar {
+  margin: 4px 0 16px;
+}
+
+.acciones {
+  padding: 8px 24px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  button {
+    min-width: 120px;
+    border-radius: 8px;
+  }
+}
+
+.tabla-items {
+  width: 100%;
+  margin-bottom: 8px;
+
+  td,
+  th {
+    text-align: center;
+  }
+
+  /* La descripción es lo que se lee; cantidad y unidad son dos o tres caracteres. */
+  .col-descripcion {
+    width: 58%;
+    text-align: left;
+  }
+
+  .col-numero {
+    width: 13%;
+  }
+
+  .col-acciones {
+    width: 16%;
+  }
+
+  /* Los inputs son pelados (sin mat-form-field): sin esto quedan blancos sobre el fondo
+     oscuro, y la fila toma el color de acento del tema. */
+  /* !important: un estilo global de tablas pinta la fila con el color de acento. */
+  tr,
+  td,
+  tr.mat-mdc-row,
+  td.mat-mdc-cell {
+    background: transparent !important;
+  }
+
+  input {
+    width: 100%;
+    padding: 6px 8px;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}

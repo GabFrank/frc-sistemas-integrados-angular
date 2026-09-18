@@ -24,6 +24,8 @@ import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListPersonaComponent } from "../../../modules/personas/persona/list-persona/list-persona.component";
 import { ListProveedorComponent } from "../../../modules/personas/proveedor/list-proveedor/list-proveedor.component";
+import { ListNotaRemisionComponent } from '../../../modules/financiero/nota-remision/list-nota-remision/list-nota-remision.component';
+import { ListNotaCreditoComponent } from '../../../modules/financiero/nota-credito/list-nota-credito/list-nota-credito.component';
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
@@ -589,6 +591,18 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               icon: 'receipt',
               action: 'factura-dashboard',
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ADMIN]
+            },
+            {
+              name: 'Notas de remisión',
+              icon: 'local_shipping',
+              action: 'list-nota-remision',
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
+            },
+            {
+              name: 'Notas de crédito',
+              icon: 'request_quote',
+              action: 'list-nota-credito',
+              visibilityRoles: [ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR, ROLES.ADMIN]
             }
           ]
         },
@@ -1141,6 +1155,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-retiros":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListRetiroComponent, "Lista de retiros");
         break;
+      case "list-nota-credito":
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaCreditoComponent, "Notas de crédito");
+        break;
+      case "list-nota-remision":
+        this.openTabIfAuthorized([ROLES.FACTURACION_VER, ROLES.FACTURACION_EMITIR], ListNotaRemisionComponent, "Notas de remisión");
+        break;
       case "factura-dashboard":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, FacturaLegalDashboard, "Factura dashboard");
         break;
@@ -1245,8 +1265,11 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
     }
   }
-  private openTabIfAuthorized(role: string, component: any, title: string): void {
-    if (this.mainService.usuarioActual?.roles.includes(role) || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+  /** `role` acepta una lista cuando la pantalla la habilita más de un rol (ej. ver o emitir). */
+  private openTabIfAuthorized(role: string | string[], component: any, title: string): void {
+    const roles = Array.isArray(role) ? role : [role];
+    if (roles.some(r => this.mainService.usuarioActual?.roles.includes(r))
+        || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
       this.tabService.addTab(new Tab(component, title, null, null));
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
