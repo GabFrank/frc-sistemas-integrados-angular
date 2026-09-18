@@ -10,7 +10,6 @@ import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { ConfirmDialogComponent } from "../../../../shared/components/confirm-dialog/confirm-dialog.component";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { ImprimirEnSucursalDialogComponent } from "../imprimir-en-sucursal-dialog/imprimir-en-sucursal-dialog.component";
@@ -655,28 +654,28 @@ export class ListFacturaLegalComponent implements OnInit {
 
   onCancelarFactura(factura: FacturaLegal) {
     const esElectronica = this.esElectronica(factura);
-    const titulo = esElectronica ? 'Cancelar Factura Electrónica' : 'Cancelar Factura';
-    const mensaje = esElectronica
-      ? '¿Desea cancelar esta factura electrónica? Esto enviará un evento de cancelación a SIFEN.'
-      : '¿Desea cancelar esta factura? Esta acción no se puede deshacer.';
+    const titulo = esElectronica ? 'Cancelar factura electrónica' : 'Cancelar factura';
+    const aviso = esElectronica
+      ? 'Se va a enviar un evento de cancelación a SIFEN. No se puede deshacer.'
+      : 'Esta acción no se puede deshacer.';
 
-    const dialogRef = this.matDialog.open(ConfirmDialogComponent, {
-      data: {
-        titulo,
-        mensaje,
-        opciones: [
-          { texto: 'Solo Factura', valor: false },
-          { texto: 'Factura + Venta', valor: true }
-        ],
-        cancelar: true
-      },
-      width: '500px'
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result !== undefined) {
-        this.ejecutarCancelacion(factura, result);
-      }
+    // Iba por ConfirmDialogComponent con las claves `titulo`/`mensaje`/`opciones`, que ese
+    // componente no lee: el diálogo salía sin texto y sin las dos opciones, y como cerraba con
+    // `false` y acá se comparaba contra `undefined`, el botón «Cancelar» igual cancelaba la
+    // factura. DialogosService devuelve true en el primer botón, false en el segundo y null en
+    // el tercero; el primero es el que queda con el foco, así que ahí va la opción más acotada.
+    this.dialogosService.confirm(
+      titulo,
+      aviso,
+      '¿Qué se cancela?',
+      null,
+      true,
+      'Solo la factura',
+      'La factura y la venta',
+      'Cerrar'
+    ).pipe(untilDestroyed(this)).subscribe(resultado => {
+      if (resultado === null || resultado === undefined) return;   // cerró sin elegir
+      this.ejecutarCancelacion(factura, resultado === false);      // el segundo botón lleva la venta
     });
   }
 
