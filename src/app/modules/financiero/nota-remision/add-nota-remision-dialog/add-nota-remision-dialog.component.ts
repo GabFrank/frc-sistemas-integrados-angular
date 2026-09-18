@@ -289,7 +289,17 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       return false;
     }
     if (!this.nota.salidaCodigoCiudad || !this.nota.entregaCodigoCiudad) {
-      this.notificacionService.openWarn('Faltan las ciudades de salida y de entrega');
+      this.notificacionService.openWarn('Faltan los códigos de ciudad de salida y de entrega');
+      return false;
+    }
+    // SIFEN rechaza el lote entero si el departamento no se corresponde con la ciudad (2203).
+    if (!this.nota.salidaDepartamento || !this.nota.entregaDepartamento) {
+      this.notificacionService.openWarn('Faltan los departamentos de salida y de entrega');
+      return false;
+    }
+    // SIFEN de producción rechaza el lote entero sin los km: «Elemento esperado: dKmR».
+    if (!this.nota.kmEstimado || this.nota.kmEstimado <= 0) {
+      this.notificacionService.openWarn('Faltan los km estimados del traslado: SIFEN los exige');
       return false;
     }
     if (this.nota.vehiculoMarca && this.nota.vehiculoMarca.length > 10) {

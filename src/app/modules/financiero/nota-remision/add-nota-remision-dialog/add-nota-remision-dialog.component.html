@@ -32,8 +32,8 @@
         </mat-select>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
-        <mat-label>Km estimados</mat-label>
-        <input matInput type="number" [(ngModel)]="nota.kmEstimado" />
+        <mat-label>Km estimados *</mat-label>
+        <input matInput type="number" min="1" [(ngModel)]="nota.kmEstimado" />
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Inicio del traslado</mat-label>
@@ -62,8 +62,12 @@
         <input matInput [(ngModel)]="nota.salidaCiudad" />
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo-chico">
-        <mat-label>Código ciudad</mat-label>
+        <mat-label>Código ciudad *</mat-label>
         <input matInput type="number" [(ngModel)]="nota.salidaCodigoCiudad" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Departamento de salida *</mat-label>
+        <input matInput [(ngModel)]="nota.salidaDepartamento" />
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de entrega</mat-label>
@@ -74,8 +78,12 @@
         <input matInput [(ngModel)]="nota.entregaCiudad" />
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo-chico">
-        <mat-label>Código ciudad</mat-label>
+        <mat-label>Código ciudad *</mat-label>
         <input matInput type="number" [(ngModel)]="nota.entregaCodigoCiudad" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Departamento de entrega *</mat-label>
+        <input matInput [(ngModel)]="nota.entregaDepartamento" />
       </mat-form-field>
       </div>
     </div>
