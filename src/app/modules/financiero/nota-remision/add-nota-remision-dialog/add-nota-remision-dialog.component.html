@@ -167,8 +167,8 @@
     </div>
 
     <div class="section-card">
-      <div class="section-title">Ítems</div>
-    <table mat-table [dataSource]="items" class="tabla-items">
+      <div class="section-title">Ítems ({{ items.length }})</div>
+    <table mat-table [dataSource]="itemsPagina" class="tabla-items">
       <ng-container matColumnDef="descripcion">
         <th mat-header-cell *matHeaderCellDef class="col-descripcion">Descripción</th>
         <td mat-cell *matCellDef="let item" class="col-descripcion">
@@ -189,13 +189,20 @@
       </ng-container>
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef class="col-acciones"></th>
-        <td mat-cell *matCellDef="let item; let i = index" class="col-acciones">
-          <button mat-icon-button color="warn" (click)="quitarItem(i)"><mat-icon>delete</mat-icon></button>
+        <td mat-cell *matCellDef="let item" class="col-acciones">
+          <button mat-icon-button color="warn" (click)="quitarItem(item)"><mat-icon>delete</mat-icon></button>
         </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="columnasItems"></tr>
       <tr mat-row *matRowDef="let row; columns: columnasItems"></tr>
     </table>
+    <mat-paginator
+      [length]="items.length"
+      [pageIndex]="paginaItems"
+      [pageSize]="tamanoPaginaItems"
+      [pageSizeOptions]="opcionesTamanoPagina"
+      (page)="cambiarPagina($event)">
+    </mat-paginator>
 
     <button mat-stroked-button class="btn-agregar" (click)="agregarItem()">
       <mat-icon>add</mat-icon> Agregar ítem
