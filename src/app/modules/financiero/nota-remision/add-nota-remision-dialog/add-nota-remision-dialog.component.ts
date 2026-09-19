@@ -183,7 +183,9 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       ],
       query: this.localesDeSalidaGQL,
       // Solo existe en el central: reintentar contra el filial no aporta nada.
-      fallbackToLocal: false
+      fallbackToLocal: false,
+      // Son pocas sucursales: se muestran todas al abrir, sin tener que buscar.
+      inicialSearch: true
     };
     this.matDialog.open(SearchListDialogComponent, {
       data,
