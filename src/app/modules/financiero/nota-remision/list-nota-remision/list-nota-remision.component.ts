@@ -16,6 +16,11 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { AddNotaRemisionDialogComponent } from '../add-nota-remision-dialog/add-nota-remision-dialog.component';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { LocalesDeSalidaGQL } from '../graphql/localesDeSalida';
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData
+} from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 
 /**
  * Lista de notas de remisión electrónicas. Todo va contra el central.
@@ -59,7 +64,8 @@ export class ListNotaRemisionComponent implements OnInit {
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private impresionService: ImpresionService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL
   ) {}
 
   ngOnInit(): void {
@@ -102,9 +108,43 @@ export class ListNotaRemisionComponent implements OnInit {
     this.buscar();
   }
 
+  /**
+   * Alta manual. La nota la emite una sucursal con timbrado electrónico: desde una sucursal es
+   * la propia; desde el central (SERVIDOR, sucursal 0), que no emite, se elige para cuál es.
+   * Sin esto el diálogo prellenaba con la sucursal 0 y fallaba por falta de timbrado.
+   */
   onNueva(): void {
+    const actual = this.mainService.sucursalActual;
+    // El id llega como texto ("0"): se compara el número, un "0" es verdadero en un if.
+    if (Number(actual?.id) > 0) {
+      this.abrirNueva(Number(actual.id), actual.nombre);
+      return;
+    }
+    const data: SearchListtDialogData = {
+      titulo: '¿Para qué sucursal es la nota?',
+      tableData: [
+        { id: 'nombre', nombre: 'Sucursal', width: '40%' },
+        { id: 'direccion', nombre: 'Dirección', width: '40%' },
+        { id: 'ciudad', nombre: 'Ciudad', width: '20%' }
+      ],
+      query: this.localesDeSalidaGQL,
+      // Solo existe en el central: reintentar contra el filial no aporta nada.
+      fallbackToLocal: false
+    };
+    this.dialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((local: any) => {
+      if (local?.sucursalId) this.abrirNueva(local.sucursalId, local.nombre);
+    });
+  }
+
+  private abrirNueva(sucursalId: number, sucursalNombre: string): void {
     this.dialog.open(AddNotaRemisionDialogComponent, {
-      width: '95%', maxWidth: '1200px', data: { origen: OrigenNotaRemision.MANUAL }
+      width: '95%', maxWidth: '1200px',
+      data: { origen: OrigenNotaRemision.MANUAL, sucursalId, sucursalNombre }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if (res) this.buscar();
     });
