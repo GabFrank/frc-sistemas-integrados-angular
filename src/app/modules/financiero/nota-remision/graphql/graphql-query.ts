@@ -95,6 +95,18 @@ export const notaRemisionPorTransferenciaQuery = gql`
   }
 `;
 
+export const notasRemisionPorTransferenciasQuery = gql`
+  query notasRemisionPorTransferencias($transferenciaIds: [ID!]!) {
+    data: notasRemisionPorTransferencias(transferenciaIds: $transferenciaIds) {
+      id
+      sucursalId
+      transferenciaId
+      numeroNotaRemision
+      activo
+    }
+  }
+`;
+
 export const documentoElectronicoDeNotaRemisionQuery = gql`
   query documentoElectronicoDeNotaRemision($notaRemisionId: ID!, $sucursalId: ID!) {
     data: documentoElectronicoDeNotaRemision(notaRemisionId: $notaRemisionId, sucursalId: $sucursalId) {

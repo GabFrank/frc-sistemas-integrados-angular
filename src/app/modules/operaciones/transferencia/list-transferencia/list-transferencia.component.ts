@@ -135,6 +135,26 @@ export class ListTransferenciaComponent implements OnInit {
   /** Notas ya emitidas por transferencia: con una cargada, el menú dice «Imprimir». */
   notaRemisionPorTransferencia: { [transferenciaId: number]: any } = {};
 
+  /**
+   * Qué transferencias de la página ya tienen nota, en una sola consulta al cargar la lista. Sin esto
+   * el menú decía «Nota de remisión» también en las que ya la tenían, y el usuario se enteraba recién
+   * al hacer clic, cuando en vez del alta se le abría la impresión.
+   */
+  private cargarNotasRemision(): void {
+    const ids = (this.dataSource.data ?? []).map(t => t.id).filter(id => id != null);
+    if (!this.puedeEmitirNotaRemision || !ids.length) {
+      this.notaRemisionPorTransferencia = {};
+      return;
+    }
+    this.notaRemisionService.onGetPorTransferencias(ids)
+      .pipe(untilDestroyed(this))
+      .subscribe(notas => {
+        const porTransferencia: { [transferenciaId: number]: any } = {};
+        (notas ?? []).forEach(n => { if (n?.transferenciaId) porTransferencia[n.transferenciaId] = n; });
+        this.notaRemisionPorTransferencia = porTransferencia;
+      });
+  }
+
   private imprimirNotaRemision(nota: any): void {
     const numero = nota?.numeroNotaRemision
       ? `001-001-${String(nota.numeroNotaRemision).padStart(7, '0')}` : '';
@@ -217,6 +237,7 @@ export class ListTransferenciaComponent implements OnInit {
           if (res != null) {
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent.map((t) => this.toView(t));
+            this.cargarNotasRemision();
           }
         });
     } else {
@@ -225,6 +246,7 @@ export class ListTransferenciaComponent implements OnInit {
         .subscribe((res) => {
           if (res != null) {
             this.dataSource.data = [this.toView(res)];
+            this.cargarNotasRemision();
           }
         });
     }
@@ -558,6 +580,15 @@ export class ListTransferenciaComponent implements OnInit {
             origen: OrigenNotaRemision.TRANSFERENCIA,
             referenciaId: transferencia.id,
             sucursalId
+          }
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(guardada => {
+          // El diálogo devuelve la nota si llegó a guardarse (aunque el envío a SIFEN haya fallado):
+          // desde ya existe, así que el menú pasa a «Imprimir».
+          if (guardada?.id) {
+            this.notaRemisionPorTransferencia = {
+              ...this.notaRemisionPorTransferencia,
+              [transferencia.id]: guardada
+            };
           }
         });
       });

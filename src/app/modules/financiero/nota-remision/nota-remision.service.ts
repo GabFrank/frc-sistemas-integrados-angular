@@ -22,6 +22,7 @@ import { GenerarYEnviarNotaRemisionGQL } from './graphql/generarYEnviarNotaRemis
 import { ReenviarNotaRemisionGQL } from './graphql/reenviarNotaRemision';
 import { AnularNotaRemisionGQL } from './graphql/anularNotaRemision';
 import { LocalesDeSalidaGQL } from './graphql/localesDeSalida';
+import { NotasRemisionPorTransferenciasGQL } from './graphql/notasRemisionPorTransferencias';
 
 /**
  * Notas de remisión electrónicas.
@@ -45,7 +46,8 @@ export class NotaRemisionService {
     private generarYEnviarGQL: GenerarYEnviarNotaRemisionGQL,
     private reenviarGQL: ReenviarNotaRemisionGQL,
     private anularGQL: AnularNotaRemisionGQL,
-    private localesDeSalidaGQL: LocalesDeSalidaGQL
+    private localesDeSalidaGQL: LocalesDeSalidaGQL,
+    private notasRemisionPorTransferenciasGQL: NotasRemisionPorTransferenciasGQL
   ) {}
 
   /** Sucursales que pueden ser local de salida, con sus datos fiscales. */
@@ -71,6 +73,15 @@ export class NotaRemisionService {
   onGetPorTransferencia(transferenciaId: number, sucursalId: number): Observable<NotaRemision> {
     return this.genericService.onCustomQuery(this.notaRemisionPorTransferenciaGQL,
       { transferenciaId, sucursalId }, true, null, true);
+  }
+
+  /**
+   * Las notas activas de una página de transferencias, para que el menú diga «Imprimir» desde que
+   * carga la lista. Silenciosa: es una consulta de fondo y no debe tapar la pantalla.
+   */
+  onGetPorTransferencias(transferenciaIds: number[]): Observable<NotaRemision[]> {
+    return this.genericService.onCustomQuery(this.notasRemisionPorTransferenciasGQL,
+      { transferenciaIds }, true, null, true);
   }
 
   onGetDocumentoElectronico(notaRemisionId: number, sucursalId: number): Observable<any> {
