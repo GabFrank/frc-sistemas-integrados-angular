@@ -157,12 +157,12 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   }
 
   /**
-   * Elegir la sucursal de salida completa dirección, ciudad, código de ciudad y departamento.
-   * El nombre de la sucursal solo sirve para elegirla: lo que va al XML es la dirección.
+   * Elegir la sucursal de salida o de entrega completa dirección, ciudad, código de ciudad y
+   * departamento. El nombre de la sucursal solo sirve para elegirla: lo que va al XML es la dirección.
    */
-  buscarLocalDeSalida(): void {
+  buscarLocal(tramo: 'salida' | 'entrega'): void {
     const data: SearchListtDialogData = {
-      titulo: 'Buscar local de salida',
+      titulo: tramo === 'salida' ? 'Buscar local de salida' : 'Buscar local de entrega',
       tableData: [
         { id: 'nombre', nombre: 'Sucursal', width: '40%' },
         { id: 'direccion', nombre: 'Dirección', width: '40%' },
@@ -179,10 +179,17 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       panelClass: 'search-dialog-dark'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe((local: any) => {
       if (local == null) return;
-      this.nota.salidaDireccion = local.direccion;
-      this.nota.salidaCiudad = local.ciudad;
-      this.nota.salidaCodigoCiudad = local.codigoCiudad;
-      if (local.departamento) this.nota.salidaDepartamento = local.departamento;
+      if (tramo === 'salida') {
+        this.nota.salidaDireccion = local.direccion;
+        this.nota.salidaCiudad = local.ciudad;
+        this.nota.salidaCodigoCiudad = local.codigoCiudad;
+        if (local.departamento) this.nota.salidaDepartamento = local.departamento;
+      } else {
+        this.nota.entregaDireccion = local.direccion;
+        this.nota.entregaCiudad = local.ciudad;
+        this.nota.entregaCodigoCiudad = local.codigoCiudad;
+        if (local.departamento) this.nota.entregaDepartamento = local.departamento;
+      }
     });
   }
 

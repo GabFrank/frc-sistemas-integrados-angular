@@ -61,7 +61,7 @@
         <mat-label>Dirección de salida</mat-label>
         <input matInput [(ngModel)]="nota.salidaDireccion" />
         <!-- Elegir la sucursal completa dirección, ciudad, código y departamento de una. -->
-        <button mat-icon-button matSuffix type="button" (click)="buscarLocalDeSalida()"
+        <button mat-icon-button matSuffix type="button" (click)="buscarLocal('salida')"
                 matTooltip="Elegir la sucursal de salida">
           <mat-icon>search</mat-icon>
         </button>
@@ -81,6 +81,10 @@
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de entrega</mat-label>
         <input matInput [(ngModel)]="nota.entregaDireccion" />
+        <button mat-icon-button matSuffix type="button" (click)="buscarLocal('entrega')"
+                matTooltip="Elegir la sucursal de entrega">
+          <mat-icon>search</mat-icon>
+        </button>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Ciudad de entrega</mat-label>
