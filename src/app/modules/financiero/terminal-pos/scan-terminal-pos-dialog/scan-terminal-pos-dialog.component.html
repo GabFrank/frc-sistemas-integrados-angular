@@ -1,14 +1,19 @@
 <div class="dialog-container" fxLayout="column" fxLayoutGap="10px">
   <h2 mat-dialog-title style="padding-left: 0;">Terminal POS</h2>
+  <!-- El input acepta las dos cosas: el codigo del aparato o el QR del cupon. Se prueba primero
+       como cupon, que es el orden seguro --los patrones estan anclados con ^...$, asi que un
+       codigo de terminal no puede matchear uno; al reves si, porque la busqueda de codigo usa
+       LIKE--. Antes este dialogo cobraba un peaje: obligaba a escanear el aparato aunque el cupon
+       ya dijera de cual salio. -->
   <p style="margin: 0 0 8px; color: gray; font-size: 1.7rem;">
-    Escanee o ingrese el código impreso en la terminal POS utilizada.
+    Escaneá el código de la terminal <b>o directamente el QR del cupón</b>.
   </p>
 
   <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="15px" (ngSubmit)="onConfirmar()">
     <div fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="100%">
         <mat-form-field appearance="outline" style="width: 100%;">
-          <mat-label>Código de la terminal</mat-label>
+          <mat-label>Código de la terminal o QR del cupón</mat-label>
           <input
             matInput
             [formControl]="codigoControl"
@@ -30,6 +35,12 @@
     <mat-error *ngIf="noEncontrado" style="font-size: 0.9rem;">
       No se encontró ninguna terminal activa con ese código.
     </mat-error>
+
+    <!-- El cupon ya se leyo pero falta saber de que aparato salio. Se dice explicitamente para
+         que el cajero no vuelva a escanear el cupon creyendo que no entro. -->
+    <p *ngIf="avisoCupon" style="margin: 0; color: #ffb300; font-size: 1.4rem;">
+      {{ avisoCupon }}
+    </p>
   </form>
 
   <div
