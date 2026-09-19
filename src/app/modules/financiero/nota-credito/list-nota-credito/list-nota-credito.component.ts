@@ -94,7 +94,7 @@ export class ListNotaCreditoComponent implements OnInit {
       return;
     }
     const data: SearchListtDialogData = {
-      titulo: 'Buscar factura para la nota de crédito',
+      titulo: 'Buscar factura legal',
       tableData: [
         { id: 'numeroFactura', nombre: 'Factura', width: '15%' },
         { id: 'fecha', nombre: 'Fecha', width: '20%' },
