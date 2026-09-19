@@ -32,9 +32,11 @@
   </div>
 
   <p class="aviso">
-    Las notas de crédito se emiten desde la factura, en la lista de facturas legales.
+    Las notas de crédito se emiten con «Adicionar» o desde la factura, en la lista de facturas legales.
   </p>
 
+  <!-- La tabla scrollea sola: así el paginador queda fijo al pie y no pegado a la última fila. -->
+  <div class="cuerpo">
   <table mat-table [dataSource]="dataSource" class="tabla">
     <ng-container matColumnDef="numero">
       <th mat-header-cell *matHeaderCellDef>Número</th>
@@ -107,8 +109,9 @@
   <div *ngIf="!dataSource.data?.length" class="vacio">
     No hay notas de crédito para el filtro seleccionado.
   </div>
+  </div>
 
-  <mat-paginator [length]="selectedPageInfo?.getTotalElements"
+  <mat-paginator class="paginador" [length]="selectedPageInfo?.getTotalElements"
                  [pageSize]="pageSize"
                  [pageIndex]="pageIndex"
                  [pageSizeOptions]="[10, 15, 30, 50]"
