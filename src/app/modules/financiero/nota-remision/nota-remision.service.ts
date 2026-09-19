@@ -21,6 +21,8 @@ import { SaveNotaRemisionGQL } from './graphql/saveNotaRemision';
 import { GenerarYEnviarNotaRemisionGQL } from './graphql/generarYEnviarNotaRemision';
 import { ReenviarNotaRemisionGQL } from './graphql/reenviarNotaRemision';
 import { AnularNotaRemisionGQL } from './graphql/anularNotaRemision';
+import { LocalesDeSalidaGQL } from './graphql/localesDeSalida';
+import { NotasRemisionPorTransferenciasGQL } from './graphql/notasRemisionPorTransferencias';
 
 /**
  * Notas de remisión electrónicas.
@@ -43,8 +45,15 @@ export class NotaRemisionService {
     private saveGQL: SaveNotaRemisionGQL,
     private generarYEnviarGQL: GenerarYEnviarNotaRemisionGQL,
     private reenviarGQL: ReenviarNotaRemisionGQL,
-    private anularGQL: AnularNotaRemisionGQL
+    private anularGQL: AnularNotaRemisionGQL,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL,
+    private notasRemisionPorTransferenciasGQL: NotasRemisionPorTransferenciasGQL
   ) {}
+
+  /** Sucursales que pueden ser local de salida, con sus datos fiscales. */
+  onGetLocalesDeSalida(texto: string): Observable<any[]> {
+    return this.genericService.onCustomQuery(this.localesDeSalidaGQL, { texto });
+  }
 
   onGetPorFiltro(sucursalId: number, fechaInicio: string, fechaFin: string,
                  page: number, size: number): Observable<PageInfo<NotaRemision>> {
@@ -64,6 +73,15 @@ export class NotaRemisionService {
   onGetPorTransferencia(transferenciaId: number, sucursalId: number): Observable<NotaRemision> {
     return this.genericService.onCustomQuery(this.notaRemisionPorTransferenciaGQL,
       { transferenciaId, sucursalId }, true, null, true);
+  }
+
+  /**
+   * Las notas activas de una página de transferencias, para que el menú diga «Imprimir» desde que
+   * carga la lista. Silenciosa: es una consulta de fondo y no debe tapar la pantalla.
+   */
+  onGetPorTransferencias(transferenciaIds: number[]): Observable<NotaRemision[]> {
+    return this.genericService.onCustomQuery(this.notasRemisionPorTransferenciasGQL,
+      { transferenciaIds }, true, null, true);
   }
 
   onGetDocumentoElectronico(notaRemisionId: number, sucursalId: number): Observable<any> {

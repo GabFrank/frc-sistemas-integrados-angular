@@ -72,7 +72,13 @@ export class ListNotaRemisionComponent implements OnInit {
       this.sucursales = res ?? [];
     });
 
-    this.sucursalIdControl.setValue(this.mainService.sucursalActual?.id ?? null);
+    // Sucursal en «Todos» (null) y rango de ayer a hoy: es lo que se mira al abrir la pantalla.
+    this.sucursalIdControl.setValue(null);
+    const hoy = new Date();
+    const ayer = new Date();
+    ayer.setDate(hoy.getDate() - 1);
+    this.fechaDesdeControl.setValue(ayer);
+    this.fechaHastaControl.setValue(hoy);
     this.buscar();
   }
 

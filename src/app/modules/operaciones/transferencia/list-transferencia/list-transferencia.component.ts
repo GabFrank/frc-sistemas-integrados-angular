@@ -28,6 +28,7 @@ import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { OrigenNotaRemision } from '../../../financiero/nota-remision/nota-remision.model';
 import { NotaRemisionService } from '../../../financiero/nota-remision/nota-remision.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
 import { AddNotaRemisionDialogComponent } from '../../../financiero/nota-remision/add-nota-remision-dialog/add-nota-remision-dialog.component';
 import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
@@ -124,11 +125,45 @@ export class ListTransferenciaComponent implements OnInit {
     private matDialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private usuarioSearch: UsuarioSearchGQL,
-    private notaRemisionService: NotaRemisionService
+    private notaRemisionService: NotaRemisionService,
+    private impresionService: ImpresionService
   ) { }
 
   /** Rol para emitir la nota de remisión del traslado; se calcula una vez, no en el HTML. */
   puedeEmitirNotaRemision = false;
+
+  /** Notas ya emitidas por transferencia: con una cargada, el menú dice «Imprimir». */
+  notaRemisionPorTransferencia: { [transferenciaId: number]: any } = {};
+
+  /**
+   * Qué transferencias de la página ya tienen nota, en una sola consulta al cargar la lista. Sin esto
+   * el menú decía «Nota de remisión» también en las que ya la tenían, y el usuario se enteraba recién
+   * al hacer clic, cuando en vez del alta se le abría la impresión.
+   */
+  private cargarNotasRemision(): void {
+    const ids = (this.dataSource.data ?? []).map(t => t.id).filter(id => id != null);
+    if (!this.puedeEmitirNotaRemision || !ids.length) {
+      this.notaRemisionPorTransferencia = {};
+      return;
+    }
+    this.notaRemisionService.onGetPorTransferencias(ids)
+      .pipe(untilDestroyed(this))
+      .subscribe(notas => {
+        const porTransferencia: { [transferenciaId: number]: any } = {};
+        (notas ?? []).forEach(n => { if (n?.transferenciaId) porTransferencia[n.transferenciaId] = n; });
+        this.notaRemisionPorTransferencia = porTransferencia;
+      });
+  }
+
+  private imprimirNotaRemision(nota: any): void {
+    const numero = nota?.numeroNotaRemision
+      ? `001-001-${String(nota.numeroNotaRemision).padStart(7, '0')}` : '';
+    this.impresionService.imprimir(
+      numero ? `KuDE-NR-${numero}` : 'KuDE-NR',
+      () => this.notaRemisionService.onImprimir(nota.id, nota.sucursalId),
+      true
+    );
+  }
 
   ngOnInit(): void {
     this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
@@ -202,6 +237,7 @@ export class ListTransferenciaComponent implements OnInit {
           if (res != null) {
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent.map((t) => this.toView(t));
+            this.cargarNotasRemision();
           }
         });
     } else {
@@ -210,6 +246,7 @@ export class ListTransferenciaComponent implements OnInit {
         .subscribe((res) => {
           if (res != null) {
             this.dataSource.data = [this.toView(res)];
+            this.cargarNotasRemision();
           }
         });
     }
@@ -531,9 +568,9 @@ export class ListTransferenciaComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(notaExistente => {
         if (notaExistente?.id) {
-          this.notificacionService.openWarn(
-            `La transferencia ya tiene la nota de remisión Nro. ${notaExistente.numeroNotaRemision}`
-          );
+          // Ya emitida: el ítem del menú dice «Imprimir», así que acá se imprime.
+          this.notaRemisionPorTransferencia[transferencia.id] = notaExistente;
+          this.imprimirNotaRemision(notaExistente);
           return;
         }
         this.matDialog.open(AddNotaRemisionDialogComponent, {
@@ -543,6 +580,15 @@ export class ListTransferenciaComponent implements OnInit {
             origen: OrigenNotaRemision.TRANSFERENCIA,
             referenciaId: transferencia.id,
             sucursalId
+          }
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(guardada => {
+          // El diálogo devuelve la nota si llegó a guardarse (aunque el envío a SIFEN haya fallado):
+          // desde ya existe, así que el menú pasa a «Imprimir».
+          if (guardada?.id) {
+            this.notaRemisionPorTransferencia = {
+              ...this.notaRemisionPorTransferencia,
+              [transferencia.id]: guardada
+            };
           }
         });
       });

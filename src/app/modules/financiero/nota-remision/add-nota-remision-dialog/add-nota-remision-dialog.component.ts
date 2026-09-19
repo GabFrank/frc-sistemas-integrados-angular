@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
@@ -16,9 +17,13 @@ import {
   TipoTransporteNr
 } from '../nota-remision.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+
+/** Las 18 sucursales de la empresa están en Canindeyú; el usuario puede cambiarlo. */
+const DEPARTAMENTO_POR_DEFECTO = 'CANINDEYU';
 import { FuncionarioService } from '../../../personas/funcionarios/funcionario.service';
 import { FuncionarioSearchGQL } from '../../../personas/funcionarios/graphql/funcionarioSearch';
 import { VehiculoSearchGQL } from '../../../activos/vehiculos/vehiculo/graphql/vehiculoSearch';
+import { LocalesDeSalidaGQL } from '../graphql/localesDeSalida';
 import {
   SearchListDialogComponent,
   SearchListtDialogData
@@ -51,6 +56,16 @@ export class AddNotaRemisionDialogComponent implements OnInit {
   items: NotaRemisionItem[] = [];
   columnasItems = ['descripcion', 'cantidad', 'unidadMedida', 'acciones'];
 
+  /**
+   * Paginado de los ítems: una transferencia trae decenas y el final de la lista quedaba lejos.
+   * `items` sigue siendo la lista completa (es la que se valida y se manda); `itemsPagina` es solo
+   * lo que se ve. Se recalcula en `actualizarPagina()` para no llamar funciones desde el HTML.
+   */
+  itemsPagina: NotaRemisionItem[] = [];
+  paginaItems = 0;
+  tamanoPaginaItems = 10;
+  readonly opcionesTamanoPagina = [10, 25, 50];
+
   cargando = false;
   guardando = false;
 
@@ -65,6 +80,7 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     private funcionarioService: FuncionarioService,
     private searchFuncionario: FuncionarioSearchGQL,
     private searchVehiculo: VehiculoSearchGQL,
+    private localesDeSalidaGQL: LocalesDeSalidaGQL,
     private matDialog: MatDialog,
     private dialogRef: MatDialogRef<AddNotaRemisionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddNotaRemisionDialogData
@@ -151,6 +167,43 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Elegir la sucursal de salida o de entrega completa dirección, ciudad, código de ciudad y
+   * departamento. El nombre de la sucursal solo sirve para elegirla: lo que va al XML es la dirección.
+   */
+  buscarLocal(tramo: 'salida' | 'entrega'): void {
+    const data: SearchListtDialogData = {
+      titulo: tramo === 'salida' ? 'Buscar local de salida' : 'Buscar local de entrega',
+      tableData: [
+        { id: 'nombre', nombre: 'Sucursal', width: '40%' },
+        { id: 'direccion', nombre: 'Dirección', width: '40%' },
+        { id: 'ciudad', nombre: 'Ciudad', width: '20%' }
+      ],
+      query: this.localesDeSalidaGQL,
+      // Solo existe en el central: reintentar contra el filial no aporta nada.
+      fallbackToLocal: false
+    };
+    this.matDialog.open(SearchListDialogComponent, {
+      data,
+      height: '80vh',
+      width: '70vw',
+      panelClass: 'search-dialog-dark'
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((local: any) => {
+      if (local == null) return;
+      if (tramo === 'salida') {
+        this.nota.salidaDireccion = local.direccion;
+        this.nota.salidaCiudad = local.ciudad;
+        this.nota.salidaCodigoCiudad = local.codigoCiudad;
+        if (local.departamento) this.nota.salidaDepartamento = local.departamento;
+      } else {
+        this.nota.entregaDireccion = local.direccion;
+        this.nota.entregaCiudad = local.ciudad;
+        this.nota.entregaCodigoCiudad = local.codigoCiudad;
+        if (local.departamento) this.nota.entregaDepartamento = local.departamento;
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.referenciaControl.setValue(this.data?.referenciaId ?? null);
     this.prellenar();
@@ -161,20 +214,59 @@ export class AddNotaRemisionDialogComponent implements OnInit {
     this.cargando = true;
     this.service.onPrellenar(this.data.origen, this.referenciaControl.value, sucursalId)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.cargando = false;
-        if (!res?.notaRemision) return;
-        this.nota = res.notaRemision;
-        this.items = res.items ?? [];
+      .subscribe({
+        next: res => {
+          this.cargando = false;
+          // Sin rama de error, un rechazo del central dejaba el diálogo vacío y mudo: fue lo que
+          // pasó con la transferencia 51339, cuya sucursal no tenía timbrado electrónico.
+          if (!res?.notaRemision) {
+            this.notificacionService.openAlgoSalioMal('No se pudo preparar la nota de remisión');
+            this.dialogRef.close(null);
+            return;
+          }
+          this.nota = res.notaRemision;
+          this.items = res.items ?? [];
+          this.paginaItems = 0;
+          this.actualizarPagina();
+          if (!this.nota.salidaDepartamento) this.nota.salidaDepartamento = DEPARTAMENTO_POR_DEFECTO;
+          if (!this.nota.entregaDepartamento) this.nota.entregaDepartamento = DEPARTAMENTO_POR_DEFECTO;
+        },
+        error: (e: any) => {
+          this.cargando = false;
+          this.notificacionService.openAlgoSalioMal(
+            e?.message ?? 'No se pudo preparar la nota de remisión');
+          this.dialogRef.close(null);
+        }
       });
   }
 
   agregarItem(): void {
     this.items = [...this.items, { descripcion: '', cantidad: 1, unidadMedida: 'UNI' }];
+    // El ítem nuevo va al final: saltar a la última página para que se vea.
+    this.paginaItems = Math.floor((this.items.length - 1) / this.tamanoPaginaItems);
+    this.actualizarPagina();
   }
 
-  quitarItem(indice: number): void {
-    this.items = this.items.filter((_, i) => i !== indice);
+  /**
+   * Por referencia, no por índice: con paginado el índice de la fila es relativo a la página, y
+   * borrar por él quitaba un ítem de la primera página estando en otra.
+   */
+  quitarItem(item: NotaRemisionItem): void {
+    this.items = this.items.filter(i => i !== item);
+    this.actualizarPagina();
+  }
+
+  cambiarPagina(evento: PageEvent): void {
+    this.paginaItems = evento.pageIndex;
+    this.tamanoPaginaItems = evento.pageSize;
+    this.actualizarPagina();
+  }
+
+  private actualizarPagina(): void {
+    const ultima = Math.max(0, Math.ceil(this.items.length / this.tamanoPaginaItems) - 1);
+    if (this.paginaItems > ultima) this.paginaItems = ultima;   // al borrar el último de una página
+    const desde = this.paginaItems * this.tamanoPaginaItems;
+    this.itemsPagina = this.items.slice(desde, desde + this.tamanoPaginaItems);
   }
 
   /**
@@ -242,27 +334,38 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       unidadMedida: item.unidadMedida
     }));
 
-    this.service.onSave(input, itemsInput).pipe(untilDestroyed(this)).subscribe(guardada => {
-      this.guardando = false;
-      if (!guardada) return;
-      this.dialogosService.confirm(
-        'Nota de remisión creada',
-        `Quedó con el número ${guardada.numeroNotaRemision}.`,
-        '¿Enviarla a SIFEN ahora?'
-      ).pipe(untilDestroyed(this)).subscribe(confirmado => {
-        if (!confirmado) {
-          this.dialogRef.close(guardada);
+    // Guardar emite: ya no se pregunta «¿Enviarla ahora?». `guardando` NO se libera acá: cubre
+    // todo el ciclo guardar + enviar, si no el botón se reactiva mientras SIFEN todavía responde
+    // y un segundo click emite una nota más, con su número quemado.
+    this.service.onSave(input, itemsInput).pipe(untilDestroyed(this)).subscribe({
+      next: guardada => {
+        if (!guardada) {
+          this.guardando = false;
           return;
         }
         this.service.onGenerarYEnviar(guardada.id, guardada.sucursalId)
           .pipe(untilDestroyed(this))
-          .subscribe(de => {
-            if (de?.cdc) {
-              this.notificacionService.openSucess(`Enviada a SIFEN. CDC ${de.cdc}`, 5);
+          .subscribe({
+            next: de => {
+              this.guardando = false;
+              if (de?.cdc) {
+                this.notificacionService.openSucess(
+                  `Nota ${guardada.numeroNotaRemision} enviada a SIFEN. CDC ${de.cdc}`, 6);
+              }
+              this.dialogRef.close(guardada);
+            },
+            // La nota YA existe con su número: se cierra igual y se reintenta con «Reenviar»
+            // desde la lista. Volver a guardar crearía una segunda nota.
+            error: () => {
+              this.guardando = false;
+              this.notificacionService.openWarn(
+                `La nota ${guardada.numeroNotaRemision} se guardó pero SIFEN no la aceptó. `
+                + 'Reintentá con «Reenviar» desde la lista de notas de remisión.');
+              this.dialogRef.close(guardada);
             }
-            this.dialogRef.close(guardada);
           });
-      });
+      },
+      error: () => { this.guardando = false; }
     });
   }
 
@@ -276,8 +379,13 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       this.notificacionService.openWarn('La nota necesita al menos un ítem');
       return false;
     }
-    if (this.items.some(i => !i.descripcion || !i.cantidad || i.cantidad <= 0)) {
-      this.notificacionService.openWarn('Cada ítem necesita descripción y cantidad mayor a cero');
+    const invalido = this.items.findIndex(i => !i.descripcion || !i.cantidad || i.cantidad <= 0);
+    if (invalido >= 0) {
+      // Llevar el paginador hasta el ítem: si no, el aviso señala algo que no está a la vista.
+      this.paginaItems = Math.floor(invalido / this.tamanoPaginaItems);
+      this.actualizarPagina();
+      this.notificacionService.openWarn(
+        `El ítem ${invalido + 1} necesita descripción y cantidad mayor a cero`);
       return false;
     }
     if (!this.nota.receptorNombre || !this.nota.receptorRuc) {

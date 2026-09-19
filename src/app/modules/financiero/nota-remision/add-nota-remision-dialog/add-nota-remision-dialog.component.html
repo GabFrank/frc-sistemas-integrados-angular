@@ -1,4 +1,8 @@
 <h2 mat-dialog-title class="titulo-center">Nota de remisión electrónica</h2>
+<!-- Sin confirmación intermedia: el aviso reemplaza al «¿Enviarla ahora?» que se sacó. -->
+<div class="aviso-emision">
+  Al guardar se emite ante SIFEN, y una nota aprobada no siempre se puede cancelar.
+</div>
 
 <mat-dialog-content class="contenido">
   <div *ngIf="cargando" class="cargando">Cargando datos del traslado…</div>
@@ -56,6 +60,11 @@
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de salida</mat-label>
         <input matInput [(ngModel)]="nota.salidaDireccion" />
+        <!-- Elegir la sucursal completa dirección, ciudad, código y departamento de una. -->
+        <button mat-icon-button matSuffix type="button" (click)="buscarLocal('salida')"
+                matTooltip="Elegir la sucursal de salida">
+          <mat-icon>search</mat-icon>
+        </button>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Ciudad de salida</mat-label>
@@ -72,6 +81,10 @@
       <mat-form-field appearance="outline" class="campo-ancho">
         <mat-label>Dirección de entrega</mat-label>
         <input matInput [(ngModel)]="nota.entregaDireccion" />
+        <button mat-icon-button matSuffix type="button" (click)="buscarLocal('entrega')"
+                matTooltip="Elegir la sucursal de entrega">
+          <mat-icon>search</mat-icon>
+        </button>
       </mat-form-field>
       <mat-form-field appearance="outline" class="campo">
         <mat-label>Ciudad de entrega</mat-label>
@@ -154,8 +167,8 @@
     </div>
 
     <div class="section-card">
-      <div class="section-title">Ítems</div>
-    <table mat-table [dataSource]="items" class="tabla-items">
+      <div class="section-title">Ítems ({{ items.length }})</div>
+    <table mat-table [dataSource]="itemsPagina" class="tabla-items">
       <ng-container matColumnDef="descripcion">
         <th mat-header-cell *matHeaderCellDef class="col-descripcion">Descripción</th>
         <td mat-cell *matCellDef="let item" class="col-descripcion">
@@ -176,13 +189,20 @@
       </ng-container>
       <ng-container matColumnDef="acciones">
         <th mat-header-cell *matHeaderCellDef class="col-acciones"></th>
-        <td mat-cell *matCellDef="let item; let i = index" class="col-acciones">
-          <button mat-icon-button color="warn" (click)="quitarItem(i)"><mat-icon>delete</mat-icon></button>
+        <td mat-cell *matCellDef="let item" class="col-acciones">
+          <button mat-icon-button color="warn" (click)="quitarItem(item)"><mat-icon>delete</mat-icon></button>
         </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="columnasItems"></tr>
       <tr mat-row *matRowDef="let row; columns: columnasItems"></tr>
     </table>
+    <mat-paginator
+      [length]="items.length"
+      [pageIndex]="paginaItems"
+      [pageSize]="tamanoPaginaItems"
+      [pageSizeOptions]="opcionesTamanoPagina"
+      (page)="cambiarPagina($event)">
+    </mat-paginator>
 
     <button mat-stroked-button class="btn-agregar" (click)="agregarItem()">
       <mat-icon>add</mat-icon> Agregar ítem

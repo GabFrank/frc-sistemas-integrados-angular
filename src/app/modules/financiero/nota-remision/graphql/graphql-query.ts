@@ -95,6 +95,18 @@ export const notaRemisionPorTransferenciaQuery = gql`
   }
 `;
 
+export const notasRemisionPorTransferenciasQuery = gql`
+  query notasRemisionPorTransferencias($transferenciaIds: [ID!]!) {
+    data: notasRemisionPorTransferencias(transferenciaIds: $transferenciaIds) {
+      id
+      sucursalId
+      transferenciaId
+      numeroNotaRemision
+      activo
+    }
+  }
+`;
+
 export const documentoElectronicoDeNotaRemisionQuery = gql`
   query documentoElectronicoDeNotaRemision($notaRemisionId: ID!, $sucursalId: ID!) {
     data: documentoElectronicoDeNotaRemision(notaRemisionId: $notaRemisionId, sucursalId: $sucursalId) {
@@ -159,6 +171,23 @@ export const anularNotaRemisionMutation = gql`
     data: anularNotaRemision(id: $id, sucursalId: $sucursalId) {
       id
       activo
+    }
+  }
+`;
+
+/**
+ * Sucursales habilitadas como local de salida. Los datos fiscales vienen del timbrado de cada
+ * una: `general.ciudad.codigo` guarda abreviaturas internas, no el código de SIFEN.
+ */
+export const localesDeSalidaQuery = gql`
+  query localesDeSalida($texto: String) {
+    data: localesDeSalida(texto: $texto) {
+      sucursalId
+      nombre
+      direccion
+      ciudad
+      codigoCiudad
+      departamento
     }
   }
 `;

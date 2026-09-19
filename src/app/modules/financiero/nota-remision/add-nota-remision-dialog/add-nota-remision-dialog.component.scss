@@ -142,3 +142,14 @@ h2[mat-dialog-title] {
     }
   }
 }
+
+/* Aviso fijo: reemplaza a la confirmación que se sacó al emitir directo desde «Guardar». */
+.aviso-emision {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-left: 3px solid #ffb300;
+  border-radius: 4px;
+  background: rgba(255, 179, 0, 0.1);
+  font-size: 13px;
+  opacity: 0.9;
+}

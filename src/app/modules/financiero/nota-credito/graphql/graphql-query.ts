@@ -132,3 +132,19 @@ export const anularNotaCreditoMutation = gql`
     }
   }
 `;
+
+/** Facturas que hoy admiten nota de crédito: el central ya filtra los cinco requisitos. */
+export const facturasParaNotaCreditoQuery = gql`
+  query facturasParaNotaCredito($sucursalId: ID!, $numero: String, $page: Int!, $size: Int!) {
+    data: facturasParaNotaCredito(sucursalId: $sucursalId, numero: $numero, page: $page, size: $size) {
+      facturaLegalId
+      sucursalId
+      numeroFactura
+      fecha
+      cliente
+      ruc
+      total
+      moneda
+    }
+  }
+`;

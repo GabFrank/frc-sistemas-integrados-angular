@@ -1,3 +1,4 @@
+import { FacturasParaNotaCreditoGQL } from './graphql/facturasParaNotaCredito';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
@@ -27,8 +28,16 @@ export class NotaCreditoService {
     private crearDesdeFacturaGQL: CrearNotaCreditoDesdeFacturaGQL,
     private generarYEnviarGQL: GenerarYEnviarNotaCreditoGQL,
     private reenviarGQL: ReenviarNotaCreditoGQL,
-    private anularGQL: AnularNotaCreditoGQL
+    private anularGQL: AnularNotaCreditoGQL,
+    private facturasParaNotaCreditoGQL: FacturasParaNotaCreditoGQL
   ) {}
+
+  /** Facturas que hoy admiten nota de crédito. El central filtra los cinco requisitos. */
+  onGetFacturasParaNotaCredito(sucursalId: number, numero: string,
+                               page = 0, size = 15): Observable<any[]> {
+    return this.genericService.onCustomQuery(this.facturasParaNotaCreditoGQL,
+      { sucursalId, numero, page, size });
+  }
 
   onGetPorFiltro(sucursalId: number, fechaInicio: string, fechaFin: string,
                  page: number, size: number): Observable<PageInfo<NotaCredito>> {
