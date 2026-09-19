@@ -1,4 +1,4 @@
-<h2 mat-dialog-title class="titulo-center">Nota de remisión electrónica</h2>
+<h2 mat-dialog-title class="titulo-center">Nota de remisión electrónica<span *ngIf="data?.sucursalNombre"> · {{ data.sucursalNombre }}</span></h2>
 <!-- Sin confirmación intermedia: el aviso reemplaza al «¿Enviarla ahora?» que se sacó. -->
 <div class="aviso-emision">
   Al guardar se emite ante SIFEN, y una nota aprobada no siempre se puede cancelar.

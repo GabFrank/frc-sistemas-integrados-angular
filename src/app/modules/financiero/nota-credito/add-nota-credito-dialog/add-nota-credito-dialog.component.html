@@ -2,6 +2,7 @@
 
 <mat-dialog-content>
   <div class="factura">
+    <div *ngIf="data.sucursal"><strong>Sucursal:</strong> {{ data.sucursal }}</div>
     <div><strong>Factura:</strong> {{ data.numeroFactura }}</div>
     <div><strong>Cliente:</strong> {{ data.cliente }}</div>
     <div><strong>Total:</strong> {{ data.totalFactura | number }} {{ data.moneda || 'Gs' }}</div>

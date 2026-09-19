@@ -34,6 +34,8 @@ export interface AddNotaRemisionDialogData {
   /** Id de la transferencia o de la factura, según el origen. */
   referenciaId?: number;
   sucursalId?: number;
+  /** Para mostrar en el título para qué sucursal es la nota (alta manual desde el central). */
+  sucursalNombre?: string;
 }
 
 /**
@@ -181,7 +183,9 @@ export class AddNotaRemisionDialogComponent implements OnInit {
       ],
       query: this.localesDeSalidaGQL,
       // Solo existe en el central: reintentar contra el filial no aporta nada.
-      fallbackToLocal: false
+      fallbackToLocal: false,
+      // Son pocas sucursales: se muestran todas al abrir, sin tener que buscar.
+      inicialSearch: true
     };
     this.matDialog.open(SearchListDialogComponent, {
       data,

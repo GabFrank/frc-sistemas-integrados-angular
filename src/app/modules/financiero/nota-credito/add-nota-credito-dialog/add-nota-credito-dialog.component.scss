@@ -12,3 +12,9 @@
 .campo-ancho {
   width: 100%;
 }
+
+// Los mat-form-field outline apilados quedaban pegados: el borde del Motivo tocaba la etiqueta
+// flotante de la Descripción.
+.campo-ancho + .campo-ancho {
+  margin-top: 12px;
+}

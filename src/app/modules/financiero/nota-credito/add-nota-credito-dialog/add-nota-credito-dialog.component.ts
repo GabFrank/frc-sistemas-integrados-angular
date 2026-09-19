@@ -12,6 +12,8 @@ export interface AddNotaCreditoDialogData {
   sucursalId: number;
   /** Solo para mostrar; lo fiscal sale de la factura en el central. */
   numeroFactura?: number;
+  /** Sucursal que emitió la factura: es la que emite la nota (alta desde el buscador). */
+  sucursal?: string;
   cliente?: string;
   totalFactura?: number;
   moneda?: string;
