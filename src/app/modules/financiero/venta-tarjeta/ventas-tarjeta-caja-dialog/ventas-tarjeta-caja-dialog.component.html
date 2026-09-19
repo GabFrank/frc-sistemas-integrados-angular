@@ -1,0 +1,131 @@
+<app-generic-list
+  [titulo]="'Ventas con tarjeta — caja ' + data.cajaId"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onLimpiarFiltros()"
+  [isAdicionar]="false"
+  [data]="dataSource.data"
+  style="height: 100%"
+>
+  <div filtros>
+    <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
+      <mat-form-field appearance="outline" fxFlex="18%">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let e of estados" [value]="e">{{ e }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="24%">
+        <mat-label>Terminal</mat-label>
+        <mat-select [formControl]="terminalPosIdControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let t of terminales" [value]="t.id">
+            {{ t.descripcion }} - {{ t.codigo }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="16%">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaIdControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let m of monedas" [value]="m.id">
+            {{ m.denominacion }} ({{ m.simbolo }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="15%">
+        <mat-label>Monto desde</mat-label>
+        <input matInput type="number" [formControl]="montoDesdeControl" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="15%">
+        <mat-label>Monto hasta</mat-label>
+        <input matInput type="number" [formControl]="montoHastaControl" />
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
+    <div fxFlex style="overflow: auto; min-height: 0">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 8%">ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 8%">{{ item.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="terminal">
+          <th mat-header-cell *matHeaderCellDef style="width: 28%">Terminal</th>
+          <td mat-cell *matCellDef="let item" style="width: 28%">
+            {{ item.terminalPos?.descripcion }} - {{ item.terminalPos?.codigo }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef style="width: 18%">Cobrado</th>
+          <td mat-cell *matCellDef="let item" style="width: 18%">
+            {{ item.monto | number: item.digitosMoneda }}
+            <span class="simbolo">{{ item.simboloMoneda }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="escaneado">
+          <th mat-header-cell *matHeaderCellDef style="width: 18%">Cupón</th>
+          <td mat-cell *matCellDef="let item" style="width: 18%">
+            <ng-container *ngIf="item.montoEscaneado != null; else sinCupon">
+              <span [class.diferencia]="item.montoEscaneado !== item.monto">
+                {{ item.montoEscaneado | number: item.digitosMoneda }}
+              </span>
+              <span class="simbolo">{{ item.simboloMoneda }}</span>
+            </ng-container>
+            <ng-template #sinCupon><span class="vacio">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef style="width: 16%">Estado</th>
+          <td mat-cell *matCellDef="let item" style="width: 16%">
+            <span
+              class="chip"
+              [class.chip-pendiente]="item.estado === 'PENDIENTE'"
+              [class.chip-completado]="item.estado === 'COMPLETADO'"
+              [class.chip-terminal]="item.estado === 'NO_COMPLETADO' || item.estado === 'CANCELADO'"
+            >{{ item.estado }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%"></th>
+          <td mat-cell *matCellDef="let item" style="width: 12%">
+            <mat-icon
+              *ngIf="item.estado === 'PENDIENTE'"
+              class="accion-registrar"
+              matTooltip="Registrar cupón"
+              (click)="onCompletar(item)"
+            >qr_code_scanner</mat-icon>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <div *ngIf="!cargando && dataSource.data.length === 0" class="estado-vacio">
+        No hay ventas con tarjeta que coincidan con el filtro.
+      </div>
+    </div>
+
+    <mat-paginator
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      showFirstLastButtons
+      style="width: 100%"
+    ></mat-paginator>
+  </div>
+</app-generic-list>

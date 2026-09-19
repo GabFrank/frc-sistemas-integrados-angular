@@ -7,7 +7,7 @@
 
   <div class="monto-caja">
     <span class="monto-label">A cobrar</span>
-    <span class="monto">{{ data.monto | number: '1.0-2' }} {{ data.monedaSimbolo || 'Gs.' }}</span>
+    <span class="monto">{{ data.monto | number: digitosMonto }} {{ data.monedaSimbolo || 'Gs.' }}</span>
     <!-- Dato útil ANTES de escanear: si la terminal está en otra moneda, el cupón va a venir en
          esa y no va a servir para este cobro. -->
     <span class="aviso-moneda" *ngIf="avisoMonedaTerminal">{{ avisoMonedaTerminal }}</span>
