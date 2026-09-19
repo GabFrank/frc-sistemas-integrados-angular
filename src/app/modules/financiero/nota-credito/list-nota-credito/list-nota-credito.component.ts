@@ -88,19 +88,21 @@ export class ListNotaCreditoComponent implements OnInit {
    * total para que el operador confirme que eligió bien: una NC aprobada es irreversible.
    */
   onAdicionar(): void {
-    const sucursalId = this.sucursalIdControl.value ?? this.mainService.sucursalActual?.id;
-    if (!sucursalId) {
-      this.notificacionService.openWarn('Elegí primero la sucursal');
-      return;
-    }
+    // Con el filtro en «Todas»: desde una sucursal se busca en la propia; desde el central
+    // (SERVIDOR, sucursal 0), que no tiene facturas, en todas. La nota la emite siempre la
+    // sucursal de la factura elegida.
+    // El id llega como texto ("0"): se compara el número, un "0" es verdadero en un if.
+    const actual = Number(this.mainService.sucursalActual?.id);
+    const sucursalId = this.sucursalIdControl.value ?? (actual > 0 ? actual : null);
     const data: SearchListtDialogData = {
       titulo: 'Buscar factura legal',
       tableData: [
-        { id: 'numeroFactura', nombre: 'Factura', width: '15%' },
-        { id: 'fecha', nombre: 'Fecha', width: '20%' },
-        { id: 'cliente', nombre: 'Cliente', width: '30%' },
+        { id: 'sucursal', nombre: 'Sucursal', width: '20%' },
+        { id: 'numeroFactura', nombre: 'Factura', width: '10%' },
+        { id: 'fecha', nombre: 'Fecha', width: '15%' },
+        { id: 'cliente', nombre: 'Cliente', width: '25%' },
         { id: 'ruc', nombre: 'RUC', width: '15%' },
-        { id: 'total', nombre: 'Total', width: '20%' }
+        { id: 'total', nombre: 'Total', width: '15%' }
       ],
       query: this.facturasParaNotaCreditoGQL,
       queryData: { sucursalId, page: 0, size: 15 },
@@ -123,6 +125,7 @@ export class ListNotaCreditoComponent implements OnInit {
           facturaLegalId: factura.facturaLegalId,
           sucursalId: factura.sucursalId,
           numeroFactura: factura.numeroFactura,
+          sucursal: factura.sucursal,
           cliente: factura.cliente,
           totalFactura: factura.total,
           moneda: factura.moneda
