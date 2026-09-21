@@ -254,10 +254,13 @@ export class VentaTarjetaService {
    * segundo mecanismo de impresión.
    *
    * El QR se arma **acá**, no en el backend: el contrato de esa cadena vive en `codificarQr()` y lo
-   * comparte el mobile. Y se arma **desde estos valores**, no con
-   * `construirQrPayloadVentaTarjeta()`: esa función lee `item.venta?.id` e `item.caja?.id`, que en
-   * este flujo no existen —el filial devuelve los escalares y `saveVentaTarjeta` ni siquiera los
-   * devuelve— así que produciría un QR con `idOrigen: undefined` sin lanzar ningún error.
+   * comparte el mobile. Y se arma **desde estos escalares**, no desde objetos anidados.
+   *
+   * ⚠️ Hubo un helper --`construirQrPayloadVentaTarjeta()`, borrado el 2026-09-21 junto con el QR
+   * de la app móvil-- que leía `item.venta?.id` e `item.caja?.id`. En este flujo esos objetos **no
+   * existen**: el filial devuelve los escalares y `saveVentaTarjeta` ni siquiera los devuelve. Usar
+   * algo así acá produciría un QR con `idOrigen: undefined` **sin lanzar ningún error**. Si alguna
+   * vez se escribe un armador compartido, tiene que partir de escalares por este motivo.
    *
    * Nunca lanza: devuelve false si el papel no salió. Para cuando esto corre, la venta ya se guardó.
    */
