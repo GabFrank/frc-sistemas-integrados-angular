@@ -74,6 +74,22 @@ export function parsearCupon(
     }
   }
 
+  // ⚠️ Antes de rendirse: mirar si lo que entró es una SEÑA y no un cupón.
+  //
+  // Hay dos campos de escaneo a un clic uno del otro y esperan vocabularios distintos: el de
+  // arriba de la lista acepta la seña (`frc-…`) y éste, adentro del diálogo de completar, acepta
+  // el cupón de la terminal. El error genérico no dice qué esperaba y propone el celular, que es
+  // la salida correcta para un cupón ilegible y la equivocada para una seña pegada en el campo de
+  // al lado. Pasó en la prueba del 2026-09-17: la cadena era correcta y el campo era el otro.
+  if (cruda.trim().toLowerCase().startsWith('frc-')) {
+    return {
+      ok: false,
+      error:
+        'Eso es la seña del cobro, no el cupón de la terminal. La seña va en el campo de arriba ' +
+        'de la lista.',
+    };
+  }
+
   return {
     ok: false,
     error: 'El código leído no corresponde a ningún formato conocido. Registralo desde el celular.',
