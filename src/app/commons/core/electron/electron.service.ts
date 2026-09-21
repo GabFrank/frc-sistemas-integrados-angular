@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable, from, Subject } from 'rxjs';
+import { Observable, from, of, Subject } from 'rxjs';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 import {
   START_NOTIFICATION_SERVICE,
@@ -247,6 +247,8 @@ export class ElectronService {
     return ipcRenderer.sendSync('get-app-version');
   }
   getPrinters(): Observable<PrinterInfo[]> {
+    // En browser no hay ipcRenderer; el diálogo de código lo llama en ngOnInit.
+    if (!this.isElectron || !ipcRenderer) return of([]);
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
   }
 

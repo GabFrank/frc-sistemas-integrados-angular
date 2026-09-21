@@ -8,10 +8,18 @@ h3 {
 }
 
 .barcode-preview {
+  position: relative;
   margin: 8px 0 12px;
-  padding: 12px;
+  padding: 12px 44px;
   background: #ffffff;
   border-radius: 4px;
+}
+
+.barcode-download {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .barcode-preview img {
