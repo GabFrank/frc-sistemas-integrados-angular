@@ -41,6 +41,16 @@
         fxLayout="column"
         fxLayoutAlign="center center"
       >
+        <button
+          mat-icon-button
+          type="button"
+          class="barcode-download"
+          [disabled]="downloading"
+          (click)="onDescargarCodigo()"
+          matTooltip="Descargar JPG"
+        >
+          <mat-icon>download</mat-icon>
+        </button>
         <img [src]="barcodePreviewUrl" alt="Vista previa CODE128" />
         <span class="preview-hint">Vista previa (impresión CODE128)</span>
       </div>
