@@ -183,6 +183,7 @@ export const editarConteoCajaDesdeServidor = gql`
     ) {
       exito
       cajaId
+      conteoId
     }
   }
 `;
