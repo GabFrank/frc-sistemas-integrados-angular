@@ -10,6 +10,14 @@ import { EditFormatoQrPosComponent } from './edit-formato-qr-pos/edit-formato-qr
 /**
  * Listado de formatos de QR de POS.
  *
+ * ⚠️ SIN PUERTA A PROPOSITO desde el 2026-09-16: no hay entrada de menu ni ningun otro camino
+ * que abra este componente. La tabla `formato_qr_pos` es legacy; el parseo del cupon paso a
+ * `formato_terminal_pos` (el ABM «Formatos de terminal POS» del menu «Gestion de POS»), y
+ * ofrecer dos pantallas para el mismo concepto --con esta sin efecto sobre nada-- solo
+ * confundia. El componente, el servicio y la tabla se conservan hasta el PR que los de de baja,
+ * porque las filas son el respaldo de como estaba configurado cada formato. No es un huerfano
+ * roto: es un huerfano deliberado.
+ *
  * Un formato no se borra nunca: se desactiva. Borrarlo dejaria sin explicacion los
  * venta_tarjeta que ese formato ya completo.
  */
