@@ -63,6 +63,18 @@ Reglas del repo respetadas: sin llamadas a funciones ni getters en bindings (sol
 | B | JPEG sin alfa ¿fondo negro? | sí, jsbarcode `defaults.js:13` `background:"#ffffff"`, pintado en `canvas.js:46` | sin riesgo; `background` explícito se omite |
 | B | Enter / submit con foco en el botón | sí, `type="button"`; `handleKeyDown` depende de `isEditting`, no del foco | sin cambio de comportamiento |
 
+## Hallazgo durante la prueba (paso 9)
+
+Al abrir un código **existente** en la versión web (`ng serve -c web`, Pages) el diálogo salía
+vacío, como «Nuevo Código» con botón «Editar». Bug **previo, ya en `develop`** desde `ec1e447b`:
+`loadPrinters()` → `ElectronService.getPrinters()` llama `ipcRenderer.invoke` sin guarda, en web
+`ipcRenderer` es `null`, el `TypeError` corta `ngOnInit` antes de `cargarDato()`. En Electron no
+pasa. Decisión de Franco: arreglarlo en esta rama, commit aparte.
+
+| Fase | Contenido | Commit |
+|---|---|---|
+| 2 | `getPrinters()` devuelve `of([])` sin Electron, igual que `getAppVersion()` (`electron.service.ts:246`) | `fix(productos): precargar el codigo existente en el dialogo de codigo en la version web` |
+
 ## Tabla de datos nuevos
 
 N/A — no nace ningún campo, columna ni clave. La imagen se genera en el cliente y no se persiste.
