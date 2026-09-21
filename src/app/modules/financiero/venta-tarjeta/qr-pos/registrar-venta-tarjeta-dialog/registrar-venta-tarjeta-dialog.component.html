@@ -83,24 +83,40 @@
     </div>
 
     <div class="separador" *ngIf="ofreceLector && ofreceCamara">
-      <span>{{ capturaUrl ? 'o sacale una foto al cupón' : 'o registrá desde el celular' }}</span>
+      <span>o sacale una foto al cupón</span>
     </div>
 
-    <!-- Los dos caminos del celular comparten este lugar y se alternan: dos QR al mismo tiempo
-         no le dicen a nadie cuál escanear. -->
+    <!-- Camino de la foto: la página la sirve el propio filial por HTTP en la LAN, así que sirve
+         cualquier teléfono y no hace falta nada instalado.
 
-    <!-- Camino de la app móvil. Es la alternativa, no la acción principal: va más chico. -->
+         ⚠️ Acá vivía tambien el QR de la app movil, y se saco el 2026-09-17. Ese codigo abria
+         `RegistroVentaTarjetaComponent` de `frc-mobile`, que escribe con `updateVentaTarjeta` del
+         CENTRAL --un setter pelado que pone `estado` sin pasar por `completar()` del filial: sin
+         chequeo de cupon repetido, sin control de monto y sin importarle que el cobro ya estuviera
+         conciliado. En una terminal `tipo = MAQUINA` ese QR era ademas el que se mostraba PRIMERO,
+         o sea que el camino por defecto era el unico que esquivaba todas las guardas de la fase 2.
+         `PLAN-IMPLEMENTACION-FASE-2.md:1545` ya decia que la pantalla de `mobile` es un camino
+         heredado y NO el de esta fase; el hallazgo B1 se habia bajado a severidad baja con el
+         argumento de que los dos caminos vivos pasaban por `completar()`, que era falso mientras
+         esta pantalla ofreciera el tercero. Encontrado probando el cupon INFONET del cobro 50. -->
+    <!-- Este bloque es el ANTES del QR, y dura lo que tarda el filial en abrir la captura: el
+         diálogo ya la pidió solo en `ngOnInit`. No hay botón para pedirla. -->
     <div class="qr" *ngIf="!capturaUrl && ofreceCamara">
-      <ngx-qrcode [value]="valorQr" [scale]="3"></ngx-qrcode>
-      <div class="ayuda">Escaneá este código con la app para capturar la imagen del cupón</div>
+      <div class="esperando" *ngIf="pidiendoCaptura">
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Preparando el código…</span>
+      </div>
 
-      <!-- Para las maquinitas que no imprimen QR y cuando no hay app instalada: la página la
-           sirve el propio filial en la LAN, así que sirve cualquier teléfono. -->
-      <button mat-button class="btn-foto" [disabled]="pidiendoCaptura || procesando" (click)="onSacarFoto()">
-        <mat-icon>photo_camera</mat-icon>
-        Sacar foto sin la app
-      </button>
-      <div class="error-lectura" *ngIf="errorCaptura && !esperandoFoto">{{ errorCaptura }}</div>
+      <!-- Si la captura no se pudo abrir, acá hay que dar una salida: sin QR y sin botón la
+           pantalla se quedaría muda. Las otras dos --carga a mano y más tarde-- viven fuera de
+           este bloque y siguen estando. -->
+      <ng-container *ngIf="!pidiendoCaptura && errorCaptura">
+        <div class="error-lectura">{{ errorCaptura }}</div>
+        <button mat-button class="btn-foto" [disabled]="procesando" (click)="onSacarFoto()">
+          <mat-icon>photo_camera</mat-icon>
+          Sacar otra foto
+        </button>
+      </ng-container>
     </div>
 
     <!-- Captura por foto. Mientras está activa el diálogo NO se cierra solo: ver onSacarFoto. -->
@@ -121,15 +137,32 @@
       <!-- Un error acá NO cierra nada: el código sigue sirviendo y la foto se repite. -->
       <div class="error-lectura" *ngIf="errorCaptura">{{ errorCaptura }}</div>
 
-      <div class="texto-ocr" *ngIf="textoOcr">
-        <div class="texto-ocr-label">Lo que se leyó del cupón</div>
-        <pre>{{ textoOcr }}</pre>
-        <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
-      </div>
+      <!-- El cupón no siempre está en el teléfono: puede estar escaneado, bajado o pasado por
+           cable. Sin esto la única salida era volver a fotografiar el papel con el teléfono
+           teniendo la imagen en la pantalla al lado.
 
-      <button mat-button class="btn-foto" (click)="onVolverAlQrApp()">
-        Volver al código de la app
-      </button>
+           Va por el MISMO token que el QR de arriba, así que el resultado vuelve por la misma
+           suscripción: son dos puertas al mismo camino, no dos caminos.
+
+           ⚠️ El input va oculto y se dispara desde el label: un `<input type="file">` a la vista
+           no se puede estilar como el resto de los botones del diálogo. -->
+      <label class="btn-foto btn-imagen" for="imagen-cupon" [class.deshabilitado]="subiendoImagen || procesando">
+        <mat-icon>image</mat-icon>
+        {{ subiendoImagen ? 'Mandando la imagen…' : 'Elegir una imagen de esta PC' }}
+      </label>
+      <input id="imagen-cupon" type="file" accept="image/*" hidden
+             [disabled]="subiendoImagen || procesando" (change)="onElegirImagen($event)" />
+
+    </div>
+
+    <!-- ⚠️ El texto del OCR va FUERA de los dos bloques de arriba, y es a propósito: el momento en
+         que más se lo necesita es justo cuando el QR ya no está --la lectura no dio ningún campo y
+         hay que tipear desde acá--. Adentro del bloque de la captura desaparecía en ese preciso
+         instante. -->
+    <div class="texto-ocr" *ngIf="textoOcr">
+      <div class="texto-ocr-label">Lo que se leyó del cupón</div>
+      <pre>{{ textoOcr }}</pre>
+      <div class="texto-ocr-ms" *ngIf="msOcr">leído en {{ msOcr }} ms</div>
     </div>
 
   </ng-container>

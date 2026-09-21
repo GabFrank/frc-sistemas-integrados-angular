@@ -5,7 +5,6 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../../shared
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { interval } from 'rxjs';
 import { debounceTime, filter, map, switchMap } from 'rxjs/operators';
-import { codificarQr, QrData } from '../../../../../shared/qr-code/qr-code.component';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -34,8 +33,6 @@ export interface RegistrarVentaTarjetaData {
   sucursalId: number;
   /** Venta a la que pertenece el pendiente: se usa para traer sus cobros con tarjeta. */
   ventaId?: number;
-  /** Payload del QR que lee la app móvil (camino de la foto + OCR). */
-  qrPayload: QrData;
   /** Monto cobrado, para contrastarlo con el del cupón. */
   monto: number;
   /** Símbolo de la moneda de la TERMINAL: el cupón viene en la moneda del POS. */
@@ -83,16 +80,22 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
 /**
  * Los dos caminos para registrar una venta con tarjeta, en un solo diálogo.
  *
- *   1. Escanear con el lector del PDV el QR que imprime el POS en el cupón. Es el camino nuevo y
- *      el rápido: no requiere celular ni OCR.
- *   2. Escanear con el celular el QR de la pantalla, que abre la captura de imagen en la app
- *      móvil. Es el camino que ya existía.
- *   3. Sacar la foto del cupón con cualquier teléfono, sin app: el QR abre una página que sirve
- *      el propio filial por HTTP en la LAN y el OCR corre adentro suyo. Es el reemplazo del
- *      camino 2 para los proveedores que no imprimen QR, y no necesita nada instalado.
+ *   1. Escanear con el lector del PDV el QR que imprime el POS en el cupón. Es el camino rápido:
+ *      no requiere celular ni OCR. Sólo sirve para los formatos cuyo ticket TRAE QR.
+ *   2. Sacar la foto del cupón con cualquier teléfono: el QR abre una página que sirve el propio
+ *      filial por HTTP en la LAN y el OCR corre adentro suyo. No necesita nada instalado, y es el
+ *      camino de los proveedores que no imprimen QR.
  *
- * Los caminos 2 y 3 comparten el lugar del QR y se alternan: dos QR en pantalla al mismo tiempo
- * no le dicen a nadie cuál escanear.
+ * Y la carga a mano, que queda disponible siempre y también cuando los dos anteriores están
+ * cerrados: es lo que hace aceptable que el tipo de formato cierre el que no corresponde.
+ *
+ * ⚠️ <b>Hubo un tercer camino y se sacó el 2026-09-17</b>: un QR que abría
+ * `RegistroVentaTarjetaComponent` de `frc-mobile`. Escribía con `updateVentaTarjeta` del CENTRAL,
+ * un setter que pone `estado` sin pasar por `completar()` del filial — sin chequeo de cupón
+ * repetido, sin control de monto, y sin mirar si el cobro ya estaba conciliado. Encima era el que
+ * se mostraba primero en las terminales `tipo = MAQUINA`, que son justamente las que no tienen
+ * otro camino que la foto. El resolver del central sigue abierto para la app instalada; lo que se
+ * cerró es que esta pantalla lo ofreciera.
  *
  * Un solo diálogo con los dos, en vez de un flag por terminal: los proveedores van a ir
  * adoptando el QR de a uno, y así no hay que tocar la configuración de cada maquinita ni
@@ -106,7 +109,6 @@ export type RegistrarVentaTarjetaResultado = 'COMPLETADO' | 'MAS_TARDE';
 })
 export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
 
-  valorQr = '';
   cuponControl = new FormControl('');
   formatos: FormatoQrPos[] = [];
   procesando = false;
@@ -154,6 +156,8 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   private capturaToken: string = null;
   errorCaptura: string = null;
   msOcr: number = null;
+  /** Subiendo una imagen elegida en ESTA máquina. Bloquea el botón para que no se dispare dos veces. */
+  subiendoImagen = false;
 
   readonly maxLongitud = MAX_LONGITUD_QR;
 
@@ -166,7 +170,6 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
     private matDialog: MatDialog,
     private capturaCuponService: CapturaCuponService
   ) {
-    this.valorQr = codificarQr(data.qrPayload);
     this.decidirCaminos();
     if (data.segundos != null) {
       this.countdown = data.segundos;
@@ -183,6 +186,18 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // El QR de la foto se pide al ABRIR, no detras de un boton.
+    //
+    // ⚠️ En una terminal `tipo = MAQUINA` la foto no es "la alternativa": es el UNICO camino, porque
+    // su ticket no trae QR y no hay nada que pasar por el lector. Dejarlo detras de un boton
+    // obligaba al cajero a pedir a mano lo que siempre iba a pedir, y --peor-- la pantalla abria
+    // sin nada que escanear justo cuando el telefono ya estaba en la mano. Encontrado por Gabriel
+    // el 2026-09-17 completando el cupon INFONET del cobro 50.
+    //
+    // Sólo cuando se ofrece la camara: en `tipo = WEB` el camino es el lector y una captura abierta
+    // de prepo consumiria un token por cada pendiente que se abre, sin que nadie la use.
+    if (this.ofreceCamara) this.onSacarFoto();
+
     // De `formato_terminal_pos`, el del ABM. Ver el comentario largo en `escanear-cupon-dialog`:
     // esta era la tercera pantalla que leía la tabla legacy, y las tres tenían que moverse juntas
     // --si no, completar un pendiente desde la lista habría leído con un patrón distinto del que
@@ -630,10 +645,27 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
    */
   private confirmarLectura(c: CapturaCupon): void {
     const campos = parsearCampos(c.campos);
-    if (!campos) return;
+    // `parcial` se saca acá y no se propaga como valor: es una marca sobre la lectura, no un campo
+    // del cupón. Colado entre los valores aparecería como un campo más en el formulario.
+    const { datosExtra, confianzas, parcial, ...valores } = campos || ({} as any);
+    const hayAlgo = Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '');
 
-    const { datosExtra, confianzas, ...valores } = campos;
-    if (!Object.keys(valores).some((k) => valores[k] != null && valores[k] !== '')) return;
+    // ⚠️ Acá había dos `return` mudos, y eran el final del camino más transitado de la foto.
+    // Cuando el patrón no reconocía el cupón, el filial devolvía `LISTO` con `campos` vacío, este
+    // método salía sin abrir nada y sin decir nada, y el cajero se quedaba mirando el texto del
+    // OCR sin saber qué había pasado ni qué hacer. Peor: `onEsperar` termina con el `LISTO`, así
+    // que el desktop ya no escuchaba — sacar otra foto desde el teléfono no hacía absolutamente
+    // nada, mientras el QR seguía en pantalla invitando a hacer justamente eso.
+    // Encontrado por Gabriel el 2026-09-17 con el cupón de 3.500 de INFONET.
+    if (!hayAlgo) {
+      this.capturaUrl = null;   // el QR de esa captura ya no escucha a nadie: sacarlo de pantalla
+      this.capturaToken = null;
+      this.esperandoFoto = false;
+      this.errorCaptura =
+        'Se leyó el cupón pero no se pudo separar ningún campo. Sacá otra foto, o cargalo a mano ' +
+        'con el texto de abajo.';
+      return;
+    }
 
     if (this.timer) {
       // El cajero está por revisar campos: el reloj que cierra la pantalla sola sobra.
@@ -656,6 +688,10 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
           mapeo: this.data.formatoTerminalPos?.mapeo,
           valores,
           confianzas,
+          // Que la lectura vino incompleta se DICE. El formulario a medio llenar no lo explica
+          // solo, y el cajero no tiene forma de distinguir "el OCR no leyó esto" de "este cupón
+          // no lo trae".
+          lecturaParcial: parcial === true,
           capturaToken: this.capturaToken,
           origen: 'OCR',
           // Se sacaron del formulario porque no son valores que el cajero tipee, pero NO se
@@ -672,14 +708,37 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Vuelve al QR de la app. El countdown NO se reanuda: el cajero ya demostró que está
-   * trabajando en esto, y volver a arrancar un reloj que cierra la pantalla sería hostil.
+   * Manda al filial una imagen elegida en esta máquina, por el mismo token que el QR.
+   *
+   * <b>El cupón no siempre está en el teléfono.</b> Puede estar escaneado, bajado o pasado por
+   * cable, y hasta el 2026-09-17 el desktop no tenía cómo mandarlo: mostraba el QR y esperaba. La
+   * salida era fotografiar el papel con el teléfono teniendo la imagen en la pantalla al lado.
+   *
+   * No abre una captura nueva: usa la que este diálogo ya tiene, así el resultado vuelve por la
+   * suscripción que ya está corriendo. El teléfono y este botón son dos puertas al mismo camino,
+   * no dos caminos.
    */
-  onVolverAlQrApp(): void {
-    this.capturaUrl = null;
-    this.esperandoFoto = false;
-    this.textoOcr = null;
+  onElegirImagen(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const archivo = input.files && input.files[0];
+    // El input se limpia SIEMPRE, y antes de cualquier await: sin esto, elegir el mismo archivo
+    // dos veces seguidas no vuelve a emitir `change` y el botón queda sordo sin aviso.
+    input.value = '';
+    if (!archivo || !this.capturaUrl || this.subiendoImagen) return;
+
+    this.subiendoImagen = true;
     this.errorCaptura = null;
+    this.capturaCuponService
+      .onSubirImagen(this.capturaUrl, archivo)
+      .then(() => {
+        this.subiendoImagen = false;
+        // No se hace nada más a propósito: el desenlace lo trae `escucharCaptura`, igual que
+        // cuando la foto viene del teléfono.
+      })
+      .catch((e) => {
+        this.subiendoImagen = false;
+        this.errorCaptura = 'No se pudo mandar la imagen. ' + (e?.message || '');
+      });
   }
 
   /** "Registrar más tarde": la venta ya está cerrada; el registro queda PENDIENTE. */

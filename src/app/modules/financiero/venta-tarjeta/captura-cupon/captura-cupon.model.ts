@@ -51,6 +51,14 @@ export interface CamposCupon {
   moneda?: string;
   datosExtra?: { [clave: string]: any };
   /**
+   * El patrón entero no matcheó y esto se rescató tramo por tramo: **falta al menos un campo**.
+   *
+   * No es un campo del cupón: es una marca sobre la lectura. El cajero tiene que **completar**, no
+   * revisar, y el formulario se abre a medio llenar a propósito. Sin esto se le abría igual, sin
+   * explicación — encontrado el 2026-09-17 con el cupón de 3.500 de INFONET.
+   */
+  parcial?: boolean;
+  /**
    * Confianza 0..1 por campo canónico. **Un campo que no aparece acá es un campo del que no se
    * sabe**, y se trata igual que uno de confianza baja: hay que preguntarlo.
    *

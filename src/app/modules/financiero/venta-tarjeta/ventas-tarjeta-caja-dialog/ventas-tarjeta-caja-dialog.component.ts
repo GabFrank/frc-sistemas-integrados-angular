@@ -475,15 +475,6 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
           ventaTarjetaId: item.id,
           sucursalId: item.sucursalId,
           ventaId: item.ventaId,
-          qrPayload: {
-            sucursalId: item.sucursalId,
-            tipoEntidad: TipoEntidad.VENTA_TARJETA,
-            idOrigen: item.ventaId,
-            idCentral: item.ventaId,
-            componentToOpen: 'RegistroVentaTarjetaComponent',
-            data: (item.cajaId ?? '') + '|' + item.monto + '|' + item.id,
-            timestamp: Date.now(),
-          },
           monto: item.monto,
           monedaSimbolo: item.simboloMoneda,
           terminalDescripcion: [item.terminalPos?.descripcion, item.terminalPos?.codigo]

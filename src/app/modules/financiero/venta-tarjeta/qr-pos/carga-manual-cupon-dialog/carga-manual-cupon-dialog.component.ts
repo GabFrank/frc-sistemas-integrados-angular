@@ -41,6 +41,16 @@ export interface CargaManualCuponData {
   valores?: { [clave: string]: any };
 
   /**
+   * La lectura vino **incompleta**: el patrón entero no reconoció el cupón y el filial rescató lo
+   * que pudo, tramo por tramo.
+   *
+   * Cambia lo que el cajero tiene que hacer —completar en vez de revisar— y por eso se dice, no se
+   * deduce del formulario a medio llenar. Antes del 2026-09-17 no existía: un solo campo ilegible
+   * tiraba la lectura entera y el formulario se abría vacío.
+   */
+  lecturaParcial?: boolean;
+
+  /**
    * Confianza 0..1 por campo canónico, del OCR.
    *
    * **Un campo que no está acá es un campo del que no se sabe**, y se trata igual que uno de
@@ -239,6 +249,15 @@ export class CargaManualCuponDialogComponent implements OnInit {
       this.ayuda =
         'El lector completó lo que pudo leer. Los campos en ámbar no se leyeron con claridad y hay ' +
         'que corregirlos; los verdes conviene confirmarlos contra el ticket antes de seguir.';
+      // Lectura incompleta: el patrón entero no reconoció el cupón y el filial rescató lo que
+      // pudo. El formulario se abre a medio llenar a propósito, y eso hay que DECIRLO: un campo
+      // vacío no distingue "el OCR no leyó esto" de "este cupón no lo trae".
+      if (this.data?.lecturaParcial) {
+        this.titulo = 'Completá los datos del cupón';
+        this.ayuda =
+          'No se pudo leer el cupón entero: lo que está cargado sí se leyó, y lo que quedó vacío ' +
+          'hay que tipearlo del ticket. Los campos en ámbar conviene revisarlos igual.';
+      }
       // El botón se habilita cuando no queda nada dudoso sin confirmar, así que hay que
       // recalcular con cada tecla: corregir un valor cuenta como confirmarlo.
       this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.recalcular());

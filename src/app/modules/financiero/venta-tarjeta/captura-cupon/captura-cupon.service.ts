@@ -17,6 +17,13 @@ export class CapturaCuponService {
   /** Cada cuánto se le vuelve a preguntar al filial mientras se espera la foto. */
   private static readonly MS_SONDEO = 3000;
 
+  /**
+   * Mismos números que `captura.html` del filial, y tienen que seguir iguales: son el punto de
+   * trabajo medido del OCR (1000 px da los mismos campos que 1600 y es 28% más rápido).
+   */
+  private static readonly LADO_MAX = 1000;
+  private static readonly CALIDAD = 0.9;
+
   constructor(
     private genericService: GenericCrudService,
     private crearGQL: CrearCapturaCuponGQL,
@@ -36,6 +43,53 @@ export class CapturaCuponService {
     return this.genericService
       .onCustomMutation(this.crearGQL, { cajaId, sucursalId, usuarioId, terminalPosId }, false)
       .pipe(map((res) => res as CapturaCuponQr));
+  }
+
+  /**
+   * Manda una imagen que ya está en ESTA máquina a la captura abierta.
+   *
+   * <b>Por qué existe.</b> Hasta el 2026-09-17 la única forma de mandar una foto era el teléfono:
+   * el desktop mostraba el QR y esperaba. Un cupón que ya estaba en la PC --escaneado, bajado,
+   * pasado por cable-- no tenía camino, y había que volver a fotografiar el papel con el teléfono
+   * teniendo la imagen delante.
+   *
+   * <b>Va por el MISMO endpoint que el teléfono</b> (`POST /public/captura/<token>`, `image/jpeg`)
+   * y sobre el MISMO token que este diálogo ya abrió. Eso es lo que hace que no haya que cablear
+   * nada más: la suscripción de `onEsperar` que ya está corriendo recibe el desenlace igual que si
+   * la foto hubiera llegado del teléfono. Un segundo camino de subida habría sido un segundo lugar
+   * donde el resultado puede llegar distinto.
+   *
+   * <b>Normaliza igual que la página del filial</b> --lado máximo 1000, JPEG calidad 0.9-- porque
+   * el punto de trabajo del OCR está medido sobre eso. Pasar por canvas además resuelve dos cosas
+   * de una: aplica la orientación EXIF (Chrome la honra al construir el `ImageBitmap`) y convierte
+   * a JPEG cualquier formato que el usuario elija, que es lo único que el endpoint acepta.
+   *
+   * <b>No manda `X-Nitidez`.</b> El header es opcional en el controller y su medición vive en la
+   * página; sin él la captura se procesa igual. Reimplementarlo acá sería una segunda fórmula de
+   * nitidez que se desincronizaría en silencio.
+   */
+  async onSubirImagen(url: string, archivo: File): Promise<void> {
+    const bmp = await createImageBitmap(archivo);
+    const esc = Math.min(1, CapturaCuponService.LADO_MAX / Math.max(bmp.width, bmp.height));
+    const lienzo = document.createElement('canvas');
+    lienzo.width = Math.round(bmp.width * esc);
+    lienzo.height = Math.round(bmp.height * esc);
+    const ctx = lienzo.getContext('2d');
+    ctx.drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+
+    const blob: Blob = await new Promise((resolve) =>
+      lienzo.toBlob(resolve, 'image/jpeg', CapturaCuponService.CALIDAD)
+    );
+    if (!blob) throw new Error('No se pudo convertir la imagen.');
+
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    });
+    // 422 es un desenlace previsto del filial --la foto no sirvió pero el token sigue vivo-- y su
+    // cuerpo trae el motivo en castellano. Se propaga tal cual: lo escribió quien sabe por qué.
+    if (!r.ok) throw new Error((await r.text()) || ('error ' + r.status));
   }
 
   /**

@@ -256,3 +256,31 @@
 .btn-foto {
   color: #4caf50;
 }
+
+/**
+ * El "botón" de elegir una imagen es un <label>, no un <button>: un `<input type="file">` a la
+ * vista no se deja estilar como el resto del diálogo, así que se oculta y se dispara desde acá.
+ * Por eso hay que reponer a mano lo que `mat-button` traía puesto.
+ */
+.btn-imagen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Un label no respeta `disabled`: el input de abajo sí deja de abrir el selector, pero sin
+     esto el cursor y el color seguían diciendo que se podía tocar. */
+  &.deshabilitado {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+  }
+}

@@ -16,7 +16,6 @@ import { ConfiguracionVentaTarjetaDialogComponent } from '../configuracion-venta
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { MonedaService } from '../../moneda/moneda.service';
 import { DecimalesPorMoneda } from '../qr-pos/qr-pos-parser';
-import { construirQrPayloadVentaTarjeta } from '../qr-pos/venta-tarjeta-qr-payload';
 
 @UntilDestroy()
 @Component({
@@ -235,8 +234,6 @@ export class ListVentaTarjetaComponent implements OnInit {
   }
 
   onCompletarPendiente(item: VentaTarjeta): void {
-    const qrPayload = construirQrPayloadVentaTarjeta(item);
-
     this.matDialog.open(RegistrarVentaTarjetaDialogComponent, {
       data: {
         ventaTarjetaId: item.id,
@@ -244,7 +241,6 @@ export class ListVentaTarjetaComponent implements OnInit {
         // Necesario para traer los cobros con tarjeta de la venta y poder vincular el cupón
         // a la línea correcta cuando hay más de una.
         ventaId: item.venta?.id,
-        qrPayload,
         monto: item.monto,
         // La del registro manda: la de la terminal es configuración mutable y no describe lo
         // que se cobró. Respaldo a la de la terminal solo para filas viejas sin moneda propia.
