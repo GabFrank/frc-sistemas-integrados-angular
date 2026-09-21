@@ -1608,7 +1608,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openUtilitarios() {
-    if (this.modoConsulta) return;
+    // En modo consulta no hay caja del turno, y TODO lo que ofrece Utilitarios trabaja sobre una:
+    // cerrar caja, retiro, gasto, cancelacion, reimpresion, garantia y la conciliacion de cupones.
+    //
+    // Antes esto era un `return` pelado: F1 dejaba de hacer nada, sin una sola palabra. Un atajo
+    // que a veces responde y a veces no le ensena al cajero que la tecla esta rota, no que la
+    // pantalla no aplica. Medido el 2026-09-21 probando el gate de caja cerrada (E5a): al cerrar
+    // la caja y elegir "consulta", F1 quedaba mudo.
+    if (this.modoConsulta) {
+      this.notificacionSnackbar.openWarn(
+        "Estás en modo consulta, sin una caja abierta. Utilitarios trabaja sobre la caja del turno: elegí o abrí una para usarlo."
+      );
+      return;
+    }
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
