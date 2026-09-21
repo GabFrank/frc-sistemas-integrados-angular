@@ -58,7 +58,6 @@ import { ConfigurarTerminalPosDialogComponent } from "./terminal-pos/configurar-
 import { AddTerminalPosDialogComponent } from "./terminal-pos/add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
-import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
 import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
 import { VentasTarjetaCajaDialogComponent } from "./venta-tarjeta/ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component";
 import { RegistrarVentaTarjetaDialogComponent } from "./venta-tarjeta/qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component";
@@ -151,7 +150,6 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     AddTerminalPosDialogComponent,
     PrintTerminalPosDialogComponent,
     ScanTerminalPosDialogComponent,
-    TerminalPosDashboard,
     ListVentaTarjetaComponent,
     VentasTarjetaCajaDialogComponent,
     RegistrarVentaTarjetaDialogComponent,

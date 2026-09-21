@@ -383,7 +383,7 @@ export class VentaTarjetaService {
       usuarioResponsableId: this.mainService.usuarioActual?.id
     }, servidor).subscribe(res => {
       if (res != null) {
-        this.reporteService.onAdd('Reporte de Ventas con Tarjeta', res);
+        this.reporteService.onAdd('Reporte de conciliación de cupones', res);
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaTarjetaComponent));
       }
     });

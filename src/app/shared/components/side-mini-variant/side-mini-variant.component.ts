@@ -75,8 +75,10 @@ import { LegajoFuncionarioComponent } from '../../../modules/rrhh/legajo/legajo-
 import { DashboardRrhhComponent } from '../../../modules/rrhh/dashboard/dashboard-rrhh.component';
 import { ManualRrhhComponent } from '../../../modules/rrhh/manual/manual-rrhh.component';
 import { DevolucionComponent } from '../../../modules/operaciones/devolucion/devolucion.component';
-import { TerminalPosDashboard } from '../../../modules/financiero/terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component';
 import { FormatoTerminalPosComponent } from '../../../modules/financiero/venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component';
+import { ListVentaTarjetaComponent } from '../../../modules/financiero/venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component';
+import { ListProveedorServicioComponent } from '../../../modules/personas/proveedor-servicio/list-proveedor-servicio/list-proveedor-servicio.component';
+import { ConfiguracionVentaTarjetaDialogComponent } from '../../../modules/financiero/venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component';
 import { FacturaLegalDashboard } from '../../../modules/financiero/factura-legal/factura-legal-dashboard/factura-legal-dashboard.component';
 import { ListCajaVirtualComponent } from '../../../modules/financiero/caja-virtual/list-caja-virtual/list-caja-virtual.component';
 import { ListRetiroCasosComponent } from '../../../modules/financiero/retiro/verificacion/list-retiro-casos/list-retiro-casos.component';
@@ -521,25 +523,50 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           ]
         },
         {
-          // Las tres colgaban de 'Reportes y Análisis' y ninguna es un reporte: son el ABM del
-          // aparato con el que se cobra. Terminales POS ademas es la unica pantalla del grupo que
-          // ve un rol no-admin, asi que mezclada ahi le mostraba el encabezado de los reportes de
-          // lucro a quien no puede abrir ninguno.
-          name: 'Venta con tarjeta',
+          // Las pantallas colgaban de 'Reportes y Análisis' y ninguna es un reporte: son el ABM del
+          // aparato con el que se cobra, más la conciliación de cada cobro contra su cupón.
+          //
+          // Se llamaba 'Venta con tarjeta'. El nombre fue cierto cuando esto era una lista de
+          // cobros y dejó de serlo: hoy adentro hay terminales, sus proveedores, el formato con el
+          // que se lee cada cupón y la configuración del flujo. 'Gestión de POS' nombra lo que
+          // efectivamente hay --los dos tipos de formato vivos ya se llaman «maquinita» y «POS
+          // web», y los proveedores son el soporte del POS-- y sigue valiendo si mañana la misma
+          // maquinita cobra un QR de billetera.
+          name: 'Gestión de POS',
           icon: 'credit_card',
           isExpanded: false,
           visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR],
           items: [
+            // Primera por uso, no por jerarquía: es la única del grupo que abre un rol no-admin, y
+            // adonde entra el que concilia todos los días. Las otras cuatro son de configuración.
+            {
+              name: 'Conciliación de cupones',
+              icon: 'fact_check',
+              action: 'conciliacion-cupones',
+              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
+            },
             {
               name: 'Terminales POS',
               icon: 'contactless',
-              action: 'terminal-pos-dashboard',
-              visibilityRoles: [ROLES.ADMIN, ROLES.VENTA_TARJETA_COMPLETAR]
+              action: 'list-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
             },
             {
               name: 'Formatos de terminal POS',
               icon: 'point_of_sale',
               action: 'formato-terminal-pos',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Proveedores de servicios',
+              icon: 'support_agent',
+              action: 'list-proveedor-servicio',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Configuración',
+              icon: 'tune',
+              action: 'configuracion-venta-tarjeta',
               visibilityRoles: [ROLES.ADMIN]
             }
             // 'Formatos de QR de POS' (tabla legacy `formato_qr_pos`) se retiró del menú el
@@ -1068,11 +1095,32 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-maletin":
         this.openTabIfAuthorized(ROLES.ADMIN, ListMaletinComponent, "Maletines");
         break;
-      case "terminal-pos-dashboard":
-        this.openTabIfAuthorized(ROLES.VENTA_TARJETA_COMPLETAR, TerminalPosDashboard, "Terminal Dashboard");
+      // Las cinco entradas de 'Gestión de POS'. Antes eran una sola --'Terminales POS'-- que
+      // abría un dashboard de cuatro botones; el dashboard se eliminó y sus destinos subieron acá.
+      // Un índice de cuatro botones entre el menú y la pantalla es un click que no decide nada.
+      case "conciliacion-cupones":
+        this.openTabIfAuthorized(ROLES.VENTA_TARJETA_COMPLETAR, ListVentaTarjetaComponent, "Conciliación de cupones");
+        break;
+      case "list-terminal-pos":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTerminalPosComponent, "Terminales POS");
         break;
       case "formato-terminal-pos":
         this.openTabIfAuthorized(ROLES.ADMIN, FormatoTerminalPosComponent, "Formatos de terminal");
+        break;
+      case "list-proveedor-servicio":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListProveedorServicioComponent, "Proveedores de servicios");
+        break;
+      // Diálogo y no pestaña, como estaba en el dashboard: es una perilla, no una pantalla.
+      case "configuracion-venta-tarjeta":
+        if (this.hasAnyRole([ROLES.ADMIN])) {
+          this.matDialog.open(ConfiguracionVentaTarjetaDialogComponent, {
+            width: '560px',
+            disableClose: false,
+            panelClass: 'custom-dialog-container'
+          });
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
       case "delivery-dashboard":
         this.tabService.addTab(new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null));

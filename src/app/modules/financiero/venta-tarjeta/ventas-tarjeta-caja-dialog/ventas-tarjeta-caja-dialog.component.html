@@ -1,5 +1,5 @@
 <app-generic-list
-  [titulo]="'Ventas con tarjeta — caja ' + data.cajaId"
+  [titulo]="'Conciliación de cupones — caja ' + data.cajaId"
   (filtrar)="onFilter()"
   (resetFiltro)="onLimpiarFiltros()"
   [isAdicionar]="false"
@@ -227,7 +227,7 @@
       </table>
 
       <div *ngIf="!cargando && dataSource.data.length === 0" class="estado-vacio">
-        No hay ventas con tarjeta que coincidan con el filtro.
+        No hay cobros con tarjeta que coincidan con el filtro.
       </div>
     </div>
 
