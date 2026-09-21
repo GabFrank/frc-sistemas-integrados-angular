@@ -25,6 +25,13 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from '../../../../notificacion-snackbar.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { CajaService } from '../../pdv/caja/caja.service';
+import { PdvCajaEstado } from '../../pdv/caja/caja.model';
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 export interface VentasTarjetaCajaDialogData {
   cajaId: number;
@@ -99,6 +106,40 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   /** Los cajeros que aparecen en lo que ya se trajo. No hay consulta de usuarios de la caja. */
   cajeros: { id: number; nickname: string }[] = [];
 
+  /**
+   * Cliente apuntando al CENTRAL: la pantalla se ve, pero no se opera.
+   *
+   * Con `isLocal: false`, `graphql-connection.service.ts:280` no crea el link local, asi que TODAS
+   * las acciones de este modulo --completar, dejar sin conciliar, reabrir, la captura por foto--
+   * se resuelven contra el central, que no tiene ninguna de esas mutations. Antes de esto el boton
+   * aparecia igual y fallaba con un error de GraphQL que no mencionaba la configuracion: el usuario
+   * veia "no se pudo" sin ninguna pista de que lo que faltaba era el servidor de la sucursal.
+   *
+   * Se lee UNA vez en `ngOnInit`: `isLocal()` pega a localStorage y el template no puede llamar
+   * funciones.
+   */
+  modoLectura = false;
+
+  /**
+   * Si la caja de este dialogo sigue abierta. Arranca en `false` --el lado estricto-- y solo pasa
+   * a `true` si el filial dice `EN_PROCESO`.
+   *
+   * <b>Por que se consulta.</b> El gate de «Reabrir» no es el mismo en los dos casos: deshacer el
+   * propio error dentro de la caja abierta es del cajero, y tocar un turno que alguien ya cerro es
+   * de quien es dueno de las cajas cerradas. El dialogo nunca miraba el estado de la caja --recibe
+   * `cajaId` y filtra-- asi que sin esta consulta no hay forma de distinguirlos.
+   *
+   * Si la consulta falla, queda en `false` y manda el gate estricto. Fallar hacia el lado que pide
+   * mas permiso es lo unico honesto: la alternativa es abrir la accion por no haber podido
+   * averiguar si correspondia.
+   */
+  cajaAbierta = false;
+
+  /** Rol para reabrir un cobro de la caja ABIERTA: el mismo que para completar. */
+  private puedeReabrirAbierta = false;
+  /** Rol para reabrir un cobro de una caja CERRADA: los duenos de las cajas cerradas. */
+  private puedeReabrirCerrada = false;
+
   decimalesPorMoneda: { [id: number]: number } = {};
   selectedPageInfo: PageInfo<VentaTarjeta>;
   pageIndex = 0;
@@ -115,10 +156,26 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
     private terminalPosService: TerminalPosService,
     private matDialog: MatDialog,
     private notificacionSnackbar: NotificacionSnackbarService,
+    private cajaService: CajaService,
     public mainService: MainService
   ) {}
 
   ngOnInit(): void {
+    this.modoLectura = !this.mainService.isLocal();
+
+    const roles = this.mainService.usuarioActual?.roles || [];
+    const esAdmin = roles.includes(ROLES.ADMIN);
+    // Caja abierta: el cajero deshace su propio error, con el mismo rol con el que completa.
+    this.puedeReabrirAbierta = esAdmin || roles.includes(ROLES.VENTA_TARJETA_COMPLETAR);
+    // Caja cerrada: es tocar un turno que alguien dio por cerrado. ANALISIS DE CAJA es el rol que
+    // YA gobierna las cajas cerradas en esta app --la lista de cajas, los retiros, los gastos, las
+    // observaciones de caja cuelgan todas de el--, asi que el permiso no se inventa para esto.
+    this.puedeReabrirCerrada = esAdmin || roles.includes(ROLES.ANALISIS_DE_CAJA);
+
+    // Solo hace falta si se va a operar. Y en modo lectura no habria contra quien preguntar: sin
+    // link local, esta consulta iria al central.
+    if (!this.modoLectura) this.consultarEstadoDeLaCaja();
+
     // Arranca filtrando por el cajero actual: lo primero que uno busca son sus propios cobros.
     // Se puede vaciar, y "Limpiar filtros" lo vacia.
     const yo = this.mainService.usuarioActual;
@@ -162,6 +219,107 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   }
 
   /**
+   * Pregunta al FILIAL si la caja de este diálogo sigue abierta.
+   *
+   * Sólo para el gate de «Reabrir»: el resto del diálogo funciona igual con la caja cerrada —lo
+   * hace desde siempre, filtra por `cajaId` y nunca miró el estado— y no se le agrega una
+   * dependencia nueva a nada de eso. Por lo mismo no bloquea la carga: si tarda o falla, la tabla
+   * ya se ve y lo único que queda en el lado estricto es una acción.
+   */
+  private consultarEstadoDeLaCaja(): void {
+    this.cajaService
+      .onGetByIdSimp(Number(this.data.cajaId), Number(this.mainService.sucursalActual?.id), true, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (caja) => (this.cajaAbierta = caja?.estado === PdvCajaEstado['En proceso']),
+        error: () => (this.cajaAbierta = false),
+      });
+  }
+
+  /**
+   * Si esta fila puede reabrirse, y por quién.
+   *
+   * <b>Dos gates, no uno.</b> Los dos casos que §10.2 nombra no son el mismo acto: el cajero que
+   * marcó la fila equivocada de tres del mismo monto está deshaciendo su propio error dentro de su
+   * turno, y quien reabre un cobro de una caja ya cerrada está tocando un turno que alguien dio
+   * por terminado. Darles el mismo permiso obligaba a elegir entre dejar al cajero llamando a un
+   * supervisor para corregirse a sí mismo, o dejar que cualquier cajero con el rol toque el turno
+   * cerrado de otro.
+   *
+   * `cajaAbierta` arranca en `false`, así que mientras la consulta no haya vuelto —o si falló— rige
+   * el gate estricto.
+   */
+  puedeReabrir(item: VentaTarjeta): boolean {
+    if (this.modoLectura || this.accionEnCurso) return false;
+    if (item?.estado !== 'NO_COMPLETADO') return false;
+    return this.cajaAbierta ? this.puedeReabrirAbierta : this.puedeReabrirCerrada;
+  }
+
+  /**
+   * Devuelve un cobro de NO_COMPLETADO a PENDIENTE.
+   *
+   * <b>Los dos casos reales</b>, los dos frecuentes: se marcó la fila equivocada, o apareció el
+   * cupón —`CUPON_PERDIDO` es literalmente «todavía no lo encontré», y que el papel aparezca al día
+   * siguiente es el caso normal, no el raro—. Sin esto la plata quedaba sin conciliar para siempre
+   * por una decisión tomada con información incompleta, que es justo lo que el rastro de §8 venía a
+   * evitar.
+   *
+   * Pide confirmación porque el diálogo de marcar avisa que no se puede deshacer: ahora sí se
+   * puede, y decirlo en el momento es lo que evita que «sin conciliar» se vuelva reversible de
+   * hecho sin que nadie lo note.
+   */
+  onReabrir(item: VentaTarjeta): void {
+    if (!this.puedeReabrir(item)) return;
+
+    const data: ConfirmDialogData = {
+      title: 'Reabrir el cobro ' + item.id,
+      // Se nombra el motivo con el que se había marcado: es el dato que decide si reabrir tiene
+      // sentido, y tenerlo delante evita reabrir la fila equivocada por segunda vez.
+      message:
+        'Vuelve a quedar PENDIENTE y hay que registrarle el cupón.' +
+        (item.motivoTexto ? ' Se había marcado como: ' + item.motivoTexto + '.' : '') +
+        ' El motivo y quién lo marcó NO se borran: queda además tu usuario como quien lo reabrió.',
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+    };
+
+    this.matDialog
+      .open(ConfirmDialogComponent, { data, width: '480px' })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((confirmado) => {
+        if (confirmado !== true) return;
+        this.accionEnCurso = true;
+        this.ventaTarjetaService
+          .onReabrir(
+            Number(item.id),
+            Number(this.mainService.sucursalActual?.id),
+            this.mainService.usuarioActual?.id
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: () => {
+              this.accionEnCurso = false;
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: 'El cobro ' + item.id + ' volvió a PENDIENTE. Ya se le puede registrar el cupón.',
+                duracion: 4,
+              });
+              this.onGetData();
+            },
+            error: (err) => {
+              this.accionEnCurso = false;
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: mensajeDeError(err, 'No se pudo reabrir el cobro.'),
+                duracion: 6,
+              });
+            },
+          });
+      });
+  }
+
+  /**
    * Un QR de seña escaneado. Decide a qué fila corresponde, o por qué no corresponde a ninguna.
    *
    * El orden de las guardas importa: primero las que se resuelven con el QR en la mano (¿es una
@@ -170,7 +328,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    */
   onQrEscaneado(): void {
     // El lector manda CR al final: sin esta guarda, el Enter dispara una segunda vuelta.
-    if (this.buscandoQr) return;
+    if (this.modoLectura || this.buscandoQr) return;
     const texto = (this.qrControl.value || '').trim();
     if (!texto) return;
 
@@ -378,7 +536,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   onReimprimirSena(item: VentaTarjeta): void {
     // Los iconos de la fila no se deshabilitan solos, asi que la guarda es esta: sin ella un doble
     // clic manda dos impresiones, o dos marcados.
-    if (item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
+    if (this.modoLectura || item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
     this.accionEnCurso = true;
     this.ventaTarjetaService
       .onImprimirSena({
@@ -425,7 +583,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
    * No se puede deshacer, y por eso el diálogo lo dice antes.
    */
   onNoConciliar(item: VentaTarjeta): void {
-    if (item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
+    if (this.modoLectura || item?.estado !== 'PENDIENTE' || this.accionEnCurso) return;
     this.matDialog
       .open(MotivoNoConciliarDialogComponent, {
         width: '460px',
@@ -469,6 +627,9 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
   }
 
   onCompletar(item: VentaTarjeta): void {
+    // Las tres acciones repiten la guarda en el metodo y no solo en el template: el lector de QR
+    // llega hasta `onCompletar` sin pasar por ningun *ngIf.
+    if (this.modoLectura) return;
     this.matDialog
       .open(RegistrarVentaTarjetaDialogComponent, {
         data: {

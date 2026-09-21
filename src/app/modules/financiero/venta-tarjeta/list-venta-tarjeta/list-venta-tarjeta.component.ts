@@ -4,7 +4,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { PageInfo } from '../../../../app.component';
-import { VentaTarjeta } from '../venta-tarjeta.model';
+import { textoMotivoNoCompletado, VentaTarjeta } from '../venta-tarjeta.model';
 import { VentaTarjetaService } from '../venta-tarjeta.service';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
@@ -16,6 +16,7 @@ import { ConfiguracionVentaTarjetaDialogComponent } from '../configuracion-venta
 import { RegistrarVentaTarjetaDialogComponent } from '../qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component';
 import { MonedaService } from '../../moneda/moneda.service';
 import { DecimalesPorMoneda } from '../qr-pos/qr-pos-parser';
+import { VentasTarjetaCajaDialogComponent } from '../ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -26,6 +27,15 @@ import { DecimalesPorMoneda } from '../qr-pos/qr-pos-parser';
 export class ListVentaTarjetaComponent implements OnInit {
 
   ROLES = ROLES;
+
+  /**
+   * Cliente apuntando al CENTRAL. Esta pantalla LEE de central siempre, asi que se ve igual; lo que
+   * no existe ahi son las acciones.
+   *
+   * Se lee UNA vez en `ngOnInit`: `isLocal()` pega a localStorage y el template no puede llamar
+   * funciones.
+   */
+  modoLectura = false;
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
@@ -67,6 +77,7 @@ export class ListVentaTarjetaComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.modoLectura = !this.mainService.isLocal();
 
     let hoy = new Date();
     let aux = new Date();
@@ -154,7 +165,9 @@ export class ListVentaTarjetaComponent implements OnInit {
     return {
       ...item,
       simboloMoneda: moneda?.simbolo ?? 'Gs.',
-      digitosMoneda: `1.${decimales}-${decimales}`
+      digitosMoneda: `1.${decimales}-${decimales}`,
+      // El motivo en palabras se resuelve acá: el template no puede llamar funciones.
+      motivoTexto: textoMotivoNoCompletado(item?.noCompletadoMotivo)
     };
   }
 
@@ -219,8 +232,17 @@ export class ListVentaTarjetaComponent implements OnInit {
    * devolver un error claro ("No existe la venta con tarjeta..."). Por eso el botón solo aparece
    * para filas de la sucursal donde está parado ahora mismo — completar la de otra sucursal desde
    * acá no puede funcionar y no tiene sentido ofrecerlo.
+   * <p>
+   * ⚠️ <b>Y tampoco si el cliente apunta al central</b> (`isLocal: false`). Ese caso faltaba: el
+   * razonamiento de arriba habla del «filial local» dando por sentado que existe, y desde la web
+   * contra central no existe —`graphql-connection.service.ts:280` no crea el link local, así que
+   * `completarVentaTarjeta` se resolvía contra un backend que no la tiene—. `sucursalActual` está
+   * igual y coincide igual, así que el botón se mostraba y recién fallaba al apretarlo, con un
+   * error de GraphQL que no mencionaba la configuración. Es el perfil MÁS probable de esta
+   * pantalla: el supervisor que audita la red entra por la web.
    */
   puedeCompletarDesdeAqui(item: VentaTarjeta): boolean {
+    if (this.modoLectura) return false;
     // Number() en los dos lados, y NO ===: `Sucursal.id` es un `ID` de GraphQL y llega como
     // STRING ("24"), mientras `VentaTarjeta.sucursalId` es un `Int` y llega como NÚMERO (24).
     // Con comparación estricta esto daba false siempre y el botón no aparecía en ninguna fila,
@@ -231,6 +253,57 @@ export class ListVentaTarjetaComponent implements OnInit {
       && !isNaN(sucursalFila)
       && !isNaN(sucursalActual)
       && sucursalFila === sucursalActual;
+  }
+
+  /**
+   * Si desde esta fila se puede abrir el diálogo de su caja.
+   *
+   * <b>La lista es el índice; el diálogo es el taller.</b> Acá se ve toda la red y se filtra; las
+   * acciones —completar, dejar sin conciliar, reabrir— viven en el diálogo de la caja, que corre
+   * contra el filial, que es el único backend que sabe escribir esta tabla.
+   *
+   * ⚠️ <b>Exige `isLocal` y no sólo la sucursal</b>, por la misma razón que `puedeCompletarDesdeAqui`
+   * y por una más, medida: el diálogo carga con `filtrarVentasTarjetaPorCaja`, que **sólo existe en
+   * el filial**. Contra central no hay ni modo lectura posible: la tabla saldría vacía. Por eso en
+   * ese caso la puerta no se ofrece y el rastro de los NO_COMPLETADO se lee acá mismo, en la
+   * columna de estado, que sí se sirve desde central.
+   */
+  puedeAbrirLaCaja(item: VentaTarjeta): boolean {
+    if (this.modoLectura) return false;
+    const cajaId = item?.caja?.id ?? item?.cajaId;
+    if (cajaId == null) return false;
+    // Number() en los dos lados y no ===: `Sucursal.id` llega como STRING y `sucursalId` como
+    // NÚMERO. Ver el comentario de `puedeCompletarDesdeAqui`.
+    const sucursalFila = Number(item.sucursalId);
+    const sucursalActual = Number(this.mainService.sucursalActual?.id);
+    return !isNaN(sucursalFila) && !isNaN(sucursalActual) && sucursalFila === sucursalActual;
+  }
+
+  /**
+   * Abre el diálogo de la caja de esta fila.
+   *
+   * El diálogo ya servía para una caja cerrada —recibe `cajaId`, filtra por él y no chequea el
+   * estado de la caja en ningún lado—, así que no hubo que adaptarlo. Que se abriera sólo desde el
+   * PDV con la caja del turno era por dónde se entraba, no una restricción suya.
+   */
+  onAbrirLaCaja(item: VentaTarjeta): void {
+    const cajaId = item?.caja?.id ?? item?.cajaId;
+    if (cajaId == null) return;
+    this.matDialog
+      .open(VentasTarjetaCajaDialogComponent, {
+        // Mismas medidas que la otra puerta (Utilitarios F1 del PDV): es el mismo diálogo y tiene
+        // que abrirse igual, no parecerse a dos pantallas segun por donde se entro.
+        data: { cajaId: Number(cajaId) },
+        width: '85vw',
+        height: '80vh',
+        maxWidth: '85vw',
+        disableClose: false,
+        autoFocus: true,
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      // Se recarga al volver: adentro se pudo haber completado, marcado o reabierto.
+      .subscribe(() => this.onGetData());
   }
 
   onCompletarPendiente(item: VentaTarjeta): void {

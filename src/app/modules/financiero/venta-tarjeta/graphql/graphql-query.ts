@@ -48,6 +48,16 @@ export const filtrarVentasTarjetaQuery = gql`
         estado
         creadoEn
         usuario { id nickname }
+        # Central las tiene por replicacion y no se pedian: la lista mostraba NO_COMPLETADO a secas.
+        # Esta es la UNICA pantalla que ve los cobros sin conciliar de TODAS las sucursales, y sin
+        # estos cuatro campos no dice por que ninguno lo esta ni a quien preguntarle.
+        noCompletadoMotivo
+        noCompletadoObservacion
+        noCompletadoEn
+        noCompletadoPor { id nickname }
+        # Y un reabierto vuelve a PENDIENTE: sin esto es indistinguible del que nunca se marco.
+        reabiertoEn
+        reabiertoPor { id nickname }
       }
       getTotalElements
     }
@@ -137,6 +147,31 @@ export const marcarVentaTarjetaNoCompletadaMutation = gql`
       noCompletadoObservacion
       noCompletadoEn
       noCompletadoPor { id nickname }
+    }
+  }
+`;
+
+/**
+ * Devuelve un cobro de `NO_COMPLETADO` a `PENDIENTE`.
+ *
+ * Va contra el FILIAL, como las otras dos acciones de este modulo: es el unico backend que sabe
+ * escribir esta tabla. Desde un cliente contra central (`isLocal: false`) el link local no existe
+ * y esta mutation no tiene a donde ir --por eso el dialogo se abre en modo lectura ahi.
+ *
+ * Devuelve las `noCompletado*` ademas del estado a proposito: el servidor NO las limpia, y traerlas
+ * de vuelta es lo que deja verificarlo desde la pantalla sin abrir la base.
+ */
+export const reabrirVentaTarjetaMutation = gql`
+  mutation reabrirVentaTarjeta($id: ID!, $sucId: ID!, $usuarioId: ID) {
+    data: reabrirVentaTarjeta(id: $id, sucId: $sucId, usuarioId: $usuarioId) {
+      id
+      estado
+      noCompletadoMotivo
+      noCompletadoObservacion
+      noCompletadoEn
+      noCompletadoPor { id nickname }
+      reabiertoEn
+      reabiertoPor { id nickname }
     }
   }
 `;
@@ -251,6 +286,10 @@ export const filtrarVentasTarjetaPorCajaQuery = gql`
         noCompletadoObservacion
         noCompletadoEn
         noCompletadoPor { id nickname }
+        # Un cobro reabierto vuelve a PENDIENTE, indistinguible del que nunca se marco. Sin estos
+        # dos, la fila no dice que alguien ya la habia dado por perdida.
+        reabiertoEn
+        reabiertoPor { id nickname }
       }
       getTotalElements
     }
@@ -301,6 +340,8 @@ export const ventaTarjetaCompletaPorIdQuery = gql`
       noCompletadoObservacion
       noCompletadoEn
       noCompletadoPor { id nickname }
+      reabiertoEn
+      reabiertoPor { id nickname }
     }
   }
 `;

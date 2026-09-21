@@ -65,6 +65,17 @@ export interface VentaTarjeta {
   /** Quién decidió cerrar sin conciliar. Es a quien hay que preguntarle al revisar. */
   noCompletadoPor?: { id: number; nickname: string; };
   noCompletadoEn?: string;
+  /**
+   * Quién devolvió este cobro de `NO_COMPLETADO` a `PENDIENTE`, y cuándo. `null` = nunca se
+   * reabrió.
+   *
+   * Conviven con las `noCompletado*`: reabrir NO las borra. Si las limpiara, la fila volvería a
+   * decir sólo «pendiente» y se perdería justo lo que §8 existe para guardar — por qué alguien la
+   * había dado por perdida. Con las dos puestas, la fila cuenta la historia entera: se marcó por
+   * X, y después Y la reabrió.
+   */
+  reabiertoPor?: { id: number; nickname: string; };
+  reabiertoEn?: string;
   /** El motivo en palabras, calculado al recibir la fila: el template no puede llamar funciones. */
   motivoTexto?: string;
 }

@@ -11,6 +11,7 @@ import { FiltrarVentasTarjetaGQL } from './graphql/filtrarVentasTarjeta';
 import { ImprimirReporteVentaTarjetaGQL } from './graphql/imprimirReporteVentaTarjeta';
 import { MarcarVentasTarjetaNoCompletadasGQL } from './graphql/marcarVentasTarjetaNoCompletadas';
 import { MarcarVentaTarjetaNoCompletadaGQL } from './graphql/marcarVentaTarjetaNoCompletada';
+import { ReabrirVentaTarjetaGQL } from './graphql/reabrirVentaTarjeta';
 import { VentaTarjetaPorIdGQL } from './graphql/ventaTarjetaPorId';
 import { CompletarVentaTarjetaGQL } from './graphql/completarVentaTarjeta';
 import { CobroDetalleDeVenta, CobrosTarjetaDeVentaGQL } from './graphql/cobrosTarjetaDeVenta';
@@ -110,6 +111,7 @@ export class VentaTarjetaService {
     private imprimirReporteVentaTarjetaGQL: ImprimirReporteVentaTarjetaGQL,
     private marcarVentasTarjetaNoCompletadasGQL: MarcarVentasTarjetaNoCompletadasGQL,
     private marcarVentaTarjetaNoCompletadaGQL: MarcarVentaTarjetaNoCompletadaGQL,
+    private reabrirVentaTarjetaGQL: ReabrirVentaTarjetaGQL,
     private ventaTarjetaPorIdGQL: VentaTarjetaPorIdGQL,
     private completarVentaTarjetaGQL: CompletarVentaTarjetaGQL,
     private cobrosTarjetaDeVentaGQL: CobrosTarjetaDeVentaGQL,
@@ -343,6 +345,24 @@ export class VentaTarjetaService {
     return this.genericService.onCustomMutation(
       this.marcarVentaTarjetaNoCompletadaGQL,
       { id, sucId, motivo, observacion, usuarioId },
+      false
+    );
+  }
+
+  /**
+   * Devuelve un cobro de `NO_COMPLETADO` a `PENDIENTE`.
+   *
+   * <b>No limpia el rastro.</b> El filial conserva las `noCompletado*` y agrega quién reabrió y
+   * cuándo: borrarlas destruiría justamente lo que §8 existe para guardar, y la fila volvería a
+   * decir sólo «pendiente» como si nunca la hubieran dado por perdida.
+   *
+   * Contra el FILIAL (`false`), como completar y marcar. Desde un cliente contra central no hay
+   * link local y esto no tiene a dónde ir — por eso el diálogo se abre en modo lectura ahí.
+   */
+  onReabrir(id: number, sucId: number, usuarioId: number): Observable<VentaTarjeta> {
+    return this.genericService.onCustomMutation(
+      this.reabrirVentaTarjetaGQL,
+      { id, sucId, usuarioId },
       false
     );
   }

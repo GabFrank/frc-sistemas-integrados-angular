@@ -126,3 +126,31 @@ table {
   opacity: 0.8;
   margin-left: 6px;
 }
+
+.accion-reabrir {
+  cursor: pointer;
+  // Azul y no verde: verde es "registrar el cupon", que es completar de verdad. Reabrir solo
+  // devuelve la fila a pendiente -- el trabajo todavia hay que hacerlo.
+  color: #64b5f6;
+  margin-left: 6px;
+}
+
+// Se distingue del motivo con el color, no con otra tipografia: van uno debajo del otro en la
+// misma celda y dos tamanos distintos ahi se leian como dos datos sin relacion.
+.reabierto {
+  color: #64b5f6;
+  opacity: 0.9;
+}
+
+// El aviso de que esta app no puede operar esta caja. Mismo borde inferior que la banda del QR:
+// ocupa su lugar cuando el lector no se muestra.
+.banda-lectura {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: #90caf9;
+
+  mat-icon {
+    color: #90caf9;
+  }
+}

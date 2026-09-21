@@ -7,10 +7,22 @@
   style="height: 100%"
 >
   <div filtros>
+    <!-- Cliente apuntando al central: se ve todo y no se opera nada. Se dice arriba y con el motivo
+         concreto, porque la ausencia de los iconos sola se lee como "no tengo permiso". -->
+    <div class="banda-lectura" *ngIf="modoLectura" fxLayout="row" fxLayoutAlign="start center"
+         fxLayoutGap="10px">
+      <mat-icon>visibility</mat-icon>
+      <span>
+        Sólo lectura: esta app está conectada al servidor central. Registrar un cupón, dejarlo sin
+        conciliar o reabrirlo se hace contra el servidor de la sucursal.
+      </span>
+    </div>
+
     <!-- El escaneo va ARRIBA de los filtros y separado: no es un filtro mas, es el camino rapido.
          El cajero llega con el cupon y la seña grapados en la mano; escanea y cae en la fila. Los
-         filtros de abajo son para cuando ese papel no esta. -->
-    <div class="banda-qr" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+         filtros de abajo son para cuando ese papel no esta.
+         Oculto en modo lectura: el escaneo termina en `onCompletar`, que ahi no tiene backend. -->
+    <div class="banda-qr" *ngIf="!modoLectura" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
       <mat-icon>qr_code_scanner</mat-icon>
       <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr" subscriptSizing="dynamic">
         <mat-label>Escaneá la seña del cobro</mat-label>
@@ -160,6 +172,15 @@
                 · {{ item.noCompletadoPor.nickname }}
               </span>
             </div>
+            <!-- Una fila reabierta vuelve a PENDIENTE y queda indistinguible de la que nunca se
+                 marco. Esta linea es lo unico que dice que alguien ya la habia dado por perdida
+                 --y el motivo de arriba sigue puesto, porque reabrir no lo borra. -->
+            <div class="motivo-no-conciliado reabierto" *ngIf="item.reabiertoEn">
+              Reabierto {{ item.reabiertoEn | date: 'dd/MM HH:mm' }}
+              <span class="quien" *ngIf="item.reabiertoPor">
+                · {{ item.reabiertoPor.nickname }}
+              </span>
+            </div>
           </td>
         </ng-container>
 
@@ -167,7 +188,7 @@
           <th mat-header-cell *matHeaderCellDef style="width: 12%"></th>
           <td mat-cell *matCellDef="let item" style="width: 12%">
             <mat-icon
-              *ngIf="item.estado === 'PENDIENTE'"
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
               class="accion-registrar"
               matTooltip="Registrar cupón"
               (click)="onCompletar(item)"
@@ -175,7 +196,7 @@
             <!-- Para cuando el papel no está: no salió, se mojó, se traspapeló. Sin esto la
                  única salida era buscar la fila a ojo entre cobros del mismo monto. -->
             <mat-icon
-              *ngIf="item.estado === 'PENDIENTE'"
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
               class="accion-reimprimir"
               matTooltip="Reimprimir la seña"
               (click)="onReimprimirSena(item)"
@@ -184,11 +205,20 @@
                  el usuario y la hora: es lo que permite que el cajero cierre su caja sin que la
                  decisión desaparezca. -->
             <mat-icon
-              *ngIf="item.estado === 'PENDIENTE'"
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
               class="accion-no-conciliar"
               matTooltip="Dejar sin conciliar"
               (click)="onNoConciliar(item)"
             >block</mat-icon>
+            <!-- La vuelta atrás de la de arriba. Se marcó la fila equivocada, o apareció el cupón
+                 --CUPON_PERDIDO es literalmente «todavía no lo encontré»--. El gate no es el mismo
+                 con la caja abierta que cerrada: lo decide `puedeReabrir`. -->
+            <mat-icon
+              *ngIf="puedeReabrir(item)"
+              class="accion-reabrir"
+              matTooltip="Reabrir: vuelve a PENDIENTE"
+              (click)="onReabrir(item)"
+            >restore</mat-icon>
           </td>
         </ng-container>
 

@@ -162,9 +162,24 @@
             <mat-chip [ngClass]="{
               'pendiente': item.estado === 'PENDIENTE',
               'cancelado': item.estado === 'CANCELADO',
-              'completado': item.estado === 'COMPLETADO'
+              'completado': item.estado === 'COMPLETADO',
+              'no-completado': item.estado === 'NO_COMPLETADO'
             }">
               {{ item.estado }}</mat-chip>
+            <!-- El motivo va PEGADO al estado. Ésta es la única pantalla que ve los cobros sin
+                 conciliar de TODAS las sucursales, o sea donde la revisión tiene sentido, y un
+                 NO_COMPLETADO a secas no dice ni por qué ni a quién preguntarle. La observación va
+                 en el tooltip: sólo tiene texto cuando el motivo es OTRO. -->
+            <div class="rastro" *ngIf="item.motivoTexto" [matTooltip]="item.noCompletadoObservacion">
+              {{ item.motivoTexto }}
+              <span class="quien" *ngIf="item.noCompletadoPor">· {{ item.noCompletadoPor.nickname }}</span>
+            </div>
+            <!-- Un reabierto vuelve a PENDIENTE: sin esta línea es indistinguible del que nunca se
+                 marcó. El motivo de arriba sigue puesto, porque reabrir no lo borra. -->
+            <div class="rastro reabierto" *ngIf="item.reabiertoEn">
+              Reabierto {{ item.reabiertoEn | date:'dd/MM HH:mm' }}
+              <span class="quien" *ngIf="item.reabiertoPor">· {{ item.reabiertoPor.nickname }}</span>
+            </div>
           </td>
         </ng-container>
 
@@ -184,6 +199,15 @@
               matTooltip="Completar escaneando el cupón"
               (click)="onCompletarPendiente(item)"
             >qr_code_scanner</mat-icon>
+            <!-- La puerta al taller. Esta pantalla es el índice: ve toda la red y filtra. Las
+                 acciones de un cobro --registrar, dejar sin conciliar, reabrir-- viven en el
+                 diálogo de su caja, que corre contra el filial. -->
+            <mat-icon
+              *ngIf="puedeAbrirLaCaja(item)"
+              class="accion-abrir-caja"
+              matTooltip="Abrir la caja de este cobro"
+              (click)="onAbrirLaCaja(item)"
+            >point_of_sale</mat-icon>
           </td>
         </ng-container>
 
