@@ -55,6 +55,7 @@ El agente tiene acceso al backend (`frc-comercial/central`) Y al desktop. Cuando
 - **No usar la clase `container`** — entra en conflicto con Bootstrap y rompe el layout.
 - Snackbars: `notificacion-snackbar.service.ts`. Diálogos: `dialogos.service.ts`. No instanciar a mano.
 - **Strings siempre en MAYÚSCULAS** al guardar, salvo pedido contrario.
+- **Tamaño o estilo de la superficie de un diálogo: por `panelClass` + regla en `src/styles.scss`**, nunca con `::ng-deep .mat-mdc-dialog-container …` en el scss del componente. La superficie es ancestro del host (`:host ::ng-deep` no la alcanza), y un `::ng-deep` sin `:host` es CSS global que Angular no retira: desde la primera apertura se aplica a **todos** los diálogos de la sesión (issue #327: un `min-width: 800px` dejaba sin botones al ABM de conceptos de liquidación). Patrón: `.liquidacion-concepto-panel`, `.ultimas-ventas-panel`.
 - **Impresión de comprobantes/recibos:** usar el componente oficial `ImpresionService` + `ImprimirDialogComponent` (`shared/components/imprimir/`), que ofrece **PDF (A4) o Ticket (58/80mm)**. Es el **padrón** para toda impresión de un comprobante firmable, salvo que el usuario pida otra cosa o un formato no sea viable (ej. reportes agregados = solo PDF). Detalle: [docs/IMPRESION.md](docs/IMPRESION.md).
 
 ### Estructura de módulos
