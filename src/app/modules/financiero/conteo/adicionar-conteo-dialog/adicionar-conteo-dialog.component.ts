@@ -161,12 +161,19 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   onButtonClick() {
-    if (this.enEdicion) {
+    // El modo se toma al hacer clic: si el usuario cancela la edicion durante la espera,
+    // no tiene que terminar guardando un conteo nuevo sobre la caja.
+    const editando = this.enEdicion;
+    if (editando) {
       if (this.guardandoEdicion) return;
       this.guardandoEdicion = true;
     }
     setTimeout(() => {
-      if (this.enEdicion) {
+      if (editando) {
+        if (!this.enEdicion) {
+          this.guardandoEdicion = false;
+          return;
+        }
         this.editarConteo(this.createMonedaBilletes(), this.apertura)
       } else {
         this.guardarConteo(this.createMonedaBilletes(), this.apertura)
@@ -415,7 +422,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
             .subscribe((res) => {
               if (res != null) {
                 // Sin el id, "Editar montos" sobre este conteo no tendria conteoAnteriorId.
-                conteo.id = res.id;
+                conteo.id = res.id != null ? +res.id : null;
                 setTimeout(() => {
                   let response: AdicionarConteoResponse = {
                     apertura: this.apertura,
