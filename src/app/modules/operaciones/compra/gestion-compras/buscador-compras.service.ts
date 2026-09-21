@@ -204,14 +204,16 @@ export class BuscadorComprasService {
     silentLoad: boolean
   ): Observable<PageInfo<BuscadorProductoResultado>> {
     const termino = texto.trim();
-    const esCodigo = /^\d{3,}$/.test(termino);
 
+    // Siempre como texto, igual que la lista de productos: el backend une las
+    // coincidencias parciales de código con la descripción. Mandarlo como
+    // "codigo" dejaba afuera los números de la descripción ("... 50 GR 1014218").
     return this.genericCrudService
       .onCustomQuery(
         this.searchProductoWithFiltersGQL,
         {
-          texto: esCodigo ? null : termino,
-          codigo: esCodigo ? termino : null,
+          texto: termino,
+          codigo: null,
           activo: true,
           stock: null,
           balanza: null,
@@ -241,7 +243,7 @@ export class BuscadorComprasService {
           resultado.getContent = (pageInfo.getContent ?? []).map((producto) => ({
             producto,
             codigoCoincidente: producto.codigoPrincipal,
-            tipoCoincidencia: esCodigo ? 'CODIGO_PARCIAL' : 'TEXTO',
+            tipoCoincidencia: 'TEXTO',
           }));
           return resultado;
         })
