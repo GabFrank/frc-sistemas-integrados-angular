@@ -266,17 +266,17 @@ export class DetalleCasoDialogComponent implements OnInit {
         this.guardando = false;
         if (r != null) this.dialogRef.close(r);
       },
-      error: err => {
+      // El aviso de error lo da onSaveCustom.
+      error: () => {
         this.guardando = false;
-        this.avisar(err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo resolver');
       },
     });
   }
 
   /**
    * El veredicto se mide desde el sobre; la caja del cajero muestra el mismo hecho invertido.
-   * Se avisa acá antes de mandar porque un error de negocio del backend deja el observable
-   * colgado (GenericCrudService.onSaveCustom) y el usuario nunca vería el motivo.
+   * Se avisa acá antes de mandar para explicar la contradicción con el conteo, algo que el
+   * mensaje genérico del backend no dice.
    */
   private veredictoContraElConteo(): string {
     const hayFaltante = this.filas.some(f => f.diferencia < -0.005);

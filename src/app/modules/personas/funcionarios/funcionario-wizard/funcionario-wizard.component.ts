@@ -72,7 +72,7 @@ export class FuncionarioWizardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.formGroup = new FormGroup({})
     this.formGroup.addControl('nombrePersona', this.nombrePersona)
     this.formGroup.addControl('apodoPersona', this.apodoPersona)
@@ -94,7 +94,7 @@ export class FuncionarioWizardComponent implements OnInit {
     this.selectedPreRegistro = new PreRegistroFuncionario;
     Object.assign(this.selectedPreRegistro, this.data.preRegistroFuncionario as PreRegistroFuncionario)
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       this.sucursalList = res.filter(s => s.id != 0);
       this.cargarDatos()
     })

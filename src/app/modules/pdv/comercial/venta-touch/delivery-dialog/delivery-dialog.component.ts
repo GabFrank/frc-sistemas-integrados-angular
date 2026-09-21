@@ -394,7 +394,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   cargarDatosDelivery(delivery: Delivery) {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.selectedDelivery = new Delivery;
     this.selectedVenta = new Venta;
     this.selectedVuelto = new Vuelto;
@@ -425,7 +425,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     }
     this.calcularSaldo()
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       this.finalizarBtn.onGetFocus()
     }, 800);
   }
@@ -825,7 +825,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.selectedDelivery = null;
     this.selectedVenta = null;
     this.selectedVuelto = null;
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     this.onDeliverySelect(null)
     this.telefonoPrefixControl.setValue(this.prefixList[0])
     this.telefonoControl.setValue('')
@@ -841,7 +841,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.valorControl.setValue(null)
     this.calcularSaldo();
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       this.telefonoInput.nativeElement.focus()
     }, 500);
   }

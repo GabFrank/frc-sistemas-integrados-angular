@@ -25,6 +25,11 @@ import {
   TransferenciaView,
 } from "../transferencia.model";
 import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { OrigenNotaRemision } from '../../../financiero/nota-remision/nota-remision.model';
+import { NotaRemisionService } from '../../../financiero/nota-remision/nota-remision.service';
+import { ImpresionService } from '../../../../shared/components/imprimir/impresion.service';
+import { AddNotaRemisionDialogComponent } from '../../../financiero/nota-remision/add-nota-remision-dialog/add-nota-remision-dialog.component';
 import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { TransferenciaService } from "./../transferencia.service";
@@ -119,10 +124,50 @@ export class ListTransferenciaComponent implements OnInit {
     private sucursalService: SucursalService,
     private matDialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
-    private usuarioSearch: UsuarioSearchGQL
+    private usuarioSearch: UsuarioSearchGQL,
+    private notaRemisionService: NotaRemisionService,
+    private impresionService: ImpresionService
   ) { }
 
+  /** Rol para emitir la nota de remisión del traslado; se calcula una vez, no en el HTML. */
+  puedeEmitirNotaRemision = false;
+
+  /** Notas ya emitidas por transferencia: con una cargada, el menú dice «Imprimir». */
+  notaRemisionPorTransferencia: { [transferenciaId: number]: any } = {};
+
+  /**
+   * Qué transferencias de la página ya tienen nota, en una sola consulta al cargar la lista. Sin esto
+   * el menú decía «Nota de remisión» también en las que ya la tenían, y el usuario se enteraba recién
+   * al hacer clic, cuando en vez del alta se le abría la impresión.
+   */
+  private cargarNotasRemision(): void {
+    const ids = (this.dataSource.data ?? []).map(t => t.id).filter(id => id != null);
+    if (!this.puedeEmitirNotaRemision || !ids.length) {
+      this.notaRemisionPorTransferencia = {};
+      return;
+    }
+    this.notaRemisionService.onGetPorTransferencias(ids)
+      .pipe(untilDestroyed(this))
+      .subscribe(notas => {
+        const porTransferencia: { [transferenciaId: number]: any } = {};
+        (notas ?? []).forEach(n => { if (n?.transferenciaId) porTransferencia[n.transferenciaId] = n; });
+        this.notaRemisionPorTransferencia = porTransferencia;
+      });
+  }
+
+  private imprimirNotaRemision(nota: any): void {
+    const numero = nota?.numeroNotaRemision
+      ? `001-001-${String(nota.numeroNotaRemision).padStart(7, '0')}` : '';
+    this.impresionService.imprimir(
+      numero ? `KuDE-NR-${numero}` : 'KuDE-NR',
+      () => this.notaRemisionService.onImprimir(nota.id, nota.sucursalId),
+      true
+    );
+  }
+
   ngOnInit(): void {
+    this.puedeEmitirNotaRemision = this.mainService.tieneAlgunRol([ROLES.FACTURACION_EMITIR, ROLES.ADMIN]);
+
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];
@@ -192,6 +237,7 @@ export class ListTransferenciaComponent implements OnInit {
           if (res != null) {
             this.selectedPageInfo = res;
             this.dataSource.data = res.getContent.map((t) => this.toView(t));
+            this.cargarNotasRemision();
           }
         });
     } else {
@@ -200,6 +246,7 @@ export class ListTransferenciaComponent implements OnInit {
         .subscribe((res) => {
           if (res != null) {
             this.dataSource.data = [this.toView(res)];
+            this.cargarNotasRemision();
           }
         });
     }
@@ -315,14 +362,14 @@ export class ListTransferenciaComponent implements OnInit {
 
   onDelete(transferencia: Transferencia, index) {
     // Primero cargar los detalles completos de la transferencia para verificar si tiene productos
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
 
     this.transferenciaService
       .onGetTransferencia(transferencia.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (transferenciaCompleta) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
 
           // Verificar si la transferencia tiene productos
           if (transferenciaCompleta?.transferenciaItemList && transferenciaCompleta.transferenciaItemList.length > 0) {
@@ -354,7 +401,7 @@ export class ListTransferenciaComponent implements OnInit {
             });
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.notificacionService.notification$.next({
             texto: 'Error al verificar los detalles de la transferencia',
             color: NotificacionColor.danger,
@@ -442,7 +489,7 @@ export class ListTransferenciaComponent implements OnInit {
         panelClass: 'custom-dialog-container'
       }).afterClosed().subscribe(async (res) => {
         if (res) {
-          this.cargandoService.openDialog();
+          const { requestId } = this.cargandoService.openDialog();
           let count = 0;
           const fallidas: number[] = [];
           try {
@@ -490,7 +537,7 @@ export class ListTransferenciaComponent implements OnInit {
             console.error('Error en asignación de ruta:', error);
             this.notificacionService.openWarn('Ocurrió un error durante la asignación');
           } finally {
-            this.cargandoService.closeDialog();
+            this.cargandoService.closeDialog(requestId);
             this.selection.clear();
             this.onFilter();
           }
@@ -505,5 +552,45 @@ export class ListTransferenciaComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFilter();
+  }
+
+  /**
+   * Abre la nota de remisión de esta transferencia. El borrador (receptor, salida, entrega,
+   * vehículo, chofer e ítems) lo arma el central; acá solo se pasa el origen y la referencia.
+   *
+   * Si la transferencia ya tiene una nota activa, se avisa en vez de emitir una segunda: SIFEN
+   * aceptaría las dos y quedaría un traslado amparado por duplicado.
+   */
+  onNotaRemision(transferencia: any): void {
+    // La nota la emite la sucursal de origen: es la que despacha.
+    const sucursalId = transferencia.sucursalOrigen?.id ?? this.mainService.sucursalActual?.id;
+    this.notaRemisionService.onGetPorTransferencia(transferencia.id, sucursalId)
+      .pipe(untilDestroyed(this))
+      .subscribe(notaExistente => {
+        if (notaExistente?.id) {
+          // Ya emitida: el ítem del menú dice «Imprimir», así que acá se imprime.
+          this.notaRemisionPorTransferencia[transferencia.id] = notaExistente;
+          this.imprimirNotaRemision(notaExistente);
+          return;
+        }
+        this.matDialog.open(AddNotaRemisionDialogComponent, {
+          width: '95%',
+          maxWidth: '1200px',
+          data: {
+            origen: OrigenNotaRemision.TRANSFERENCIA,
+            referenciaId: transferencia.id,
+            sucursalId
+          }
+        }).afterClosed().pipe(untilDestroyed(this)).subscribe(guardada => {
+          // El diálogo devuelve la nota si llegó a guardarse (aunque el envío a SIFEN haya fallado):
+          // desde ya existe, así que el menú pasa a «Imprimir».
+          if (guardada?.id) {
+            this.notaRemisionPorTransferencia = {
+              ...this.notaRemisionPorTransferencia,
+              [transferencia.id]: guardada
+            };
+          }
+        });
+      });
   }
 }

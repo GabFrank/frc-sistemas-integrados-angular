@@ -20,5 +20,6 @@ Resources:
 - the service file name is always <service-name>.service.ts
 - inject genericService and use its methods instead of implementing direct GraphQL calls
 - include proper error handling through GenericCrudService
+- GenericCrudService already strips graphql-java's "Exception while fetching data (path) : " prefix from error messages. If a service must call Apollo directly, clean the message with `limpiarMensajeGraphQL` / `limpiarErroresGraphQL` from [graphqlErrorUtils.ts](mdc:src/app/commons/core/utils/graphqlErrorUtils.ts) instead of writing its own regex
 - follow the naming convention: onGet*, onSave*, onDelete*, etc.
 

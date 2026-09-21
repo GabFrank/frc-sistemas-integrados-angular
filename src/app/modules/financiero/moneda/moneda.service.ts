@@ -65,17 +65,17 @@ export class MonedaService {
     return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
   }
 
-  onSave(moneda: Moneda): Observable<Moneda> {
+  onSave(moneda: Moneda, opciones?: { avisarExito?: boolean }): Observable<Moneda> {
     let aux = moneda;
     if (!(moneda instanceof Moneda)) {
       aux = new Moneda();
       Object.assign(aux, moneda);
     }
-    return this.genericService.onSaveCustom(this.saveMonedaGQL, { entity: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveMonedaGQL, { entity: aux.toInput() }, true, opciones);
   }
 
-  onDelete(id: number): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id });
+  onDelete(id: number, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id }, true, opciones);
   }
 
   currencyOptionsByMoneda(moneda: Moneda): any {

@@ -65,15 +65,12 @@ table {
     &.estado-EN_VERIFICACION { background-color: #fb8c00; }
 }
 
-// Dialog dimensions
-::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
-    min-width: 800px;
-    max-width: 90vw;
-    max-height: 90vh;
-}
+// Las medidas de la superficie del dialogo viven en styles.scss, bajo el panelClass
+// ultimas-ventas-panel: la superficie es ancestro del host, asi que desde aca solo se
+// alcanza con un ::ng-deep global, que se filtraba a todos los dialogos de la sesion (#327).
 
 // Dark theme adjustments
-::ng-deep.mat-mdc-row:hover .mat-mdc-cell {
+:host ::ng-deep .mat-mdc-row:hover .mat-mdc-cell {
     background-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -93,13 +90,6 @@ table {
 .mx-auto {
     margin-left: auto;
     margin-right: auto;
-}
-
-// Responsive adjustments for small screens
-@media (max-width: 768px) {
-    ::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
-        min-width: 100%;
-    }
 }
 
 // El dialogo es una columna: titulo, buscador y el boton salir no se encogen, y lo

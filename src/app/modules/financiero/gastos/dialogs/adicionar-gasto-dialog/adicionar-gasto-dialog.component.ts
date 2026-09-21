@@ -444,13 +444,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     input.monedaId = montos[0].monedaId;
     input.montoSolicitado = montos[0].monto;
 
-    this.cargandoDialog.openDialog();
+    const { requestId } = this.cargandoDialog.openDialog();
     this.gastoService
       .preGastoGuardar(input)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (guardado) => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           if (guardado != null) {
             this.notificacionService.openSucess("Solicitud de gasto registrada");
             this.autorizado = true;
@@ -465,7 +465,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           }
         },
         error: () => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           this.notificacionService.openWarn("No se pudo registrar la solicitud de gasto.");
         }
       });
@@ -568,7 +568,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 .onSave(gasto, false)
                 .pipe(untilDestroyed(this))
                 .subscribe((gastoResponse) => {
-                  this.cargandoDialog.closeDialog();
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
                     if (this.mainService.usuarioActual?.persona?.id) {
@@ -642,10 +641,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                 valorDs: this.dolarVueltoControl.value,
               }, false)
               .pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res != null) {
-                  this.ngOnInit();
-                }
+              .subscribe({
+                next: (res) => {
+                  if (res != null) {
+                    this.ngOnInit();
+                  }
+                },
+                // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+                error: () => {}
               });
           }
         });
@@ -685,16 +688,17 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onFinalizar(gasto: Gasto) {
-    this.cargandoDialog.openDialog();
     let newGasto = new Gasto();
     Object.assign(newGasto, gasto);
     if (newGasto != null && newGasto.finalizado != true) {
+      // Dentro del if: con el gasto ya finalizado no se guarda nada y el spinner quedaba abierto (#319).
+      const { requestId } = this.cargandoDialog.openDialog();
       newGasto.finalizado = true;
       this.gastoService
         .onSave(newGasto, false)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(requestId);
           if (res != null) {
             this.gastoList = replaceObject<Gasto>(this.gastoList, res);
             this.dataSource.data = this.gastoList;

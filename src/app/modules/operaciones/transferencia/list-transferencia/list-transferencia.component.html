@@ -203,6 +203,9 @@
             <button mat-menu-item (click)="onQrClick(transferencia)">
               Generar QR
             </button>
+            <button mat-menu-item *ngIf="puedeEmitirNotaRemision" (click)="onNotaRemision(transferencia)">
+              {{ notaRemisionPorTransferencia[transferencia.id] ? 'Imprimir nota de remisión' : 'Nota de remisión' }}
+            </button>
             <button mat-menu-item (click)="onDelete(transferencia, i)" style="color: red">
               Eliminar
             </button>

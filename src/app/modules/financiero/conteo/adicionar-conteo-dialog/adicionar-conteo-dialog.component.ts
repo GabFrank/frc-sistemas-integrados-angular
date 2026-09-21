@@ -17,6 +17,7 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dial
 import { Observable, Subscription } from "rxjs";
 import { convertToObject } from "typescript";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { MonedaBillete } from "../../moneda/moneda-billetes/moneda-billetes.model";
 import { Moneda } from "../../moneda/moneda.model";
 import { MonedaService } from "../../moneda/moneda.service";
@@ -90,6 +91,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   /** true mientras el ADMIN esta corrigiendo los montos ya cargados. */
   enEdicion = false;
+  // Evita que un doble clic mande dos ediciones con el mismo conteoAnteriorId.
+  guardandoEdicion = false;
 
   guaraniList: MonedaBillete[];
   realList: MonedaBillete[];
@@ -115,7 +118,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     private dialogService: DialogosService,
     private cajaService: CajaService,
     private mainService: MainService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private notificacionBar: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -157,8 +161,19 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   onButtonClick() {
+    // El modo se toma al hacer clic: si el usuario cancela la edicion durante la espera,
+    // no tiene que terminar guardando un conteo nuevo sobre la caja.
+    const editando = this.enEdicion;
+    if (editando) {
+      if (this.guardandoEdicion) return;
+      this.guardandoEdicion = true;
+    }
     setTimeout(() => {
-      if (this.enEdicion) {
+      if (editando) {
+        if (!this.enEdicion) {
+          this.guardandoEdicion = false;
+          return;
+        }
         this.editarConteo(this.createMonedaBilletes(), this.apertura)
       } else {
         this.guardarConteo(this.createMonedaBilletes(), this.apertura)
@@ -406,6 +421,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res != null) {
+                // Sin el id, "Editar montos" sobre este conteo no tendria conteoAnteriorId.
+                conteo.id = res.id != null ? +res.id : null;
                 setTimeout(() => {
                   let response: AdicionarConteoResponse = {
                     apertura: this.apertura,
@@ -435,7 +452,11 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
    */
   editarConteo(conteoMonedaList: ConteoMoneda[], apertura: boolean) {
     let conteoAnteriorId = this.selectedConteo?.id;
-    if (conteoAnteriorId == null) return;
+    if (conteoAnteriorId == null) {
+      this.guardandoEdicion = false;
+      this.notificacionBar.openWarn("No se pudo identificar el conteo vigente. Cierre y vuelva a abrir la caja.");
+      return;
+    }
     let conteo = new Conteo();
     conteo.totalGs = this.totalGs;
     conteo.totalRs = this.totalRs;
@@ -458,6 +479,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
             .onEditar(conteo, this.cajaId, conteo.sucursalId, conteoAnteriorId, apertura)
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
+              this.guardandoEdicion = false;
               if (res?.exito) {
                 this.enEdicion = false;
                 this.gsFormGroup.disable();
@@ -465,6 +487,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 this.dsFormGroup.disable();
                 // El conteo nuevo todavia no llego por replicacion al central: se refleja en memoria,
                 // incluyendo el enlace a la version reemplazada para poder abrir el historial.
+                // El id lo devuelve el central: es el conteoAnteriorId de una proxima edicion.
+                conteo.id = res.conteoId != null ? +res.conteoId : null;
                 conteo.conteoAnteriorId = conteoAnteriorId;
                 conteo.creadoEn = new Date();
                 conteo.conteoAnterior = this.selectedConteo;
@@ -484,9 +508,12 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                 this.onGetConteoMoneda.emit(response);
               }
             }, () => {
+              this.guardandoEdicion = false;
               // El motivo lo muestra el snackbar del servicio. Se mantiene el modo edicion
               // con los montos ya tipeados para que el usuario pueda reintentar.
             });
+        } else {
+          this.guardandoEdicion = false;
         }
       });
   }

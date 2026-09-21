@@ -175,8 +175,9 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, servidor, "¿Está seguro que desea eliminar esta transferencia?");
   }
 
-  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor);
+  onSaveTransferenciaItem(input, precioCosto?: number, servidor = true,
+                          opciones?: { avisarExito?: boolean }): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto }, servidor, opciones);
   }
 
   /**
@@ -236,11 +237,12 @@ export class TransferenciaService {
     return new Observable<boolean>(obs => {
       this.dialogoService.confirm('Atención, revise los datos antes de proceder.', texto).subscribe(res => {
         if (res) {
+          // Avanzar etapa recorre cada ítem en el central (stock, lotes): con muchos ítems puede pasar el minuto.
           this.genericCrudService.onCustomMutation(this.prepararTransferencia, {
             id: transferencia.id,
             etapa,
             usuarioId: this.mainService.usuarioActual.id
-          }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+          }, servidor, false, { timeoutMs: 300000 }).pipe(untilDestroyed(this)).subscribe(res => {
             console.log('res', res);
             obs.next(res);
             obs.complete();

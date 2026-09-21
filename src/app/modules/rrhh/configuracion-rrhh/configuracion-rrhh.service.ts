@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, QueryError } from '../../../generics/generic-crud.service';
 import { ConfiguracionesRrhhGQL } from './graphql/ConfiguracionesRrhh';
 import { ConfiguracionesRrhhSearchGQL } from './graphql/ConfiguracionesRrhhSearch';
 import { ConfiguracionesRrhhPageGQL } from './graphql/ConfiguracionesRrhhPage';
@@ -37,9 +37,10 @@ export class ConfiguracionRrhhService {
 
   /** Ajusta solo los funcionarios elegidos por el usuario. Nunca automatico. */
   onAjustarSalariosAlMinimo(funcionarioIds: number[], minimo: number,
-                            usuarioId: number, servidor = true): Observable<any> {
+                            usuarioId: number, servidor = true,
+                            opciones?: { avisarExito?: boolean }): Observable<any> {
     return this.genericService.onSaveCustom<any>(this.ajustarSalariosAlMinimoGQL,
-      { funcionarioIds, minimo, usuarioId }, servidor);
+      { funcionarioIds, minimo, usuarioId }, servidor, opciones);
   }
 
   onGetHistorico(clave: string, servidor = true): Observable<any> {
@@ -60,9 +61,9 @@ export class ConfiguracionRrhhService {
       { page, size, texto, tipo }, servidor);
   }
 
-  onSave(input: any, servidor = true): Observable<ConfiguracionRrhh> {
+  onSave(input: any, servidor = true, errorConf?: QueryError): Observable<ConfiguracionRrhh> {
     return this.genericService.onSave<ConfiguracionRrhh>(
-      this.saveConfiguracionRrhhGQL, input, null, null, servidor
+      this.saveConfiguracionRrhhGQL, input, null, null, servidor, errorConf
     );
   }
 

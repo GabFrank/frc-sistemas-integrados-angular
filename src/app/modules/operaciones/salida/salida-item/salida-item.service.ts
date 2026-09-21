@@ -43,7 +43,9 @@ export class SalidaItemService {
             duracion: 3
           })
         }
-      })
+        // Sin complete el observable no terminaba nunca y un finalize del llamador no corria (#319).
+        obs.complete()
+      }, err => obs.error(err))
     })
   }
 
@@ -64,7 +66,9 @@ export class SalidaItemService {
             duracion: 3
           })
         }
-      })
+        // Sin complete el observable no terminaba nunca y un finalize del llamador no corria (#319).
+        obs.complete()
+      }, err => obs.error(err))
     })
   }
 

@@ -45,18 +45,18 @@ export class OperacionFinancieraService {
     return this.genericService.onCustomQuery(this.categoriasGQL, {});
   }
 
-  onRegistrar(operacion: OperacionFinanciera): Observable<OperacionFinanciera> {
+  onRegistrar(operacion: OperacionFinanciera, opciones?: { avisarExito?: boolean }): Observable<OperacionFinanciera> {
     let aux = operacion;
     if (!(operacion instanceof OperacionFinanciera)) {
       aux = new OperacionFinanciera();
       Object.assign(aux, operacion);
     }
-    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() });
+    return this.genericService.onSaveCustom(this.registrarGQL, { input: aux.toInput() }, true, opciones);
   }
 
   /** Anula la operación financiera entera: revierte todas sus patas (caja y/o banco) en el backend. */
-  onAnular(operacionId: number, motivo?: string): Observable<OperacionFinanciera> {
-    return this.genericService.onSaveCustom(this.anularGQL, { id: operacionId, motivo: motivo || null });
+  onAnular(operacionId: number, motivo?: string, opciones?: { avisarExito?: boolean }): Observable<OperacionFinanciera> {
+    return this.genericService.onSaveCustom(this.anularGQL, { id: operacionId, motivo: motivo || null }, true, opciones);
   }
 
   /** Filtros opcionales: sin ellos trae todos los movimientos de la cuenta, como antes. */

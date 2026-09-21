@@ -289,8 +289,9 @@ export class LegajoFuncionarioComponent implements OnInit {
       'Anular documento', '¿Anular el documento ' + (doc.tipo || '') + '?', null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.legajoService.onAnularDocumento(doc.id).pipe(untilDestroyed(this))
-          .subscribe(res => { if (res != null) this.recargar(); });
+          .subscribe({ next: res => { if (res != null) this.recargar(); }, error: () => {} });
       }
     });
   }

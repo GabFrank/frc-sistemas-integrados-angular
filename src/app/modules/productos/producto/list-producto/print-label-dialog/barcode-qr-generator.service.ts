@@ -4,7 +4,12 @@ const QRCode = require('qrcode');
 
 @Injectable({ providedIn: 'root' })
 export class BarcodeQrGeneratorService {
-  generateBarcode(data: string, format: string = 'CODE128', options?: any): Promise<string> {
+  generateBarcode(
+    data: string,
+    format: string = 'CODE128',
+    options?: any,
+    mimeType: 'image/png' | 'image/jpeg' = 'image/png'
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
         const canvas = document.createElement('canvas');
@@ -15,7 +20,7 @@ export class BarcodeQrGeneratorService {
           textAlign: 'center',
           ...options
         });
-        resolve(canvas.toDataURL('image/png'));
+        resolve(canvas.toDataURL(mimeType, 0.95));
       } catch (e) {
         reject(e);
       }

@@ -106,7 +106,7 @@ export class ListOperacionFinancieraComponent implements OnInit {
       null, true, 'Sí, anular', 'No',
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      this.operacionFinancieraService.onAnular(row.id)
+      this.operacionFinancieraService.onAnular(row.id, undefined, { avisarExito: false })
         .pipe(untilDestroyed(this)).subscribe({
           next: r => {
             if (r == null) return;

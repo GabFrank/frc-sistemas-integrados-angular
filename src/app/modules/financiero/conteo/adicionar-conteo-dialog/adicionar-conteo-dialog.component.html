@@ -559,7 +559,7 @@
       class="acciones-conteo__principal"
       color="accent"
       [nombre]="enEdicion ? 'Guardar edición' : nombreBoton"
-      [disableExpression]="selectedConteo != null && !enEdicion"
+      [disableExpression]="(selectedConteo != null && !enEdicion) || guardandoEdicion"
       (clickEvent)="onButtonClick()"
     ></app-boton>
 

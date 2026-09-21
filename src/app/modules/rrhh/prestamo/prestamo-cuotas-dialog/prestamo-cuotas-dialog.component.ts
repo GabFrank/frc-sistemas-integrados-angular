@@ -14,6 +14,11 @@ export interface PrestamoCuotasDialogData {
   prestamo: Prestamo;
 }
 
+/** Fila de la tabla: clon de la cuota (Apollo congela los resultados) con lo que el template necesita. */
+interface CuotaFila extends PrestamoCuota {
+  puedeCobrar: boolean;
+}
+
 @UntilDestroy()
 @Component({
   selector: 'app-prestamo-cuotas-dialog',
@@ -24,10 +29,13 @@ export class PrestamoCuotasDialogComponent implements OnInit {
 
   prestamo: Prestamo;
   displayedColumns = ['numero', 'fechaVencimiento', 'monto', 'montoPagado', 'estado', 'acciones'];
-  dataSource = new MatTableDataSource<PrestamoCuota>([]);
+  dataSource = new MatTableDataSource<CuotaFila>([]);
 
   cajas: CajaVirtual[] = [];
   cajaControl = new FormControl(null);
+
+  /** Un cobro en vuelo: un segundo clic no manda otro (issue central #299). */
+  cobrando = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: PrestamoCuotasDialogData,
@@ -50,14 +58,16 @@ export class PrestamoCuotasDialogComponent implements OnInit {
   cargarCuotas() {
     this.prestamoService.onGetCuotas(this.prestamo.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => { this.dataSource.data = res || []; });
+      .subscribe(res => {
+        this.dataSource.data = (res || []).map((c: PrestamoCuota) => ({
+          ...c,
+          puedeCobrar: c.estado !== 'PAGADA' && c.estado !== 'CANCELADA',
+        }));
+      });
   }
 
-  puedeCobrar(cuota: PrestamoCuota): boolean {
-    return cuota.estado !== 'PAGADA' && cuota.estado !== 'CANCELADA';
-  }
-
-  onCobrar(cuota: PrestamoCuota) {
+  onCobrar(cuota: CuotaFila) {
+    if (this.cobrando) return;
     if (this.cajaControl.value == null) {
       this.notificacion.notification$.next({ texto: 'Seleccione la Caja Mayor', color: NotificacionColor.warn, duracion: 3 });
       return;
@@ -68,10 +78,23 @@ export class PrestamoCuotasDialogComponent implements OnInit {
       '¿Cobrar la cuota #' + cuota.numero + ' por ' + pendiente + '?',
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res === true) {
-        this.prestamoService.onCobrarCuota(cuota.id, this.cajaControl.value, pendiente)
+      if (res === true && !this.cobrando) {
+        this.cobrando = true;
+        // Va el monto pagado que muestra la pantalla: si la cuota cambió, el central rechaza sin tocar la caja.
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.prestamoService.onCobrarCuota(cuota.id, this.cajaControl.value, pendiente, cuota.montoPagado || 0)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.cargarCuotas(); });
+          .subscribe({
+            next: ok => {
+              this.cobrando = false;
+              if (ok) this.cargarCuotas();
+            },
+            // Se recarga igual: si el rechazo fue porque la cuota cambió, la pantalla tiene que mostrar lo nuevo.
+            error: () => {
+              this.cobrando = false;
+              this.cargarCuotas();
+            },
+          });
       }
     });
   }

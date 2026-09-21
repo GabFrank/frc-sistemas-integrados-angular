@@ -219,7 +219,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.cargandoDialog.openDialog();
+    // Con su id: closeDialog() sin id cierra el primer spinner pendiente, que puede ser el de un
+    // guardado en curso, y el de acá quedaba abierto hasta el timer de seguridad (#316, #319).
+    const { requestId } = this.cargandoDialog.openDialog();
     //inicializando arrays
     //
     this.setPrecios();
@@ -240,7 +242,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
     setTimeout(() => {
       this.setFocusToValorInput();
-      this.cargandoDialog.closeDialog();
+      this.cargandoDialog.closeDialog(requestId);
     }, 500);
 
     this.formGroup.controls.moneda.valueChanges
