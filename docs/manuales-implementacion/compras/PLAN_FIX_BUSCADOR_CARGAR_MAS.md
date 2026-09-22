@@ -97,6 +97,21 @@ de compras) con un término que tenga:
 | A | mobile-pwa tendría el mismo bug de offset | **Falso**: `buscador-producto.component.ts:50` usa `LOTE = 10` y `offset += LOTE` |
 | A | ¿El filial entra en juego? | No: `onSearch(..., servidor=true)` va siempre al central |
 
+## Durante la implementación
+
+- `GenericCrudService.onCustomQuery` (`generic-crud.service.ts:178-194`), ante un error de red y sin
+  `errorConf.networkError.propagate`, **no emite ni completa**: el «+» habría quedado deshabilitado
+  para siempre. El camino de texto ya no pasa por `ProductoService.onSearch`: llama la misma query
+  (`ProductoForPdvGQL`, mismas variables) con `propagate: true`, y una respuesta `null` (error
+  GraphQL, que onCustomQuery ya avisa) se trata como error. Para la página 0 el efecto es que el
+  prefetch y los Enter reciben `[]` en vez de quedar esperando.
+- El control de generación también se aplica a la búsqueda por `valueChanges`: un Enter puede lanzar
+  una búsqueda más nueva mientras esa vuela.
+- `hayMasResultados` arranca en `false` en cada búsqueda (no `true`): el «+» ya está deshabilitado
+  mientras carga, y así no parpadea habilitado con la lista vacía.
+- Camino de código de barras (`buscarProducto`): sigue sin `propagate`, así que un error de red en
+  su página > 0 deja el «+» esperando. Es raro (un código trae 0 o 1 resultado) y queda fuera.
+
 ## Queda sin verificar
 
 - Lucene: tope de 200 ids, y `fetchSize` variable con el offset. Puede saltear o repetir alguna
