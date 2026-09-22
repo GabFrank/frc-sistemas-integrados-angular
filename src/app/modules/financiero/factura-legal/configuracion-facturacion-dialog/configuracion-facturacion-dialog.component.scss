@@ -1,0 +1,64 @@
+.ayuda {
+  font-size: 14px;
+  color: #9e9e9e;
+  line-height: 1.4;
+  margin: 6px 0 14px;
+}
+
+.tabla-config {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #e0e0e0;
+
+  th,
+  td {
+    text-align: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  th {
+    color: #9e9e9e;
+    font-weight: 500;
+  }
+
+  tr.editando td {
+    background-color: rgba(144, 202, 249, 0.12);
+  }
+
+  .acciones {
+    white-space: nowrap;
+  }
+
+  .vacio {
+    color: #9e9e9e;
+    padding: 16px;
+  }
+}
+
+.form-config {
+  margin-top: 18px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-titulo {
+  font-size: 16px;
+  font-weight: 500;
+  color: #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.toggle-respeta {
+  min-width: 260px;
+  padding-bottom: 18px;
+}
+
+.form-desc {
+  font-size: 13px;
+  color: #9e9e9e;
+  line-height: 1.4;
+}

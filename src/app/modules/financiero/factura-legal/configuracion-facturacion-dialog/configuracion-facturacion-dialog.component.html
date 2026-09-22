@@ -1,0 +1,88 @@
+<h2 mat-dialog-title>Política de facturación automática</h2>
+
+<mat-dialog-content>
+    <div class="ayuda">
+        Decide qué ventas del punto de venta generan factura legal sin que el cajero la pida.
+        La configuración de una sucursal tiene prioridad sobre la global. <b>Sin ninguna configuración,
+        cada filial sigue usando su contador local (facturaCountDown).</b>
+        Los cambios llegan a los filiales por replicación, sin reiniciar.
+    </div>
+
+    <table class="tabla-config">
+        <thead>
+            <tr>
+                <th>Alcance</th>
+                <th>Modo</th>
+                <th>Ventas sin factura</th>
+                <th>Venta + Ticket / Delivery</th>
+                <th>Modificado por</th>
+                <th>Modificado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId">
+                <td>{{ fila.sucursalNombre }}</td>
+                <td>{{ fila.modoLabel }}</td>
+                <td>{{ fila.ventasSinFacturaLabel }}</td>
+                <td>{{ fila.respetaLabel }}</td>
+                <td>{{ fila.modificadoPor }}</td>
+                <td>{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="acciones">
+                    <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
+                        <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="onEliminar(fila)" matTooltip="Eliminar">
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                </td>
+            </tr>
+            <tr *ngIf="!isLoading && filas.length === 0">
+                <td colspan="7" class="vacio">Sin configuración: cada filial usa su contador local.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <form [formGroup]="form" class="form-config">
+        <div class="form-titulo">{{ editandoId != null ? 'Editando configuración' : 'Nueva configuración' }}</div>
+        <div fxLayout="row wrap" fxLayoutGap="15px" fxLayoutAlign="start center">
+            <mat-form-field appearance="outline" fxFlex="30">
+                <mat-label>Alcance</mat-label>
+                <mat-select formControlName="sucursalId">
+                    <mat-option [value]="null">GLOBAL (TODAS LAS SUCURSALES)</mat-option>
+                    <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" fxFlex="25">
+                <mat-label>Modo</mat-label>
+                <mat-select formControlName="modo" (selectionChange)="onModoChange()">
+                    <mat-option *ngFor="let m of modos" [value]="m.value">{{ m.label }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" fxFlex="15">
+                <mat-label>Ventas sin factura</mat-label>
+                <input matInput type="number" min="0" formControlName="ventasSinFactura">
+            </mat-form-field>
+            <div class="toggle-respeta" fxFlex>
+                <mat-slide-toggle formControlName="ventaTicketRespetaPolitica" color="accent">
+                    Venta + Ticket y delivery respetan la política
+                </mat-slide-toggle>
+            </div>
+        </div>
+        <div class="form-desc">
+            <b>Cada N ventas</b>: factura una de cada N + 1 (N = ventas sin factura entre dos facturadas).
+            Con el switch apagado, «Venta + Ticket» y delivery facturan siempre, como hasta ahora.
+            Las ventas a crédito no se ven afectadas por el switch.
+        </div>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCerrar()">Cerrar</button>
+    <button mat-button (click)="onNuevo()">
+        <mat-icon>add</mat-icon> Nueva
+    </button>
+    <button mat-raised-button color="primary" (click)="onGuardar()">
+        <mat-icon>save</mat-icon> Guardar
+    </button>
+</mat-dialog-actions>
