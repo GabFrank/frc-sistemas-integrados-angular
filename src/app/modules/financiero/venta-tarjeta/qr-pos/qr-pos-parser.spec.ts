@@ -82,6 +82,26 @@ describe('qr-pos-parser', () => {
     expect(r.error).toContain('no corresponde a ningún formato');
   });
 
+  it('una seña pegada en el campo del cupón se rechaza diciendo QUÉ es', () => {
+    // Los dos campos de escaneo están a un clic uno del otro y esperan vocabularios distintos.
+    // El error genérico proponía el celular, que es la salida correcta para un cupón ilegible y
+    // la equivocada para una seña. Pasó en la prueba manual del 2026-09-17.
+    const sena = 'frc-24-VT-35518-35518-RegistroVentaTarjetaComponent-654|32000|36-1789585296361';
+    const r = parsearCupon(sena, [FRCP1], DECIMALES);
+
+    expect(r.ok).toBeFalse();
+    expect(r.error).toContain('seña del cobro');
+    expect(r.error).toContain('campo de arriba');
+    expect(r.error).not.toContain('celular');
+  });
+
+  it('el prefijo de la seña se reconoce sin importar mayúsculas ni espacios', () => {
+    const r = parsearCupon('  FRC-24-VT-1-1-X-654|1|1-1  ', [FRCP1], DECIMALES);
+
+    expect(r.ok).toBeFalse();
+    expect(r.error).toContain('seña del cobro');
+  });
+
   it('rechaza una cadena más larga que el tope', () => {
     const r = parsearCupon('X'.repeat(MAX_LONGITUD_QR + 1), [FRCP1], DECIMALES);
 

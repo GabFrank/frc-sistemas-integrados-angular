@@ -54,14 +54,22 @@ import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gest
 import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
 import { TransferirCajaDialogComponent } from "./pdv/caja/transferir-caja-dialog/transferir-caja-dialog.component";
 import { ListTerminalPosComponent } from "./terminal-pos/list-terminal-pos/list-terminal-pos.component";
+import { MotivoNoConciliarDialogComponent } from './venta-tarjeta/motivo-no-conciliar-dialog/motivo-no-conciliar-dialog.component';
+import { ProbarFormatoPanelComponent } from './venta-tarjeta/qr-pos/formato-terminal-pos/probar-formato-panel/probar-formato-panel.component';
+import { MapaFormatoPanelComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/mapa-formato-panel/mapa-formato-panel.component";
+import { VistaPreviaFormatoComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/vista-previa-formato/vista-previa-formato.component";
+import { ConfigurarTerminalPosDialogComponent } from "./terminal-pos/configurar-terminal-pos-dialog/configurar-terminal-pos-dialog.component";
 import { AddTerminalPosDialogComponent } from "./terminal-pos/add-terminal-pos-dialog/add-terminal-pos-dialog.component";
 import { PrintTerminalPosDialogComponent } from "./terminal-pos/print-terminal-pos-dialog/print-terminal-pos-dialog.component";
 import { ScanTerminalPosDialogComponent } from "./terminal-pos/scan-terminal-pos-dialog/scan-terminal-pos-dialog.component";
-import { TerminalPosDashboard } from "./terminal-pos/terminal-pos-dashboard/terminal-pos-dashboard.component";
 import { ListVentaTarjetaComponent } from "./venta-tarjeta/list-venta-tarjeta/list-venta-tarjeta.component";
+import { VentasTarjetaCajaDialogComponent } from "./venta-tarjeta/ventas-tarjeta-caja-dialog/ventas-tarjeta-caja-dialog.component";
 import { RegistrarVentaTarjetaDialogComponent } from "./venta-tarjeta/qr-pos/registrar-venta-tarjeta-dialog/registrar-venta-tarjeta-dialog.component";
 import { FormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/formato-qr-pos.component";
 import { EditFormatoQrPosComponent } from "./venta-tarjeta/qr-pos/formato-qr-pos/edit-formato-qr-pos/edit-formato-qr-pos.component";
+import { FormatoTerminalPosComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/formato-terminal-pos.component";
+import { EditFormatoTerminalPosComponent } from "./venta-tarjeta/qr-pos/formato-terminal-pos/edit-formato-terminal-pos/edit-formato-terminal-pos.component";
+import { CargaManualCuponDialogComponent } from "./venta-tarjeta/qr-pos/carga-manual-cupon-dialog/carga-manual-cupon-dialog.component";
 import { EscanearCuponDialogComponent } from "./venta-tarjeta/qr-pos/escanear-cupon-dialog/escanear-cupon-dialog.component";
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
@@ -150,12 +158,20 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     AddTerminalPosDialogComponent,
     PrintTerminalPosDialogComponent,
     ScanTerminalPosDialogComponent,
-    TerminalPosDashboard,
     ListVentaTarjetaComponent,
+    VentasTarjetaCajaDialogComponent,
     RegistrarVentaTarjetaDialogComponent,
     FormatoQrPosComponent,
     EditFormatoQrPosComponent,
+    FormatoTerminalPosComponent,
+    EditFormatoTerminalPosComponent,
+    CargaManualCuponDialogComponent,
     EscanearCuponDialogComponent,
+    ConfigurarTerminalPosDialogComponent,
+    MapaFormatoPanelComponent,
+    ProbarFormatoPanelComponent,
+    MotivoNoConciliarDialogComponent,
+    VistaPreviaFormatoComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
     FacturaLegalDashboard,

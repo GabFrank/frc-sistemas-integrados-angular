@@ -74,6 +74,22 @@ export function parsearCupon(
     }
   }
 
+  // ⚠️ Antes de rendirse: mirar si lo que entró es una SEÑA y no un cupón.
+  //
+  // Hay dos campos de escaneo a un clic uno del otro y esperan vocabularios distintos: el de
+  // arriba de la lista acepta la seña (`frc-…`) y éste, adentro del diálogo de completar, acepta
+  // el cupón de la terminal. El error genérico no dice qué esperaba y propone el celular, que es
+  // la salida correcta para un cupón ilegible y la equivocada para una seña pegada en el campo de
+  // al lado. Pasó en la prueba del 2026-09-17: la cadena era correcta y el campo era el otro.
+  if (cruda.trim().toLowerCase().startsWith('frc-')) {
+    return {
+      ok: false,
+      error:
+        'Eso es la seña del cobro, no el cupón de la terminal. La seña va en el campo de arriba ' +
+        'de la lista.',
+    };
+  }
+
   return {
     ok: false,
     error: 'El código leído no corresponde a ningún formato conocido. Registralo desde el celular.',
@@ -108,6 +124,9 @@ function extraer(
   datos.codigoAutorizacion = texto(grupos, mapeo.codigoAutorizacion);
   datos.numeroBoleta = texto(grupos, mapeo.numeroBoleta);
   datos.identificadorTransaccion = texto(grupos, mapeo.identificadorTransaccion);
+  // El aparato que imprimió el cupón. Si el formato lo mapea, el cajero no necesita escanear la
+  // terminal: se resuelve cotejando contra `terminal_pos.serie`.
+  datos.terminal = texto(grupos, mapeo.terminal);
   datos.monedaId = numeroMapeado(grupos, mapeo.moneda);
   datos.monto = importe(grupos, mapeo.monto, datos.monedaId, decimalesPorMoneda);
   datos.fecha = fecha(grupos, mapeo.fecha);
@@ -183,22 +202,43 @@ function importe(
 function fecha(grupos: { [k: string]: string }, regla?: ReglaCampo): Date | undefined {
   const valor = crudo(grupos, regla);
   if (valor === undefined || !valor.trim()) return undefined;
-  if (regla?.formato !== 'yyyyMMddHHmm') {
-    throw new Error(`formato de fecha no soportado: ${regla?.formato}`);
-  }
-  if (!/^\d{12}$/.test(valor)) {
-    throw new Error(`la fecha "${valor}" no tiene 12 dígitos`);
-  }
-  const anio = Number(valor.slice(0, 4));
-  const mes = Number(valor.slice(4, 6));
-  const dia = Number(valor.slice(6, 8));
-  const hora = Number(valor.slice(8, 10));
-  const minuto = Number(valor.slice(10, 12));
 
-  const d = new Date(anio, mes - 1, dia, hora, minuto, 0, 0);
+  // ⚠️ Los tres formatos y `deHora` son los MISMOS que acepta `ExtractorCupon.fechaIso()` del
+  // central, a propósito: un cupón leído por el lector y uno fotografiado no pueden necesitar
+  // vocabularios distintos. Cuando acá sólo se aceptaba `yyyyMMddHHmm`, un formato de máquina con
+  // `dd/MM/yyyy` --INFONET-- no se podía guardar desde el ABM: la vista previa fallaba, el servidor
+  // lo leía perfecto, y el aviso culpaba al patrón.
+  const v = valor.trim();
+  const hora = crudo(grupos, regla?.deHora ? { de: regla.deHora } : undefined);
+  let anio: number, mes: number, dia: number, hh = 0, mm = 0, ss = 0;
+
+  if (regla?.formato === 'dd/MM/yyyy' && /^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(v)) {
+    const p = v.split(/[/-]/);
+    dia = Number(p[0]); mes = Number(p[1]); anio = Number(p[2]);
+  } else if (regla?.formato === 'yyyy-MM-dd' && /^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(v)) {
+    const p = v.split(/[/-]/);
+    anio = Number(p[0]); mes = Number(p[1]); dia = Number(p[2]);
+  } else if (regla?.formato === 'yyyyMMddHHmm' && /^\d{12}$/.test(v)) {
+    anio = Number(v.slice(0, 4)); mes = Number(v.slice(4, 6)); dia = Number(v.slice(6, 8));
+    hh = Number(v.slice(8, 10)); mm = Number(v.slice(10, 12));
+  } else if (regla?.formato !== 'dd/MM/yyyy' && regla?.formato !== 'yyyy-MM-dd'
+             && regla?.formato !== 'yyyyMMddHHmm') {
+    throw new Error(`formato de fecha no soportado: ${regla?.formato}`);
+  } else {
+    throw new Error(`la fecha "${v}" no tiene el formato ${regla?.formato}`);
+  }
+
+  // La hora va aparte porque los proveedores meten texto entre una y otra: INFONET imprime
+  // `F:02/09/2026H:22:51:34`. Sin hora se asume medianoche.
+  if (hora && /^\d{1,2}:\d{2}(:\d{2})?$/.test(hora.trim())) {
+    const p = hora.trim().split(':');
+    hh = Number(p[0]); mm = Number(p[1]); ss = p.length > 2 ? Number(p[2]) : 0;
+  }
+
+  const d = new Date(anio, mes - 1, dia, hh, mm, ss, 0);
   // Rebota 31 de febrero y compañía: Date los desborda al mes siguiente en silencio.
   if (d.getFullYear() !== anio || d.getMonth() !== mes - 1 || d.getDate() !== dia) {
-    throw new Error(`la fecha "${valor}" no existe`);
+    throw new Error(`la fecha "${v}" no existe`);
   }
   return d;
 }
