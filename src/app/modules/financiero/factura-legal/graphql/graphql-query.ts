@@ -535,10 +535,7 @@ export const configuracionesFacturacionQuery = gql`
       modo
       ventasSinFactura
       ventaTicketRespetaPolitica
-      usuario {
-        id
-        nickname
-      }
+      usuarioNickname
       creadoEn
       modificadoEn
     }
@@ -556,10 +553,7 @@ export const saveConfiguracionFacturacion = gql`
       modo
       ventasSinFactura
       ventaTicketRespetaPolitica
-      usuario {
-        id
-        nickname
-      }
+      usuarioNickname
       creadoEn
       modificadoEn
     }

@@ -8,6 +8,11 @@
         Los cambios llegan a los filiales por replicación, sin reiniciar.
     </div>
 
+    <div class="sin-soporte" *ngIf="sinSoporte">
+        No se pudo cargar la política desde el servidor central. Si el central de este canal todavía
+        no tiene esta función, hay que actualizarlo antes de configurar.
+    </div>
+
     <table class="tabla-config">
         <thead>
             <tr>
@@ -37,7 +42,7 @@
                     </button>
                 </td>
             </tr>
-            <tr *ngIf="!isLoading && filas.length === 0">
+            <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
                 <td colspan="7" class="vacio">Sin configuración: cada filial usa su contador local.</td>
             </tr>
         </tbody>
@@ -82,7 +87,7 @@
     <button mat-button (click)="onNuevo()">
         <mat-icon>add</mat-icon> Nueva
     </button>
-    <button mat-raised-button color="primary" (click)="onGuardar()">
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="sinSoporte">
         <mat-icon>save</mat-icon> Guardar
     </button>
 </mat-dialog-actions>

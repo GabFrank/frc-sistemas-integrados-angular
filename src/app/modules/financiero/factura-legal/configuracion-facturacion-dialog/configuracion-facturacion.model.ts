@@ -1,5 +1,4 @@
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
-import { Usuario } from "../../../personas/usuarios/usuario.model";
 
 /** Mismos valores que el enum ModoFacturacion del central (issue filial #127). */
 export enum ModoFacturacion {
@@ -18,7 +17,8 @@ export class ConfiguracionFacturacion {
   modo: ModoFacturacion;
   ventasSinFactura: number;
   ventaTicketRespetaPolitica: boolean;
-  usuario: Usuario;
+  /** Quién la modificó por última vez. El autor lo pone el central desde la sesión. */
+  usuarioNickname: string;
   creadoEn: Date;
   modificadoEn: Date;
 
@@ -29,7 +29,6 @@ export class ConfiguracionFacturacion {
     input.modo = this?.modo;
     input.ventasSinFactura = this?.ventasSinFactura;
     input.ventaTicketRespetaPolitica = this?.ventaTicketRespetaPolitica;
-    input.usuarioId = this?.usuario?.id;
     return input;
   }
 }
@@ -40,5 +39,4 @@ export class ConfiguracionFacturacionInput {
   modo?: ModoFacturacion;
   ventasSinFactura?: number;
   ventaTicketRespetaPolitica?: boolean;
-  usuarioId?: number;
 }

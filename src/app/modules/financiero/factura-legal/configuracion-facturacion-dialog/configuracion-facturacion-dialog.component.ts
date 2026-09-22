@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
-import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -47,6 +46,8 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   editandoId: number = null;
   esIntervalo = true;
   isLoading = true;
+  /** El central de este canal no tiene la función todavía (desktop más nuevo que su backend). */
+  sinSoporte = false;
 
   form = new FormGroup({
     sucursalId: new FormControl<number>(null),
@@ -59,8 +60,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<ConfiguracionFacturacionDialogComponent>,
     private configuracionService: ConfiguracionFacturacionService,
     private sucursalService: SucursalService,
-    private notificacionService: NotificacionSnackbarService,
-    public mainService: MainService
+    private notificacionService: NotificacionSnackbarService
   ) { }
 
   ngOnInit(): void {
@@ -74,6 +74,9 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     this.isLoading = true;
     this.configuracionService.onGetConfiguraciones().subscribe({
       next: (res) => {
+        // onCustomQuery emite null ante un error (por ejemplo, el central no conoce la query);
+        // una lista vacía llega como []. Sin esto, el error se veria igual que "sin configuración".
+        this.sinSoporte = res == null;
         const configs = (res != null ? res : []).map((r) => Object.assign(new ConfiguracionFacturacion(), r));
         // La global primero; después las sucursales por nombre.
         configs.sort((a, b) => {
@@ -86,6 +89,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       },
       error: () => {
         this.isLoading = false;
+        this.sinSoporte = true;
         this.notificacionService.openAlgoSalioMal('Error al cargar la configuración de facturación');
       }
     });
@@ -98,7 +102,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       modoLabel: MODO_LABELS[c.modo] || c.modo,
       ventasSinFacturaLabel: c.modo === ModoFacturacion.INTERVALO ? String(c.ventasSinFactura) : '-',
       respetaLabel: c.ventaTicketRespetaPolitica ? 'RESPETA LA POLÍTICA' : 'FACTURA SIEMPRE',
-      modificadoPor: c.usuario?.nickname || '-',
+      modificadoPor: c.usuarioNickname || '-',
       modificadoEn: c.modificadoEn
     };
   }
@@ -147,7 +151,6 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     input.modo = v.modo;
     input.ventasSinFactura = this.esIntervalo ? v.ventasSinFactura : 0;
     input.ventaTicketRespetaPolitica = v.ventaTicketRespetaPolitica === true;
-    input.usuarioId = this.mainService.usuarioActual?.id;
     this.configuracionService.onSaveConfiguracion(input).subscribe({
       next: (res) => {
         if (res != null) {
