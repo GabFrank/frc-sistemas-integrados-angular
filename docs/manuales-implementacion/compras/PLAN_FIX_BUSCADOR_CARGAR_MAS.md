@@ -112,6 +112,18 @@ de compras) con un término que tenga:
 - Camino de código de barras (`buscarProducto`): sigue sin `propagate`, así que un error de red en
   su página > 0 deja el «+» esperando. Es raro (un código trae 0 o 1 resultado) y queda fuera.
 
+## Auditoría del diff (paso 8)
+
+Fijo 1 (autorización) y Fijo 2 (esquema): N/A, el diff no toca resolvers, menú, roles, migraciones
+ni `.graphqls` [ev: `git diff --name-only origin/develop` — 3 archivos de `operaciones/compra` y
+este plan]. Condicionales A y B: ningún glob coincide.
+
+| Lente | Hallazgo | Qué se hizo |
+|---|---|---|
+| Fijo 3 | Variables de `productoSearch` idénticas a las de `onSearch` salvo el offset; firma igual en `develop`, `release/beta` y `master` del central | Sin cambio |
+| Fijo 3 | Los consumidores de la página 0 no distinguían `null` de `[]`; antes, con error de red, quedaban colgados | Sin cambio (mejora) |
+| Corrección | El timer de TTL de una petición fallida borraba la entrada del reintento con la misma clave | Aplicado: `olvidarBusqueda` borra solo si la entrada sigue siendo la de esa petición |
+
 ## Queda sin verificar
 
 - Lucene: tope de 200 ids, y `fetchSize` variable con el offset. Puede saltear o repetir alguna

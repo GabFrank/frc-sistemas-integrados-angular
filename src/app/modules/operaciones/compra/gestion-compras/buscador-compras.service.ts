@@ -106,18 +106,28 @@ export class BuscadorComprasService {
       // vacía ante un error. En las siguientes el error tiene que llegar al
       // diálogo: una lista vacía se leería como «no hay más resultados».
       catchError((error) => {
-        this.busquedaDialogCache.delete(cacheKey);
+        this.olvidarBusqueda(cacheKey, request$);
         return page === 0 ? of([] as Producto[]) : throwError(() => error);
       })
     );
 
     this.busquedaDialogCache.set(cacheKey, request$);
-    setTimeout(() => {
-      this.busquedaDialogCache.delete(cacheKey);
-      this.busquedaResultadosCache.delete(cacheKey);
-    }, BUSQUEDA_CACHE_TTL_MS);
+    setTimeout(() => this.olvidarBusqueda(cacheKey, request$), BUSQUEDA_CACHE_TTL_MS);
 
     return request$;
+  }
+
+  /**
+   * Borra la entrada solo si sigue siendo la de esa petición: tras un error se
+   * borra antes del TTL, y un reintento con la misma clave no debe perder su
+   * caché cuando vence el timer de la petición que falló.
+   */
+  private olvidarBusqueda(cacheKey: string, request$: Observable<Producto[]>): void {
+    if (this.busquedaDialogCache.get(cacheKey) !== request$) {
+      return;
+    }
+    this.busquedaDialogCache.delete(cacheKey);
+    this.busquedaResultadosCache.delete(cacheKey);
   }
 
   /**
