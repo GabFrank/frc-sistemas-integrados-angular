@@ -74,6 +74,7 @@ import { EscanearCuponDialogComponent } from "./venta-tarjeta/qr-pos/escanear-cu
 import { ConfiguracionVentaTarjetaDialogComponent } from "./venta-tarjeta/configuracion-venta-tarjeta-dialog/configuracion-venta-tarjeta-dialog.component";
 import { NgxExtendedPdfViewerModule } from "ngx-extended-pdf-viewer";
 import { ConfiguracionFacturaConVentaDialogComponent } from "./factura-legal/configuracion-factura-con-venta-dialog/configuracion-factura-con-venta-dialog.component";
+import { ConfiguracionFacturacionDialogComponent } from "./factura-legal/configuracion-facturacion-dialog/configuracion-facturacion-dialog.component";
 import { FacturaLegalDashboard } from "./factura-legal/factura-legal-dashboard/factura-legal-dashboard.component";
 import { AddCajaVirtualDialogComponent } from './caja-virtual/add-caja-virtual-dialog/add-caja-virtual-dialog.component';
 import { AddMovimientoCajaVirtualDialogComponent } from './caja-virtual/add-movimiento-caja-virtual-dialog/add-movimiento-caja-virtual-dialog.component';
@@ -174,6 +175,7 @@ import { AddCuentaBancariaDialogComponent } from './cuenta-bancaria/add-cuenta-b
     VistaPreviaFormatoComponent,
     ConfiguracionVentaTarjetaDialogComponent,
     ConfiguracionFacturaConVentaDialogComponent,
+    ConfiguracionFacturacionDialogComponent,
     FacturaLegalDashboard,
     AddCajaVirtualDialogComponent,
     AddMovimientoCajaVirtualDialogComponent,
