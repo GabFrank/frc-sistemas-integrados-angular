@@ -132,7 +132,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   historial: FilaHistorial[] = [];
   historialError = false;
   historialCargando = false;
-  /** null = todas; GLOBAL = solo la global; id = una sucursal. */
+  /** null = sin filtro; GLOBAL = solo la fila "Todas"; id = una sucursal. */
   filtroHistorial: number = null;
 
   // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
@@ -201,11 +201,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     this.haySucursalesInactivas = sucursales.some((c) => c.activo === false);
     if (global != null && global.activo !== false) {
       this.avisoGlobal = '';
-      this.rigeSinOverride = `la configuración global (${modoLabel(global.modo, global.ventasSinFactura)})`;
+      this.rigeSinOverride = `la configuración de todas (${modoLabel(global.modo, global.ventasSinFactura)})`;
     } else {
       this.avisoGlobal = global == null
-        ? 'No hay configuración global: las sucursales sin configuración propia activa usan el contador local de su servidor.'
-        : 'La configuración global está inactiva: las sucursales sin configuración propia activa usan el contador local de su servidor.';
+        ? 'No hay configuración para todas: las sucursales sin configuración propia activa usan el contador local de su servidor.'
+        : 'La configuración para todas está inactiva: las sucursales sin configuración propia activa usan el contador local de su servidor.';
       this.rigeSinOverride = 'el contador local de cada servidor (facturaCountDown)';
     }
   }
@@ -213,7 +213,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   private toFila(c: ConfiguracionFacturacion): FilaConfiguracion {
     return {
       config: c,
-      sucursalNombre: c.sucursal != null ? c.sucursal.nombre : 'GLOBAL (TODAS LAS SUCURSALES)',
+      sucursalNombre: c.sucursal != null ? c.sucursal.nombre : 'TODAS',
       modoLabel: modoLabel(c.modo, c.ventasSinFactura),
       modoClase: MODO_CLASES[c.modo] || 'chip-siempre',
       respetaLabel: respetaLabel(c.modo, c.ventasSinFactura, c.ventaTicketRespetaPolitica),
@@ -385,7 +385,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   private toFilaHistorial(h: ConfiguracionFacturacionHistorial): FilaHistorial {
     return {
       fecha: h.creadoEn,
-      sucursalNombre: h.sucursal != null ? h.sucursal.nombre : 'GLOBAL',
+      sucursalNombre: h.sucursal != null ? h.sucursal.nombre : 'TODAS',
       accionLabel: ACCION_LABELS[h.accion] || h.accion,
       accionClase: ACCION_CLASES[h.accion] || 'chip-siempre',
       modoLabel: modoLabel(h.modo, h.ventasSinFactura),

@@ -87,7 +87,7 @@
                     <mat-form-field appearance="outline">
                         <mat-label>Sucursal</mat-label>
                         <mat-select formControlName="sucursalId">
-                            <mat-option [value]="GLOBAL">GLOBAL (TODAS)</mat-option>
+                            <mat-option [value]="GLOBAL">TODAS</mat-option>
                             <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
                         </mat-select>
                     </mat-form-field>
@@ -127,8 +127,8 @@
             <mat-form-field appearance="outline">
                 <mat-label>Sucursal</mat-label>
                 <mat-select [(value)]="filtroHistorial" (selectionChange)="onFiltroHistorialChange()">
-                    <mat-option [value]="null">TODAS</mat-option>
-                    <mat-option [value]="GLOBAL">GLOBAL</mat-option>
+                    <mat-option [value]="null">SIN FILTRO</mat-option>
+                    <mat-option [value]="GLOBAL">TODAS</mat-option>
                     <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
                 </mat-select>
             </mat-form-field>
