@@ -47,6 +47,9 @@ const MODO_HINTS: { [modo: string]: string } = {
 })
 export class ConfiguracionFacturacionDialogComponent implements OnInit {
 
+  /** Valor del select para la global: null lo trata Material como "vacío" y no lo muestra. 0 existe. */
+  readonly GLOBAL = -1;
+
   readonly modos = [
     { value: ModoFacturacion.TODAS, label: MODO_LABELS[ModoFacturacion.TODAS] },
     { value: ModoFacturacion.INTERVALO, label: MODO_LABELS[ModoFacturacion.INTERVALO] },
@@ -66,7 +69,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   sinSoporte = false;
 
   form = new FormGroup({
-    sucursalId: new FormControl<number>(null),
+    sucursalId: new FormControl<number>(-1),
     modo: new FormControl<ModoFacturacion>(ModoFacturacion.INTERVALO, Validators.required),
     ventasSinFactura: new FormControl<number>(0, [Validators.required, Validators.min(0)]),
     ventaTicketRespetaPolitica: new FormControl<boolean>(false)
@@ -160,7 +163,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     const c = fila.config;
     this.editandoId = c.id;
     this.form.setValue({
-      sucursalId: c.sucursal?.id ?? null,
+      sucursalId: c.sucursal?.id ?? this.GLOBAL,
       modo: c.modo,
       ventasSinFactura: c.ventasSinFactura ?? 0,
       ventaTicketRespetaPolitica: c.ventaTicketRespetaPolitica === true
@@ -171,7 +174,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   onNuevo(): void {
     this.editandoId = null;
     this.form.reset({
-      sucursalId: null,
+      sucursalId: this.GLOBAL,
       modo: ModoFacturacion.INTERVALO,
       ventasSinFactura: 0,
       ventaTicketRespetaPolitica: false
@@ -187,7 +190,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     const v = this.form.getRawValue();
     const input = new ConfiguracionFacturacionInput();
     input.id = this.editandoId;
-    input.sucursalId = v.sucursalId;
+    input.sucursalId = v.sucursalId === this.GLOBAL ? null : v.sucursalId;
     input.modo = v.modo;
     input.ventasSinFactura = this.esIntervalo ? v.ventasSinFactura : 0;
     input.ventaTicketRespetaPolitica = v.ventaTicketRespetaPolitica === true;

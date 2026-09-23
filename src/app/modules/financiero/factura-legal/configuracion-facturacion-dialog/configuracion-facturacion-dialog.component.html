@@ -54,28 +54,35 @@
     <form [formGroup]="form" class="form-config">
         <div class="form-titulo">{{ editandoId != null ? 'Editar configuración' : 'Nueva configuración' }}</div>
 
+        <!-- Pistas como texto propio y no mat-hint: styles.scss colapsa el subscript de Material a 0px. -->
         <div class="form-grid">
-            <mat-form-field appearance="outline">
-                <mat-label>Sucursal</mat-label>
-                <mat-select formControlName="sucursalId">
-                    <mat-option [value]="null">GLOBAL (TODAS)</mat-option>
-                    <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
-                </mat-select>
-            </mat-form-field>
+            <div class="campo">
+                <mat-form-field appearance="outline">
+                    <mat-label>Sucursal</mat-label>
+                    <mat-select formControlName="sucursalId">
+                        <mat-option [value]="GLOBAL">GLOBAL (TODAS)</mat-option>
+                        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+            </div>
 
-            <mat-form-field appearance="outline">
-                <mat-label>Modo</mat-label>
-                <mat-select formControlName="modo" (selectionChange)="onModoChange()">
-                    <mat-option *ngFor="let m of modos" [value]="m.value">{{ m.label }}</mat-option>
-                </mat-select>
-                <mat-hint>{{ modoHint }}</mat-hint>
-            </mat-form-field>
+            <div class="campo">
+                <mat-form-field appearance="outline">
+                    <mat-label>Modo</mat-label>
+                    <mat-select formControlName="modo" (selectionChange)="onModoChange()">
+                        <mat-option *ngFor="let m of modos" [value]="m.value">{{ m.label }}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+                <div class="pista">{{ modoHint }}</div>
+            </div>
 
-            <mat-form-field appearance="outline" *ngIf="esIntervalo">
-                <mat-label>N (ventas sin factura)</mat-label>
-                <input matInput type="number" min="0" formControlName="ventasSinFactura" (input)="onIntervaloChange()">
-                <mat-hint>{{ intervaloHint }}</mat-hint>
-            </mat-form-field>
+            <div class="campo" *ngIf="esIntervalo">
+                <mat-form-field appearance="outline">
+                    <mat-label>N (ventas sin factura)</mat-label>
+                    <input matInput type="number" min="0" formControlName="ventasSinFactura" (input)="onIntervaloChange()">
+                </mat-form-field>
+                <div class="pista">{{ intervaloHint }}</div>
+            </div>
         </div>
 
         <div class="toggle-respeta">
