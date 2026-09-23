@@ -67,6 +67,11 @@ export class DescuentoDialogComponent implements OnInit {
 
   porcentaje = 15;
 
+  // Sin cotización el campo de esa moneda se deshabilita: con null, `valor * null === 0` guardaba
+  // en silencio un descuento de 0 Gs.
+  sinCotizacionRs = false;
+  sinCotizacionDs = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: DescuentoDialogData,
     private matDialogRef: MatDialogRef<DescuentoDialogComponent>,
@@ -74,6 +79,10 @@ export class DescuentoDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.sinCotizacionRs = !this.data?.cambioRs;
+    this.sinCotizacionDs = !this.data?.cambioDs;
+    if (this.sinCotizacionRs) this.valorDescuentoRsControl.disable();
+    if (this.sinCotizacionDs) this.valorDescuentoDsControl.disable();
     if (this.data?.costo > 0) {
       let margen = this.data.valorTotal - this.data.costo;
       this.porcentaje = (margen * 100) / this.data.valorTotal;
@@ -101,9 +110,11 @@ export class DescuentoDialogComponent implements OnInit {
         this.valorDescuentoGsControl.setValue(valor);
         break;
       case 2:
+        if (this.sinCotizacionRs) return;
         this.valorDescuentoGsControl.setValue(valor * this.data.cambioRs);
         break;
       case 3:
+        if (this.sinCotizacionDs) return;
         this.valorDescuentoGsControl.setValue(valor * this.data.cambioDs);
         break;
       case 4:
@@ -113,10 +124,10 @@ export class DescuentoDialogComponent implements OnInit {
         break;
     }
     this.valorDescuentoRsControl.setValue(
-      this.valorDescuentoGsControl.value / this.data.cambioRs
+      this.sinCotizacionRs ? null : this.valorDescuentoGsControl.value / this.data.cambioRs
     );
     this.valorDescuentoDsControl.setValue(
-      this.valorDescuentoGsControl.value / this.data.cambioDs
+      this.sinCotizacionDs ? null : this.valorDescuentoGsControl.value / this.data.cambioDs
     );
     this.porcentajeDescuento.setValue(
       (this.valorDescuentoGsControl.value * 100) / this.data.valorTotal

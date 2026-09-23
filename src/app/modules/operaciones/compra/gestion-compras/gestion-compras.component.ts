@@ -2213,10 +2213,21 @@ export class GestionComprasComponent
     this.cambioService.onActualizarCotizacionesMercado()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        // `ok` en false significa que el backend no pudo traer la cotización de mercado
+        // (nortecambios sin responder, o la integración apagada por configuración). Se
+        // prefillea igual con la última cotización conocida, pero NO se avisa éxito: decir
+        // "actualizada" sobre un valor viejo lleva a pricear una compra con una cotización
+        // stale creyendo que se acaba de refrescar.
+        next: (ok) => {
           this.prefillCotizacionFromMercado(moneda).subscribe(() => {
             this.cotizacionRefreshing = false;
-            this.notificacionService.openSucess("Cotización de mercado actualizada");
+            if (ok) {
+              this.notificacionService.openSucess("Cotización de mercado actualizada");
+            } else {
+              this.notificacionService.openWarn(
+                "No se pudo actualizar la cotización de mercado. Se mantiene la última conocida"
+              );
+            }
           });
         },
         error: () => {

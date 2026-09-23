@@ -664,12 +664,11 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     let valor = this.vueltoParaControl.value;
     if (this.cobroItemList?.length == 0) {
       let factorGs = Math.floor(total / 100000) + 1;
-      let factorRs = Math.floor((total / this.cambioRs) / 100) + 1;
-      let factorDs = Math.floor((total / this.cambioDs) / 100) + 1;
       this.selectedVuelto = 0;
       this.vueltoGs = factorGs * 100000
-      this.vueltoRs = factorRs * 100
-      this.vueltoDs = factorDs * 100
+      // Sin cotización queda null (dividir por null da Infinity).
+      this.vueltoRs = this.cambioRs ? (Math.floor((total / this.cambioRs) / 100) + 1) * 100 : null
+      this.vueltoDs = this.cambioDs ? (Math.floor((total / this.cambioDs) / 100) + 1) * 100 : null
       if (this.selectedMoneda?.denominacion == 'GUARANI') {
         this.vueltoControl.setValue(this.vueltoGs)
       } else if (this.selectedMoneda?.denominacion == 'REAL') {

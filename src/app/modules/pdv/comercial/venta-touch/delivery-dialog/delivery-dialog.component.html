@@ -47,7 +47,7 @@
                 />
               </div>
               <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
-                {{ totalConDelivery / cambioRs | number: "1.2-2" }}
+                {{ cambioRs ? (totalConDelivery / cambioRs | number: "1.2-2") : "—" }}
               </div>
             </div>
             <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
@@ -59,7 +59,7 @@
                 />
               </div>
               <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-                {{ totalConDelivery / cambioDs | number: "1.2-2" }}
+                {{ cambioDs ? (totalConDelivery / cambioDs | number: "1.2-2") : "—" }}
               </div>
             </div>
           </div>
@@ -488,7 +488,7 @@
               />
             </div>
             <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
-              {{ vueltoGs / cambioRs | number: "1.2-2" }}
+              {{ cambioRs ? (vueltoGs / cambioRs | number: "1.2-2") : "—" }}
             </div>
           </div>
           <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
@@ -500,7 +500,7 @@
               />
             </div>
             <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-              {{ vueltoGs / cambioDs | number: "1.2-2" }}
+              {{ cambioDs ? (vueltoGs / cambioDs | number: "1.2-2") : "—" }}
             </div>
           </div>
         </div>
