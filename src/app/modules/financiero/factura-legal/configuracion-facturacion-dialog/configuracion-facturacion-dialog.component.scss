@@ -41,7 +41,8 @@
 }
 
 .filtro-historial {
-  width: 280px;
+  width: 420px;
+  max-width: 100%;
 
   mat-form-field {
     width: 100%;
@@ -174,7 +175,8 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  // Sucursal ancha (entra "SUC. NUEVA ESPERANZA SAN ANTONIO" en una línea); modo y N más angostos.
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 8px 20px;
   margin-bottom: 20px;
 

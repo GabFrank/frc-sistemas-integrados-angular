@@ -160,7 +160,10 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   ngOnInit(): void {
     this.actualizarHints();
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursales = res != null ? res : [];
+      // La 0 es el SERVIDOR central: no tiene cajas ni factura, no lleva política propia.
+      this.sucursales = (res != null ? res : [])
+        .filter((s) => s.id != 0)
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     });
     this.cargar();
   }
