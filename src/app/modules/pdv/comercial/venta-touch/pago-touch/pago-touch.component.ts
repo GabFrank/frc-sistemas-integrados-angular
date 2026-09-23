@@ -624,31 +624,34 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // un replay abriría un diálogo modal por cada tarjeta ya cobrada en sesiones anteriores.
     const esLineaNueva = selectedItem?.id == null;
     // Una moneda sin cotización registraba el cobro con monto NaN (valor * null/undefined).
-    // GUARANI tiene cambio 1: no pasa por acá.
-    if (this.formGroup.valid && saldo != 0 && !this.selectedMoneda?.cambio) {
+    // GUARANI tiene cambio 1: no pasa por acá. Un replay usa la cotización con la que se guardó
+    // la línea, así una línea ya cobrada no desaparece. Sin return: el reset de abajo corre igual.
+    const cambio =
+      this.selectedMoneda?.cambio || (!esLineaNueva ? selectedItem?.cambio : null);
+    const sinCotizacion = this.formGroup.valid && saldo != 0 && !cambio;
+    if (sinCotizacion) {
       this.notificacionSnackbar.openWarn(
         `No hay cotización cargada para ${this.selectedMoneda?.denominacion || "la moneda seleccionada"}: no se puede registrar el cobro en esa moneda.`
       );
-      return;
     }
-    if (this.formGroup.valid && saldo != 0) {
+    if (this.formGroup.valid && saldo != 0 && !sinCotizacion) {
       let item = new CobroDetalle();
       if (selectedItem != null) Object.assign(item, selectedItem);
       item.formaPago = this.selectedFormaPago;
-      item.moneda = this.selectedMoneda;
-      item.cambio = this.selectedMoneda.cambio;
+      item.moneda = this.selectedMoneda ?? item.moneda;
+      item.cambio = cambio;
       item.valor = valor;
       item.vuelto = this.isVuelto;
       item.descuento = this.isDescuento;
       item.aumento = this.isAumento;
       item.pago = !this.isVuelto && !this.isDescuento && !this.isAumento;
-      this.valorParcialPagado += item.valor * item.moneda.cambio;
+      this.valorParcialPagado += item.valor * cambio;
 
       this.formGroup
         .get("valor")
         .setValue(
           (this.data.valor - this.valorParcialPagado) /
-          this.selectedMoneda.cambio
+          cambio
         );
       this.formGroup.controls.saldo.setValue(
         this.data.valor - this.valorParcialPagado
