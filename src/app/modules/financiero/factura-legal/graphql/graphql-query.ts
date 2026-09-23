@@ -535,6 +535,7 @@ export const configuracionesFacturacionQuery = gql`
       modo
       ventasSinFactura
       ventaTicketRespetaPolitica
+      activo
       usuarioNickname
       creadoEn
       modificadoEn
@@ -553,6 +554,7 @@ export const saveConfiguracionFacturacion = gql`
       modo
       ventasSinFactura
       ventaTicketRespetaPolitica
+      activo
       usuarioNickname
       creadoEn
       modificadoEn
@@ -563,5 +565,31 @@ export const saveConfiguracionFacturacion = gql`
 export const deleteConfiguracionFacturacion = gql`
   mutation deleteConfiguracionFacturacion($id: ID!) {
     data: deleteConfiguracionFacturacion(id: $id)
+  }
+`;
+
+export const setActivoConfiguracionesFacturacion = gql`
+  mutation setActivoConfiguracionesFacturacion($activo: Boolean!) {
+    data: setActivoConfiguracionesFacturacion(activo: $activo)
+  }
+`;
+
+export const historialConfiguracionFacturacionQuery = gql`
+  query historialConfiguracionFacturacion($sucursalId: ID, $limite: Int) {
+    data: historialConfiguracionFacturacion(sucursalId: $sucursalId, limite: $limite) {
+      id
+      configuracionId
+      sucursal {
+        id
+        nombre
+      }
+      accion
+      modo
+      ventasSinFactura
+      ventaTicketRespetaPolitica
+      activo
+      usuarioNickname
+      creadoEn
+    }
   }
 `;

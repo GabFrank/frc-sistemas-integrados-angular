@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
-import { ConfiguracionFacturacion, ConfiguracionFacturacionInput } from './configuracion-facturacion.model';
+import { ConfiguracionFacturacion, ConfiguracionFacturacionHistorial, ConfiguracionFacturacionInput } from './configuracion-facturacion.model';
 import { GetConfiguracionesFacturacionGQL } from '../graphql/getConfiguracionesFacturacion';
 import { SaveConfiguracionFacturacionGQL } from '../graphql/saveConfiguracionFacturacion';
 import { DeleteConfiguracionFacturacionGQL } from '../graphql/deleteConfiguracionFacturacion';
+import { SetActivoConfiguracionesFacturacionGQL } from '../graphql/setActivoConfiguracionesFacturacion';
+import { GetHistorialConfiguracionFacturacionGQL } from '../graphql/getHistorialConfiguracionFacturacion';
 
 /**
  * Siempre contra el central (servidor = true): la política se administra ahí y llega a los
@@ -19,7 +21,9 @@ export class ConfiguracionFacturacionService {
     private genericCrudService: GenericCrudService,
     private getConfiguracionesGQL: GetConfiguracionesFacturacionGQL,
     private saveConfiguracionGQL: SaveConfiguracionFacturacionGQL,
-    private deleteConfiguracionGQL: DeleteConfiguracionFacturacionGQL
+    private deleteConfiguracionGQL: DeleteConfiguracionFacturacionGQL,
+    private setActivoGQL: SetActivoConfiguracionesFacturacionGQL,
+    private getHistorialGQL: GetHistorialConfiguracionFacturacionGQL
   ) { }
 
   onGetConfiguraciones(): Observable<ConfiguracionFacturacion[]> {
@@ -32,5 +36,15 @@ export class ConfiguracionFacturacionService {
 
   onDeleteConfiguracion(id: number, mensaje: string): Observable<boolean> {
     return this.genericCrudService.onDelete(this.deleteConfiguracionGQL, id, 'Eliminar configuración', null, true, true, mensaje);
+  }
+
+  /** Activa o desactiva todas las configuraciones de sucursal (nunca la global). Emite cuántas cambió. */
+  onSetActivoSucursales(activo: boolean): Observable<number> {
+    return this.genericCrudService.onCustomMutation(this.setActivoGQL, { activo }, true);
+  }
+
+  /** sucursalId null = todo; -1 = solo la global. Más reciente primero. */
+  onGetHistorial(sucursalId: number, limite = 200): Observable<ConfiguracionFacturacionHistorial[]> {
+    return this.genericCrudService.onCustomQuery(this.getHistorialGQL, { sucursalId, limite }, true);
   }
 }

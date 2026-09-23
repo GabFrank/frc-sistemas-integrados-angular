@@ -12,6 +12,10 @@
   padding: 0 24px 8px;
 }
 
+.vistas {
+  margin-bottom: 16px;
+}
+
 .aviso {
   display: flex;
   align-items: center;
@@ -22,6 +26,26 @@
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 16px;
+
+  &.aviso-info {
+    color: #90caf9;
+    border-color: rgba(144, 202, 249, 0.4);
+  }
+}
+
+.acciones-masivas {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.filtro-historial {
+  width: 280px;
+
+  mat-form-field {
+    width: 100%;
+  }
 }
 
 .tabla-config {
@@ -51,6 +75,11 @@
 
   tr.editando td {
     background-color: rgba(144, 202, 249, 0.12);
+  }
+
+  // Inactiva: se conserva, pero se ve que no rige.
+  tr.inactiva td:not(:first-child) {
+    opacity: 0.45;
   }
 
   .sucursal {
@@ -115,6 +144,12 @@
   color: #ce93d8;
   background-color: rgba(206, 147, 216, 0.12);
   border-color: rgba(206, 147, 216, 0.35);
+}
+
+.chip-eliminada {
+  color: #e57373;
+  background-color: rgba(229, 115, 115, 0.12);
+  border-color: rgba(229, 115, 115, 0.35);
 }
 
 .chip-siempre {

@@ -2,9 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
-import { ConfiguracionFacturacion, ConfiguracionFacturacionInput, ModoFacturacion } from './configuracion-facturacion.model';
+import {
+  AccionConfiguracionFacturacion,
+  ConfiguracionFacturacion,
+  ConfiguracionFacturacionHistorial,
+  ConfiguracionFacturacionInput,
+  ModoFacturacion
+} from './configuracion-facturacion.model';
 import { ConfiguracionFacturacionService } from './configuracion-facturacion.service';
 
 /** Lo que muestra cada fila de la tabla, ya calculado: el template no llama funciones. */
@@ -16,6 +23,19 @@ interface FilaConfiguracion {
   respetaLabel: string;
   modificadoPor: string;
   modificadoEn: Date;
+}
+
+/** Una fila del historial, ya calculada. */
+interface FilaHistorial {
+  fecha: Date;
+  sucursalNombre: string;
+  accionLabel: string;
+  accionClase: string;
+  modoLabel: string;
+  modoClase: string;
+  respetaLabel: string;
+  activoLabel: string;
+  usuario: string;
 }
 
 const MODO_LABELS: { [modo: string]: string } = {
@@ -36,9 +56,32 @@ const MODO_HINTS: { [modo: string]: string } = {
   [ModoFacturacion.A_PEDIDO]: 'Nunca se factura sola: solo cuando el cliente la pide.'
 };
 
+const ACCION_LABELS: { [accion: string]: string } = {
+  [AccionConfiguracionFacturacion.CREAR]: 'CREADA',
+  [AccionConfiguracionFacturacion.MODIFICAR]: 'MODIFICADA',
+  [AccionConfiguracionFacturacion.ACTIVAR]: 'ACTIVADA',
+  [AccionConfiguracionFacturacion.DESACTIVAR]: 'DESACTIVADA',
+  [AccionConfiguracionFacturacion.ELIMINAR]: 'ELIMINADA'
+};
+
+const ACCION_CLASES: { [accion: string]: string } = {
+  [AccionConfiguracionFacturacion.CREAR]: 'chip-todas',
+  [AccionConfiguracionFacturacion.MODIFICAR]: 'chip-intervalo',
+  [AccionConfiguracionFacturacion.ACTIVAR]: 'chip-todas',
+  [AccionConfiguracionFacturacion.DESACTIVAR]: 'chip-siempre',
+  [AccionConfiguracionFacturacion.ELIMINAR]: 'chip-eliminada'
+};
+
+function modoLabel(modo: ModoFacturacion, ventasSinFactura: number): string {
+  return modo === ModoFacturacion.INTERVALO
+    ? `1 DE CADA ${(ventasSinFactura ?? 0) + 1}`
+    : (MODO_LABELS[modo] || modo);
+}
+
 /**
  * ABM de la política de facturación automática del filial (issue filial #127). Una fila global y
- * overrides por sucursal. Sin filas, cada filial sigue con su contador local (facturaCountDown).
+ * overrides por sucursal, cada una activa o inactiva, más el historial de cambios. Sin filas
+ * activas, cada filial sigue con su contador local (facturaCountDown).
  */
 @Component({
   selector: 'app-configuracion-facturacion-dialog',
@@ -56,17 +99,32 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     { value: ModoFacturacion.A_PEDIDO, label: MODO_LABELS[ModoFacturacion.A_PEDIDO] }
   ];
 
+  vista: 'config' | 'historial' = 'config';
+
   filas: FilaConfiguracion[] = [];
   sucursales: Sucursal[] = [];
   editandoId: number = null;
   esIntervalo = true;
   isLoading = true;
+  /** El central de este canal no tiene la función todavía (desktop más nuevo que su backend). */
+  sinSoporte = false;
+  /** Texto del banner cuando la global falta o está inactiva; vacío si hay global activa. */
+  avisoGlobal = '';
+  /** Qué rige para una sucursal sin configuración propia activa: se muestra en las confirmaciones. */
+  private rigeSinOverride = '';
+  haySucursalesActivas = false;
+  haySucursalesInactivas = false;
+
+  historial: FilaHistorial[] = [];
+  historialError = false;
+  historialCargando = false;
+  /** null = todas; GLOBAL = solo la global; id = una sucursal. */
+  filtroHistorial: number = null;
+
   // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
   modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
   intervaloHint = '';
   respetaHint = '';
-  /** El central de este canal no tiene la función todavía (desktop más nuevo que su backend). */
-  sinSoporte = false;
 
   form = new FormGroup({
     sucursalId: new FormControl<number>(-1),
@@ -79,7 +137,8 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<ConfiguracionFacturacionDialogComponent>,
     private configuracionService: ConfiguracionFacturacionService,
     private sucursalService: SucursalService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService
   ) { }
 
   ngOnInit(): void {
@@ -95,7 +154,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     this.configuracionService.onGetConfiguraciones().subscribe({
       next: (res) => {
         // onCustomQuery emite null ante un error (por ejemplo, el central no conoce la query);
-        // una lista vacía llega como []. Sin esto, el error se veria igual que "sin configuración".
+        // una lista vacía llega como []. Sin esto, el error se vería igual que "sin configuración".
         this.sinSoporte = res == null;
         const configs = (res != null ? res : []).map((r) => Object.assign(new ConfiguracionFacturacion(), r));
         // La global primero; después las sucursales por nombre.
@@ -105,6 +164,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
           return (a.sucursal.nombre || '').localeCompare(b.sucursal.nombre || '');
         });
         this.filas = configs.map((c) => this.toFila(c));
+        this.calcularEstado(configs);
         this.isLoading = false;
       },
       error: () => {
@@ -115,13 +175,27 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     });
   }
 
+  private calcularEstado(configs: ConfiguracionFacturacion[]): void {
+    const global = configs.find((c) => c.sucursal == null);
+    const sucursales = configs.filter((c) => c.sucursal != null);
+    this.haySucursalesActivas = sucursales.some((c) => c.activo !== false);
+    this.haySucursalesInactivas = sucursales.some((c) => c.activo === false);
+    if (global != null && global.activo !== false) {
+      this.avisoGlobal = '';
+      this.rigeSinOverride = `la configuración global (${modoLabel(global.modo, global.ventasSinFactura)})`;
+    } else {
+      this.avisoGlobal = global == null
+        ? 'No hay configuración global: las sucursales sin configuración propia activa usan el contador local de su servidor.'
+        : 'La configuración global está inactiva: las sucursales sin configuración propia activa usan el contador local de su servidor.';
+      this.rigeSinOverride = 'el contador local de cada servidor (facturaCountDown)';
+    }
+  }
+
   private toFila(c: ConfiguracionFacturacion): FilaConfiguracion {
     return {
       config: c,
       sucursalNombre: c.sucursal != null ? c.sucursal.nombre : 'GLOBAL (TODAS LAS SUCURSALES)',
-      modoLabel: c.modo === ModoFacturacion.INTERVALO
-        ? `1 DE CADA ${(c.ventasSinFactura ?? 0) + 1}`
-        : (MODO_LABELS[c.modo] || c.modo),
+      modoLabel: modoLabel(c.modo, c.ventasSinFactura),
       modoClase: MODO_CLASES[c.modo] || 'chip-siempre',
       respetaLabel: c.ventaTicketRespetaPolitica ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE',
       modificadoPor: c.usuarioNickname || '-',
@@ -194,6 +268,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     input.modo = v.modo;
     input.ventasSinFactura = this.esIntervalo ? v.ventasSinFactura : 0;
     input.ventaTicketRespetaPolitica = v.ventaTicketRespetaPolitica === true;
+    // Sin activo: al crear queda activa, y al editar el central conserva el que tenía.
     this.configuracionService.onSaveConfiguracion(input).subscribe({
       next: (res) => {
         if (res != null) {
@@ -208,10 +283,36 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     });
   }
 
+  /** El switch de la fila: guarda la misma configuración con el activo invertido. */
+  onToggleActivo(fila: FilaConfiguracion): void {
+    const input = fila.config.toInput();
+    input.activo = fila.config.activo === false;
+    this.configuracionService.onSaveConfiguracion(input).subscribe({
+      next: () => this.cargar(),
+      error: () => this.cargar()
+    });
+  }
+
+  onSetActivoSucursales(activo: boolean): void {
+    const titulo = activo ? 'ACTIVAR SUCURSALES' : 'DESACTIVAR SUCURSALES';
+    const mensaje = activo
+      ? 'Todas las sucursales vuelven a usar su configuración propia.'
+      : `Todas las sucursales pasan a seguir ${this.rigeSinOverride}. Cada una conserva sus valores para reactivarla después.`;
+    this.dialogosService.confirm(titulo, mensaje).subscribe((ok) => {
+      if (!ok) return;
+      this.configuracionService.onSetActivoSucursales(activo).subscribe((cambiadas) => {
+        if (cambiadas != null) {
+          this.notificacionService.openSucess(`${cambiadas} configuraciones ${activo ? 'activadas' : 'desactivadas'}`);
+          this.cargar();
+        }
+      });
+    });
+  }
+
   onEliminar(fila: FilaConfiguracion): void {
     const mensaje = fila.config.sucursal != null
-      ? `${fila.sucursalNombre} vuelve a usar la configuración global. ¿Continuar?`
-      : 'Las sucursales sin configuración propia vuelven a su contador local (facturaCountDown). ¿Continuar?';
+      ? `${fila.sucursalNombre} pasa a seguir ${this.rigeSinOverride}. Si solo querés pausarla, desactivala. ¿Continuar?`
+      : 'Las sucursales sin configuración propia activa vuelven a su contador local (facturaCountDown). ¿Continuar?';
     this.configuracionService.onDeleteConfiguracion(fila.config.id, mensaje).subscribe((res) => {
       if (res) {
         if (this.editandoId === fila.config.id) {
@@ -220,6 +321,49 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
         this.cargar();
       }
     });
+  }
+
+  onVerConfiguracion(): void {
+    this.vista = 'config';
+  }
+
+  onVerHistorial(): void {
+    this.vista = 'historial';
+    this.cargarHistorial();
+  }
+
+  onFiltroHistorialChange(): void {
+    this.cargarHistorial();
+  }
+
+  private cargarHistorial(): void {
+    this.historialCargando = true;
+    this.configuracionService.onGetHistorial(this.filtroHistorial).subscribe({
+      next: (res) => {
+        // null = error (distinto de "sin cambios", que llega como []).
+        this.historialError = res == null;
+        this.historial = (res != null ? res : []).map((h) => this.toFilaHistorial(h));
+        this.historialCargando = false;
+      },
+      error: () => {
+        this.historialError = true;
+        this.historialCargando = false;
+      }
+    });
+  }
+
+  private toFilaHistorial(h: ConfiguracionFacturacionHistorial): FilaHistorial {
+    return {
+      fecha: h.creadoEn,
+      sucursalNombre: h.sucursal != null ? h.sucursal.nombre : 'GLOBAL',
+      accionLabel: ACCION_LABELS[h.accion] || h.accion,
+      accionClase: ACCION_CLASES[h.accion] || 'chip-siempre',
+      modoLabel: modoLabel(h.modo, h.ventasSinFactura),
+      modoClase: MODO_CLASES[h.modo] || 'chip-siempre',
+      respetaLabel: h.ventaTicketRespetaPolitica ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE',
+      activoLabel: h.activo ? 'ACTIVA' : 'INACTIVA',
+      usuario: h.usuarioNickname || '-'
+    };
   }
 
   onCerrar(): void {
