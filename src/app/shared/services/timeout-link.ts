@@ -18,6 +18,8 @@ export type TipoOperacion = "query" | "mutation";
  * coincide con lo que pasó. Una respuesta que llegue después se descarta.
  *
  * Cada llamada puede pedir más tiempo con `context: { timeoutMs }` (reportes, generación masiva).
+ * Una consulta de fondo que nadie está esperando (el poll de cotización del header) pide
+ * `context: { silenciarAvisoTimeout: true }`: el corte y el error siguen igual, pero no avisa.
  * Cortar del lado cliente no deshace lo que el servidor ya haya escrito: por eso una mutation
  * avisa distinto.
  */
@@ -29,6 +31,7 @@ export function crearTimeoutLink(
     const pedido = operation.getContext()?.timeoutMs;
     const limiteMs = typeof pedido === "number" && pedido > 0 ? pedido : porDefectoMs;
     const tipo = tipoDeOperacion(operation);
+    const silenciarAviso = operation.getContext()?.silenciarAvisoTimeout === true;
 
     return new Observable((observer) => {
       let terminado = false;
@@ -38,7 +41,7 @@ export function crearTimeoutLink(
         if (terminado) return;
         terminado = true;
         subscription?.unsubscribe();
-        avisar(tipo);
+        if (!silenciarAviso) avisar(tipo);
         const err: any = new Error(tipo === "mutation" ? MENSAJE_TIMEOUT_MUTATION : MENSAJE_TIMEOUT_QUERY);
         err.esTimeout = true;
         observer.error(err);

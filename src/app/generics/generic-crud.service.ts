@@ -43,6 +43,8 @@ const RESPUESTA_VACIA = {
 const TIMEOUT_CUSTOM_QUERY_MS = 300000;
 /** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
 const MARGEN_DIALOGO_MS = 5000;
+/** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
+export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -125,19 +127,26 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * @param contexto opcional. `timeoutMs` reemplaza el tiempo máximo (por defecto el de reportes,
+   * 5 min); `silenciarAvisoTimeout` evita el aviso al vencer. Pensado para consultas de fondo que
+   * nadie está esperando. Sin pasarlo, el comportamiento es el de siempre.
+   */
   onCustomQuery(
     gql: Query,
     data,
     servidor: boolean = true,
     errorConf?,
-    silentLoad?: boolean
+    silentLoad?: boolean,
+    contexto?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }
   ): Observable<any> {
+    const timeoutMs = contexto?.timeoutMs ?? TIMEOUT_CUSTOM_QUERY_MS;
     this.isLoading = true;
     // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
     const shouldShowDialog = silentLoad !== true;
     let { requestId = null } =
       shouldShowDialog
-        ? this.cargandoService.openDialog(false, "Buscando...", TIMEOUT_CUSTOM_QUERY_MS + MARGEN_DIALOGO_MS)
+        ? this.cargandoService.openDialog(false, "Buscando...", timeoutMs + MARGEN_DIALOGO_MS)
         : {};
     return new Observable((obs) => {
       this.apollo.query({
@@ -148,7 +157,8 @@ export class GenericCrudService {
         context: {
           clientName: servidor == null || servidor ? "servidor" : null,
           // Reportes y vistas previas pesadas: el timeout real lo aplica el link (issue #304).
-          timeoutMs: TIMEOUT_CUSTOM_QUERY_MS,
+          timeoutMs,
+          silenciarAvisoTimeout: contexto?.silenciarAvisoTimeout === true,
         },
       })
         .pipe(
