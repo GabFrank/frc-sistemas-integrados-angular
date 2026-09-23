@@ -214,7 +214,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   }
 
   private continuarGuardado() {
-    this.cargandoDialog.openDialog();
+    const { requestId } = this.cargandoDialog.openDialog();
 
     if (this.principalControl.value === true) {
       this.precioService.onGetPrecioPorSurursalPorPresentacionId(this.data.presentacion.id)
@@ -246,31 +246,31 @@ export class AdicionarPrecioDialogComponent implements OnInit {
           if (updatePromises.length > 0) {
             Promise.all(updatePromises.map(promise => promise.toPromise()))
               .then(() => {
-                this.guardarPrecio();
+                this.guardarPrecio(requestId);
               })
               .catch(error => {
                 console.error('Error al actualizar precios principales:', error);
-                this.guardarPrecio();
+                this.guardarPrecio(requestId);
               });
           } else {
-            this.guardarPrecio();
+            this.guardarPrecio(requestId);
           }
         });
     } else {
-      this.guardarPrecio();
+      this.guardarPrecio(requestId);
     }
   }
 
-  private guardarPrecio() {
+  private guardarPrecio(requestId: number) {
     this.precioInput.sucursalId = this.mainService?.sucursalActual?.id;
-    
+
     this.precioService.onSave(this.precioInput).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoDialog.closeDialog();
+      this.cargandoDialog.closeDialog(requestId);
       if (res != null) {
         this.matDialogRef.close(res);
       }
     }, error => {
-      this.cargandoDialog.closeDialog();
+      this.cargandoDialog.closeDialog(requestId);
       this.notificacionSnackBar.notification$.next({
         texto: "Error al guardar el precio",
         color: NotificacionColor.warn,

@@ -73,15 +73,19 @@ export class ListEntradasVariasDialogComponent implements OnInit {
       null, null
     ).subscribe(confirmed => {
       if (confirmed) {
-        this.entradaVariaService.onAnular(item.id, 'ANULADO DESDE ESCRITORIO')
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.entradaVariaService.onAnular(item.id, 'ANULADO DESDE ESCRITORIO', { avisarExito: false })
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res != null) {
-              this.notificacion.openSucess('Movimiento anulado correctamente');
-              this.onFiltrar();
-            } else {
-              this.notificacion.openAlgoSalioMal('No se pudo anular el movimiento');
-            }
+          .subscribe({
+            next: res => {
+              if (res != null) {
+                this.notificacion.openSucess('Movimiento anulado correctamente');
+                this.onFiltrar();
+              } else {
+                this.notificacion.openAlgoSalioMal('No se pudo anular el movimiento');
+              }
+            },
+            error: () => {}
           });
       }
     });

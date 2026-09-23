@@ -33,8 +33,9 @@ export class MaletinService {
   ) { }
 
   /** Ingresa de una vez el valor del cierre del maletín para las monedas seleccionadas. */
-  onIngresarCierre(cajaVirtualId: number, maletinId: number, monedaIds: number[], descripcion?: string, servidor: boolean = true): Observable<any> {
-    return this.genericCrud.onSaveCustom(this.ingresarMaletinCierreGQL, { cajaVirtualId, maletinId, monedaIds, descripcion: descripcion || null }, servidor);
+  onIngresarCierre(cajaVirtualId: number, maletinId: number, monedaIds: number[], descripcion?: string, servidor: boolean = true,
+                   opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericCrud.onSaveCustom(this.ingresarMaletinCierreGQL, { cajaVirtualId, maletinId, monedaIds, descripcion: descripcion || null }, servidor, opciones);
   }
 
   /** Valor físico estimado dentro del maletín (por moneda, del último cierre). */
@@ -48,8 +49,9 @@ export class MaletinService {
   }
 
   /** Egresa de la caja mayor el valor que se despacha en un maletín. */
-  onEgresar(cajaVirtualId: number, maletinId: number, monedaId: number, monto: number, descripcion?: string, servidor: boolean = true): Observable<any> {
-    return this.genericCrud.onSaveCustom(this.egresarMaletinGQL, { cajaVirtualId, maletinId, monedaId, monto, descripcion: descripcion || null }, servidor);
+  onEgresar(cajaVirtualId: number, maletinId: number, monedaId: number, monto: number, descripcion?: string, servidor: boolean = true,
+            opciones?: { avisarExito?: boolean }): Observable<any> {
+    return this.genericCrud.onSaveCustom(this.egresarMaletinGQL, { cajaVirtualId, maletinId, monedaId, monto, descripcion: descripcion || null }, servidor, opciones);
   }
 
   onCount(servidor: boolean = true): Observable<number> {

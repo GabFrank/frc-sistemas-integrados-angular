@@ -49,7 +49,7 @@
         class="totales-cambios"
         [ngStyle]="{ 'font-size': '1.5em' }"
       >
-        {{ totalGs / cambioRs | number : "1.2-2" }}
+        {{ cambioRs ? (totalGs / cambioRs | number : "1.2-2") : "—" }}
       </div>
     </div>
     <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
@@ -65,7 +65,7 @@
         class="totales-cambios"
         [ngStyle]="{ 'font-size': '1.5em' }"
       >
-        {{ totalGs / cambioDs | number : "1.2-2" }}
+        {{ cambioDs ? (totalGs / cambioDs | number : "1.2-2") : "—" }}
       </div>
     </div>
   </div>
@@ -89,7 +89,7 @@
         />
       </div>
       <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-        {{ cambioRs | number }} Gs.
+        {{ cambioRs ? (cambioRs | number) + " Gs." : "—" }}
       </div>
     </div>
     <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
@@ -101,7 +101,7 @@
         />
       </div>
       <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
-        {{ cambioDs | number }} Gs.
+        {{ cambioDs ? (cambioDs | number) + " Gs." : "—" }}
       </div>
     </div>
   </div>

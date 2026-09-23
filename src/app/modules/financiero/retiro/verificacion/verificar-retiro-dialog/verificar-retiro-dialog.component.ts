@@ -220,10 +220,9 @@ export class VerificarRetiroDialogComponent implements OnInit {
         this.service.borrarBorrador(this.data.retiro.id, this.data.retiro.sucursalId);
         this.dialogRef.close(res);
       },
-      error: err => {
+      // El aviso de error lo da onSaveCustom.
+      error: () => {
         this.guardando = false;
-        const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo verificar';
-        this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
       },
     });
   }

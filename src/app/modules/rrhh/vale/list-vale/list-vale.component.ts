@@ -41,6 +41,11 @@ export class ListValeComponent implements OnInit {
   pageSize = 25;
   selectedPageInfo: PageInfo<Vale>;
 
+  // Gating por rol: el backend exige RRHH APROBAR para confirmar y RRHH GESTIONAR
+  // para crear/anular. Se calculan una sola vez para no llamar funciones desde el HTML.
+  puedeAprobar = false;
+  puedeGestionar = false;
+
   constructor(
     private valeService: ValeService,
     public mainService: MainService,
@@ -57,6 +62,8 @@ export class ListValeComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeAprobar = this.mainService.tieneAlgunRol(['RRHH APROBAR']);
+    this.puedeGestionar = this.mainService.tieneAlgunRol(['RRHH GESTIONAR']);
     this.onFiltrar();
   }
 
@@ -109,7 +116,9 @@ export class ListValeComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
-        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this)).subscribe(ok => { if (ok) this.onFiltrar(); });
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.valeService.onAnular(vale.id).pipe(untilDestroyed(this))
+          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
       }
     });
   }

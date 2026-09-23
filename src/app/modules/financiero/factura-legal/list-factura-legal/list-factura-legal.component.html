@@ -423,6 +423,14 @@
             </button>
             <button
               mat-menu-item
+              *ngIf="puedeEmitirNotaCredito"
+              (click)="onNotaCredito(factura)"
+              [disabled]="!esElectronica(factura)">
+              <mat-icon>request_quote</mat-icon>
+              <span>Nota de crédito</span>
+            </button>
+            <button
+              mat-menu-item
               (click)="onDescargarXml(factura)"
               [disabled]="!esElectronica(factura)">
               <mat-icon>download</mat-icon>

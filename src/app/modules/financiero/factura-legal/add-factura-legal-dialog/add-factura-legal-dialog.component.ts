@@ -938,8 +938,15 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     if (this.isServidor) {
       this.onSaveFacturaToFilial(facturaInput, facturaItemInputList, deseaImprimir);
     } else {
-      // Modo normal (desde venta)
-      // Intento principal: servidor central. Si falla, fallback al servidor local
+      // Modo normal (desde venta).
+      //
+      // No se reintenta ante un fallo. El "fallback al servidor local" que había acá
+      // mandaba servidor=false, igual que este intento, así que no caía a otro servidor:
+      // volvía a llamar al mismo. Y como el backend puede fallar DESPUÉS de haber
+      // guardado la factura, ese reintento emitía una segunda con otro número de
+      // timbrado. Emitir es irreversible, así que ante la duda se avisa al cajero en
+      // vez de re-emitir: la factura pudo haberse guardado y hay que mirar la lista
+      // antes de volver a intentar.
       this.facturaService
         .onSaveFactura(facturaInput, facturaItemInputList, false)
         .pipe(untilDestroyed(this))
@@ -948,11 +955,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
             if (res != null) {
               this.handleFacturaSuccess(res);
             } else {
-              this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+              this.onFacturaNoConfirmada();
             }
           },
-          error: () => {
-            this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+          error: (err) => {
+            console.error("Error al guardar la factura legal:", err);
+            this.onFacturaNoConfirmada();
           },
         });
     }
@@ -1038,26 +1046,17 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     }, 1000);
   }
 
-  private trySaveFacturaLocal(facturaInput: any, facturaItemInputList: FacturaLegalItemInput[]) {
-    this.notificacionService.openWarn(
-      "Servidor central no disponible. Se imprimirá desde el servidor local.",
+  /**
+   * El servidor no confirmó la factura. No se puede saber si llegó a guardarse: el
+   * backend consume el número de timbrado y recién después hace tareas que pueden
+   * fallar. Por eso no se reintenta solo — se libera el botón y se le pide al cajero
+   * que verifique en la lista de facturas antes de volver a emitir.
+   */
+  private onFacturaNoConfirmada() {
+    this.guardando = false;
+    this.notificacionService.openAlgoSalioMal(
+      "No se pudo confirmar la factura. Verifique en la lista de facturas si se emitió antes de volver a intentar."
     );
-    this.facturaService
-      .onSaveFactura(facturaInput, facturaItemInputList, false)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (resLocal: TimbradoDetalle) => {
-          if (resLocal != null) {
-            this.handleFacturaSuccess(resLocal);
-          } else {
-            this.guardando = false;
-          }
-        },
-        error: () => {
-          this.guardando = false;
-          this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor local");
-        },
-      });
   }
 
   private handleFacturaSuccess(res: TimbradoDetalle) {

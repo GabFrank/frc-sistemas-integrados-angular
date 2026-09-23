@@ -26,6 +26,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable, of } from 'rxjs';
 import {
   distinctUntilChanged,
+  filter,
   finalize,
   startWith,
   switchMap,
@@ -84,8 +85,14 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
   selectedPresentacion: Presentacion | null = null;
   mostrarStockColumna = false;
   busquedaEnCurso = false;
+  hayMasResultados = false;
   private paginaActual = 0;
   private terminoBusqueda = '';
+  /**
+   * Sube con cada búsqueda nueva. La respuesta de un «+» que arrancó antes se
+   * descarta: comparar el término no alcanza si el usuario volvió a escribirlo.
+   */
+  private generacionBusqueda = 0;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ComprasSearchProductoData,
@@ -116,8 +123,10 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
         tap(() => this.reiniciarSeleccion()),
         switchMap((value: string) => {
           const termino = (value ?? '').trim();
+          const generacion = ++this.generacionBusqueda;
           this.terminoBusqueda = termino;
           this.paginaActual = 0;
+          this.hayMasResultados = false;
 
           if (!termino) {
             this.busquedaEnCurso = false;
@@ -127,8 +136,12 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
 
           this.busquedaEnCurso = true;
           return this.crearBusqueda$(termino, 0).pipe(
+            // Un Enter pudo lanzar una búsqueda más nueva mientras esta volaba.
+            filter(() => generacion === this.generacionBusqueda),
             finalize(() => {
-              this.busquedaEnCurso = false;
+              if (generacion === this.generacionBusqueda) {
+                this.busquedaEnCurso = false;
+              }
               this.cdr.markForCheck();
             })
           );
@@ -138,11 +151,13 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
       .subscribe({
         next: (productos) => {
           this.dataSource.data = productos;
+          this.hayMasResultados = this.esPaginaLlena(productos);
           this.intentarSeleccionPorCoincidenciaExacta(productos);
           this.cdr.markForCheck();
         },
         error: () => {
           this.dataSource.data = [];
+          this.hayMasResultados = false;
           this.notificacionService.openWarn('Error al buscar productos');
           this.cdr.markForCheck();
         },
@@ -164,6 +179,14 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
       page,
       PAGE_SIZE,
       true
+    );
+  }
+
+  /** Una página con menos filas que una llena es la última. */
+  private esPaginaLlena(productos: Producto[]): boolean {
+    return (
+      productos.length >=
+      this.buscadorComprasService.filasPorPaginaDialog(this.terminoBusqueda, PAGE_SIZE)
     );
   }
 
@@ -203,14 +226,15 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     alObtenerResultados?: () => void
   ): void {
     const termino = (texto ?? '').trim();
-    this.terminoBusqueda = termino;
 
     if (!append) {
+      this.generacionBusqueda++;
+      this.terminoBusqueda = termino;
       this.paginaActual = 0;
+      this.hayMasResultados = false;
       this.reiniciarSeleccion();
-    } else {
-      this.paginaActual = page;
     }
+    const generacion = this.generacionBusqueda;
 
     if (!termino) {
       this.busquedaEnCurso = false;
@@ -223,14 +247,24 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
     this.crearBusqueda$(termino, append ? page : 0)
       .pipe(
         finalize(() => {
-          this.busquedaEnCurso = false;
+          // Una búsqueda más nueva ya maneja el indicador.
+          if (generacion === this.generacionBusqueda) {
+            this.busquedaEnCurso = false;
+          }
           this.cdr.markForCheck();
         }),
         untilDestroyed(this)
       )
       .subscribe({
         next: (productos) => {
+          if (generacion !== this.generacionBusqueda) {
+            return;
+          }
+
+          this.hayMasResultados = this.esPaginaLlena(productos);
           if (append) {
+            // La página avanza solo si llegó: si falla, el próximo «+» la repite.
+            this.paginaActual = page;
             const idsExistentes = new Set(this.dataSource.data.map((p) => p.id));
             const nuevos = productos.filter((p) => !idsExistentes.has(p.id));
             this.dataSource.data = [...this.dataSource.data, ...nuevos];
@@ -243,6 +277,10 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
           this.cdr.markForCheck();
         },
         error: () => {
+          if (generacion !== this.generacionBusqueda) {
+            return;
+          }
+
           if (!append) {
             this.dataSource.data = [];
           }
@@ -492,6 +530,9 @@ export class ComprasSearchProductoDialogComponent implements OnInit, AfterViewIn
   }
 
   cargarMasDatos(): void {
+    if (this.busquedaEnCurso || !this.hayMasResultados) {
+      return;
+    }
     this.ejecutarBusqueda(this.terminoBusqueda, this.paginaActual + 1, true);
   }
 

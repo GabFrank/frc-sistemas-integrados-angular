@@ -1,6 +1,6 @@
 import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
-import { Observable, OperatorFunction, timeout } from "rxjs";
+import { Observable, OperatorFunction } from "rxjs";
 import { map } from "rxjs/operators";
 import { MainService } from "../main.service";
 import {
@@ -11,7 +11,13 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
+import {
+  limpiarErroresGraphQL,
+  limpiarMensajeGraphQL,
+  mensajeErrorTransporte,
+} from "../commons/core/utils/graphqlErrorUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { esTimeoutDeLink } from "../shared/services/timeout-link";
 import { Apollo } from "apollo-angular";
 export interface QueryError {
   graphError?: {
@@ -32,6 +38,13 @@ const RESPUESTA_VACIA = {
   data: null,
   errors: [{ message: "Respuesta vacía del servidor" }],
 };
+
+/** Tiempo máximo de onCustomQuery (reportes, vistas previas pesadas); lo aplica el timeout link. */
+const TIMEOUT_CUSTOM_QUERY_MS = 300000;
+/** El diálogo de carga es una red de seguridad: vence un poco después que el timeout real. */
+const MARGEN_DIALOGO_MS = 5000;
+/** Tiempo máximo de una consulta de fondo (poll del header): nadie la está esperando. */
+export const TIMEOUT_CONSULTA_DE_FONDO_MS = 20000;
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -73,7 +86,7 @@ export class GenericCrudService {
 
   onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando..."
     );
@@ -86,7 +99,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -100,7 +112,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -115,19 +127,26 @@ export class GenericCrudService {
     });
   }
 
+  /**
+   * @param contexto opcional. `timeoutMs` reemplaza el tiempo máximo (por defecto el de reportes,
+   * 5 min); `silenciarAvisoTimeout` evita el aviso al vencer. Pensado para consultas de fondo que
+   * nadie está esperando. Sin pasarlo, el comportamiento es el de siempre.
+   */
   onCustomQuery(
     gql: Query,
     data,
     servidor: boolean = true,
     errorConf?,
-    silentLoad?: boolean
+    silentLoad?: boolean,
+    contexto?: { timeoutMs?: number; silenciarAvisoTimeout?: boolean }
   ): Observable<any> {
+    const timeoutMs = contexto?.timeoutMs ?? TIMEOUT_CUSTOM_QUERY_MS;
     this.isLoading = true;
     // Usar verificación estricta: solo abrir diálogo si silentLoad NO es explícitamente true
     const shouldShowDialog = silentLoad !== true;
-    let { requestId = null, signal = null } =
+    let { requestId = null } =
       shouldShowDialog
-        ? this.cargandoService.openDialog(false, "Buscando...")
+        ? this.cargandoService.openDialog(false, "Buscando...", timeoutMs + MARGEN_DIALOGO_MS)
         : {};
     return new Observable((obs) => {
       this.apollo.query({
@@ -137,12 +156,13 @@ export class GenericCrudService {
         errorPolicy: 'all',
         context: {
           clientName: servidor == null || servidor ? "servidor" : null,
-          fetchOptions: { signal },
+          // Reportes y vistas previas pesadas: el timeout real lo aplica el link (issue #304).
+          timeoutMs,
+          silenciarAvisoTimeout: contexto?.silenciarAvisoTimeout === true,
         },
       })
         .pipe(
           untilDestroyed(this),
-          timeout(300000), // Adjust as per your needs
           this.sinRespuestaVacia()
         )
         .subscribe({
@@ -156,7 +176,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -172,7 +192,7 @@ export class GenericCrudService {
             if (shouldShowDialog) {
               this.cargandoService.closeDialog(requestId);
             }
-            if (errorConf?.networkError?.show == true) {
+            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -188,18 +208,18 @@ export class GenericCrudService {
     });
   }
 
-  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false): Observable<any> {
+  onCustomMutation(gql: Mutation, data, servidor: boolean = true, silentLoad: boolean = false,
+                   opciones?: { timeoutMs?: number }): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
-    let signal: AbortSignal | undefined;
     
     if (silentLoad !== true) {
       const result = this.cargandoService.openDialog(
         false,
-        "Guardando..."
+        "Guardando...",
+        opciones?.timeoutMs != null ? opciones.timeoutMs + MARGEN_DIALOGO_MS : undefined
       );
       requestId = result.requestId;
-      signal = result.signal;
     }
     
     return new Observable((obs) => {
@@ -209,7 +229,7 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
+            timeoutMs: opciones?.timeoutMs,
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -225,12 +245,12 @@ export class GenericCrudService {
             } else {
               if (silentLoad !== true) {
                 this.notificacionSnackBar.notification$.next({
-                  texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                  texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                   color: NotificacionColor.danger,
                   duracion: 3,
                 });
               }
-              obs.error(res.errors);
+              obs.error(limpiarErroresGraphQL(res.errors));
             }
           },
           error: (error) => {
@@ -252,12 +272,10 @@ export class GenericCrudService {
   ): Observable<any> {
     this.isLoading = true;
     let requestId: number | null = null;
-    let signal: AbortSignal | undefined;
 
     if (cargando == true) {
       const result = this.cargandoService.openDialog(false, "Buscando...");
       requestId = result.requestId;
-      signal = result.signal;
     }
 
     return new Observable((obs) => {
@@ -267,7 +285,6 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -282,7 +299,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -312,7 +329,7 @@ export class GenericCrudService {
     warningText?
   ): Observable<T> {
     this.isLoading = true;
-    let { requestId = null, signal = null } =
+    let { requestId = null } =
       silentLoad != true
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
@@ -325,7 +342,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -348,16 +364,18 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
             }
           },
           (err) => {
-            this.notificacionBar.openWarn(
-              warningText != null ? warningText : "Problema al realizar esta operación"
-            );
+            if (!esTimeoutDeLink(err)) {
+              this.notificacionBar.openWarn(
+                warningText != null ? warningText : "Problema al realizar esta operación"
+              );
+            }
             this.cargandoService.closeDialog(requestId);
           }
         );
@@ -372,7 +390,7 @@ export class GenericCrudService {
     errorConf?: QueryError
   ): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Buscando...",
       duracion
@@ -386,7 +404,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -399,7 +416,7 @@ export class GenericCrudService {
               obs.next(res.data["data"]);
               obs.complete();
             } else {
-              const errorMessage = res.errors[0].message;
+              const errorMessage = limpiarMensajeGraphQL(res.errors[0].message);
               if (errorConf?.graphError?.show !== false) {
                 this.notificacionSnackBar.notification$.next({
                   texto: "Ups! Algo salió mal: " + errorMessage,
@@ -408,14 +425,14 @@ export class GenericCrudService {
                 });
               }
               if (errorConf?.graphError?.propagate === true) {
-                obs.error({ message: errorMessage, errors: res.errors });
+                obs.error({ message: errorMessage, errors: limpiarErroresGraphQL(res.errors) });
               }
             }
           },
           error: (error) => {
             this.cargandoService.closeDialog(requestId);
             this.isLoading = false;
-            if (errorConf?.networkError?.show === true) {
+            if (errorConf?.networkError?.show === true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -448,7 +465,7 @@ export class GenericCrudService {
       }
     }
 
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Guardando..."
     );
@@ -461,7 +478,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -481,21 +497,21 @@ export class GenericCrudService {
             } else {
               this.notificacionSnackBar.notification$.next({
                 texto:
-                  "Ups! Algo salió mal en operacion: " + res.errors[0].message,
+                  "Ups! Algo salió mal en operacion: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
               if (res?.data != null && res?.data["data"] != null) {
                 obs.next(res.data["data"]);
               } else {
-                obs.error(res.errors);
+                obs.error(limpiarErroresGraphQL(res.errors));
               }
             }
           },
           error: (error) => {
             this.isLoading = false;
             this.cargandoService.closeDialog(requestId);
-            if (errorConf?.networkError?.show == true) {
+            if (errorConf?.networkError?.show == true && !esTimeoutDeLink(error)) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
                 color:
@@ -511,11 +527,40 @@ export class GenericCrudService {
     });
   }
 
-  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
+  // Un lote (forkJoin de N onSaveCustom) que falla dispara N errores casi juntos (de red o de
+  // negocio): forkJoin corta en el primero, pero las demás llamadas siguen vivas y cada una
+  // avisaría. La cola de notificaciones es secuencial, así que N avisos iguales taparían cualquier
+  // otro. Misma operación y mismo texto dentro de la ventana = un solo aviso. La clave incluye la
+  // operación: dos acciones distintas que fallan igual (p. ej. dos 403) avisan cada una.
+  ventanaAvisoErrorMs = 3000;
+  private ultimoAvisoError: { gql: Mutation; texto: string; en: number } = null;
+
+  private avisarErrorSinRepetir(gql: Mutation, texto: string, duracion: number): void {
+    // Reloj monotónico: si el reloj del sistema retrocede (NTP), Date.now() dejaría la
+    // resta negativa y silenciaría avisos mucho más de la ventana.
+    const ahora = performance.now();
+    const repetido = this.ultimoAvisoError?.gql === gql
+      && this.ultimoAvisoError.texto === texto
+      && ahora - this.ultimoAvisoError.en < this.ventanaAvisoErrorMs;
+    if (repetido) return;
+    this.ultimoAvisoError = { gql, texto, en: ahora };
+    this.notificacionSnackBar.notification$.next({ texto, color: NotificacionColor.danger, duracion });
+  }
+
+  /**
+   * `opciones.avisarExito = false` apaga solo «Guardado con éxito», para el llamador que muestra su
+   * propio aviso de éxito (más específico). No toca el diálogo «Guardando...» ni los avisos de
+   * error: esos los da siempre este método, que tiene el mensaje real del backend.
+   * Es un objeto y no un booleano: varios wrappers terminan en `servidor: boolean`, y un `false`
+   * suelto caería ahí sin que el compilador lo note.
+   */
+  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true,
+                  opciones?: { avisarExito?: boolean; timeoutMs?: number }): Observable<T> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
-      "Guardando..."
+      "Guardando...",
+      opciones?.timeoutMs != null ? opciones.timeoutMs + MARGEN_DIALOGO_MS : undefined
     );
     return new Observable((obs) => {
       gql
@@ -524,7 +569,7 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
+            timeoutMs: opciones?.timeoutMs,
           },
         })
         .pipe(untilDestroyed(this), this.sinRespuestaVacia())
@@ -535,28 +580,35 @@ export class GenericCrudService {
             if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
-              this.notificacionSnackBar.notification$.next({
-                texto: "Guardado con éxito",
-                duracion: 2,
-                color: NotificacionColor.success,
-              });
+              if (opciones?.avisarExito !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Guardado con éxito",
+                  duracion: 2,
+                  color: NotificacionColor.success,
+                });
+              }
             } else {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal en operacion: " + res.errors[0].message,
-                color: NotificacionColor.danger,
-                duracion: 5,
-              });
+              // Sin mensaje del backend (undefined o vacío) el aviso diría «…operacion: undefined».
+              const limpio = limpiarMensajeGraphQL(res.errors[0]?.message);
+              const mensaje = typeof limpio === "string" && limpio.trim() ? limpio : "el servidor no dio detalle";
+              this.avisarErrorSinRepetir(gql, "Ups! Algo salió mal en operacion: " + mensaje, 5);
               // Ademas del snackbar hay que CERRAR el observable: sin esto el llamador se queda
               // esperando para siempre y cualquier bandera de "guardando" nunca se apaga, con lo
               // cual el boton de confirmar queda muerto y el usuario tiene que rehacer el
               // formulario entero. Un error de negocio del backend es un error para el llamador,
               // no un silencio.
-              obs.error({ graphQLErrors: res.errors, message: res.errors[0].message });
+              obs.error({ graphQLErrors: limpiarErroresGraphQL(res.errors), message: mensaje });
             }
           },
           error: (error) => {
             this.isLoading = false;
             this.cargandoService.closeDialog(requestId);
+            // Error de transporte: nadie más lo avisa (errorObs no tiene suscriptores), así que
+            // sin esto el usuario no ve nada. «Error de red» salvo que haya un status HTTP real.
+            // Un corte por timeout ya lo avisó el link.
+            if (!esTimeoutDeLink(error)) {
+              this.avisarErrorSinRepetir(gql, mensajeErrorTransporte(error), 3);
+            }
             obs.error(error);
           },
         });
@@ -574,7 +626,7 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(
+        const { requestId } = this.cargandoService.openDialog(
           false,
           "Eliminando..."
         );
@@ -587,7 +639,6 @@ export class GenericCrudService {
               errorPolicy: "all",
               context: {
                 clientName: servidor == null || servidor ? "servidor" : null,
-                fetchOptions: { signal },
               },
             }
           )
@@ -608,7 +659,7 @@ export class GenericCrudService {
                   this.notificacionSnackBar.notification$.next({
                     texto:
                       "Ups! Ocurrió algun problema al eliminar: " +
-                      res.errors[0].message,
+                      limpiarMensajeGraphQL(res.errors[0].message),
                     duracion: 3,
                     color: NotificacionColor.danger,
                   });
@@ -626,7 +677,7 @@ export class GenericCrudService {
           .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(
+            const { requestId } = this.cargandoService.openDialog(
               false,
               "Eliminando..."
             );
@@ -640,7 +691,6 @@ export class GenericCrudService {
                     errorPolicy: "all",
                     context: {
                       clientName: servidor == null || servidor ? "servidor" : null,
-                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -661,7 +711,7 @@ export class GenericCrudService {
                         this.notificacionSnackBar.notification$.next({
                           texto:
                             "Ups! Ocurrió algun problema al eliminar: " +
-                            res.errors[0].message,
+                            limpiarMensajeGraphQL(res.errors[0].message),
                           duracion: 3,
                           color: NotificacionColor.danger,
                         });
@@ -694,7 +744,7 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(
+        const { requestId } = this.cargandoService.openDialog(
           false,
           "Eliminando..."
         );
@@ -708,7 +758,6 @@ export class GenericCrudService {
               errorPolicy: "all",
               context: {
                 clientName: servidor == null || servidor ? "servidor" : null,
-                fetchOptions: { signal },
               },
             }
           )
@@ -729,7 +778,7 @@ export class GenericCrudService {
                   this.notificacionSnackBar.notification$.next({
                     texto:
                       "Ups! Ocurrió algun problema al eliminar: " +
-                      res.errors[0].message,
+                      limpiarMensajeGraphQL(res.errors[0].message),
                     duracion: 3,
                     color: NotificacionColor.danger,
                   });
@@ -747,7 +796,7 @@ export class GenericCrudService {
           .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(
+            const { requestId } = this.cargandoService.openDialog(
               false,
               "Eliminando..."
             );
@@ -761,7 +810,6 @@ export class GenericCrudService {
                     errorPolicy: "all",
                     context: {
                       clientName: servidor == null || servidor ? "servidor" : null,
-                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -782,7 +830,7 @@ export class GenericCrudService {
                         this.notificacionSnackBar.notification$.next({
                           texto:
                             "Ups! Ocurrió algun problema al eliminar: " +
-                            res.errors[0].message,
+                            limpiarMensajeGraphQL(res.errors[0].message),
                           duracion: 3,
                           color: NotificacionColor.danger,
                         });
@@ -833,7 +881,7 @@ export class GenericCrudService {
         fin = hoy;
       }
     }
-    const { requestId, signal } = this.cargandoService.openDialog(
+    const { requestId } = this.cargandoService.openDialog(
       false,
       "Eliminando..."
     );
@@ -846,7 +894,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -859,7 +906,7 @@ export class GenericCrudService {
               obs.complete();
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: "Ups! Algo salió mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -883,7 +930,7 @@ export class GenericCrudService {
     servidor: boolean = true,
     error?: boolean
   ) {
-    const { requestId, signal } = this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
     entity.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       gql
@@ -899,7 +946,6 @@ export class GenericCrudService {
             errorPolicy: "all",
             context: {
               clientName: servidor == null || servidor ? "servidor" : null,
-              fetchOptions: { signal },
             },
           }
         )
@@ -922,12 +968,12 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionBar.notification$.next({
-                texto: "Ups!! Algo salio mal: " + res.errors[0].message,
+                texto: "Ups!! Algo salio mal: " + limpiarMensajeGraphQL(res.errors[0].message),
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
               if (error) {
-                obs.next({ error: res.errors });
+                obs.next({ error: limpiarErroresGraphQL(res.errors) });
                 obs.complete();
               } else {
                 obs.next(null);

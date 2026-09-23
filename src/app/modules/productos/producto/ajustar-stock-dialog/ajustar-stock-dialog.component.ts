@@ -146,7 +146,7 @@ export class AjustarStockDialogComponent implements OnInit {
       return;
     }
 
-    this.cargandoService.openDialog();
+    const { requestId } = this.cargandoService.openDialog();
 
     const movimientoStockInput: MovimientoStockInput = {
       id: 0,
@@ -163,7 +163,7 @@ export class AjustarStockDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (movimientoGuardado) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           
           if (movimientoGuardado.data) {
             try {
@@ -178,7 +178,7 @@ export class AjustarStockDialogComponent implements OnInit {
           this.dialogRef.close(true);
         },
         error: (error) => {
-          this.cargandoService.closeDialog();
+          this.cargandoService.closeDialog(requestId);
           this.notificacionService.openAlgoSalioMal('No se pudo guardar el ajuste de stock.');
         }
       });

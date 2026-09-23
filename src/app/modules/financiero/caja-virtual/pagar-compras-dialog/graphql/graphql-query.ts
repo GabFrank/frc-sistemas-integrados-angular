@@ -99,6 +99,16 @@ export const anularPagoCppMutation = gql`
   }
 `;
 
+// Tesorería devuelve a compras una solicitud que no va a pagar (SOLICITADO → PENDIENTE, con motivo).
+export const devolverSolicitudPagoMutation = gql`
+  mutation ($id: ID!, $motivo: String!) {
+    data: devolverSolicitudPago(id: $id, motivo: $motivo) {
+      id
+      estado
+    }
+  }
+`;
+
 // ── Modo VALES ──
 // El vale es la unidad pagable (no la SolicitudPago): su obligacion de pago se crea/resuelve
 // en el backend. Por eso la query devuelve ValePendiente y la mutation toma valeId.

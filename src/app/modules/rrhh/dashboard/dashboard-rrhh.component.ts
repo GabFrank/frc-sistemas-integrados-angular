@@ -20,6 +20,8 @@ import { NotificacionSnackbarService, NotificacionColor } from '../../../notific
 import { ListLiquidacionComponent } from '../liquidacion/list-liquidacion/list-liquidacion.component';
 import { ListValeComponent } from '../vale/list-vale/list-vale.component';
 import { ListPrestamoComponent } from '../prestamo/list-prestamo/list-prestamo.component';
+import { CiudadService } from '../../general/ciudad/ciudad.service';
+import { Ciudad } from '../../general/ciudad/ciudad.model';
 
 interface KpiVista {
   icon: string;
@@ -102,6 +104,10 @@ export class DashboardRrhhComponent implements OnInit, OnDestroy {
     { titulo: 'Aguinaldo del año', icon: 'card_giftcard', accion: 'aguinaldo' },
   ];
   generandoReporte = false;
+  // Submenu de la nomina del mes: Todas + una entrada por ciudad. La ciudad sale de la
+  // sucursal del funcionario (persona.ciudad no se carga), y "Sin ciudad asignada" junta
+  // a los que no tienen sucursal, para que la suma de los cortes de el total general.
+  ciudadesNomina: Ciudad[] = [];
 
   private readonly TOP_N = 5;
 
@@ -110,7 +116,8 @@ export class DashboardRrhhComponent implements OnInit, OnDestroy {
     private dashboardService: DashboardRrhhService,
     private reportesService: ReportesRrhhService,
     private reporteService: ReporteService,
-    private notificacion: NotificacionSnackbarService
+    private notificacion: NotificacionSnackbarService,
+    private ciudadService: CiudadService
   ) {}
 
   ngOnInit(): void {
@@ -119,6 +126,13 @@ export class DashboardRrhhComponent implements OnInit, OnDestroy {
     this.cargar();
     this.cargarSerie();
     this.cargarIncompletos();
+    this.cargarCiudades();
+  }
+
+  private cargarCiudades(): void {
+    this.ciudadService.getAllCiudades().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      this.ciudadesNomina = res || [];
+    });
   }
 
   ngOnDestroy(): void {
@@ -382,6 +396,27 @@ export class DashboardRrhhComponent implements OnInit, OnDestroy {
 
   private abrir(component: any, title: string): void {
     this.tabService.addTab(new Tab(component, title, null, DashboardRrhhComponent));
+  }
+
+  /** Nómina del mes, opcionalmente acotada a una ciudad o a los que no tienen sucursal. */
+  onReporteNomina(ciudadId: number, sinCiudad: boolean, nombreCiudad: string): void {
+    if (!this.periodo) {
+      this.notificacion.notification$.next({
+        texto: 'Seleccione el período', color: NotificacionColor.warn, duracion: 3,
+      });
+      return;
+    }
+    const nombre = 'Nómina ' + this.periodo + (nombreCiudad ? ' - ' + nombreCiudad : '');
+    this.generandoReporte = true;
+    this.reportesService.onNominaMes(this.periodo, ciudadId, sinCiudad)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (base64: string) => {
+          this.generandoReporte = false;
+          this.mostrarPdf(nombre, base64);
+        },
+        error: () => (this.generandoReporte = false),
+      });
   }
 
   // ===== Reportes (mat-menu) =====

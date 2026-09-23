@@ -46,6 +46,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   inputTimer: any = null;
   generating = false;
   printing = false;
+  downloading = false;
   barcodePreviewUrl: string | null = null;
   printers: PrinterInfo[] = [];
   /** Cola ticket de config/environment (impresora por defecto de la app). */
@@ -190,6 +191,54 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     } catch {
       this.barcodePreviewUrl = null;
     }
+  }
+
+  async onDescargarCodigo() {
+    // Se toma el valor una sola vez: imagen y nombre del archivo salen del mismo código.
+    const codigo = (this.codigoControl.value || "").toString().trim();
+    if (!codigo || this.isPesable || this.downloading) {
+      return;
+    }
+    this.downloading = true;
+    try {
+      const dataUrl = await this.barcodeQrService.generateBarcode(
+        codigo,
+        this.barcodePrintFormat,
+        { width: 3, height: 100, displayValue: true, fontSize: 20, margin: 10 },
+        "image/jpeg"
+      );
+      const byteCharacters = atob(dataUrl.split(",")[1]);
+      const byteArray = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteArray[i] = byteCharacters.charCodeAt(i);
+      }
+      const blob = new Blob([byteArray], { type: "image/jpeg" });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      document.body.appendChild(a);
+      a.setAttribute("style", "display: none");
+      a.href = url;
+      a.download = this.nombreArchivoCodigo(codigo);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch {
+      this.notificacionSnackBar.notification$.next({
+        texto: "No se pudo generar la imagen del código de barras",
+        duracion: 3,
+        color: NotificacionColor.danger,
+      });
+    } finally {
+      this.downloading = false;
+    }
+  }
+
+  /** Nombre de archivo válido en Windows y Linux a partir del valor del código. */
+  private nombreArchivoCodigo(codigo: string): string {
+    const base = codigo.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").trim();
+    const reservado = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(base);
+    return `${!base || reservado ? "codigo-barras" : base}.jpg`;
   }
 
   cargarDato() {

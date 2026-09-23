@@ -24,6 +24,13 @@ export class CotizacionHeaderService implements OnDestroy {
   cotizaciones$ = new BehaviorSubject<CotizacionView[]>([]);
 
   private monedas: Moneda[] = [];
+  /** Evita dos cargas de monedas en vuelo a la vez (timer + botón manual). */
+  private cargandoMonedas = false;
+  /**
+   * Cada `fetchAll` toma un número y solo publica si sigue siendo el más reciente: sin esto, la
+   * respuesta lenta de un tick del timer pisa la de un click manual más nuevo.
+   */
+  private secuencia = 0;
   private authSub: Subscription;
   private timerSub: Subscription;
 
@@ -53,29 +60,50 @@ export class CotizacionHeaderService implements OnDestroy {
   private bootstrap(): void {
     this.timerSub?.unsubscribe();
     this.loadMonedas();
-    this.timerSub = timer(REFRESH_MS, REFRESH_MS).subscribe(() => this.fetchAll());
+    // refresh() y no fetchAll(): si el bootstrap no pudo cargar las monedas, fetchAll sale
+    // temprano con la lista vacía y el header quedaba en «Sin cotización» hasta re-loguear.
+    this.timerSub = timer(REFRESH_MS, REFRESH_MS).subscribe(() => this.refresh());
   }
 
+  // Las consultas del header van por los métodos «EnSegundoPlano»: es un poll de fondo, y no puede
+  // abrir el spinner global. Ese spinner es uno solo para toda la app con refcount, así que una
+  // request colgada del header tapaba la pantalla entera — hasta 5 min con el timeout de reportes.
   private loadMonedas(): void {
+    if (this.cargandoMonedas) return;
+    this.cargandoMonedas = true;
     this.monedaService
-      .onGetAll()
+      .onGetAllEnSegundoPlano()
       .pipe(take(1))
-      .subscribe((res) => {
-        if (!res) return;
-        this.monedas = res
-          .filter((m) => DEFAULT_DENOMS.includes((m.denominacion || '').toUpperCase()))
-          .sort((a, b) => this.denomRank(a) - this.denomRank(b));
-        this.fetchAll();
+      .subscribe({
+        next: (res) => {
+          this.cargandoMonedas = false;
+          if (!res) return;
+          this.monedas = res
+            .filter((m) => DEFAULT_DENOMS.includes((m.denominacion || '').toUpperCase()))
+            .sort((a, b) => this.denomRank(a) - this.denomRank(b));
+          this.fetchAll();
+        },
+        // Sin red: se reintenta en el próximo tick del timer. No es un error para el usuario.
+        error: () => (this.cargandoMonedas = false),
       });
   }
 
   private fetchAll(): void {
     if (!this.monedas.length) return;
+    const mia = ++this.secuencia;
     const next: CotizacionView[] = [];
     let pending = this.monedas.length;
+    let fallos = 0;
+    const terminar = () => {
+      if (--pending !== 0 || mia !== this.secuencia) return;
+      // Si no llegó ninguna, se conserva la última conocida: un corte de red de un tick no
+      // tiene por qué borrar lo que ya se mostraba. Si la cotización no carga, no pasa nada.
+      if (fallos === this.monedas.length) return;
+      this.emit(next);
+    };
     this.monedas.forEach((moneda) => {
       this.cambioService
-        .getUltimoCambioPorMonedaId(moneda.id)
+        .getUltimoCambioPorMonedaIdEnSegundoPlano(moneda.id)
         .pipe(take(1))
         .subscribe({
           next: (cambio: Cambio) => {
@@ -88,10 +116,11 @@ export class CotizacionHeaderService implements OnDestroy {
                 fecha: cambio.creadoEn,
               });
             }
-            if (--pending === 0) this.emit(next);
+            terminar();
           },
           error: () => {
-            if (--pending === 0) this.emit(next);
+            fallos++;
+            terminar();
           },
         });
     });

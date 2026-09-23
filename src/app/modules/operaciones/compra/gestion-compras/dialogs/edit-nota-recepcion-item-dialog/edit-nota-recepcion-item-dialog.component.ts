@@ -24,6 +24,12 @@ export interface EditNotaRecepcionItemDialogData {
   item?: NotaRecepcionItem; // Opcional para crear nuevos ítems
   notaRecepcionId: number;
   isNewItem?: boolean; // Flag para indicar si es un nuevo ítem
+  /**
+   * Cotización de la nota respecto al guaraní. Necesaria para sugerir el costo del producto
+   * en la moneda de la nota: `costo.ultimoPrecioCompra` viene siempre en Gs. En una nota nueva
+   * `notaRecepcion` todavía llega con el id solo, así que la cotización la pasa el diálogo padre.
+   */
+  cotizacion?: number;
 }
 
 @Component({
@@ -711,7 +717,7 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
       searchProducto: productoDisplay,
       producto: producto,
       presentacion: presentacion || (this.presentacionesDisponibles.length > 0 ? this.presentacionesDisponibles[0] : null),
-      precioUnitario: producto?.costo?.ultimoPrecioCompra || 0,
+      precioUnitario: this.costoSugeridoEnMonedaNota(producto),
     });
 
     // mover foco al campo cantidad
@@ -720,11 +726,33 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
     }, 100);
 
     this.updateComputedProperties();
-    
+
     // Si no hay presentaciones en el producto, cargarlas desde el servicio
     if (!producto.presentaciones || producto.presentaciones.length === 0) {
       this.loadPresentacionesForProduct(producto);
     }
+  }
+
+  /**
+   * Costo sugerido para el ítem, expresado en la moneda de la nota.
+   *
+   * `costo.ultimoPrecioCompra` se persiste SIEMPRE en guaraníes (ver
+   * CostosPorProductoService.aplicarCostoCompra); la moneda/cotización del costo son solo
+   * referencia de la compra original. Por eso si la nota está en moneda extranjera hay que
+   * DIVIDIR por su cotización, nunca multiplicar por la del costo. Cargar el valor en Gs crudo
+   * en una nota en US$/R$ inflaba el costo por la cotización al recepcionar, y ese costo inflado
+   * volvía como sugerencia en la compra siguiente.
+   */
+  private costoSugeridoEnMonedaNota(producto: Producto): number {
+    const costoEnGs = producto?.costo?.ultimoPrecioCompra || 0;
+    const cotizacion = this.data.cotizacion
+      ?? this.originalItem?.notaRecepcion?.cotizacion
+      ?? 1;
+    // cotizacion > 1 identifica a la moneda extranjera: el guaraní cotiza 1.
+    if (costoEnGs > 0 && cotizacion > 1) {
+      return Math.round((costoEnGs / cotizacion) * 100) / 100;
+    }
+    return costoEnGs;
   }
 
   private loadPresentacionesForProduct(producto: Producto): void {

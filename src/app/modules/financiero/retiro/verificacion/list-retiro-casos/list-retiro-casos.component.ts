@@ -215,10 +215,8 @@ export class ListRetiroCasosComponent implements OnInit {
     const usuarioId = this.mainService.usuarioActual?.id;
     if (!usuarioId) return;
 
-    // El caso más común de rechazo se puede anticipar acá y explicarlo bien, en vez de
-    // mandar la llamada y no poder mostrar el motivo: GenericCrudService.onSaveCustom deja
-    // el observable colgado cuando el backend devuelve un error de negocio (ni next ni
-    // error), así que un handler de error nunca se ejecuta. El backend igual lo valida.
+    // El caso más común de rechazo se anticipa acá para explicarlo mejor que el mensaje genérico
+    // del backend (que igual lo valida y, si llega, lo muestra GenericCrudService.onSaveCustom).
     if (row.verificacion?.usuario?.id === usuarioId) {
       this.notificacion.notification$.next({
         texto: 'No podés investigar un retiro que vos mismo verificaste. Que lo tome otra persona.',
@@ -227,17 +225,21 @@ export class ListRetiroCasosComponent implements OnInit {
       return;
     }
 
-    this.service.onAsignarCaso(row.id, usuarioId).pipe(untilDestroyed(this)).subscribe(r => {
-      if (r == null) return;
-      this.notificacion.notification$.next({
-        texto: `Caso del retiro #${row.retiroId} tomado`,
-        color: NotificacionColor.success, duracion: 3,
-      });
-      // Se lo lleva a donde quedó el caso, resaltado, pero sin filtrar: ver el resto de lo
-      // que tiene en curso es información útil, y un filtro que no pidió lo confundiría.
-      this.tabActivo = 1;
-      this.pageIndex = 0;
-      this.cargar(row.id);
+    this.service.onAsignarCaso(row.id, usuarioId, { avisarExito: false }).pipe(untilDestroyed(this)).subscribe({
+      next: r => {
+        if (r == null) return;
+        this.notificacion.notification$.next({
+          texto: `Caso del retiro #${row.retiroId} tomado`,
+          color: NotificacionColor.success, duracion: 3,
+        });
+        // Se lo lleva a donde quedó el caso, resaltado, pero sin filtrar: ver el resto de lo
+        // que tiene en curso es información útil, y un filtro que no pidió lo confundiría.
+        this.tabActivo = 1;
+        this.pageIndex = 0;
+        this.cargar(row.id);
+      },
+      // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+      error: () => {}
     });
   }
 
@@ -248,9 +250,8 @@ export class ListRetiroCasosComponent implements OnInit {
       'Queda disponible para que lo tome otra persona.', null, true, 'Sí, soltar', 'No',
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res !== true) return;
-      this.service.onSoltarCaso(row.id).pipe(untilDestroyed(this)).subscribe(r => {
-        if (r != null) this.cargar();
-      });
+      this.service.onSoltarCaso(row.id).pipe(untilDestroyed(this))
+        .subscribe({ next: r => { if (r != null) this.cargar(); }, error: () => {} });
     });
   }
 

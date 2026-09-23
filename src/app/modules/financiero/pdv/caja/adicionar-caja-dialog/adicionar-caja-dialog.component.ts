@@ -55,6 +55,10 @@ import { TabService, TabData } from "../../../../../layouts/tab/tab.service";
 import { ListGastosComponent } from "../../../gastos/pages/list-gastos/list-gastos.component";
 import { ListRetiroComponent } from "../../../retiro/list-retiro/list-retiro.component";
 import { ROLES } from "../../../../personas/roles/roles.enum";
+import {
+  MotivoNoConciliarDialogComponent,
+  MotivoNoConciliarResultado,
+} from "../../../venta-tarjeta/motivo-no-conciliar-dialog/motivo-no-conciliar-dialog.component";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
 import { GastoService } from "../../../gastos/service/gasto.service";
 import { VentaTarjetaService } from "../../../venta-tarjeta/venta-tarjeta.service";
@@ -625,18 +629,47 @@ export class AdicionarCajaDialogComponent implements OnInit {
             .subscribe({
               next: (pendientes) => {
                 if (pendientes > 0) {
+                  // El pendiente de tarjeta NO deja pasar de largo, pero tampoco traba la caja.
+                  //
+                  // Historia corta: primero fue una advertencia con "Cerrar igualmente" a mano del
+                  // cajero, y ese escape convertia cada venta sin registrar en un NO COMPLETADO
+                  // silencioso --plata cobrada con tarjeta que despues no se puede conciliar contra
+                  // la liquidacion del proveedor. Entonces se cerro del todo, y quedo el problema
+                  // opuesto: el cupon que no se imprimio o el POS que fallo dejaban la caja trabada
+                  // de noche esperando a un supervisor que no estaba.
+                  //
+                  // Lo que cambia ahora no es quien puede, sino que queda: el cajero sale, pero
+                  // tiene que decir POR QUE, y eso se guarda con su usuario y la hora en cada fila
+                  // (venta_tarjeta.no_completado_*). La decision deja de evaporarse.
                   this.matDialog.open(ConfirmDialogComponent, {
-                    width: "480px",
+                    width: "520px",
                     data: {
                       title: "Ventas con tarjeta sin registrar",
-                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar en la app móvil. ` +
-                        `Si cierra la caja, quedarán marcadas como NO COMPLETADAS y ya no podrán registrarse. ¿Desea cerrar igualmente?`,
-                      confirmText: "Cerrar igualmente",
-                      cancelText: "Volver",
+                      message: `Posee ${pendientes} venta(s) con tarjeta sin registrar. ` +
+                        `Registralas escaneando el QR del cupón desde el PDV o desde el celular. ` +
+                        `Si el cupón no existe --no se imprimió, falló la terminal, se perdió-- ` +
+                        `podés dejarlas sin conciliar diciendo por qué: queda registrado con tu ` +
+                        `usuario para que se pueda revisar después.`,
+                      confirmText: "Dejar sin conciliar",
+                      cancelText: "Volver a registrarlas",
                     },
-                  }).afterClosed().pipe(take(1)).subscribe((confirmado) => {
-                    if (confirmado === true) {
-                      this.ventaTarjetaService.onMarcarNoCompletadas(this.selectedCaja.id, this.selectedCaja.sucursalId)
+                  }).afterClosed().pipe(take(1)).subscribe((quiereForzar) => {
+                    if (quiereForzar !== true) return;
+                    this.matDialog.open(MotivoNoConciliarDialogComponent, {
+                      width: "460px",
+                      disableClose: true,
+                      data: { cuantos: pendientes },
+                    }).afterClosed().pipe(take(1)).subscribe((res: MotivoNoConciliarResultado) => {
+                      // Sin motivo no se marca nada: es la condicion de que esto sea auditable y
+                      // no un "cerrar igualmente" con otro nombre.
+                      if (!res?.motivo) return;
+                      this.ventaTarjetaService.onMarcarNoCompletadas(
+                        this.selectedCaja.id,
+                        this.selectedCaja.sucursalId,
+                        res.motivo,
+                        res.observacion,
+                        this.mainService.usuarioActual?.id
+                      )
                         .pipe(take(1))
                         .subscribe({
                           next: () => {
@@ -650,7 +683,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
                             );
                           },
                         });
-                    }
+                    });
                   });
                 } else {
                   this.stepper.selectedIndex = 1;

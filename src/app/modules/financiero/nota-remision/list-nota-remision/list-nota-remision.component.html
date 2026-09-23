@@ -1,0 +1,120 @@
+<div class="contenedor">
+  <div class="filtros" fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center">
+    <mat-form-field appearance="outline" class="filtro">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [formControl]="sucursalIdControl">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filtro">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="desde" [formControl]="fechaDesdeControl" />
+      <mat-datepicker-toggle matSuffix [for]="desde"></mat-datepicker-toggle>
+      <mat-datepicker #desde></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filtro">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="hasta" [formControl]="fechaHastaControl" />
+      <mat-datepicker-toggle matSuffix [for]="hasta"></mat-datepicker-toggle>
+      <mat-datepicker #hasta></mat-datepicker>
+    </mat-form-field>
+
+    <button mat-stroked-button color="primary" (click)="buscar()">
+      <mat-icon>search</mat-icon> Buscar
+    </button>
+
+    <span fxFlex></span>
+
+    <button mat-raised-button color="primary" *ngIf="puedeEmitir" (click)="onNueva()">
+      <mat-icon>add</mat-icon> Nueva nota de remisión
+    </button>
+  </div>
+
+  <!-- La tabla scrollea sola: así el paginador queda fijo al pie y no pegado a la última fila. -->
+  <div class="cuerpo">
+  <table mat-table [dataSource]="dataSource" class="tabla">
+    <ng-container matColumnDef="numero">
+      <th mat-header-cell *matHeaderCellDef>Número</th>
+      <td mat-cell *matCellDef="let nota">{{ numeroFormateado(nota) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef>Fecha</th>
+      <td mat-cell *matCellDef="let nota">{{ nota.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="origen">
+      <th mat-header-cell *matHeaderCellDef>Origen</th>
+      <td mat-cell *matCellDef="let nota">
+        {{ nota.origen }}
+        <span *ngIf="nota.transferenciaId"> #{{ nota.transferenciaId }}</span>
+        <span *ngIf="nota.facturaLegalId"> #{{ nota.facturaLegalId }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="receptor">
+      <th mat-header-cell *matHeaderCellDef>Receptor</th>
+      <td mat-cell *matCellDef="let nota">{{ nota.receptorNombre }}<br /><small>{{ nota.receptorRuc }}</small></td>
+    </ng-container>
+
+    <ng-container matColumnDef="vehiculo">
+      <th mat-header-cell *matHeaderCellDef>Vehículo</th>
+      <td mat-cell *matCellDef="let nota">{{ nota.vehiculoMatricula }}<br /><small>{{ nota.vehiculoMarca }}</small></td>
+    </ng-container>
+
+    <ng-container matColumnDef="chofer">
+      <th mat-header-cell *matHeaderCellDef>Chofer</th>
+      <td mat-cell *matCellDef="let nota">{{ nota.choferNombre }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="estadoDe">
+      <th mat-header-cell *matHeaderCellDef>SIFEN</th>
+      <td mat-cell *matCellDef="let nota">
+        <span class="chip" [ngClass]="estadoDePorNota[nota.id]">{{ estadoDePorNota[nota.id] }}</span>
+        <br />
+        <small *ngIf="cdcPorNota[nota.id]">{{ cdcPorNota[nota.id] | slice: 0:12 }}…</small>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+      <td mat-cell *matCellDef="let nota">
+        <button mat-icon-button [matMenuTriggerFor]="menu"><mat-icon>more_vert</mat-icon></button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="onImprimir(nota)">
+            <mat-icon>picture_as_pdf</mat-icon><span>Imprimir KuDE</span>
+          </button>
+          <button mat-menu-item *ngIf="puedeEmitir && estadoDePorNota[nota.id] === 'SIN ENVIAR'"
+                  (click)="onEnviar(nota)">
+            <mat-icon>send</mat-icon><span>Generar y enviar a SIFEN</span>
+          </button>
+          <button mat-menu-item *ngIf="puedeEmitir && (estadoDePorNota[nota.id] === 'EN_LOTE' || estadoDePorNota[nota.id] === 'PENDIENTE' || estadoDePorNota[nota.id] === 'RECHAZADO')"
+                  (click)="onReenviar(nota)">
+            <mat-icon>refresh</mat-icon><span>Reenviar</span>
+          </button>
+          <button mat-menu-item *ngIf="puedeAnular && nota.activo" (click)="onAnular(nota)">
+            <mat-icon>cancel</mat-icon><span>Anular</span>
+          </button>
+        </mat-menu>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  <div *ngIf="!dataSource.data?.length" class="vacio">
+    No hay notas de remisión para el filtro seleccionado.
+  </div>
+  </div>
+
+  <mat-paginator class="paginador" [length]="selectedPageInfo?.getTotalElements"
+                 [pageSize]="pageSize"
+                 [pageIndex]="pageIndex"
+                 [pageSizeOptions]="[10, 15, 30, 50]"
+                 (page)="onPage($event)">
+  </mat-paginator>
+</div>

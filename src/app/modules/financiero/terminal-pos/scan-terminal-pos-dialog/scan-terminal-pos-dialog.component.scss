@@ -7,7 +7,16 @@ input {
   text-transform: uppercase;
 }
 
-.btn-salir {
-  width: 100%; 
-  margin-top: 15px !important;
+// Los dos botones del pie miden lo mismo y arrancan a la misma altura. Antes .btn-salir tenía
+// width:100% + margin-top:15px !important, así que "Cancelar" ocupaba todo el ancho y bajaba
+// 15px, mientras "Confirmar" se dimensionaba al texto: quedaban de distinto tamaño y
+// desalineados verticalmente. El reparto lo hace ahora el fxFlex de cada botón.
+.acciones {
+  margin-top: 15px;
+
+  button {
+    // mat-raised-button trae su propio min-width; sin esto, el botón de texto corto no baja
+    // del mínimo y las mitades dejan de ser iguales en diálogos angostos.
+    min-width: 0;
+  }
 }

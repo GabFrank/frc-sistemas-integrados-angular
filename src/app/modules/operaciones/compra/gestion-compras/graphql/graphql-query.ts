@@ -1716,10 +1716,12 @@ export const notasDisponiblesParaPagoQuery = gql`
       fecha
       estado
       valorTotal
+      cotizacion
       moneda {
         id
         denominacion
         simbolo
+        cambio
       }
       pedido {
         id
@@ -1729,6 +1731,18 @@ export const notasDisponiblesParaPagoQuery = gql`
             nombre
           }
         }
+        moneda {
+          id
+          denominacion
+          simbolo
+          cambio
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        plazoCredito
+        observacionFormaPago
       }
     }
   }
@@ -1881,6 +1895,16 @@ export const actualizarEstadoSolicitudPagoMutation = gql`
       id
       estado
       fechaSolicitud
+    }
+  }
+`;
+
+export const cancelarSolicitudPagoMutation = gql`
+  mutation ($id: ID!, $motivo: String!) {
+    data: cancelarSolicitudPago(id: $id, motivo: $motivo) {
+      id
+      estado
+      observaciones
     }
   }
 `;

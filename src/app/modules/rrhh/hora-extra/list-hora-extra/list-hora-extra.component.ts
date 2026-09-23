@@ -101,9 +101,10 @@ export class ListHoraExtraComponent implements OnInit {
       null, null, true, 'Sí', 'No'
     ).pipe(untilDestroyed(this)).subscribe(res => {
       if (res === true) {
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
         this.horaExtraService.onAnular(he.id)
           .pipe(untilDestroyed(this))
-          .subscribe(ok => { if (ok) this.onFiltrar(); });
+          .subscribe({ next: ok => { if (ok) this.onFiltrar(); }, error: () => {} });
       }
     });
   }

@@ -42,9 +42,13 @@ export class UsuarioHelperService {
         });
     }
 
-    abrirBuscador(dialog: MatDialog): Observable<Usuario | undefined> {
+    /**
+     * `titulo` existe para que quien abre el buscador diga a quien esta buscando: no siempre es
+     * "un usuario" en abstracto (ej. el solicitante de una transferencia).
+     */
+    abrirBuscador(dialog: MatDialog, titulo = "Buscar Usuario"): Observable<Usuario | undefined> {
         const data: SearchListtDialogData = {
-            titulo: "Buscar Usuario",
+            titulo,
             tableData: [
                 { id: "id", nombre: "Id", width: "10%" },
                 { id: "nombre", nombre: "Nombre", nested: true, nestedId: "persona", width: "50%" },

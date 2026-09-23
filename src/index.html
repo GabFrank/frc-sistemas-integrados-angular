@@ -5,7 +5,28 @@
   <title>FRC Sistemas Informáticos</title>
   <base href="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!--
+    Ícono de la pestaña: el logo de Bodega Franco, no el de Angular.
+
+    `assets/images/frc.png` es el original de 512×512 y es la referencia que
+    usan los navegadores modernos. `favicon.ico` queda porque el navegador lo
+    pide solo, sin mirar el HTML, cuando el link falla o todavía no parseó la
+    cabecera; se regeneró desde el mismo PNG (48/32/16) para que en ese
+    camino tampoco aparezca el logo de Angular.
+
+    El `?v=2` no es decorativo: el navegador cachea los favicons en una base
+    aparte, indexada por la URL del ícono, y no la revalida en cada carga —ni
+    con Ctrl+Shift+R—. Toda máquina que ya abrió el sistema tiene guardado el
+    escudo de Angular contra `favicon.ico` a secas; con la URL versionada no
+    hay entrada previa que reusar y lo baja de nuevo. Si algún día se cambia
+    el logo, subir el número.
+
+    Los dos href son relativos y funcionan igual servidos desde `/` que desde
+    `file://` en Electron (`build --base-href ./`): con `useHash: true` la URL
+    del documento es siempre la raíz, así que ninguna ruta profunda los rompe.
+  -->
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/images/frc.png?v=2">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
   <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest">

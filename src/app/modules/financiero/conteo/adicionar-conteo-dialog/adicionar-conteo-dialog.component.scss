@@ -92,3 +92,9 @@
     vertical-align: middle;
   }
 }
+
+// Los titulos de moneda no necesitan el margen por defecto de h3: ese aire es justo
+// lo que empujaba las acciones del conteo fuera del alto del dialogo.
+:host h3 {
+  margin: 0 0 6px;
+}

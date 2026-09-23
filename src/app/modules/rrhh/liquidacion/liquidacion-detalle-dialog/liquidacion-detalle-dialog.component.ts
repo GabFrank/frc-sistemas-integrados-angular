@@ -64,6 +64,13 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   puedeAprobar = false;
   puedePagar = false;
 
+  /**
+   * Neto negativo = los descuentos superan a los haberes, o sea que el funcionario le debe a
+   * la empresa: no hay nada que pagarle y el backend rechaza el pago. Se calcula al cargar la
+   * liquidacion y no en el HTML, por la regla de no llamar funciones desde el template.
+   */
+  netoNegativo = false;
+
   constructor(
     private tabService: TabService,
     private liquidacionService: LiquidacionService,
@@ -102,7 +109,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     const liqId = id ?? this.liq?.id;
     if (liqId == null) { return; }
     this.liquidacionService.onGetById(liqId).pipe(untilDestroyed(this)).subscribe((res: LiquidacionSueldo) => {
-      if (res != null) { this.liq = res; }
+      if (res != null) { this.liq = res; this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0; }
     });
     this.cargarItems(liqId);
   }
@@ -117,13 +124,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
   private aplicar(res: any) {
     if (res != null) {
       this.liq = res;
+      this.netoNegativo = (this.liq?.totalNeto ?? 0) < 0;
       this.cargarItems();
     }
   }
 
+  // En todas las acciones de este diálogo, el aviso de error (negocio o red) ya lo muestra
+  // GenericCrudService.onSaveCustom: el `error` solo evita la excepción no capturada.
   onRegenerar() {
     this.liquidacionService.onGenerarBorrador(this.liq.funcionario?.id, this.liq.periodo, this.liq.moneda?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   /** Abre el panel en modo edición con los valores del item (todo es negociable). */
@@ -153,13 +163,16 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
           this.montoControl.value, this.tipoControl.value, this.mainService.usuarioActual?.id)
       : this.liquidacionService.onAgregarItem(this.liq.id, this.descripcionControl.value,
           this.montoControl.value, this.tipoControl.value, this.conceptoControl.value);
-    obs.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.editandoItemId = null;
-        this.descripcionControl.reset(); this.montoControl.setValue(0);
-        this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
-        this.recargar();
-      }
+    obs.pipe(untilDestroyed(this)).subscribe({
+      next: res => {
+        if (res != null) {
+          this.editandoItemId = null;
+          this.descripcionControl.reset(); this.montoControl.setValue(0);
+          this.conceptoControl.reset(); this.signoConcepto = ''; this.mostrarAgregar = false;
+          this.recargar();
+        }
+      },
+      error: () => {}
     });
   }
 
@@ -182,19 +195,20 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onEliminarItem(it.id)
-          .pipe(untilDestroyed(this)).subscribe(res => { if (res != null) { this.recargar(); } });
+          .pipe(untilDestroyed(this))
+          .subscribe({ next: res => { if (res != null) { this.recargar(); } }, error: () => {} });
       }
     });
   }
 
   onAprobar() {
     this.liquidacionService.onAprobar(this.liq.id, this.mainService.usuarioActual?.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onVolverBorrador() {
     this.liquidacionService.onVolverBorrador(this.liq.id)
-      .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+      .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
   }
 
   onPagar() {
@@ -209,7 +223,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onPagar(this.liq.id, this.cajaControl.value)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }
@@ -222,7 +236,7 @@ export class LiquidacionDetalleDialogComponent implements OnInit {
     ).pipe(untilDestroyed(this)).subscribe(r => {
       if (r === true) {
         this.liquidacionService.onAnular(this.liq.id)
-          .pipe(untilDestroyed(this)).subscribe(res => this.aplicar(res));
+          .pipe(untilDestroyed(this)).subscribe({ next: res => this.aplicar(res), error: () => {} });
       }
     });
   }

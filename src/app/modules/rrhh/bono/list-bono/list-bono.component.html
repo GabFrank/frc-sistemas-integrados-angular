@@ -72,6 +72,9 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditar(row)">
+              <mat-icon>edit</mat-icon><span>Editar</span>
+            </button>
             <button mat-menu-item (click)="onAnular(row)" [disabled]="row.anulado">
               <mat-icon>block</mat-icon><span>Anular</span>
             </button>

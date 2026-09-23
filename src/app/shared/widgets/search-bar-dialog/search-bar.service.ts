@@ -17,6 +17,7 @@ import { ListActualizacionComponent } from '../../../modules/configuracion/actua
 import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { ListCargoComponent } from '../../../modules/empresarial/cargo/list-cargo/list-cargo.component';
+import { ListLiquidacionConceptoComponent } from '../../../modules/rrhh/liquidacion-concepto/list-liquidacion-concepto/list-liquidacion-concepto.component';
 import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
 import { PrecioDeliveryComponent } from '../../../modules/operaciones/delivery/precio-delivery/precio-delivery.component';
@@ -57,6 +58,7 @@ export const componenteList: SearchData[] =
     { title: 'Lista de cajas', component: ListCajaComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lista de sectores', component: ListSectorComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de cargos', component: ListCargoComponent, visibilityRoles: [ROLES.ADMIN] },
+    { title: 'Conceptos de liquidación', component: ListLiquidacionConceptoComponent, visibilityRoles: [ROLES.RRHH_CONFIG, ROLES.RRHH_GESTIONAR, ROLES.ADMIN] },
     { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, visibilityRoles: [ROLES.SOPORTE] },
     { title: 'Precio del Delivery', component: PrecioDeliveryComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lista de clientes', component: ListClientesComponent, visibilityRoles: [ROLES.VER_PERSONAS] },

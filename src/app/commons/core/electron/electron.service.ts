@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable, from, Subject } from 'rxjs';
+import { Observable, from, of, Subject } from 'rxjs';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 import {
   START_NOTIFICATION_SERVICE,
@@ -39,6 +39,11 @@ export interface ShareResult {
   success: boolean;
   ip: string | null;
   uri: string | null;
+  /**
+   * Nombre del recurso compartido. Sólo viene por el camino SMB (Windows): distingue ese caso del
+   * IPP de Linux aunque no se haya podido derivar la IP y `uri` venga vacía.
+   */
+  recurso?: string;
   error?: string;
   aviso?: string;
 }
@@ -68,6 +73,17 @@ export interface PrintTestLocalArgs {
 export interface PrintLocalResult {
   success: boolean;
   error?: string;
+}
+
+/**
+ * Dispositivo de impresión conectado a ESTA PC. Misma forma que el `DispositivoDetectado` que
+ * devuelve el backend por `lpinfo -v`, para que la UI los consuma igual venga de donde venga.
+ */
+export interface LocalDevice {
+  clase: string;
+  uri: string;
+  nombre: string;
+  descripcion: string;
 }
 
 /** Resultado de instalar la impresora en el CUPS/spooler local de esta PC (sin pasar por el servidor). */
@@ -231,7 +247,18 @@ export class ElectronService {
     return ipcRenderer.sendSync('get-app-version');
   }
   getPrinters(): Observable<PrinterInfo[]> {
+    // En browser no hay ipcRenderer; el diálogo de código lo llama en ngOnInit.
+    if (!this.isElectron || !ipcRenderer) return of([]);
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
+  }
+
+  /**
+   * Dispositivos de impresión conectados a ESTA PC (no al servidor): en Windows los puertos USB
+   * del spooler, en Linux `lpinfo -v` local. El equivalente del `dispositivosParaInstalar` del
+   * backend, que sólo ve el hardware del host donde corre.
+   */
+  detectLocalDevices(): Observable<LocalDevice[]> {
+    return from(ipcRenderer.invoke('detect-local-devices')) as Observable<LocalDevice[]>;
   }
 
   /**
@@ -252,8 +279,9 @@ export class ElectronService {
   }
 
   /**
-   * Comparte una cola CUPS local en la red y devuelve la URI IPP lista para instalarla en el
-   * servidor central. Requiere permisos de administración de CUPS. Solo Linux.
+   * Comparte la impresora local para que un servidor la alcance por red. Linux: cola CUPS
+   * compartida por IPP (`ipp://<ip>:631/printers/<cola>`), requiere permisos de admin de CUPS.
+   * Windows: cola del spooler compartida por SMB (`smb://<ip>/<share>`), requiere admin local.
    */
   shareLocalPrinter(queue: string, password?: string, centralIp?: string): Observable<ShareResult> {
     return from(ipcRenderer.invoke('share-local-printer', { queue, password, centralIp })) as Observable<ShareResult>;
@@ -272,7 +300,8 @@ export class ElectronService {
    * Imprime un payload ESC/POS (base64) en una impresora LOCAL a esta PC, sin pasar por ningún
    * backend. Para PCs que solo corren el desktop contra el central en la nube: el backend nube no
    * alcanza una USB/cola CUPS ni una impresora de red de la LAN del cliente. RED → socket TCP a
-   * ip:puerto; CUPS/USB/BLUETOOTH → `lp -d <cola> -o raw` (Linux/mac).
+   * ip:puerto; CUPS/USB/BLUETOOTH → `lp -d <cola> -o raw` (Linux/mac) o escritura RAW en el
+   * spooler vía winspool.drv (Windows).
    */
   printLocal(args: PrintLocalArgs): Observable<PrintLocalResult> {
     return from(ipcRenderer.invoke('print-local', args)) as Observable<PrintLocalResult>;
@@ -281,7 +310,7 @@ export class ElectronService {
   /**
    * Imprime el ticket de PRUEBA generado 100% en el frontend (Electron arma el ESC/POS) y lo manda
    * a la impresora local a esta PC, sin ninguna llamada a servidores. RED → socket TCP; CUPS/USB →
-   * `lp -d <cola> -o raw`.
+   * `lp -d <cola> -o raw` (Linux/mac) o RAW al spooler (Windows).
    */
   printTestLocal(args: PrintTestLocalArgs): Observable<PrintLocalResult> {
     return from(ipcRenderer.invoke('print-test-local', args)) as Observable<PrintLocalResult>;

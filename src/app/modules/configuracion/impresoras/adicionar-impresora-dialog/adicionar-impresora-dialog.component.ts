@@ -151,6 +151,7 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     { value: 'CUSTOM', label: 'Personalizado' },
   ];
   origenesBusqueda: Opcion[] = [
+    { value: 'ESTA_PC', label: 'Esta PC' },
     { value: 'LOCAL', label: 'Servidor local / filial' },
     { value: 'CENTRAL', label: 'Servidor central' },
   ];
@@ -236,6 +237,11 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     // Impresora local nueva: por defecto CUPS en Linux, USB en Windows.
     if (!this.editando) {
       this.conexionControl.setValue(this.esWindows ? 'USB' : 'CUPS');
+    }
+    // La impresora por cable esta enchufada a la PC que tenes adelante, no al servidor. En Windows
+    // eso es siempre asi (el server es Linux y no ve ese USB), asi que arrancamos buscando acá.
+    if (this.esWindows && this.electronService.isElectron) {
+      this.origenBusquedaControl.setValue('ESTA_PC');
     }
   }
 
@@ -359,7 +365,9 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
             this.notificacion.notification$.next({
               texto: res?.error
                 ? 'No se pudo compartir la impresora local: ' + res.error
-                : 'No se pudo compartir la impresora local (verificá permisos de CUPS).',
+                : (this.esWindows
+                  ? 'No se pudo compartir la impresora local (Windows necesita permisos de administrador para compartirla).'
+                  : 'No se pudo compartir la impresora local (verificá permisos de CUPS).'),
               color: NotificacionColor.warn,
               duracion: 6,
             });
@@ -390,11 +398,103 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
             this.cdr.markForCheck();
             return;
           }
-          const uri = `ipp://${pcIp}:631/printers/${cola}`;
-          this.instalarEnServidorPorIp(d, cola, uri, cred);
+          // Electron comparte según la plataforma: IPP en Linux (cola CUPS) o SMB en Windows (cola
+          // del spooler). `recurso` sólo viene en el camino SMB, y llega incluso cuando no se pudo
+          // derivar la IP — por eso decide él, y no el prefijo de una URI que puede venir vacía.
+          const recurso = res.recurso || (res.uri?.toLowerCase().startsWith('smb://')
+            ? res.uri.substring(res.uri.lastIndexOf('/') + 1)
+            : null);
+          if (recurso) {
+            this.instalarSmbEnServidorPorIp(d, cola, pcIp, recurso, cred);
+            return;
+          }
+          this.instalarEnServidorPorIp(d, cola, res.uri || `ipp://${pcIp}:631/printers/${cola}`, cred);
         },
         error: () => {
           this.compartiendo = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /**
+   * Instala en el servidor destino (por IP) una cola CUPS que entrega los tickets al share SMB de
+   * ESTA PC Windows (backend smbspool de CUPS). Es el camino equivalente a la cola IPP de Linux:
+   * el servidor no alcanza el USB de esta PC, alcanza el recurso compartido del spooler.
+   *
+   * La impresora queda registrada con conexión SMB y los datos del share (host/recurso/usuario),
+   * que son informativos: la contraseña no se guarda en la BD porque `impresora` se replica a
+   * todas las filiales — vive sólo en el device-uri que CUPS persiste en el servidor.
+   */
+  private instalarSmbEnServidorPorIp(
+    d: DetectadaVista,
+    cola: string,
+    pcIp: string,
+    recurso: string,
+    cred: CredencialesCupsResult,
+  ): void {
+    const esTermica = this.tipoControl.value === 'TERMICA';
+    const servidorIp = cred.servidorIp;
+    const servidorPort = cred.servidorPort || (cred.esCentral ? '8081' : '8082');
+    const destino = cred.esCentral ? 'central' : 'filial';
+    // Credenciales del share: las de esta PC Windows. El usuario las cargó en el diálogo de
+    // credenciales; si el share es accesible como Invitado pueden ir vacías.
+    const usuario = this.smbUsuarioControl.value || this.miUsuario || '';
+    const dominio = this.smbDominioControl.value || '';
+    const password = this.smbPasswordControl.value || cred.password || '';
+    this.impresoraService
+      .instalarSmbEnServidorPorIp(cola, pcIp, recurso, usuario, dominio, password, esTermica,
+        servidorIp, servidorPort, cred.esCentral)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (ok) => {
+          this.compartiendo = false;
+          if (ok) {
+            this.notificacion.notification$.next({
+              texto: 'Impresora compartida por Windows e instalada en el ' + destino
+                + ' (' + servidorIp + '): ' + cola,
+              color: NotificacionColor.success,
+              duracion: 4,
+            });
+            if (!this.nombreControl.value) {
+              this.nombreControl.setValue(d.nombre);
+            }
+            if (cred.esCentral) {
+              this.sucursalControl.setValue(HOST_SERVIDOR_CENTRAL_ID);
+            } else {
+              this.notificacion.notification$.next({
+                texto: 'Elegí la sucursal de la filial destino antes de guardar (para el ruteo de impresión).',
+                color: NotificacionColor.warn,
+                duracion: 7,
+              });
+            }
+            this.conexionControl.setValue('SMB');
+            this.colaCupsControl.setValue(cola);
+            this.smbHostControl.setValue(pcIp);
+            this.smbRecursoControl.setValue(recurso);
+            this.smbUsuarioControl.setValue(usuario);
+            this.smbDominioControl.setValue(dominio);
+            this.tipoControl.setValue(esTermica ? 'TERMICA' : 'NORMAL');
+            this.perfilPapelControl.setValue(esTermica ? 'MM_58' : 'A4');
+          } else {
+            this.notificacion.notification$.next({
+              texto: 'Windows compartió la impresora como "' + recurso + '" pero el ' + destino
+                + ' (' + servidorIp + ') no pudo instalar la cola. Verificá que el backend tenga '
+                + 'smbclient y permisos de CUPS, y que alcance a ' + pcIp + '.',
+              color: NotificacionColor.warn,
+              duracion: 9,
+            });
+          }
+          this.cdr.markForCheck();
+        },
+        error: (e) => {
+          this.compartiendo = false;
+          this.notificacion.notification$.next({
+            texto: 'El ' + destino + ' (' + servidorIp + ') rechazó la instalación SMB: '
+              + (e?.message || 'error desconocido'),
+            color: NotificacionColor.warn,
+            duracion: 10,
+          });
           this.cdr.markForCheck();
         },
       });
@@ -471,14 +571,32 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   }
 
   /**
-   * Detecta dispositivos conectados (USB/red) que aún NO tienen cola creada, para
-   * instalarlos. Corre en el backend local/filial (donde está físicamente la impresora).
+   * Detecta dispositivos conectados por cable (USB/red) para instalarlos. Según el origen elegido:
+   *  - ESTA_PC: los detecta Electron en la máquina que tenés adelante — en Windows los puertos USB
+   *    del spooler, en Linux `lpinfo -v` local. Es el único origen que sirve para una impresora
+   *    enchufada a esta PC: el backend corre en un servidor Linux y ese USB no lo ve.
+   *  - LOCAL / CENTRAL: los detecta el backend de ese host (`lpinfo -v`), para una impresora
+   *    enchufada al servidor.
    */
   detectarParaInstalar(): void {
-    const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
+    const origen = this.origenBusquedaControl.value;
+    if (origen === 'ESTA_PC' && !this.electronService.isElectron) {
+      // Fuera de Electron no hay acceso al hardware de esta PC: sin este corte, `ipcRenderer` es
+      // null y la excepción sincrónica dejaría el spinner girando para siempre.
+      this.notificacion.notification$.next({
+        texto: 'Buscar en esta PC sólo funciona desde la aplicación de escritorio. '
+          + 'Elegí un servidor o abrí el sistema desde el escritorio.',
+        color: NotificacionColor.warn,
+        duracion: 6,
+      });
+      return;
+    }
     this.buscandoDispositivos = true;
     this.cdr.markForCheck();
-    this.impresoraService.dispositivos(enCentral)
+    const fuente$ = origen === 'ESTA_PC'
+      ? this.electronService.detectLocalDevices()
+      : this.impresoraService.dispositivos(origen === 'CENTRAL');
+    fuente$
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res) => {
@@ -498,7 +616,9 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
     const vista: DispositivoVista = {
       ref: d,
       nombre: d.nombre,
-      detalle: `${d.clase} · ${d.uri}`,
+      // La descripción de los dispositivos locales ya viene legible ("USB001 · cola ya instalada");
+      // la de `lpinfo` es la URI pelada, así que ahí mostramos clase + URI como antes.
+      detalle: d.descripcion && d.descripcion !== d.uri ? d.descripcion : `${d.clase} · ${d.uri}`,
       puedeIp: false,
       ip: null,
       puerto: 9100,
@@ -525,14 +645,16 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
   }
 
   /**
-   * Instala el dispositivo como cola CUPS (RAW si parece térmica). Por defecto lo instala en ESTA
-   * PC vía Electron (sin pasar por el servidor). Si el origen de búsqueda es el CENTRAL (el
-   * dispositivo está conectado al host central), lo instala el backend central.
+   * Instala el dispositivo como cola (RAW si parece térmica) en el mismo host donde se detectó:
+   * si el origen es ESTA_PC lo hace Electron acá (lpadmin en Linux / Add-Printer en Windows), y
+   * si es LOCAL o CENTRAL lo hace el backend de ese servidor. Instalar en otro host que el de la
+   * detección no sirve: la URI (`usb://...`) sólo es válida donde está enchufado el cable.
    */
   instalarDispositivo(v: DispositivoVista): void {
     if (!this.exigirNombreParaInstalar()) { return; }
     const d = v.ref;
-    const enCentral = this.origenBusquedaControl.value === 'CENTRAL';
+    const origen = this.origenBusquedaControl.value;
+    const enCentral = origen === 'CENTRAL';
     // La cola CUPS toma el Nombre que definió el usuario, para identificarla igual en CUPS.
     const cola = this.sanearCola(this.nombreControl.value);
     const esTermica = REGEX_TERMICA.test(`${d.nombre || ''} ${d.descripcion || ''}`);
@@ -547,12 +669,13 @@ export class AdicionarImpresoraDialogComponent implements OnInit {
       this.detectarImpresorasLocales();
       this.detectarParaInstalar();
     };
-    if (enCentral) {
-      // El dispositivo está conectado al host central → lo instala el backend central.
-      this.instalarEnBackend(cola, d.uri, esTermica, true, 'Impresora instalada: ' + cola, autocompletar);
+    if (origen !== 'ESTA_PC') {
+      // El dispositivo lo detectó el backend (está enchufado a ese host), así que la cola tiene
+      // que crearse ahí mismo: la URI que trae es del `lpinfo` de ese servidor, no de esta PC.
+      this.instalarEnBackend(cola, d.uri, esTermica, enCentral, 'Impresora instalada: ' + cola, autocompletar);
       return;
     }
-    // Por defecto: instala en esta PC vía Electron (sin pasar por el servidor).
+    // Está enchufada a esta PC: la instala Electron (lpadmin en Linux / Add-Printer en Windows).
     this.instalarEnEstaPc(cola, d.uri, esTermica, null, autocompletar);
   }
 
