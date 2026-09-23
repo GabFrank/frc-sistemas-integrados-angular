@@ -140,9 +140,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   winWidth;
   totalGs = 0;
   descuentoGs = 0;
-  cambioRs = 1;
-  cambioDs = 1;
-  cambioArg = 1;
+  // null hasta que carguen las monedas: la plantilla muestra "—" y los totales en moneda
+  // extranjera quedan null. Un 1 se mostraba como cotizacion real (PDV con "1").
+  cambioRs: number = null;
+  cambioDs: number = null;
+  cambioArg: number = null;
   selectedPdvCategoria: PdvCategoria;
   ultimoAdicionado: VentaItem[] = [];
   tiposPrecios: TipoPrecio[] = [];
@@ -533,13 +535,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }, {} as DecimalesPorMoneda);
           this.cambioRs = this.monedas.find(
             (m) => m.denominacion == "REAL"
-          )?.cambio;
+          )?.cambio ?? null;
           this.cambioDs = this.monedas.find(
             (m) => m.denominacion == "DOLAR"
-          )?.cambio;
+          )?.cambio ?? null;
           this.cambioArg = this.monedas.find(
             (m) => m.denominacion == "PESO ARG"
-          )?.cambio;
+          )?.cambio ?? null;
           return true;
         }
       });
@@ -819,8 +821,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 let venta = new Venta();
                 Object.assign(venta, this.selectedDelivery.venta);
                 venta.totalGs = this.totalGs;
-                venta.totalRs = this.totalGs / this.cambioRs;
-                venta.totalDs = this.totalGs / this.cambioDs;
+                venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+                venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
                 venta.delivery = this.selectedDelivery;
                 this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
               }
@@ -862,8 +864,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                       let venta = new Venta();
                       Object.assign(venta, this.selectedDelivery.venta);
                       venta.totalGs = this.totalGs;
-                      venta.totalRs = this.totalGs / this.cambioRs;
-                      venta.totalDs = this.totalGs / this.cambioDs;
+                      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+                      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
                       venta.delivery = this.selectedDelivery;
                       this.ventaService
                         .onSaveVenta2(venta.toInput(), false)
@@ -1068,8 +1070,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             let response: PagoResponseData = res;
             let venta = new Venta();
             venta.totalGs = this.totalGs;
-            venta.totalRs = this.totalGs / this.cambioRs;
-            venta.totalDs = this.totalGs / this.cambioDs;
+            venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+            venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
             venta.ventaItemList = this.selectedItemList;
             venta.caja = this.cajaService?.selectedCaja;
             venta.cliente = response.cliente;
@@ -1602,8 +1604,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       venta.caja = this.cajaService?.selectedCaja;
       venta.estado = VentaEstado.ABIERTA;
       venta.totalGs = this.totalGs;
-      venta.totalRs = this.totalGs / this.cambioRs;
-      venta.totalDs = this.totalGs / this.cambioDs;
+      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
       venta.valorDescuento = this.descuentoGs;
       venta.ventaItemList = this.selectedItemList;
       venta.isDelivery = true;

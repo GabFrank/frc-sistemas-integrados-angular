@@ -434,13 +434,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         }, {} as DecimalesPorMoneda);
         this.cambioRs = this.monedas.find(
           (m) => m.denominacion == "REAL"
-        )?.cambio;
+        )?.cambio ?? null;
         this.cambioDs = this.monedas.find(
           (m) => m.denominacion == "DOLAR"
-        )?.cambio;
+        )?.cambio ?? null;
         this.cambioArg = this.monedas.find(
           (m) => m.denominacion == "PESO ARG"
-        )?.cambio;
+        )?.cambio ?? null;
         this.formGroup.controls.moneda.setValue(
           this.monedas.find((m) => m.denominacion == "GUARANI")?.id
         );
@@ -517,7 +517,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setMoneda(moneda, openDialog?) {
     this.selectedMoneda = this.monedas.find((m) => m.denominacion == moneda);
-    this.formGroup.controls.moneda.setValue(this.selectedMoneda.id);
+    this.formGroup.controls.moneda.setValue(this.selectedMoneda?.id);
     // El dialogo de billetes es una calculadora de CONTEO de efectivo: con TARJETA seleccionada
     // no tiene nada que contar y solo estorba. La moneda se sigue seleccionando siempre (arriba
     // de este guard) — lo unico que se condiciona es abrir el dialogo.
@@ -623,6 +623,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // solo tiene sentido para una línea nueva que el cajero está cargando ahora — dispararlo en
     // un replay abriría un diálogo modal por cada tarjeta ya cobrada en sesiones anteriores.
     const esLineaNueva = selectedItem?.id == null;
+    // Una moneda sin cotización registraba el cobro con monto NaN (valor * null/undefined).
+    // GUARANI tiene cambio 1: no pasa por acá.
+    if (this.formGroup.valid && saldo != 0 && !this.selectedMoneda?.cambio) {
+      this.notificacionSnackbar.openWarn(
+        `No hay cotización cargada para ${this.selectedMoneda?.denominacion || "la moneda seleccionada"}: no se puede registrar el cobro en esa moneda.`
+      );
+      return;
+    }
     if (this.formGroup.valid && saldo != 0) {
       let item = new CobroDetalle();
       if (selectedItem != null) Object.assign(item, selectedItem);
