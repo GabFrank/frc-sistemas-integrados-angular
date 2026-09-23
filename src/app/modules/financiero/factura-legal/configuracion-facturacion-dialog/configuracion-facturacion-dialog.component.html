@@ -1,38 +1,38 @@
-<h2 mat-dialog-title>Política de facturación automática</h2>
+<div class="dialog-header">
+    <h2 mat-dialog-title>Política de facturación</h2>
+    <div class="subtitulo">Qué ventas se facturan sin que el cajero lo pida</div>
+</div>
 
 <mat-dialog-content>
-    <div class="ayuda">
-        Decide qué ventas del punto de venta generan factura legal sin que el cajero la pida.
-        La configuración de una sucursal tiene prioridad sobre la global. <b>Sin ninguna configuración,
-        cada filial sigue usando su contador local (facturaCountDown).</b>
-        Los cambios llegan a los filiales por replicación, sin reiniciar.
-    </div>
-
-    <div class="sin-soporte" *ngIf="sinSoporte">
-        No se pudo cargar la política desde el servidor central. Si el central de este canal todavía
-        no tiene esta función, hay que actualizarlo antes de configurar.
+    <div class="aviso" *ngIf="sinSoporte">
+        <mat-icon>warning_amber</mat-icon>
+        <span>El servidor central de este canal todavía no tiene esta función.</span>
     </div>
 
     <table class="tabla-config">
         <thead>
             <tr>
-                <th>Alcance</th>
+                <th>Sucursal</th>
                 <th>Modo</th>
-                <th>Ventas sin factura</th>
                 <th>Venta + Ticket / Delivery</th>
-                <th>Modificado por</th>
                 <th>Modificado</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
             <tr *ngFor="let fila of filas" [class.editando]="fila.config.id === editandoId">
-                <td>{{ fila.sucursalNombre }}</td>
-                <td>{{ fila.modoLabel }}</td>
-                <td>{{ fila.ventasSinFacturaLabel }}</td>
-                <td>{{ fila.respetaLabel }}</td>
-                <td>{{ fila.modificadoPor }}</td>
-                <td>{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="sucursal">{{ fila.sucursalNombre }}</td>
+                <td>
+                    <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
+                </td>
+                <td>
+                    <span class="chip" [class.chip-respeta]="fila.config.ventaTicketRespetaPolitica"
+                        [class.chip-siempre]="!fila.config.ventaTicketRespetaPolitica">{{ fila.respetaLabel }}</span>
+                </td>
+                <td class="modificado">
+                    <div>{{ fila.modificadoPor }}</div>
+                    <div class="fecha">{{ fila.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</div>
+                </td>
                 <td class="acciones">
                     <button mat-icon-button (click)="onEditar(fila)" matTooltip="Editar">
                         <mat-icon>edit</mat-icon>
@@ -43,50 +43,53 @@
                 </td>
             </tr>
             <tr *ngIf="!isLoading && !sinSoporte && filas.length === 0">
-                <td colspan="7" class="vacio">Sin configuración: cada filial usa su contador local.</td>
+                <td colspan="5" class="vacio">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>Sin configuración: cada sucursal usa su contador local.</span>
+                </td>
             </tr>
         </tbody>
     </table>
 
     <form [formGroup]="form" class="form-config">
-        <div class="form-titulo">{{ editandoId != null ? 'Editando configuración' : 'Nueva configuración' }}</div>
-        <div fxLayout="row wrap" fxLayoutGap="15px" fxLayoutAlign="start center">
-            <mat-form-field appearance="outline" fxFlex="30">
-                <mat-label>Alcance</mat-label>
+        <div class="form-titulo">{{ editandoId != null ? 'Editar configuración' : 'Nueva configuración' }}</div>
+
+        <div class="form-grid">
+            <mat-form-field appearance="outline">
+                <mat-label>Sucursal</mat-label>
                 <mat-select formControlName="sucursalId">
-                    <mat-option [value]="null">GLOBAL (TODAS LAS SUCURSALES)</mat-option>
+                    <mat-option [value]="null">GLOBAL (TODAS)</mat-option>
                     <mat-option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</mat-option>
                 </mat-select>
             </mat-form-field>
-            <mat-form-field appearance="outline" fxFlex="25">
+
+            <mat-form-field appearance="outline">
                 <mat-label>Modo</mat-label>
                 <mat-select formControlName="modo" (selectionChange)="onModoChange()">
                     <mat-option *ngFor="let m of modos" [value]="m.value">{{ m.label }}</mat-option>
                 </mat-select>
+                <mat-hint>{{ modoHint }}</mat-hint>
             </mat-form-field>
-            <mat-form-field appearance="outline" fxFlex="15">
-                <mat-label>Ventas sin factura</mat-label>
-                <input matInput type="number" min="0" formControlName="ventasSinFactura">
+
+            <mat-form-field appearance="outline" *ngIf="esIntervalo">
+                <mat-label>N (ventas sin factura)</mat-label>
+                <input matInput type="number" min="0" formControlName="ventasSinFactura" (input)="onIntervaloChange()">
+                <mat-hint>{{ intervaloHint }}</mat-hint>
             </mat-form-field>
-            <div class="toggle-respeta" fxFlex>
-                <mat-slide-toggle formControlName="ventaTicketRespetaPolitica" color="accent">
-                    Venta + Ticket y delivery respetan la política
-                </mat-slide-toggle>
-            </div>
         </div>
-        <div class="form-desc">
-            <b>Cada N ventas</b>: factura una de cada N + 1 (N = ventas sin factura entre dos facturadas).
-            Con el switch apagado, «Venta + Ticket» y delivery facturan siempre, como hasta ahora.
-            Las ventas a crédito no se ven afectadas por el switch.
+
+        <div class="toggle-respeta">
+            <mat-slide-toggle formControlName="ventaTicketRespetaPolitica" color="accent" (change)="onRespetaChange()">
+                Venta + Ticket y delivery respetan la política
+            </mat-slide-toggle>
+            <div class="toggle-hint">{{ respetaHint }}</div>
         </div>
     </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
     <button mat-button (click)="onCerrar()">Cerrar</button>
-    <button mat-button (click)="onNuevo()">
-        <mat-icon>add</mat-icon> Nueva
-    </button>
+    <button mat-button *ngIf="editandoId != null" (click)="onNuevo()">Cancelar edición</button>
     <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="sinSoporte">
         <mat-icon>save</mat-icon> Guardar
     </button>

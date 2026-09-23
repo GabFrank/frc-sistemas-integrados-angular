@@ -12,7 +12,7 @@ interface FilaConfiguracion {
   config: ConfiguracionFacturacion;
   sucursalNombre: string;
   modoLabel: string;
-  ventasSinFacturaLabel: string;
+  modoClase: string;
   respetaLabel: string;
   modificadoPor: string;
   modificadoEn: Date;
@@ -22,6 +22,18 @@ const MODO_LABELS: { [modo: string]: string } = {
   [ModoFacturacion.TODAS]: 'TODAS LAS VENTAS',
   [ModoFacturacion.INTERVALO]: 'CADA N VENTAS',
   [ModoFacturacion.A_PEDIDO]: 'SOLO A PEDIDO'
+};
+
+const MODO_CLASES: { [modo: string]: string } = {
+  [ModoFacturacion.TODAS]: 'chip-todas',
+  [ModoFacturacion.INTERVALO]: 'chip-intervalo',
+  [ModoFacturacion.A_PEDIDO]: 'chip-pedido'
+};
+
+const MODO_HINTS: { [modo: string]: string } = {
+  [ModoFacturacion.TODAS]: 'Toda venta con punto de venta se factura.',
+  [ModoFacturacion.INTERVALO]: 'Una de cada N + 1 ventas se factura.',
+  [ModoFacturacion.A_PEDIDO]: 'Nunca se factura sola: solo cuando el cliente la pide.'
 };
 
 /**
@@ -46,6 +58,10 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   editandoId: number = null;
   esIntervalo = true;
   isLoading = true;
+  // Textos de ayuda del formulario, recalculados en los eventos: el template no llama funciones.
+  modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
+  intervaloHint = '';
+  respetaHint = '';
   /** El central de este canal no tiene la función todavía (desktop más nuevo que su backend). */
   sinSoporte = false;
 
@@ -64,6 +80,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.actualizarHints();
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
       this.sucursales = res != null ? res : [];
     });
@@ -99,9 +116,11 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     return {
       config: c,
       sucursalNombre: c.sucursal != null ? c.sucursal.nombre : 'GLOBAL (TODAS LAS SUCURSALES)',
-      modoLabel: MODO_LABELS[c.modo] || c.modo,
-      ventasSinFacturaLabel: c.modo === ModoFacturacion.INTERVALO ? String(c.ventasSinFactura) : '-',
-      respetaLabel: c.ventaTicketRespetaPolitica ? 'RESPETA LA POLÍTICA' : 'FACTURA SIEMPRE',
+      modoLabel: c.modo === ModoFacturacion.INTERVALO
+        ? `1 DE CADA ${(c.ventasSinFactura ?? 0) + 1}`
+        : (MODO_LABELS[c.modo] || c.modo),
+      modoClase: MODO_CLASES[c.modo] || 'chip-siempre',
+      respetaLabel: c.ventaTicketRespetaPolitica ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE',
       modificadoPor: c.usuarioNickname || '-',
       modificadoEn: c.modificadoEn
     };
@@ -114,6 +133,27 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     } else {
       this.form.controls.ventasSinFactura.disable();
     }
+    this.actualizarHints();
+  }
+
+  onIntervaloChange(): void {
+    this.actualizarHints();
+  }
+
+  onRespetaChange(): void {
+    this.actualizarHints();
+  }
+
+  private actualizarHints(): void {
+    const modo = this.form.controls.modo.value;
+    this.modoHint = MODO_HINTS[modo] || '';
+    const n = this.form.controls.ventasSinFactura.value;
+    this.intervaloHint = n != null && n >= 0
+      ? (n === 0 ? 'Con 0 se factura el 100%.' : `Factura 1 de cada ${n + 1}.`)
+      : '';
+    this.respetaHint = this.form.controls.ventaTicketRespetaPolitica.value === true
+      ? 'Encendido: esos botones solo facturan si el modo lo indica.'
+      : 'Apagado: esos botones facturan siempre, como hasta ahora.';
   }
 
   onEditar(fila: FilaConfiguracion): void {
