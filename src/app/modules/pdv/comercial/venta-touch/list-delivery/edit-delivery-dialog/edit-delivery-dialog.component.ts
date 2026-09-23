@@ -507,10 +507,13 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       item.descuento = this.isDescuento
       item.aumento = this.isAumento
       item.pago = (!this.isVuelto && !this.isDescuento && !this.isAumento)
-      item.cambio = this.selectedMoneda.cambio
-      this.valorParcialPagado += item.valor * item.moneda.cambio;
+      // Una línea ya guardada (replay al reabrir) usa la cotización con la que se cobró si su
+      // moneda hoy no tiene cotización: con la actual en null la línea sumaba 0 al saldo.
+      const cambio = this.selectedMoneda?.cambio || (selectedItem?.id != null ? selectedItem?.cambio : null)
+      item.cambio = cambio
+      this.valorParcialPagado += item.valor * cambio;
       this.vueltoControl
-        .setValue((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado) / this.selectedMoneda.cambio);
+        .setValue((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado) / cambio);
       this.saldoControl.setValue(
         ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
       );
@@ -581,7 +584,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     if (item?.id != null) {
       this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId, false).subscribe(res => {
         if (res) {
-          this.valorParcialPagado -= item.valor * item.moneda.cambio;
+          this.valorParcialPagado -= item.valor * item.cambio;
 
           this.saldoControl.setValue(
             ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
@@ -605,7 +608,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
         }
       })
     } else {
-      this.valorParcialPagado -= item.valor * item.moneda.cambio;
+      this.valorParcialPagado -= item.valor * item.cambio;
 
       this.saldoControl.setValue(
         ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)

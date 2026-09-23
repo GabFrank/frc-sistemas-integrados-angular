@@ -211,6 +211,7 @@ export const deliverysByEstadoList = gql`
             vuelto
             descuento
             aumento
+            cambio
             sucursalId
             moneda {
               id
@@ -388,6 +389,7 @@ export const deliveryQuery = gql`
             vuelto
             descuento
             aumento
+            cambio
             sucursalId
             moneda {
               id
@@ -519,6 +521,7 @@ export const saveDelivery = gql`
             vuelto
             descuento
             aumento
+            cambio
             sucursalId
             moneda {
               id
@@ -684,6 +687,7 @@ export const saveDeliveryAndVentaQuery = gql`
             vuelto
             descuento
             aumento
+            cambio
             sucursalId
             moneda {
               id
