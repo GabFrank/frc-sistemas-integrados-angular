@@ -53,8 +53,8 @@
                         <span class="chip" [ngClass]="fila.modoClase">{{ fila.modoLabel }}</span>
                     </td>
                     <td>
-                        <span class="chip" [class.chip-respeta]="fila.config.ventaTicketRespetaPolitica"
-                            [class.chip-siempre]="!fila.config.ventaTicketRespetaPolitica">{{ fila.respetaLabel }}</span>
+                        <span class="chip" [class.chip-respeta]="fila.respetaActivo"
+                            [class.chip-siempre]="!fila.respetaActivo">{{ fila.respetaLabel }}</span>
                     </td>
                     <td class="modificado">
                         <div>{{ fila.modificadoPor }}</div>
@@ -112,7 +112,7 @@
                 </div>
             </div>
 
-            <div class="toggle-respeta">
+            <div class="toggle-respeta" [class.irrelevante]="respetaIrrelevante">
                 <mat-slide-toggle formControlName="ventaTicketRespetaPolitica" color="accent" (change)="onRespetaChange()">
                     Venta + Ticket y delivery respetan la política
                 </mat-slide-toggle>

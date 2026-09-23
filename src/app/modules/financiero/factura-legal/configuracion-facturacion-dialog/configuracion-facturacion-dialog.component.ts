@@ -21,6 +21,8 @@ interface FilaConfiguracion {
   modoLabel: string;
   modoClase: string;
   respetaLabel: string;
+  /** Si el switch cambia algo en esta fila (para el color de la etiqueta). */
+  respetaActivo: boolean;
   modificadoPor: string;
   modificadoEn: Date;
 }
@@ -71,6 +73,18 @@ const ACCION_CLASES: { [accion: string]: string } = {
   [AccionConfiguracionFacturacion.DESACTIVAR]: 'chip-siempre',
   [AccionConfiguracionFacturacion.ELIMINAR]: 'chip-eliminada'
 };
+
+/**
+ * El modo factura todo: "Todas las ventas", o "Cada N ventas" con N = 0. Ahí el switch de
+ * "Venta + Ticket y delivery respetan la política" no cambia nada: facturan siempre igual.
+ */
+function facturaTodo(modo: ModoFacturacion, ventasSinFactura: number): boolean {
+  return modo === ModoFacturacion.TODAS || (modo === ModoFacturacion.INTERVALO && (ventasSinFactura ?? 0) === 0);
+}
+
+function respetaLabel(modo: ModoFacturacion, ventasSinFactura: number, respeta: boolean): string {
+  return respeta && !facturaTodo(modo, ventasSinFactura) ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE';
+}
 
 function modoLabel(modo: ModoFacturacion, ventasSinFactura: number): string {
   return modo === ModoFacturacion.INTERVALO
@@ -125,6 +139,8 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
   modoHint = MODO_HINTS[ModoFacturacion.INTERVALO];
   intervaloHint = '';
   respetaHint = '';
+  /** El modo del formulario factura todo: el switch no cambia nada y se deshabilita. */
+  respetaIrrelevante = false;
 
   form = new FormGroup({
     sucursalId: new FormControl<number>(-1),
@@ -197,7 +213,8 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       sucursalNombre: c.sucursal != null ? c.sucursal.nombre : 'GLOBAL (TODAS LAS SUCURSALES)',
       modoLabel: modoLabel(c.modo, c.ventasSinFactura),
       modoClase: MODO_CLASES[c.modo] || 'chip-siempre',
-      respetaLabel: c.ventaTicketRespetaPolitica ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE',
+      respetaLabel: respetaLabel(c.modo, c.ventasSinFactura, c.ventaTicketRespetaPolitica),
+      respetaActivo: c.ventaTicketRespetaPolitica && !facturaTodo(c.modo, c.ventasSinFactura),
       modificadoPor: c.usuarioNickname || '-',
       modificadoEn: c.modificadoEn
     };
@@ -228,7 +245,17 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     this.intervaloHint = n != null && n >= 0
       ? (n === 0 ? 'Con 0 se factura el 100%.' : `Factura 1 de cada ${n + 1}.`)
       : '';
-    this.respetaHint = this.form.controls.ventaTicketRespetaPolitica.value === true
+    this.respetaIrrelevante = facturaTodo(modo, n);
+    const respeta = this.form.controls.ventaTicketRespetaPolitica;
+    if (this.respetaIrrelevante) {
+      // Se apaga para que, si después se cambia a un modo donde importa, arranque en lo de siempre.
+      respeta.setValue(false, { emitEvent: false });
+      respeta.disable({ emitEvent: false });
+      this.respetaHint = 'Con este modo se factura todo: el switch no cambia nada.';
+      return;
+    }
+    respeta.enable({ emitEvent: false });
+    this.respetaHint = respeta.value === true
       ? 'Encendido: esos botones solo facturan si el modo lo indica.'
       : 'Apagado: esos botones facturan siempre, como hasta ahora.';
   }
@@ -267,7 +294,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
     input.sucursalId = v.sucursalId === this.GLOBAL ? null : v.sucursalId;
     input.modo = v.modo;
     input.ventasSinFactura = this.esIntervalo ? v.ventasSinFactura : 0;
-    input.ventaTicketRespetaPolitica = v.ventaTicketRespetaPolitica === true;
+    input.ventaTicketRespetaPolitica = !this.respetaIrrelevante && v.ventaTicketRespetaPolitica === true;
     // Sin activo: al crear queda activa, y al editar el central conserva el que tenía.
     this.configuracionService.onSaveConfiguracion(input).subscribe({
       next: (res) => {
@@ -360,7 +387,7 @@ export class ConfiguracionFacturacionDialogComponent implements OnInit {
       accionClase: ACCION_CLASES[h.accion] || 'chip-siempre',
       modoLabel: modoLabel(h.modo, h.ventasSinFactura),
       modoClase: MODO_CLASES[h.modo] || 'chip-siempre',
-      respetaLabel: h.ventaTicketRespetaPolitica ? 'SEGÚN LA POLÍTICA' : 'FACTURA SIEMPRE',
+      respetaLabel: respetaLabel(h.modo, h.ventasSinFactura, h.ventaTicketRespetaPolitica),
       activoLabel: h.activo ? 'ACTIVA' : 'INACTIVA',
       usuario: h.usuarioNickname || '-'
     };

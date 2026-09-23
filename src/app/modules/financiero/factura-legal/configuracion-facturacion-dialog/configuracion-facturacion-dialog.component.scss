@@ -204,4 +204,8 @@
     color: #9e9e9e;
     margin: 6px 0 0 50px;
   }
+
+  &.irrelevante mat-slide-toggle {
+    opacity: 0.5;
+  }
 }
