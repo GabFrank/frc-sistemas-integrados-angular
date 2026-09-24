@@ -7,6 +7,8 @@ import { CargandoDialogService } from '../../../../shared/components/cargando-di
 import { MainService } from '../../../../main.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { esSucursalCompras } from '../../../empresarial/sucursal/sucursal-compras.util';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import { Producto } from '../producto.model';
 import { MovimientoStockService } from '../../../operaciones/movimiento-stock/movimiento-stock.service';
 import { MovimientoStock, MovimientoStockInput } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
@@ -39,6 +41,8 @@ export class AjustarStockDialogComponent implements OnInit {
   isLoadingStock = false;
   permitirCambiarSucursal: boolean = true;
   diferencia: number = 0;
+  /** Sin este rol COMPRAS no se puede ajustar: ajustar exige ver su stock, que está oculto. */
+  puedeVerStockCompras = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AjustarStockDialogData,
@@ -51,6 +55,13 @@ export class AjustarStockDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+    // Antes de cargarSucursales(): con una sucursal preseleccionada, esa es la que pide el stock.
+    if (!this.puedeVerStockCompras && esSucursalCompras(this.data.sucursalPreseleccionada)) {
+      this.notificacionService.openWarn('Sin permiso para ajustar el stock de COMPRAS');
+      this.dialogRef.close(false);
+      return;
+    }
     this.configurarSucursalPreseleccionada();
     this.createForm();
     this.cargarSucursales();
@@ -90,8 +101,9 @@ export class AjustarStockDialogComponent implements OnInit {
 
   cargarSucursales() {
     this.sucursalService.onGetAllSucursales(true).subscribe(res => {
-      this.sucursales = res?.filter(sucursal => 
-        sucursal.nombre != "SERVIDOR");
+      this.sucursales = res?.filter(sucursal =>
+        sucursal.nombre != "SERVIDOR" &&
+        (this.puedeVerStockCompras || !esSucursalCompras(sucursal)));
       
       if (this.data.sucursalPreseleccionada && this.selectedSucursal) {
         this.cargarStockActual();
