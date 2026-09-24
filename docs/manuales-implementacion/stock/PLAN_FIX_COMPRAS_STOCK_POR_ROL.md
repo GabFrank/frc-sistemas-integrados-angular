@@ -148,6 +148,43 @@ dos gates de stock ni los `includes("COMPRAS")` / `includes("COMPRA")` de `edit-
 cambiarlos arriesga ese flujo. Quedan anotadas **cuatro** formas de decir «es COMPRAS» (nombre
 exacto, dos `includes` distintos, id 999 en gastos) para unificar aparte.
 
+## Auditoría del diff (paso 8)
+
+- **Fijo 1 — autorización:** sin fugas. El permiso se calcula en la primera línea de `ngOnInit`,
+  antes de cualquier carga (el constructor del diálogo de ítem solo arma listas). Todos los
+  caminos de recarga (filtro, paginación, alta y edición de ítem, «+», presentación, simplificado)
+  pasan por los puntos guardados. Con el rol, todo cae en las ramas de siempre.
+- **Fijo 2 — esquema:** `N/A para desktop porque [ev: git diff --name-only — sin .graphqls,
+  migración ni entidad]`.
+- **Fijo 3 — contrato:** con los flags en `false`, el buscador compartido renderiza igual que en
+  `develop` para los otros 15 llamadores (ninguno pasa `transferencia`). `MainService` es
+  `providedIn: root` y nadie instancia los diálogos a mano. Hallazgos aplicados: el JSDoc de
+  `calcularCantidadSugeridaDeDistribuciones` había quedado arriba de `cerrarSiStockOculto`, y el
+  cierre de las filas ocultas estaba como efecto secundario dentro de un `.filter` (ahora es un
+  `forEach` previo).
+- Condicionales A y B: no se disparan.
+
+## Resultado de la prueba de runtime (paso 9)
+
+Central local en 8081 desde un worktree de `origin/develop` (perfil `dev`, replicación apagada) y
+`ng serve -c web`. Usuario real con ADMIN; el caso «sin rol» se simuló sacando `ADMIN` y
+`VER STOCK COMPRAS` de `usuarioActual.roles` en memoria.
+
+| Caso | Sin rol | Con rol |
+|---|---|---|
+| Pedido 4 → productos del proveedor con «Todos» (21 sucursales) | 20 entradas, ninguna COMPRAS | 21 entradas, con COMPRAS |
+| Añadir ítem 809 + fila de influencia COMPRAS (camino «+») | «—» en stock y sugerida; carga apagada; fuera del tooltip | -20309 / sugerida 20309 |
+| idem, recarga por lote (`loadAllStocksAsync`) | igual: oculta, sin «Calculando...» colgado | — |
+| Transferencia 58155 (COMPRAS → Suc. Central), buscador con 3424 | origen «—», destino -115, sin botón «Ver» | -24.456 / -115 (SQL: -24456 / -115) |
+| Aviso de stock negativo (3424, `permitirStockNegativo=false`) | «El producto tiene stock negativo y no puede ser transferido.»; el ítem no se guarda | — |
+| Lotes (no hay lotes en la base local: `crearFila` con un lote de prueba de 37) | «—», sin detalle en unidades, `disponible=37`; la sobreasignación se detecta con el aviso sin número | «37» |
+
+En esta rama el stock por sucursal de compras da 0 porque no incluye el fix del #338; no afecta
+lo que se prueba acá (qué sucursal entra o no).
+
+La prueba creó la transferencia 58155 en la base local. Además, el central de `develop` aplicó
+10 migraciones pendientes a `bodega@5551` (V220.5–V228.5 y V231.1).
+
 ## Qué queda sin verificar
 
 - El total de `compras-search-producto-dialog` (fuera de alcance, ver arriba).

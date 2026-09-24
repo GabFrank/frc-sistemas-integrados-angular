@@ -1606,9 +1606,10 @@ export class AddEditItemDialogComponent implements OnInit {
    */
   private loadStockActualDeTodasLasDistribuciones(productoId: number): void {
     // Las filas de COMPRAS sin el rol se cierran acá, sin preguntar: no entran en `pendientes`.
-    const enCarga = this.distribucionesItems.filter(
-      (item) => item.stockActualLoading && !this.cerrarSiStockOculto(item)
-    );
+    this.distribucionesItems
+      .filter((item) => item.stockActualLoading)
+      .forEach((item) => this.cerrarSiStockOculto(item));
+    const enCarga = this.distribucionesItems.filter((item) => item.stockActualLoading);
 
     // Una fila sin sucursal de influencia no tiene stock que pedir; se la saca del spinner acá
     // mismo, que es lo que hacía loadStockActual() al entrar.
@@ -1893,17 +1894,6 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   /**
-   * Calcula la cantidad sugerida de varias distribuciones con UN request.
-   *
-   * Antes esto eran dos consultas encadenadas por distribución —compras y, en su respuesta,
-   * ventas—, cada una con `size: 1000` y escalonadas con `setTimeout(index * 10)`. Con 10
-   * distribuciones eran 20 idas y vueltas en dos olas seriadas, ocupando el pool de 6 conexiones
-   * por origen del navegador, y hasta 1000 filas por sucursal y por tipo para terminar en unos
-   * pocos números. El central ahora agrupa y devuelve esos números.
-   *
-   * Va encadenado al stock, nunca en paralelo: la cuenta lo resta.
-   */
-  /**
    * Marca si el stock de la fila se oculta, y si se oculta la cierra: sin stock ni sugerida, y
    * con los dos indicadores de carga apagados. Si quedara alguno prendido, la fila se quedaría en
    * "Calculando..." para siempre, porque nadie más la va a cerrar.
@@ -1921,6 +1911,17 @@ export class AddEditItemDialogComponent implements OnInit {
     return item.stockOculto;
   }
 
+  /**
+   * Calcula la cantidad sugerida de varias distribuciones con UN request.
+   *
+   * Antes esto eran dos consultas encadenadas por distribución —compras y, en su respuesta,
+   * ventas—, cada una con `size: 1000` y escalonadas con `setTimeout(index * 10)`. Con 10
+   * distribuciones eran 20 idas y vueltas en dos olas seriadas, ocupando el pool de 6 conexiones
+   * por origen del navegador, y hasta 1000 filas por sucursal y por tipo para terminar en unos
+   * pocos números. El central ahora agrupa y devuelve esos números.
+   *
+   * Va encadenado al stock, nunca en paralelo: la cuenta lo resta.
+   */
   private calcularCantidadSugeridaDeDistribuciones(items: DistribucionItem[]): void {
     const pendientes = items.filter((item) => item.cantidadSugeridaLoading);
     if (pendientes.length === 0) {
