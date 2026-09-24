@@ -30,6 +30,13 @@ describe('MapaFormatoService.urlCentral', () => {
     expect(s.urlCentral(ruta)).toBe('http://159.203.86.103:8082' + ruta);
   });
 
+  it('localhost configurado (el default) se resuelve al host por el que se abrió la app', () => {
+    // En Karma el host es localhost, así que da lo mismo; lo que se fija es que no se pierda el
+    // puerto configurado. El caso 192.168.x.x se midió con node (plan, fase 2).
+    const s = servicioCon({ serverCentralIp: 'localhost', serverCentralPort: '8081' });
+    expect(s.urlCentral(ruta)).toBe(`http://${window.location.hostname || 'localhost'}:8081${ruta}`);
+  });
+
   it('sin configuración de central cae al host de la página y al puerto de desarrollo', () => {
     const esperado = `http://${window.location.hostname || 'localhost'}:8081${ruta}`;
     expect(servicioCon({ serverCentralIp: '', serverCentralPort: '' }).urlCentral(ruta)).toBe(esperado);

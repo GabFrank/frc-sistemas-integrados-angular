@@ -231,15 +231,19 @@ export class MapaFormatoService {
    * **El fallback NO puede ser `localhost`.** Esta URL termina adentro de un QR que escanea un
    * teléfono: `localhost` ahí es el teléfono mismo, así que la página no abre nunca y no hay
    * ningún error que lo explique. Verificado el 2026-09-15: el QR decía `http://localhost:8081/...`.
-   * Sin configuración (sólo pasa en `ng serve`) el mejor dato es el host por el que este navegador
-   * llegó a la app: si entró por `192.168.0.106:4201`, el teléfono llega a `192.168.0.106:8081`.
-   * Abrir la app por `localhost` sigue sin servir para el QR, y `qrEsAlcanzable` lo dice en
-   * pantalla en vez de dejar que se descubra esperando.
+   * Un `localhost` en la configuración —es el default de `ConfiguracionService`, y el caso de
+   * `ng serve` con el central en la misma máquina— quiere decir «esta máquina», y para el teléfono
+   * esa máquina es el host por el que el navegador llegó a la app: si entró por
+   * `192.168.0.106:4201`, el teléfono llega a `192.168.0.106:8081`. Electron no tiene host (`''`) y
+   * se queda con lo configurado. Abrir la app por `localhost` sigue sin servir para el QR, y
+   * `qrEsAlcanzable` lo dice en pantalla en vez de dejar que se descubra esperando.
    */
   urlCentral(ruta: string): string {
     const config = this.configService.getConfig();
+    const configurada = config?.serverCentralIp;
+    const esEstaMaquina = !configurada || /^(localhost|127\.0\.0\.1)$/i.test(configurada);
     // `||` y no `??`: el hostname de Electron es '' y tiene que caer al siguiente.
-    const ip = config?.serverCentralIp || window.location.hostname || 'localhost';
+    const ip = esEstaMaquina ? (window.location.hostname || configurada || 'localhost') : configurada;
     const port = config?.serverCentralPort || '8081';
     return `${urlsDeServidor(ip, port).http}${ruta}`;
   }
