@@ -179,8 +179,13 @@ Central local en 8081 desde un worktree de `origin/develop` (perfil `dev`, repli
 | Aviso de stock negativo (3424, `permitirStockNegativo=false`) | «El producto tiene stock negativo y no puede ser transferido.»; el ítem no se guarda | — |
 | Lotes (no hay lotes en la base local: `crearFila` con un lote de prueba de 37) | «—», sin detalle en unidades, `disponible=37`; la sobreasignación se detecta con el aviso sin número | «37» |
 
-En esta rama el stock por sucursal de compras da 0 porque no incluye el fix del #338; no afecta
-lo que se prueba acá (qué sucursal entra o no).
+Durante la prueba se mergeó el #338 a `develop` y se trajo a esta rama (merge limpio). Repetido
+con el stock real:
+
+| Caso | Sin rol | Con rol |
+|---|---|---|
+| Productos del proveedor, «Todos» | 809 / 1422 / 980: 20 entradas, sin COMPRAS; totales 177 / 2855,55 / 359 | 21 entradas; COMPRAS -20309 / -3075,57 / -17130; mismos totales (COMPRAS es negativa) |
+| Añadir ítem 809, Central + COMPRAS, recarga por lote | Central -52 (sug. 52); COMPRAS «—» | Central -52; COMPRAS -20309 (sug. 20309) |
 
 La prueba creó la transferencia 58155 en la base local. Además, el central de `develop` aplicó
 10 migraciones pendientes a `bodega@5551` (V220.5–V228.5 y V231.1).
