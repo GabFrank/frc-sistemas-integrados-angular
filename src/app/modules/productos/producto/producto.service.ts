@@ -1,4 +1,5 @@
 import { Injectable } from "@angular/core";
+import { PorSucursal } from "../../../commons/core/utils/por-sucursal";
 import { SaveProductoGQL } from "./graphql/saveProducto";
 import { ProductoInput } from "./producto-input.model";
 import { BehaviorSubject, Observable } from "rxjs";
@@ -148,27 +149,28 @@ export class ProductoService {
    * abre 6 conexiones por origen, asi que N llamadas salen en tandas y ocupan
    * todo el pool mientras duran.
    *
-   * Devuelve un Map por id de sucursal. Las sucursales sin movimientos no vienen
-   * en la respuesta —no hay filas que sumar— y por eso quedan fuera del Map: el
+   * Devuelve un `PorSucursal` por id de sucursal. Las sucursales sin movimientos no
+   * vienen en la respuesta —no hay filas que sumar— y por eso quedan afuera: el
    * llamador las muestra en cero. Eso permite distinguir "no hay stock aca" de
    * "todavia no pregunte", que es lo que un cero por defecto pierde.
    *
-   * `sucursalId` viaja como string (es `ID` en el schema); se convierte aca para
-   * que los consumidores puedan indexar con el `id` numerico de Sucursal.
+   * El id de sucursal es `ID` en el schema y llega como string, tanto en esta
+   * respuesta como en el `Sucursal.id` de cualquier otra query: `PorSucursal`
+   * lo normaliza al guardar y al buscar, asi que se busca con el id tal como vino.
    */
   onGetStockPorSucursales(
     proId: number,
     silentLoad = true,
     servidor = true
-  ): Observable<Map<number, number>> {
+  ): Observable<PorSucursal<number>> {
     return this.genericService
       .onCustomQuery(this.stockPorSucursalesGql, { proId }, servidor, undefined, silentLoad)
       .pipe(
         map((filas: StockPorSucursalRaw[]) => {
-          const porSucursal = new Map<number, number>();
+          const porSucursal = new PorSucursal<number>();
           (filas || []).forEach((fila) => {
             if (fila?.sucursalId == null) return;
-            porSucursal.set(Number(fila.sucursalId), fila.cantidad ?? 0);
+            porSucursal.set(fila.sucursalId, fila.cantidad ?? 0);
           });
           return porSucursal;
         })

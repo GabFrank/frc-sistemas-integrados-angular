@@ -60,6 +60,7 @@ import { NotaRecepcion, NotaRecepcionEstado } from "./nota-recepcion.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
@@ -4330,7 +4331,7 @@ export class GestionComprasComponent
       .onGetStockPorSucursales(productoId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (stockPorSucursal: Map<number, number>) => {
+        next: (stockPorSucursal: PorSucursal<number>) => {
           producto.stockPorSucursal.forEach(entry => {
             entry.stock = stockPorSucursal.get(entry.sucursal.id) ?? 0;
             entry.loading = false;
