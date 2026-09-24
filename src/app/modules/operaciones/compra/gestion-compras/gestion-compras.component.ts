@@ -64,6 +64,8 @@ import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { Producto } from "../../../productos/producto/producto.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { PedidoResumen } from "./graphql/getPedidoResumen";
@@ -440,6 +442,8 @@ export class GestionComprasComponent
   sucursalesEntregaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
   sucursalesInfluenciaParaSelect: Sucursal[] = []; // Filtradas por búsqueda para el dropdown
   sucursalTodos: Sucursal; // Objeto especial "Todos" con id -1
+  /** Sin este rol no se muestra el stock de la sucursal COMPRAS, igual que en la lista de productos. */
+  puedeVerStockCompras = false;
   sucursalEntregaSearchControl = new FormControl("");
   sucursalInfluenciaSearchControl = new FormControl("");
 
@@ -500,6 +504,8 @@ export class GestionComprasComponent
   private devolucionAlertaBloqueante = true;
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+
     this.devolucionConfigService
       .onGet()
       .pipe(takeUntil(this.destroy$))
@@ -4287,7 +4293,11 @@ export class GestionComprasComponent
    * El stagger repartía el costo en el tiempo, no lo bajaba.
    */
   private loadStockForProductosProveedor(): void {
-    const sucursales = this.getSucursalesDeInfluenciaEfectivas();
+    // COMPRAS sigue siendo influencia elegible; lo que no se muestra sin el rol es su stock. Al
+    // sacarla de acá no entra ni en el total ni en el detalle, que se arman de estas entradas.
+    const sucursales = this.getSucursalesDeInfluenciaEfectivas().filter(
+      (s) => this.puedeVerStockCompras || !esSucursalCompras(s)
+    );
     const productos = this.productosProveedorDataSource.data;
 
     if (sucursales.length === 0) {
