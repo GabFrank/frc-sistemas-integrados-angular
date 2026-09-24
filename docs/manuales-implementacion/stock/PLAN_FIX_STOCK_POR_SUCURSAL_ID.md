@@ -101,6 +101,36 @@ Util + dos services + 4 anotaciones + javadocs. Un commit, un push.
 | B | La cantidad sugerida no se guarda: solo se muestra (`cantidadPedir` lo escribe el usuario). Con el stock real va a bajar, que es lo correcto | Sin acción: no hay estado que revertir |
 | B | Un desktop que no se actualiza sigue mostrando los ceros de hoy: nada nuevo se rompe | Sin acción |
 
+## Auditoría del diff (paso 8)
+
+- **Fijo 1 — autorización:** sin fuga nueva. `list-producto` sigue ocultando COMPRAS sin
+  `puedeVerStockCompras`: el render recorre la lista de sucursales del componente, no el
+  `PorSucursal`. **Hueco preexistente, fuera de este PR:** `gestion-compras` y
+  `add-edit-item-dialog` nunca filtraron COMPRAS por rol (0 referencias a `VER_STOCK_COMPRAS`
+  antes de `8ea7cf7d` y ahora), y `stockPorSucursales` no tiene control de rol en el central.
+- **Fijo 2 — esquema:** `N/A para desktop porque [ev: git diff --name-only — sin .graphqls,
+  migración ni entidad]`.
+- **Fijo 3 — contrato:** los 4 consumidores son los únicos; ningún spec ni otro módulo usa el
+  `Map`. Hallazgo aplicado: el comentario de `StockPorSucursalRaw` seguía diciendo que
+  `sucursal.id` es number.
+- Condicionales A y B: no se disparan (ningún glob).
+
+## Resultado de la prueba de runtime (paso 9)
+
+`ng serve -c web --host 127.0.0.1` contra el central local 8081 (perfil `dev`, `bodega@5551`).
+En runtime `sucursal.id` llega como `string` en las 4 pantallas.
+
+| # | Caso | App | SQL |
+|---|---|---|---|
+| 1 | Lista de productos → 3424 LAS COLONIAS ALFAJOR 3 PISOS NEGRO | las 21 sucursales listadas coinciden (Central -115, Aquario 1440, Fiesta 0 sin movimientos) | idem |
+| 2 | Pedido 4 → productos del proveedor, influencia Suc. Central | 809 = -52, 980 = -34, 1422 = -80.372 | idem |
+| 2b | `loadStockPorSucursalesDeProducto` con 3424 y 5 sucursales | total 1495 = 55 + 1440 (solo positivos) | idem |
+| 3 | Añadir ítem 809 → distribución Suc. Central, stock actual | -52 | -52 |
+| 4 | idem, cantidad sugerida | agregado encontrado con id `"1"`: 111 ventas, 5 compras; sugerida 52 | 111 ventas en la ventana |
+
+Observación fuera de alcance: `ventanaCantidadSugerida` cierra en `2025-09-30T00:00`, así que
+deja afuera las ventas del último día del mes (115 contra 111). No lo toca este fix.
+
 ## Despliegue
 
 `develop` → alpha; después a `release/beta`. El usuario ve *Cerrar y actualizar* en ≤5 min.
