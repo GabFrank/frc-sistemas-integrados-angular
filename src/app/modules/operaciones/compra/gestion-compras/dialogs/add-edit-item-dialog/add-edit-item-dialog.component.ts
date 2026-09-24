@@ -34,9 +34,13 @@ import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
+import { PorSucursal } from "../../../../../../commons/core/utils/por-sucursal";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../../../personas/roles/roles.enum";
+import { MainService } from "../../../../../../main.service";
 import { PedidoItemDistribucion, PedidoItemDistribucionInput } from "../../pedido-item-distribucion.model";
 import { ProductoService } from "../../../../../productos/producto/producto.service";
 import {
@@ -75,6 +79,8 @@ export interface DistribucionItem {
   cantidadSugeridaLoading: boolean;
   cantidadPedir: number;
   distribucionId?: number; // Para modo edición
+  /** Influencia COMPRAS sin `VER_STOCK_COMPRAS`: ni el stock ni la sugerida (que lo resta) se muestran. */
+  stockOculto?: boolean;
 }
 
 @Component({
@@ -226,6 +232,8 @@ export class AddEditItemDialogComponent implements OnInit {
   ];
   sucursalesInfluencia: Sucursal[] = [];
   sucursalesEntrega: Sucursal[] = [];
+  /** Sin este rol no se muestra el stock de la sucursal COMPRAS, igual que en la lista de productos. */
+  puedeVerStockCompras = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -238,6 +246,7 @@ export class AddEditItemDialogComponent implements OnInit {
     private productoService: ProductoService,
     private movimientoStockService: MovimientoStockService,
     private buscadorComprasService: BuscadorComprasService,
+    private mainService: MainService,
     @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
   ) {
     this.initializeForm();
@@ -245,6 +254,8 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+
     // Cargar monedas para tener la información completa disponible
     this.loadMonedas();
     
@@ -622,7 +633,8 @@ export class AddEditItemDialogComponent implements OnInit {
     // Update simplified stock and tooltip
     this.stockTotalSimplificadoComputed = 0;
     let tooltipText = "Desglose por Sucursal:\n";
-    this.distribucionesItems.forEach(item => {
+    // Las filas con el stock oculto no suman ni aparecen: su 0 sería un cero falso.
+    this.distribucionesItems.filter(item => !item.stockOculto).forEach(item => {
       const stock = item.stockActual || 0;
       if (stock > 0) {
         this.stockTotalSimplificadoComputed += stock;
@@ -1594,6 +1606,10 @@ export class AddEditItemDialogComponent implements OnInit {
    * sumar— y quedan en cero, igual que devolvía la consulta por sucursal.
    */
   private loadStockActualDeTodasLasDistribuciones(productoId: number): void {
+    // Las filas de COMPRAS sin el rol se cierran acá, sin preguntar: no entran en `pendientes`.
+    this.distribucionesItems
+      .filter((item) => item.stockActualLoading)
+      .forEach((item) => this.cerrarSiStockOculto(item));
     const enCarga = this.distribucionesItems.filter((item) => item.stockActualLoading);
 
     // Una fila sin sucursal de influencia no tiene stock que pedir; se la saca del spinner acá
@@ -1619,7 +1635,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     this.productoService.onGetStockPorSucursales(productoId).subscribe({
-      next: (stockPorSucursal: Map<number, number>) => {
+      next: (stockPorSucursal: PorSucursal<number>) => {
         pendientes.forEach((item) => {
           item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
           item.stockActualLoading = false;
@@ -1822,6 +1838,13 @@ export class AddEditItemDialogComponent implements OnInit {
       return;
     }
 
+    if (this.cerrarSiStockOculto(distribucionItem)) {
+      setTimeout(() => {
+        this.updateComputedProperties();
+      }, 0);
+      return;
+    }
+
     // Asegurar que el estado de carga esté activo
     distribucionItem.stockActualLoading = true;
 
@@ -1869,6 +1892,24 @@ export class AddEditItemDialogComponent implements OnInit {
       inicio: new Date(anhoPasado, mesActual, 1),
       fin: new Date(anhoPasado, mesActual + 1, 0, 23, 59, 59),
     };
+  }
+
+  /**
+   * Marca si el stock de la fila se oculta, y si se oculta la cierra: sin stock ni sugerida, y
+   * con los dos indicadores de carga apagados. Si quedara alguno prendido, la fila se quedaría en
+   * "Calculando..." para siempre, porque nadie más la va a cerrar.
+   *
+   * La sugerida también se oculta porque resta el stock: con las ventas a la vista, lo revela.
+   */
+  private cerrarSiStockOculto(item: DistribucionItem): boolean {
+    item.stockOculto = !this.puedeVerStockCompras && esSucursalCompras(item.sucursalInfluencia);
+    if (item.stockOculto) {
+      item.stockActual = 0;
+      item.stockActualLoading = false;
+      item.cantidadSugerida = null;
+      item.cantidadSugeridaLoading = false;
+    }
+    return item.stockOculto;
   }
 
   /**
@@ -1926,7 +1967,7 @@ export class AddEditItemDialogComponent implements OnInit {
       // la saca de ahí; el `error` de abajo no alcanza porque nunca llegaría a dispararse.
       .pipe(timeout(60000))
       .subscribe({
-        next: (porSucursal: Map<number, CantidadSugeridaPorSucursal>) => {
+        next: (porSucursal: PorSucursal<CantidadSugeridaPorSucursal>) => {
           conSucursal.forEach((item) => {
             item.cantidadSugerida = this.calcularCantidadSugeridaDesdeAgregado(
               porSucursal?.get(item.sucursalInfluencia.id),
