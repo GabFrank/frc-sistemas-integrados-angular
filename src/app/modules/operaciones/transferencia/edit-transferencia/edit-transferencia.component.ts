@@ -17,6 +17,8 @@ import { MatTableDataSource } from "@angular/material/table";
 import { MainService } from "../../../../main.service";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { SeleccionarSucursalDialogComponent } from "../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
 import { UsuarioHelperService } from "../../../administrativo/marcacion/service/usuario-helper.service";
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
@@ -1815,6 +1817,15 @@ export class EditTransferenciaComponent implements OnInit {
     const productoId = this.selectedProducto?.id;
 
     if (productoId != null && sucursalOrigenId != null) {
+      // Origen COMPRAS sin VER_STOCK_COMPRAS: el aviso no dice el número. La regla de bloqueo
+      // sigue mirando el stock real.
+      const ocultarStock =
+        esSucursalCompras(this.selectedTransferencia?.sucursalOrigen) &&
+        !this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+      const avisoNegativo = (stock: number) =>
+        ocultarStock
+          ? "El producto tiene stock negativo y no puede ser transferido."
+          : `El producto tiene stock negativo (${stock}) y no puede ser transferido.`;
       const { requestId } = this.cargandoService.openDialog(false, "Verificando stock...");
       this.productoService.onGetStockPorProductoAndSucursal(productoId, sucursalOrigenId, true)
         .subscribe({
@@ -1825,7 +1836,7 @@ export class EditTransferenciaComponent implements OnInit {
                   this.cargandoService.closeDialog(requestId);
                   if (!config?.permitirStockNegativo) {
                     this.notificacionService.openWarn(
-                      `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                      avisoNegativo(stock)
                     );
                     this.onClear();
                     return;
@@ -1835,7 +1846,7 @@ export class EditTransferenciaComponent implements OnInit {
                 error: () => {
                   this.cargandoService.closeDialog(requestId);
                   this.notificacionService.openWarn(
-                    `El producto tiene stock negativo (${stock}) y no puede ser transferido.`
+                    avisoNegativo(stock)
                   );
                   this.onClear();
                 }
