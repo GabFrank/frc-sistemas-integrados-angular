@@ -601,9 +601,14 @@ export class RegistrarVentaTarjetaDialogComponent implements OnInit, OnDestroy {
           this.capturaToken = qr.token;
           this.escucharCaptura(qr.token);
         },
-        error: () => {
+        error: (err) => {
           this.pidiendoCaptura = false;
-          this.errorCaptura = 'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.';
+          // El motivo lo manda el filial (p. ej. la caja no está abierta). El texto genérico queda
+          // solo para cuando el servidor de verdad no respondió.
+          this.errorCaptura = mensajeDeError(
+            err,
+            'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.'
+          );
         },
       });
   }
