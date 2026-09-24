@@ -84,6 +84,36 @@ Permiso: `mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS])` en `ngOnInit`. C
 | B | El permiso se calcula una vez al abrir: la prueba sin rol tiene que reabrir la pantalla, no sacar el rol con la pantalla abierta | Aplicado en la prueba |
 | B | Con el rol, nada cambia | Confirmado |
 
+## Auditoría del diff (paso 8)
+
+- **Fijo 1 — autorización:** sin caminos para elegir o ver COMPRAS sin el rol en las tres
+  pantallas (preselección de los dos llamadores, cambio de sucursal, buscador de lotes, desglose).
+  Inconsistencia anotada, fuera de alcance: los diálogos usan `tieneAlgunRol` (con bypass por
+  nickname ADMIN) y `list-stock-lote` su cálculo viejo (sin nickname); el de los diálogos es más
+  permisivo, nunca más restrictivo.
+- **Fijo 2 — esquema:** `N/A para desktop porque [ev: git diff --name-only — sin .graphqls,
+  migración ni entidad]`.
+- **Fijo 3 — contrato:** hallazgo aplicado: la defensa cerraba antes de crear el formulario y el
+  template liga `[formGroup]` sin guarda (error en consola). Ahora el formulario se arma antes del
+  cierre. Los `afterClosed` de los dos llamadores tratan bien `false` y `null`.
+- Condicionales A y B: no se disparan.
+
+## Resultado de la prueba de runtime (paso 9)
+
+Central local en 8085 desde un worktree de `origin/develop` (perfil `dev`, replicación apagada;
+8081 y 4200 los usaba otra sesión) y `ng serve -c web` en 4201. Usuario real con ADMIN; el caso sin
+rol se simuló sacando `ADMIN` y `VER STOCK COMPRAS` en memoria, reabriendo cada diálogo o pantalla.
+
+| Caso | Sin rol | Con rol |
+|---|---|---|
+| Lista de productos (filtro «todos») → Ajustar stock: selector | 20 sucursales, sin COMPRAS | 21, con COMPRAS |
+| Defensa del ajuste común (COMPRAS preseleccionada) | aviso «Sin permiso para ajustar el stock de COMPRAS», cierre, **sin pedir el stock**, sin errores en consola | — |
+| Stock por lote → filtro de sucursal | sin COMPRAS | con COMPRAS (22) |
+| Diálogo con lote → selector | 20, sin COMPRAS | 21, con COMPRAS |
+| Defensa del ajuste con lote | cierra con `null`, sin recarga de más, sin errores | — |
+
+No se guardó ningún ajuste.
+
 ## Qué queda sin verificar
 
 - El backend acepta un `AJUSTE` sobre COMPRAS de cualquiera con sesión (UX, como el #339).
