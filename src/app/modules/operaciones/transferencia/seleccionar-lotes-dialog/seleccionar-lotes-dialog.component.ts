@@ -18,6 +18,9 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { ESTADO_LOTE_LABELS, EstadoLote, StockLotePresentacion } from '../../lote/lote.model';
 import { LoteService } from '../../lote/lote.service';
 import { EtapaAsignacionLote, TransferenciaItemLote } from '../transferencia.model';
+import { MainService } from '../../../../main.service';
+import { ROLES } from '../../../personas/roles/roles.enum';
+import { esSucursalCompras } from '../../../empresarial/sucursal/sucursal-compras.util';
 
 /** Tolerancia al comparar cantidades que el backend devuelve ya divididas. */
 const EPSILON = 0.0001;
@@ -115,6 +118,8 @@ export class SeleccionarLotesDialogComponent implements OnInit {
 
   /** Filas de la página actual. */
   filas: LoteRow[] = [];
+  /** Origen COMPRAS sin `VER_STOCK_COMPRAS`: el saldo de cada lote se muestra "—". */
+  ocultarDisponible = false;
   busquedaControl = new FormControl('');
   cargando = true;
   /**
@@ -170,10 +175,14 @@ export class SeleccionarLotesDialogComponent implements OnInit {
     private loteService: LoteService,
     private notificacionService: NotificacionSnackbarService,
     private cdr: ChangeDetectorRef,
+    private mainService: MainService,
     @Inject(LOCALE_ID) private locale: string
   ) {}
 
   ngOnInit(): void {
+    this.ocultarDisponible =
+      !this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]) &&
+      esSucursalCompras({ nombre: this.data?.sucursalOrigenNombre });
     this.cantidadDefinidaPorLotes = this.data?.cantidadDefinidaPorLotes === true;
     this.cantidadRequerida = this.data?.cantidad || 0;
     this.cantidadRequeridaLabel = this.formatearCantidad(this.cantidadRequerida);
@@ -288,8 +297,11 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       estadoLabel: ESTADO_LOTE_LABELS[lote.estado] || lote.estado || '-',
       estadoClase: this.claseSegunEstado(lote.estado),
       disponible: lote.cantidadDisponiblePresentacion,
-      disponibleLabel: this.formatearCantidad(lote.cantidadDisponiblePresentacion),
-      disponibleUnidadesLabel: this.armarDetalleUnidades(lote),
+      // `disponible` se queda con el número: la validación de sobreasignación lo necesita.
+      disponibleLabel: this.ocultarDisponible
+        ? '—'
+        : this.formatearCantidad(lote.cantidadDisponiblePresentacion),
+      disponibleUnidadesLabel: this.ocultarDisponible ? '' : this.armarDetalleUnidades(lote),
       seleccionable,
       bloqueada: false,
       control
@@ -475,7 +487,9 @@ export class SeleccionarLotesDialogComponent implements OnInit {
       return false;
     }
     this.notificacionService.openWarn(
-      `El lote ${fila.numeroLote} solo tiene ${fila.disponibleLabel} disponible`
+      this.ocultarDisponible
+        ? `El lote ${fila.numeroLote} no tiene esa cantidad disponible`
+        : `El lote ${fila.numeroLote} solo tiene ${fila.disponibleLabel} disponible`
     );
     return true;
   }

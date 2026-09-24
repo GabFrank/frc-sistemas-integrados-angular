@@ -27,6 +27,8 @@ import { MatSort } from "@angular/material/sort";
 import { MainService } from "../../../../main.service";
 import { TecladoNumericoComponent } from "../../../../shared/components/teclado-numerico/teclado-numerico.component";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { esSucursalCompras } from "../../../empresarial/sucursal/sucursal-compras.util";
+import { ROLES } from "../../../personas/roles/roles.enum";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
 import { MatPaginator } from "@angular/material/paginator";
@@ -130,6 +132,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   precios: string[];
   modoPrecio: string;
   isTransferencia: boolean = false;
+  /**
+   * Transferencia con COMPRAS de un lado, y sin `VER_STOCK_COMPRAS`: el stock de ese lado no se
+   * pide y se muestra "—". Solo en transferencias; las demás pantallas que usan este buscador no
+   * cambian.
+   */
+  ocultarStockOrigen = false;
+  ocultarStockDestino = false;
   existenciaOrigen: number = 0;
   existenciaDestino: number = 0;
   modoSeleccionMultiple = false;
@@ -190,6 +199,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.isTransferencia = true;
     } else {
       this.isTransferencia = false;
+    }
+
+    if (this.isTransferencia && !this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS])) {
+      this.ocultarStockOrigen = esSucursalCompras(this.data.transferencia.sucursalOrigen);
+      this.ocultarStockDestino = esSucursalCompras(this.data.transferencia.sucursalDestino);
     }
   }
 
@@ -601,30 +615,34 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   mostrarStock(producto: Producto, index?) {
     if (this.isTransferencia) {
-      this.productoService
-        .onGetStockPorProductoAndSucursal(
-          producto.id,
-          this.data.transferencia.sucursalOrigen.id,
-          this.data.servidor
-        )
-        .subscribe((stock) => {
-          if (stock != null) {
-            producto.stockPorProducto = stock;
-            this.dataSource[index] = producto;
-          }
-        });
-      this.productoService
-        .onGetStockPorProductoAndSucursal(
-          producto.id,
-          this.data.transferencia.sucursalDestino.id,
-          this.data.servidor
-        )
-        .subscribe((stock) => {
-          if (stock != null) {
-            producto.stockPorProductoDestino = stock;
-            this.dataSource[index] = producto;
-          }
-        });
+      if (!this.ocultarStockOrigen) {
+        this.productoService
+          .onGetStockPorProductoAndSucursal(
+            producto.id,
+            this.data.transferencia.sucursalOrigen.id,
+            this.data.servidor
+          )
+          .subscribe((stock) => {
+            if (stock != null) {
+              producto.stockPorProducto = stock;
+              this.dataSource[index] = producto;
+            }
+          });
+      }
+      if (!this.ocultarStockDestino) {
+        this.productoService
+          .onGetStockPorProductoAndSucursal(
+            producto.id,
+            this.data.transferencia.sucursalDestino.id,
+            this.data.servidor
+          )
+          .subscribe((stock) => {
+            if (stock != null) {
+              producto.stockPorProductoDestino = stock;
+              this.dataSource[index] = producto;
+            }
+          });
+      }
     } else if (this.data?.sucursalFiltro?.id != null) {
       this.productoService
         .onGetStockPorProductoAndSucursal(
