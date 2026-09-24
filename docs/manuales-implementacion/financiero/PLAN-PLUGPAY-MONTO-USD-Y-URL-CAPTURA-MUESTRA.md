@@ -146,6 +146,17 @@ En **local** (nunca contra farmacia): central y filial con `spring-boot:run -Dsp
   hay, hoy se guarda ×100 y el fix lo corrige de acá en adelante (los guardados no cambian).
   INFONET no: su grupo `monto` es `[0-9][0-9.]*` sin `escala`. Se releva con Gabriel (eje B).
 
+## Auditoría del diff (paso 8)
+
+Tres ejes fijos; ningún condicional (el diff no toca la maquinaria de release ni lo que replica).
+Cada hallazgo se verificó contra el código antes de aplicarlo.
+
+| Eje | Hallazgo | Qué se hizo |
+|---|---|---|
+| Fijo 1 — autorización y fuga | Sin fuga: el token de `onGetImagenMuestra` viaja al mismo host que Apollo y el login, por HTTPS en la web. Antes la URL era inválida (Electron) o la bloqueaba el mixed content (web): no había fuga efectiva, había feature muerta. **Hallazgo:** el fallback al host de la página era inalcanzable porque el default de `ConfiguracionService` es `localhost` — regresión para `ng serve` por LAN (el QR pasaba de `192.168.x.x:8081` a `localhost:8081`) | Verificado (`DEFAULT_CONFIG.serverCentralIp = … \|\| 'localhost'`). Corregido: `localhost`/`127.0.0.1` configurado = «esta máquina» → host de la página si lo hay. Spec 4/4; cinco modos medidos con node |
+| Fijo 2 — esquema | Sin migraciones, enums ni campos. `monto`/`monto_escaneado` son `NUMERIC(18,2)` + `BigDecimal` en filial y central: 146.5 se guarda sin pérdida. **Hallazgo:** el reporte impreso del central formatea `montoEscaneado` con `#,##0` (146.50 → 146, 156.83 → 157: pierde los centavos) | Verificado (`ImpresionService.java:1510`). Por pedido de Gabriel entra en esta entrega como **PR del central** (`fix/venta-tarjeta-monto-escaneado-reporte`) |
+| Fijo 3 — contrato | Sin incompatibilidad: alpha y farmacia sirven `/public/captura-muestra` (410), bodega no (404, preexistente y documentado). `aNumero` no tenía otros importadores; nadie construye `MapaFormatoService` a mano. **Hallazgo:** `tryMigrateLegacyConfig` pone como central la IP/puerto del filial si el perfil viejo no tenía `centralIp` | Verificado, **no se corrige acá**: esa misma configuración es la de Apollo, así que un perfil así ya tiene rota toda la conexión con central, no sólo el QR. `urlCentral` ahora anda o falla igual que el resto de la app — que es el objetivo |
+
 ## Pasos del ciclo cumplidos fuera de orden (registro)
 
 - La Fase 1 se implementó **antes** de escribir y auditar este plan (pasos 4–6 salteados). Se
