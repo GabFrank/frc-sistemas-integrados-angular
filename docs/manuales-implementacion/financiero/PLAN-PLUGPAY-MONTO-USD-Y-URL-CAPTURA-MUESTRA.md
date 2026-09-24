@@ -51,8 +51,14 @@ Regla, de lo más seguro a lo menos:
 - solo coma → una es decimal (`146,50`, como siempre); varias son miles;
 - solo puntos → punto final + 1 o 2 dígitos es decimal (`146.50`); si no, miles (`918.957`).
 
-Tests: `a-numero.spec.ts` (23 expectativas). Karma está roto en todo el desktop, así que se
-ejecutaron **los mismos casos contra la función real extraída del archivo, con node**: 23/23.
+Tests: `qr-pos/monto-cupon.spec.ts` (9 bloques, 23 expectativas). Karma está roto en todo el
+desktop; se corrió con el método del manual (§5 de `VENTA-TARJETA-QR-CUPON.md`: esbuild + node):
+9/9 verdes.
+
+> En la fase 2, `aNumero` se mudó del componente a `qr-pos/monto-cupon.ts`, con el mismo patrón que
+> `mensaje-error.ts`: el spec que importaba el componente no se podía ejecutar en node (el
+> componente arrastra Angular Material, que necesita DOM). El commit de la fase 1 la exportaba
+> desde el componente; la mudanza va en el commit de la fase 2.
 Contra la versión de `develop` fallan 4 bloques —dólares (`146.50` → 14650), `escala` (146.5 →
 1465), importe en inglés (`1,146.50` → 1.1465) y guaraníes con `.00` (918957.00 → 91895700)— y
 pasan los de guaraníes que no tenían que cambiar: el test prueba lo que dice.
@@ -74,9 +80,21 @@ pasan los de guaraníes que no tenían que cambiar: el test prueba lo que dice.
 - Si el servidor devuelve `url` propia (`frc.captura-muestra.base-url`), el QR la sigue usando
   (sin cambio en `mapa-formato-panel` / `probar-formato-panel`).
 
-Tests: `mapa-formato.service.spec.ts` con `ConfiguracionService` simulado — IP y puerto
-configurados, configuración vacía, hostname vacío. El caso HTTPS depende de `location.protocol`
-y se verifica en la prueba de runtime (abajo), no en el spec.
+Tests: `mapa-formato.service.spec.ts` con `ConfiguracionService` simulado — IP y puerto de
+central configurados (farmacia), que no use la del filial, y sin configuración: 3/3 verdes con
+esbuild + node. Los cuatro modos, incluido HTTPS, se corrieron además con el cuerpo real de la
+función nueva y de la vieja (node, `location` simulado):
+
+| modo | viejo | nuevo |
+|---|---|---|
+| app instalada, caja farmacia | `http://:8081/…` | `http://159.203.86.103:8082/…` |
+| web `farmacia.desk` | `http://farmacia.desk.frcsuite.com:8081/…` | `https://farmacia-api.frcsuite.com/…` |
+| `ng serve` sin config | `http://192.168.0.106:8081/…` | igual |
+| Electron sin config | `http://:8081/…` | `http://localhost:8081/…` (lo marca `qrEsAlcanzable`) |
+
+Las dos primeras filas viejas son exactamente las URLs de las capturas de pantalla del 2026-09-24.
+Chequeo de tipos de los specs (`tsc -p src/tsconfig.spec.json --noEmit`): 0 errores, con una sonda
+de error a propósito que sí detectó —el `0` no es el falso negativo del `CLAUDE.md`—.
 
 ### Fase 3 — Documentación y cierre (paso 11)
 
