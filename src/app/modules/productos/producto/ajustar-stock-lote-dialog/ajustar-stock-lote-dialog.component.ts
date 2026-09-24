@@ -115,6 +115,9 @@ export class AjustarStockLoteDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+    // El formulario va primero aunque el diálogo se cierre: el template se renderiza igual hasta
+    // que termina de cerrar y liga [formGroup].
+    this.armarFormulario();
     // Antes de cargarSucursales(): con una sucursal preseleccionada, esa es la que pide el stock.
     // Cierra con null, como onCancelar: el stock por lote recarga con cualquier cosa distinta.
     if (!this.puedeVerStockCompras && esSucursalCompras(this.data?.sucursalPreseleccionada)) {
@@ -122,7 +125,6 @@ export class AjustarStockLoteDialogComponent implements OnInit {
       this.dialogRef.close(null);
       return;
     }
-    this.armarFormulario();
     this.configurarSucursal();
     this.cargarSucursales();
   }

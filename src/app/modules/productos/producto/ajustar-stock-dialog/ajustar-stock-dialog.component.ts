@@ -58,6 +58,8 @@ export class AjustarStockDialogComponent implements OnInit {
     this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
     // Antes de cargarSucursales(): con una sucursal preseleccionada, esa es la que pide el stock.
     if (!this.puedeVerStockCompras && esSucursalCompras(this.data.sucursalPreseleccionada)) {
+      // El template se renderiza igual hasta que termina de cerrar y liga [formGroup].
+      this.createForm();
       this.notificacionService.openWarn('Sin permiso para ajustar el stock de COMPRAS');
       this.dialogRef.close(false);
       return;
