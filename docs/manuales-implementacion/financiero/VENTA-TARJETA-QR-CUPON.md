@@ -75,6 +75,21 @@ llamarlo también.
   `err.message` da `undefined` y el mensaje del backend se pierde. Usar `mensajeDeError()`
   (`qr-pos/mensaje-error.ts`), que cubre las tres formas. Un bloqueo que no explica por qué es
   casi tan malo como no bloquear: el cajero reintenta a ciegas.
+- **El monto del cupón se convierte con `aNumero()` (`qr-pos/monto-cupon.ts`), y el punto no
+  siempre es de miles.** Pasan por ahí lo leído por el OCR, lo tipeado por el cajero y lo cobrado
+  (para compararlo). Regla: un número queda como está; con punto y coma, el último es el decimal;
+  una coma sola es decimal; un punto final seguido de 1 o 2 dígitos es decimal (`USD 146.50`), si
+  no son miles (`918.957`). Hasta el 2026-09-24 quitaba todos los puntos y el cupón de PlugPay
+  se guardaba como 14650. **Desde el formato no se arregla**: el patrón solo recorta texto, y con
+  `escala` el valor llega como número. El spec fija los casos de guaraníes que no pueden cambiar.
+- **La URL de la captura de muestra sale de `ConfiguracionService`, no de `window.environment`.**
+  `MapaFormatoService.urlCentral()` arma el QR del mapa y de «Probar», la subida de fotos y la foto
+  de una muestra, con `serverCentralIp`/`serverCentralPort` y `urlsDeServidor()` —lo mismo que
+  Apollo—: en la web publicada da `https://farmacia-api.frcsuite.com/…` y en la app instalada la IP
+  pública del central (`159.203.86.103:8082` en farmacia). `window.environment` no lo llena nadie;
+  leerlo dejaba `http://:8081/…` en Electron y el host del sitio estático en la web. Y la captura
+  de muestra **no existe en el central de bodega** hasta que la fase 2 del OCR llegue a `master`:
+  ahí la URL sale bien armada y el central responde 404.
 
 ## 4. El rol nuevo son 3 ediciones en el sidebar
 
@@ -103,6 +118,11 @@ node -r /tmp/jasmine-shim.js /tmp/spec.js
 ```
 
 45 verdes: `qr-pos-parser` (23), `venta-tarjeta-qr-payload` (8), `cobro-tarjeta` (8), `mensaje-error` (6).
+Sumados el 2026-09-24: `monto-cupon` (9) y `mapa-formato.service` (3). El shim de jasmine necesita
+`window`/`location` (Karma corre en un navegador por `http://localhost`) y, si el spec importa algo
+que arrastra Angular, `node -r @angular/compiler` con `NODE_PATH=<desktop>/node_modules`. Un spec
+que importa un **componente** con Angular Material no corre en node (pide DOM): por eso la lógica
+testeable va en una utilidad suelta, como `mensaje-error.ts` y `monto-cupon.ts`.
 
 ⚠️ **`npm run check` no typechequea los `.spec.ts`** — `src/tsconfig.app.json` los excluye con
 `"exclude": ["**/*.spec.ts"]`. Para que un error de tipos en un spec no pase silencioso:

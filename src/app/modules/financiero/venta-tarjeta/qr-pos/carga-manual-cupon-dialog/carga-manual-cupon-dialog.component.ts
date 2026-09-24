@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { mensajeDeError } from '../mensaje-error';
+import { aNumero } from '../monto-cupon';
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -558,9 +559,3 @@ function aFecha(v: any): Date | undefined {
   return d;
 }
 
-/** Acepta coma o punto como decimal: el cajero tipea lo que ve en el papel. */
-function aNumero(v: any): number {
-  if (v == null || String(v).trim() === '') return undefined;
-  const n = Number(String(v).trim().replace(/\./g, '').replace(',', '.'));
-  return isNaN(n) ? undefined : n;
-}
