@@ -17,6 +17,7 @@ import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 import { ProveedorService } from '../../../personas/proveedor/proveedor.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { esSucursalCompras } from '../../../empresarial/sucursal/sucursal-compras.util';
 import { Producto } from '../../../productos/producto/producto.model';
 import {
   AjustarStockLoteDialogComponent,
@@ -267,13 +268,20 @@ export class ListStockLoteComponent implements OnInit {
   /**
    * Solo sucursales activas, el mismo criterio con el que el backend arma el desglose por
    * sucursal. Ofrecer una sucursal dada de baja en el filtro dejaría el panel vacío al elegirla.
+   *
+   * COMPRAS solo con el rol: filtrada, `sucursalVisible` la deja pasar sin mirar el rol, y el
+   * ajuste abriría con COMPRAS fija.
    */
   private cargarSucursales(): void {
     this.sucursalService.onGetAllSucursales()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.sucursales = res.filter((sucursal) => sucursal.activo !== false);
+          this.sucursales = res.filter(
+            (sucursal) =>
+              sucursal.activo !== false &&
+              (this.puedeVerStockCompras || !esSucursalCompras(sucursal))
+          );
           this.cdr.markForCheck();
         }
       });

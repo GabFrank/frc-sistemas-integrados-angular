@@ -1582,13 +1582,26 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           // número de timbrado ya consumido y el stock sin descontar.
           error: (err) => {
             console.error("Error al guardar la venta:", err);
-            this.notificacionSnackbar.notification$.next({
-              color: NotificacionColor.danger,
-              texto: facturaLegalId != null
-                ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
-                : "No se pudo guardar la venta. Verifique antes de continuar.",
-              duracion: 10,
-            });
+            // El aviso genérico es para el estado DESCONOCIDO: red caída o timeout, donde la
+            // venta pudo haberse aplicado igual y por eso hay que verificar antes de seguir.
+            // Un rechazo del servidor no es ese caso: respondió, explicó por qué, y no escribió
+            // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
+            // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
+            // que necesita el caso caro de abajo.
+            // El discriminador es la forma de lo que emite GenericCrudService.onCustomMutation:
+            // un array de errores GraphQL si el servidor rechazó, el error crudo si fue transporte.
+            // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
+            // venta asociada, con el timbrado consumido y el stock sin descontar.
+            const rechazoDelServidor = Array.isArray(err);
+            if (!rechazoDelServidor || facturaLegalId != null) {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: facturaLegalId != null
+                  ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+                  : "No se pudo guardar la venta. Verifique antes de continuar.",
+                duracion: 10,
+              });
+            }
             obs.next(null);
           },
         });
