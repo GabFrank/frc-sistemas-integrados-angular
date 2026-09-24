@@ -34,6 +34,7 @@ import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
+import { PorSucursal } from "../../../../../../commons/core/utils/por-sucursal";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../../../empresarial/sucursal/sucursal.model";
@@ -1634,7 +1635,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     this.productoService.onGetStockPorSucursales(productoId).subscribe({
-      next: (stockPorSucursal: Map<number, number>) => {
+      next: (stockPorSucursal: PorSucursal<number>) => {
         pendientes.forEach((item) => {
           item.stockActual = stockPorSucursal.get(item.sucursalInfluencia.id) ?? 0;
           item.stockActualLoading = false;
@@ -1966,7 +1967,7 @@ export class AddEditItemDialogComponent implements OnInit {
       // la saca de ahí; el `error` de abajo no alcanza porque nunca llegaría a dispararse.
       .pipe(timeout(60000))
       .subscribe({
-        next: (porSucursal: Map<number, CantidadSugeridaPorSucursal>) => {
+        next: (porSucursal: PorSucursal<CantidadSugeridaPorSucursal>) => {
           conSucursal.forEach((item) => {
             item.cantidadSugerida = this.calcularCantidadSugeridaDesdeAgregado(
               porSucursal?.get(item.sucursalInfluencia.id),

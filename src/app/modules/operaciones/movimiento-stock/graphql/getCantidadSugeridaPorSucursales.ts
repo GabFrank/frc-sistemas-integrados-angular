@@ -5,10 +5,10 @@ import { cantidadSugeridaPorSucursalesQuery } from './graphql-query';
 /**
  * Fila cruda tal como vuelve del central.
  *
- * `sucursalId` es `ID` en el schema y GraphQL serializa los `ID` como string: compararlo contra
- * `sucursal.id` (number) con `===` da siempre false. La conversión la hace
- * `MovimientoStockService.onGetCantidadSugeridaPorSucursales`, para que ningún consumidor tenga
- * que acordarse. Mismo criterio que `StockPorSucursalRaw` en el módulo de productos.
+ * `sucursalId` es `ID` en el schema y GraphQL serializa los `ID` como string, igual que el
+ * `sucursal.id` de cualquier otra query aunque el modelo lo declare `number`. La normalización la
+ * hace `PorSucursal`, en `MovimientoStockService.onGetCantidadSugeridaPorSucursales`, para que
+ * ningún consumidor tenga que acordarse. Mismo criterio que `StockPorSucursalRaw` en productos.
  *
  * Las fechas usan el escalar `Date`, el mismo de `MovimientoStock.creadoEn`.
  */

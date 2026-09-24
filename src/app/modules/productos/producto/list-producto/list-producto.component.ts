@@ -15,6 +15,7 @@ import {
   ViewChild,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
+import { PorSucursal } from "../../../../commons/core/utils/por-sucursal";
 import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
@@ -280,7 +281,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       const sucursalesDeLaFila = this.selectedProducto.sucursales;
       this.service
         .onGetStockPorSucursales(this.selectedProducto.id)
-        .subscribe((stockPorSucursal: Map<number, number>) => {
+        .subscribe((stockPorSucursal: PorSucursal<number>) => {
           sucursalesDeLaFila.forEach((existenciaSucursal) => {
             existenciaSucursal.existencia =
               stockPorSucursal.get(existenciaSucursal.sucursal.id) ?? 0;

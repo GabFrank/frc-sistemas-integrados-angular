@@ -21,6 +21,7 @@ import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from
 import { SaveMovimientoStockGQL } from "./graphql/saveMovimientoStock";
 import { GetStockPrevioAjusteGQL } from "./graphql/getStockPrevioAjuste";
 import { GetStockAntesDeFechaGQL } from "./graphql/getStockAntesDeFecha";
+import { PorSucursal } from "../../../commons/core/utils/por-sucursal";
 import {
   CantidadSugeridaPorSucursalRaw,
   GetCantidadSugeridaPorSucursalesGQL,
@@ -28,7 +29,7 @@ import {
 
 /**
  * Lo que el diálogo de ítem de compra necesita saber de una sucursal para sugerir una cantidad.
- * Ya normalizado: `sucursalId` afuera como clave del Map, y las fechas como `Date` o null.
+ * Ya normalizado: `sucursalId` afuera como clave de `PorSucursal`, y las fechas como `Date` o null.
  */
 export interface CantidadSugeridaPorSucursal {
   totalVentas: number;
@@ -118,7 +119,8 @@ export class MovimientoStockService {
    * ahora agrupa: vuelven cuatro números por sucursal en vez de hasta 1000 filas por sucursal y
    * por tipo, y de paso desaparece el truncamiento silencioso que tenía esa paginación.
    *
-   * Devuelve un `Map` indexado por `sucursalId`, igual que `ProductoService.onGetStockPorSucursales`.
+   * Devuelve un `PorSucursal` indexado por `sucursalId`, igual que `ProductoService.onGetStockPorSucursales`:
+   * se busca con el `Sucursal.id` tal como vino de GraphQL, sea string o number.
    * Las sucursales sin movimientos en el rango no vienen en la respuesta: no hay filas que agrupar,
    * y el llamador las trata como cero.
    */
@@ -129,7 +131,7 @@ export class MovimientoStockService {
     sucursalList: number[],
     servidor = true,
     silentLoad = true
-  ): Observable<Map<number, CantidadSugeridaPorSucursal>> {
+  ): Observable<PorSucursal<CantidadSugeridaPorSucursal>> {
     return this.genericService
       .onCustomQuery(
         this.getCantidadSugeridaPorSucursalesGQL,
@@ -140,10 +142,10 @@ export class MovimientoStockService {
       )
       .pipe(
         map((filas: CantidadSugeridaPorSucursalRaw[]) => {
-          const porSucursal = new Map<number, CantidadSugeridaPorSucursal>();
+          const porSucursal = new PorSucursal<CantidadSugeridaPorSucursal>();
           (filas || []).forEach((fila) => {
             if (fila?.sucursalId == null) return;
-            porSucursal.set(Number(fila.sucursalId), {
+            porSucursal.set(fila.sucursalId, {
               totalVentas: fila.totalVentas ?? 0,
               cantidadCompras: fila.cantidadCompras ?? 0,
               primeraCompra: aFecha(fila.primeraCompra),

@@ -5,10 +5,11 @@ import { stockPorSucursales } from './graphql-query';
 /**
  * Fila cruda tal como vuelve del central.
  *
- * `sucursalId` es `ID` en el schema, y GraphQL serializa los `ID` como string:
- * compararlo contra `sucursal.id` (number) con `===` da siempre false. La
- * conversión la hace `ProductoService.onGetStockPorSucursales`, para que ningún
- * consumidor tenga que acordarse.
+ * `sucursalId` es `ID` en el schema, y GraphQL serializa los `ID` como string,
+ * igual que el `sucursal.id` de cualquier otra query aunque el modelo lo declare
+ * `number`. La normalización la hace `PorSucursal`, en
+ * `ProductoService.onGetStockPorSucursales`, para que ningún consumidor tenga que
+ * acordarse.
  */
 export interface StockPorSucursalRaw {
   sucursalId: string;
