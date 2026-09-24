@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../../generics/generic-crud.service';
+import { ConfiguracionService } from '../../../../../shared/services/configuracion.service';
+import { urlsDeServidor } from '../../../../../commons/core/utils/webEndpoints';
 import { CapturaMuestraGQL } from './graphql/capturaMuestra';
 import { CerrarCapturaMuestraGQL } from './graphql/cerrarCapturaMuestra';
 import { CrearCapturaMuestraGQL } from './graphql/crearCapturaMuestra';
@@ -39,6 +41,7 @@ export class MapaFormatoService {
   constructor(
     private genericService: GenericCrudService,
     private http: HttpClient,
+    private configService: ConfiguracionService,
     private lectorGQL: LectorDeCuponesDisponibleGQL,
     private crearGQL: CrearCapturaMuestraGQL,
     private muestraGQL: CapturaMuestraGQL,
@@ -208,29 +211,37 @@ export class MapaFormatoService {
   }
 
   /**
-   * La URL absoluta de central para una ruta pública.
+   * La URL absoluta de central para una ruta pública: el QR, «Subir una foto» y la foto de una
+   * muestra.
    *
-   * Sale de la misma configuración con la que el desktop habla con central, que es el default
-   * correcto: el teléfono debería llegar al mismo host. Si en producción esa dirección no fuera
-   * alcanzable desde afuera, el servidor puede devolver una URL propia (`frc.captura-muestra.base-url`)
-   * y esta función no se usa.
+   * Sale de la misma configuración con la que Apollo habla con central (`ConfiguracionService`) y
+   * se arma con `urlsDeServidor`, igual que el resto del desktop. El teléfono debería llegar al
+   * mismo host. Si en producción esa dirección no fuera alcanzable desde afuera, el servidor puede
+   * devolver una URL propia (`frc.captura-muestra.base-url`) y el QR usa esa.
+   *
+   * ⚠️ Antes leía `window.environment.centralIp`, que no lo llena nadie (el `config.service.ts` que
+   * lo escribía no se inyecta en ningún lado), y caía siempre al host de la página con el puerto
+   * `8081` fijo. Medido el 2026-09-24 en farmacia: la app instalada armaba `http://:8081/...`
+   * —Electron no tiene hostname y `??` no reemplaza el texto vacío— y la web
+   * `http://farmacia.desk.frcsuite.com:8081/...`, el sitio estático, sin backend. Y `8081` es el
+   * central de bodega. Ni el QR ni las subidas funcionaban en ninguno de los dos.
+   * Ahora: web → `https://farmacia-api.frcsuite.com/...` (override por host); app instalada →
+   * `http://<ip central>:<puerto central>/...` de la configuración.
    *
    * **El fallback NO puede ser `localhost`.** Esta URL termina adentro de un QR que escanea un
    * teléfono: `localhost` ahí es el teléfono mismo, así que la página no abre nunca y no hay
-   * ningún error que lo explique —se queda esperando una foto que jamás va a llegar—. Verificado
-   * el 2026-09-15: el QR decía `http://localhost:8081/...`.
-   *
-   * Corriendo en el navegador (sin Electron) `window.environment` no existe, y ahí el mejor dato
-   * disponible es el host por el que este navegador llegó a la app: si entró por
-   * `192.168.0.106:4201`, el teléfono llega a `192.168.0.106:8081`. Abrir la app por `localhost`
-   * sigue sin servir para el QR, y por eso el aviso de abajo lo dice en la pantalla en vez de
-   * dejar que se descubra esperando.
+   * ningún error que lo explique. Verificado el 2026-09-15: el QR decía `http://localhost:8081/...`.
+   * Sin configuración (sólo pasa en `ng serve`) el mejor dato es el host por el que este navegador
+   * llegó a la app: si entró por `192.168.0.106:4201`, el teléfono llega a `192.168.0.106:8081`.
+   * Abrir la app por `localhost` sigue sin servir para el QR, y `qrEsAlcanzable` lo dice en
+   * pantalla en vez de dejar que se descubra esperando.
    */
   urlCentral(ruta: string): string {
-    const env: any = (window as any).environment ?? {};
-    const ip = env.centralIp ?? window.location.hostname ?? 'localhost';
-    const port = env.centralPort ?? '8081';
-    return `http://${ip}:${port}${ruta}`;
+    const config = this.configService.getConfig();
+    // `||` y no `??`: el hostname de Electron es '' y tiene que caer al siguiente.
+    const ip = config?.serverCentralIp || window.location.hostname || 'localhost';
+    const port = config?.serverCentralPort || '8081';
+    return `${urlsDeServidor(ip, port).http}${ruta}`;
   }
 
   /**

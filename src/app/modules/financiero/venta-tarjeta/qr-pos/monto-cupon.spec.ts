@@ -1,4 +1,4 @@
-import { aNumero } from './carga-manual-cupon-dialog.component';
+import { aNumero } from './monto-cupon';
 
 /**
  * Por acá pasan el monto leído del cupón (para compararlo y para guardarlo) y lo cobrado (para
