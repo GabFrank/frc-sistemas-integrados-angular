@@ -17,6 +17,8 @@ import { CargandoDialogService } from '../../../../shared/components/cargando-di
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { esSucursalCompras } from '../../../empresarial/sucursal/sucursal-compras.util';
+import { ROLES } from '../../../personas/roles/roles.enum';
 import {
   AjusteStockLoteInput,
   ESTADO_LOTE_LABELS,
@@ -73,6 +75,8 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   sucursales: Sucursal[] = [];
   selectedSucursal: Sucursal;
   permitirCambiarSucursal = true;
+  /** Sin este rol COMPRAS no se puede ajustar: ajustar exige ver su stock, que está oculto. */
+  puedeVerStockCompras = false;
 
   /** Lote elegido en el buscador. Null mientras no se eligió ninguno. */
   loteElegido: LoteDeProducto;
@@ -110,7 +114,17 @@ export class AjustarStockLoteDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.puedeVerStockCompras = this.mainService.tieneAlgunRol([ROLES.VER_STOCK_COMPRAS]);
+    // El formulario va primero aunque el diálogo se cierre: el template se renderiza igual hasta
+    // que termina de cerrar y liga [formGroup].
     this.armarFormulario();
+    // Antes de cargarSucursales(): con una sucursal preseleccionada, esa es la que pide el stock.
+    // Cierra con null, como onCancelar: el stock por lote recarga con cualquier cosa distinta.
+    if (!this.puedeVerStockCompras && esSucursalCompras(this.data?.sucursalPreseleccionada)) {
+      this.notificacionService.openWarn('Sin permiso para ajustar el stock de COMPRAS');
+      this.dialogRef.close(null);
+      return;
+    }
     this.configurarSucursal();
     this.cargarSucursales();
   }
@@ -154,7 +168,11 @@ export class AjustarStockLoteDialogComponent implements OnInit {
     this.sucursalService.onGetAllSucursales(true)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.sucursales = (res || []).filter((sucursal) => sucursal.nombre !== 'SERVIDOR');
+        this.sucursales = (res || []).filter(
+          (sucursal) =>
+            sucursal.nombre !== 'SERVIDOR' &&
+            (this.puedeVerStockCompras || !esSucursalCompras(sucursal))
+        );
         if (this.selectedSucursal != null) {
           this.cargarStockDelProducto();
           this.preseleccionarLote();
