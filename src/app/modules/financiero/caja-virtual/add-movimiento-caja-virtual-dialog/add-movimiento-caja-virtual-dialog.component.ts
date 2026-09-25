@@ -128,10 +128,9 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
           this.notificacion.openSucess('Movimientos registrados correctamente');
           this.dialogRef.close(true);
         },
-        error: err => {
+        // El aviso de error lo da onSaveCustom (una vez por operación, aunque falle más de una moneda).
+        error: () => {
           this.isSaving = false;
-          const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'Error al guardar uno o más movimientos';
-          this.notificacion.openWarn(msg, 6);
         }
       });
   }
@@ -148,7 +147,8 @@ export class AddMovimientoCajaVirtualDialogComponent implements OnInit {
     movimiento.usuario = this.mainService.usuarioActual;
     movimiento.activo = true;
 
-    return this.cajaVirtualService.onSaveMovimiento(movimiento);
+    // Cada movimiento del lote va sin «Guardado con éxito»: el aviso agregado lo da onSave.
+    return this.cajaVirtualService.onSaveMovimiento(movimiento, { avisarExito: false });
   }
 
   onCancel() {

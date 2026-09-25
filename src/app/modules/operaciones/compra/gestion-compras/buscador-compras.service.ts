@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, shareReplay, switchMap, take, tap } from 'rxjs/operators';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { PageInfo } from '../../../../app.component';
 import { Producto } from '../../../productos/producto/producto.model';
 import { ProductoProveedor } from '../../../productos/producto-proveedor/producto-proveedor.model';
-import { ProductoService } from '../../../productos/producto/producto.service';
 import { SearchProductoWithFiltersGQL } from '../../../productos/producto/graphql/searchWithFilters';
+import { ProductoForPdvGQL } from '../../../productos/producto/graphql/productoSearchForPdv';
 import {
   buscarProductoInteligenteQuery,
   productoProveedorBusquedaInteligenteQuery,
@@ -49,6 +49,13 @@ export class ProductoProveedorBusquedaInteligenteGQL extends Query<ProductoProve
 }
 
 const BUSQUEDA_DIALOG_PAGE_SIZE = 20;
+/**
+ * Filas que devuelve `productoSearch` del central por llamada, a partir de
+ * `offset`: `limit 10` en `ProductoRepository.findbyAll` y `from + 10` en
+ * `ProductoService.buscarPorTextoLucene`. No viaja en el schema: si el central
+ * lo cambia, hay que cambiarlo acá.
+ */
+const FILAS_POR_LLAMADA_PRODUCTO_SEARCH = 10;
 const BUSQUEDA_CACHE_TTL_MS = 60_000;
 
 @Injectable({
@@ -63,7 +70,7 @@ export class BuscadorComprasService {
     private buscarProductoInteligenteGQL: BuscarProductoInteligenteGQL,
     private productoProveedorBusquedaInteligenteGQL: ProductoProveedorBusquedaInteligenteGQL,
     private searchProductoWithFiltersGQL: SearchProductoWithFiltersGQL,
-    private productoService: ProductoService
+    private productoSearchGQL: ProductoForPdvGQL
   ) {}
 
   /**
@@ -95,16 +102,42 @@ export class BuscadorComprasService {
     ).pipe(
       tap((productos) => this.busquedaResultadosCache.set(cacheKey, productos)),
       shareReplay({ bufferSize: 1, refCount: false }),
-      catchError(() => of([] as Producto[]))
+      // La página 0 la comparten el prefetch y los Enter, que esperan lista
+      // vacía ante un error. En las siguientes el error tiene que llegar al
+      // diálogo: una lista vacía se leería como «no hay más resultados».
+      catchError((error) => {
+        this.olvidarBusqueda(cacheKey, request$);
+        return page === 0 ? of([] as Producto[]) : throwError(() => error);
+      })
     );
 
     this.busquedaDialogCache.set(cacheKey, request$);
-    setTimeout(() => {
-      this.busquedaDialogCache.delete(cacheKey);
-      this.busquedaResultadosCache.delete(cacheKey);
-    }, BUSQUEDA_CACHE_TTL_MS);
+    setTimeout(() => this.olvidarBusqueda(cacheKey, request$), BUSQUEDA_CACHE_TTL_MS);
 
     return request$;
+  }
+
+  /**
+   * Borra la entrada solo si sigue siendo la de esa petición: tras un error se
+   * borra antes del TTL, y un reintento con la misma clave no debe perder su
+   * caché cuando vence el timer de la petición que falló.
+   */
+  private olvidarBusqueda(cacheKey: string, request$: Observable<Producto[]>): void {
+    if (this.busquedaDialogCache.get(cacheKey) !== request$) {
+      return;
+    }
+    this.busquedaDialogCache.delete(cacheKey);
+    this.busquedaResultadosCache.delete(cacheKey);
+  }
+
+  /**
+   * Filas que trae una página llena de `buscarProductosParaDialog`. Si llega
+   * una página con menos, no hay más resultados.
+   */
+  filasPorPaginaDialog(texto: string, size = BUSQUEDA_DIALOG_PAGE_SIZE): number {
+    return this.pareceCodigoBarras((texto ?? '').trim())
+      ? size
+      : FILAS_POR_LLAMADA_PRODUCTO_SEARCH;
   }
 
   /** Resultados ya resueltos en memoria (p. ej. tras prefetch al escribir). */
@@ -140,15 +173,34 @@ export class BuscadorComprasService {
       );
     }
 
-    return this.productoService.onSearch(
-      termino,
-      page * size,
-      null,
-      false,
-      true,
-      true,
-      silentLoad
-    );
+    // productoSearch pagina por offset y devuelve FILAS_POR_LLAMADA_PRODUCTO_SEARCH
+    // filas por llamada, no `size`. Se llama directo y no por
+    // ProductoService.onSearch para que un error de red se propague: sin
+    // `propagate`, onCustomQuery no emite ni completa y el diálogo queda
+    // esperando para siempre.
+    return this.genericCrudService
+      .onCustomQuery(
+        this.productoSearchGQL,
+        {
+          texto: termino,
+          offset: page * FILAS_POR_LLAMADA_PRODUCTO_SEARCH,
+          sucursalId: null,
+          conStock: false,
+          isEnvase: false,
+          activo: true,
+        },
+        true,
+        { networkError: { propagate: true } },
+        silentLoad
+      )
+      .pipe(
+        // Con un error de GraphQL onCustomQuery ya avisó y emite null.
+        switchMap((productos: Producto[] | null) =>
+          productos == null
+            ? throwError(() => new Error('productoSearch sin datos'))
+            : of(productos)
+        )
+      );
   }
 
   private pareceCodigoBarras(termino: string): boolean {
@@ -204,14 +256,16 @@ export class BuscadorComprasService {
     silentLoad: boolean
   ): Observable<PageInfo<BuscadorProductoResultado>> {
     const termino = texto.trim();
-    const esCodigo = /^\d{3,}$/.test(termino);
 
+    // Siempre como texto, igual que la lista de productos: el backend une las
+    // coincidencias parciales de código con la descripción. Mandarlo como
+    // "codigo" dejaba afuera los números de la descripción ("... 50 GR 1014218").
     return this.genericCrudService
       .onCustomQuery(
         this.searchProductoWithFiltersGQL,
         {
-          texto: esCodigo ? null : termino,
-          codigo: esCodigo ? termino : null,
+          texto: termino,
+          codigo: null,
           activo: true,
           stock: null,
           balanza: null,
@@ -241,7 +295,7 @@ export class BuscadorComprasService {
           resultado.getContent = (pageInfo.getContent ?? []).map((producto) => ({
             producto,
             codigoCoincidente: producto.codigoPrincipal,
-            tipoCoincidencia: esCodigo ? 'CODIGO_PARCIAL' : 'TEXTO',
+            tipoCoincidencia: 'TEXTO',
           }));
           return resultado;
         })

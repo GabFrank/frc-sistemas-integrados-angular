@@ -81,7 +81,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
   }
 
   onGuardar() {
-    this.cargandoDialog.openDialog()
+    const { requestId } = this.cargandoDialog.openDialog()
     this.selectedCompraItem.cantidad = this.cantidadPorUnidadControl.value
     this.selectedCompraItem.vencimiento = this.vencimientoControl.value
     this.selectedCompraItem.lote = this.loteControl.value
@@ -92,7 +92,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
     // }
     this.selectedCompraItem.verificado = false;
     this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoDialog.closeDialog()
+      this.cargandoDialog.closeDialog(requestId)
       if(res!=null){
         this.matDialogRef.close(this.selectedCompraItem)
       }

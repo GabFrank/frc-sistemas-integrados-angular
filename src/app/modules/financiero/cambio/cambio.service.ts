@@ -1,6 +1,6 @@
 import { CambioInput } from './cambio-input.model';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from './../../../generics/generic-crud.service';
+import { GenericCrudService, TIMEOUT_CONSULTA_DE_FONDO_MS } from './../../../generics/generic-crud.service';
 import { SaveCambioGQL } from './graphql/saveCambio';
 import { Injectable } from '@angular/core';
 import { CambiosGetAllByDateGQL } from './graphql/cambiosGetByDate';
@@ -31,6 +31,22 @@ export class CambioService {
 
   getUltimoCambioPorMonedaId(monedaId: number): Observable<Cambio> {
     return this.genericService.onCustomQuery(this.ultimoCambioPorMonedaIdGQL, {id: monedaId}, true);
+  }
+
+  /**
+   * Igual que {@link getUltimoCambioPorMonedaId}, para consultas de fondo (el poll del header): no
+   * abre el spinner global, corta a los 20 s sin avisar, y propaga el error de red para que el que
+   * llama se entere. Un poll de fondo no puede tapar la pantalla del cajero.
+   */
+  getUltimoCambioPorMonedaIdEnSegundoPlano(monedaId: number): Observable<Cambio> {
+    return this.genericService.onCustomQuery(
+      this.ultimoCambioPorMonedaIdGQL,
+      { id: monedaId },
+      true,
+      { networkError: { propagate: true } },
+      true,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
+    );
   }
 
   onActualizarCotizacionesMercado(): Observable<boolean> {

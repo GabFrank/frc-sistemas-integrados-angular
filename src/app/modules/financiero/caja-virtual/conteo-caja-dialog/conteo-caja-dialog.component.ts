@@ -214,10 +214,9 @@ export class ConteoCajaDialogComponent implements OnInit {
             // El snackbar de éxito lo emite GenericCrudService.onSaveCustom; no duplicarlo acá.
             this.dialogRef.close(true);
           },
-          error: err => {
+          // El aviso de error también lo da onSaveCustom.
+          error: () => {
             this.guardando = false;
-            const msg = err?.graphQLErrors?.[0]?.message || err?.message || 'No se pudo crear el ajuste';
-            this.notificacion.notification$.next({ texto: msg, color: NotificacionColor.warn, duracion: 5 });
           }
         });
     });

@@ -186,6 +186,8 @@ export class GestionProductosProveedorDialogComponent implements OnInit {
           this.onRemoverProducto();
           this.loadList();
         },
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        error: () => {},
       });
   }
 

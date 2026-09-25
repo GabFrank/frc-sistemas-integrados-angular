@@ -41,9 +41,9 @@ export class GarantiaDialogComponent implements OnInit {
   }
 
   onBuscarCodigo() {
-    this.cargandoService.openDialog(false, "Buscando venta")
+    const { requestId } = this.cargandoService.openDialog(false, "Buscando venta")
     this.ventaService.onGetPorId(this.ventaIdControl.value).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(requestId)
       if (res != null) {
         this.ventaItemList = res.ventaItemList.filter(i => i.producto.isEnvase == true)
         this.dataSource.data = this.ventaItemList;

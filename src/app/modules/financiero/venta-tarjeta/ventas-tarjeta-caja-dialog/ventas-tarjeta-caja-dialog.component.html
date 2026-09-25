@@ -1,0 +1,244 @@
+<app-generic-list
+  [titulo]="'Conciliación de cupones — caja ' + data.cajaId"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onLimpiarFiltros()"
+  [isAdicionar]="false"
+  [data]="dataSource.data"
+  style="height: 100%"
+>
+  <div filtros>
+    <!-- Cliente apuntando al central: se ve todo y no se opera nada. Se dice arriba y con el motivo
+         concreto, porque la ausencia de los iconos sola se lee como "no tengo permiso". -->
+    <div class="banda-lectura" *ngIf="modoLectura" fxLayout="row" fxLayoutAlign="start center"
+         fxLayoutGap="10px">
+      <mat-icon>visibility</mat-icon>
+      <span>
+        Sólo lectura: esta app está conectada al servidor central. Registrar un cupón, dejarlo sin
+        conciliar o reabrirlo se hace contra el servidor de la sucursal.
+      </span>
+    </div>
+
+    <!-- El escaneo va ARRIBA de los filtros y separado: no es un filtro mas, es el camino rapido.
+         El cajero llega con el cupon y la seña grapados en la mano; escanea y cae en la fila. Los
+         filtros de abajo son para cuando ese papel no esta.
+         Oculto en modo lectura: el escaneo termina en `onCompletar`, que ahi no tiene backend. -->
+    <div class="banda-qr" *ngIf="!modoLectura" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <mat-form-field appearance="outline" fxFlex="42%" class="campo-qr" subscriptSizing="dynamic">
+        <mat-label>Escaneá la seña del cobro</mat-label>
+        <input matInput class="input-qr" [formControl]="qrControl" autocomplete="off"
+               placeholder="Apuntá el lector al QR del comprobante"
+               (keyup.enter)="onQrEscaneado()" />
+      </mat-form-field>
+      <span class="ayuda-qr" *ngIf="!avisoQr && !buscandoQr">
+        Es el papelito que se imprime con la venta cuando el cupón queda pendiente.
+      </span>
+      <span class="ayuda-qr" *ngIf="buscandoQr">Buscando el cobro…</span>
+      <span class="aviso-qr" *ngIf="avisoQr">
+        <mat-icon>report_problem</mat-icon> {{ avisoQr }}
+      </span>
+    </div>
+
+    <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
+      <mat-form-field appearance="outline" fxFlex="14%">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let e of estados" [value]="e">{{ e }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="20%">
+        <mat-label>Terminal</mat-label>
+        <mat-select [formControl]="terminalPosIdControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let t of terminales" [value]="t.id">
+            {{ t.descripcion }} - {{ t.codigo }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="13%">
+        <mat-label>Moneda</mat-label>
+        <mat-select [formControl]="monedaIdControl">
+          <mat-option [value]="null">Todas</mat-option>
+          <mat-option *ngFor="let m of monedas" [value]="m.id">
+            {{ m.denominacion }} ({{ m.simbolo }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="12%">
+        <mat-label>Monto desde</mat-label>
+        <input matInput type="number" [formControl]="montoDesdeControl" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="12%">
+        <mat-label>Monto hasta</mat-label>
+        <input matInput type="number" [formControl]="montoHastaControl" />
+      </mat-form-field>
+
+      <!-- Arranca en el usuario actual. "Todos" NO es un extra: una caja cruza turnos, y el
+           supervisor que la concilia tiene que poder ver los cobros de otro cajero. -->
+      <mat-form-field appearance="outline" fxFlex="14%">
+        <mat-label>Cajero</mat-label>
+        <mat-select [formControl]="usuarioIdControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let c of cajeros" [value]="c.id">{{ c.nickname }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div table fxFlex fxLayout="column" style="min-height: 0; height: 100%">
+    <div fxFlex style="overflow: auto; min-height: 0">
+      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 5%">ID</th>
+          <td mat-cell *matCellDef="let item" style="width: 5%">{{ item.id }}</td>
+        </ng-container>
+
+        <!-- Mismo formato que el listado del sidebar: dos pantallas que muestran lo mismo no
+             pueden fechar distinto. El anho va completo porque una caja puede quedar abierta
+             varios dias y "12/09" no alcanza para saber cual de los dos. -->
+        <ng-container matColumnDef="creadoEn">
+          <th mat-header-cell *matHeaderCellDef style="width: 13%">Fecha</th>
+          <td mat-cell *matCellDef="let item" style="width: 13%">
+            {{ item.creadoEn | date: 'dd/MM/yyyy HH:mm' }}
+          </td>
+        </ng-container>
+
+        <!-- El numero que el cajero tiene delante: el del ticket del cliente. Sin esto, la unica
+             columna identificadora era el id de venta_tarjeta, que no esta impreso en ningun lado. -->
+        <ng-container matColumnDef="venta">
+          <th mat-header-cell *matHeaderCellDef style="width: 9%">Venta</th>
+          <td mat-cell *matCellDef="let item" style="width: 9%">{{ item.ventaId }}</td>
+        </ng-container>
+
+        <!-- De quien es. La consulta ya esta acotada a ESTA caja del lado del servidor, pero una
+             caja cruza turnos: sin esto no hay forma de saber cual cobro es de uno. -->
+        <ng-container matColumnDef="cajero">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%">Cajero</th>
+          <td mat-cell *matCellDef="let item" style="width: 12%">
+            <span *ngIf="item.usuario?.nickname">{{ item.usuario.nickname }}</span>
+            <span *ngIf="!item.usuario?.nickname" class="vacio">&mdash;</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="terminal">
+          <th mat-header-cell *matHeaderCellDef style="width: 13%">Terminal</th>
+          <td mat-cell *matCellDef="let item" style="width: 13%">
+            {{ item.terminalPos?.descripcion }} - {{ item.terminalPos?.codigo }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="monto">
+          <th mat-header-cell *matHeaderCellDef style="width: 13%">Cobrado</th>
+          <td mat-cell *matCellDef="let item" style="width: 13%">
+            {{ item.monto | number: item.digitosMoneda }}
+            <span class="simbolo">{{ item.simboloMoneda }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="escaneado">
+          <th mat-header-cell *matHeaderCellDef style="width: 11%">Cupón</th>
+          <td mat-cell *matCellDef="let item" style="width: 11%">
+            <ng-container *ngIf="item.montoEscaneado != null; else sinCupon">
+              <span [class.diferencia]="item.montoEscaneado !== item.monto">
+                {{ item.montoEscaneado | number: item.digitosMoneda }}
+              </span>
+              <span class="simbolo">{{ item.simboloMoneda }}</span>
+            </ng-container>
+            <ng-template #sinCupon><span class="vacio">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%">Estado</th>
+          <td mat-cell *matCellDef="let item" style="width: 12%">
+            <span
+              class="chip"
+              [class.chip-pendiente]="item.estado === 'PENDIENTE'"
+              [class.chip-completado]="item.estado === 'COMPLETADO'"
+              [class.chip-terminal]="item.estado === 'NO_COMPLETADO' || item.estado === 'CANCELADO'"
+            >{{ item.estado }}</span>
+            <!-- El motivo va PEGADO al estado: un NO_COMPLETADO sin motivo no dice nada, y el que
+                 lo revisa necesita ver los dos juntos sin abrir nada. -->
+            <div class="motivo-no-conciliado" *ngIf="item.motivoTexto"
+                 [matTooltip]="item.noCompletadoObservacion">
+              {{ item.motivoTexto }}
+              <span class="quien" *ngIf="item.noCompletadoPor">
+                · {{ item.noCompletadoPor.nickname }}
+              </span>
+            </div>
+            <!-- Una fila reabierta vuelve a PENDIENTE y queda indistinguible de la que nunca se
+                 marco. Esta linea es lo unico que dice que alguien ya la habia dado por perdida
+                 --y el motivo de arriba sigue puesto, porque reabrir no lo borra. -->
+            <div class="motivo-no-conciliado reabierto" *ngIf="item.reabiertoEn">
+              Reabierto {{ item.reabiertoEn | date: 'dd/MM HH:mm' }}
+              <span class="quien" *ngIf="item.reabiertoPor">
+                · {{ item.reabiertoPor.nickname }}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 12%"></th>
+          <td mat-cell *matCellDef="let item" style="width: 12%">
+            <mat-icon
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
+              class="accion-registrar"
+              matTooltip="Registrar cupón"
+              (click)="onCompletar(item)"
+            >qr_code_scanner</mat-icon>
+            <!-- Para cuando el papel no está: no salió, se mojó, se traspapeló. Sin esto la
+                 única salida era buscar la fila a ojo entre cobros del mismo monto. -->
+            <mat-icon
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
+              class="accion-reimprimir"
+              matTooltip="Reimprimir la seña"
+              (click)="onReimprimirSena(item)"
+            >print</mat-icon>
+            <!-- La salida para el cobro cuyo cupón no existe. Pide motivo y queda registrado con
+                 el usuario y la hora: es lo que permite que el cajero cierre su caja sin que la
+                 decisión desaparezca. -->
+            <mat-icon
+              *ngIf="!modoLectura && item.estado === 'PENDIENTE'"
+              class="accion-no-conciliar"
+              matTooltip="Dejar sin conciliar"
+              (click)="onNoConciliar(item)"
+            >block</mat-icon>
+            <!-- La vuelta atrás de la de arriba. Se marcó la fila equivocada, o apareció el cupón
+                 --CUPON_PERDIDO es literalmente «todavía no lo encontré»--. El gate no es el mismo
+                 con la caja abierta que cerrada: lo decide `puedeReabrir`. -->
+            <mat-icon
+              *ngIf="puedeReabrir(item)"
+              class="accion-reabrir"
+              matTooltip="Reabrir: vuelve a PENDIENTE"
+              (click)="onReabrir(item)"
+            >restore</mat-icon>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <div *ngIf="!cargando && dataSource.data.length === 0" class="estado-vacio">
+        No hay cobros con tarjeta que coincidan con el filtro.
+      </div>
+    </div>
+
+    <mat-paginator
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      showFirstLastButtons
+      style="width: 100%"
+    ></mat-paginator>
+  </div>
+</app-generic-list>

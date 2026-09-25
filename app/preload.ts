@@ -23,7 +23,10 @@ contextBridge.exposeInMainWorld(
         const validChannels = [
           'get-app-version',
           'get-system-printers',
+          'detect-local-devices',
           'detect-network-printers',
+          'print-local',
+          'print-test-local',
           'print-with-pos-printer',
           'get-local-ip',
           'share-local-printer',

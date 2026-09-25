@@ -43,8 +43,8 @@ export const funcionariosQuery = gql`
 `;
 
 export const funcionariosWithPageQuery = gql`
-  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int], $activo: Boolean, $cargoId: Int, $diarista: Boolean, $fasePrueba: Boolean){
-    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList, activo: $activo, cargoId: $cargoId, diarista: $diarista, fasePrueba: $fasePrueba) {
+  query ($page: Int, $size: Int, $id: Int, $nombre: String, $sucursalIdList: [Int], $activo: Boolean, $cargoId: Int, $diarista: Boolean, $fasePrueba: Boolean, $cobraBanco: Boolean){
+    data: funcionariosWithPage(page: $page, size: $size, id: $id, nombre: $nombre, sucursalIdList: $sucursalIdList, activo: $activo, cargoId: $cargoId, diarista: $diarista, fasePrueba: $fasePrueba, cobraBanco: $cobraBanco) {
         getTotalPages
         getTotalElements
         getNumberOfElements
@@ -138,6 +138,37 @@ export const funcionariosSearch = gql`
   }
 `;
 
+// Version liviana del buscador y del lookup por persona: solo lo que necesita un
+// autocomplete (id + persona). No pide horario ni datos de RRHH, por eso se puede
+// usar contra la filial, donde administrativo.horario no se replica.
+export const funcionariosSearchSimple = gql`
+  query ($texto: String) {
+    data: funcionariosSearch(texto: $texto) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const funcionarioPorPersonaSimpleQuery = gql`
+  query ($id: ID!) {
+    data: funcionarioPorPersona(id: $id) {
+      id
+      nickname
+      activo
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
 export const funcionarioQuery = gql`
   query ($id: ID!) {
     data: funcionario(id: $id) {
@@ -156,6 +187,7 @@ export const funcionarioQuery = gql`
       ipsActivo
       numeroIps
       fechaIngresoIps
+      cobraBanco
       cuentaBancaria
       contactoEmergenciaNombre
       contactoEmergenciaTelefono
@@ -283,6 +315,7 @@ export const saveFuncionario = gql`
       ipsActivo
       numeroIps
       fechaIngresoIps
+      cobraBanco
       cuentaBancaria
       contactoEmergenciaNombre
       contactoEmergenciaTelefono

@@ -433,24 +433,28 @@ export class EditDevolucionComponent implements OnInit {
     let aux = new DevolucionItem();
     Object.assign(aux, item);
     aux.devolucion = this.selectedDevolucion;
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.devolucionService
       .onSaveDevolucionItem(aux.toInput())
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          if (isNew) {
-            this.dataSource.data = updateDataSourceInsertFirst(
-              this.dataSource.data,
-              res
-            );
-          } else {
-            this.dataSource.data = updateDataSourceWithId(
-              this.dataSource.data,
-              res,
-              res.id
-            );
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            if (isNew) {
+              this.dataSource.data = updateDataSourceInsertFirst(
+                this.dataSource.data,
+                res
+              );
+            } else {
+              this.dataSource.data = updateDataSourceWithId(
+                this.dataSource.data,
+                res,
+                res.id
+              );
+            }
           }
-        }
+        },
+        error: () => {}
       });
   }
 
@@ -677,7 +681,7 @@ export class EditDevolucionComponent implements OnInit {
       this.notificacionService.openWarn("No hay items para canjear");
       return;
     }
-    this.cargandoService.openDialog(false, "Guardando canje...");
+    const { requestId } = this.cargandoService.openDialog(false, "Guardando canje...");
     let pendientes = items.length;
     let huboError = false;
     items.forEach((item) => {
@@ -691,16 +695,14 @@ export class EditDevolucionComponent implements OnInit {
           () => {
             pendientes--;
             if (pendientes == 0 && !huboError) {
-              this.cargandoService.closeDialog();
+              this.cargandoService.closeDialog(requestId);
               this.ejecutarAvanzar(DevolucionEstado.CANJEADO);
             }
           },
+          // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
           () => {
             huboError = true;
-            this.cargandoService.closeDialog();
-            this.notificacionService.openAlgoSalioMal(
-              "Error al guardar el reingreso de un item"
-            );
+            this.cargandoService.closeDialog(requestId);
           }
         );
     });

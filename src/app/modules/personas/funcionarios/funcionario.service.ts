@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { finalize } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import {
   NotificacionSnackbarService
@@ -23,6 +24,8 @@ import { FuncionariosWithPageGQL } from './graphql/funcionarios-with-page';
 import { PageInfo } from '../../../app.component';
 import { FuncionarioPorPersonaIdGQL } from './graphql/funcionarioPorPersonaId';
 import { FuncionarioByIdGQL } from './graphql/funcionarioById';
+import { FuncionarioSearchSimpleGQL } from './graphql/funcionarioSearchSimple';
+import { FuncionarioPorPersonaIdSimpleGQL } from './graphql/funcionarioPorPersonaIdSimple';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -43,7 +46,9 @@ export class FuncionarioService {
     private preRegistroFuncionarios: PreRegistroFuncionariosGQL,
     private funcionariosWithPage: FuncionariosWithPageGQL,
     private funcionarioPorPersona: FuncionarioPorPersonaIdGQL,
-    private funcionarioById: FuncionarioByIdGQL
+    private funcionarioById: FuncionarioByIdGQL,
+    private searchFuncionarioSimple: FuncionarioSearchSimpleGQL,
+    private funcionarioPorPersonaSimple: FuncionarioPorPersonaIdSimpleGQL
   ) { }
 
   onGetAllFuncionarios(page?, size?, servidor = true): Observable<Funcionario[]> {
@@ -76,7 +81,7 @@ export class FuncionarioService {
   // }
 
   onSavePreRegistroFuncionario(input): Observable<boolean> {
-    this.cargandoService.openDialog()
+    const { requestId } = this.cargandoService.openDialog()
     let httpOptions = {
       headers: new HttpHeaders({
         Accept: "application/json",
@@ -89,8 +94,9 @@ export class FuncionarioService {
         `http://${environment['serverIp']}:${environment['serverPort']}/config/pre-registro`,
         input,
         httpOptions
-      ).pipe(untilDestroyed(this)).subscribe(res => {
-        this.cargandoService.closeDialog()
+      // Si el POST falla no llega al next: el spinner se cierra igual (#319).
+      ).pipe(untilDestroyed(this), finalize(() => this.cargandoService.closeDialog(requestId))).subscribe(res => {
+        this.cargandoService.closeDialog(requestId)
         if (res?.id != null) {
           obs.next(true)
           this.notificacionBar.openGuardadoConExito()
@@ -113,11 +119,21 @@ export class FuncionarioService {
     return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page, size, servidor)
   }
 
-  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, servidor = true): Observable<PageInfo<Funcionario>> {
-    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba }, servidor);
+  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, activo?, cargoId?, diarista?, fasePrueba?, cobraBanco?, servidor = true): Observable<PageInfo<Funcionario>> {
+    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList, activo, cargoId, diarista, fasePrueba, cobraBanco }, servidor);
   }
 
   onGetFuncionarioPorPersona(id, servidor = true): Observable<Funcionario> {
     return this.genericCrud.onGetById(this.funcionarioPorPersona, id, null, null, servidor);
+  }
+
+  // Busquedas livianas para autocompletes (id + persona). Usarlas cuando la consulta
+  // va contra la filial: la version completa pide horario, que solo existe en el central.
+  onFuncionarioSearchSimple(texto: string, servidor = true): Observable<any> {
+    return this.genericCrud.onCustomQuery(this.searchFuncionarioSimple, { texto }, servidor);
+  }
+
+  onGetFuncionarioPorPersonaSimple(id, servidor = true): Observable<Funcionario> {
+    return this.genericCrud.onGetById(this.funcionarioPorPersonaSimple, id, null, null, servidor);
   }
 }

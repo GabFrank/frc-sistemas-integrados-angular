@@ -44,6 +44,12 @@ export class CredencialesCupsDialogComponent {
 
   modo: CredencialesCupsModo = 'compartir';
   esLocal = false;
+  /**
+   * En Windows no hay ni CUPS ni sudo: la impresora se comparte por SMB y lo que hace falta son
+   * permisos de administrador de Windows. El texto del diálogo cambia para no pedir algo que en
+   * esa plataforma no existe.
+   */
+  esWindows = (navigator?.userAgent || '').toLowerCase().includes('windows');
 
   usuarioControl = new FormControl('');
   passwordControl = new FormControl('');

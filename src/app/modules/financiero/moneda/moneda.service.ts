@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { GenericCrudService, TIMEOUT_CONSULTA_DE_FONDO_MS } from '../../../generics/generic-crud.service';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
 import { SaveMonedaGQL } from './graphql/saveMoneda';
 import { DeleteMonedaGQL } from './graphql/deleteMoneda';
@@ -65,17 +65,32 @@ export class MonedaService {
     return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
   }
 
-  onSave(moneda: Moneda): Observable<Moneda> {
+  /**
+   * Igual que {@link onGetAll} contra el central, para consultas de fondo (el header): sin spinner
+   * global, corte a los 20 s sin aviso, y el error de red se propaga al que llama.
+   */
+  onGetAllEnSegundoPlano(): Observable<Moneda[]> {
+    return this.genericService.onCustomQuery(
+      this.getAllMonedas,
+      {},
+      true,
+      { networkError: { propagate: true } },
+      true,
+      { timeoutMs: TIMEOUT_CONSULTA_DE_FONDO_MS, silenciarAvisoTimeout: true }
+    );
+  }
+
+  onSave(moneda: Moneda, opciones?: { avisarExito?: boolean }): Observable<Moneda> {
     let aux = moneda;
     if (!(moneda instanceof Moneda)) {
       aux = new Moneda();
       Object.assign(aux, moneda);
     }
-    return this.genericService.onSaveCustom(this.saveMonedaGQL, { entity: aux.toInput() });
+    return this.genericService.onSaveCustom(this.saveMonedaGQL, { entity: aux.toInput() }, true, opciones);
   }
 
-  onDelete(id: number): Observable<boolean> {
-    return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id });
+  onDelete(id: number, opciones?: { avisarExito?: boolean }): Observable<boolean> {
+    return this.genericService.onSaveCustom(this.deleteMonedaGQL, { id }, true, opciones);
   }
 
   currencyOptionsByMoneda(moneda: Moneda): any {

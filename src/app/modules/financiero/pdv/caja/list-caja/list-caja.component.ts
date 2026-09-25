@@ -163,7 +163,8 @@ export class ListCajaComponent implements OnInit {
         caja,
       },
       width: "90%",
-      height: "80%",
+      // 90%: el conteo + las acciones + la barra de transferir entran sin scroll.
+      height: "90%",
       disableClose: true,
       autoFocus: true,
       restoreFocus: true,

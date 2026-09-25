@@ -248,6 +248,19 @@ export const movimientosCajaVirtualFilterQuery = gql`
   }
 `;
 
+// Reportes PDF (base64) de la tabla de movimientos del dashboard, con los mismos filtros.
+export const imprimirReporteMovimientosCajaVirtualQuery = gql`
+  query ($cajaVirtualId: ID!, $desde: String, $fin: String, $tipo: CajaVirtualTipoMovimiento, $monedaId: ID, $soloActivos: Boolean) {
+    data: imprimirReporteMovimientosCajaVirtual(cajaVirtualId: $cajaVirtualId, desde: $desde, fin: $fin, tipo: $tipo, monedaId: $monedaId, soloActivos: $soloActivos)
+  }
+`;
+
+export const imprimirReporteMovimientosBancariosQuery = gql`
+  query ($cajaVirtualId: ID!, $cuentaBancariaId: ID!, $desde: String, $fin: String, $tipo: String, $soloActivos: Boolean) {
+    data: imprimirReporteMovimientosBancarios(cajaVirtualId: $cajaVirtualId, cuentaBancariaId: $cuentaBancariaId, desde: $desde, fin: $fin, tipo: $tipo, soloActivos: $soloActivos)
+  }
+`;
+
 export const saveMovimientoCajaVirtualMutation = gql`
   mutation saveMovimientoCajaVirtual($input: MovimientoCajaVirtualInput!) {
     data: saveMovimientoCajaVirtual(input: $input) {

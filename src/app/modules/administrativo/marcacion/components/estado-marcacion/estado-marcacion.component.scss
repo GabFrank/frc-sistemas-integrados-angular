@@ -79,7 +79,9 @@
     box-shadow: 0 0 40px rgba(76, 175, 80, 0.15), inset 0 0 0 1px rgba(76, 175, 80, 0.3);
 }
 
-.success-message {
+// No se llama .success-message: la hoja global de MDBootstrap define esa clase con
+// position: absolute y el pill quedaba pegado al borde izquierdo de la tarjeta.
+.identidad-verificada {
     color: #a5d6a7;
     font-weight: 500;
     font-size: 1.1rem;

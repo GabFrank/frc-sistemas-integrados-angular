@@ -73,15 +73,19 @@ export class BancoComponent implements OnInit {
       null, null
     ).subscribe(confirmed => {
       if (confirmed) {
-        this.bancoService.onDelete(item.id)
+        // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
+        this.bancoService.onDelete(item.id, { avisarExito: false })
           .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (res) {
-              this.notificacion.openSucess('Banco eliminado correctamente');
-              this.onFiltrar();
-            } else {
-              this.notificacion.openAlgoSalioMal('No se pudo eliminar el banco');
-            }
+          .subscribe({
+            next: res => {
+              if (res) {
+                this.notificacion.openSucess('Banco eliminado correctamente');
+                this.onFiltrar();
+              } else {
+                this.notificacion.openAlgoSalioMal('No se pudo eliminar el banco');
+              }
+            },
+            error: () => {}
           });
       }
     });

@@ -1,0 +1,103 @@
+// Cabecera con el degradado del dialogo de montos corregidos de un conteo
+// (historial-conteo-dialog). El cuerpo va sin paneles: hereda el fondo del dialogo.
+.concepto {
+  width: 100%;
+  box-sizing: border-box;
+
+  &__banda {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    h3 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    span {
+      font-size: 0.8em;
+      opacity: 0.85;
+    }
+  }
+
+  &__titulo {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__cuerpo {
+    display: flex;
+    flex-direction: column;
+    padding: 18px 20px 4px;
+  }
+
+  &__campo {
+    width: 100%;
+  }
+
+  &__nota {
+    margin: -2px 0 14px;
+    font-size: 0.78em;
+    line-height: 1.35;
+    opacity: 0.6;
+  }
+
+  &__checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding-bottom: 6px;
+  }
+
+  &__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  &__acciones {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  &__estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78em;
+
+    mat-icon {
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
+    }
+  }
+}
+
+// styles.scss:276 le pone `height: 0px !important` al subscript de TODOS los form-field,
+// asi que un mat-error se dibuja fuera de su caja y se monta sobre el campo siguiente.
+// Aca se le devuelve el alto para que el error empuje en vez de superponerse.
+:host ::ng-deep .concepto .mat-mdc-form-field-subscript-wrapper {
+  height: auto !important;
+  min-height: 18px;
+}

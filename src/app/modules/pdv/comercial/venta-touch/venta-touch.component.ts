@@ -108,7 +108,7 @@ import {
   ListDeliveryData,
 } from "./list-delivery/list-delivery.component";
 import { FormControl } from "@angular/forms";
-import { catchError, map, startWith, switchMap, takeUntil } from "rxjs/operators";
+import { catchError, finalize, map, startWith, switchMap, takeUntil } from "rxjs/operators";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
@@ -119,9 +119,9 @@ import {
 import { GastoService } from "../../../financiero/gastos/service/gasto.service";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 import { PuntoDeVentaService } from "../../../financiero/punto-de-venta/punto-de-venta.service";
-import { QrCodeComponent, QrData } from "../../../../shared/qr-code/qr-code.component";
-import { TipoEntidad } from "../../../../generics/tipo-entidad.enum";
 import { VentaTarjetaService } from "../../../financiero/venta-tarjeta/venta-tarjeta.service";
+import { mensajeDeError } from '../../../financiero/venta-tarjeta/qr-pos/mensaje-error';
+import { DecimalesPorMoneda } from "../../../financiero/venta-tarjeta/qr-pos/qr-pos-parser";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -140,9 +140,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   winWidth;
   totalGs = 0;
   descuentoGs = 0;
-  cambioRs = 1;
-  cambioDs = 1;
-  cambioArg = 1;
+  // null hasta que carguen las monedas: la plantilla muestra "—" y los totales en moneda
+  // extranjera quedan null. Un 1 se mostraba como cotizacion real (PDV con "1").
+  cambioRs: number = null;
+  cambioDs: number = null;
+  cambioArg: number = null;
   selectedPdvCategoria: PdvCategoria;
   ultimoAdicionado: VentaItem[] = [];
   tiposPrecios: TipoPrecio[] = [];
@@ -158,6 +160,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   dialogReference;
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
+  // Guardado de una venta en curso, desde que se dispara la mutation hasta que responde. Se levanta
+  // de forma síncrona: isCargando llega ~140 ms tarde y en esa ventana F12 abría el pago de una venta
+  // que F8 ya estaba cobrando (#316).
+  guardandoVenta = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
   buscadorOpenSearch: Subject<void> = new Subject<void>();
   clearBuscadorSub: Subject<void> = new Subject<void>();
@@ -169,7 +175,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   cantidadControl = new FormControl();
   modoConsulta = false;
   isDialogOpen = false;
+  // Spinner de carga visible. Separado de isDialogOpen: al ocultarse no debe marcar como
+  // cerrado un diálogo que sigue abierto. Los atajos se bloquean con cualquiera de los dos.
+  isCargando = false;
   private _pendingTarjetaPagos: TarjetaPago[] = [];
+  /**
+   * Decimales por moneda. El importe del cupón viene como entero en la menor unidad y cuánto
+   * vale depende de la moneda (9455 son 94,55 reales o 9.455 guaraníes), así que el parser
+   * necesita este mapa para escalarlo bien.
+   */
+  decimalesPorMoneda: DecimalesPorMoneda = {};
   solicitudesProcesadasTotal = 0;
   solicitudesAutorizadas = 0;
   solicitudesRechazadas = 0;
@@ -204,8 +219,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
-    this.filteredPrecios = this.configService.getConfig().precios.split(',');
-    this.modoPrecio = this.configService.getConfig().modo;
+    // Sin el `?.` una configuración incompleta (por ejemplo, una que sólo trae los campos de
+    // servidor) revienta el constructor y la pestaña del PDV queda en blanco. Antes eso no dejaba
+    // ni un log; ahora TabContentComponent avisa, pero el PDV igual tiene que abrir: se cae a los
+    // precios por defecto en vez de no abrir.
+    const config = this.configService.getConfig();
+    this.filteredPrecios = (config?.precios || 'EXPO, EXPO-DEPOSITO').split(',');
+    this.modoPrecio = config?.modo;
   }
 
   ngOnInit(): void {
@@ -227,14 +247,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.dialogData?.venta) {
       this.selectedVenta = this.dialogData?.venta;
       this.totalGs = this.selectedVenta?.totalGs;
-      this.selectedItemList = this.selectedVenta?.ventaItemList;
+      // Fuera de delivery selectedItemList tiene que ser el carrito activo (ver carritoActivo()).
+      this.itemList = this.selectedVenta?.ventaItemList;
+      this.selectedItemList = this.itemList;
     }
 
     this.cargandoService
       .dialogState$()
       .pipe(untilDestroyed(this))
       .subscribe((isOpen) => {
-        this.isDialogOpen = isOpen;
+        this.isCargando = isOpen;
       });
 
     this.startSolicitudesProcesadasPolling();
@@ -382,15 +404,20 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.container.nativeElement.addEventListener("keydown", (e) => {
-      if (!this.isDialogOpen) {
+      if (!this.isDialogOpen && !this.isCargando && !this.guardandoVenta) {
         switch (e.key) {
+          // Los guards miran el carrito activo (PDV 1, PDV 2 o delivery), igual que los botones.
           case "F12":
-            if (this.itemList.length > 0) {
+            if (this.selectedItemList?.length > 0) {
               this.onPagoClick();
             }
             break;
           case "F11":
-            if (this.itemList.length > 0 && !this.disableCobroRapido) {
+            if (
+              this.selectedItemList?.length > 0 &&
+              !this.disableCobroRapido &&
+              !this.isDelivery
+            ) {
               this.onTicketClick(true);
             }
             break;
@@ -401,7 +428,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.buscadorOpenSearch.next();
             break;
           case "F8":
-            this.onTicketClick(false);
+            if (this.selectedItemList?.length > 0 && !this.isDelivery) {
+              this.onTicketClick(false);
+            }
             break;
           case "F7":
             break;
@@ -460,15 +489,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.tabService.removeTab(this.tabService.currentIndex);
         } else if (res == "consulta") {
           this.modoConsulta = true;
-          this.isDialogOpen = false;
         } else {
+          // Cada diálogo que se abre desde acá marca el flag; no se resetea al final del else
+          // porque pisaría la selección de caja reabierta.
           if (this.cajaService.selectedCaja?.conteoApertura == null) {
+            this.isDialogOpen = true;
             this.dialogoService
               .confirm(
                 "Atención",
                 "Esta caja no posee conteo inicial. Desea realizar el conteo inicial?"
               )
               .subscribe((dialogRes) => {
+                this.isDialogOpen = false;
                 if (dialogRes) {
                   this.openSelectCajaDialog();
                 } else {
@@ -480,7 +512,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
-          this.isDialogOpen = false;
         }
       });
   }
@@ -498,15 +529,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((res) => {
         if (res != null) {
           this.monedas = res;
+          this.decimalesPorMoneda = (res || []).reduce((acc, m) => {
+            if (m?.id != null) acc[m.id] = m.decimales ?? 0;
+            return acc;
+          }, {} as DecimalesPorMoneda);
           this.cambioRs = this.monedas.find(
             (m) => m.denominacion == "REAL"
-          )?.cambio;
+          )?.cambio ?? null;
           this.cambioDs = this.monedas.find(
             (m) => m.denominacion == "DOLAR"
-          )?.cambio;
+          )?.cambio ?? null;
           this.cambioArg = this.monedas.find(
             (m) => m.denominacion == "PESO ARG"
-          )?.cambio;
+          )?.cambio ?? null;
           return true;
         }
       });
@@ -531,7 +566,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onGridCardClick(grupo: PdvGrupo) {
-    this.isDialogOpen = true;
     this.mostrarPrecios = false;
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
@@ -539,6 +573,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     pdvGruposProductos.forEach((e) => {
       productos.push(e.producto);
     });
+    // Pegado al open: si lo anterior lanza, el diálogo no abre y el flag no debe quedar en true.
+    this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(SelectProductosDialogComponent, {
         data: {
@@ -785,8 +821,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 let venta = new Venta();
                 Object.assign(venta, this.selectedDelivery.venta);
                 venta.totalGs = this.totalGs;
-                venta.totalRs = this.totalGs / this.cambioRs;
-                venta.totalDs = this.totalGs / this.cambioDs;
+                venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+                venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
                 venta.delivery = this.selectedDelivery;
                 this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
               }
@@ -815,56 +851,35 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         .subscribe((res) => {
           if (res) {
             if (this.isDelivery) {
-              if (this.isAuxiliar) {
-                this.itemList2.forEach((itm, index2) => {
-                  this.ventaService
-                    .onDeleteVentaItem(itm.id, itm.sucursalId, false)
-                    .subscribe((res) => {
-                      if (res) {
-                        this.itemList2.splice(index, index2);
-                        this.calcularTotales();
-                        let venta = new Venta();
-                        Object.assign(venta, this.selectedDelivery.venta);
-                        venta.totalGs = this.totalGs;
-                        venta.totalRs = this.totalGs / this.cambioRs;
-                        venta.totalDs = this.totalGs / this.cambioDs;
-                        venta.delivery = this.selectedDelivery;
-                        this.ventaService
-                          .onSaveVenta2(venta.toInput(), false)
-                          .subscribe();
-                      }
-                    });
-                });
-              } else {
-                this.itemList.forEach((itm, index2) => {
-                  this.ventaService
-                    .onDeleteVentaItem(itm.id, itm.sucursalId, false)
-                    .subscribe((res) => {
-                      if (res) {
-                        this.itemList.splice(index, index2);
-                        this.calcularTotales();
-                        let venta = new Venta();
-                        Object.assign(venta, this.selectedDelivery.venta);
-                        venta.totalGs = this.totalGs;
-                        venta.totalRs = this.totalGs / this.cambioRs;
-                        venta.totalDs = this.totalGs / this.cambioDs;
-                        venta.delivery = this.selectedDelivery;
-                        this.ventaService
-                          .onSaveVenta2(venta.toInput(), false)
-                          .subscribe();
-                      }
-                    });
-                });
-              }
-              this.selectedItemList = [];
-              this.calcularTotales();
+              // En delivery se borran los ítems del delivery (selectedItemList), no el carrito
+              // del PDV, que se conserva para cuando se salga del delivery (#313).
+              [...this.selectedItemList].forEach((itm) => {
+                this.ventaService
+                  .onDeleteVentaItem(itm.id, itm.sucursalId, false)
+                  .subscribe((res) => {
+                    if (res) {
+                      const i = this.selectedItemList.indexOf(itm);
+                      if (i != -1) this.selectedItemList.splice(i, 1);
+                      this.calcularTotales();
+                      let venta = new Venta();
+                      Object.assign(venta, this.selectedDelivery.venta);
+                      venta.totalGs = this.totalGs;
+                      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+                      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
+                      venta.delivery = this.selectedDelivery;
+                      this.ventaService
+                        .onSaveVenta2(venta.toInput(), false)
+                        .subscribe();
+                    }
+                  });
+              });
             } else {
               if (this.isAuxiliar) {
                 this.itemList2 = [];
               } else {
                 this.itemList = [];
               }
-              this.selectedItemList = [];
+              this.selectedItemList = this.carritoActivo();
               this.calcularTotales();
             }
           }
@@ -968,11 +983,46 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedTipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
   }
 
+  private avisarErrorAlGuardar(err: any, texto: string): void {
+    console.error("Error al guardar la venta:", err);
+    this.notificacionSnackbar.notification$.next({
+      color: NotificacionColor.danger,
+      texto,
+      duracion: 10,
+    });
+  }
+
+  /** Carrito del PDV activo. Fuera de delivery, selectedItemList siempre apunta a este array. */
+  private carritoActivo(): VentaItem[] {
+    return this.isAuxiliar ? this.itemList2 : this.itemList;
+  }
+
+  /**
+   * Sale del modo delivery y vuelve a mostrar el carrito del PDV activo sin vaciarlo: si tenía ítems
+   * eran de otra venta en curso. Cuando un delivery se arma desde el carrito, ese carrito ya se vació
+   * al guardarlo (vaciarCarritoGuardadoEnDelivery) (#313).
+   */
+  private volverAlCarritoActivo(): void {
+    this.isDelivery = false;
+    this.selectedDelivery = null;
+    this.selectedItemList = this.carritoActivo();
+    this.selectedTipoPrecio = this.tiposPrecios[0];
+    this.calcularTotales();
+  }
+
+  /**
+   * El delivery nuevo se armó con el mismo array del carrito activo (onDeliveryClick) y ya se guardó
+   * con esos ítems. Se vacía en el lugar, no reasignando, para que el carrito y data.delivery de la
+   * lista queden vacíos a la vez y un segundo «Nuevo delivery» no reenvíe los ítems.
+   */
+  private vaciarCarritoGuardadoEnDelivery(): void {
+    this.selectedDelivery?.venta?.ventaItemList?.splice(0);
+    this.calcularTotales();
+  }
+
   pdvAuxiliarClick() {
     if (this.isDelivery) {
-      this.isDelivery = false;
-      this.selectedItemList = [];
-      this.calcularTotales();
+      this.volverAlCarritoActivo();
     } else {
       if (!this.isAuxiliar) {
         this.isAuxiliar = true;
@@ -988,7 +1038,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPagoClick() {
-    if (this.modoConsulta) return;
+    if (this.modoConsulta || this.guardandoVenta) return;
+    // Sin ítems no se abre el diálogo, y isDialogOpen solo se resetea al cerrarlo:
+    // marcarlo igual dejaba todos los atajos de teclado muertos.
+    if (!(this.selectedItemList?.length > 0)) return;
     this.isDialogOpen = true;
     this.mostrarPrecios = false;
     if (this.selectedItemList?.length > 0) {
@@ -1017,8 +1070,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             let response: PagoResponseData = res;
             let venta = new Venta();
             venta.totalGs = this.totalGs;
-            venta.totalRs = this.totalGs / this.cambioRs;
-            venta.totalDs = this.totalGs / this.cambioDs;
+            venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+            venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
             venta.ventaItemList = this.selectedItemList;
             venta.caja = this.cajaService?.selectedCaja;
             venta.cliente = response.cliente;
@@ -1047,20 +1100,35 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               venta.cobro = cobro;
               venta.delivery = this.selectedDelivery;
 
-              this.ventaService
-                .onSaveVentaDelivery(
+              // Los toInput() corren antes de que exista el observable: si lanzan, el finalize no
+              // llega a conectarse y guardandoVenta quedaría en true para siempre (#316).
+              let guardadoDelivery$: Observable<any>;
+              this.guardandoVenta = true;
+              try {
+                guardadoDelivery$ = this.ventaService.onSaveVentaDelivery(
                   venta.toInput(),
                   this.selectedDelivery.toInput(),
                   cobro.toItemInputList(),
                   ventaCredito != null ? ventaCredito.toInput() : null,
                   ventaCredito != null ? ventaCreditoCuotaInputList : null,
                   false
+                );
+              } catch (err) {
+                this.guardandoVenta = false;
+                this.avisarErrorAlGuardar(err, "No se pudo guardar el delivery. Verifique antes de continuar.");
+              }
+              guardadoDelivery$
+                ?.pipe(
+                  untilDestroyed(this),
+                  finalize(() => (this.guardandoVenta = false))
                 )
-                .subscribe((ventaDeliveryRes) => {
-                  this.resetForm();
-                  this.calcularTotales();
-                  this.isDelivery = false;
-                  this.selectedDelivery = null;
+                .subscribe({
+                  next: (ventaDeliveryRes) => {
+                    this.registrarPagosConTarjeta(response?.tarjetaPagos, venta.id);
+                    this.volverAlCarritoActivo();
+                  },
+                  error: (err) =>
+                    this.avisarErrorAlGuardar(err, "No se pudo guardar el delivery. Verifique antes de continuar."),
                 });
 
               // this.onSaveVenta(
@@ -1088,14 +1156,158 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             }
             this.dialogReference = undefined;
           } else if (this.isDelivery) {
-            this.isDelivery = false;
-            this.selectedDelivery = null;
-            this.resetForm();
-            this.calcularTotales();
+            this.volverAlCarritoActivo();
           }
           this.buscadorFocusSub.next();
         });
     }
+  }
+
+  /**
+   * Crea el registro PENDIENTE de cada tarjeta cobrada y, si ya había un cupón leído en
+   * pago-touch (antes de que la venta existiera), lo completa al toque con una segunda
+   * mutation — sin diálogos ni polling. Compartido entre venta normal y delivery: antes de
+   * hoy, delivery nunca invocaba este bloque (llama a onSaveVentaDelivery, un camino de
+   * guardado separado que no pasaba por acá), así que una venta delivery cobrada con tarjeta
+   * jamás generaba el registro venta_tarjeta — el pago se guardaba bien, pero el reemplazo del
+   * OCR quedaba sin efecto en silencio. Bug preexistente, no introducido por el rediseño de
+   * hoy; se corrige acá enganchando el mismo bloque desde los dos lugares.
+   */
+  private registrarPagosConTarjeta(tarjetaPagos: TarjetaPago[], ventaId: number): void {
+    if (!tarjetaPagos?.length || !ventaId) return;
+
+    const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+    const cajaIdQr = this.cajaService.selectedCaja?.id;
+    const usuarioId = this.mainService.usuarioActual?.id;
+
+    forkJoin(tarjetaPagos.map(pago =>
+      this.ventaTarjetaService.onSavePendiente({
+        sucursalId: sucursalIdQr,
+        ventaId,
+        cajaId: cajaIdQr,
+        monto: pago.monto,
+        estado: 'PENDIENTE',
+        terminalPosId: pago.terminalPosId || undefined,
+          monedaId: pago.monedaId ?? undefined,
+        usuarioId
+      })
+    )).pipe(untilDestroyed(this)).subscribe({
+      next: (resultados) => {
+        resultados.forEach((vt, index) => {
+          if (!vt?.id) return;
+          const pago = tarjetaPagos[index];
+          const datos = pago.datosCupon;
+          if (!datos) {
+            // Pospuesto: queda PENDIENTE y el cierre de caja lo va a reclamar. La sena es lo que
+            // hace que ese reclamo sea resoluble: sin papel, dos cobros del mismo monto a la misma
+            // hora son indistinguibles en la pantalla de conciliacion.
+            this.imprimirSenaCupon(vt.id, pago, ventaId, sucursalIdQr, cajaIdQr);
+            return;
+          }
+
+          this.ventaTarjetaService.onCompletar({
+            id: vt.id,
+            sucursalId: sucursalIdQr,
+            codigoAutorizacion: datos.codigoAutorizacion,
+            numeroBoleta: datos.numeroBoleta,
+            montoEscaneado: datos.monto,
+            monedaId: datos.monedaId,
+            identificadorTransaccion: datos.identificadorTransaccion,
+            qrCrudo: datos.qrCrudo,
+            // De donde salieron los datos. Sin esto la columna queda nula y no hay forma de saber
+            // que revisar: un codigo leido por OCR puede tener un caracter mal, uno del lector no.
+            origen: datos.origen || (datos.qrCrudo ? 'QR' : undefined),
+            // Ata la foto del cupon a la venta. Es lo que impide que la purga de imagenes borre la
+            // evidencia de un cobro.
+            capturaToken: datos.capturaToken,
+            // Los campos propios del proveedor, que no tienen columna: un segundo monto en otra
+            // moneda, un STONEID. Sin esto la columna datos_extra quedaba vacia para siempre.
+            datosExtra: datos.datosExtra,
+          }).pipe(untilDestroyed(this)).subscribe({
+            next: () => {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: `Venta con tarjeta registrada${pago.terminalDescripcion ? ' (' + pago.terminalDescripcion + ')' : ''}.`,
+                duracion: 3,
+              });
+            },
+            error: (err) => {
+              // El cupón ya se leyó bien en pago-touch; si esto falla es un problema del
+              // lado del servidor (por ejemplo, alguien más ya la completó). El registro
+              // queda PENDIENTE — no se pierde el cobro, solo el registro.
+              // Termina igual de pendiente que el pospuesto, asi que necesita el mismo papel: es
+              // el caso donde MENOS lo espera el cajero, que ya vio el cupon leido en pantalla.
+              this.imprimirSenaCupon(vt.id, pago, ventaId, sucursalIdQr, cajaIdQr);
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.warn,
+                texto: `No se pudo registrar la venta con tarjeta${pago.terminalDescripcion ? ' de ' + pago.terminalDescripcion : ''}: ${mensajeDeError(err, 'error desconocido')}.`,
+                duracion: 6,
+              });
+            },
+          });
+        });
+      },
+      error: err => {
+        // Aca NO se creo ninguna fila, asi que no hay `ventaTarjetaId` y no hay seña posible: un
+        // papel sin ese numero no sirve para conciliar nada. La unica salida es avisar en pantalla,
+        // porque este es el unico caso donde el cobro con tarjeta queda SIN registro de ningun tipo
+        // --ni siquiera PENDIENTE-- y el cierre de caja no lo va a reclamar.
+        console.error('[VentaTarjeta] Error al crear registros pendientes:', err);
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.danger,
+          texto: 'La venta se guardó, pero NO se registró el cobro con tarjeta. Anotá el cupón y '
+            + 'registralo a mano desde el cierre de caja.',
+          duracion: 12,
+        });
+      }
+    });
+  }
+
+  /**
+   * Imprime la seña de un cobro con tarjeta que quedó sin cupón.
+   *
+   * Nunca bloquea ni interrumpe: la venta ya se guardó y el cobro ya se cobró. Si el papel no sale,
+   * lo único que cambia es que ese cobro hay que buscarlo a mano al conciliar, y eso se avisa.
+   */
+  private imprimirSenaCupon(
+    ventaTarjetaId: number,
+    pago: TarjetaPago,
+    ventaId: number,
+    sucursalId: number,
+    cajaId: number,
+  ): void {
+    this.ventaTarjetaService.onImprimirSena({
+      ventaId,
+      ventaTarjetaId,
+      sucursalId,
+      cajaId,
+      cajero: this.mainService.usuarioActual?.nickname,
+      terminal: pago.terminalDescripcion,
+      monto: pago.monto,
+      monedaSimbolo: pago.monedaSimbolo,
+      decimales: pago.monedaDecimales,
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: (impreso) => {
+        if (impreso) return;
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: 'No se pudo imprimir el comprobante del cobro con tarjeta (venta ' + ventaId
+            + ', cobro ' + ventaTarjetaId + '). Anotá esos números en el cupón.',
+          duracion: 10,
+        });
+      },
+      error: (err) => {
+        // El motivo va en el aviso: el caso más común no es que la impresora falle sino que esta
+        // caja no tenga ninguna configurada, y "no se pudo imprimir" no lleva a nadie a
+        // Configuración.
+        this.notificacionSnackbar.notification$.next({
+          color: NotificacionColor.warn,
+          texto: mensajeDeError(err, 'No se pudo imprimir el comprobante del cobro con tarjeta.')
+            + ' Anotá venta ' + ventaId + ' y cobro ' + ventaTarjetaId + ' en el cupón.',
+          duracion: 10,
+        });
+      },
+    });
   }
 
   resetForm() {
@@ -1111,7 +1323,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTicketClick(ticket?: boolean) {
-    if (this.modoConsulta) return;
+    if (this.modoConsulta || this.guardandoVenta) return;
+    // Sin ítems el filial guarda igual una venta CONCLUIDA en 0 (y puede entrar en la
+    // facturación silenciosa); en delivery se cobra con onPagoClick, no por acá (#312).
+    if (!(this.selectedItemList?.length > 0) || this.isDelivery) {
+      this.buscadorFocusSub.next();
+      return;
+    }
     // Evita reentradas mientras se procesa un cobro rápido en curso.
     if (this.disableCobroRapido) return;
     this.disableCobroRapido = true;
@@ -1199,13 +1417,24 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     facturaLegalId?: number
   ): Observable<Venta> {
     if (facturar == null) {
-      facturar = ticket == true;
+      // Solo el Cobro Rapido + Ticket (F11) pide factura explicita. Para el Cobro
+      // Rapido a secas (F8) hay que mandar null, NO false: el filial interpreta
+      // facturar=false como "el frontend ya emitio una factura manual" y saltea la
+      // facturacion silenciosa, dejando la venta sin comprobante. Con null cae en la
+      // rama de facturaCountDown y factura como corresponde.
+      facturar = ticket == true ? true : null;
     }
     if (this.isDelivery) venta.delivery = this.selectedDelivery;
     if (this.modoConsulta) return;
     return new Observable((obs) => {
-      this.ventaTouchServive
-        .onSaveVenta(
+      // Se levanta acá, dentro del observable y después del chequeo de modoConsulta, y se baja en el
+      // finalize del pipe interno: onTicketClick hace .subscribe().unsubscribe() sobre este observable
+      // y un finalize externo lo bajaría en el mismo tick (#316).
+      this.guardandoVenta = true;
+      let guardado$: Observable<any>;
+      try {
+        // VentaService.onSaveVenta arma los toInput() antes de devolver el observable.
+        guardado$ = this.ventaTouchServive.onSaveVenta(
           venta,
           cobro,
           ticket || ventaCreditoInput != null,
@@ -1213,181 +1442,168 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           ventaCreditoCuotaInputList,
           facturar,
           false
+        );
+      } catch (err) {
+        this.guardandoVenta = false;
+        this.avisarErrorAlGuardar(
+          err,
+          facturaLegalId != null
+            ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+            : "No se pudo guardar la venta. Verifique antes de continuar."
+        );
+        obs.next(null);
+        return;
+      }
+      guardado$
+        .pipe(
+          untilDestroyed(this),
+          finalize(() => (this.guardandoVenta = false))
         )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.id != null) {
-            this.notificacionSnackbar.notification$.next({
-              color: NotificacionColor.success,
-              texto: "Venta guardada con éxito",
-              duracion: 2,
-            });
-            if (facturaLegalId != null) {
-              // La factura se generó manualmente antes de que la venta existiera
-              // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
-              this.facturaLegalService
-                .onVincularFacturaAVenta(facturaLegalId, res.id, false)
-                .pipe(untilDestroyed(this))
-                .subscribe({
-                  error: (err) =>
-                    console.error("Error al vincular factura a la venta:", err),
-                });
-            }
-            if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
-              const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
-              const personaId = venta.cliente?.persona?.id;
-
-              if (personaId && sucursalId) {
-                this.notificationHttpService.sendCompraCreditoNotification(
-                  res.id,
-                  sucursalId,
-                  personaId,
-                  ventaCreditoInput.valorTotal,
-                  this.mainService.sucursalActual?.nombre
-                ).subscribe({
-                  next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
-                  error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
-                });
-              }
-            }
-            if (cobro?.cobroDetalleList?.length > 0) {
-              const pagoTransferencia = cobro.cobroDetalleList.find(
-                (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
-              );
-
-              if (pagoTransferencia) {
-                const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-
-                const totalTransferencia = cobro.cobroDetalleList
-                  .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
-                  .reduce((acc, curr) => acc + curr.valor, 0);
-
-                if (sucursalId && totalTransferencia > 0) {
-                  this.notificationHttpService.sendVentaTransferenciaNotification(
-                    res.id,
-                    sucursalId,
-                    totalTransferencia,
-                    this.mainService.usuarioActual?.persona?.nombre,
-                    this.mainService.sucursalActual?.nombre
-                  ).subscribe({
-                    next: () => console.log('Notificación de Transferencia enviada exitosamente'),
-                    error: (err) => console.error('Error al enviar notificación de transferencia:', err)
-                  });
-                }
-              }
-            }
-
-            const sucursalId =
-              this.cajaService.selectedCaja?.sucursalId ||
-              this.mainService.sucursalActual?.id;
-            if (res.id && sucursalId) {
-              this.getStockCriticoItems$(sucursalId)
-                .pipe(untilDestroyed(this))
-                .subscribe((stockCriticoItems) => {
-                  if (stockCriticoItems.length === 0) {
-                    return;
-                  }
-                  this.notificationHttpService
-                    .sendVentaStockCriticoNotification({
-                      ventaId: res.id,
-                      sucursalId,
-                      usuarioNombre:
-                        this.mainService.usuarioActual?.persona?.nombre,
-                      sucursalNombre: this.mainService.sucursalActual?.nombre,
-                      items: stockCriticoItems,
-                    })
+        .subscribe({
+          next: (res) => {
+            if (res?.id != null) {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.success,
+                texto: "Venta guardada con éxito",
+                duracion: 2,
+              });
+              // La venta ya está guardada: nada de lo que sigue puede impedir que se limpie el
+              // carrito, o se podría cobrar dos veces (#316).
+              try {
+                if (facturaLegalId != null) {
+                  // La factura se generó manualmente antes de que la venta existiera
+                  // (flujo "Finalizar con Factura"): se vincula ahora que ya tenemos el id.
+                  this.facturaLegalService
+                    .onVincularFacturaAVenta(facturaLegalId, res.id, false)
+                    .pipe(untilDestroyed(this))
                     .subscribe({
-                      next: () =>
-                        console.log(
-                          "Notificación de stock crítico enviada exitosamente"
-                        ),
                       error: (err) =>
-                        console.error(
-                          "Error al enviar notificación de stock crítico:",
-                          err
-                        ),
+                        console.error("Error al vincular factura a la venta:", err),
                     });
-                });
-            }
-
-            const tarjetaPagos = this._pendingTarjetaPagos;
-            this._pendingTarjetaPagos = [];
-
-            if (tarjetaPagos.length > 0 && res.id) {
-              const sucursalIdQr = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
-              const cajaIdQr = this.cajaService.selectedCaja?.id;
-              const usuarioId = this.mainService.usuarioActual?.id;
-
-              forkJoin(tarjetaPagos.map(pago =>
-                this.ventaTarjetaService.onSavePendiente({
-                  sucursalId: sucursalIdQr,
-                  ventaId: res.id,
-                  cajaId: cajaIdQr,
-                  monto: pago.monto,
-                  estado: 'PENDIENTE',
-                  terminalPosId: pago.terminalPosId || undefined,
-                  usuarioId
-                })
-              )).subscribe({
-                next: (resultados) => {
-                  const mostrarQr = (index: number) => {
-                    if (index >= resultados.length) return;
-                    const vt = resultados[index];
-                    const qrPayload: QrData = {
-                      sucursalId: sucursalIdQr,
-                      tipoEntidad: TipoEntidad.VENTA_TARJETA,
-                      idOrigen: res.id,
-                      idCentral: res.id,
-                      componentToOpen: 'RegistroVentaTarjetaComponent',
-                      data: cajaIdQr + '|' + tarjetaPagos[index].monto + '|' + vt?.id,
-                      timestamp: Date.now()
-                    };
-                    const pago = tarjetaPagos[index];
-                    const montoFmt = pago.monto.toLocaleString('es-PY');
-                    const subtitulo = (pago.terminalDescripcion ? pago.terminalDescripcion + '\n' : '') + montoFmt + ' Gs.';
-                    const qrDialogRef = this.matDialog.open(QrCodeComponent, {
-                      data: {
-                        codigo: qrPayload,
-                        nombre: resultados.length > 1
-                          ? `Venta con Tarjeta (${index + 1}/${resultados.length})`
-                          : 'Venta con Tarjeta',
-                        subtitulo,
-                        segundos: 120
-                      },
-                      disableClose: false
+                }
+                if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
+                  const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
+                  const personaId = venta.cliente?.persona?.id;
+    
+                  if (personaId && sucursalId) {
+                    this.notificationHttpService.sendCompraCreditoNotification(
+                      res.id,
+                      sucursalId,
+                      personaId,
+                      ventaCreditoInput.valorTotal,
+                      this.mainService.sucursalActual?.nombre
+                    ).subscribe({
+                      next: () => console.log('Notificación de compra a crédito enviada exitosamente'),
+                      error: (err) => console.error('Error al enviar notificación de compra a crédito:', err)
                     });
-                    const qrClosed$ = qrDialogRef.afterClosed();
-                    if (vt?.id) {
-                      interval(3000)
-                        .pipe(
-                          switchMap(() => this.ventaTarjetaService.onGetEstadoPorId(vt.id, sucursalIdQr)),
-                          takeUntil(qrClosed$),
-                          untilDestroyed(this)
-                        )
-                        .subscribe(estadoVt => {
-                          if (estadoVt && estadoVt.estado !== 'PENDIENTE') {
-                            qrDialogRef.close();
-                          }
-                        });
+                  }
+                }
+                if (cobro?.cobroDetalleList?.length > 0) {
+                  const pagoTransferencia = cobro.cobroDetalleList.find(
+                    (cd) => cd.formaPago?.descripcion === 'TRANSFERENCIA'
+                  );
+    
+                  if (pagoTransferencia) {
+                    const sucursalId = this.cajaService.selectedCaja?.sucursalId || this.mainService.sucursalActual?.id;
+    
+                    const totalTransferencia = cobro.cobroDetalleList
+                      .filter(cd => cd.formaPago?.descripcion === 'TRANSFERENCIA')
+                      .reduce((acc, curr) => acc + curr.valor, 0);
+    
+                    if (sucursalId && totalTransferencia > 0) {
+                      this.notificationHttpService.sendVentaTransferenciaNotification(
+                        res.id,
+                        sucursalId,
+                        totalTransferencia,
+                        this.mainService.usuarioActual?.persona?.nombre,
+                        this.mainService.sucursalActual?.nombre
+                      ).subscribe({
+                        next: () => console.log('Notificación de Transferencia enviada exitosamente'),
+                        error: (err) => console.error('Error al enviar notificación de transferencia:', err)
+                      });
                     }
-                    qrClosed$.subscribe(() => mostrarQr(index + 1));
-                  };
-                  mostrarQr(0);
-                },
-                error: err => console.error('[VentaTarjeta] Error al crear registros pendientes:', err)
+                  }
+                }
+    
+                const sucursalId =
+                  this.cajaService.selectedCaja?.sucursalId ||
+                  this.mainService.sucursalActual?.id;
+                if (res.id && sucursalId) {
+                  this.getStockCriticoItems$(sucursalId)
+                    .pipe(untilDestroyed(this))
+                    .subscribe((stockCriticoItems) => {
+                      if (stockCriticoItems.length === 0) {
+                        return;
+                      }
+                      this.notificationHttpService
+                        .sendVentaStockCriticoNotification({
+                          ventaId: res.id,
+                          sucursalId,
+                          usuarioNombre:
+                            this.mainService.usuarioActual?.persona?.nombre,
+                          sucursalNombre: this.mainService.sucursalActual?.nombre,
+                          items: stockCriticoItems,
+                        })
+                        .subscribe({
+                          next: () =>
+                            console.log(
+                              "Notificación de stock crítico enviada exitosamente"
+                            ),
+                          error: (err) =>
+                            console.error(
+                              "Error al enviar notificación de stock crítico:",
+                              err
+                            ),
+                        });
+                    });
+                }
+    
+                const tarjetaPagos = this._pendingTarjetaPagos;
+                this._pendingTarjetaPagos = [];
+                this.registrarPagosConTarjeta(tarjetaPagos, res.id);
+              } catch (err) {
+                console.error("Error después de guardar la venta:", err);
+              }
+
+              this.resetForm();
+              obs.next(res);
+            } else {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: "Ups! Ocurrió un problema al guardar",
+                duracion: 3,
+              });
+              obs.next(null);
+            }
+          },
+          // Sin este handler el error quedaba sin manejar: la venta no se
+          // guardaba y el cajero no se enteraba. Cuando ya se emitió la
+          // factura eso deja una factura legal sin venta asociada, con el
+          // número de timbrado ya consumido y el stock sin descontar.
+          error: (err) => {
+            console.error("Error al guardar la venta:", err);
+            // El aviso genérico es para el estado DESCONOCIDO: red caída o timeout, donde la
+            // venta pudo haberse aplicado igual y por eso hay que verificar antes de seguir.
+            // Un rechazo del servidor no es ese caso: respondió, explicó por qué, y no escribió
+            // nada — GenericCrudService ya mostró su mensaje. Sumarle "verifique antes de
+            // continuar" durante 10 s manda a revisar algo que no pasó, y gasta el mismo aviso
+            // que necesita el caso caro de abajo.
+            // El discriminador es la forma de lo que emite GenericCrudService.onCustomMutation:
+            // un array de errores GraphQL si el servidor rechazó, el error crudo si fue transporte.
+            // Con la factura ya emitida se avisa siempre: ahí sí quedó una factura legal sin
+            // venta asociada, con el timbrado consumido y el stock sin descontar.
+            const rechazoDelServidor = Array.isArray(err);
+            if (!rechazoDelServidor || facturaLegalId != null) {
+              this.notificacionSnackbar.notification$.next({
+                color: NotificacionColor.danger,
+                texto: facturaLegalId != null
+                  ? "No se pudo guardar la venta y la factura ya fue emitida. Avise al encargado antes de continuar."
+                  : "No se pudo guardar la venta. Verifique antes de continuar.",
+                duracion: 10,
               });
             }
-
-            this.resetForm();
-            obs.next(res);
-          } else {
-            this.notificacionSnackbar.notification$.next({
-              color: NotificacionColor.danger,
-              texto: "Ups! Ocurrió un problema al guardar",
-              duracion: 3,
-            });
             obs.next(null);
-          }
+          },
         });
     });
   }
@@ -1401,8 +1617,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       venta.caja = this.cajaService?.selectedCaja;
       venta.estado = VentaEstado.ABIERTA;
       venta.totalGs = this.totalGs;
-      venta.totalRs = this.totalGs / this.cambioRs;
-      venta.totalDs = this.totalGs / this.cambioDs;
+      venta.totalRs = this.cambioRs ? this.totalGs / this.cambioRs : null;
+      venta.totalDs = this.cambioDs ? this.totalGs / this.cambioDs : null;
       venta.valorDescuento = this.descuentoGs;
       venta.ventaItemList = this.selectedItemList;
       venta.isDelivery = true;
@@ -1415,6 +1631,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       cambioDs: this.cambioDs,
       monedaList: this.monedas,
       formaPagoList: this.formaPagoList,
+      onCarritoGuardadoEnDelivery: () => this.vaciarCarritoGuardadoEnDelivery(),
     };
     this.matDialog
       .open(ListDeliveryComponent, {
@@ -1426,6 +1643,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .afterClosed()
       .subscribe((res) => {
+        // Al inicio y no al final: "finalizar" abre el pago, que vuelve a marcar el diálogo
+        // como abierto y lo resetea al cerrarse (#314).
+        this.isDialogOpen = false;
         if (res != null) {
           if (res["delivery"] != null) {
             this.selectedDelivery = new Delivery();
@@ -1434,10 +1654,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }
           switch (res["role"]) {
             case "para-entrega":
-              this.isDelivery = false;
-              this.selectedDelivery = null;
-              this.resetForm();
-              this.calcularTotales();
+              this.volverAlCarritoActivo();
               break;
             case "edit":
               if (this.selectedDelivery != null) {
@@ -1463,19 +1680,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               this.onPagoClick();
               break;
             default:
-              this.isDelivery = false;
-              this.selectedDelivery = null;
-              this.resetForm();
-              this.calcularTotales();
+              this.volverAlCarritoActivo();
               break;
           }
         } else {
-          this.isDelivery = false;
-          this.selectedDelivery = null;
-          this.resetForm();
-          this.calcularTotales();
+          this.volverAlCarritoActivo();
         }
-        this.isDialogOpen = false;
       });
   }
 
@@ -1486,7 +1696,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openUtilitarios() {
-    if (this.modoConsulta) return;
+    // En modo consulta no hay caja del turno, y TODO lo que ofrece Utilitarios trabaja sobre una:
+    // cerrar caja, retiro, gasto, cancelacion, reimpresion, garantia y la conciliacion de cupones.
+    //
+    // Antes esto era un `return` pelado: F1 dejaba de hacer nada, sin una sola palabra. Un atajo
+    // que a veces responde y a veces no le ensena al cajero que la tecla esta rota, no que la
+    // pantalla no aplica. Medido el 2026-09-21 probando el gate de caja cerrada (E5a): al cerrar
+    // la caja y elegir "consulta", F1 quedaba mudo.
+    if (this.modoConsulta) {
+      this.notificacionSnackbar.openWarn(
+        "Estás en modo consulta, sin una caja abierta. Utilitarios trabaja sobre la caja del turno: elegí o abrí una para usarlo."
+      );
+      return;
+    }
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {

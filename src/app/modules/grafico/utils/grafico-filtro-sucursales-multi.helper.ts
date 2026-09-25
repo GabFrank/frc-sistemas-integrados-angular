@@ -1,7 +1,12 @@
 import { FormControl } from "@angular/forms";
 
-/** Centinela en el multi-select; las sucursales reales tienen id > 0 */
-export const SUCURSAL_TODOS_VALOR = 0;
+/**
+ * Centinela de la opción "Todos" en el multi-select.
+ *
+ * Es -1 y no 0 porque 0 es una sucursal real: el central, donde viven los gastos pagados desde
+ * la caja mayor. El filtro de "Gastos por Categoría" la ofrece como CENTRAL.
+ */
+export const SUCURSAL_TODOS_VALOR = -1;
 
 /**
  * Multi-select de sucursales con opción "Todos".
@@ -49,7 +54,7 @@ export class GraficoFiltroSucursalesMulti {
     }
     return ids
       .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id) && id > 0);
+      .filter((id) => Number.isFinite(id) && id >= 0);
   }
 
   resolverParaConsultaMulti(

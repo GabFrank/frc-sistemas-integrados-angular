@@ -37,6 +37,40 @@
       </div>
     </div>
 
+    <!-- Serie: el identificador propio de la maquina. Es distinto del codigo, y el hint lo dice
+         porque es exactamente la confusion que hay que evitar: el codigo lo elige el negocio y
+         sirve para escanear la terminal en la caja; la serie viene de fabrica y es la que el
+         cupon imprime. Con ella cargada, un cupon dice solo de que maquina salio. -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <!-- `campo-con-hint-largo` no es decorativo: styles.scss global fija
+             `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`, asi que el hint
+             se VE pero su contenedor no aporta altura y el texto se dibuja encima del campo de
+             abajo. Es el mismo tropiezo que ya documenta el campo de formato. Este hint entra en
+             una sola linea, asi que alcanza con la variante corta. -->
+        <mat-form-field appearance="outline" style="width: 100%" class="campo-con-hint-corto">
+          <mat-label>Serie del aparato</mat-label>
+          <input matInput [formControl]="serieControl" autocomplete="off" />
+          <mat-hint>La que viene de fábrica y el cupón imprime. No es el código.</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Sucursal donde esta fisicamente el aparato -->
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="100%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option [value]="null">Sin asignar</mat-option>
+            <mat-option *ngFor="let s of sucursales" [value]="s.id">
+              {{ s.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
     <!-- Moneda -->
     <div fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="100%">
@@ -84,6 +118,32 @@
         <mat-icon>clear</mat-icon>
       </button>
     </div>
+
+    <!-- Formato del modelo de aparato. Sin esto la caja no puede vender con tarjeta en esta
+         terminal, asi que el hint lo dice en vez de dejarlo como un campo mas.
+
+         La clase reserva el alto del hint a mano. No es capricho: styles.scss global fija
+         `.mat-mdc-form-field-subscript-wrapper { height: 0px !important; }`, asi que el hint se
+         VE pero su contenedor no aporta altura y el texto se dibuja encima de lo que siga. Aca
+         quedaba tapando el checkbox "Activo" --medido en el navegador el 2026-09-11:
+         hint.bottom 727 contra checkbox.top 700--.
+
+         `subscriptSizing="dynamic"` de Material es el mecanismo pensado para esto y se probo
+         primero: aplica bien (la clase mat-mdc-form-field-subscript-dynamic-size aparece y el
+         hint pasa a position static), pero pierde igual contra el `height: 0 !important` global.
+         Mismo criterio que edit-formato-terminal-pos, que ya cargaba con esto. -->
+    <mat-form-field appearance="outline" style="width: 100%" class="campo-con-hint-largo">
+      <mat-label>Formato del aparato</mat-label>
+      <mat-select [formControl]="formatoControl">
+        <mat-option *ngFor="let f of formatos" [value]="f.id">
+          {{ f.nombre }} — {{ f.tipoEtiqueta }}
+        </mat-option>
+      </mat-select>
+      <mat-hint *ngIf="!formatoControl.value">
+        Sin formato, esta terminal no puede vender con tarjeta.
+      </mat-hint>
+      <mat-hint *ngIf="formatoControl.value">{{ ayudaFormato }}</mat-hint>
+    </mat-form-field>
 
     <!-- Checkbox -->
     <div fxLayout="column" fxLayoutGap="10px">

@@ -40,7 +40,10 @@ export class InicioSesion {
     let input = new InicioSesionInput();
     input.id = this.id;
     input.usuarioId = this.usuario?.id;
-    input.sucursalId = this.sucursal?.id;
+    // La sucursal 0 es la identidad de central, no una sucursal propia: si un
+    // filial la devuelve en /login, reenviarla genera filas (id, 0) que chocan
+    // en central y cortan la replicacion. Central resuelve null a la sucursal 0.
+    input.sucursalId = this.sucursal?.id > 0 ? this.sucursal.id : null;
     input.tipoDespositivo = this.tipoDespositivo;
     input.idDispositivo = this.idDispositivo;
     input.token = this.token;

@@ -90,12 +90,16 @@ export class EditActualizacionComponent implements OnInit {
     this.selectedActualizacion.currentVersion = this.currentVersion.value
     this.selectedActualizacion.title = this.title.value
     if(this.selectedActualizacion?.usuario == null) this.selectedActualizacion.usuario = this.mainService.usuarioActual;
+    // El aviso de error (negocio o red) ya lo muestra GenericCrudService.onSaveCustom.
     this.actualizacionService.onSaveForSucursales(this.selectedActualizacion.toInput(), sucIdList)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        if (res != null) {
-          this.dialogRef.close(res)
-        }
+      .subscribe({
+        next: res => {
+          if (res != null) {
+            this.dialogRef.close(res)
+          }
+        },
+        error: () => {}
       })
   }
 

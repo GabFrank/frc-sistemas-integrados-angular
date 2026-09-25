@@ -102,7 +102,8 @@ export class AddEntradaVariaDialogComponent implements OnInit {
     entradaVaria.numeroComprobante = this.numeroComprobanteControl.value;
 
     this.isSaving = true;
-    this.entradaVariaService.onRegistrar(entradaVaria)
+    // El aviso de éxito es propio (más específico); el de error lo da onSaveCustom.
+    this.entradaVariaService.onRegistrar(entradaVaria, { avisarExito: false })
       .pipe(untilDestroyed(this))
       .subscribe({
         next: res => {
@@ -112,9 +113,8 @@ export class AddEntradaVariaDialogComponent implements OnInit {
             this.dialogRef.close(res);
           }
         },
-        error: err => {
+        error: () => {
           this.isSaving = false;
-          this.notificacion.openAlgoSalioMal(err?.message || 'Error al registrar el movimiento');
         }
       });
   }
