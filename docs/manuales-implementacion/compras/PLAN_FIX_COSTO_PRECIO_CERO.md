@@ -96,6 +96,22 @@ nuevo (solo un log). Sin migración → sin dry-run (paso 10: N/A).
   Hallazgos aplicados: test con `ListAppender`, lugar del guard, `getRawValue()`, aviso a compras.
   Descartado: acotar el bloqueo a «precio cambiado» (razón arriba).
 
+## Auditoría del diff (paso 8)
+
+- Fijo 1 (autorización): N/A, el diff no toca resolvers ni `.graphqls`.
+- Fijo 2 (esquema/migración): N/A, sin migración ni entidades.
+- Fijo 3 (contrato y corrección): sin bugs. `getRawValue()` solo suma `precioUnitario` (el resto de
+  los campos «no editables» usan `readonly`, no `disabled`); guards antes de `saving`/`savingComputed`;
+  `aplicarCostoCompra` tiene un solo llamador (`RecepcionMercaderiaService`). Observación aplicada:
+  el WARN también cubre `costoUnitario == null` (sin precio = precio 0, aunque la recepción ya
+  convierte null en 0); cubierto con test.
+
+## Verificación
+
+- Desktop: `npm run check` exit 0 (AOT, 261 s), sin errores; solo warnings preexistentes.
+- Central: `./mvnw clean verify -B -DskipFlyway=true` → 1057 tests, 0 fallas; el test nuevo falló
+  con el código viejo antes del fix.
+
 ## Sin verificar
 
 - Prueba en UI real de los dos diálogos (se hace en local con `ng serve -c web`).
