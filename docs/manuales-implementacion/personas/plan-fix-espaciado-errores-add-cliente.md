@@ -53,6 +53,39 @@ dos errores visibles, y el texto cae en la franja bajo la línea del campo, legi
   bajo el campo y **el diálogo no cambia de alto**. Repetir en editar cliente (el mismo diálogo con
   `data.cliente`) y en la pestaña «Nuevo cliente» de `cliente-dashboard`.
 
+## Fase 2 — que el error no pise la fila siguiente y alinear C.I/Teléfono
+
+Pedido del usuario al probar la fase 1 (2026-09-25): el error de C.I/RUC toca el campo Dirección,
+y los campos C.I/RUC y Teléfono no están simétricos con el resto.
+
+Medido en runtime (bordes relativos al diálogo, 1243 px de ancho):
+
+- **Pisado:** el `mat-error` mide 23 px y el label del campo siguiente empieza 19 px debajo de la
+  línea: se superponen 4 px. Pasa bajo Nombre (contra C.I/RUC) y bajo C.I/Teléfono (contra
+  Dirección). Es consecuencia del subscript global en `height: 0` (`styles.scss:276`).
+- **Asimetría:** todos los campos están a 31 px del borde; la fila C.I/Teléfono está corrida 5 px
+  a la izquierda (26 / 36 px). Esa fila no tiene el `text-align: center` de las otras y lo
+  compensa con un `margin-left: 26px` inline, a ojo.
+
+Cambios:
+
+- `.html`: la fila C.I/Teléfono lleva `text-align: center` como las demás, y se quita el
+  `margin-left: 26px` de sus dos campos. Los tres campos con `mat-error` llevan la clase
+  `campo-con-error`.
+- `.scss` del componente: `.campo-con-error` reserva 16 px de subscript (le gana al global por
+  especificidad). Probado en el DOM con 12, 16 y 22 px: con 16 queda ~12 px entre el error y el
+  label siguiente, y el diálogo pasa a **416 px fijos** (antes 384): más alto desde que abre, pero
+  no salta al aparecer el error, que es lo que se está arreglando.
+
+Alcance: solo este componente; el global de `styles.scss` no se toca (afecta a 283 campos).
+
+Tests de la fase: `npm run check` y la misma prueba de runtime de la fase 1, midiendo además que
+los 9 campos queden a 31 px de ambos bordes.
+
+Auditoría del plan para esta fase: los ejes A y B de la fase 1 aplican sin cambios (mismo
+componente, solo template y un `.scss` con encapsulado emulado; sin datos, sin contrato). Se
+anota que **no se corrieron auditores nuevos** para esta fase; el diff sí pasa por el paso 8.
+
 ## Tabla de datos nuevos
 
 N/A: no nace ningún campo, columna ni clave.
@@ -63,7 +96,8 @@ N/A: no nace ningún campo, columna ni clave.
   mismo patrón (`mat-error` afuera del campo). Otro fix, si el usuario quiere.
 - El texto «Número de teléfono no válido.» no corresponde al validador (`Validators.required`
   solamente): dice «no válido» cuando lo que falta es el dato. No se cambia sin pedido.
-- El `margin-left: 26px` inline de la fila C.I/Teléfono desalinea esa fila respecto de las otras.
+- ~~El `margin-left: 26px` inline de la fila C.I/Teléfono desalinea esa fila~~ → entró en la fase 2
+  a pedido del usuario.
 
 ## Auditoría del plan (paso 5, 2026-09-25)
 

@@ -3,7 +3,7 @@
   <br />
   <div fxLayout="row" fxFlexAlign="space-around center" style="text-align: center;">
     <div fxFlex="50">
-      <mat-form-field style="width: 90%" class="form-element">
+      <mat-form-field style="width: 90%" class="form-element campo-con-error">
         <mat-label class="required-field">Nombre</mat-label>
         <input lettersOnly noSpaces matInput [formControl]="nombreControl" (keyup.enter)="onBuscarPersona()"/>
         <mat-icon class="icon" matSuffix (click)="onBuscarPersona()"
@@ -21,11 +21,11 @@
     </div>
   </div>
 
-  <div fxLayout="row" fxFlexAlign="space-around center">
+  <div fxLayout="row" fxFlexAlign="space-around center" style="text-align: center;">
     <div fxFlex="50">
       <mat-form-field
-        class="form-element"
-        style="width: 90%; margin-left: 26px"
+        class="form-element campo-con-error"
+        style="width: 90%"
       >
         <mat-label class="required-field">C.I / RUC (Sin digito verificador)</mat-label>
         <input
@@ -39,7 +39,7 @@
     </div>
 
     <div fxFlex="50" fxFlexAlign="space-around center">
-      <mat-form-field style="width: 90%; margin-left: 26px" class="form-element">
+      <mat-form-field style="width: 90%" class="form-element campo-con-error">
         <mat-label class="required-field">Teléfono</mat-label>
         <input matInput [formControl]="telefonoControl" />
         <mat-error>Número de teléfono no válido.</mat-error>

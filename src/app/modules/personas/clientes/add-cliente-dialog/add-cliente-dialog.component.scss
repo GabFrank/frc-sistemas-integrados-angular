@@ -6,3 +6,9 @@
 input {
     text-transform: uppercase;
 }
+
+// styles.scss deja el subscript en 0: acá los campos con mat-error reservan su franja
+// para que el mensaje no pise el label de la fila siguiente.
+.campo-con-error ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    height: 16px !important;
+}
