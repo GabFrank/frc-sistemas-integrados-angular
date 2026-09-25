@@ -91,6 +91,16 @@ llamarlo también.
   de muestra **no existe en el central de bodega** hasta que la fase 2 del OCR llegue a `master`:
   ahí la URL sale bien armada y el central responde 404.
 
+- **«Caja abierta» es `activo = true`, nunca `estado`.** `pdv_caja.estado` no lo escribe nadie y
+  está vacío en todas las cajas (farmacia filial 1: 5.366 de 5.366; alpha: 2.379 de 2.379, medido
+  el 2026-09-24). La captura por foto lo exigía `EN_PROCESO` y por eso nunca funcionó en ninguna
+  caja real: la primera prueba en farmacia falló con «la caja no esta abierta». El criterio vive en
+  `qr-pos/caja-abierta.ts` (desktop) y en `CapturaCuponService.cajaAbierta` (filial); los dos
+  tienen que decir lo mismo. Todavía filtran por `estado`, sin efecto hoy porque ningún cliente
+  manda ese filtro: `cajasWithFilters` del filial y `findAllForAnalisisDiferenciasNative` del
+  central. **Los errores de la captura se muestran con `mensajeDeError`**: el texto genérico
+  «revisá el servidor» solo aparece cuando el filial de verdad no respondió.
+
 ## 4. El rol nuevo son 3 ediciones en el sidebar
 
 `VENTA_TARJETA_COMPLETAR` (enum `roles.enum.ts` ↔ fila `VENTA TARJETA COMPLETAR` de
@@ -118,7 +128,7 @@ node -r /tmp/jasmine-shim.js /tmp/spec.js
 ```
 
 45 verdes: `qr-pos-parser` (23), `venta-tarjeta-qr-payload` (8), `cobro-tarjeta` (8), `mensaje-error` (6).
-Sumados el 2026-09-24: `monto-cupon` (9) y `mapa-formato.service` (3). El shim de jasmine necesita
+Sumados el 2026-09-24: `monto-cupon` (9), `mapa-formato.service` (3) y `caja-abierta` (6 expects). El shim de jasmine necesita
 `window`/`location` (Karma corre en un navegador por `http://localhost`) y, si el spec importa algo
 que arrastra Angular, `node -r @angular/compiler` con `NODE_PATH=<desktop>/node_modules`. Un spec
 que importa un **componente** con Angular Material no corre en node (pide DOM): por eso la lógica
