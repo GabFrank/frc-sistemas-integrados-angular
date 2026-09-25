@@ -9,10 +9,8 @@
         <mat-icon class="icon" matSuffix (click)="onBuscarPersona()"
           >search</mat-icon
         >
+        <mat-error>Este campo es obligatorio.</mat-error>
       </mat-form-field>
-      <mat-error *ngIf="!nombreControl.valid && formGroup.touched">
-        <h6>Este campo es obligatorio.</h6>
-      </mat-error>
     </div>
 
     <div fxFlex="50" fxFlexAlign="space-around center">
@@ -36,20 +34,16 @@
           [formControl]="documentoControl"
           class="required-field"
         />
+        <mat-error>Este campo es obligatorio.</mat-error>
       </mat-form-field>
-      <mat-error *ngIf="!documentoControl.valid && documentoControl.touched">
-        <h6>Este campo es obligatorio.</h6>
-      </mat-error>
     </div>
 
     <div fxFlex="50" fxFlexAlign="space-around center">
       <mat-form-field style="width: 90%; margin-left: 26px" class="form-element">
         <mat-label class="required-field">Teléfono</mat-label>
         <input matInput [formControl]="telefonoControl" />
+        <mat-error>Número de teléfono no válido.</mat-error>
       </mat-form-field>
-      <mat-error *ngIf="!telefonoControl.valid && telefonoControl.touched">
-        <h6>Número de teléfono no válido.</h6>
-      </mat-error>
     </div>
   </div>
 
