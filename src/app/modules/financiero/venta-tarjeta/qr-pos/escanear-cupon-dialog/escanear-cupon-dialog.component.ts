@@ -11,6 +11,7 @@ import { TIPO_WEB } from '../formato-terminal-pos/formato-terminal-pos.model';
 import { CargaManualCuponDialogComponent } from '../carga-manual-cupon-dialog/carga-manual-cupon-dialog.component';
 import { DatosCupon, FormatoQrPos } from '../formato-qr-pos.model';
 import { FormatoTerminalPosService } from '../formato-terminal-pos/formato-terminal-pos.service';
+import { mensajeDeError } from '../mensaje-error';
 import {
   DecimalesPorMoneda,
   formatoCruzado,
@@ -463,9 +464,14 @@ export class EscanearCuponDialogComponent implements OnInit {
           this.capturaToken = qr.token;
           this.escucharCaptura(qr.token);
         },
-        error: () => {
+        error: (err) => {
           this.pidiendoCaptura = false;
-          this.errorCaptura = 'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.';
+          // El motivo lo manda el filial (p. ej. la caja no está abierta). El texto genérico queda
+          // solo para cuando el servidor de verdad no respondió.
+          this.errorCaptura = mensajeDeError(
+            err,
+            'No se pudo abrir la captura. Revisá que el servidor de la sucursal esté funcionando.'
+          );
         },
       });
   }

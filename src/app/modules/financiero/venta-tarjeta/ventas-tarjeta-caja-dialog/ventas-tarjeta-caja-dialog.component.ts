@@ -27,7 +27,7 @@ import {
 } from '../../../../notificacion-snackbar.service';
 import { ROLES } from '../../../personas/roles/roles.enum';
 import { CajaService } from '../../pdv/caja/caja.service';
-import { PdvCajaEstado } from '../../pdv/caja/caja.model';
+import { cajaEstaAbierta } from '../qr-pos/caja-abierta';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -122,7 +122,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
 
   /**
    * Si la caja de este dialogo sigue abierta. Arranca en `false` --el lado estricto-- y solo pasa
-   * a `true` si el filial dice `EN_PROCESO`.
+   * a `true` si el filial dice que la caja esta activa (`cajaEstaAbierta`).
    *
    * <b>Por que se consulta.</b> El gate de «Reabrir» no es el mismo en los dos casos: deshacer el
    * propio error dentro de la caja abierta es del cajero, y tocar un turno que alguien ya cerro es
@@ -231,7 +231,7 @@ export class VentasTarjetaCajaDialogComponent implements OnInit {
       .onGetByIdSimp(Number(this.data.cajaId), Number(this.mainService.sucursalActual?.id), true, false)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (caja) => (this.cajaAbierta = caja?.estado === PdvCajaEstado['En proceso']),
+        next: (caja) => (this.cajaAbierta = cajaEstaAbierta(caja)),
         error: () => (this.cajaAbierta = false),
       });
   }
