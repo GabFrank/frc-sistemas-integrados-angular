@@ -238,6 +238,7 @@ graph TD
     *   El usuario busca y añade productos. Por cada uno, se crea un `PedidoItem` con:
         *   `productoId`, `cantidadSolicitada`, `precioUnitarioSolicitado`, `vencimientoEsperado`, `observacion`.
         *   **Bonificación:** La UI debe incluir un checkbox para marcar el ítem como `esBonificacion`. Si está marcado, el `precioUnitarioSolicitado` debe ser `0`.
+        *   **Precio 0 solo para bonificaciones:** un ítem que no es bonificación exige precio > 0, tanto en el diálogo del ítem del pedido como en el del ítem de la nota (en la nota también se acepta 0 si el ítem está `RECHAZADO`). La recepción física solo aplica costo con precio > 0 (`CostosPorProductoService.aplicarCostoCompra`), y el diálogo del pedido precarga el precio desde el último costo del producto: un producto nuevo arrancaba en 0, se recibía sin costo y quedaba así en cada compra. Si la recepción igual recibe un ítem sin precio, el central lo deja en el log (`Compra sin precio: no se actualiza el costo…`).
 
 3.  **Distribuir Ítems (`PedidoItemDistribucion`):**
     *   Por cada `PedidoItem`, la UI debe permitir su distribución a las sucursales definidas como de **entrega**.
