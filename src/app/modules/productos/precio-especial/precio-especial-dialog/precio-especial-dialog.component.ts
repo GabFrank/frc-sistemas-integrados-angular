@@ -29,6 +29,9 @@ interface FilaEspecial {
   vigencia: string;
   estado: EstadoPrecioEspecial;
   estadoTexto: string;
+  autor: string;
+  /** usuario_id guarda quien lo cargo o lo modifico por ultima vez (editar y cortar lo pisan). */
+  autorDetalle: string;
 }
 
 type NivelMargen = 'ok' | 'bajo' | 'negativo' | 'sin-costo';
@@ -113,6 +116,8 @@ export class PrecioEspecialDialogComponent implements OnInit {
           vigencia: this.textoVigencia(e),
           estado,
           estadoTexto: ESTADO_TEXTO[estado],
+          autor: e.usuarioNickname || 'Sin usuario',
+          autorDetalle: this.textoAutor(e),
         };
       });
       this.vigentes = this.filas.filter((f) => f.estado === 'VIGENTE').length;
@@ -134,10 +139,11 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.editando = null;
     this.editandoSucursal = '';
     this.sucursalControl.enable();
-    this.sucursalControl.setValue([]);
-    this.precioControl.setValue(null);
-    this.desdeControl.setValue(null);
-    this.hastaControl.setValue(null);
+    // reset y no setValue: deja los campos sin tocar, sin el borde de error despues de guardar.
+    this.sucursalControl.reset([]);
+    this.precioControl.reset(null);
+    this.desdeControl.reset(null);
+    this.hastaControl.reset(null);
   }
 
   onCortar(fila: FilaEspecial): void {
@@ -228,6 +234,14 @@ export class PrecioEspecialDialogComponent implements OnInit {
     if (desde && !hasta) return `Desde el ${desde}`;
     if (!desde && hasta) return `Hasta el ${hasta}`;
     return `${desde} al ${hasta}`;
+  }
+
+  private textoAutor(e: PrecioEspecialSucursal): string {
+    const quien = e.usuarioNickname || 'sin usuario';
+    const cuando = e.creadoEn
+      ? stringToLocalDate(e.creadoEn).toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : null;
+    return `Cargado o modificado por última vez por ${quien}${cuando ? ` · creado el ${cuando}` : ''}`;
   }
 
   private capitalizar(texto: string): string {

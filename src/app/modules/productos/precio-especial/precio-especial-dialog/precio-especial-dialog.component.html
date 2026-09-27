@@ -96,7 +96,7 @@
           <button mat-button *ngIf="editando" (click)="onNuevo()">Cancelar edición</button>
           <button mat-flat-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid">
             <mat-icon>{{ editando ? 'save' : 'add' }}</mat-icon>
-            {{ editando ? 'Guardar cambios' : 'Agregar precio especial' }}
+            {{ editando ? 'Guardar cambios' : 'Agregar' }}
           </button>
         </div>
       </div>
@@ -114,21 +114,24 @@
         <span>Todavía ninguna sucursal tiene un precio especial para este precio. Cargá el primero arriba.</span>
       </div>
 
-      <div class="pe-item" *ngFor="let f of filas" [ngClass]="'pe-item--' + (f.estado | lowercase)"
-        [class.pe-item--seleccionado]="editando?.id === f.especial.id">
-        <div class="pe-item__sucursal">{{ f.sucursal }}</div>
-        <div class="pe-item__precio">{{ f.especial.precio | number: '1.0-0' }}</div>
-        <div class="pe-item__vigencia"><mat-icon>event</mat-icon>{{ f.vigencia }}</div>
-        <span class="pe-estado" [ngClass]="'pe-estado--' + (f.estado | lowercase)">{{ f.estadoTexto }}</span>
-        <div class="pe-item__acciones">
-          <ng-container *ngIf="f.especial.activo">
-            <button mat-icon-button matTooltip="Editar" aria-label="Editar" (click)="onEditar(f)">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button class="pe-cortar" matTooltip="Cortar: vuelve al precio actual" aria-label="Cortar" (click)="onCortar(f)">
-              <mat-icon>block</mat-icon>
-            </button>
-          </ng-container>
+      <div class="pe-lista__items" *ngIf="filas.length">
+        <div class="pe-item" *ngFor="let f of filas" [ngClass]="'pe-item--' + (f.estado | lowercase)"
+          [class.pe-item--seleccionado]="editando?.id === f.especial.id">
+          <div class="pe-item__sucursal">{{ f.sucursal }}</div>
+          <div class="pe-item__precio">{{ f.especial.precio | number: '1.0-0' }}</div>
+          <div class="pe-item__dato"><mat-icon>event</mat-icon><span>{{ f.vigencia }}</span></div>
+          <div class="pe-item__dato" [matTooltip]="f.autorDetalle"><mat-icon>person</mat-icon><span>{{ f.autor }}</span></div>
+          <span class="pe-estado" [ngClass]="'pe-estado--' + (f.estado | lowercase)">{{ f.estadoTexto }}</span>
+          <div class="pe-item__acciones">
+            <ng-container *ngIf="f.especial.activo">
+              <button mat-icon-button matTooltip="Editar" aria-label="Editar" (click)="onEditar(f)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="pe-cortar" matTooltip="Cortar: vuelve al precio actual" aria-label="Cortar" (click)="onCortar(f)">
+                <mat-icon>block</mat-icon>
+              </button>
+            </ng-container>
+          </div>
         </div>
       </div>
     </section>

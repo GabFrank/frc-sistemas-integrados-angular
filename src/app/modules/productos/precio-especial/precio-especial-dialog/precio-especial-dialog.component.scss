@@ -235,14 +235,16 @@
 .pe-fila {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .pe-acciones {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
+  margin-top: 16px;
 }
 
 .pe-ayuda {
@@ -286,6 +288,25 @@
     font-size: 12px;
     color: var(--pe-tenue);
   }
+
+  // Solo la lista scrollea: con muchas sucursales el formulario y la etiqueta quedan a la vista.
+  // ~4 filas visibles.
+  &__items {
+    max-height: 236px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }
 
 .pe-vacio {
@@ -305,7 +326,7 @@
 
 .pe-item {
   display: grid;
-  grid-template-columns: minmax(140px, 1.4fr) 90px minmax(150px, 1.3fr) 104px 88px;
+  grid-template-columns: minmax(120px, 1.3fr) 76px minmax(130px, 1.2fr) minmax(96px, 0.9fr) 96px 80px;
   align-items: center;
   gap: 12px;
   min-height: 52px;
@@ -346,14 +367,22 @@
     text-align: right;
   }
 
-  &__vigencia {
+  &__dato {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
     font-size: 13px;
     color: var(--pe-tenue);
 
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     mat-icon {
+      flex-shrink: 0;
       width: 16px;
       height: 16px;
       font-size: 16px;
