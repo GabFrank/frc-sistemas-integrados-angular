@@ -93,7 +93,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
         'La sucursal vuelve al precio global desde el próximo escaneo.')
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
-        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe(() => this.cargar());
+        if (ok) this.service.onCortar(e.id).pipe(untilDestroyed(this)).subscribe({ next: () => this.cargar(), error: () => {} });
       });
   }
 

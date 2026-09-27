@@ -573,6 +573,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onGridCardClick(grupo: PdvGrupo) {
     this.mostrarPrecios = false;
     if (this.cargandoGrupo || this.isDialogOpen) return;
+    // En modo web no hay filial local: la consulta iria al central, que no aplica precios especiales.
+    if (!this.mainService.isLocal()) {
+      this.abrirSeleccionProductos(grupo);
+      return;
+    }
     this.cargandoGrupo = true;
     // Los favoritos se cargan al abrir el POS: se vuelven a pedir a la filial para que un precio
     // especial nuevo, cortado o vencido valga desde este toque. Si la consulta falla, se usa lo
