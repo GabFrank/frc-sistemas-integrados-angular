@@ -1224,7 +1224,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
     data.precio = precio;
     data.presentacion = this.presentacionesDataSource.data[presentacionIndex];
     data.costoMedio = this.selectedProducto?.costo?.costoMedio;
-    this.matDialog.open(PrecioEspecialDialogComponent, { data, disableClose: true });
+    data.productoDescripcion = this.selectedProducto?.descripcion;
+    this.matDialog.open(PrecioEspecialDialogComponent, { data, disableClose: true, panelClass: 'precio-especial-panel' });
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {

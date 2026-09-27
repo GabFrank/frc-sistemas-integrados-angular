@@ -1,80 +1,140 @@
-<div style="padding: 20px; min-width: 720px">
-  <h3 style="text-align: center; margin-top: 0">
-    Precio especial por sucursal · {{ data.presentacion?.descripcion || ('x' + data.presentacion?.cantidad) }}
-    · {{ data.precio?.tipoPrecio?.descripcion | uppercase }}
-  </h3>
-  <p style="opacity: 0.7; margin-top: 0">
-    Precio global: {{ data.precio?.precio | number: '1.0-0' }}.
-    Aplica solo en las sucursales elegidas, durante la vigencia, en las cajas conectadas al
-    servidor de la sucursal. Si el precio global está inactivo (promo 2x1), el especial lo
-    habilita en esas sucursales.
-    <span *ngIf="!data.precio?.principal">Este precio no es el principal: en cajas configuradas sin
-      tipos de precio solo se usa el principal.</span>
-  </p>
-
-  <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center">
-    <mat-form-field fxFlex="35%">
-      <mat-label>Sucursales</mat-label>
-      <mat-select [formControl]="sucursalControl" multiple>
-        <mat-option [value]="null">Todas</mat-option>
-        <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.id }} - {{ s.nombre | titlecase }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field fxFlex="15%">
-      <mat-label>Precio especial</mat-label>
-      <input matInput type="number" [formControl]="precioControl" autocomplete="off" />
-    </mat-form-field>
-    <mat-form-field fxFlex="18%">
-      <mat-label>Desde (opcional)</mat-label>
-      <input matInput [matDatepicker]="pDesde" [formControl]="desdeControl" />
-      <mat-datepicker-toggle matSuffix [for]="pDesde"></mat-datepicker-toggle>
-      <mat-datepicker #pDesde></mat-datepicker>
-    </mat-form-field>
-    <mat-form-field fxFlex="18%">
-      <mat-label>Hasta (opcional)</mat-label>
-      <input matInput [matDatepicker]="pHasta" [formControl]="hastaControl" [min]="desdeControl.value" />
-      <mat-datepicker-toggle matSuffix [for]="pHasta"></mat-datepicker-toggle>
-      <mat-datepicker #pHasta></mat-datepicker>
-    </mat-form-field>
-  </div>
-  <div fxLayout="row" fxLayoutGap="12px">
-    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid">
-      {{ editando ? 'Guardar cambios' : 'Agregar' }}
+<div class="pe">
+  <header class="pe-header">
+    <div class="pe-header__texto">
+      <h2 class="pe-titulo">{{ titulo }}</h2>
+      <div class="pe-chips">
+        <span class="pe-chip">{{ presentacionTexto }}</span>
+        <span class="pe-chip" *ngIf="tipoPrecioTexto">{{ tipoPrecioTexto | titlecase }}</span>
+        <span class="pe-chip pe-chip--tenue" *ngIf="!esPrincipal">No es el precio principal</span>
+      </div>
+    </div>
+    <button mat-icon-button class="pe-cerrar" (click)="onCerrar()" matTooltip="Cerrar" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
     </button>
-    <button mat-button *ngIf="editando" (click)="onNuevo()">Cancelar edición</button>
-  </div>
+  </header>
 
-  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%; margin-top: 16px">
-    <ng-container matColumnDef="sucursal">
-      <th mat-header-cell *matHeaderCellDef>Sucursal</th>
-      <td mat-cell *matCellDef="let e">{{ e.sucursal?.id }} - {{ e.sucursal?.nombre | titlecase }}</td>
-    </ng-container>
-    <ng-container matColumnDef="precio">
-      <th mat-header-cell *matHeaderCellDef>Precio</th>
-      <td mat-cell *matCellDef="let e">{{ e.precio | number: '1.0-0' }}</td>
-    </ng-container>
-    <ng-container matColumnDef="vigencia">
-      <th mat-header-cell *matHeaderCellDef>Vigencia</th>
-      <td mat-cell *matCellDef="let e">{{ vigencia(e) }}</td>
-    </ng-container>
-    <ng-container matColumnDef="estado">
-      <th mat-header-cell *matHeaderCellDef>Estado</th>
-      <td mat-cell *matCellDef="let e">{{ estado(e) }}</td>
-    </ng-container>
-    <ng-container matColumnDef="acciones">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let e">
-        <ng-container *ngIf="e.activo">
-          <mat-icon style="cursor: pointer" matTooltip="Editar" (click)="onEditar(e)">edit</mat-icon>
-          <mat-icon style="cursor: pointer; color: red" matTooltip="Cortar" (click)="onCortar(e)">block</mat-icon>
+  <div class="pe-cuerpo">
+    <!-- Comparador: la etiqueta de precio -->
+    <section class="pe-etiqueta" [class.pe-etiqueta--activa]="precioEspecial != null" aria-live="polite">
+      <div class="pe-etiqueta__lado">
+        <span class="pe-etiqueta__rotulo">Precio actual</span>
+        <span class="pe-etiqueta__actual" [class.pe-tachado]="precioEspecial != null">
+          {{ precioGlobal | number: '1.0-0' }}
+        </span>
+        <span class="pe-etiqueta__nota">Lo cobran todas las demás sucursales</span>
+      </div>
+
+      <div class="pe-etiqueta__troquel" aria-hidden="true">
+        <mat-icon>local_offer</mat-icon>
+      </div>
+
+      <div class="pe-etiqueta__lado pe-etiqueta__lado--especial">
+        <span class="pe-etiqueta__rotulo">Precio especial</span>
+        <ng-container *ngIf="precioEspecial != null; else sinPrecio">
+          <span class="pe-etiqueta__especial">{{ precioEspecial | number: '1.0-0' }}</span>
+          <div class="pe-etiqueta__datos">
+            <span class="pe-pildora" *ngIf="descuentoPorcentaje != null"
+              [class.pe-pildora--baja]="descuentoPorcentaje < 0" [class.pe-pildora--sube]="descuentoPorcentaje > 0">
+              {{ descuentoPorcentaje > 0 ? '+' : '' }}{{ descuentoPorcentaje | number: '1.1-1' }} %
+            </span>
+            <span class="pe-margen" [ngClass]="'pe-margen--' + nivelMargen" *ngIf="nivelMargen !== 'sin-costo'">
+              <mat-icon>{{ nivelMargen === 'ok' ? 'check_circle' : 'warning' }}</mat-icon>
+              Margen {{ margenPorcentaje | number: '1.1-1' }} % sobre costo
+              <ng-container *ngIf="nivelMargen !== 'ok'">(mínimo {{ margenMinimo }} %)</ng-container>
+            </span>
+          </div>
         </ng-container>
-      </td>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-  </table>
+        <ng-template #sinPrecio>
+          <span class="pe-etiqueta__vacio">Escribí el precio para ver cómo queda</span>
+        </ng-template>
+      </div>
+    </section>
 
-  <div style="text-align: right; margin-top: 16px">
-    <button mat-raised-button (click)="onCerrar()">Cerrar</button>
+    <!-- Formulario -->
+    <section class="pe-form">
+      <div class="pe-editando" *ngIf="editando">
+        <mat-icon>edit</mat-icon>
+        Editando el precio especial de <strong>{{ editandoSucursal }}</strong>
+      </div>
+
+      <mat-form-field appearance="outline" class="pe-campo pe-campo--ancho">
+        <mat-label>Sucursales</mat-label>
+        <mat-select [formControl]="sucursalControl" multiple>
+          <mat-select-trigger>{{ sucursalesResumen }}</mat-select-trigger>
+          <mat-option [value]="null">Todas las sucursales</mat-option>
+          <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.id }} · {{ s.nombre | titlecase }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="pe-fila">
+        <mat-form-field appearance="outline" class="pe-campo">
+          <mat-label>Precio especial</mat-label>
+          <input matInput type="number" min="1" [formControl]="precioControl" autocomplete="off" />
+          <span matTextSuffix>Gs.</span>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="pe-campo">
+          <mat-label>Desde</mat-label>
+          <input matInput [matDatepicker]="pDesde" [formControl]="desdeControl" placeholder="Hoy" />
+          <mat-datepicker-toggle matSuffix [for]="pDesde"></mat-datepicker-toggle>
+          <mat-datepicker #pDesde></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="pe-campo">
+          <mat-label>Hasta</mat-label>
+          <input matInput [matDatepicker]="pHasta" [formControl]="hastaControl" [min]="desdeControl.value" placeholder="Sin fin" />
+          <mat-datepicker-toggle matSuffix [for]="pHasta"></mat-datepicker-toggle>
+          <mat-datepicker #pHasta></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="pe-acciones">
+        <p class="pe-ayuda">
+          Las fechas son opcionales y se cuentan completas. Si el precio actual está inactivo (una promo 2x1),
+          el especial lo habilita solo en estas sucursales.
+          <ng-container *ngIf="!esPrincipal"> Las cajas sin tipos de precio configurados cobran solo el principal.</ng-container>
+        </p>
+        <div class="pe-botones">
+          <button mat-button *ngIf="editando" (click)="onNuevo()">Cancelar edición</button>
+          <button mat-flat-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid">
+            <mat-icon>{{ editando ? 'save' : 'add' }}</mat-icon>
+            {{ editando ? 'Guardar cambios' : 'Agregar precio especial' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lista -->
+    <section class="pe-lista">
+      <div class="pe-lista__cabecera">
+        <h3>Sucursales con precio especial</h3>
+        <span class="pe-lista__conteo" *ngIf="filas.length">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
+      </div>
+
+      <div class="pe-vacio" *ngIf="!filas.length">
+        <mat-icon>local_offer</mat-icon>
+        <span>Todavía ninguna sucursal tiene un precio especial para este precio. Cargá el primero arriba.</span>
+      </div>
+
+      <div class="pe-item" *ngFor="let f of filas" [ngClass]="'pe-item--' + (f.estado | lowercase)"
+        [class.pe-item--seleccionado]="editando?.id === f.especial.id">
+        <div class="pe-item__sucursal">{{ f.sucursal }}</div>
+        <div class="pe-item__precio">{{ f.especial.precio | number: '1.0-0' }}</div>
+        <div class="pe-item__vigencia"><mat-icon>event</mat-icon>{{ f.vigencia }}</div>
+        <span class="pe-estado" [ngClass]="'pe-estado--' + (f.estado | lowercase)">{{ f.estadoTexto }}</span>
+        <div class="pe-item__acciones">
+          <ng-container *ngIf="f.especial.activo">
+            <button mat-icon-button matTooltip="Editar" aria-label="Editar" (click)="onEditar(f)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button class="pe-cortar" matTooltip="Cortar: vuelve al precio actual" aria-label="Cortar" (click)="onCortar(f)">
+              <mat-icon>block</mat-icon>
+            </button>
+          </ng-container>
+        </div>
+      </div>
+    </section>
   </div>
+
+  <footer class="pe-pie">
+    <button mat-stroked-button (click)="onCerrar()">Cerrar</button>
+  </footer>
 </div>

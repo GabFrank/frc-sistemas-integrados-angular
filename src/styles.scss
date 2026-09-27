@@ -512,6 +512,26 @@ input {
   }
 }
 
+// Dialogo de precio especial por sucursal: banda superior a sangre y cuerpo con scroll propio.
+.precio-especial-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px;
+
+    .mat-mdc-dialog-surface {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .mdc-dialog__surface {
+      width: 820px;
+      max-width: 94vw;
+      max-height: 90vh;
+    }
+  }
+}
+
 // Dialogo de ultimas ventas del PDV (reimpresion / cancelacion). Va por panelClass y no en el
 // scss del componente: ahi solo se alcanzaba la superficie con un ::ng-deep global, que le
 // imponia min-width 800px a todos los dialogos de la sesion (#327).

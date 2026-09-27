@@ -1,7 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
 import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
@@ -13,13 +12,33 @@ import { evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from '../../precio-por-
 import { PrecioPorSucursal } from '../../precio-por-sucursal/precio-por-sucursal.model';
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
-import { estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas } from '../precio-especial.util';
+import { EstadoPrecioEspecial, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas } from '../precio-especial.util';
 
 export class PrecioEspecialDialogData {
   precio: PrecioPorSucursal;
   presentacion: Presentacion;
   costoMedio?: number;
+  /** Nombre del producto, para el encabezado. */
+  productoDescripcion?: string;
 }
+
+/** Fila de la lista ya resuelta: el template no llama funciones (regla del repo). */
+interface FilaEspecial {
+  especial: PrecioEspecialSucursal;
+  sucursal: string;
+  vigencia: string;
+  estado: EstadoPrecioEspecial;
+  estadoTexto: string;
+}
+
+type NivelMargen = 'ok' | 'bajo' | 'negativo' | 'sin-costo';
+
+const ESTADO_TEXTO: Record<EstadoPrecioEspecial, string> = {
+  VIGENTE: 'Vigente',
+  PROGRAMADO: 'Programado',
+  VENCIDO: 'Vencido',
+  CORTADO: 'Cortado',
+};
 
 @UntilDestroy()
 @Component({
@@ -33,11 +52,28 @@ export class PrecioEspecialDialogComponent implements OnInit {
   desdeControl = new FormControl<Date>(null);
   hastaControl = new FormControl<Date>(null);
   sucursalList: Sucursal[] = [];
-  dataSource = new MatTableDataSource<PrecioEspecialSucursal>([]);
-  displayedColumns = ['sucursal', 'precio', 'vigencia', 'estado', 'acciones'];
+  filas: FilaEspecial[] = [];
+  vigentes = 0;
   /** Especial que se esta editando; null = alta. */
   editando: PrecioEspecialSucursal = null;
-  hoy = new Date();
+  editandoSucursal = '';
+
+  // Encabezado, calculado una vez.
+  titulo = '';
+  presentacionTexto = '';
+  tipoPrecioTexto = '';
+  esPrincipal = false;
+  precioGlobal: number = null;
+
+  // Comparador: se recalcula con cada cambio del precio.
+  precioEspecial: number = null;
+  descuentoPorcentaje: number = null;
+  margenPorcentaje: number = null;
+  nivelMargen: NivelMargen = 'sin-costo';
+  margenMinimo = MARGEN_MINIMO_PORCENTAJE;
+
+  // Texto del selector de sucursales.
+  sucursalesResumen = '';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PrecioEspecialDialogData,
@@ -48,6 +84,18 @@ export class PrecioEspecialDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const p = this.data.presentacion;
+    this.titulo = this.data.productoDescripcion || p?.producto?.descripcion || 'Precio especial';
+    const cantidad = p?.cantidad != null ? ` ×${p.cantidad}` : '';
+    this.presentacionTexto = `${this.capitalizar(p?.descripcion) || 'Presentación'}${cantidad}`;
+    this.tipoPrecioTexto = this.data.precio?.tipoPrecio?.descripcion || '';
+    this.esPrincipal = !!this.data.precio?.principal;
+    this.precioGlobal = this.data.precio?.precio ?? null;
+
+    this.precioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarComparador());
+    this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.actualizarResumenSucursales());
+    this.actualizarComparador();
+
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = (res || []).filter((s) => Number(s.id) !== 0);
     });
@@ -56,21 +104,25 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
   cargar(): void {
     this.service.onPorPrecio(this.data.precio.id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.dataSource.data = res || [];
+      const hoy = new Date();
+      this.filas = (res || []).map((e) => {
+        const estado = estadoPrecioEspecial(e, hoy);
+        return {
+          especial: e,
+          sucursal: `${e.sucursal?.id} · ${this.capitalizar(e.sucursal?.nombre)}`,
+          vigencia: this.textoVigencia(e),
+          estado,
+          estadoTexto: ESTADO_TEXTO[estado],
+        };
+      });
+      this.vigentes = this.filas.filter((f) => f.estado === 'VIGENTE').length;
     });
   }
 
-  estado(e: PrecioEspecialSucursal) {
-    return estadoPrecioEspecial(e, this.hoy);
-  }
-
-  vigencia(e: PrecioEspecialSucursal): string {
-    const f = (v: string) => (v ? stringToLocalDate(v).toLocaleDateString('es-PY') : null);
-    return `${f(e.fechaDesde) ?? 'siempre'} → ${f(e.fechaHasta) ?? 'sin fin'}`;
-  }
-
-  onEditar(e: PrecioEspecialSucursal): void {
+  onEditar(fila: FilaEspecial): void {
+    const e = fila.especial;
     this.editando = e;
+    this.editandoSucursal = fila.sucursal;
     this.sucursalControl.setValue(this.sucursalList.filter((s) => Number(s.id) === Number(e.sucursal?.id)));
     this.sucursalControl.disable();
     this.precioControl.setValue(e.precio);
@@ -80,6 +132,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
   onNuevo(): void {
     this.editando = null;
+    this.editandoSucursal = '';
     this.sucursalControl.enable();
     this.sucursalControl.setValue([]);
     this.precioControl.setValue(null);
@@ -87,9 +140,10 @@ export class PrecioEspecialDialogComponent implements OnInit {
     this.hastaControl.setValue(null);
   }
 
-  onCortar(e: PrecioEspecialSucursal): void {
+  onCortar(fila: FilaEspecial): void {
+    const e = fila.especial;
     this.dialogosService
-      .confirm('Cortar precio especial', `¿Cortar el precio especial de ${e.sucursal?.nombre}?`,
+      .confirm('Cortar precio especial', `¿Cortar el precio especial de ${fila.sucursal}?`,
         'La sucursal vuelve al precio global desde el próximo escaneo.')
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
@@ -139,5 +193,44 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
   onCerrar(): void {
     this.matDialogRef.close(true);
+  }
+
+  private actualizarComparador(): void {
+    const valor = Number(this.precioControl.value);
+    this.precioEspecial = valor > 0 ? valor : null;
+    this.descuentoPorcentaje = this.precioEspecial != null && this.precioGlobal > 0
+      ? ((this.precioEspecial - this.precioGlobal) / this.precioGlobal) * 100
+      : null;
+    const evaluacion = this.precioEspecial != null
+      ? evaluarMargenPrecio(this.precioEspecial, this.data.costoMedio, this.data.presentacion?.cantidad)
+      : null;
+    this.margenPorcentaje = evaluacion?.margenPorcentaje ?? null;
+    this.nivelMargen = evaluacion == null ? 'sin-costo'
+      : evaluacion.margenPorcentaje < 0 ? 'negativo'
+      : evaluacion.debeAvisar ? 'bajo' : 'ok';
+  }
+
+  private actualizarResumenSucursales(): void {
+    const seleccion = this.sucursalControl.value || [];
+    if (seleccion.includes(null)) {
+      this.sucursalesResumen = `Todas (${this.sucursalList.length})`;
+      return;
+    }
+    const nombres = seleccion.filter((s) => s != null).map((s) => `${s.id} · ${this.capitalizar(s.nombre)}`);
+    this.sucursalesResumen = nombres.length <= 2 ? nombres.join(', ') : `${nombres.slice(0, 2).join(', ')} y ${nombres.length - 2} más`;
+  }
+
+  private textoVigencia(e: PrecioEspecialSucursal): string {
+    const f = (v: string) => (v ? stringToLocalDate(v).toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null);
+    const desde = f(e.fechaDesde);
+    const hasta = f(e.fechaHasta);
+    if (!desde && !hasta) return 'Sin fechas';
+    if (desde && !hasta) return `Desde el ${desde}`;
+    if (!desde && hasta) return `Hasta el ${hasta}`;
+    return `${desde} al ${hasta}`;
+  }
+
+  private capitalizar(texto: string): string {
+    return (texto || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
   }
 }
