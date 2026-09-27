@@ -67,7 +67,7 @@ export const componenteList: SearchData[] =
     { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, visibilityRoles: [ROLES.ADMIN] },
     { title: 'Lucro por producto', component: LucroPorProductoComponent, visibilityRoles: [ROLES.ADMIN] },
-    { title: 'Precios especiales', component: ListPrecioEspecialComponent, visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
+    { title: 'Promociones', component: ListPrecioEspecialComponent, visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
   ]
 
 @UntilDestroy()

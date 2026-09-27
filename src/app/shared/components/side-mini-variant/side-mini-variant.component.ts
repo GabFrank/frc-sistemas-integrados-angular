@@ -687,7 +687,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
         },
         {
-          name: 'Precios especiales',
+          name: 'Promociones',
           icon: 'local_offer',
           action: 'list-precio-especial',
           visibilityRoles: [ROLES.ADMIN, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]
@@ -1289,7 +1289,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         }
         break;
       case "list-precio-especial":
-        this.openTabIfAuthorized([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], ListPrecioEspecialComponent, "Precios especiales");
+        this.openTabIfAuthorized([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS], ListPrecioEspecialComponent, "Promociones");
         break;
       case "funcionario-dashboard":
         this.openTabIfAuthorized(ROLES.VER_FUNCIONARIOS, FuncionarioDashboardComponent, "Gestión de funcionarios");

@@ -29,7 +29,7 @@
       </div>
 
       <div class="pe-etiqueta__lado pe-etiqueta__lado--especial">
-        <span class="pe-etiqueta__rotulo">Precio especial</span>
+        <span class="pe-etiqueta__rotulo">Precio promocional</span>
         <ng-container *ngIf="precioEspecial != null; else sinPrecio">
           <span class="pe-etiqueta__especial">{{ precioEspecial | number: '1.0-0' }}</span>
           <div class="pe-etiqueta__datos">
@@ -54,7 +54,7 @@
     <section class="pe-form">
       <div class="pe-editando" *ngIf="editando">
         <mat-icon>edit</mat-icon>
-        Editando el precio especial de <strong>{{ editandoSucursal }}</strong>
+        Editando la promoción de <strong>{{ editandoSucursal }}</strong>
       </div>
 
       <mat-form-field appearance="outline" class="pe-campo pe-campo--ancho">
@@ -68,7 +68,7 @@
 
       <div class="pe-fila">
         <mat-form-field appearance="outline" class="pe-campo">
-          <mat-label>Precio especial</mat-label>
+          <mat-label>Precio promocional</mat-label>
           <input matInput type="number" min="1" [formControl]="precioControl" autocomplete="off" />
           <span matTextSuffix>Gs.</span>
         </mat-form-field>
@@ -89,7 +89,7 @@
       <div class="pe-acciones">
         <p class="pe-ayuda">
           Las fechas son opcionales y se cuentan completas. Si el precio actual está inactivo (una promo 2x1),
-          el especial lo habilita solo en estas sucursales.
+          la promoción lo habilita solo en estas sucursales.
           <ng-container *ngIf="!esPrincipal"> Las cajas sin tipos de precio configurados cobran solo el principal.</ng-container>
         </p>
         <div class="pe-botones">
@@ -105,13 +105,13 @@
     <!-- Lista -->
     <section class="pe-lista">
       <div class="pe-lista__cabecera">
-        <h3>Sucursales con precio especial</h3>
+        <h3>Sucursales con promoción</h3>
         <span class="pe-lista__conteo" *ngIf="filas.length">{{ vigentes }} vigente{{ vigentes === 1 ? '' : 's' }} de {{ filas.length }}</span>
       </div>
 
       <div class="pe-vacio" *ngIf="!filas.length">
         <mat-icon>local_offer</mat-icon>
-        <span>Todavía ninguna sucursal tiene un precio especial para este precio. Cargá el primero arriba.</span>
+        <span>Todavía ninguna sucursal tiene una promoción para este precio. Cargá la primera arriba.</span>
       </div>
 
       <div class="pe-lista__items" *ngIf="filas.length">

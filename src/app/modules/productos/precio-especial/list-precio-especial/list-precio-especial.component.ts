@@ -97,7 +97,7 @@ export class ListPrecioEspecialComponent implements OnInit {
   onCortar(fila: FilaPrecioEspecial): void {
     const e = fila.especial;
     this.dialogosService
-      .confirm('Cortar precio especial', `¿Cortar el precio especial de ${e.sucursal?.nombre}?`,
+      .confirm('Cortar promoción', `¿Cortar la promoción de ${e.sucursal?.nombre}?`,
         'La sucursal vuelve al precio global desde el próximo escaneo.')
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {

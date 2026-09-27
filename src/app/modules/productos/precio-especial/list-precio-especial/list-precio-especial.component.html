@@ -1,4 +1,4 @@
-<app-generic-list titulo="Precios especiales" (filtrar)="onFilter()" (resetFiltro)="onLimpiarFiltros()"
+<app-generic-list titulo="Promociones" (filtrar)="onFilter()" (resetFiltro)="onLimpiarFiltros()"
   [isAdicionar]="false" [data]="dataSource.data" style="height: 100%">
   <div filtros>
     <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center" style="padding: 8px 0">
@@ -25,7 +25,7 @@
         <ng-container matColumnDef="presentacion"><th mat-header-cell *matHeaderCellDef class="centro">Presentación</th><td mat-cell *matCellDef="let f" class="centro">{{ f.presentacion }}</td></ng-container>
         <ng-container matColumnDef="tipoPrecio"><th mat-header-cell *matHeaderCellDef class="centro">Tipo</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.precioPorSucursal?.tipoPrecio?.descripcion | uppercase }}</td></ng-container>
         <ng-container matColumnDef="global"><th mat-header-cell *matHeaderCellDef class="centro">Global</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.precioPorSucursal?.precio | number: '1.0-0' }}</td></ng-container>
-        <ng-container matColumnDef="precio"><th mat-header-cell *matHeaderCellDef class="centro">Especial</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.precio | number: '1.0-0' }}</td></ng-container>
+        <ng-container matColumnDef="precio"><th mat-header-cell *matHeaderCellDef class="centro">Promoción</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.precio | number: '1.0-0' }}</td></ng-container>
         <ng-container matColumnDef="vigencia"><th mat-header-cell *matHeaderCellDef class="centro">Vigencia</th><td mat-cell *matCellDef="let f" class="centro">{{ f.vigencia }}</td></ng-container>
         <ng-container matColumnDef="estado"><th mat-header-cell *matHeaderCellDef class="centro">Estado</th><td mat-cell *matCellDef="let f" class="centro">{{ f.estadoTexto }}</td></ng-container>
         <ng-container matColumnDef="usuario"><th mat-header-cell *matHeaderCellDef class="centro">Usuario</th><td mat-cell *matCellDef="let f" class="centro">{{ f.especial.usuarioNickname }}</td></ng-container>

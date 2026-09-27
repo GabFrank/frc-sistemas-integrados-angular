@@ -83,7 +83,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
 
   ngOnInit(): void {
     const p = this.data.presentacion;
-    this.titulo = this.data.productoDescripcion || p?.producto?.descripcion || 'Precio especial';
+    this.titulo = this.data.productoDescripcion || p?.producto?.descripcion || 'Promoción';
     const cantidad = p?.cantidad != null ? ` ×${p.cantidad}` : '';
     this.presentacionTexto = `${this.capitalizar(p?.descripcion) || 'Presentación'}${cantidad}`;
     this.tipoPrecioTexto = this.data.precio?.tipoPrecio?.descripcion || '';
@@ -144,7 +144,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
   onCortar(fila: FilaEspecial): void {
     const e = fila.especial;
     this.dialogosService
-      .confirm('Cortar precio especial', `¿Cortar el precio especial de ${fila.sucursal}?`,
+      .confirm('Cortar promoción', `¿Cortar la promoción de ${fila.sucursal}?`,
         'La sucursal vuelve al precio global desde el próximo escaneo.')
       .pipe(untilDestroyed(this))
       .subscribe((ok) => {
@@ -158,7 +158,7 @@ export class PrecioEspecialDialogComponent implements OnInit {
     if (evaluacion?.debeAvisar) {
       this.dialogosService
         .confirm('Margen por debajo del mínimo',
-          `El precio especial deja un margen de ${evaluacion.margenPorcentaje.toFixed(1).replace('.', ',')}% sobre el costo.`,
+          `La promoción deja un margen de ${evaluacion.margenPorcentaje.toFixed(1).replace('.', ',')}% sobre el costo.`,
           `Se espera un margen mínimo de ${MARGEN_MINIMO_PORCENTAJE}%.`)
         .pipe(untilDestroyed(this))
         .subscribe((ok) => ok && this.guardar());
