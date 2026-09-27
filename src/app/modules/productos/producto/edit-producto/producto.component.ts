@@ -66,6 +66,11 @@ import {
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
 import {
+  PrecioEspecialDialogComponent,
+  PrecioEspecialDialogData,
+} from "../../precio-especial/precio-especial-dialog/precio-especial-dialog.component";
+import { ROLES } from "../../../personas/roles/roles.enum";
+import {
   AdicionarPresentacionComponent,
   AdicionarPresentacionData,
 } from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
@@ -178,8 +183,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
     "tipoPrecio",
     "precio",
     "principal",
+    "especial",
     "eliminar",
   ];
+  puedeGestionarPrecios = false;
 
   precioCostoColumnsToDisplay = [
     "id",
@@ -263,6 +270,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // ADMIN (por rol o por nickname) pasa siempre: lo resuelve tieneAlgunRol.
+    this.puedeGestionarPrecios = this.mainService.tieneAlgunRol([ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS]);
+
     // inicializar arrays
     this.codigosList = [];
     this.precioList = [];
@@ -1207,6 +1217,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
   onEditPrecio(precio: PrecioPorSucursal, i, presentacionIndex) {
     this.selectedPrecio = precio;
     this.onAddPrecio(i, presentacionIndex);
+  }
+
+  onPrecioEspecial(precio: PrecioPorSucursal, presentacionIndex: number) {
+    const data = new PrecioEspecialDialogData();
+    data.precio = precio;
+    data.presentacion = this.presentacionesDataSource.data[presentacionIndex];
+    data.costoMedio = this.selectedProducto?.costo?.costoMedio;
+    this.matDialog.open(PrecioEspecialDialogComponent, { data, disableClose: true });
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {

@@ -1,0 +1,80 @@
+<div style="padding: 20px; min-width: 720px">
+  <h3 style="text-align: center; margin-top: 0">
+    Precio especial por sucursal · {{ data.presentacion?.descripcion || ('x' + data.presentacion?.cantidad) }}
+    · {{ data.precio?.tipoPrecio?.descripcion | uppercase }}
+  </h3>
+  <p style="opacity: 0.7; margin-top: 0">
+    Precio global: {{ data.precio?.precio | number: '1.0-0' }}.
+    Aplica solo en las sucursales elegidas, durante la vigencia, en las cajas conectadas al
+    servidor de la sucursal. Si el precio global está inactivo (promo 2x1), el especial lo
+    habilita en esas sucursales.
+    <span *ngIf="!data.precio?.principal">Este precio no es el principal: en cajas configuradas sin
+      tipos de precio solo se usa el principal.</span>
+  </p>
+
+  <div fxLayout="row wrap" fxLayoutGap="12px" fxLayoutAlign="start center">
+    <mat-form-field fxFlex="35%">
+      <mat-label>Sucursales</mat-label>
+      <mat-select [formControl]="sucursalControl" multiple>
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let s of sucursalList" [value]="s">{{ s.id }} - {{ s.nombre | titlecase }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field fxFlex="15%">
+      <mat-label>Precio especial</mat-label>
+      <input matInput type="number" [formControl]="precioControl" autocomplete="off" />
+    </mat-form-field>
+    <mat-form-field fxFlex="18%">
+      <mat-label>Desde (opcional)</mat-label>
+      <input matInput [matDatepicker]="pDesde" [formControl]="desdeControl" />
+      <mat-datepicker-toggle matSuffix [for]="pDesde"></mat-datepicker-toggle>
+      <mat-datepicker #pDesde></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field fxFlex="18%">
+      <mat-label>Hasta (opcional)</mat-label>
+      <input matInput [matDatepicker]="pHasta" [formControl]="hastaControl" [min]="desdeControl.value" />
+      <mat-datepicker-toggle matSuffix [for]="pHasta"></mat-datepicker-toggle>
+      <mat-datepicker #pHasta></mat-datepicker>
+    </mat-form-field>
+  </div>
+  <div fxLayout="row" fxLayoutGap="12px">
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="precioControl.invalid">
+      {{ editando ? 'Guardar cambios' : 'Agregar' }}
+    </button>
+    <button mat-button *ngIf="editando" (click)="onNuevo()">Cancelar edición</button>
+  </div>
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%; margin-top: 16px">
+    <ng-container matColumnDef="sucursal">
+      <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+      <td mat-cell *matCellDef="let e">{{ e.sucursal?.id }} - {{ e.sucursal?.nombre | titlecase }}</td>
+    </ng-container>
+    <ng-container matColumnDef="precio">
+      <th mat-header-cell *matHeaderCellDef>Precio</th>
+      <td mat-cell *matCellDef="let e">{{ e.precio | number: '1.0-0' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="vigencia">
+      <th mat-header-cell *matHeaderCellDef>Vigencia</th>
+      <td mat-cell *matCellDef="let e">{{ vigencia(e) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef>Estado</th>
+      <td mat-cell *matCellDef="let e">{{ estado(e) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let e">
+        <ng-container *ngIf="e.activo">
+          <mat-icon style="cursor: pointer" matTooltip="Editar" (click)="onEditar(e)">edit</mat-icon>
+          <mat-icon style="cursor: pointer; color: red" matTooltip="Cortar" (click)="onCortar(e)">block</mat-icon>
+        </ng-container>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+
+  <div style="text-align: right; margin-top: 16px">
+    <button mat-raised-button (click)="onCerrar()">Cerrar</button>
+  </div>
+</div>
