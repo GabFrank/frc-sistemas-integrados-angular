@@ -34,6 +34,7 @@ import { GestionProveedoresProductoDialogComponent } from './producto/gestion-pr
 import { GestionProductosProveedorDialogComponent } from './producto-proveedor/gestion-productos-proveedor-dialog/gestion-productos-proveedor-dialog.component';
 import { LotesProductoDialogComponent } from './producto/lotes-producto-dialog/lotes-producto-dialog.component';
 import { PrecioEspecialDialogComponent } from './precio-especial/precio-especial-dialog/precio-especial-dialog.component';
+import { ListPrecioEspecialComponent } from './precio-especial/list-precio-especial/list-precio-especial.component';
 
 
 
@@ -67,7 +68,8 @@ import { PrecioEspecialDialogComponent } from './precio-especial/precio-especial
     GestionProveedoresProductoDialogComponent,
     GestionProductosProveedorDialogComponent,
     LotesProductoDialogComponent,
-    PrecioEspecialDialogComponent
+    PrecioEspecialDialogComponent,
+    ListPrecioEspecialComponent
   ],
   imports: [
     CommonModule,

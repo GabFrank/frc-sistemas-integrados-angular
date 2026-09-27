@@ -26,6 +26,7 @@ import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-ret
 import { ListGastosComponent } from '../../../modules/financiero/gastos/pages/list-gastos/list-gastos.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
+import { ListPrecioEspecialComponent } from '../../../modules/productos/precio-especial/list-precio-especial/list-precio-especial.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -65,7 +66,8 @@ export const componenteList: SearchData[] =
     { title: 'Lista de retiros', component: ListRetiroComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
     { title: 'Lucro por funcionario', component: LucroPorFuncionarioComponent, visibilityRoles: [ROLES.ADMIN] },
-    { title: 'Lucro por producto', component: LucroPorProductoComponent, visibilityRoles: [ROLES.ADMIN] }
+    { title: 'Lucro por producto', component: LucroPorProductoComponent, visibilityRoles: [ROLES.ADMIN] },
+    { title: 'Precios especiales', component: ListPrecioEspecialComponent, visibilityRoles: [ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS] }
   ]
 
 @UntilDestroy()
