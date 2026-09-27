@@ -791,9 +791,21 @@ export class EditNotaRecepcionItemDialogComponent implements OnInit, AfterViewIn
 
   onSave(): void {
     if (this.itemForm.valid) {
+      // getRawValue: con bonificación el control de precio está deshabilitado y `value` lo omite
+      const formValue = this.itemForm.getRawValue();
+
+      // Precio 0 solo vale para bonificaciones o ítems rechazados: la recepción no aplica
+      // costo con precio 0, y un producto nuevo quedaría sin costo para siempre.
+      if (!formValue.esBonificacion
+          && formValue.estado !== NotaRecepcionItemEstado.RECHAZADO
+          && !(Number(formValue.precioUnitario) > 0)) {
+        this.notificacionService.openWarn(
+          'El precio unitario debe ser mayor a 0. Si el producto viene sin cargo, márquelo como bonificación'
+        );
+        return;
+      }
+
       this.saving = true;
-      
-      const formValue = this.itemForm.value;
       
       // Crear objeto para guardar
       const itemToSave = Object.assign(new NotaRecepcionItem(), this.originalItem);
