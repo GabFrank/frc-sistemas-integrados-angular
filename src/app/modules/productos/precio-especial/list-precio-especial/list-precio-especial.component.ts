@@ -4,13 +4,23 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
-import { stringToLocalDate } from '../../../../commons/core/utils/dateUtils';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
-import { estadoPrecioEspecial } from '../precio-especial.util';
+import {
+  ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, estadoPrecioEspecial, textoVigencia,
+} from '../precio-especial.util';
+
+/** Fila ya resuelta: el template no llama funciones (regla del repo). */
+interface FilaPrecioEspecial {
+  especial: PrecioEspecialSucursal;
+  presentacion: string;
+  vigencia: string;
+  estado: EstadoPrecioEspecial;
+  estadoTexto: string;
+}
 
 @UntilDestroy()
 @Component({
@@ -20,7 +30,7 @@ import { estadoPrecioEspecial } from '../precio-especial.util';
 })
 export class ListPrecioEspecialComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
-  dataSource = new MatTableDataSource<PrecioEspecialSucursal>([]);
+  dataSource = new MatTableDataSource<FilaPrecioEspecial>([]);
   displayedColumns = ['id', 'sucursal', 'producto', 'presentacion', 'tipoPrecio', 'global', 'precio', 'vigencia', 'estado', 'usuario', 'acciones'];
   selectedPageInfo: PageInfo<PrecioEspecialSucursal>;
   pageIndex = 0;
@@ -29,7 +39,6 @@ export class ListPrecioEspecialComponent implements OnInit {
   textoControl = new FormControl<string>(null);
   soloVigentesControl = new FormControl<boolean>(true);
   sucursales: Sucursal[] = [];
-  hoy = new Date();
 
   constructor(
     private service: PrecioEspecialService,
@@ -50,7 +59,18 @@ export class ListPrecioEspecialComponent implements OnInit {
     this.service.onFiltrar(params).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res) {
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent ?? [];
+        const hoy = new Date();
+        this.dataSource.data = (res.getContent ?? []).map((e) => {
+          const p = e.precioPorSucursal?.presentacion;
+          const estado = estadoPrecioEspecial(e, hoy);
+          return {
+            especial: e,
+            presentacion: (p?.descripcion || `x${p?.cantidad ?? ''}`).toUpperCase(),
+            vigencia: textoVigencia(e),
+            estado,
+            estadoTexto: ESTADO_PRECIO_ESPECIAL_TEXTO[estado],
+          };
+        });
       }
     });
   }
@@ -74,16 +94,8 @@ export class ListPrecioEspecialComponent implements OnInit {
     this.onGetData();
   }
 
-  estado(e: PrecioEspecialSucursal) {
-    return estadoPrecioEspecial(e, this.hoy);
-  }
-
-  vigencia(e: PrecioEspecialSucursal): string {
-    const f = (v: string) => (v ? stringToLocalDate(v).toLocaleDateString('es-PY') : null);
-    return `${f(e.fechaDesde) ?? 'siempre'} → ${f(e.fechaHasta) ?? 'sin fin'}`;
-  }
-
-  onCortar(e: PrecioEspecialSucursal): void {
+  onCortar(fila: FilaPrecioEspecial): void {
+    const e = fila.especial;
     this.dialogosService
       .confirm('Cortar precio especial', `¿Cortar el precio especial de ${e.sucursal?.nombre}?`,
         'La sucursal vuelve al precio global desde el próximo escaneo.')

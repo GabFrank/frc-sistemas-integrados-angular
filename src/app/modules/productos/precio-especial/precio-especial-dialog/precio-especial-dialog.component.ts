@@ -12,7 +12,9 @@ import { evaluarMargenPrecio, MARGEN_MINIMO_PORCENTAJE } from '../../precio-por-
 import { PrecioPorSucursal } from '../../precio-por-sucursal/precio-por-sucursal.model';
 import { PrecioEspecialSucursal } from '../precio-especial.model';
 import { PrecioEspecialService } from '../precio-especial.service';
-import { EstadoPrecioEspecial, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas } from '../precio-especial.util';
+import {
+  ESTADO_PRECIO_ESPECIAL_TEXTO, EstadoPrecioEspecial, estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, textoVigencia,
+} from '../precio-especial.util';
 
 export class PrecioEspecialDialogData {
   precio: PrecioPorSucursal;
@@ -35,13 +37,6 @@ interface FilaEspecial {
 }
 
 type NivelMargen = 'ok' | 'bajo' | 'negativo' | 'sin-costo';
-
-const ESTADO_TEXTO: Record<EstadoPrecioEspecial, string> = {
-  VIGENTE: 'Vigente',
-  PROGRAMADO: 'Programado',
-  VENCIDO: 'Vencido',
-  CORTADO: 'Cortado',
-};
 
 @UntilDestroy()
 @Component({
@@ -113,9 +108,9 @@ export class PrecioEspecialDialogComponent implements OnInit {
         return {
           especial: e,
           sucursal: `${e.sucursal?.id} · ${this.capitalizar(e.sucursal?.nombre)}`,
-          vigencia: this.textoVigencia(e),
+          vigencia: textoVigencia(e),
           estado,
-          estadoTexto: ESTADO_TEXTO[estado],
+          estadoTexto: ESTADO_PRECIO_ESPECIAL_TEXTO[estado],
           autor: e.usuarioNickname || 'Sin usuario',
           autorDetalle: this.textoAutor(e),
         };
@@ -224,16 +219,6 @@ export class PrecioEspecialDialogComponent implements OnInit {
     }
     const nombres = seleccion.filter((s) => s != null).map((s) => `${s.id} · ${this.capitalizar(s.nombre)}`);
     this.sucursalesResumen = nombres.length <= 2 ? nombres.join(', ') : `${nombres.slice(0, 2).join(', ')} y ${nombres.length - 2} más`;
-  }
-
-  private textoVigencia(e: PrecioEspecialSucursal): string {
-    const f = (v: string) => (v ? stringToLocalDate(v).toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null);
-    const desde = f(e.fechaDesde);
-    const hasta = f(e.fechaHasta);
-    if (!desde && !hasta) return 'Sin fechas';
-    if (desde && !hasta) return `Desde el ${desde}`;
-    if (!desde && hasta) return `Hasta el ${hasta}`;
-    return `${desde} al ${hasta}`;
   }
 
   private textoAutor(e: PrecioEspecialSucursal): string {

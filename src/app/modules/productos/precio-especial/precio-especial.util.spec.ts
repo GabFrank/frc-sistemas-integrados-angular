@@ -1,4 +1,4 @@
-import { estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas } from './precio-especial.util';
+import { estadoPrecioEspecial, fechaParam, idsSucursalesSeleccionadas, textoVigencia } from './precio-especial.util';
 
 describe('precio-especial.util', () => {
   const hoy = new Date(2026, 9, 10, 15, 30);
@@ -27,5 +27,12 @@ describe('precio-especial.util', () => {
     expect(idsSucursalesSeleccionadas([null, { id: '1' }], todas)).toEqual([1, 3]);
     expect(idsSucursalesSeleccionadas([{ id: '3' }, { id: 3 }], todas)).toEqual([3]);
     expect(idsSucursalesSeleccionadas([], todas)).toEqual([]);
+  });
+
+  it('textoVigencia: sin fechas es "Permanente" y el resto se lee como rango', () => {
+    expect(textoVigencia({})).toBe('Permanente');
+    expect(textoVigencia({ fechaDesde: '2026-10-01 00:00' })).toBe('Desde el 01/10/2026');
+    expect(textoVigencia({ fechaHasta: '2026-10-31 00:00' })).toBe('Hasta el 31/10/2026');
+    expect(textoVigencia({ fechaDesde: '2026-10-01 00:00', fechaHasta: '2026-10-31 00:00' })).toBe('01/10/2026 al 31/10/2026');
   });
 });

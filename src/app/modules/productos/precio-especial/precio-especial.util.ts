@@ -30,6 +30,31 @@ export function estadoPrecioEspecial(
   return 'VIGENTE';
 }
 
+export const ESTADO_PRECIO_ESPECIAL_TEXTO: Record<EstadoPrecioEspecial, string> = {
+  VIGENTE: 'Vigente',
+  PROGRAMADO: 'Programado',
+  VENCIDO: 'Vencido',
+  CORTADO: 'Cortado',
+};
+
+/**
+ * Vigencia legible. Sin fechas = "Permanente": rige hasta que se corte. Dias inclusivos.
+ * Acepta "yyyy-MM-dd 00:00" (lo que manda el backend) o Date.
+ */
+export function textoVigencia(e: { fechaDesde?: any; fechaHasta?: any }): string {
+  const f = (v: any) => {
+    if (v == null || v === '') return null;
+    const d = v instanceof Date ? v : stringToLocalDate(String(v));
+    return formatDate(d, 'dd/MM/yyyy', 'en-US');
+  };
+  const desde = f(e?.fechaDesde);
+  const hasta = f(e?.fechaHasta);
+  if (!desde && !hasta) return 'Permanente';
+  if (desde && !hasta) return `Desde el ${desde}`;
+  if (!desde && hasta) return `Hasta el ${hasta}`;
+  return `${desde} al ${hasta}`;
+}
+
 /** yyyy-MM-dd en hora local: toISOString correria el dia en Paraguay (UTC-3). */
 export function fechaParam(d: Date | null): string | null {
   return d == null ? null : formatDate(d, 'yyyy-MM-dd', 'en-US');
