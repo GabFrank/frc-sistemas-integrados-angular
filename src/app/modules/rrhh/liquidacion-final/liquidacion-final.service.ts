@@ -71,7 +71,7 @@ export class LiquidacionFinalService {
     return this.genericService.onCustomQuery(this.imprimirReciboFinalGQL, { id, anchoMm, escpos }, servidor);
   }
 
-  /** Recibo de un solo item del finiquito (HABER: recibo; DESCUENTO: constancia). Solo APROBADA o PAGADA. */
+  /** Recibo de un solo item del finiquito (HABER: recibo; DESCUENTO: constancia). No en ANULADA. */
   onImprimirReciboItem(itemId: number, anchoMm: number | null = null, escpos = false, servidor = true): Observable<any> {
     return this.genericService.onCustomQuery(this.imprimirReciboItemGQL, { itemId, anchoMm, escpos }, servidor);
   }
