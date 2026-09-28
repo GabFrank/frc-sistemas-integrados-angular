@@ -142,8 +142,14 @@ Sobre `6b5d06e6`; ningún condicional. Fijo 1 y 2 en un mismo auditor (desvío a
     devuelva "sin caja" → diálogo "No hay ninguna caja abierta a nombre de MAURO…" → *Salir* → se
     cierra **solo *Venta***, queda *Devoluciones* (`currentIndex` 0). Interceptor quitado; datos
     intactos.
-  - Error de validación de PDV (filial congelado): **NO VERIFICADO** — el `kill -STOP` al filial lo
-    bloqueó el clasificador de permisos de Claude Code; no se ejecutó. **Hallazgo preexistente**: esa
+  - Error de validación de PDV (filial congelado): Franco congeló el filial a mano (`kill -STOP`; el
+    clasificador de permisos se lo había bloqueado a Claude) con la sesión ya iniciada y *Devoluciones*
+    abierta → abrir *Venta* → 30 s con spinner "Cargando…", cotizaciones vacías, **sin** aviso "Error
+    de Validación" y **sin** cerrar la pestaña → `kill -CONT` → las consultas en espera terminan,
+    `pdvValidado = true`, caja 3009 cargada, *Venta* operativa. El cierre de pestaña en ese camino no
+    se puede ejercitar: la rama no se alcanza (ver abajo). No se esperó el timeout de 300 s. Nota:
+    recargar la app con el filial congelado pierde la sesión (el login local pasa por el filial).
+    **Hallazgo preexistente**: esa
     rama del POS (`venta-touch.component.ts:351-365`, aviso "Error de Validación") es inalcanzable
     ante un error de red: `onGetPuntoDeVentaPorId` usa `onCustomQuery` sin `errorConf`, y
     `onCustomQuery` solo propaga el error con `errorConf.networkError.propagate` → con el filial caído
