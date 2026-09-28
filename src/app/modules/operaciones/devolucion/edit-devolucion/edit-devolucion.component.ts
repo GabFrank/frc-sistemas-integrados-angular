@@ -4,6 +4,8 @@ import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { EMPTY, Subscription } from "rxjs";
+import { catchError, timeout } from "rxjs/operators";
 import {
   updateDataSource,
   updateDataSourceInsertFirst,
@@ -110,6 +112,7 @@ export class EditDevolucionComponent implements OnInit {
   procesando = false; // evita doble-submit de las acciones de estado
   canjeMode = false;
   acreditarMode = false;
+  private refrescoSub: Subscription;
 
   columnsToDisplay = [
     "producto",
@@ -185,6 +188,13 @@ export class EditDevolucionComponent implements OnInit {
         this.tipoControl.value == TipoDevolucion.CON_PROVEEDOR;
       this.computeEstadoFlags();
     }
+
+    // La pestaña queda viva en segundo plano: al volver, releer la devolución por
+    // si otra pestaña le cambió el estado (#222).
+    this.tabService
+      .onTabReactivada(this.data)
+      .pipe(untilDestroyed(this))
+      .subscribe(() => this.refrescarAlVolver());
   }
 
   cargarDatos(id: number) {
@@ -192,35 +202,108 @@ export class EditDevolucionComponent implements OnInit {
       .onGetDevolucion(id)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res != null) {
-          this.selectedDevolucion = new Devolucion();
+        if (res != null) this.aplicarDevolucion(res);
+      });
+  }
+
+  private aplicarDevolucion(res: Devolucion, silencioso = false) {
+    this.selectedDevolucion = new Devolucion();
+    Object.assign(this.selectedDevolucion, res);
+    this.esNuevo = false;
+    this.tipoControl.setValue(this.selectedDevolucion.tipo);
+    this.esConProveedor =
+      this.selectedDevolucion.tipo == TipoDevolucion.CON_PROVEEDOR;
+    this.selectedProveedor = this.selectedDevolucion.proveedor;
+    this.proveedorTexto =
+      this.selectedDevolucion.proveedor?.persona?.nombre ?? "";
+    this.sucursalControl.setValue(this.selectedDevolucion.sucursalOrigen);
+    this.observacionControl.setValue(this.selectedDevolucion.observacion);
+    this.nroNotaCreditoControl.setValue(this.selectedDevolucion.nroNotaCredito);
+    this.montoAcreditadoControl.setValue(
+      this.selectedDevolucion.montoAcreditado
+    );
+    this.marcarSinCambios();
+    this.dataSource.data = this.selectedDevolucion.items ?? [];
+    this.getItems(silencioso);
+    this.computeEstadoFlags();
+  }
+
+  /**
+   * Relee la devolución al volver a la pestaña. Sin nada a medio cargar se aplica
+   * todo; si el usuario estaba editando, no se pisan sus campos: solo se
+   * actualizan estado y botones, para no ofrecer acciones de un estado viejo.
+   */
+  private refrescarAlVolver() {
+    const id = this.selectedDevolucion?.id;
+    if (id == null || this.procesando) return;
+    const estadoAnterior = this.selectedDevolucion.estado;
+    this.refrescoSub?.unsubscribe();
+    this.refrescoSub = this.devolucionService
+      .onGetDevolucion(id, true, true)
+      .pipe(
+        // onGetById no emite si falla: cortar para no dejar la suscripción colgada.
+        timeout(15000),
+        catchError(() => EMPTY),
+        untilDestroyed(this)
+      )
+      .subscribe((res) => {
+        if (res == null || this.procesando) return;
+        if (!this.hayEdicionPendiente()) {
+          this.aplicarDevolucion(res, true);
+        } else {
           Object.assign(this.selectedDevolucion, res);
-          this.esNuevo = false;
-          this.tipoControl.setValue(this.selectedDevolucion.tipo);
-          this.esConProveedor =
-            this.selectedDevolucion.tipo == TipoDevolucion.CON_PROVEEDOR;
-          this.selectedProveedor = this.selectedDevolucion.proveedor;
-          this.proveedorTexto =
-            this.selectedDevolucion.proveedor?.persona?.nombre ?? "";
-          this.sucursalControl.setValue(this.selectedDevolucion.sucursalOrigen);
-          this.observacionControl.setValue(this.selectedDevolucion.observacion);
-          this.nroNotaCreditoControl.setValue(
-            this.selectedDevolucion.nroNotaCredito
-          );
-          this.montoAcreditadoControl.setValue(
-            this.selectedDevolucion.montoAcreditado
-          );
-          this.dataSource.data = this.selectedDevolucion.items ?? [];
-          this.getItems();
+          if (this.selectedDevolucion.estado != DevolucionEstado.RETIRADO) {
+            // Canje y acreditación solo valen desde RETIRADO: fallarían.
+            this.canjeMode = false;
+            this.acreditarMode = false;
+          }
           this.computeEstadoFlags();
+        }
+        if (this.selectedDevolucion.estado != estadoAnterior) {
+          this.notificacionService.openWarn(
+            `La devolución cambió a ${this.selectedDevolucion.estado} en otra pestaña`,
+            6
+          );
         }
       });
   }
 
-  getItems() {
+  private hayEdicionPendiente(): boolean {
+    const controles = [
+      this.tipoControl,
+      this.sucursalControl,
+      this.observacionControl,
+      this.nroNotaCreditoControl,
+      this.montoAcreditadoControl,
+    ];
+    return (
+      this.canjeMode ||
+      this.acreditarMode ||
+      controles.some((c) => c.dirty) ||
+      (this.selectedProveedor?.id ?? null) !=
+        (this.selectedDevolucion?.proveedor?.id ?? null) ||
+      // Texto tipeado en el buscador de proveedor sin confirmar la búsqueda.
+      (this.proveedorTexto ?? "") !=
+        (this.selectedProveedor?.persona?.nombre ?? "")
+    );
+  }
+
+  private marcarSinCambios() {
+    this.tipoControl.markAsPristine();
+    this.sucursalControl.markAsPristine();
+    this.observacionControl.markAsPristine();
+    this.nroNotaCreditoControl.markAsPristine();
+    this.montoAcreditadoControl.markAsPristine();
+  }
+
+  getItems(silencioso = false) {
     if (this.selectedDevolucion?.id == null) return;
     this.devolucionService
-      .onGetDevolucionItemsPorDevolucion(this.selectedDevolucion.id)
+      .onGetDevolucionItemsPorDevolucion(
+        this.selectedDevolucion.id,
+        true,
+        silencioso
+      )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.dataSource.data = res ?? [];
@@ -356,6 +439,9 @@ export class EditDevolucionComponent implements OnInit {
             if (res != null) {
               Object.assign(this.selectedDevolucion, res);
               this.esNuevo = false;
+              this.tipoControl.markAsPristine();
+              this.sucursalControl.markAsPristine();
+              this.observacionControl.markAsPristine();
               this.tabService.changeCurrentTabName(
                 "Devol. " + this.selectedDevolucion.id
               );
@@ -734,6 +820,8 @@ export class EditDevolucionComponent implements OnInit {
           if (res != null) {
             Object.assign(this.selectedDevolucion, res);
             this.acreditarMode = false;
+            this.nroNotaCreditoControl.markAsPristine();
+            this.montoAcreditadoControl.markAsPristine();
             this.computeEstadoFlags();
           }
         },
