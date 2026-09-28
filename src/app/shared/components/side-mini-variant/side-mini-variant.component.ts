@@ -18,7 +18,7 @@ import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/re
 import { LucroPorFuncionarioComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-funcionario/lucro-por-funcionario.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
-import { ClienteDashboardComponent } from '../../../modules/personas/clientes/cliente-dashboard/cliente-dashboard.component';
+import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
@@ -1267,7 +1267,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "clientes-dashboard":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_USUARIOS)
           || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
-          this.tabService.addTab(new Tab(ClienteDashboardComponent, "Clientes", null, null));
+          this.tabService.addTab(new Tab(ListClientesComponent, "Lista de clientes", null, null));
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción.');
         }
