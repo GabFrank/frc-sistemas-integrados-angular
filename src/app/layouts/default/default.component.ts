@@ -140,6 +140,10 @@ export class DefaultComponent implements OnInit, OnDestroy, AfterViewInit {
     this.tabService.tabChanged(event.index);
   }
 
+  indiceCambiado(index: number): void {
+    this.tabService.sincronizarActiva(index);
+  }
+
   removeTab(index: number): void {
     this.openDialog(index);
   }

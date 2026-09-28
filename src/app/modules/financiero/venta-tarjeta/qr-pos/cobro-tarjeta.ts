@@ -21,3 +21,18 @@ export function esCobroTarjetaRegistrable(cd: CobroDetalle): boolean {
     && !cd.vuelto
     && !cd.descuento;
 }
+
+/**
+ * Las líneas de tarjeta que se van a registrar y todavía no tienen terminal.
+ *
+ * Con la perilla `terminalObligatoria` prendida, `pago-touch.onFinalizar` no cierra la venta mientras
+ * esta lista no esté vacía. Existe porque el lector escribía en el cobro de atrás y su Enter
+ * finalizaba la venta sin terminal: en farmacia filial 1, 116 de 631 del 25 al 28/09/2026.
+ *
+ * `requiereRegistroTarjeta` por lo mismo que en `onFinalizar`: las líneas ya cobradas de un delivery
+ * que se reabre no se registran de nuevo, así que tampoco se les exige terminal acá.
+ */
+export function lineasTarjetaSinTerminal(lineas: CobroDetalle[]): CobroDetalle[] {
+  return (lineas || []).filter(cd =>
+    esCobroTarjetaRegistrable(cd) && cd.requiereRegistroTarjeta && !cd.terminalPos?.id);
+}
