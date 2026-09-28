@@ -5,6 +5,7 @@ import { SucursalService } from "../../../../empresarial/sucursal/sucursal.servi
 
 export interface ColectarDialogData {
   cantidad?: number; // cuántas devoluciones se van a colectar (opcional, para el texto)
+  sucursalOrigenId?: number; // no se ofrece: el backend rechaza colectar hacia el origen
 }
 
 export interface ColectarDialogResult {
@@ -32,7 +33,11 @@ export class ColectarDialogComponent implements OnInit {
   ngOnInit(): void {
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
       this.cargando = false;
-      this.sucursales = (res || []).filter((s) => s.id != 0);
+      const origenId =
+        this.data?.sucursalOrigenId != null ? Number(this.data.sucursalOrigenId) : null;
+      this.sucursales = (res || []).filter(
+        (s) => s.id != 0 && Number(s.id) !== origenId
+      );
     });
   }
 

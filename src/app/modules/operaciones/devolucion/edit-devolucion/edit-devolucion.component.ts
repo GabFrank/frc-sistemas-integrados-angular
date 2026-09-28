@@ -702,7 +702,10 @@ export class EditDevolucionComponent implements OnInit {
   /** Envía la devolución separada a un depósito (colecta interna -> COLECTADO). */
   onColectar() {
     this.matDialog
-      .open(ColectarDialogComponent, { data: {}, width: "420px" })
+      .open(ColectarDialogComponent, {
+        data: { sucursalOrigenId: this.selectedDevolucion.sucursalOrigen?.id },
+        width: "420px",
+      })
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res: ColectarDialogResult) => {
