@@ -12,6 +12,7 @@
     </mat-drawer>
     <mat-drawer-content style="overflow: hidden;">
       <mat-tab-group class="main-tab-group" [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)"
+        (selectedIndexChange)="indiceCambiado($event)"
         style="width: 100%" mat-stretch-tabs="false">
         <mat-tab class="mat-tab-class" *ngFor="let tab of tabs; let tabIndex = index" style="width: 100%; height: 100%">
           <ng-template mat-tab-label>
